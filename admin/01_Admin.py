@@ -105,8 +105,7 @@ def upload_file(bytes_data: bytes, file_name: str):
     st.session_state['file_url'] = llm_helper.blob_client.upload_file(bytes_data, st.session_state['filename'], content_type=content_type+charset)
 
 def upload_config_file(bytes_data: bytes):
-    blob_client = AzureBlobStorageClient('aoainachostr', 'fAojSZskTaowJGcrh+lhLAyHqzv25pwyw3AhwN1GBvCEzGKAwjLXHUutooFph20AdGAQDknodl3S+AStR1XuOg==',
-'documents')
+    blob_client = AzureBlobStorageClient()
     blob_client.upload_file(bytes_data, f"settings.json", content_type='text/plain; charset=utf-8')
     # blob_client.upload_file(bytes_data, f"config/{file_name}.txt", content_type='text/plain; charset=utf-8')
 
