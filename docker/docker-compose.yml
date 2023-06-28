@@ -1,19 +1,19 @@
 version: "0.1"
 services:
   web:
-    image: webapp
+    image: fruoccopublic.azurecr.io/rag-webapp
     ports:
       - "8080:80"
     env_file:
       - ..\.env
   admin:
-    image: adminwebapp
+    image: fruoccopublic.azurecr.io/rag-adminwebapp
     ports:
       - "8081:80"
     env_file:
       - ..\.env
   backend:
-    image: backend
+    image: fruoccopublic.azurecr.io/rag-backend
     ports: 
       - "8082:80"
     env_file:

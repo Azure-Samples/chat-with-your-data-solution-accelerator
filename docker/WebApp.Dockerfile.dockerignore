@@ -1,0 +1,11 @@
+__pycache__
+.venv
+.env
+.github
+frontend/node_modules
+admin
+backend
+docker
+infrastructure
+.gitignore
+extra
