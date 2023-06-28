@@ -1,58 +1,19 @@
 import streamlit as st
-import os, json, re, io
-from os import path
-import requests
+import os, json
+from typing import Optional
 import mimetypes
 import traceback
 import chardet
-from utilities.helper import LLMHelper
-import uuid
-from redis.exceptions import ResponseError 
-from urllib import parse
+from datetime import datetime, timedelta
 import logging
-from utilities.azureblobstorage import AzureBlobStorageClient
+import requests
+from azure.storage.blob import BlobServiceClient, generate_blob_sas, ContentSettings
 from dotenv import load_dotenv
 load_dotenv()
 
+
 logger = logging.getLogger('azure.core.pipeline.policies.http_logging_policy').setLevel(logging.WARNING)
 
-def check_deployment():
-    # Check if the deployment is working
-    #\ 1. Check if the llm is working
-    try:
-        llm_helper = LLMHelper()
-        llm_helper.get_completion("Generate a joke!")
-        st.success("LLM is working!")
-    except Exception as e:
-        st.error(f"""LLM is not working.  
-            Please check you have a deployment name {llm_helper.deployment_name} in your Azure OpenAI resource {llm_helper.api_base}.  
-            If you are using an Instructions based deployment (text-davinci-003), please check you have an environment variable OPENAI_DEPLOYMENT_TYPE=Text or delete the environment variable OPENAI_DEPLOYMENT_TYPE.  
-            If you are using a Chat based deployment (gpt-35-turbo or gpt-4-32k or gpt-4), please check you have an environment variable OPENAI_DEPLOYMENT_TYPE=Chat.  
-            Then restart your application.
-            """)
-        st.error(traceback.format_exc())
-    #\ 2. Check if the embedding is working
-    try:
-        llm_helper = LLMHelper()
-        llm_helper.embeddings.embed_documents(texts=["This is a test"])
-        st.success("Embedding is working!")
-    except Exception as e:
-        st.error(f"""Embedding model is not working.  
-            Please check you have a deployment named "text-embedding-ada-002" for "text-embedding-ada-002" model in your Azure OpenAI resource {llm_helper.api_base}.  
-            Then restart your application.
-            """)
-        st.error(traceback.format_exc())
-    #\ 3. Check if the VectorDB is working 
-    llm_helper = LLMHelper()
-    try:
-        llm_helper.vector_store.index_exists()
-        st.success("Azure Cognitive Search is working!")
-    except Exception as e:
-        st.error("""Azure Cognitive Search is not working.  
-                    Please check your Azure Cognitive Search service name and service key in the App Settings.  
-                    Then restart your application.  
-                    """)
-        st.error(traceback.format_exc())
 
 def check_variables_in_prompt():
     # Check if "summaries" is present in the string custom_prompt
@@ -71,14 +32,8 @@ def check_variables_in_prompt():
         """)
         st.session_state.custom_prompt = ""
 
-def upload_text_and_embeddings():
-    file_name = f"{uuid.uuid4()}.txt"
-    source_url = llm_helper.blob_client.upload_file(st.session_state['doc_text'], file_name=file_name, content_type='text/plain; charset=utf-8')
-    llm_helper.add_embeddings_lc(source_url) 
-    st.success("Embeddings added successfully.")
-
 def remote_convert_files_and_add_embeddings(process_all=False):
-    url = os.getenv('CONVERT_ADD_EMBEDDINGS_URL')
+    url = os.getenv('CONVERT_ADD_EMBEDDINGS_URL','')
     if process_all:
         url = f"{url}?process_all=true"
     try:
@@ -90,24 +45,35 @@ def remote_convert_files_and_add_embeddings(process_all=False):
     except Exception as e:
         st.error(traceback.format_exc())
 
+# # # # TO DO CALL API IN THE BACKEND FOR ADD_URL
 def add_urls():
-    urls = st.session_state['urls'].split('\n')
-    for url in urls:
-        if url:
-            llm_helper.add_embeddings_lc(url)
-            st.success(f"Embeddings added successfully for {url}")
+    return True
+# # #     urls = st.session_state['urls'].split('\n')
+# # #     for url in urls:
+# # #         if url:
+# # #             llm_helper.add_embeddings_lc(url)
+# # #             st.success(f"Embeddings added successfully for {url}")
 
-def upload_file(bytes_data: bytes, file_name: str):
+def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] = None):    
     # Upload a new file
     st.session_state['filename'] = file_name
-    content_type = mimetypes.MimeTypes().guess_type(file_name)[0]
-    charset = f"; charset={chardet.detect(bytes_data)['encoding']}" if content_type == 'text/plain' else ''
-    st.session_state['file_url'] = llm_helper.blob_client.upload_file(bytes_data, st.session_state['filename'], content_type=content_type+charset)
-
-def upload_config_file(bytes_data: bytes):
-    blob_client = AzureBlobStorageClient()
-    blob_client.upload_file(bytes_data, f"settings.json", content_type='text/plain; charset=utf-8')
-    # blob_client.upload_file(bytes_data, f"config/{file_name}.txt", content_type='text/plain; charset=utf-8')
+    if content_type == None:
+        content_type = mimetypes.MimeTypes().guess_type(file_name)[0]
+        charset = f"; charset={chardet.detect(bytes_data)['encoding']}" if content_type == 'text/plain' else ''
+    account_name = os.getenv('BLOB_ACCOUNT_NAME')
+    account_key =  os.getenv('BLOB_ACCOUNT_KEY')
+    container_name = os.getenv('BLOB_CONTAINER_NAME')
+    if account_name == None or account_key == None or container_name == None:
+        raise ValueError("Please provide values for BLOB_ACCOUNT_NAME, BLOB_ACCOUNT_KEY and BLOB_CONTAINER_NAME")
+    connect_str = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+    blob_service_client : BlobServiceClient = BlobServiceClient.from_connection_string(connect_str)
+    # Create a blob client using the local file name as the name for the blob
+    blob_client = blob_service_client.get_blob_client(container=container_name, blob=file_name)
+    # Upload the created file
+    blob_client.upload_blob(bytes_data, overwrite=True, content_settings=ContentSettings(content_type=content_type+charset))
+    # Generate a SAS URL to the blob and return it
+    st.session_state['file_url'] =  blob_client.url + '?' + generate_blob_sas(account_name, container_name, file_name,account_key=account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
+    
 
 try:
     # Prompt initialisation 
@@ -134,25 +100,21 @@ try:
     post_prompt_help = """You can configure a post prompt by defining how the user's answer will be processed for fact checking or conflict resolution.
         """
 
-    menu_items = {
-	'Get help': None,
-	'Report a bug': None,
-	'About': '''
-	 ## Embeddings App
-	 Embedding testing application.
-	'''
-    }
-    st.set_page_config(layout="wide", menu_items=menu_items)
-
-    llm_helper = LLMHelper()
+    st.set_page_config(page_title="Admin", page_icon=os.path.join('images','favicon.ico'), layout="wide", menu_items=None)
+        
+    mod_page_style = """
+                <style>
+                #MainMenu {visibility: hidden;}
+                footer {visibility: hidden;}
+                header {visibility: hidden;}
+                </style>
+                """
+    st.markdown(mod_page_style, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1,2,1])
     with col1:
         st.image(os.path.join('images','logo.png'))
 
-    with st.expander("Check deployment integration", expanded=True):
-        # Check deployment
-        st.button("Check deployment", on_click=check_deployment, key="check_deployment")
 
     with st.expander("Add documents in Batch", expanded=True):
         uploaded_files = st.file_uploader("Upload a document to add it to the Azure Storage Account", type=['pdf','jpeg','jpg','png', 'txt'], accept_multiple_files=True)
@@ -160,19 +122,15 @@ try:
             for up in uploaded_files:
                 # To read file as bytes:
                 bytes_data = up.getvalue()
-
                 if st.session_state.get('filename', '') != up.name:
                     # Upload a new file
                     upload_file(bytes_data, up.name)
-                    if up.name.endswith('.txt'):
-                        # Add the text to the embeddings
-                        llm_helper.blob_client.upsert_blob_metadata(up.name, {'converted': "true"})
 
         col1, col2, col3 = st.columns([2,2,2])
         with col1:
             st.button("Process new files and add embeddings", on_click=remote_convert_files_and_add_embeddings)
         with col3:
-            st.button("Process all files and add embeddings", on_click=remote_convert_files_and_add_embeddings, args=(True,))
+            st.button("Reprocess all documents in the Azure Storage account", on_click=remote_convert_files_and_add_embeddings, args=(True,))
 
     with st.expander("Add URLs to the knowledge base", expanded=True):
         col1, col2 = st.columns([3,1])
@@ -180,7 +138,7 @@ try:
             st.session_state['urls'] = st.text_area("Add a URLs and than click on 'Compute Embeddings'", placeholder="PLACE YOUR URLS HERE SEPARATED BY A NEW LINE", height=100)
 
         with col2:
-            st.selectbox('Embeddings models', [llm_helper.get_embeddings_model()['doc']], disabled=True, key="embeddings_model_url")
+            st.selectbox('Embeddings models', [os.getenv('AZURE_OPENAI_EMBEDDING_MODEL')], disabled=True)
             st.button("Compute Embeddings", on_click=add_urls, key="add_url")
 
     with st.expander("Define your prompt (check help icon for details on each field)", expanded=True):
@@ -204,7 +162,7 @@ try:
     json_config = {"ch_size": ch_size, "ch_overlap": ch_overlap, "ch_strategy": ch_selection, "pre_prompt": st.session_state['pre_prompt'], "custom_prompt": st.session_state['custom_prompt'],"post_prompt": st.session_state['post_prompt']}
     #convert json_config to bytes
     json_config = json.dumps(json_config).encode('utf-8')
-    upload_config_file(json_config)
+    upload_file(json_config, f"settings.json", content_type='text/plain; charset=utf-8')
 
 except Exception as e:
     st.error(traceback.format_exc())
