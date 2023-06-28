@@ -74,6 +74,7 @@ To run the demo, follow these steps:
 ## Licensing
 
 This repository is licensed under the [MIT License](LICENSE.md).
+
 The data set under the /data folder is licensed under the [CDLA-Permissive-2 License](CDLA-Permissive-2.md) and generated with Azure OpenAI GPT and DALL-E 2 models.
 
 # DISCLAIMER
