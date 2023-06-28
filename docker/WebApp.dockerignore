@@ -3,3 +3,6 @@
 WebApp.Dockerfile
 WebApp.dockerignore
 frontend/node_modules
+admin
+docker
+infrastructure

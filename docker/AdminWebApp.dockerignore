@@ -1,0 +1,7 @@
+admin/BatchStartProcessing
+admin/BatchPushResults
+admin/Dockerfile
+admin/__pycache__
+admin/environment.yml
+admin/host.json
+admin/local.settings.json
