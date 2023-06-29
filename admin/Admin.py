@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import logging
 import requests
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, ContentSettings
+import urllib.parse
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -33,11 +34,11 @@ def check_variables_in_prompt():
         st.session_state.custom_prompt = ""
 
 def remote_convert_files_and_add_embeddings(process_all=False):
-    url = os.getenv('CONVERT_ADD_EMBEDDINGS_URL','')
+    backend_url = urllib.parse.urljoin(os.getenv('BACKEND_URL','http://localhost:7071'), "/api/BatchStartProcessing")
     if process_all:
-        url = f"{url}?process_all=true"
+        url = f"{backend_url}?process_all=true"
     try:
-        response = requests.post(url)
+        response = requests.post(backend_url)
         if response.status_code == 200:
             st.success(f"{response.text}\nPlease note this is an asynchronous process and may take a few minutes to complete.")
         else:
@@ -45,14 +46,19 @@ def remote_convert_files_and_add_embeddings(process_all=False):
     except Exception as e:
         st.error(traceback.format_exc())
 
-# # # # TO DO CALL API IN THE BACKEND FOR ADD_URL
 def add_urls():
-    return True
-# # #     urls = st.session_state['urls'].split('\n')
-# # #     for url in urls:
-# # #         if url:
-# # #             llm_helper.add_embeddings_lc(url)
-# # #             st.success(f"Embeddings added successfully for {url}")
+    urls = st.session_state['urls'].split('\n')
+    for url in urls:
+        body = {
+            "url": url
+        }
+        backend_url = urllib.parse.urljoin(os.getenv('BACKEND_URL','http://localhost:7071'), "/api/AddURLEmbeddings")
+        r = requests.post(url=backend_url, json=body)
+        if not r.ok:
+            raise ValueError('Error')
+        else:
+            st.success(f'Embeddings added successfully for {url}')
+
 
 def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] = None):    
     # Upload a new file

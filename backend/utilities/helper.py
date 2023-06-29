@@ -120,7 +120,7 @@ class LLMHelper:
             if self.vector_store_type == 'AzureSearch':
                 self.vector_store.add_documents(documents=docs, keys=keys)
             else:
-                self.vector_store.add_documents(documents=docs, redis_url=self.vector_store_full_address,  index_name=self.index_name, keys=keys)
+                self.vector_store.add_documents(documents=docs, redis_url=self.vector_store_address,  index_name=self.index_name, keys=keys)
             
         except Exception as e:
             logging.error(f"Error adding embeddings for {source_url}: {e}")
