@@ -1,4 +1,4 @@
-import logging
+import logging, traceback
 
 import azure.functions as func
 from utilities.helper import LLMHelper
@@ -21,7 +21,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             llm_helper.add_embeddings_lc(url)
         except Exception as e:
             return func.HttpResponse(
-                "Error: {e}",
+                f"Error: {traceback.format_exc()}",
                 status_code=500)
         
         return func.HttpResponse(

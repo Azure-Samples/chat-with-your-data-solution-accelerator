@@ -15,10 +15,11 @@ class QuestionHandler:
         load_dotenv()
         
         os.environ["OPENAI_API_BASE"] = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
+        os.environ["OPENAI_API_KEY"] = os.getenv("AZURE_OPENAI_KEY")
 
         # Configure OpenAI API
         openai.api_type = "azure"
-        openai.api_version = os.getenv("AZURE_OPENAI_PREVIEW_API_VERSION")
+        openai.api_version = os.getenv("AZURE_OPENAI_API_VERSION")
         openai.api_base = os.getenv('OPENAI_API_BASE')
         openai.api_key = os.getenv("OPENAI_API_KEY")
 
