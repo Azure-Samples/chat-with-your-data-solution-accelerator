@@ -1,4 +1,5 @@
 version: "0.1"
+name: rag
 services:
   web:
     image: fruoccopublic.azurecr.io/rag-webapp
