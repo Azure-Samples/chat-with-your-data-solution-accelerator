@@ -13,7 +13,7 @@ import {
     ChatMessage,
     ConversationRequest,
     conversationApi,
-    vectorSearchApi,
+    customConversationApi,
     Citation,
     ToolMessageContent,
     ChatResponse
@@ -50,7 +50,7 @@ const Chat = () => {
 
         let result = {} as ChatResponse;
         try {
-            const response = await vectorSearchApi(request, abortController.signal);
+            const response = await customConversationApi(request, abortController.signal);
             if (response?.body) {
                 
                 const reader = response.body.getReader();

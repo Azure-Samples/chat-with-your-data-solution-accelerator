@@ -55,7 +55,7 @@ class LLMHelper:
         # Azure OpenAI settings
         self.api_base = openai.api_base
         self.api_version = openai.api_version
-        self.index_name: str = "embeddings"
+        self.index_name: str = os.getenv("AZURE_SEARCH_INDEX")
         self.model: str = os.getenv('OPENAI_EMBEDDINGS_ENGINE_DOC', "text-embedding-ada-002")
         self.deployment_name: str = os.getenv("OPENAI_ENGINE", os.getenv("OPENAI_ENGINES", "text-davinci-003"))
         self.deployment_type: str = os.getenv("OPENAI_DEPLOYMENT_TYPE", "Text")

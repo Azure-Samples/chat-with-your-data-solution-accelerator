@@ -3,6 +3,12 @@ import os
 import logging
 import requests
 import openai
+
+# Fixing MIME types for static files under Windows
+import mimetypes
+mimetypes.add_type('application/javascript', '.js')
+mimetypes.add_type('text/css', '.css')
+
 from flask import Flask, Response, request, jsonify
 from dotenv import load_dotenv
 
@@ -22,7 +28,7 @@ from langchain.document_loaders.base import BaseLoader
 from langchain.document_loaders import TextLoader
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
-
+from backend.utilities.QuestionHandler import QuestionHandler
 
 load_dotenv()
 
@@ -251,56 +257,31 @@ def conversation_without_data(request):
         else:
             return Response(None, mimetype='text/event-stream')
 
-# @app.route("/conversation", methods=["GET", "POST"])
-# def conversation():
-#     try:
-#         use_data = should_use_data()
-#         if use_data:
-#             return conversation_with_data(request)
-#         else:
-#             return conversation_without_data(request)
-#     except Exception as e:
-#         logging.exception("Exception in /conversation")
-#         return jsonify({"error": str(e)}), 500
+@app.route("/api/conversation/wednesday", methods=["GET", "POST"])
+def conversation_wednesday():
+    try:
+        use_data = should_use_data()
+        if use_data:
+            return conversation_with_data(request)
+        else:
+            return conversation_without_data(request)
+    except Exception as e:
+        logging.exception("Exception in /conversation")
+        return jsonify({"error": str(e)}), 500
     
 
-@app.route("/conversation", methods=["GET","POST"]) # vectorsearch
-def vectors():
+@app.route("/api/conversation/custom", methods=["GET","POST"])
+def conversation_custom():
+    
+    handler = QuestionHandler()
     try:
-        # Configure OpenAI API
-        openai.api_type = "azure"
-        openai.api_base = f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/"
-        openai.api_version = "2023-03-15-preview"
-        openai.api_key = AZURE_OPENAI_KEY
-
-        llm: AzureOpenAI = AzureOpenAI(deployment_name=os.getenv("AZURE_OPENAI_MODEL"), openai_api_key=os.getenv("AZURE_OPENAI_KEY"))
-        embeddings: OpenAIEmbeddings = OpenAIEmbeddings(model="text-embedding-ada-002", chunk_size=1, openai_api_key=os.getenv("AZURE_OPENAI_KEY")) 
-   
-        from azuresearch import AzureSearch
-        vector_store : VectorStore = AzureSearch(
-                azure_cognitive_search_name= os.getenv('AZURE_SEARCH_SERVICE'),
-                azure_cognitive_search_key= os.getenv('AZURE_SEARCH_KEY'),
-                index_name= os.getenv('AZURE_SEARCH_INDEX'),
-                embedding_function=embeddings.embed_query
-                )
-
-        question_generator = LLMChain(llm=llm, prompt=CONDENSE_QUESTION_PROMPT, verbose=True)
-        doc_chain = load_qa_with_sources_chain(llm, chain_type="stuff", verbose=True)
-        chain = ConversationalRetrievalChain(
-            retriever=vector_store.as_retriever(),
-            question_generator=question_generator,
-            combine_docs_chain=doc_chain,
-            return_source_documents=True
-        )
         question = request.json["messages"][-1]['content']
         chat_history = []
         for i,k in enumerate(request.json["messages"][0:-1]):
             if i % 2 == 1:
                 chat_history.append((request.json["messages"][i]['content'],request.json["messages"][i+1]['content']))
-
-        result = chain({"question": question, "chat_history": chat_history})
-
-        # if not SHOULD_STREAM:
+        
+        result = handler.handle_question(question=question, chat_history=chat_history)
         response_obj = {
             "id": "response.id",
             "model": os.getenv("AZURE_OPENAI_MODEL"),
@@ -317,7 +298,7 @@ def vectors():
         return jsonify(response_obj), 200    
     
     except Exception as e:
-        logging.exception("Exception in /vectors")
+        logging.exception("Exception in /api/conversation/custom")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
