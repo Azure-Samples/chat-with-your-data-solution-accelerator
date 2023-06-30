@@ -1,8 +1,8 @@
-# Generative AI-Powered Chat Solution Accelerator  
+# "Chat with your data" Accelerator  
   
-Welcome to the Generative AI-Powered Chat Solution Accelerator repository! 
+Welcome to the "Chat with your data" Solution Accelerator repository! 
 
-The Generative AI-Powered Chat Solution Accelerator is a powerful tool that combines the capabilities of Azure Cognitive Search and GPT language model to create a conversational search experience. The solution accelerator includes ChatGPT model and a search index generated from your data, which can be integrated into a web application to provide users with a natural language interface for search queries.
+The "Chat with your data" Solution Accelerator is a powerful tool that combines the capabilities of Azure Cognitive Search and GPT language model to create a conversational search experience. The solution accelerator includes ChatGPT model and a search index generated from your data, which can be integrated into a web application to provide users with a natural language interface for search queries.
 
 This repository provides a template for setting up the solution accelerator, along with detailed instructions on how to use and customize it to fit your specific needs.
 
