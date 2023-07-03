@@ -1,7 +1,7 @@
 import logging, traceback
 
 import azure.functions as func
-from utilities.helper import LLMHelper
+from utilities.LLMHelper import LLMHelper
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')

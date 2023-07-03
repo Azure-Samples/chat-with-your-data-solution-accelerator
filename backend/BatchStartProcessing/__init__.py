@@ -1,7 +1,7 @@
 import logging, json, os
 import azure.functions as func
 from azure.storage.queue import QueueClient, BinaryBase64EncodePolicy
-from utilities.helper import LLMHelper
+from utilities.LLMHelper import LLMHelper
 
 queue_name = os.environ['QUEUE_NAME']
 

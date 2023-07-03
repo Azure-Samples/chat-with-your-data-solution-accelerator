@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import logging
 import re
 import hashlib
+import json
 
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.llms import AzureOpenAI
@@ -19,13 +20,13 @@ from langchain.document_loaders import WebBaseLoader
 from langchain.text_splitter import TokenTextSplitter, TextSplitter
 from langchain.document_loaders.base import BaseLoader
 from langchain.document_loaders import TextLoader
-from langchain.chat_models import ChatOpenAI
+from langchain.chat_models import AzureChatOpenAI
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
 
-from utilities.formrecognizer import AzureFormRecognizerClient
-from utilities.azureblobstorage import AzureBlobStorageClient
-from utilities.customprompt import PROMPT
-from utilities.azuresearch import AzureSearch
+from .formrecognizer import AzureFormRecognizerClient
+from .azureblobstorage import AzureBlobStorageClient
+from .customprompt import PROMPT
+from .azuresearch import AzureSearch
 
 import pandas as pd
 import urllib
@@ -70,14 +71,13 @@ class LLMHelper:
         self.vector_store_address: str = os.getenv('AZURE_SEARCH_SERVICE')
         self.vector_store_password: str = os.getenv('AZURE_SEARCH_KEY')
 
-
         self.chunk_size = int(os.getenv('CHUNK_SIZE', 500))
         self.chunk_overlap = int(os.getenv('CHUNK_OVERLAP', 100))
         self.document_loaders: BaseLoader = WebBaseLoader if document_loaders is None else document_loaders
         self.text_splitter: TextSplitter = TokenTextSplitter(chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap) if text_splitter is None else text_splitter
         self.embeddings: OpenAIEmbeddings = OpenAIEmbeddings(model=self.model, chunk_size=1) if embeddings is None else embeddings
         if self.deployment_type == "Chat":
-            self.llm: ChatOpenAI = ChatOpenAI(model_name=self.deployment_name, engine=self.deployment_name, temperature=self.temperature, max_tokens=self.max_tokens if self.max_tokens != -1 else None) if llm is None else llm
+            self.llm: AzureChatOpenAI = AzureChatOpenAI(deployment_name=self.deployment_name, temperature=self.temperature, openai_api_version=self.api_version, max_tokens=self.max_tokens if self.max_tokens != -1 else None) if llm is None else llm
         else:
             self.llm: AzureOpenAI = AzureOpenAI(deployment_name=self.deployment_name, temperature=self.temperature, max_tokens=self.max_tokens) if llm is None else llm
         self.vector_store: VectorStore = AzureSearch(azure_cognitive_search_name=self.vector_store_address, azure_cognitive_search_key=self.vector_store_password, index_name=self.index_name, embedding_function=self.embeddings.embed_query) if vector_store is None else vector_store
@@ -151,7 +151,7 @@ class LLMHelper:
                 'metadata' : x.metadata,
                 }, result)))
 
-    def get_semantic_answer_lang_chain(self, question, chat_history):
+    def get_answer_using_langchain(self, question, chat_history):
         question_generator = LLMChain(llm=self.llm, prompt=CONDENSE_QUESTION_PROMPT, verbose=False)
         doc_chain = load_qa_with_sources_chain(self.llm, chain_type="stuff", verbose=True, prompt=self.prompt)
         chain = ConversationalRetrievalChain(
@@ -161,16 +161,44 @@ class LLMHelper:
             return_source_documents=True,
             # top_k_docs_for_context= self.k
         )
+                
         result = chain({"question": question, "chat_history": chat_history})
-        context = "\n".join(list(map(lambda x: x.page_content, result['source_documents'])))
-        sources = "\n".join(set(map(lambda x: x.metadata["source"], result['source_documents'])))
-
         container_sas = self.blob_client.get_container_sas()
         
-        result['answer'] = result['answer'].split('SOURCES:')[0].split('Sources:')[0].split('SOURCE:')[0].split('Source:')[0]
-        sources = sources.replace('_SAS_TOKEN_PLACEHOLDER_', container_sas)
+        # TODO: Need to replace this with proper reference handling
+        answer = result['answer'].split('SOURCES:')[0].split('Sources:')[0].split('SOURCE:')[0].split('Source:')[0]
+        print(result)
 
-        return question, result['answer'], context, sources
+        messages = [
+            {
+                "role": "tool",
+                "content": {
+                    "citations": [],
+                    "intent": result['question'] # TODO: replace with standalone question from first chain
+                },
+                "end_turn": False
+            },
+            {
+                "role": "assistant",
+                "content": answer,
+                "end_turn": True
+            }
+        ]
+        
+        for idx, doc in enumerate(result['source_documents']):
+            messages[0]["content"]["citations"].append({
+                "content": doc.page_content,
+                "id": idx,
+                "chunk_id": doc.metadata['chunk'],
+                "title": doc.metadata['filename'],
+                "filepath": doc.metadata['filename'],
+                "url": doc.metadata['source'].replace('_SAS_TOKEN_PLACEHOLDER_', container_sas),
+                "metadata": doc.metadata
+            })
+            
+        # everything in content needs to be stringified to work with Azure BYOD frontend
+        messages[0]["content"] = json.dumps(messages[0]["content"])
+        return messages
 
     def get_embeddings_model(self):
         OPENAI_EMBEDDINGS_ENGINE_DOC = os.getenv('AZURE_OPENAI_EMBEDDING_MODEL', os.getenv('OPENAI_EMBEDDINGS_ENGINE_DOC', 'text-embedding-ada-002'))  

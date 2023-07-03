@@ -1,6 +1,6 @@
 import logging, json
 import azure.functions as func
-from utilities.helper import LLMHelper
+from utilities.LLMHelper import LLMHelper
 
 def main(msg: func.QueueMessage) -> None:
     logging.info('Python queue trigger function processed a queue item: %s',

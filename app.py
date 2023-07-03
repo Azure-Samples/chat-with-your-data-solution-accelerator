@@ -11,24 +11,7 @@ mimetypes.add_type('text/css', '.css')
 
 from flask import Flask, Response, request, jsonify
 from dotenv import load_dotenv
-
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.llms import AzureOpenAI
-from langchain.vectorstores.base import VectorStore
-from langchain.chains import ChatVectorDBChain
-from langchain.chains import ConversationalRetrievalChain
-from langchain.chains.qa_with_sources import load_qa_with_sources_chain
-from langchain.chains.llm import LLMChain
-from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
-from langchain.prompts import PromptTemplate
-from langchain.document_loaders.base import BaseLoader
-from langchain.document_loaders import WebBaseLoader
-from langchain.text_splitter import TokenTextSplitter, TextSplitter
-from langchain.document_loaders.base import BaseLoader
-from langchain.document_loaders import TextLoader
-from langchain.chat_models import ChatOpenAI
-from langchain.schema import AIMessage, HumanMessage, SystemMessage
-from backend.utilities.QuestionHandler import QuestionHandler
+from backend.utilities.LLMHelper import LLMHelper
 
 load_dotenv()
 
@@ -272,8 +255,8 @@ def conversation_azure_byod():
 
 @app.route("/api/conversation/custom", methods=["GET","POST"])
 def conversation_custom():
+    llmhelper = LLMHelper()
     
-    handler = QuestionHandler()
     try:
         question = request.json["messages"][-1]['content']
         chat_history = []
@@ -281,17 +264,15 @@ def conversation_custom():
             if i % 2 == 1:
                 chat_history.append((request.json["messages"][i]['content'],request.json["messages"][i+1]['content']))
         
-        result = handler.handle_question(question=question, chat_history=chat_history)
+        messages = llmhelper.get_answer_using_langchain(question=question, chat_history=chat_history)
+
         response_obj = {
             "id": "response.id",
             "model": os.getenv("AZURE_OPENAI_MODEL"),
             "created": "response.created",
             "object": "response.object",
             "choices": [{
-                "messages": [{
-                    "role": "assistant",
-                    "content": result['answer']
-                }]
+                "messages": messages
             }]
         }
 
