@@ -546,6 +546,17 @@
             }
         },
         {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2021-08-01",
+            "name": "[concat(parameters('StorageAccountName'), '/default/', 'config')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName'))]"
+            ],
+            "properties": {
+                "publicAccess": "None"
+            }
+        },
+        {
             "type": "Microsoft.Storage/storageAccounts/queueServices",
             "apiVersion": "2022-09-01",
             "name": "[concat(parameters('StorageAccountName'), '/default')]",
