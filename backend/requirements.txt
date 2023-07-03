@@ -7,7 +7,6 @@ plotly==5.12.0
 scipy==1.10.0
 scikit-learn==1.2.0
 transformers==4.25.1
-redis==4.5.4
 python-dotenv==1.0.0
 azure-ai-formrecognizer==3.2.0
 azure-storage-blob==12.14.1
