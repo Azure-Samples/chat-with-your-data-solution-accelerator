@@ -5,3 +5,4 @@ backend/.funcignore
 backend/environment.yml
 backend/host.json
 backend/local.settings.json
+backend/Admin.py
