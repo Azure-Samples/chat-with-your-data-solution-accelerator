@@ -49,6 +49,7 @@ class LLMHelper:
 
         os.environ["OPENAI_API_BASE"] = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
         os.environ["OPENAI_API_KEY"] = os.getenv("AZURE_OPENAI_KEY")
+        os.environ["OPENAI_API_VERSION"] = os.getenv("AZURE_OPENAI_API_VERSION")
 
         load_dotenv('..\.env')
         openai.api_type = "azure"
@@ -61,8 +62,8 @@ class LLMHelper:
         self.api_version = openai.api_version
         self.index_name: str = os.getenv("AZURE_SEARCH_INDEX")
         self.model: str = os.getenv('OPENAI_EMBEDDINGS_ENGINE_DOC', "text-embedding-ada-002")
-        self.deployment_name: str = os.getenv("AZURE_OPENAI_MODEL", "text-davinci-003")
-        self.deployment_type: str = os.getenv("OPENAI_DEPLOYMENT_TYPE", "Text")
+        self.deployment_name: str = os.getenv("AZURE_OPENAI_MODEL", "gpt-35-turbo")
+        self.deployment_type: str = os.getenv("OPENAI_DEPLOYMENT_TYPE", "Chat")
         self.temperature: float = float(os.getenv("AZURE_OPENAI_TEMPERATURE", 0.7)) if temperature is None else temperature
         self.max_tokens: int = int(os.getenv("AZURE_OPENAI_MAX_TOKENS", -1)) if max_tokens is None else max_tokens
         self.prompt = PROMPT if custom_prompt == '' else PromptTemplate(template=custom_prompt, input_variables=["summaries", "question"])
@@ -181,14 +182,14 @@ class LLMHelper:
             },
             {
                 "role": "assistant",
-                "content": answer,
+                "content": answer + "[doc1]",
                 "end_turn": True
             }
         ]
         
         for idx, doc in enumerate(result['source_documents']):
             messages[0]["content"]["citations"].append({
-                "content": doc.page_content,
+                "content": "https://www.microsoft.com\n" + doc.page_content,
                 "id": idx,
                 "chunk_id": doc.metadata['chunk'],
                 "title": doc.metadata['filename'],
