@@ -25,10 +25,13 @@ st.markdown(mod_page_style, unsafe_allow_html=True)
     
 def remote_convert_files_and_add_embeddings(process_all=False):
     backend_url = urllib.parse.urljoin(os.getenv('BACKEND_URL','http://localhost:7071'), "/api/BatchStartProcessing")
+    params = {}
+    if os.getenv('FUNCTION_KEY') != None:
+        params['clientKey'] = os.getenv('FUNCTION_KEY')
     if process_all:
-        url = f"{backend_url}?process_all=true"
+        params['process_all'] = "true"
     try:
-        response = requests.post(backend_url)
+        response = requests.post(backend_url, params=params)
         if response.status_code == 200:
             st.success(f"{response.text}\nPlease note this is an asynchronous process and may take a few minutes to complete.")
         else:
@@ -37,15 +40,18 @@ def remote_convert_files_and_add_embeddings(process_all=False):
         st.error(traceback.format_exc())
 
 def add_urls():
+    params = {}
+    if os.getenv('FUNCTION_KEY') != None:
+        params['clientKey'] = os.getenv('FUNCTION_KEY')
     urls = st.session_state['urls'].split('\n')
     for url in urls:
         body = {
             "url": url
         }
         backend_url = urllib.parse.urljoin(os.getenv('BACKEND_URL','http://localhost:7071'), "/api/AddURLEmbeddings")
-        r = requests.post(url=backend_url, json=body)
+        r = requests.post(url=backend_url, params=params, json=body)
         if not r.ok:
-            raise ValueError('Error')
+            raise ValueError(f'Error {r.status_code}: {r.text}')
         else:
             st.success(f'Embeddings added successfully for {url}')
 
