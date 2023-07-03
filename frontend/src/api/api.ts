@@ -1,7 +1,7 @@
 import { ChatResponse, ConversationRequest } from "./models";
 
 export async function conversationApi(options: ConversationRequest, abortSignal: AbortSignal): Promise<Response> {
-    const response = await fetch("/api/conversation/wednesday", {
+    const response = await fetch("/api/conversation/azure_byod", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"

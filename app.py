@@ -257,8 +257,8 @@ def conversation_without_data(request):
         else:
             return Response(None, mimetype='text/event-stream')
 
-@app.route("/api/conversation/wednesday", methods=["GET", "POST"])
-def conversation_wednesday():
+@app.route("/api/conversation/azure_byod", methods=["GET", "POST"])
+def conversation_azure_byod():
     try:
         use_data = should_use_data()
         if use_data:
@@ -266,7 +266,7 @@ def conversation_wednesday():
         else:
             return conversation_without_data(request)
     except Exception as e:
-        logging.exception("Exception in /conversation")
+        logging.exception("Exception in /api/conversation/azure_byod")
         return jsonify({"error": str(e)}), 500
     
 
