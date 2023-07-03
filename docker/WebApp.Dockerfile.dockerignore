@@ -9,3 +9,4 @@ docker
 infrastructure
 .gitignore
 extra
+data

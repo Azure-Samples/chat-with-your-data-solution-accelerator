@@ -46,10 +46,13 @@ class LLMHelper:
         pdf_parser: AzureFormRecognizerClient = None,
         blob_client: AzureBlobStorageClient = None):
 
+        os.environ["OPENAI_API_BASE"] = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
+        os.environ["OPENAI_API_KEY"] = os.getenv("AZURE_OPENAI_KEY")
+
         load_dotenv('..\.env')
         openai.api_type = "azure"
         openai.api_base = os.getenv('OPENAI_API_BASE')
-        openai.api_version = "2023-03-15-preview"
+        openai.api_version = os.getenv("AZURE_OPENAI_API_VERSION")
         openai.api_key = os.getenv("OPENAI_API_KEY")
 
         # Azure OpenAI settings
@@ -57,12 +60,11 @@ class LLMHelper:
         self.api_version = openai.api_version
         self.index_name: str = os.getenv("AZURE_SEARCH_INDEX")
         self.model: str = os.getenv('OPENAI_EMBEDDINGS_ENGINE_DOC', "text-embedding-ada-002")
-        self.deployment_name: str = os.getenv("OPENAI_ENGINE", os.getenv("OPENAI_ENGINES", "text-davinci-003"))
+        self.deployment_name: str = os.getenv("AZURE_OPENAI_MODEL", "text-davinci-003")
         self.deployment_type: str = os.getenv("OPENAI_DEPLOYMENT_TYPE", "Text")
-        self.temperature: float = float(os.getenv("OPENAI_TEMPERATURE", 0.7)) if temperature is None else temperature
-        self.max_tokens: int = int(os.getenv("OPENAI_MAX_TOKENS", -1)) if max_tokens is None else max_tokens
+        self.temperature: float = float(os.getenv("AZURE_OPENAI_TEMPERATURE", 0.7)) if temperature is None else temperature
+        self.max_tokens: int = int(os.getenv("AZURE_OPENAI_MAX_TOKENS", -1)) if max_tokens is None else max_tokens
         self.prompt = PROMPT if custom_prompt == '' else PromptTemplate(template=custom_prompt, input_variables=["summaries", "question"])
-        self.vector_store_type = os.getenv("VECTOR_STORE_TYPE")
 
         # Azure Search settings
         self.vector_store_address: str = os.getenv('AZURE_SEARCH_SERVICE')
@@ -117,10 +119,7 @@ class LLMHelper:
                 hash_key = f"doc:{self.index_name}:{hash_key}"
                 keys.append(hash_key)
                 doc.metadata = {"source": f"[{source_url}]({source_url}_SAS_TOKEN_PLACEHOLDER_)" , "chunk": i, "key": hash_key, "filename": filename}
-            if self.vector_store_type == 'AzureSearch':
-                self.vector_store.add_documents(documents=docs, keys=keys)
-            else:
-                self.vector_store.add_documents(documents=docs, redis_url=self.vector_store_address,  index_name=self.index_name, keys=keys)
+            self.vector_store.add_documents(documents=docs, keys=keys)
             
         except Exception as e:
             logging.error(f"Error adding embeddings for {source_url}: {e}")
@@ -174,8 +173,8 @@ class LLMHelper:
         return question, result['answer'], context, sources
 
     def get_embeddings_model(self):
-        OPENAI_EMBEDDINGS_ENGINE_DOC = os.getenv('OPENAI_EMEBDDINGS_ENGINE', os.getenv('OPENAI_EMBEDDINGS_ENGINE_DOC', 'text-embedding-ada-002'))  
-        OPENAI_EMBEDDINGS_ENGINE_QUERY = os.getenv('OPENAI_EMEBDDINGS_ENGINE', os.getenv('OPENAI_EMBEDDINGS_ENGINE_QUERY', 'text-embedding-ada-002'))
+        OPENAI_EMBEDDINGS_ENGINE_DOC = os.getenv('AZURE_OPENAI_EMBEDDING_MODEL', os.getenv('OPENAI_EMBEDDINGS_ENGINE_DOC', 'text-embedding-ada-002'))  
+        OPENAI_EMBEDDINGS_ENGINE_QUERY = os.getenv('AZURE_OPENAI_EMBEDDING_MODEL', os.getenv('OPENAI_EMBEDDINGS_ENGINE_QUERY', 'text-embedding-ada-002'))
         return {
             "doc": OPENAI_EMBEDDINGS_ENGINE_DOC,
             "query": OPENAI_EMBEDDINGS_ENGINE_QUERY

@@ -55,7 +55,7 @@ def add_urls():
         backend_url = urllib.parse.urljoin(os.getenv('BACKEND_URL','http://localhost:7071'), "/api/AddURLEmbeddings")
         r = requests.post(url=backend_url, json=body)
         if not r.ok:
-            raise ValueError('Error')
+            raise ValueError(f'Error adding embeddings for {url}. Status_code:{r.status_code} Response:{r.text} Backend: {backend_url}')
         else:
             st.success(f'Embeddings added successfully for {url}')
 
