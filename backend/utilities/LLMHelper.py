@@ -159,6 +159,7 @@ class LLMHelper:
             question_generator=question_generator,
             combine_docs_chain=doc_chain,
             return_source_documents=True,
+            return_generated_question=True,
             # top_k_docs_for_context= self.k
         )
                 
@@ -174,7 +175,7 @@ class LLMHelper:
                 "role": "tool",
                 "content": {
                     "citations": [],
-                    "intent": result['question'] # TODO: replace with standalone question from first chain
+                    "intent": result['generated_question']
                 },
                 "end_turn": False
             },
