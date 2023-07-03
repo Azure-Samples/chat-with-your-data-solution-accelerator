@@ -5,7 +5,7 @@ azure-storage-blob==12.14.1
 python-dotenv==1.0.0
 langchain==0.0.218
 azure-ai-formrecognizer==3.2.0
-requests==2.28.2
+requests==2.31.0
 tiktoken==0.2.0
 azure-storage-queue==12.5.0
 beautifulsoup4==4.12.0
