@@ -259,10 +259,11 @@ def conversation_custom():
     
     try:
         question = request.json["messages"][-1]['content']
+        user_assistent_messages = list(filter(lambda x: x['role'] in ('user','assistant'), request.json["messages"][0:-1]))        
         chat_history = []
-        for i,k in enumerate(request.json["messages"][0:-1]):
-            if i % 2 == 1:
-                chat_history.append((request.json["messages"][i]['content'],request.json["messages"][i+1]['content']))
+        for i,k in enumerate(user_assistent_messages):
+            if i % 2 == 0:
+                chat_history.append((user_assistent_messages[i]['content'],user_assistent_messages[i+1]['content']))
         
         messages = llmhelper.get_answer_using_langchain(question=question, chat_history=chat_history)
 
