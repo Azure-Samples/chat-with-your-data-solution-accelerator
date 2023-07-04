@@ -36,10 +36,15 @@ class Logging:
         
 class ConfigHelper:
     @staticmethod
-    def get_active_config():
-        blob_client = AzureBlobStorageClient(container_name=CONFIG_CONTAINER_NAME)
-        config = blob_client.download_file("active.json")
-        return Config(json.loads(config))
+    def get_active_config_or_default():
+        try:
+            blob_client = AzureBlobStorageClient(container_name=CONFIG_CONTAINER_NAME)
+            config = blob_client.download_file("active.json")
+            config = Config(json.loads(config))
+        except: 
+            print("Returning default config")
+            config = ConfigHelper.get_default_config()
+        return config 
     
     @staticmethod
     def save_config_as_active(config):
@@ -56,8 +61,13 @@ Chat History:
 {chat_history}
 Follow Up Input: {question}
 Standalone question:""",
-                "answering_prompt": "",
-                "post_answering_prompt": None,
+                "answering_prompt": """You are an AI assistant that helps users answers their questions. Be brief in your answers.
+Answer ONLY with the facts listed in the list of sources below. If there isn't enough information below, say you don't know. Do not generate answers that don't use the sources below. If asking a clarifying question to the user would help, ask the question.
+Each source has a name followed by colon and the actual information, always include the source name for each fact you use in the response. Use square brackets to reference the source, e.g. [info1.txt]. Don't combine sources, list each source separately, e.g. [info1.txt][info2.pdf].
+
+Sources:
+{sources}""",
+                "post_answering_prompt": "",
                 },
             "chunking": [{
                 "strategy": ChunkingStrategy.FIXED_SIZE_OVERLAP,
