@@ -49,8 +49,10 @@ def validate_question_prompt():
         st.warning("Your condense question prompt doesn't contain the variable `{question}`")
 
 def validate_answering_prompt():
-    if "{sources}" not in st.session_state.answering_prompt:
-        st.warning("Your custom prompt doesn't contain the variable `{sources}`")
+    if "{summaries}" not in st.session_state.answering_prompt:
+        st.warning("Your custom prompt doesn't contain the variable `{summaries}`")
+    if "{question}" not in st.session_state.answering_prompt:
+        st.warning("Your custom prompt doesn't contain the variable `{question}`")
 
 try:
     condense_question_prompt_help = """TODO"""

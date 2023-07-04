@@ -27,8 +27,8 @@ from opencensus.ext.azure.log_exporter import AzureLogHandler
 
 from .formrecognizer import AzureFormRecognizerClient
 from .azureblobstorage import AzureBlobStorageClient
-from .customprompt import PROMPT
 from .azuresearch import AzureSearch
+from .ConfigHelper import ConfigHelper
 
 import pandas as pd
 import urllib
@@ -90,13 +90,6 @@ class LLMHelper:
             int(os.getenv("AZURE_OPENAI_MAX_TOKENS", -1))
             if max_tokens is None
             else max_tokens
-        )
-        self.prompt = (
-            PROMPT
-            if custom_prompt == ""
-            else PromptTemplate(
-                template=custom_prompt, input_variables=["summaries", "question"]
-            )
         )
 
         # Azure Search settings
@@ -250,11 +243,15 @@ class LLMHelper:
         )
 
     def get_answer_using_langchain(self, question, chat_history):
+        config = ConfigHelper.get_active_config_or_default()
+        condense_question_prompt = PromptTemplate(template=config.prompts.condense_question_prompt, input_variables=["question", "chat_history"])
+        answering_prompt = PromptTemplate(template=config.prompts.answering_prompt, input_variables=["summaries", "question"])
+        
         question_generator = LLMChain(
-            llm=self.llm, prompt=CONDENSE_QUESTION_PROMPT, verbose=True
+            llm=self.llm, prompt=condense_question_prompt, verbose=True
         )
         doc_chain = load_qa_with_sources_chain(
-            self.llm, chain_type="stuff", verbose=True, prompt=self.prompt
+            self.llm, chain_type="stuff", verbose=True, prompt=answering_prompt
         )
         chain = ConversationalRetrievalChain(
             retriever=self.vector_store.as_retriever(),
@@ -272,7 +269,7 @@ class LLMHelper:
                 "question": question,
                 "chatHistory": chat_history,
                 "generatedQuestion": result["generated_question"],
-                "sourceDocuments": result["source_documents"],
+                # "sourceDocuments": result["source_documents"],
                 "totalTokens": cb.total_tokens,
                 "promptTokens": cb.prompt_tokens,
                 "completionTokens": cb.completion_tokens,
@@ -281,15 +278,11 @@ class LLMHelper:
         logger.info(f"ConversationalRetrievalChain", extra=properties)
 
         container_sas = self.blob_client.get_container_sas()
-
-        # TODO: Need to replace this with proper reference handling
-        answer = (
-            result["answer"]
-            .split("SOURCES:")[0]
-            .split("Sources:")[0]
-            .split("SOURCE:")[0]
-            .split("Source:")[0]
-        )
+            
+        answer = result['answer'].replace('  ', ' ')
+        source_urls = re.findall(r'\[\[(.*?)\]\]', answer)
+        for idx, url in enumerate(source_urls):
+            answer = answer.replace(f'[[{url}]]', f'[doc{idx+1}]')
 
         messages = [
             {
@@ -299,8 +292,15 @@ class LLMHelper:
             },
             {"role": "assistant", "content": answer, "end_turn": True},
         ]
-
-        for idx, doc in enumerate(result["source_documents"]):
+        
+        for url in source_urls:
+            # Check which result['source_documents'][x].metadata['source'] matches the url
+            for doc in result["source_documents"]:
+                if doc.metadata['source'] == url:
+                    idx = doc.metadata['chunk']
+                    break
+            doc = result["source_documents"][idx]
+            
             messages[0]["content"]["citations"].append(
                 {
                     "content": doc.page_content,
@@ -312,8 +312,7 @@ class LLMHelper:
                         "_SAS_TOKEN_PLACEHOLDER_", container_sas
                     ),
                     "metadata": doc.metadata,
-                }
-            )
+                })
 
         # everything in content needs to be stringified to work with Azure BYOD frontend
         messages[0]["content"] = json.dumps(messages[0]["content"])
