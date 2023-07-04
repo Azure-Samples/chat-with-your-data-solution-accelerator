@@ -1,7 +1,7 @@
 import logging, traceback
 
 import azure.functions as func
-from utilities.LLMHelper import LLMHelper
+from utilities.DocumentProcessor import DocumentProcessor
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
@@ -17,8 +17,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     # Check if url is present, compute embeddings and add them to VectorStore     
     if url:
         try:
-            llm_helper = LLMHelper()       
-            llm_helper.add_embeddings_lc(url)
+            document_processor = DocumentProcessor()       
+            document_processor.process_url_and_store_in_vector_store(url)
         except Exception as e:
             return func.HttpResponse(
                 f"Error: {traceback.format_exc()}",

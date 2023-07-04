@@ -11,7 +11,7 @@ mimetypes.add_type('text/css', '.css')
 
 from flask import Flask, Response, request, jsonify
 from dotenv import load_dotenv
-from backend.utilities.LLMHelper import LLMHelper
+from backend.utilities.QuestionHandler import QuestionHandler
 
 load_dotenv()
 
@@ -255,7 +255,7 @@ def conversation_azure_byod():
 
 @app.route("/api/conversation/custom", methods=["GET","POST"])
 def conversation_custom():
-    llmhelper = LLMHelper()
+    question_handler = QuestionHandler()
     
     try:
         question = request.json["messages"][-1]['content']
@@ -265,7 +265,7 @@ def conversation_custom():
             if i % 2 == 0:
                 chat_history.append((user_assistent_messages[i]['content'],user_assistent_messages[i+1]['content']))
         
-        messages = llmhelper.get_answer_using_langchain(question=question, chat_history=chat_history)
+        messages = question_handler.handle_question(question=question, chat_history=chat_history)
 
         response_obj = {
             "id": "response.id",
