@@ -270,12 +270,12 @@ class LLMHelper:
         properties = {
             "custom_dimensions": {
                 "question": question,
-                "chat_history": chat_history,
-                "generated_question": result["generated_question"],
-                "source_documents": result["source_documents"],
-                "Total_Tokens": cb.total_tokens,
-                "Prompt_Tokens": cb.prompt_tokens,
-                "Completion_Tokens": cb.completion_tokens,
+                "chatHistory": chat_history,
+                "generatedQuestion": result["generated_question"],
+                "sourceDocuments": result["source_documents"],
+                "totalTokens": cb.total_tokens,
+                "promptTokens": cb.prompt_tokens,
+                "completionTokens": cb.completion_tokens,
             }
         }
         logger.info(f"ConversationalRetrievalChain", extra=properties)
