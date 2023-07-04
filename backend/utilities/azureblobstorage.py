@@ -23,6 +23,10 @@ class AzureBlobStorageClient:
         # Generate a SAS URL to the blob and return it
         return blob_client.url + '?' + generate_blob_sas(self.account_name, self.container_name, file_name,account_key=self.account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
 
+    def download_file(self, file_name):
+        blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=file_name)
+        return blob_client.download_blob().readall()
+
     def get_all_files(self):
         # Get all files in the container from Azure Blob Storage
         container_client = self.blob_service_client.get_container_client(self.container_name)
