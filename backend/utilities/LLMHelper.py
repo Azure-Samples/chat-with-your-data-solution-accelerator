@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 
 class LLMHelper:
     def __init__(self):
+        load_dotenv()
+        
         os.environ["OPENAI_API_BASE"] = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
         os.environ["OPENAI_API_KEY"] = os.getenv("AZURE_OPENAI_KEY")
         os.environ["OPENAI_API_VERSION"] = os.getenv("AZURE_OPENAI_API_VERSION")
