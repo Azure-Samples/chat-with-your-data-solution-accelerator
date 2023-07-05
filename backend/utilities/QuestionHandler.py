@@ -43,7 +43,7 @@ class QuestionHandler:
         openai.api_base = os.getenv('OPENAI_API_BASE')
         openai.api_key = os.getenv("OPENAI_API_KEY")
 
-        self.llm = AzureChatOpenAI(deployment_name=os.getenv("AZURE_OPENAI_MODEL"), temperature=0, max_tokens=1000, openai_api_version=openai.api_version)
+        self.llm = AzureChatOpenAI(deployment_name=os.getenv("AZURE_OPENAI_MODEL"), temperature=0, max_tokens=os.getenv('AZURE_OPENAI_MAX_TOKENS', None), openai_api_version=openai.api_version)
         self.embeddings = OpenAIEmbeddings(model=os.getenv("AZURE_OPENAI_EMBEDDING_MODEL"), chunk_size=1)
 
         # Connect to search
@@ -77,18 +77,29 @@ class QuestionHandler:
         with get_openai_callback() as cb:
             result = chain({"question": question, "chat_history": chat_history})
 
-        properties = {
+        # Setting log properties
+        log_properties = {
             "custom_dimensions": {
-                "question": question,
-                "chatHistory": chat_history,
-                "generatedQuestion": result["generated_question"],
-                "sourceDocuments": list(map(lambda x: x.metadata, result["source_documents"])),
+            }
+        }
+        if config.logging.log_tokens:
+            tokens_properties = {
                 "totalTokens": cb.total_tokens,
                 "promptTokens": cb.prompt_tokens,
                 "completionTokens": cb.completion_tokens,
+            } 
+            log_properties['custom_dimensions'].update(tokens_properties)
+            
+        if config.logging.log_user_interactions:
+            user_interactions_properties = {
+                "userQuestion": question,
+                "userChatHistory": chat_history,
+                "generatedQuestion": result["generated_question"],
+                "sourceDocuments": list(map(lambda x: json.dumps(x.metadata), result["source_documents"])),
             }
-        }
-        logger.info(f"ConversationalRetrievalChain", extra=properties)
+            log_properties['custom_dimensions'].update(user_interactions_properties)
+            
+        logger.info(f"ConversationalRetrievalChain", extra=log_properties)
 
         container_sas = self.blob_client.get_container_sas()
                 
