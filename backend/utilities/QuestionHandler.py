@@ -21,10 +21,7 @@ from .azureblobstorage import AzureBlobStorageClient
 # Setting logging
 load_dotenv()
 logger = logging.getLogger(__name__)
-instrumentation_key = (
-    f"InstrumentationKey={os.getenv('APPINSIGHTS_INSTRUMENTATIONKEY')}"
-)
-logger.addHandler(AzureLogHandler(connection_string=instrumentation_key))
+logger.addHandler(AzureLogHandler(connection_string=os.getenv('APPINSIGHTS_CONNECTIONSTRING')))
 logger.setLevel(logging.INFO)
 
 class QuestionHandler:
