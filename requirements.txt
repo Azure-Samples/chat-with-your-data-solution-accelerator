@@ -14,3 +14,4 @@ chardet==5.1.0
 pandas==2.0.3
 --extra-index-url https://pkgs.dev.azure.com/azure-sdk/public/_packaging/azure-sdk-for-python/pypi/simple/
 azure-search-documents==11.4.0a20230509004
+opencensus-ext-azure==1.1.9
