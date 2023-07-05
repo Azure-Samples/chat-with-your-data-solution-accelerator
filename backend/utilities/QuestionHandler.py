@@ -5,11 +5,8 @@ import re
 import json
 from azuresearch import AzureSearch
 from langchain.chains.qa_with_sources import load_qa_with_sources_chain
-from langchain.chat_models import AzureChatOpenAI
-from langchain.embeddings.openai import OpenAIEmbeddings
 from dotenv import load_dotenv
 from langchain.chains.llm import LLMChain
-from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
 from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import PromptTemplate
 from langchain.callbacks import get_openai_callback
@@ -17,6 +14,7 @@ from opencensus.ext.azure.log_exporter import AzureLogHandler
 
 from .azuresearch import AzureSearch
 from .ConfigHelper import ConfigHelper
+from .LLMHelper import LLMHelper
 from .azureblobstorage import AzureBlobStorageClient
 
 
@@ -32,19 +30,9 @@ logger.setLevel(logging.INFO)
 class QuestionHandler:
     def __init__(self):
         load_dotenv()
-                
-        os.environ["OPENAI_API_BASE"] = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
-        os.environ["OPENAI_API_KEY"] = os.getenv("AZURE_OPENAI_KEY")
-        os.environ["OPENAI_API_VERSION"] = os.getenv("AZURE_OPENAI_API_VERSION")
 
-        # Configure OpenAI API
-        openai.api_type = "azure"
-        openai.api_version = os.getenv("AZURE_OPENAI_API_VERSION")
-        openai.api_base = os.getenv('OPENAI_API_BASE')
-        openai.api_key = os.getenv("OPENAI_API_KEY")
-
-        self.llm = AzureChatOpenAI(deployment_name=os.getenv("AZURE_OPENAI_MODEL"), temperature=0, max_tokens=os.getenv('AZURE_OPENAI_MAX_TOKENS', None), openai_api_version=openai.api_version)
-        self.embeddings = OpenAIEmbeddings(model=os.getenv("AZURE_OPENAI_EMBEDDING_MODEL"), chunk_size=1)
+        self.llm = LLMHelper().get_llm()
+        self.embeddings = LLMHelper().get_embedding_model()
 
         # Connect to search
         self.vector_store = AzureSearch(

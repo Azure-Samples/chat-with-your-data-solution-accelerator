@@ -1,24 +1,21 @@
-from .formrecognizer import AzureFormRecognizerClient
-from .azureblobstorage import AzureBlobStorageClient
 
 import os
-import openai
 from dotenv import load_dotenv
 import logging
 import re
 import hashlib
 from typing import Optional
 
-from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores.base import VectorStore
 from langchain.document_loaders.base import BaseLoader
 from langchain.document_loaders import WebBaseLoader
 from langchain.text_splitter import TokenTextSplitter, TextSplitter
 from langchain.document_loaders.base import BaseLoader
-from opencensus.ext.azure.log_exporter import AzureLogHandler
 
-
+from .formrecognizer import AzureFormRecognizerClient
+from .azureblobstorage import AzureBlobStorageClient
 from .azuresearch import AzureSearch
+from .LLMHelper import LLMHelper
 from .ConfigHelper import ConfigHelper
 
 import pandas as pd
@@ -28,10 +25,7 @@ from fake_useragent import UserAgent
 
 
 class DocumentProcessor:
-    def __init__(
-        self
-    ):
-
+    def __init__(self):
         self.pdf_parser: AzureFormRecognizerClient = AzureFormRecognizerClient()
         self.blob_client: AzureBlobStorageClient = AzureBlobStorageClient() 
         self.user_agent: UserAgent = UserAgent()
@@ -48,21 +42,7 @@ class DocumentProcessor:
         self.azure_search_key: str = os.getenv("AZURE_SEARCH_KEY")
         self.index_name: str = os.getenv("AZURE_SEARCH_INDEX")
         
-        os.environ["OPENAI_API_BASE"] = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
-        os.environ["OPENAI_API_KEY"] = os.getenv("AZURE_OPENAI_KEY")
-        os.environ["OPENAI_API_VERSION"] = os.getenv("AZURE_OPENAI_API_VERSION")
-
-        openai.api_type = "azure"
-        openai.api_base = os.getenv("OPENAI_API_BASE")
-        openai.api_version = os.getenv("AZURE_OPENAI_API_VERSION")
-        openai.api_key = os.getenv("OPENAI_API_KEY")
-
-        # Azure OpenAI settings
-        self.api_base = openai.api_base
-        self.api_version = openai.api_version
-
-        self.model: str = os.getenv("OPENAI_EMBEDDINGS_ENGINE_DOC", "text-embedding-ada-002")
-        self.embeddings: OpenAIEmbeddings = OpenAIEmbeddings(model=self.model, chunk_size=1)
+        self.embeddings = LLMHelper().get_embedding_model()
     
         self.vector_store: VectorStore = AzureSearch(
                 azure_cognitive_search_name=self.azure_search_endpoint,
