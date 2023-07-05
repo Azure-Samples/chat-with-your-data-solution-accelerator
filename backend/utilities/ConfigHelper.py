@@ -14,6 +14,7 @@ class ChunkingStrategy(Enum):
 class Config:
     def __init__(self, config):
         self.prompts = Prompts(config['prompts'])
+        self.messages = Messages(config['messages'])
         self.chunking = [Chunking(x) for x in config['chunking']]
         self.logging = Logging(config['logging'])
 
@@ -22,6 +23,10 @@ class Prompts:
         self.condense_question_prompt = prompts['condense_question_prompt']
         self.answering_prompt = prompts['answering_prompt']
         self.post_answering_prompt = prompts['post_answering_prompt']
+        
+class Messages:
+    def __init__(self, messages):
+        self.post_answering_filter = messages['post_answering_filter']
 
 class Chunking:
     def __init__(self, chunking):
@@ -72,8 +77,17 @@ Each source has a name followed by a colon and the actual information, always in
 
 Question: {question}
 Answer:""",
-                "post_answering_prompt": "",
+                "post_answering_prompt": """You help fact checking if the given answer for the question below is aligned to the sources. If the answer is correct, then reply with "True", if the answer is not correct, then reply with "False". DO NOT ANSWER with anything else.
+
+Sources:
+{summaries}
+
+Question: {question}
+Answer: {answer}""",
                 },
+            "messages": {
+                "post_answering_filter": "I'm sorry, but I can't answer this question correctly. Please try again by altering or rephrasing your question."
+            },
             "chunking": [{
                 "strategy": ChunkingStrategy.FIXED_SIZE_OVERLAP,
                 "size": 500,

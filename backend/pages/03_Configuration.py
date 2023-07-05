@@ -22,12 +22,16 @@ st.markdown(mod_page_style, unsafe_allow_html=True)
 
 config = ConfigHelper.get_active_config_or_default()
 
+# Populate all fields from Config values
 if 'condense_question_prompt' not in st.session_state:
     st.session_state['condense_question_prompt'] = config.prompts.condense_question_prompt
 if 'answering_prompt' not in st.session_state:
     st.session_state['answering_prompt'] = config.prompts.answering_prompt
 if 'post_answering_prompt' not in st.session_state:
     st.session_state['post_answering_prompt'] = config.prompts.post_answering_prompt
+    
+if 'post_answering_filter_message' not in st.session_state:
+    st.session_state['post_answering_filter_message'] = config.messages.post_answering_filter
     
 if 'chunking_strategy' not in st.session_state:
     st.session_state['chunking_strategy'] = config.chunking[0].chunking_strategy.value
@@ -50,23 +54,33 @@ def validate_question_prompt():
 
 def validate_answering_prompt():
     if "{summaries}" not in st.session_state.answering_prompt:
-        st.warning("Your custom prompt doesn't contain the variable `{summaries}`")
+        st.warning("Your answering prompt doesn't contain the variable `{summaries}`")
     if "{question}" not in st.session_state.answering_prompt:
-        st.warning("Your custom prompt doesn't contain the variable `{question}`")
+        st.warning("Your answering prompt doesn't contain the variable `{question}`")
+        
+def validate_post_answering_prompt():
+    if "post_answering_prompt" not in st.session_state or len(st.session_state.post_answering_prompt) == 0:
+        pass
+    if "{summaries}" not in st.session_state.post_answering_prompt:
+        st.warning("Your post answering prompt doesn't contain the variable `{summaries}`")
+    if "{question}" not in st.session_state.post_answering_prompt:
+        st.warning("Your post answering prompt doesn't contain the variable `{question}`")
+    if "{answer}" not in st.session_state.post_answering_prompt:
+        st.warning("Your post answering prompt doesn't contain the variable `{answer}`")
 
 try:
     condense_question_prompt_help = "This prompt is used to convert the user's input to a standalone question, using the context of the chat history."
     answering_prompt_help = "This prompt is used to answer the user's question, using the sources/summaries that were retrieved from the knowledge base."
-    post_answering_prompt_help = "You can configure a post prompt by defining how the user's answer will be processed for fact checking or conflict resolution."
+    post_answering_prompt_help = "You can configure a post prompt that allows to fact-check or process the answer, given the sources, question and answer. This prompt needs to return `True` or `False`."
+    post_answering_filter_help = "The message that is returned to the user, when the post-answering prompt returns."
 
     with st.expander("Prompt configuration", expanded=True):
-        # Custom prompt
         st.text_area("Condense question prompt", key='condense_question_prompt', on_change=validate_question_prompt, help=condense_question_prompt_help, height=200)
         st.text_area("Answering prompt", key='answering_prompt', on_change=validate_answering_prompt, help=answering_prompt_help, height=400)
-        st.text_area("Post-answering prompt", key='post_answering_prompt', help=post_answering_prompt_help, height=200)
+        st.text_area("Post-answering prompt", key='post_answering_prompt', on_change=validate_post_answering_prompt, help=post_answering_prompt_help, height=200)
+        st.text_area("Post-answering filter message", key='post_answering_filter_message', help=post_answering_filter_help, height=200)
 
     with st.expander("Chunking configuration", expanded=True):
-        # Chunking config input       
         chunking_strategy = st.selectbox('Chunking strategy', [s.value for s in ChunkingStrategy], key="chunking_strategy")
         chunking_size = st.number_input("Chunk size (in tokens)", key='chunking_size', min_value=10)
         chunking_overlap = st.number_input("Chunk overlap (in tokens)", key='chunking_overlap', min_value=10)
@@ -82,6 +96,9 @@ try:
                 "answering_prompt": st.session_state['answering_prompt'],
                 "post_answering_prompt": st.session_state['post_answering_prompt']
                 },
+            "messages": {
+                "post_answering_filter": st.session_state['post_answering_filter_message']
+            },
             "chunking": [{
                 "strategy": st.session_state['chunking_strategy'],
                 "size": int(st.session_state['chunking_size']),

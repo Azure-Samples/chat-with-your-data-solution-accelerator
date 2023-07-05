@@ -46,7 +46,7 @@ class QuestionHandler:
     def get_answer_using_langchain(self, question, chat_history):
         config = ConfigHelper.get_active_config_or_default()    
         condense_question_prompt = PromptTemplate(template=config.prompts.condense_question_prompt, input_variables=["question", "chat_history"])
-        answering_prompt = PromptTemplate(template=config.prompts.answering_prompt, input_variables=["summaries", "question"])
+        answering_prompt = PromptTemplate(template=config.prompts.answering_prompt, input_variables=["question", "summaries"])
         
         question_generator = LLMChain(
             llm=self.llm, prompt=condense_question_prompt, verbose=True
@@ -59,11 +59,26 @@ class QuestionHandler:
             question_generator=question_generator,
             combine_docs_chain=doc_chain,
             return_source_documents=True,
-            return_generated_question=True,
+            return_generated_question=True
         )
-
+        
         with get_openai_callback() as cb:
             result = chain({"question": question, "chat_history": chat_history})
+
+        answer = result['answer'].replace('  ', ' ')
+
+        was_message_filtered = False
+        post_total_tokens, post_prompt_tokens, post_completion_tokens = 0, 0, 0
+        if config.prompts.post_answering_prompt is not None and len(config.prompts.post_answering_prompt) > 0:
+            post_answering_prompt = PromptTemplate(template=config.prompts.post_answering_prompt, input_variables=["question", "answer", "summaries"])
+            post_answering_chain = LLMChain(llm=self.llm, prompt=post_answering_prompt, output_key="correct", verbose=True)
+            summaries = '\n'.join([f"{doc.metadata['filename']}: {doc.page_content}" for doc in result['source_documents']])
+           
+            with get_openai_callback() as cb_post:
+                post_result = post_answering_chain({"question": result["generated_question"], "answer": answer, "summaries": summaries})
+            
+            post_total_tokens, post_prompt_tokens, post_completion_tokens = cb_post.total_tokens, cb_post.prompt_tokens, cb_post.completion_tokens
+            was_message_filtered = not (post_result['correct'].lower() == 'true' or post_result['correct'].lower() == 'yes')
 
         # Setting log properties
         log_properties = {
@@ -72,9 +87,9 @@ class QuestionHandler:
         }
         if config.logging.log_tokens:
             tokens_properties = {
-                "totalTokens": cb.total_tokens,
-                "promptTokens": cb.prompt_tokens,
-                "completionTokens": cb.completion_tokens,
+                "totalTokens": cb.total_tokens + post_total_tokens,
+                "promptTokens": cb.prompt_tokens + post_prompt_tokens,
+                "completionTokens": cb.completion_tokens + post_completion_tokens,
             } 
             log_properties['custom_dimensions'].update(tokens_properties)
             
@@ -84,18 +99,22 @@ class QuestionHandler:
                 "userChatHistory": chat_history,
                 "generatedQuestion": result["generated_question"],
                 "sourceDocuments": list(map(lambda x: json.dumps(x.metadata), result["source_documents"])),
+                "messageFiltered": was_message_filtered
             }
             log_properties['custom_dimensions'].update(user_interactions_properties)
-            
+        
         logger.info(f"ConversationalRetrievalChain", extra=log_properties)
 
-        container_sas = self.blob_client.get_container_sas()
-                
-        answer = result['answer'].replace('  ', ' ')
+        # Replace answer with filtered message
+        if was_message_filtered:
+            answer = config.messages.post_answering_filter
+
+        # Replace [[url]] with [docx] for citation feature to work
         source_urls = re.findall(r'\[\[(.*?)\]\]', answer)
         for idx, url in enumerate(source_urls):
             answer = answer.replace(f'[[{url}]]', f'[doc{idx+1}]')
 
+        # create return message object
         messages = [
             {
                 "role": "tool",
@@ -105,6 +124,7 @@ class QuestionHandler:
             {"role": "assistant", "content": answer, "end_turn": True},
         ]
         
+        container_sas = self.blob_client.get_container_sas()
         for url in source_urls:
             # Check which result['source_documents'][x].metadata['source'] matches the url
             for doc in result["source_documents"]:
@@ -113,6 +133,7 @@ class QuestionHandler:
                     break
             doc = result["source_documents"][idx]
             
+            # Then update the citation object in the response
             messages[0]["content"]["citations"].append(
                 {
                     "content": doc.page_content,

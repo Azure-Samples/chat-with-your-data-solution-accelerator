@@ -3,6 +3,7 @@ import openai
 from langchain.chat_models import AzureChatOpenAI
 from langchain.embeddings.openai import OpenAIEmbeddings
 from dotenv import load_dotenv
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 class LLMHelper:
     def __init__(self):
@@ -18,19 +19,19 @@ class LLMHelper:
         openai.api_base = os.getenv('OPENAI_API_BASE')
         openai.api_key = os.getenv("OPENAI_API_KEY")
         
-        self.llm = AzureChatOpenAI(deployment_name=os.getenv("AZURE_OPENAI_MODEL"), temperature=0, max_tokens=os.getenv('AZURE_OPENAI_MAX_TOKENS', None), openai_api_version=openai.api_version)
-        self.embedding_model = OpenAIEmbeddings(model=os.getenv("AZURE_OPENAI_EMBEDDING_MODEL"), chunk_size=1)
-        
+        self.llm_model = os.getenv("AZURE_OPENAI_MODEL")
+        self.llm_max_tokens = os.getenv('AZURE_OPENAI_MAX_TOKENS', None)
+        self.embedding_model = os.getenv("AZURE_OPENAI_EMBEDDING_MODEL")
+                
     def get_llm(self):
-        return self.llm
-        
+        return AzureChatOpenAI(deployment_name=self.llm_model, temperature=0, max_tokens=self.llm_max_tokens, openai_api_version=openai.api_version)
+    
+    # TODO: This needs to have a custom callback to stream back to the UI
+    def get_streaming_llm(self):
+        return AzureChatOpenAI(streaming=True, callbacks=[StreamingStdOutCallbackHandler], deployment_name=self.llm_model, temperature=0, 
+                               max_tokens=self.llm_max_tokens, openai_api_version=openai.api_version)
+    
     def get_embedding_model(self):
-        return self.embedding_model
+        return OpenAIEmbeddings(model=self.embedding_model, chunk_size=1)
     
     
-
-
-
-
-
-
