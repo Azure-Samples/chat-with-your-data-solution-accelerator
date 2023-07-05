@@ -55,8 +55,8 @@ def validate_answering_prompt():
         st.warning("Your custom prompt doesn't contain the variable `{question}`")
 
 try:
-    condense_question_prompt_help = """TODO"""
-    answering_prompt_help = """TODO"""
+    condense_question_prompt_help = "This prompt is used to convert the user's input to a standalone question, using the context of the chat history."
+    answering_prompt_help = "This prompt is used to answer the user's question, using the sources/summaries that were retrieved from the knowledge base."
     post_answering_prompt_help = "You can configure a post prompt by defining how the user's answer will be processed for fact checking or conflict resolution."
 
     with st.expander("Prompt configuration", expanded=True):
