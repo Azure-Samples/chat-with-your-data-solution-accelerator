@@ -49,12 +49,12 @@ class DocumentChunking:
     def page_chunk(self, documents: List[Document], chunking: Chunking) -> List[Document]:
         document_url = documents[0].metadata['document_url']
         splitter = MarkdownTextSplitter.from_tiktoken_encoder(chunk_size=chunking.chunk_size, chunk_overlap=chunking.chunk_overlap)
-        documents = []
+        documents_chunked = []
         for idx, document in enumerate(documents):
             chunked_content_list = splitter.split_text(document.page_content)
             for chunked_content in chunked_content_list:
-                documents.append(Document(page_content=chunked_content, metadata=self._generate_metadata_and_key(document_url, idx, metadata={"offset": document.metadata['offset'], "page_number": document.metadata['page_number']})))
-        return documents    
+                documents_chunked.append(Document(page_content=chunked_content, metadata=self._generate_metadata_and_key(document_url, idx, metadata={"offset": document.metadata['offset'], "page_number": document.metadata['page_number']})))
+        return documents_chunked    
 
     def fixed_size_overlap_chunk(self, documents: List[Document], chunking: Chunking) -> List[Document]:    
         full_document_content = "".join(list(map(lambda document: document.page_content, documents)))

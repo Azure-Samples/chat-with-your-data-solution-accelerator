@@ -12,30 +12,30 @@ class ChunkingStrategy(Enum):
     PARAGRAPH = 'paragraph'
 
 class Config:
-    def __init__(self, config):
+    def __init__(self, config: dict):
         self.prompts = Prompts(config['prompts'])
         self.messages = Messages(config['messages'])
         self.chunking = [Chunking(x) for x in config['chunking']]
         self.logging = Logging(config['logging'])
 
 class Prompts:
-    def __init__(self, prompts):
+    def __init__(self, prompts: dict):
         self.condense_question_prompt = prompts['condense_question_prompt']
         self.answering_prompt = prompts['answering_prompt']
         self.post_answering_prompt = prompts['post_answering_prompt']
         
 class Messages:
-    def __init__(self, messages):
+    def __init__(self, messages: dict):
         self.post_answering_filter = messages['post_answering_filter']
 
 class Chunking:
-    def __init__(self, chunking):
+    def __init__(self, chunking:dict):
         self.chunking_strategy = ChunkingStrategy(chunking['strategy'])
         self.chunk_size = chunking['size']
         self.chunk_overlap = chunking['overlap']
 
 class Logging:
-    def __init__(self, logging):
+    def __init__(self, logging: dict):
         self.log_user_interactions = logging['log_user_interactions']
         self.log_tokens = logging['log_tokens']
         
