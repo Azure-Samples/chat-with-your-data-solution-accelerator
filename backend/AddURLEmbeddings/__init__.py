@@ -2,6 +2,7 @@ import logging, traceback
 
 import azure.functions as func
 from utilities.DocumentProcessor import DocumentProcessor
+from utilities.DocumentLoading import Loading, LoadingStrategy
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
@@ -18,7 +19,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     if url:
         try:
             document_processor = DocumentProcessor()       
-            document_processor.process_url_and_store_in_vector_store(url)
+            document_processor.process(url, loading=Loading({"strategy": "web"}))
         except Exception as e:
             return func.HttpResponse(
                 f"Error: {traceback.format_exc()}",

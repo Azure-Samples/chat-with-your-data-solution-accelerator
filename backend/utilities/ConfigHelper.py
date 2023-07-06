@@ -9,7 +9,7 @@ class ChunkingStrategy(Enum):
     LAYOUT = 'layout'
     PAGE = 'page'
     FIXED_SIZE_OVERLAP = 'fixed_size_overlap'
-    SENTENCE = 'sentence'
+    PARAGRAPH = 'paragraph'
 
 class Config:
     def __init__(self, config):
