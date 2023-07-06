@@ -1,57 +1,105 @@
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.formrecognizer import DocumentAnalysisClient
 import os
+import html
+import traceback
 from dotenv import load_dotenv
 
 class AzureFormRecognizerClient:
-    def __init__(self, form_recognizer_endpoint: str = None, form_recognizer_key: str = None):
-
+    def __init__(self) -> None:
         load_dotenv()
-
-        self.pages_per_embeddings = int(os.getenv('PAGES_PER_EMBEDDINGS', 2))
-        self.section_to_exclude = ['footnote', 'pageHeader', 'pageFooter', 'pageNumber']
-
-        self.form_recognizer_endpoint : str = form_recognizer_endpoint if form_recognizer_endpoint else os.getenv('FORM_RECOGNIZER_ENDPOINT')
-        self.form_recognizer_key : str = form_recognizer_key if form_recognizer_key else os.getenv('FORM_RECOGNIZER_KEY')
-
-    def analyze_read(self, formUrl):
-
-        document_analysis_client = DocumentAnalysisClient(
+        self.form_recognizer_endpoint : str = os.getenv('FORM_RECOGNIZER_ENDPOINT','')
+        self.form_recognizer_key : str = os.getenv('FORM_RECOGNIZER_KEY','')
+        
+        self.document_analysis_client = DocumentAnalysisClient(
             endpoint=self.form_recognizer_endpoint, credential=AzureKeyCredential(self.form_recognizer_key)
         )
+    
+    form_recognizer_role_to_html = {
+        "title": "h1",
+        "sectionHeading": "h2",
+        "pageHeader": None,
+        "pageFooter": None,
+        "paragraph": "p",
+    }
         
-        poller = document_analysis_client.begin_analyze_document_from_url(
-                "prebuilt-layout", formUrl)
-        layout = poller.result()
+    def _table_to_html(self, table):
+        table_html = "<table>"
+        rows = [sorted([cell for cell in table.cells if cell.row_index == i], key=lambda cell: cell.column_index) for i in range(table.row_count)]
+        for row_cells in rows:
+            table_html += "<tr>"
+            for cell in row_cells:
+                tag = "th" if (cell.kind == "columnHeader" or cell.kind == "rowHeader") else "td"
+                cell_spans = ""
+                if cell.column_span > 1: cell_spans += f" colSpan={cell.column_span}"
+                if cell.row_span > 1: cell_spans += f" rowSpan={cell.row_span}"
+                table_html += f"<{tag}{cell_spans}>{html.escape(cell.content)}</{tag}>"
+            table_html +="</tr>"
+        table_html += "</table>"
+        return table_html
 
-        results = []
-        page_result = ''
-        for p in layout.paragraphs:
-            page_number = p.bounding_regions[0].page_number
-            output_file_id = int((page_number - 1 ) / self.pages_per_embeddings)
+    def begin_analyze_document_from_url(self, source_url: str, use_layout: bool =True, paragraph_separator: str = ""): 
+        
+        offset = 0
+        page_map = []
+        model_id = "prebuilt-layout" if use_layout else "prebuilt-read"
 
-            if len(results) < output_file_id + 1:
-                results.append('')
+        try:
+            poller = self.document_analysis_client.begin_analyze_document_from_url(model_id, document_url=source_url)
+            form_recognizer_results = poller.result()
 
-            if p.role not in self.section_to_exclude:
-                results[output_file_id] += f"{p.content}\n"
+            # (if using layout) mark all the positions of headers
+            roles_start = {}
+            roles_end = {}
+            for paragraph in form_recognizer_results.paragraphs:
+                # if paragraph.role!=None:
+                para_start = paragraph.spans[0].offset
+                para_end = paragraph.spans[0].offset + paragraph.spans[0].length
+                roles_start[para_start] = paragraph.role if paragraph.role!=None else "paragraph"
+                roles_end[para_end] = paragraph.role if paragraph.role!=None else "paragraph"
 
-        for t in layout.tables:
-            page_number = t.bounding_regions[0].page_number
-            output_file_id = int((page_number - 1 ) / self.pages_per_embeddings)
-            
-            if len(results) < output_file_id + 1:
-                results.append('')
-            previous_cell_row=0
-            rowcontent='| '
-            tablecontent = ''
-            for c in t.cells:
-                if c.row_index == previous_cell_row:
-                    rowcontent +=  c.content + " | "
-                else:
-                    tablecontent += rowcontent + "\n"
-                    rowcontent='|'
-                    rowcontent += c.content + " | "
-                    previous_cell_row += 1
-            results[output_file_id] += f"{tablecontent}|"
-        return results
+            for page_num, page in enumerate(form_recognizer_results.pages):
+                tables_on_page = [table for table in form_recognizer_results.tables if table.bounding_regions[0].page_number == page_num + 1]
+
+                # (if using layout) mark all positions of the table spans in the page
+                page_offset = page.spans[0].offset
+                page_length = page.spans[0].length
+                table_chars = [-1]*page_length
+                for table_id, table in enumerate(tables_on_page):
+                    for span in table.spans:
+                        # replace all table spans with "table_id" in table_chars array
+                        for i in range(span.length):
+                            idx = span.offset - page_offset + i
+                            if idx >=0 and idx < page_length:
+                                table_chars[idx] = table_id
+
+                # build page text by replacing charcters in table spans with table html and replace the characters corresponding to headers with html headers, if using layout
+                page_text = ""
+                added_tables = set()
+                for idx, table_id in enumerate(table_chars):
+                    if table_id == -1:
+                        position = page_offset + idx
+                        if position in roles_start.keys():
+                            role = roles_start[position]
+                            html_role = self.form_recognizer_role_to_html.get(role)
+                            if html_role != None:
+                                page_text += f"<{html_role}>"
+                        if position in roles_end.keys():
+                            role = roles_end[position]
+                            html_role = self.form_recognizer_role_to_html.get(role)
+                            if html_role != None:
+                                page_text += f"</{html_role}>"
+                                                    
+                        page_text += form_recognizer_results.content[page_offset + idx]
+                        
+                    elif not table_id in added_tables:
+                        page_text += self._table_to_html(tables_on_page[table_id])
+                        added_tables.add(table_id)
+
+                page_text += " "
+                page_map.append({"page_number": page_num, "offset": offset, "page_text": page_text})
+                offset += len(page_text)
+                
+            return page_map
+        except Exception as e:
+            raise ValueError(f"Error: {traceback.format_exc()}")

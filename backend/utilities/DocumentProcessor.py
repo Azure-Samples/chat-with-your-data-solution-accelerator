@@ -2,125 +2,45 @@
 import os
 from dotenv import load_dotenv
 import logging
-import re
-import hashlib
 from typing import Optional
 
 from langchain.vectorstores.base import VectorStore
-from langchain.document_loaders.base import BaseLoader
-from langchain.document_loaders import WebBaseLoader
-from langchain.text_splitter import TokenTextSplitter, TextSplitter
-from langchain.document_loaders.base import BaseLoader
-
-from .formrecognizer import AzureFormRecognizerClient
-from .azureblobstorage import AzureBlobStorageClient
-from .azuresearch import AzureSearch
-from .LLMHelper import LLMHelper
-from .ConfigHelper import ConfigHelper
-
 import pandas as pd
 import urllib
 
-from fake_useragent import UserAgent
-
+from .azuresearch import AzureSearch
+from .LLMHelper import LLMHelper
+from .ConfigHelper import ConfigHelper, Config
+from .DocumentLoading import DocumentLoading, Loading, LoadingStrategy
+from .DocumentChunking import DocumentChunking
 
 class DocumentProcessor:
     def __init__(self):
-        self.pdf_parser: AzureFormRecognizerClient = AzureFormRecognizerClient()
-        self.blob_client: AzureBlobStorageClient = AzureBlobStorageClient() 
-        self.user_agent: UserAgent = UserAgent()
-        self.user_agent.random
-        
-        # FIX ME: Chunking strategy should be read by ConfigHelper
-        self.chunk_size = int(os.getenv("CHUNK_SIZE", 500))
-        self.chunk_overlap = int(os.getenv("CHUNK_OVERLAP", 100))
-        self.document_loaders: BaseLoader = WebBaseLoader
-        self.text_splitter: TextSplitter = TokenTextSplitter(chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)
-
+        load_dotenv()        
         # Azure Search settings
         self.azure_search_endpoint: str = os.getenv("AZURE_SEARCH_SERVICE")
         self.azure_search_key: str = os.getenv("AZURE_SEARCH_KEY")
         self.index_name: str = os.getenv("AZURE_SEARCH_INDEX")
-        
         self.embeddings = LLMHelper().get_embedding_model()
-    
-        self.vector_store: VectorStore = AzureSearch(
+        self.vector_store: AzureSearch = AzureSearch(
                 azure_cognitive_search_name=self.azure_search_endpoint,
                 azure_cognitive_search_key=self.azure_search_key,
                 index_name=self.index_name,
                 embedding_function=self.embeddings.embed_query)
         self.k: int = 4
         
-    def process_url_and_store_in_vector_store(self, source_url):
+    def process(self, source_url: str, config: Config = ConfigHelper.get_active_config_or_default(), loading: Loading = Loading({"strategy": "layout"})):
         try:
-            documents = self.document_loaders(source_url).load()
-            
-            # Convert to UTF-8 encoding for non-ascii text
-            for document in documents:
-                try:
-                    if document.page_content.encode(
-                        "iso-8859-1"
-                    ) == document.page_content.encode("latin-1"):
-                        document.page_content = document.page_content.encode(
-                            "iso-8859-1"
-                        ).decode("utf-8", errors="ignore")
-                except:
-                    pass
-
-            docs = self.text_splitter.split_documents(documents)
-
-            # Remove half non-ascii character from start/end of doc content (langchain TokenTextSplitter may split a non-ascii character in half)
-            pattern = re.compile(
-                r"[\x00-\x1f\x7f\u0080-\u00a0\u2000-\u3000\ufff0-\uffff]"
-            )
-            for doc in docs:
-                doc.page_content = re.sub(pattern, "", doc.page_content)
-                if doc.page_content == "":
-                    docs.remove(doc)
-
-            keys = []
-            for i, doc in enumerate(docs):
-                # Create a unique key for the document
-                source_url = source_url.split("?")[0]
-                filename = "/".join(source_url.split("/")[4:])
-                hash_key = hashlib.sha1(f"{source_url}_{i}".encode("utf-8")).hexdigest()
-                hash_key = f"doc:{self.index_name}:{hash_key}"
-                keys.append(hash_key)
-                doc.metadata = {
-                    "source": f"[{source_url}]({source_url}_SAS_TOKEN_PLACEHOLDER_)",
-                    "chunk": i,
-                    "key": hash_key,
-                    "filename": filename,
-                }
-            
-            self.vector_store.add_documents(documents=docs, keys=keys)
-
+            document_loading = DocumentLoading()
+            document_chunking = DocumentChunking()
+            documents = document_loading.load(source_url, loading)
+            documents = document_chunking.chunk(documents, config.chunking[0])
+            keys = list(map(lambda x: x.metadata['key'], documents))
+            return self.vector_store.add_documents(documents=documents, keys=keys)
         except Exception as e:
             logging.error(f"Error adding embeddings for {source_url}: {e}")
             raise e
-
-    def convert_file_create_embedings_and_store(
-        self, source_url, filename
-    ):
-        # Extract the text from the file
-        text = self.pdf_parser.analyze_read(source_url)
-
-        # Upload the text to Azure Blob Storage
-        converted_filename = f"converted/{filename}.txt"
-        source_url = self.blob_client.upload_file(
-            "\n".join(text),
-            f"converted/{filename}.txt",
-            content_type="text/plain; charset=utf-8",
-        )
-
-        print(f"Converted file uploaded to {source_url} with filename {filename}")
-        # Update the metadata to indicate that the file has been converted
-        self.blob_client.upsert_blob_metadata(filename, {"converted": "true"})
-
-        self.process_url_and_store_in_vector_store(source_url=source_url)
-
-        return converted_filename
-
+    
     def get_all_documents(self, k: Optional[int] = None):
         result = self.vector_store.similarity_search(query="*", k=k if k else self.k)
         return pd.DataFrame(
