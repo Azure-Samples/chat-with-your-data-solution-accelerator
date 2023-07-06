@@ -11,8 +11,13 @@ import urllib
 from .azuresearch import AzureSearch
 from .LLMHelper import LLMHelper
 from .ConfigHelper import ConfigHelper, Config
-from .DocumentLoading import DocumentLoading, Loading, LoadingStrategy
-from .DocumentChunking import DocumentChunking
+from .DocumentLoading import DocumentLoading, Loading
+from .DocumentChunking import DocumentChunking, Chunking
+
+class Processor(Chunking, Loading):
+    def __init__(self, chunking: Chunking, loading: Loading):
+        self.chunking = chunking
+        self.loading = loading
 
 class DocumentProcessor:
     def __init__(self):
@@ -29,12 +34,12 @@ class DocumentProcessor:
                 embedding_function=self.embeddings.embed_query)
         self.k: int = 4
         
-    def process(self, source_url: str, config: Config = ConfigHelper.get_active_config_or_default(), loading: Loading = Loading({"strategy": "layout"})):
+    def process(self, source_url: str, processor: Processor = Processor(Chunking({"strategy": "layout","size": 500, "overlap": 100}), Loading({"strategy": "layout"}))):
         try:
             document_loading = DocumentLoading()
             document_chunking = DocumentChunking()
-            documents = document_loading.load(source_url, loading)
-            documents = document_chunking.chunk(documents, config.chunking[0])
+            documents = document_loading.load(source_url, processor.loading)
+            documents = document_chunking.chunk(documents, processor.chunking)
             keys = list(map(lambda x: x.metadata['key'], documents))
             return self.vector_store.add_documents(documents=documents, keys=keys)
         except Exception as e:
