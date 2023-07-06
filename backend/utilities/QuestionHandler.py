@@ -130,7 +130,7 @@ class QuestionHandler:
                     break
             doc = result["source_documents"][idx]
             
-            # Then update the citation object in the response
+            # Then update the citation object in the response, it needs to have filepath and chunk_id to render in the UI as a file
             messages[0]["content"]["citations"].append(
                 {
                     "content": doc.page_content,

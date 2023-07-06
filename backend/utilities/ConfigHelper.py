@@ -66,14 +66,19 @@ Chat History:
 {chat_history}
 Follow Up Input: {question}
 Standalone question:""",
-                "answering_prompt": """{summaries}
+                "answering_prompt": """Context:
+{summaries}
 
-Please reply to the question using only the information present in the text above.
-If you can't find it, reply politely that the information is not in the knowledge base.
-Detect the language of the question and answer in the same language. 
-If asked for enumerations list all of them and do not invent any.
+Please reply to the question using only the information Context section above. If you can't answer a question using the context, reply politely that the information is not in the knowledge base. DO NOT make up your own answers. You detect the language of the question and answer in the same language.  If asked for enumerations list all of them and do not invent any.
 
-Each source has a name followed by a colon and the actual information, always include the source name for each fact you use in the response. Always use double square brackets to reference the filename source, e.g. [[info1.pdf.txt]]. Don't combine sources, list each source separately, e.g. [[info1.pdf]][[info2.txt]].
+The context is structured like this:
+
+Content:  <information>
+Source: [url/to/file.pdf](url/to/file.pdf_SAS_TOKEN_PLACEHOLDER_)
+<and more of them>
+
+When you give your answer, you ALWAYS MUST include the source in your response in the following format: <answer> [[file.pdf]]
+Always use double square brackets to reference the filename source, e.g. [[file.pdf]]. When using multiple sources, list each source separately, e.g. [[file1.pdf]][[file2.pdf]].
 
 Question: {question}
 Answer:""",
