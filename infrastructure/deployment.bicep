@@ -182,7 +182,7 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
     siteConfig: {
       appSettings: [
         {
-          name: 'APPINSIGHTS_CONNECTIONSTRING'
+          name: 'APPINSIGHTS_CONNECTION_STRING'
           value: reference(ApplicationInsights.id, '2015-05-01').ConnectionString
         }
         {
@@ -274,31 +274,27 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
           value: AzureOpenAIStream
         }
         {
-          name: 'OPENAI_EMBEDDINGS_ENGINE_DOC'
+          name: 'AZURE_OPENAI_EMBEDDING_MODEL'
           value: AzureOpenAIEmbeddingModel
         }
         {
-          name: 'OPENAI_DEPLOYMENT_TYPE'
-          value: AzureOpenAIDeploymentType
-        }
-        {
-          name: 'FORM_RECOGNIZER_ENDPOINT'
+          name: 'AZURE_FORM_RECOGNIZER_ENDPOINT'
           value: 'https://${Location}.api.cognitive.microsoft.com/'
         }
         {
-          name: 'FORM_RECOGNIZER_KEY'
+          name: 'AZURE_FORM_RECOGNIZER_KEY'
           value: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1
         }
         {
-          name: 'BLOB_ACCOUNT_NAME'
+          name: 'AZURE_BLOB_ACCOUNT_NAME'
           value: StorageAccountName
         }
         {
-          name: 'BLOB_ACCOUNT_KEY'
+          name: 'AZURE_BLOB_ACCOUNT_KEY'
           value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value
         }
         {
-          name: 'BLOB_CONTAINER_NAME'
+          name: 'AZURE_BLOB_CONTAINER_NAME'
           value: BlobContainerName
         }
       ]
@@ -426,27 +422,31 @@ resource WebsiteName_admin 'Microsoft.Web/sites@2020-06-01' = {
           value: AzureOpenAIKey
         }
         {
-          name: 'BLOB_ACCOUNT_NAME'
+          name: 'AZURE_BLOB_ACCOUNT_NAME'
           value: StorageAccountName
         }
         {
-          name: 'BLOB_ACCOUNT_KEY'
+          name: 'AZURE_BLOB_ACCOUNT_KEY'
           value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value
         }
         {
-          name: 'BLOB_CONTAINER_NAME'
+          name: 'AZURE_BLOB_CONTAINER_NAME'
           value: BlobContainerName
         }
         {
-          name: 'FORM_RECOGNIZER_ENDPOINT'
+          name: 'AZURE_FORM_RECOGNIZER_ENDPOINT'
           value: 'https://${Location}.api.cognitive.microsoft.com/'
         }
         {
-          name: 'FORM_RECOGNIZER_KEY'
+          name: 'AZURE_FORM_RECOGNIZER_KEY'
           value: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1
         }
+        { 
+          name: 'AZURE_OPENAI_EMBEDDING_MODEL'
+          value: AzureOpenAIEmbeddingModel
+        }
         {
-          name: 'QUEUE_NAME'
+          name: 'DOCUMENT_PROCESSING_QUEUE_NAME'
           value: QueueName
         }
         {
@@ -564,7 +564,7 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
           value: AzureOpenAIModel
         }
         {
-          name: 'OPENAI_EMBEDDINGS_ENGINE_DOC'
+          name: 'AZURE_OPENAI_EMBEDDING_MODEL'
           value: AzureOpenAIEmbeddingModel
         }
         {
@@ -576,23 +576,23 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
           value: AzureOpenAIKey
         }
         {
-          name: 'BLOB_ACCOUNT_NAME'
+          name: 'AZURE_BLOB_ACCOUNT_NAME'
           value: StorageAccountName
         }
         {
-          name: 'BLOB_ACCOUNT_KEY'
+          name: 'AZURE_BLOB_ACCOUNT_KEY'
           value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value
         }
         {
-          name: 'BLOB_CONTAINER_NAME'
+          name: 'AZURE_BLOB_CONTAINER_NAME'
           value: BlobContainerName
         }
         {
-          name: 'FORM_RECOGNIZER_ENDPOINT'
+          name: 'AZURE_FORM_RECOGNIZER_ENDPOINT'
           value: 'https://${Location}.api.cognitive.microsoft.com/'
         }
         {
-          name: 'FORM_RECOGNIZER_KEY'
+          name: 'AZURE_FORM_RECOGNIZER_KEY'
           value: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1
         }
         {
@@ -604,7 +604,7 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
           value: listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey
         }
         {
-          name: 'QUEUE_NAME'
+          name: 'DOCUMENT_PROCESSING_QUEUE_NAME'
           value: QueueName
         }
         {
@@ -653,21 +653,20 @@ resource WebsiteName_appsettings 'Microsoft.Web/sites/config@2021-03-01' = {
   name: 'appsettings'
   kind: 'string'
   properties: {
-    APPINSIGHTS_CONNECTIONSTRING: reference(ApplicationInsights.id, '2015-05-01').ConnectionString
+    APPINSIGHTS_CONNECTION_STRING: reference(ApplicationInsights.id, '2015-05-01').ConnectionString
     AZURE_OPENAI_MODEL: AzureOpenAIModel
-    OPENAI_EMBEDDINGS_ENGINE_DOC: AzureOpenAIEmbeddingModel
-    OPENAI_EMBEDDINGS_ENGINE_QUERY: AzureOpenAIEmbeddingModel
+    AZURE_OPENAI_EMBEDDING_MODEL: AzureOpenAIEmbeddingModel
     AZURE_SEARCH_SERVICE: 'https://${AzureCognitiveSearch}.search.windows.net'
     AZURE_SEARCH_ADMIN_KEY: listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey
     AZURE_SEARCH_INDEX: AzureSearchIndex
     AZURE_OPENAI_RESOURCE: AzureOpenAIResource
     AZURE_OPENAI_API_VERSION: AzureOpenAIApiVersion
     AZURE_OPENAI_KEY: AzureOpenAIKey
-    BLOB_ACCOUNT_NAME: StorageAccountName
-    BLOB_ACCOUNT_KEY: listkeys(StorageAccount.id, '2015-05-01-preview').key1
-    BLOB_CONTAINER_NAME: BlobContainerName
-    FORM_RECOGNIZER_ENDPOINT: 'https://${Location}.api.cognitive.microsoft.com/'
-    FORM_RECOGNIZER_KEY: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1
+    AZURE_BLOB_ACCOUNT_NAME: StorageAccountName
+    AZURE_BLOB_ACCOUNT_KEY: listkeys(StorageAccount.id, '2015-05-01-preview').key1
+    AZURE_BLOB_CONTAINER_NAME: BlobContainerName
+    AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${Location}.api.cognitive.microsoft.com/'
+    AZURE_FORM_RECOGNIZER_KEY: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1
   }
 }
 
