@@ -91,9 +91,6 @@ param AzureOpenAIApiVersion string = '2023-06-01-preview'
 @description('Whether or not to stream responses from Azure OpenAI')
 param AzureOpenAIStream string = 'true'
 
-@description('Azure OpenAI Deployment Type. Text (e.g. text-davinci-003) or Chat (e.g. gpt-35-turbo or gpt-4)')
-param AzureOpenAIDeploymentType string = 'Chat'
-
 @description('Azure OpenAI Embedding Model')
 param AzureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 
