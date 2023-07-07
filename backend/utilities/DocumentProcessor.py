@@ -34,7 +34,19 @@ class DocumentProcessor:
                 embedding_function=self.embeddings.embed_query)
         self.k: int = 4
         
-    def process(self, source_url: str, processor: Processor = Processor(Chunking({"strategy": "layout","size": 500, "overlap": 100}), Loading({"strategy": "layout"}))):
+    def process(self, source_url: str, filename: str):
+        
+        config = ConfigHelper.get_active_config_or_default()
+        if filename.endswith('.txt'):
+            # Add the text to the embeddings
+            processor: Processor = Processor(config.chunking[0], 
+                                             Loading({"strategy": "web"}))
+            
+        else:
+            # Get OCR with Layout API and then add embeddings
+            processor: Processor = Processor(config.chunking[0], 
+                                             Loading({"strategy": "layout"}))
+        
         try:
             document_loading = DocumentLoading()
             document_chunking = DocumentChunking()

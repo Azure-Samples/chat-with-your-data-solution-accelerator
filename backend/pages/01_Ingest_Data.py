@@ -89,7 +89,7 @@ try:
 
         col1, col2, col3 = st.columns([2,2,2])
         with col1:
-            st.button("Process new files and add embeddings", on_click=remote_convert_files_and_add_embeddings)
+            st.button("Process and ingest new files", on_click=remote_convert_files_and_add_embeddings)
         with col3:
             st.button("Reprocess all documents in the Azure Storage account", on_click=remote_convert_files_and_add_embeddings, args=(True,))
 
@@ -100,7 +100,7 @@ try:
 
         with col2:
             st.selectbox('Embeddings models', [os.getenv('AZURE_OPENAI_EMBEDDING_MODEL')], disabled=True)
-            st.button("Compute Embeddings", on_click=add_urls, key="add_url")
+            st.button("Process and ingest web pages", on_click=add_urls, key="add_url")
 
     with st.expander("Chunking config placeholder", expanded=True):
         # Chunking config input
