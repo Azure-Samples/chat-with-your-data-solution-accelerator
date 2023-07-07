@@ -37,7 +37,7 @@ class DocumentProcessor:
     def process(self, source_url: str, filename: str):
         
         config = ConfigHelper.get_active_config_or_default()
-        if filename.endswith('.txt'):
+        if filename.endswith('.txt') or filename.endswith('.url'):
             # Add the text to the embeddings
             processor: Processor = Processor(config.chunking[0], 
                                              Loading({"strategy": "web"}))
