@@ -17,39 +17,55 @@ In case your setup requires more customization than what is currently available 
 
 If you would like to create a POC [Proof of Concept] and customize to your own business needs and understand best practices, this is the repo for you!
 
+## Getting Started
+
+To get this deployed directly in your Azure Subscription follow these steps:
+
+### Prerequisites
+
+- Azure Subscription with Contributor access
+- Azure OpenAI resource
+
+
+### Quickstart
+
+1. Click on [![Deploy to Azure](https://aka.ms/deploytoazurebutton)]()
+2. Navigate to the Admin
+    - TO DO: Add a picture here
+3. Page to upload documents
+4. Navigate to the Web App and "Chat with your data"
+
 ## Features
 
 This project framework provides the following features:
 
-* Feature 1
-* Feature 2
-* ...
+* Chat with your own data
+* Upload and process your documents
+* Index public web pages
+* Easy prompt configuration
+* Multiple chunking strategies
 
-## Getting Started
 
-### Prerequisites
+## Development 
 
-(ideally very short, if any)
-
-- OS
-- Library version
-- ...
-
-### Installation
-
-(ideally very short)
-
+### Develop Frontend
 - npm install [package name]
 - mvn install
 - ...
 
-### Quickstart
-(Add steps to get up and running quickly)
+### Develop Backend
+- npm install [package name]
+- mvn install
+- ...
 
-1. git clone [repository clone url]
-2. cd [repository name]
-3. ...
+### Develop Batch processing
+- npm install [package name]
+- mvn install
+- ...
 
+## How to extend the project
+### Class description
+### Module logic
 
 ## Demo
 
