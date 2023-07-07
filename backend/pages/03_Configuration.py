@@ -53,16 +53,16 @@ def validate_question_prompt():
         st.warning("Your condense question prompt doesn't contain the variable `{question}`")
 
 def validate_answering_prompt():
-    if "{summaries}" not in st.session_state.answering_prompt:
-        st.warning("Your answering prompt doesn't contain the variable `{summaries}`")
+    if "{sources}" not in st.session_state.answering_prompt:
+        st.warning("Your answering prompt doesn't contain the variable `{sources}`")
     if "{question}" not in st.session_state.answering_prompt:
         st.warning("Your answering prompt doesn't contain the variable `{question}`")
         
 def validate_post_answering_prompt():
     if "post_answering_prompt" not in st.session_state or len(st.session_state.post_answering_prompt) == 0:
         pass
-    if "{summaries}" not in st.session_state.post_answering_prompt:
-        st.warning("Your post answering prompt doesn't contain the variable `{summaries}`")
+    if "{sources}" not in st.session_state.post_answering_prompt:
+        st.warning("Your post answering prompt doesn't contain the variable `{sources}`")
     if "{question}" not in st.session_state.post_answering_prompt:
         st.warning("Your post answering prompt doesn't contain the variable `{question}`")
     if "{answer}" not in st.session_state.post_answering_prompt:
@@ -70,7 +70,7 @@ def validate_post_answering_prompt():
 
 try:
     condense_question_prompt_help = "This prompt is used to convert the user's input to a standalone question, using the context of the chat history."
-    answering_prompt_help = "This prompt is used to answer the user's question, using the sources/summaries that were retrieved from the knowledge base."
+    answering_prompt_help = "This prompt is used to answer the user's question, using the sources that were retrieved from the knowledge base."
     post_answering_prompt_help = "You can configure a post prompt that allows to fact-check or process the answer, given the sources, question and answer. This prompt needs to return `True` or `False`."
     post_answering_filter_help = "The message that is returned to the user, when the post-answering prompt returns."
 

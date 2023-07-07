@@ -43,13 +43,18 @@ class QuestionHandler:
     def get_answer_using_langchain(self, question, chat_history):
         config = ConfigHelper.get_active_config_or_default()    
         condense_question_prompt = PromptTemplate(template=config.prompts.condense_question_prompt, input_variables=["question", "chat_history"])
-        answering_prompt = PromptTemplate(template=config.prompts.answering_prompt, input_variables=["question", "summaries"])
+        answering_prompt = PromptTemplate(template=config.prompts.answering_prompt, input_variables=["question", "sources"])
         
         question_generator = LLMChain(
             llm=self.llm, prompt=condense_question_prompt, verbose=True
         )
+       
         doc_chain = load_qa_with_sources_chain(
-            self.llm, chain_type="stuff", verbose=True, prompt=answering_prompt
+            self.llm, 
+            chain_type="stuff", 
+            prompt=answering_prompt,
+            document_variable_name="sources",
+            verbose=True            
         )
         chain = ConversationalRetrievalChain(
             retriever=self.vector_store.as_retriever(),
@@ -122,23 +127,20 @@ class QuestionHandler:
         ]
         
         container_sas = self.blob_client.get_container_sas()
-        for url in source_urls:
+        for url_idx, url in enumerate(source_urls):
             # Check which result['source_documents'][x].metadata['source'] matches the url
-            for doc in result["source_documents"]:
-                if doc.metadata['source'] == url:
-                    idx = doc.metadata['chunk']
-                    break
+            idx = [doc.metadata['source'] for doc in result["source_documents"]].index(url)
             doc = result["source_documents"][idx]
             
             # Then update the citation object in the response, it needs to have filepath and chunk_id to render in the UI as a file
             messages[0]["content"]["citations"].append(
                 {
                     "content": doc.page_content,
-                    "id": idx,
+                    "id": url_idx,
                     "chunk_id": doc.metadata["chunk"],
-                    "title": doc.metadata["filename"],
+                    "title": doc.metadata["filename"], # we need to use original_filename as LangChain needs filename-chunk as unique identifier
                     "filepath": doc.metadata["filename"],
-                    "url": doc.metadata["source"].replace(
+                    "url": doc.metadata["markdown_url"].replace(
                         "_SAS_TOKEN_PLACEHOLDER_", container_sas
                     ),
                     "metadata": doc.metadata,

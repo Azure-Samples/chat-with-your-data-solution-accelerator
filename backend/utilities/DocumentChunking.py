@@ -30,7 +30,7 @@ class DocumentChunking:
         hash_key = f"doc_{hash_key}"
         sas_placeholder = "_SAS_TOKEN_PLACEHOLDER_" if 'blob.core.windows.net' in parsed_url.netloc else ""
         source = f"[{file_url}]({file_url}{sas_placeholder})"
-        metadata.update({"source": source, "chunk": idx, "key": hash_key, "filename": filename, "title": filename, "original_url": file_url})
+        metadata.update({"source": f"{filename}#{idx}", "markdown_url": source, "chunk": idx, "key": hash_key, "filename": filename,"title": filename, "original_url": file_url})
         return metadata
                     
     def layout_chunk(self, documents: List[Document], chunking: Chunking) -> List[Document]:

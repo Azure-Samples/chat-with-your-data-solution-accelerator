@@ -102,18 +102,5 @@ try:
             st.selectbox('Embeddings models', [os.getenv('AZURE_OPENAI_EMBEDDING_MODEL')], disabled=True)
             st.button("Process and ingest web pages", on_click=add_urls, key="add_url")
 
-    with st.expander("Chunking config placeholder", expanded=True):
-        # Chunking config input
-        ch_size=st.text_input("Chunk size (in tokens)", key='chunking_size', placeholder="500")
-        ch_overlap=st.text_input("Chunk overlap (in tokens)", key='chunking_overlap', placeholder="100")
-        # Placeholder for future chunking strategies like dynamic layout
-        ch_selection=st.selectbox('Chunking strategy', ['Fixed size + Overlap', 'Layout based'], key="chunking_strategy")
-
-    with st.expander("Logging placeholder", expanded=True):
-        # Logging placeholder
-        st.write("Placeholder for future log configuration")
-
-    # TODO: Save chunking settings somewhere
-
 except Exception as e:
     st.error(traceback.format_exc())

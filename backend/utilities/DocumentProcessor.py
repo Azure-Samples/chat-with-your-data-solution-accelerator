@@ -66,7 +66,7 @@ class DocumentProcessor:
                     lambda x: {
                         "key": x.metadata["key"],
                         "filename": x.metadata["filename"],
-                        "source": urllib.parse.unquote(x.metadata["source"]),
+                        "source": urllib.parse.unquote(x.metadata["markdown_url"]), # TODO: Is this needed?
                         "content": x.page_content,
                         "metadata": x.metadata,
                     },

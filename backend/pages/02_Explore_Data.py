@@ -17,7 +17,7 @@ mod_page_style = """
             </style>
             """
 st.markdown(mod_page_style, unsafe_allow_html=True)
-
+st.write("This is work in progress!")
 try:
     search_client = azuresearch.get_search_client(endpoint=os.getenv("AZURE_SEARCH_SERVICE"),
                                       key=os.getenv("AZURE_SEARCH_KEY"),
