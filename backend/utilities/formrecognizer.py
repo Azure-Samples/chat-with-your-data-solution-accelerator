@@ -8,11 +8,11 @@ from dotenv import load_dotenv
 class AzureFormRecognizerClient:
     def __init__(self) -> None:
         load_dotenv()
-        self.form_recognizer_endpoint : str = os.getenv('FORM_RECOGNIZER_ENDPOINT','')
-        self.form_recognizer_key : str = os.getenv('FORM_RECOGNIZER_KEY','')
+        self.AZURE_FORM_RECOGNIZER_ENDPOINT : str = os.getenv('AZURE_FORM_RECOGNIZER_ENDPOINT','')
+        self.AZURE_FORM_RECOGNIZER_KEY : str = os.getenv('AZURE_FORM_RECOGNIZER_KEY','')
         
         self.document_analysis_client = DocumentAnalysisClient(
-            endpoint=self.form_recognizer_endpoint, credential=AzureKeyCredential(self.form_recognizer_key)
+            endpoint=self.AZURE_FORM_RECOGNIZER_ENDPOINT, credential=AzureKeyCredential(self.AZURE_FORM_RECOGNIZER_KEY)
         )
     
     form_recognizer_role_to_html = {

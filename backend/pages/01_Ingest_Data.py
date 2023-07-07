@@ -62,11 +62,11 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
     if content_type == None:
         content_type = mimetypes.MimeTypes().guess_type(file_name)[0]
         charset = f"; charset={chardet.detect(bytes_data)['encoding']}" if content_type == 'text/plain' else ''
-    account_name = os.getenv('BLOB_ACCOUNT_NAME')
-    account_key =  os.getenv('BLOB_ACCOUNT_KEY')
-    container_name = os.getenv('BLOB_CONTAINER_NAME')
+    account_name = os.getenv('AZURE_BLOB_ACCOUNT_NAME')
+    account_key =  os.getenv('AZURE_BLOB_ACCOUNT_KEY')
+    container_name = os.getenv('AZURE_BLOB_CONTAINER_NAME')
     if account_name == None or account_key == None or container_name == None:
-        raise ValueError("Please provide values for BLOB_ACCOUNT_NAME, BLOB_ACCOUNT_KEY and BLOB_CONTAINER_NAME")
+        raise ValueError("Please provide values for AZURE_BLOB_ACCOUNT_NAME, AZURE_BLOB_ACCOUNT_KEY and AZURE_BLOB_CONTAINER_NAME")
     connect_str = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
     blob_service_client : BlobServiceClient = BlobServiceClient.from_connection_string(connect_str)
     # Create a blob client using the local file name as the name for the blob

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.18.4.5664",
-      "templateHash": "6534831406218402014"
+      "templateHash": "9064503876030802325"
     }
   },
   "parameters": {
@@ -336,7 +336,7 @@
         "siteConfig": {
           "appSettings": [
             {
-              "name": "APPINSIGHTS_CONNECTIONSTRING",
+              "name": "APPINSIGHTS_CONNECTION_STRING",
               "value": "[reference(resourceId('Microsoft.Insights/components', parameters('ApplicationInsightsName')), '2015-05-01').ConnectionString]"
             },
             {
@@ -428,31 +428,27 @@
               "value": "[parameters('AzureOpenAIStream')]"
             },
             {
-              "name": "OPENAI_EMBEDDINGS_ENGINE_DOC",
+              "name": "AZURE_OPENAI_EMBEDDING_MODEL",
               "value": "[parameters('AzureOpenAIEmbeddingModel')]"
             },
             {
-              "name": "OPENAI_DEPLOYMENT_TYPE",
-              "value": "[parameters('AzureOpenAIDeploymentType')]"
-            },
-            {
-              "name": "FORM_RECOGNIZER_ENDPOINT",
+              "name": "AZURE_FORM_RECOGNIZER_ENDPOINT",
               "value": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('Location'))]"
             },
             {
-              "name": "FORM_RECOGNIZER_KEY",
+              "name": "AZURE_FORM_RECOGNIZER_KEY",
               "value": "[listKeys(format('Microsoft.CognitiveServices/accounts/{0}', parameters('FormRecognizerName')), '2023-05-01').key1]"
             },
             {
-              "name": "BLOB_ACCOUNT_NAME",
+              "name": "AZURE_BLOB_ACCOUNT_NAME",
               "value": "[parameters('StorageAccountName')]"
             },
             {
-              "name": "BLOB_ACCOUNT_KEY",
+              "name": "AZURE_BLOB_ACCOUNT_KEY",
               "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName')), '2019-06-01').keys[0].value]"
             },
             {
-              "name": "BLOB_CONTAINER_NAME",
+              "name": "AZURE_BLOB_CONTAINER_NAME",
               "value": "[variables('BlobContainerName')]"
             }
           ],
@@ -583,27 +579,31 @@
               "value": "[parameters('AzureOpenAIKey')]"
             },
             {
-              "name": "BLOB_ACCOUNT_NAME",
+              "name": "AZURE_BLOB_ACCOUNT_NAME",
               "value": "[parameters('StorageAccountName')]"
             },
             {
-              "name": "BLOB_ACCOUNT_KEY",
+              "name": "AZURE_BLOB_ACCOUNT_KEY",
               "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName')), '2019-06-01').keys[0].value]"
             },
             {
-              "name": "BLOB_CONTAINER_NAME",
+              "name": "AZURE_BLOB_CONTAINER_NAME",
               "value": "[variables('BlobContainerName')]"
             },
             {
-              "name": "FORM_RECOGNIZER_ENDPOINT",
+              "name": "AZURE_FORM_RECOGNIZER_ENDPOINT",
               "value": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('Location'))]"
             },
             {
-              "name": "FORM_RECOGNIZER_KEY",
+              "name": "AZURE_FORM_RECOGNIZER_KEY",
               "value": "[listKeys(format('Microsoft.CognitiveServices/accounts/{0}', parameters('FormRecognizerName')), '2023-05-01').key1]"
             },
             {
-              "name": "QUEUE_NAME",
+              "name": "AZURE_OPENAI_EMBEDDING_MODEL",
+              "value": "[parameters('AzureOpenAIEmbeddingModel')]"
+            },
+            {
+              "name": "DOCUMENT_PROCESSING_QUEUE_NAME",
               "value": "[variables('QueueName')]"
             },
             {
@@ -735,7 +735,7 @@
               "value": "[parameters('AzureOpenAIModel')]"
             },
             {
-              "name": "OPENAI_EMBEDDINGS_ENGINE_DOC",
+              "name": "AZURE_OPENAI_EMBEDDING_MODEL",
               "value": "[parameters('AzureOpenAIEmbeddingModel')]"
             },
             {
@@ -747,23 +747,23 @@
               "value": "[parameters('AzureOpenAIKey')]"
             },
             {
-              "name": "BLOB_ACCOUNT_NAME",
+              "name": "AZURE_BLOB_ACCOUNT_NAME",
               "value": "[parameters('StorageAccountName')]"
             },
             {
-              "name": "BLOB_ACCOUNT_KEY",
+              "name": "AZURE_BLOB_ACCOUNT_KEY",
               "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName')), '2019-06-01').keys[0].value]"
             },
             {
-              "name": "BLOB_CONTAINER_NAME",
+              "name": "AZURE_BLOB_CONTAINER_NAME",
               "value": "[variables('BlobContainerName')]"
             },
             {
-              "name": "FORM_RECOGNIZER_ENDPOINT",
+              "name": "AZURE_FORM_RECOGNIZER_ENDPOINT",
               "value": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('Location'))]"
             },
             {
-              "name": "FORM_RECOGNIZER_KEY",
+              "name": "AZURE_FORM_RECOGNIZER_KEY",
               "value": "[listKeys(format('Microsoft.CognitiveServices/accounts/{0}', parameters('FormRecognizerName')), '2023-05-01').key1]"
             },
             {
@@ -775,7 +775,7 @@
               "value": "[listAdminKeys(format('Microsoft.Search/searchServices/{0}', parameters('AzureCognitiveSearch')), '2021-04-01-preview').primaryKey]"
             },
             {
-              "name": "QUEUE_NAME",
+              "name": "DOCUMENT_PROCESSING_QUEUE_NAME",
               "value": "[variables('QueueName')]"
             },
             {
@@ -830,21 +830,20 @@
       "name": "[format('{0}/{1}', parameters('WebsiteName'), 'appsettings')]",
       "kind": "string",
       "properties": {
-        "APPINSIGHTS_CONNECTIONSTRING": "[reference(resourceId('Microsoft.Insights/components', parameters('ApplicationInsightsName')), '2015-05-01').ConnectionString]",
+        "APPINSIGHTS_CONNECTION_STRING": "[reference(resourceId('Microsoft.Insights/components', parameters('ApplicationInsightsName')), '2015-05-01').ConnectionString]",
         "AZURE_OPENAI_MODEL": "[parameters('AzureOpenAIModel')]",
-        "OPENAI_EMBEDDINGS_ENGINE_DOC": "[parameters('AzureOpenAIEmbeddingModel')]",
-        "OPENAI_EMBEDDINGS_ENGINE_QUERY": "[parameters('AzureOpenAIEmbeddingModel')]",
+        "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('AzureOpenAIEmbeddingModel')]",
         "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('AzureCognitiveSearch'))]",
         "AZURE_SEARCH_ADMIN_KEY": "[listAdminKeys(format('Microsoft.Search/searchServices/{0}', parameters('AzureCognitiveSearch')), '2021-04-01-preview').primaryKey]",
         "AZURE_SEARCH_INDEX": "[parameters('AzureSearchIndex')]",
         "AZURE_OPENAI_RESOURCE": "[parameters('AzureOpenAIResource')]",
         "AZURE_OPENAI_API_VERSION": "[parameters('AzureOpenAIApiVersion')]",
         "AZURE_OPENAI_KEY": "[parameters('AzureOpenAIKey')]",
-        "BLOB_ACCOUNT_NAME": "[parameters('StorageAccountName')]",
-        "BLOB_ACCOUNT_KEY": "[listkeys(resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName')), '2015-05-01-preview').key1]",
-        "BLOB_CONTAINER_NAME": "[variables('BlobContainerName')]",
-        "FORM_RECOGNIZER_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('Location'))]",
-        "FORM_RECOGNIZER_KEY": "[listKeys(format('Microsoft.CognitiveServices/accounts/{0}', parameters('FormRecognizerName')), '2023-05-01').key1]"
+        "AZURE_BLOB_ACCOUNT_NAME": "[parameters('StorageAccountName')]",
+        "AZURE_BLOB_ACCOUNT_KEY": "[listkeys(resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName')), '2015-05-01-preview').key1]",
+        "AZURE_BLOB_CONTAINER_NAME": "[variables('BlobContainerName')]",
+        "AZURE_FORM_RECOGNIZER_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('Location'))]",
+        "AZURE_FORM_RECOGNIZER_KEY": "[listKeys(format('Microsoft.CognitiveServices/accounts/{0}', parameters('FormRecognizerName')), '2023-05-01').key1]"
       },
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', parameters('ApplicationInsightsName'))]",

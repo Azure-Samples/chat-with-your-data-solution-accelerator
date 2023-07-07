@@ -21,7 +21,7 @@ from .azureblobstorage import AzureBlobStorageClient
 # Setting logging
 load_dotenv()
 logger = logging.getLogger(__name__)
-logger.addHandler(AzureLogHandler(connection_string=os.getenv('APPINSIGHTS_CONNECTIONSTRING')))
+logger.addHandler(AzureLogHandler(connection_string=os.getenv('APPINSIGHTS_CONNECTION_STRING')))
 logger.setLevel(logging.INFO)
 
 class QuestionHandler:
