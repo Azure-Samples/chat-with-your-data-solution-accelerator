@@ -141,18 +141,6 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 ### Class description
 ### Module logic
 
-## Demo
-
-A demo app is included to show how to use the project.
-
-To run the demo, follow these steps:
-
-(Add steps to start up the demo)
-
-1.
-2.
-3.
-
 ## Resources
 
 (Any additional resources or related projects)
@@ -171,6 +159,22 @@ The data set under the /data folder is licensed under the [CDLA-Permissive-2 Lic
 
 The data set under the /data folder has been generated with Azure OpenAI GPT and DALL-E 2 models.
 
+## Upcoming Release Schedule and Internal Feedback Guidelines (TO BE REMOVED BEFORE GOING PUBLIC)
+
+We are excited to announce that the initial version of our project will be released during the week of July 10th for early reviews and feedback. This release will include a minimal amount of documentation focusing on deployment. The majority of the documentation will be created, added, and reviewed between July 10th and July 21st, along with any code improvements, before our initial public release.
+
+To provide feedback internally, please follow these guidelines:
+
+a) **Report errors using GitHub Issues:** If you encounter any errors, please log an issue in the repository at [Issues · Azure-Samples/azure-search-openai-solution-accelerator (github.com)](https://github.com/Azure-Samples/azure-search-openai-solution-accelerator/issues).
+
+b) **Submit recommendations for documentation/code via Pull Requests**: If you have suggestions for improvements in documentation or code (once tested), please submit a pull request (PR) at [Pull requests · Azure-Samples/azure-search-openai-solution-accelerator (github.com](https://github.com/Azure-Samples/azure-search-openai-solution-accelerator/pulls)). Note that new functionality PRs involving other products not included in Version 1 will not be considered for the initial public release but will be triaged for future updates. We will review and approve PRs related to the current deployment if they enhance customer understanding, follow best practices, or help fix identified errors.
+
+c) **Provide feedback on other topics in the Feedback Channel**: For any other feedback, please create a post in the ["Chat with your data" Solution Accelerator Feedback Channel](https://teams.microsoft.com/l/channel/19%3acee78935c39448e1a53474e88464e68e%40thread.tacv2/Feedback?groupId=845e2cfa-3fff-4488-affe-1d9c616545b7&tenantId=72f988bf-86f1-41af-91ab-2d7cd011db47) for discussion.
+
+d) **Consider creating a forked repository for specific use cases**: This project serves as a general, robust sample for Proof of Concepts (POCs) of the RAG implementation, including best practices and recommendations. It is designed to be easy for customers to understand, deploy, modify, and adapt. If you have suggestions for additional functionality that may not be applicable to most deployments, we recommend discussing whether it would be more appropriate to create a forked repository tailored to specific industries or use cases.
+
+By following these guidelines, you help us improve the project and ensure its success. We appreciate your feedback and collaboration!
+ 
 
 # DISCLAIMER
 This presentation, demonstration, and demonstration model are for informational purposes only and (1) are not subject to SOC 1 and SOC 2 compliance audits, and (2) are not designed, intended or made available as a medical device(s) or as a substitute for professional medical advice, diagnosis, treatment or judgment. Microsoft makes no warranties, express or implied, in this presentation, demonstration, and demonstration model. Nothing in this presentation, demonstration, or demonstration model modifies any of the terms and conditions of Microsoft’s written and signed agreements. This is not an offer and applicable terms and the information provided are subject to revision and may be changed at any time by Microsoft.
