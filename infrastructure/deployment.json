@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.18.4.5664",
-      "templateHash": "10905370913608503078"
+      "templateHash": "32033295638010119"
     }
   },
   "parameters": {
@@ -799,33 +799,6 @@
       "dependsOn": [
         "[resourceId('Microsoft.Web/sites', parameters('FunctionName'))]",
         "[resourceId('Microsoft.Resources/deploymentScripts', 'WaitFunctionDeploymentSection')]"
-      ]
-    },
-    {
-      "type": "Microsoft.Web/sites/config",
-      "apiVersion": "2021-03-01",
-      "name": "[format('{0}/{1}', parameters('WebsiteName'), 'appsettings')]",
-      "kind": "string",
-      "properties": {
-        "APPINSIGHTS_CONNECTION_STRING": "[reference(resourceId('Microsoft.Insights/components', parameters('ApplicationInsightsName')), '2015-05-01').ConnectionString]",
-        "AZURE_OPENAI_MODEL": "[parameters('AzureOpenAIModel')]",
-        "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('AzureOpenAIEmbeddingModel')]",
-        "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('AzureCognitiveSearch'))]",
-        "AZURE_SEARCH_KEY": "[listAdminKeys(format('Microsoft.Search/searchServices/{0}', parameters('AzureCognitiveSearch')), '2021-04-01-preview').primaryKey]",
-        "AZURE_SEARCH_INDEX": "[parameters('AzureSearchIndex')]",
-        "AZURE_OPENAI_RESOURCE": "[parameters('AzureOpenAIResource')]",
-        "AZURE_OPENAI_API_VERSION": "[parameters('AzureOpenAIApiVersion')]",
-        "AZURE_OPENAI_KEY": "[parameters('AzureOpenAIKey')]",
-        "AZURE_BLOB_ACCOUNT_NAME": "[parameters('StorageAccountName')]",
-        "AZURE_BLOB_ACCOUNT_KEY": "[listkeys(resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName')), '2015-05-01-preview').key1]",
-        "AZURE_BLOB_CONTAINER_NAME": "[variables('BlobContainerName')]",
-        "AZURE_FORM_RECOGNIZER_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('Location'))]",
-        "AZURE_FORM_RECOGNIZER_KEY": "[listKeys(format('Microsoft.CognitiveServices/accounts/{0}', parameters('FormRecognizerName')), '2023-05-01').key1]"
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Insights/components', parameters('ApplicationInsightsName'))]",
-        "[resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName'))]",
-        "[resourceId('Microsoft.Web/sites', parameters('WebsiteName'))]"
       ]
     },
     {

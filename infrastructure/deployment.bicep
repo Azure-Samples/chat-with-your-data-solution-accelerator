@@ -389,28 +389,6 @@ resource FunctionName_default_clientKey 'Microsoft.Web/sites/host/functionKeys@2
   ]
 }
 
-resource WebsiteName_appsettings 'Microsoft.Web/sites/config@2021-03-01' = {
-  parent: Website
-  name: 'appsettings'
-  kind: 'string'
-  properties: {
-    APPINSIGHTS_CONNECTION_STRING: reference(ApplicationInsights.id, '2015-05-01').ConnectionString
-    AZURE_OPENAI_MODEL: AzureOpenAIModel
-    AZURE_OPENAI_EMBEDDING_MODEL: AzureOpenAIEmbeddingModel
-    AZURE_SEARCH_SERVICE: 'https://${AzureCognitiveSearch}.search.windows.net'
-    AZURE_SEARCH_KEY: listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey
-    AZURE_SEARCH_INDEX: AzureSearchIndex
-    AZURE_OPENAI_RESOURCE: AzureOpenAIResource
-    AZURE_OPENAI_API_VERSION: AzureOpenAIApiVersion
-    AZURE_OPENAI_KEY: AzureOpenAIKey
-    AZURE_BLOB_ACCOUNT_NAME: StorageAccountName
-    AZURE_BLOB_ACCOUNT_KEY: listkeys(StorageAccount.id, '2015-05-01-preview').key1
-    AZURE_BLOB_CONTAINER_NAME: BlobContainerName
-    AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${Location}.api.cognitive.microsoft.com/'
-    AZURE_FORM_RECOGNIZER_KEY: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1
-  }
-}
-
 resource WaitFunctionDeploymentSection 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   kind: 'AzurePowerShell'
   name: 'WaitFunctionDeploymentSection'
