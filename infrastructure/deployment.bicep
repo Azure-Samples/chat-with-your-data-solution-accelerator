@@ -178,122 +178,35 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
     serverFarmId: HostingPlanName
     siteConfig: {
       appSettings: [
-        {
-          name: 'APPINSIGHTS_CONNECTION_STRING'
-          value: reference(ApplicationInsights.id, '2015-05-01').ConnectionString
-        }
-        {
-          name: 'AZURE_SEARCH_SERVICE'
-          value: AzureCognitiveSearch
-        }
-        {
-          name: 'AZURE_SEARCH_INDEX'
-          value: AzureSearchIndex
-        }
-        {
-          name: 'AZURE_SEARCH_KEY'
-          value: listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey
-        }
-        {
-          name: 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG'
-          value: AzureSearchSemanticSearchConfig
-        }
-        {
-          name: 'AZURE_SEARCH_INDEX_IS_PRECHUNKED'
-          value: AzureSearchIndexIsPrechunked
-        }
-        {
-          name: 'AZURE_SEARCH_TOP_K'
-          value: AzureSearchTopK
-        }
-        {
-          name: 'AZURE_SEARCH_ENABLE_IN_DOMAIN'
-          value: AzureSearchEnableInDomain
-        }
-        {
-          name: 'AZURE_SEARCH_CONTENT_COLUMNS'
-          value: AzureSearchContentColumns
-        }
-        {
-          name: 'AZURE_SEARCH_FILENAME_COLUMN'
-          value: AzureSearchFilenameColumn
-        }
-        {
-          name: 'AZURE_SEARCH_TITLE_COLUMN'
-          value: AzureSearchTitleColumn
-        }
-        {
-          name: 'AZURE_SEARCH_URL_COLUMN'
-          value: AzureSearchUrlColumn
-        }
-        {
-          name: 'AZURE_OPENAI_RESOURCE'
-          value: AzureOpenAIResource
-        }
-        {
-          name: 'AZURE_OPENAI_MODEL'
-          value: AzureOpenAIModel
-        }
-        {
-          name: 'AZURE_OPENAI_KEY'
-          value: AzureOpenAIKey
-        }
-        {
-          name: 'AZURE_OPENAI_MODEL_NAME'
-          value: AzureOpenAIModelName
-        }
-        {
-          name: 'AZURE_OPENAI_TEMPERATURE'
-          value: AzureOpenAITemperature
-        }
-        {
-          name: 'AZURE_OPENAI_TOP_P'
-          value: AzureOpenAITopP
-        }
-        {
-          name: 'AZURE_OPENAI_MAX_TOKENS'
-          value: AzureOpenAIMaxTokens
-        }
-        {
-          name: 'AZURE_OPENAI_STOP_SEQUENCE'
-          value: AzureOpenAIStopSequence
-        }
-        {
-          name: 'AZURE_OPENAI_SYSTEM_MESSAGE'
-          value: AzureOpenAISystemMessage
-        }
-        {
-          name: 'AZURE_OPENAI_API_VERSION'
-          value: AzureOpenAIApiVersion
-        }
-        {
-          name: 'AZURE_OPENAI_STREAM'
-          value: AzureOpenAIStream
-        }
-        {
-          name: 'AZURE_OPENAI_EMBEDDING_MODEL'
-          value: AzureOpenAIEmbeddingModel
-        }
-        {
-          name: 'AZURE_FORM_RECOGNIZER_ENDPOINT'
-          value: 'https://${Location}.api.cognitive.microsoft.com/'
-        }
-        {
-          name: 'AZURE_FORM_RECOGNIZER_KEY'
-          value: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1
-        }
-        {
-          name: 'AZURE_BLOB_ACCOUNT_NAME'
-          value: StorageAccountName
-        }
-        {
-          name: 'AZURE_BLOB_ACCOUNT_KEY'
-          value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value
-        }
-        {
-          name: 'AZURE_BLOB_CONTAINER_NAME'
-          value: BlobContainerName
-        }
+        { name: 'APPINSIGHTS_CONNECTION_STRING', value: reference(ApplicationInsights.id, '2015-05-01').ConnectionString}
+        { name: 'AZURE_SEARCH_SERVICE', value: AzureCognitiveSearch}
+        { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}
+        { name: 'AZURE_SEARCH_KEY', value: listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey}
+        { name: 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', value: AzureSearchSemanticSearchConfig}
+        { name: 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', value: AzureSearchIndexIsPrechunked}
+        { name: 'AZURE_SEARCH_TOP_K', value: AzureSearchTopK}
+        { name: 'AZURE_SEARCH_ENABLE_IN_DOMAIN', value: AzureSearchEnableInDomain}
+        { name: 'AZURE_SEARCH_CONTENT_COLUMNS', value: AzureSearchContentColumns}
+        { name: 'AZURE_SEARCH_FILENAME_COLUMN', value: AzureSearchFilenameColumn}
+        { name: 'AZURE_SEARCH_TITLE_COLUMN', value: AzureSearchTitleColumn}
+        { name: 'AZURE_SEARCH_URL_COLUMN', value: AzureSearchUrlColumn}
+        { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
+        { name: 'AZURE_OPENAI_KEY', value: AzureOpenAIKey}
+        { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIModel}
+        { name: 'AZURE_OPENAI_MODEL_NAME', value: AzureOpenAIModelName}
+        { name: 'AZURE_OPENAI_TEMPERATURE', value: AzureOpenAITemperature}
+        { name: 'AZURE_OPENAI_TOP_P', value: AzureOpenAITopP}
+        { name: 'AZURE_OPENAI_MAX_TOKENS', value: AzureOpenAIMaxTokens}
+        { name: 'AZURE_OPENAI_STOP_SEQUENCE', value: AzureOpenAIStopSequence}
+        { name: 'AZURE_OPENAI_SYSTEM_MESSAGE', value: AzureOpenAISystemMessage}
+        { name: 'AZURE_OPENAI_API_VERSION', value: AzureOpenAIApiVersion}
+        { name: 'AZURE_OPENAI_STREAM', value: AzureOpenAIStream}
+        { name: 'AZURE_OPENAI_EMBEDDING_MODEL', value: AzureOpenAIEmbeddingModel}
+        { name: 'AZURE_FORM_RECOGNIZER_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
+        { name: 'AZURE_FORM_RECOGNIZER_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1}
+        { name: 'AZURE_BLOB_ACCOUNT_NAME', value: StorageAccountName}
+        { name: 'AZURE_BLOB_ACCOUNT_KEY', value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value}
+        { name: 'AZURE_BLOB_CONTAINER_NAME', value: BlobContainerName}
       ]
       linuxFxVersion: WebAppImageName
     }
@@ -310,150 +223,39 @@ resource WebsiteName_admin 'Microsoft.Web/sites@2020-06-01' = {
     serverFarmId: HostingPlanName
     siteConfig: {
       appSettings: [
-        {
-          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
-          value: reference(ApplicationInsights.id, '2015-05-01').InstrumentationKey
-        }
-        {
-          name: 'AZURE_SEARCH_SERVICE'
-          value: 'https://${AzureCognitiveSearch}.search.windows.net'
-        }
-        {
-          name: 'AZURE_SEARCH_KEY'
-          value: listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey
-        }
-        {
-          name: 'AZURE_SEARCH_INDEX'
-          value: AzureSearchIndex
-        }
-        {
-          name: 'AZURE_SEARCH_USE_SEMANTIC_SEARCH'
-          value: AzureSearchUseSemanticSearch
-        }
-        {
-          name: 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG'
-          value: AzureSearchSemanticSearchConfig
-        }
-        {
-          name: 'AZURE_SEARCH_INDEX_IS_PRECHUNKED'
-          value: AzureSearchIndexIsPrechunked
-        }
-        {
-          name: 'AZURE_SEARCH_TOP_K'
-          value: AzureSearchTopK
-        }
-        {
-          name: 'AZURE_SEARCH_ENABLE_IN_DOMAIN'
-          value: AzureSearchEnableInDomain
-        }
-        {
-          name: 'AZURE_SEARCH_CONTENT_COLUMNS'
-          value: AzureSearchContentColumns
-        }
-        {
-          name: 'AZURE_SEARCH_FILENAME_COLUMN'
-          value: AzureSearchFilenameColumn
-        }
-        {
-          name: 'AZURE_SEARCH_TITLE_COLUMN'
-          value: AzureSearchTitleColumn
-        }
-        {
-          name: 'AZURE_SEARCH_URL_COLUMN'
-          value: AzureSearchUrlColumn
-        }
-        {
-          name: 'AZURE_OPENAI_RESOURCE'
-          value: AzureOpenAIResource
-        }
-        {
-          name: 'OPENAI_API_BASE'
-          value: 'https://${AzureOpenAIResource}.openai.azure.com/'
-        }
-        {
-          name: 'OPENAI_API_KEY'
-          value: AzureOpenAIKey
-        }
-        {
-          name: 'AZURE_OPENAI_MODEL'
-          value: AzureOpenAIModel
-        }
-        {
-          name: 'AZURE_OPENAI_KEY'
-          value: AzureOpenAIKey
-        }
-        {
-          name: 'AZURE_OPENAI_MODEL_NAME'
-          value: AzureOpenAIModelName
-        }
-        {
-          name: 'AZURE_OPENAI_TEMPERATURE'
-          value: AzureOpenAITemperature
-        }
-        {
-          name: 'AZURE_OPENAI_TOP_P'
-          value: AzureOpenAITopP
-        }
-        {
-          name: 'AZURE_OPENAI_MAX_TOKENS'
-          value: AzureOpenAIMaxTokens
-        }
-        {
-          name: 'AZURE_OPENAI_STOP_SEQUENCE'
-          value: AzureOpenAIStopSequence
-        }
-        {
-          name: 'AZURE_OPENAI_SYSTEM_MESSAGE'
-          value: AzureOpenAISystemMessage
-        }
-        {
-          name: 'AZURE_OPENAI_API_VERSION'
-          value: AzureOpenAIApiVersion
-        }
-        {
-          name: 'AZURE_OPENAI_STREAM'
-          value: AzureOpenAIStream
-        }
-        {
-          name: 'AZURE_OPENAI_KEY'
-          value: AzureOpenAIKey
-        }
-        {
-          name: 'AZURE_BLOB_ACCOUNT_NAME'
-          value: StorageAccountName
-        }
-        {
-          name: 'AZURE_BLOB_ACCOUNT_KEY'
-          value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value
-        }
-        {
-          name: 'AZURE_BLOB_CONTAINER_NAME'
-          value: BlobContainerName
-        }
-        {
-          name: 'AZURE_FORM_RECOGNIZER_ENDPOINT'
-          value: 'https://${Location}.api.cognitive.microsoft.com/'
-        }
-        {
-          name: 'AZURE_FORM_RECOGNIZER_KEY'
-          value: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1
-        }
-        { 
-          name: 'AZURE_OPENAI_EMBEDDING_MODEL'
-          value: AzureOpenAIEmbeddingModel
-        }
-        {
-          name: 'DOCUMENT_PROCESSING_QUEUE_NAME'
-          value: QueueName
-        }
-        {
-          name: 'BACKEND_URL'
-          value: 'https://${FunctionName}.azurewebsites.net'
-        }
-        {
-          name: 'FUNCTION_KEY'
-          value: ClientKey
-        }
+        { name: 'APPINSIGHTS_INSTRUMENTATIONKEY', value: reference(ApplicationInsights.id, '2015-05-01').InstrumentationKey }
+        { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureCognitiveSearch}.search.windows.net' }
+        { name: 'AZURE_SEARCH_KEY', value: listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey }
+        { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex }
+        { name: 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', value: AzureSearchUseSemanticSearch }
+        { name: 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', value: AzureSearchSemanticSearchConfig }
+        { name: 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', value: AzureSearchIndexIsPrechunked }
+        { name: 'AZURE_SEARCH_TOP_K', value: AzureSearchTopK }
+        { name: 'AZURE_SEARCH_ENABLE_IN_DOMAIN', value: AzureSearchEnableInDomain }
+        { name: 'AZURE_SEARCH_CONTENT_COLUMNS', value: AzureSearchContentColumns}
+        { name: 'AZURE_SEARCH_FILENAME_COLUMN', value: AzureSearchFilenameColumn }
+        { name: 'AZURE_SEARCH_TITLE_COLUMN', value: AzureSearchTitleColumn}
+        { name: 'AZURE_SEARCH_URL_COLUMN', value: AzureSearchUrlColumn }
+        { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
+        { name: 'AZURE_OPENAI_KEY', value: AzureOpenAIKey}
+        { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIModel }
+        { name: 'AZURE_OPENAI_MODEL_NAME', value: AzureOpenAIModelName }
+        { name: 'AZURE_OPENAI_TEMPERATURE', value: AzureOpenAITemperature }
+        { name: 'AZURE_OPENAI_TOP_P', value: AzureOpenAITopP }
+        { name: 'AZURE_OPENAI_MAX_TOKENS', value: AzureOpenAIMaxTokens }
+        { name: 'AZURE_OPENAI_STOP_SEQUENCE', value: AzureOpenAIStopSequence }
+        { name: 'AZURE_OPENAI_SYSTEM_MESSAGE', value: AzureOpenAISystemMessage }
+        { name: 'AZURE_OPENAI_API_VERSION', value: AzureOpenAIApiVersion }
+        { name: 'AZURE_OPENAI_STREAM', value: AzureOpenAIStream }
+        { name: 'AZURE_OPENAI_EMBEDDING_MODEL', value: AzureOpenAIEmbeddingModel }
+        { name: 'AZURE_FORM_RECOGNIZER_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/' }
+        { name: 'AZURE_FORM_RECOGNIZER_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1 }
+        { name: 'AZURE_BLOB_ACCOUNT_NAME', value: StorageAccountName }
+        { name: 'AZURE_BLOB_ACCOUNT_KEY', value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value }
+        { name: 'AZURE_BLOB_CONTAINER_NAME', value: BlobContainerName }
+        { name: 'DOCUMENT_PROCESSING_QUEUE_NAME', value: QueueName}
+        { name: 'BACKEND_URL', value: 'https://${FunctionName}.azurewebsites.net'}
+        { name: 'FUNCTION_KEY', value: ClientKey}
       ]
       linuxFxVersion: AdminWebAppImageName
     }
@@ -540,78 +342,24 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
   properties: {
     siteConfig: {
       appSettings: [
-        {
-          name: 'FUNCTIONS_EXTENSION_VERSION'
-          value: '~4'
-        }
-        {
-          name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
-          value: 'false'
-        }
-        {
-          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
-          value: reference(ApplicationInsights.id, '2015-05-01').InstrumentationKey
-        }
-        {
-          name: 'AzureWebJobsStorage'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${StorageAccountName};AccountKey=${listKeys(StorageAccount.id, '2019-06-01').keys[0].value};EndpointSuffix=core.windows.net'
-        }
-        {
-          name: 'AZURE_OPENAI_MODEL'
-          value: AzureOpenAIModel
-        }
-        {
-          name: 'AZURE_OPENAI_EMBEDDING_MODEL'
-          value: AzureOpenAIEmbeddingModel
-        }
-        {
-          name: 'AZURE_OPENAI_RESOURCE'
-          value: AzureOpenAIResource
-        }
-        {
-          name: 'AZURE_OPENAI_KEY'
-          value: AzureOpenAIKey
-        }
-        {
-          name: 'AZURE_BLOB_ACCOUNT_NAME'
-          value: StorageAccountName
-        }
-        {
-          name: 'AZURE_BLOB_ACCOUNT_KEY'
-          value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value
-        }
-        {
-          name: 'AZURE_BLOB_CONTAINER_NAME'
-          value: BlobContainerName
-        }
-        {
-          name: 'AZURE_FORM_RECOGNIZER_ENDPOINT'
-          value: 'https://${Location}.api.cognitive.microsoft.com/'
-        }
-        {
-          name: 'AZURE_FORM_RECOGNIZER_KEY'
-          value: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1
-        }
-        {
-          name: 'AZURE_SEARCH_SERVICE'
-          value: 'https://${AzureCognitiveSearch}.search.windows.net'
-        }
-        {
-          name: 'AZURE_SEARCH_KEY'
-          value: listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey
-        }
-        {
-          name: 'DOCUMENT_PROCESSING_QUEUE_NAME'
-          value: QueueName
-        }
-        {
-          name: 'AZURE_OPENAI_API_VERSION'
-          value: AzureOpenAIApiVersion
-        }
-        {
-          name: 'AZURE_SEARCH_INDEX'
-          value: AzureSearchIndex
-        }
+        { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4'}
+        { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false'}
+        { name: 'APPINSIGHTS_INSTRUMENTATIONKEY', value: reference(ApplicationInsights.id, '2015-05-01').InstrumentationKey}
+        { name: 'AzureWebJobsStorage', value: 'DefaultEndpointsProtocol=https;AccountName=${StorageAccountName};AccountKey=${listKeys(StorageAccount.id, '2019-06-01').keys[0].value};EndpointSuffix=core.windows.net'}
+        { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIModel}
+        { name: 'AZURE_OPENAI_EMBEDDING_MODEL', value: AzureOpenAIEmbeddingModel}
+        { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
+        { name: 'AZURE_OPENAI_KEY', value: AzureOpenAIKey}
+        { name: 'AZURE_BLOB_ACCOUNT_NAME', value: StorageAccountName}
+        { name: 'AZURE_BLOB_ACCOUNT_KEY', value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value}
+        { name: 'AZURE_BLOB_CONTAINER_NAME', value: BlobContainerName}
+        { name: 'AZURE_FORM_RECOGNIZER_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
+        { name: 'AZURE_FORM_RECOGNIZER_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1}
+        { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureCognitiveSearch}.search.windows.net'}
+        { name: 'AZURE_SEARCH_KEY', value: listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey}
+        { name: 'DOCUMENT_PROCESSING_QUEUE_NAME', value: QueueName}
+        { name: 'AZURE_OPENAI_API_VERSION', value: AzureOpenAIApiVersion}
+        { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}
       ]
       cors: {
         allowedOrigins: [

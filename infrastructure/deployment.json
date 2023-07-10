@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.18.4.5664",
-      "templateHash": "239101504726205340"
+      "templateHash": "10905370913608503078"
     }
   },
   "parameters": {
@@ -381,12 +381,12 @@
               "value": "[parameters('AzureOpenAIResource')]"
             },
             {
-              "name": "AZURE_OPENAI_MODEL",
-              "value": "[parameters('AzureOpenAIModel')]"
-            },
-            {
               "name": "AZURE_OPENAI_KEY",
               "value": "[parameters('AzureOpenAIKey')]"
+            },
+            {
+              "name": "AZURE_OPENAI_MODEL",
+              "value": "[parameters('AzureOpenAIModel')]"
             },
             {
               "name": "AZURE_OPENAI_MODEL_NAME",
@@ -520,20 +520,12 @@
               "value": "[parameters('AzureOpenAIResource')]"
             },
             {
-              "name": "OPENAI_API_BASE",
-              "value": "[format('https://{0}.openai.azure.com/', parameters('AzureOpenAIResource'))]"
-            },
-            {
-              "name": "OPENAI_API_KEY",
+              "name": "AZURE_OPENAI_KEY",
               "value": "[parameters('AzureOpenAIKey')]"
             },
             {
               "name": "AZURE_OPENAI_MODEL",
               "value": "[parameters('AzureOpenAIModel')]"
-            },
-            {
-              "name": "AZURE_OPENAI_KEY",
-              "value": "[parameters('AzureOpenAIKey')]"
             },
             {
               "name": "AZURE_OPENAI_MODEL_NAME",
@@ -568,8 +560,16 @@
               "value": "[parameters('AzureOpenAIStream')]"
             },
             {
-              "name": "AZURE_OPENAI_KEY",
-              "value": "[parameters('AzureOpenAIKey')]"
+              "name": "AZURE_OPENAI_EMBEDDING_MODEL",
+              "value": "[parameters('AzureOpenAIEmbeddingModel')]"
+            },
+            {
+              "name": "AZURE_FORM_RECOGNIZER_ENDPOINT",
+              "value": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('Location'))]"
+            },
+            {
+              "name": "AZURE_FORM_RECOGNIZER_KEY",
+              "value": "[listKeys(format('Microsoft.CognitiveServices/accounts/{0}', parameters('FormRecognizerName')), '2023-05-01').key1]"
             },
             {
               "name": "AZURE_BLOB_ACCOUNT_NAME",
@@ -582,18 +582,6 @@
             {
               "name": "AZURE_BLOB_CONTAINER_NAME",
               "value": "[variables('BlobContainerName')]"
-            },
-            {
-              "name": "AZURE_FORM_RECOGNIZER_ENDPOINT",
-              "value": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('Location'))]"
-            },
-            {
-              "name": "AZURE_FORM_RECOGNIZER_KEY",
-              "value": "[listKeys(format('Microsoft.CognitiveServices/accounts/{0}', parameters('FormRecognizerName')), '2023-05-01').key1]"
-            },
-            {
-              "name": "AZURE_OPENAI_EMBEDDING_MODEL",
-              "value": "[parameters('AzureOpenAIEmbeddingModel')]"
             },
             {
               "name": "DOCUMENT_PROCESSING_QUEUE_NAME",
