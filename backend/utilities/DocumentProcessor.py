@@ -2,11 +2,8 @@
 import os
 from dotenv import load_dotenv
 import logging
-from typing import Optional
 
 from langchain.vectorstores.base import VectorStore
-import pandas as pd
-import urllib
 
 from .azuresearch import AzureSearch
 from .LLMHelper import LLMHelper
@@ -57,20 +54,3 @@ class DocumentProcessor:
         except Exception as e:
             logging.error(f"Error adding embeddings for {source_url}: {e}")
             raise e
-    
-    def get_all_documents(self, k: Optional[int] = None):
-        result = self.vector_store.similarity_search(query="*", k=k if k else self.k)
-        return pd.DataFrame(
-            list(
-                map(
-                    lambda x: {
-                        "key": x.metadata["key"],
-                        "filename": x.metadata["filename"],
-                        "source": urllib.parse.unquote(x.metadata["markdown_url"]), # TODO: Is this needed?
-                        "content": x.page_content,
-                        "metadata": x.metadata,
-                    },
-                    result,
-                )
-            )
-        )
