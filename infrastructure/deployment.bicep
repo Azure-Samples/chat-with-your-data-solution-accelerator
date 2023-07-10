@@ -609,10 +609,6 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
           value: AzureOpenAIApiVersion
         }
         {
-          name: 'AZURE_OPENAI_EMBEDDING_MODEL'
-          value: AzureOpenAIEmbeddingModel
-        }
-        {
           name: 'AZURE_SEARCH_INDEX'
           value: AzureSearchIndex
         }
@@ -654,7 +650,7 @@ resource WebsiteName_appsettings 'Microsoft.Web/sites/config@2021-03-01' = {
     AZURE_OPENAI_MODEL: AzureOpenAIModel
     AZURE_OPENAI_EMBEDDING_MODEL: AzureOpenAIEmbeddingModel
     AZURE_SEARCH_SERVICE: 'https://${AzureCognitiveSearch}.search.windows.net'
-    AZURE_SEARCH_ADMIN_KEY: listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey
+    AZURE_SEARCH_KEY: listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey
     AZURE_SEARCH_INDEX: AzureSearchIndex
     AZURE_OPENAI_RESOURCE: AzureOpenAIResource
     AZURE_OPENAI_API_VERSION: AzureOpenAIApiVersion

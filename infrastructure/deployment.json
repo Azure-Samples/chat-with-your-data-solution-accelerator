@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.18.4.5664",
-      "templateHash": "9064503876030802325"
+      "templateHash": "239101504726205340"
     }
   },
   "parameters": {
@@ -200,13 +200,6 @@
       "defaultValue": "true",
       "metadata": {
         "description": "Whether or not to stream responses from Azure OpenAI"
-      }
-    },
-    "AzureOpenAIDeploymentType": {
-      "type": "string",
-      "defaultValue": "Chat",
-      "metadata": {
-        "description": "Azure OpenAI Deployment Type. Text (e.g. text-davinci-003) or Chat (e.g. gpt-35-turbo or gpt-4)"
       }
     },
     "AzureOpenAIEmbeddingModel": {
@@ -783,10 +776,6 @@
               "value": "[parameters('AzureOpenAIApiVersion')]"
             },
             {
-              "name": "AZURE_OPENAI_EMBEDDING_MODEL",
-              "value": "[parameters('AzureOpenAIEmbeddingModel')]"
-            },
-            {
               "name": "AZURE_SEARCH_INDEX",
               "value": "[parameters('AzureSearchIndex')]"
             }
@@ -834,7 +823,7 @@
         "AZURE_OPENAI_MODEL": "[parameters('AzureOpenAIModel')]",
         "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('AzureOpenAIEmbeddingModel')]",
         "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('AzureCognitiveSearch'))]",
-        "AZURE_SEARCH_ADMIN_KEY": "[listAdminKeys(format('Microsoft.Search/searchServices/{0}', parameters('AzureCognitiveSearch')), '2021-04-01-preview').primaryKey]",
+        "AZURE_SEARCH_KEY": "[listAdminKeys(format('Microsoft.Search/searchServices/{0}', parameters('AzureCognitiveSearch')), '2021-04-01-preview').primaryKey]",
         "AZURE_SEARCH_INDEX": "[parameters('AzureSearchIndex')]",
         "AZURE_OPENAI_RESOURCE": "[parameters('AzureOpenAIResource')]",
         "AZURE_OPENAI_API_VERSION": "[parameters('AzureOpenAIApiVersion')]",
