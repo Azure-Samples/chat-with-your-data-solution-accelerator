@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.18.4.5664",
-      "templateHash": "32033295638010119"
+      "templateHash": "49221670686646934"
     }
   },
   "parameters": {
@@ -334,7 +334,7 @@
             },
             {
               "name": "AZURE_SEARCH_SERVICE",
-              "value": "[parameters('AzureCognitiveSearch')]"
+              "value": "[format('https://{0}.search.windows.net', parameters('AzureCognitiveSearch'))]"
             },
             {
               "name": "AZURE_SEARCH_INDEX",

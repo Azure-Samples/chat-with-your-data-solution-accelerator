@@ -179,7 +179,7 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
     siteConfig: {
       appSettings: [
         { name: 'APPINSIGHTS_CONNECTION_STRING', value: reference(ApplicationInsights.id, '2015-05-01').ConnectionString}
-        { name: 'AZURE_SEARCH_SERVICE', value: AzureCognitiveSearch}
+        { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureCognitiveSearch}.search.windows.net'}
         { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}
         { name: 'AZURE_SEARCH_KEY', value: listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey}
         { name: 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', value: AzureSearchSemanticSearchConfig}
