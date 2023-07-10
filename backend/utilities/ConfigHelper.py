@@ -74,11 +74,11 @@ Please reply to the question using only the information Context section above. I
 The context is structured like this:
 
 Content:  <information>
-Source: [url/to/file.pdf](url/to/file.pdf_SAS_TOKEN_PLACEHOLDER_)
+Source: url/to/file.pdf#0
 <and more of them>
 
-When you give your answer, you ALWAYS MUST include one of more of the above sources in your response in the following format: <answer> [[file.pdf]]
-Always use double square brackets to reference the filename source, e.g. [[file.pdf]]. When using multiple sources, list each source separately, e.g. [[file1.pdf]][[file2.pdf]].
+When you give your answer, you ALWAYS MUST include one or more of the above sources in your response in the following format: <answer> [[url/to/file.pdf#1]]
+Always use double square brackets to reference the filename source, e.g. [[url/to/file.pdf#1]]. When using multiple sources, list each source separately, e.g. [[url/to/file.pdf#1]][[file2.pdf#0]].
 
 Question: {question}
 Answer:""",
