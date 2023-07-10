@@ -72,12 +72,12 @@ class QuestionHandler:
         was_message_filtered = False
         post_total_tokens, post_prompt_tokens, post_completion_tokens = 0, 0, 0
         if config.prompts.post_answering_prompt is not None and len(config.prompts.post_answering_prompt) > 0:
-            post_answering_prompt = PromptTemplate(template=config.prompts.post_answering_prompt, input_variables=["question", "answer", "summaries"])
+            post_answering_prompt = PromptTemplate(template=config.prompts.post_answering_prompt, input_variables=["question", "answer", "sources"])
             post_answering_chain = LLMChain(llm=self.llm, prompt=post_answering_prompt, output_key="correct", verbose=True)
-            summaries = '\n'.join([f"{doc.metadata['filename']}: {doc.page_content}" for doc in result['source_documents']])
+            sources = '\n'.join([f"{doc.metadata['filename']}: {doc.page_content}" for doc in result['source_documents']])
            
             with get_openai_callback() as cb_post:
-                post_result = post_answering_chain({"question": result["generated_question"], "answer": answer, "summaries": summaries})
+                post_result = post_answering_chain({"question": result["generated_question"], "answer": answer, "sources": sources})
             
             post_total_tokens, post_prompt_tokens, post_completion_tokens = cb_post.total_tokens, cb_post.prompt_tokens, cb_post.completion_tokens
             was_message_filtered = not (post_result['correct'].lower() == 'true' or post_result['correct'].lower() == 'yes')

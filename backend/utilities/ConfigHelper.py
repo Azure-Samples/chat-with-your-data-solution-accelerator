@@ -67,7 +67,7 @@ Chat History:
 Follow Up Input: {question}
 Standalone question:""",
                 "answering_prompt": """Context:
-{summaries}
+{sources}
 
 Please reply to the question using only the information Context section above. If you can't answer a question using the context, reply politely that the information is not in the knowledge base. DO NOT make up your own answers. You detect the language of the question and answer in the same language.  If asked for enumerations list all of them and do not invent any.
 
@@ -77,15 +77,15 @@ Content:  <information>
 Source: [url/to/file.pdf](url/to/file.pdf_SAS_TOKEN_PLACEHOLDER_)
 <and more of them>
 
-When you give your answer, you ALWAYS MUST include the source in your response in the following format: <answer> [[file.pdf]]
+When you give your answer, you ALWAYS MUST include one of more of the above sources in your response in the following format: <answer> [[file.pdf]]
 Always use double square brackets to reference the filename source, e.g. [[file.pdf]]. When using multiple sources, list each source separately, e.g. [[file1.pdf]][[file2.pdf]].
 
 Question: {question}
 Answer:""",
-                "post_answering_prompt": """You help fact checking if the given answer for the question below is aligned to the sources. If the answer is correct, then reply with "True", if the answer is not correct, then reply with "False". DO NOT ANSWER with anything else.
+                "post_answering_prompt": """You help fact checking if the given answer for the question below is aligned to the sources. If the answer is correct, then reply with 'True', if the answer is not correct, then reply with 'False'. DO NOT ANSWER with anything else.
 
 Sources:
-{summaries}
+{sources}
 
 Question: {question}
 Answer: {answer}""",
@@ -94,7 +94,7 @@ Answer: {answer}""",
                 "post_answering_filter": "I'm sorry, but I can't answer this question correctly. Please try again by altering or rephrasing your question."
             },
             "chunking": [{
-                "strategy": ChunkingStrategy.FIXED_SIZE_OVERLAP,
+                "strategy": ChunkingStrategy.LAYOUT,
                 "size": 500,
                 "overlap": 100
                 }],
