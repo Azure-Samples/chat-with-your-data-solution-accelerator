@@ -1,23 +1,34 @@
 import os
 import json
-from enum import Enum
 from .azureblobstorage import AzureBlobStorageClient
+from .DocumentChunking import Chunking, ChunkingStrategy
+from .DocumentLoading import Loading, LoadingStrategy
+from .DocumentProcessor import Processor
 
 CONFIG_CONTAINER_NAME = "config"
-
-class ChunkingStrategy(Enum):
-    LAYOUT = 'layout'
-    PAGE = 'page'
-    FIXED_SIZE_OVERLAP = 'fixed_size_overlap'
-    PARAGRAPH = 'paragraph'
 
 class Config:
     def __init__(self, config: dict):
         self.prompts = Prompts(config['prompts'])
         self.messages = Messages(config['messages'])
-        self.chunking = [Chunking(x) for x in config['chunking']]
         self.logging = Logging(config['logging'])
-
+        self.document_processors = [
+            Processor(
+                document_type=c['document_type'], 
+                chunking=Chunking(c['chunking']), 
+                loading=Loading(c['loading'])
+            ) 
+            for c in config['document_processors']]
+    
+    def get_available_document_types(self):
+        return ["txt", "pdf", "url"]    
+    
+    def get_available_chunking_strategies(self):
+        return [c.value for c in ChunkingStrategy]
+    
+    def get_available_loading_strategies(self):
+        return [c.value for c in LoadingStrategy]
+        
 class Prompts:
     def __init__(self, prompts: dict):
         self.condense_question_prompt = prompts['condense_question_prompt']
@@ -28,12 +39,6 @@ class Prompts:
 class Messages:
     def __init__(self, messages: dict):
         self.post_answering_filter = messages['post_answering_filter']
-
-class Chunking:
-    def __init__(self, chunking:dict):
-        self.chunking_strategy = ChunkingStrategy(chunking['strategy'])
-        self.chunk_size = chunking['size']
-        self.chunk_overlap = chunking['overlap']
 
 class Logging:
     def __init__(self, logging: dict):
@@ -95,11 +100,42 @@ Answer: {answer}""",
             "messages": {
                 "post_answering_filter": "I'm sorry, but I can't answer this question correctly. Please try again by altering or rephrasing your question."
             },
-            "chunking": [{
-                "strategy": ChunkingStrategy.LAYOUT,
-                "size": 500,
-                "overlap": 100
-                }],
+            "document_processors": 
+                [  
+                 {
+                    "document_type": "pdf",
+                    "chunking": {
+                        "strategy": ChunkingStrategy.LAYOUT,
+                        "size": 500,
+                        "overlap": 100
+                    },
+                    "loading": {
+                        "strategy": LoadingStrategy.LAYOUT
+                    }
+                },
+                {
+                    "document_type": "txt",
+                    "chunking": {
+                        "strategy": ChunkingStrategy.LAYOUT,
+                        "size": 500,
+                        "overlap": 100
+                    },
+                    "loading": {
+                        "strategy": LoadingStrategy.WEB
+                    }
+                },
+                {
+                    "document_type": "url",
+                    "chunking": {
+                        "strategy": ChunkingStrategy.LAYOUT,
+                        "size": 500,
+                        "overlap": 100
+                    },
+                    "loading": {
+                        "strategy": LoadingStrategy.WEB
+                    }
+                },
+            ],
             "logging": {
                 "log_user_interactions": True,
                 "log_tokens": True

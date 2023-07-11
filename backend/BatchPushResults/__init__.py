@@ -2,6 +2,7 @@ import logging, json
 import azure.functions as func
 from utilities.azureblobstorage import AzureBlobStorageClient
 from utilities.DocumentProcessor import DocumentProcessor
+from utilities.ConfigHelper import ConfigHelper
 
 def main(msg: func.QueueMessage) -> None:
     logging.info('Python queue trigger function processed a queue item: %s',
@@ -13,6 +14,9 @@ def main(msg: func.QueueMessage) -> None:
     file_name = json.loads(msg.get_body().decode('utf-8'))['filename']
     # Generate the SAS URL for the file
     file_sas = blob_client.get_blob_sas(file_name)
-
-    document_processor.process(source_url=file_sas, filename=file_name)
+    # Get file extension's processors
+    file_extension = file_name.split(".")[-1]
+    processors = list(filter(lambda x: x.document_type == file_extension, ConfigHelper.get_active_config_or_default().document_processors))
+    # Process the file
+    document_processor.process(source_url=file_sas, processors=processors)
     blob_client.upsert_blob_metadata(file_name, {'embeddings_added': 'true'})

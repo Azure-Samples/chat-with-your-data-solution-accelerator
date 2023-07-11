@@ -1,10 +1,22 @@
 from typing import List, Optional
+from enum import Enum
 import hashlib
 from urllib.parse import urlparse
 from langchain.docstore.document import Document
 from langchain.text_splitter import MarkdownTextSplitter, TokenTextSplitter
 
-from .ConfigHelper import Chunking, ChunkingStrategy
+
+class ChunkingStrategy(Enum):
+    LAYOUT = 'layout'
+    PAGE = 'page'
+    FIXED_SIZE_OVERLAP = 'fixed_size_overlap'
+    PARAGRAPH = 'paragraph'
+
+class Chunking:
+    def __init__(self, chunking:dict):
+        self.chunking_strategy = ChunkingStrategy(chunking['strategy'])
+        self.chunk_size = chunking['size']
+        self.chunk_overlap = chunking['overlap']
 
 class DocumentChunking:
     def __init__(self) -> None:

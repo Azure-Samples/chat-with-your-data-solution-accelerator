@@ -4,7 +4,9 @@ import json
 import traceback
 import logging
 from dotenv import load_dotenv
-from utilities.ConfigHelper import ConfigHelper, ChunkingStrategy
+
+from utilities.ConfigHelper import ConfigHelper
+
 
 load_dotenv()
 
@@ -35,12 +37,12 @@ if 'enable_post_answering_prompt' not in st.session_state:
 if 'post_answering_filter_message' not in st.session_state:
     st.session_state['post_answering_filter_message'] = config.messages.post_answering_filter
     
-if 'chunking_strategy' not in st.session_state:
-    st.session_state['chunking_strategy'] = config.chunking[0].chunking_strategy.value
-if 'chunking_size' not in st.session_state:
-    st.session_state['chunking_size'] = config.chunking[0].chunk_size
-if 'chunking_overlap' not in st.session_state:
-    st.session_state['chunking_overlap'] = config.chunking[0].chunk_overlap
+# if 'chunking_strategy' not in st.session_state:
+#     st.session_state['chunking_strategy'] = config.chunking[0].chunking_strategy.value
+# if 'chunking_size' not in st.session_state:
+#     st.session_state['chunking_size'] = config.chunking[0].chunk_size
+# if 'chunking_overlap' not in st.session_state:
+#     st.session_state['chunking_overlap'] = config.chunking[0].chunk_overlap
     
 if 'log_user_interactions' not in st.session_state:
     st.session_state['log_user_interactions'] = config.logging.log_user_interactions
@@ -84,17 +86,49 @@ try:
         st.checkbox('Enable post-answering prompt', key='enable_post_answering_prompt')
 
         st.text_area("Post-answering filter message", key='post_answering_filter_message', help=post_answering_filter_help, height=200)
+    
+    document_processors = list(map(lambda x: {
+        "document_type": x.document_type, 
+        "chunking_strategy": x.chunking.chunking_strategy.value, 
+        "chunking_size": x.chunking.chunk_size,
+        "chunking_overlap": x.chunking.chunk_overlap, 
+        "loading_strategy": x.loading.loading_strategy.value,
+        }, config.document_processors))
+    with st.expander("Document processing configuration", expanded=True):
+        edited_document_processors = st.data_editor(
+            data= document_processors,
+            use_container_width=True,
+            num_rows="dynamic",
+            column_config={
+                "document_type": st.column_config.SelectboxColumn( 
+                    options= config.get_available_document_types()
+                ),
+                "chunking_strategy": st.column_config.SelectboxColumn(
+                    options=[cs for cs in config.get_available_chunking_strategies()  ]
+                ),
+                "loading_strategy": st.column_config.SelectboxColumn(
+                    options=[ls for ls in config.get_available_loading_strategies()]
+                )
+            }         
+         )               
 
-    with st.expander("Chunking configuration", expanded=True):
-        st.selectbox('Chunking strategy', [s.value for s in ChunkingStrategy], key="chunking_strategy")
-        st.number_input("Chunk size (in tokens)", key='chunking_size', min_value=10)
-        st.number_input("Chunk overlap (in tokens)", key='chunking_overlap', min_value=10)
-
+        
     with st.expander("Logging configuration", expanded=True):       
         st.checkbox('Log user input and output (questions, answers, chat history, sources)', key='log_user_interactions')
         st.checkbox('Log tokens', key='log_tokens')
     
     if st.button("Save configuration"):
+        document_processors = list(map(lambda x: {
+            "document_type": x["document_type"],
+            "chunking": {
+                "strategy": x["chunking_strategy"],
+                "size": x["chunking_size"],
+                "overlap": x["chunking_overlap"]
+            },
+            "loading": {
+                "strategy": x["loading_strategy"],
+            }
+            }, edited_document_processors))
         current_config = {
             "prompts": {
                 "condense_question_prompt": st.session_state['condense_question_prompt'],
@@ -105,11 +139,7 @@ try:
             "messages": {
                 "post_answering_filter": st.session_state['post_answering_filter_message']
             },
-            "chunking": [{
-                "strategy": st.session_state['chunking_strategy'],
-                "size": int(st.session_state['chunking_size']),
-                "overlap": int(st.session_state['chunking_overlap'])
-                }],
+            "document_processors":  document_processors,
             "logging": {
                 "log_user_interactions": st.session_state['log_user_interactions'],
                 "log_tokens": st.session_state['log_tokens']

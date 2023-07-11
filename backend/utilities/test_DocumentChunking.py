@@ -1,8 +1,7 @@
 import pytest
 from typing import List
 from langchain.docstore.document import Document
-from .DocumentChunking import DocumentChunking
-from .ConfigHelper import Chunking, ChunkingStrategy
+from .DocumentChunking import DocumentChunking, Chunking, ChunkingStrategy
 
 # Create a sample document
 documents = [
