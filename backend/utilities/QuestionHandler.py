@@ -140,7 +140,9 @@ class QuestionHandler:
                 # Then update the citation object in the response, it needs to have filepath and chunk_id to render in the UI as a file
                 messages[0]["content"]["citations"].append(
                     {
-                        "content": doc.page_content,
+                        "content": doc.metadata["markdown_url"].replace(
+                            "_SAS_TOKEN_PLACEHOLDER_", container_sas
+                        ) + "\n\n\n" + doc.page_content,
                         "id": url_idx,
                         "chunk_id": doc.metadata["chunk"],
                         "title": doc.metadata["filename"], # we need to use original_filename as LangChain needs filename-chunk as unique identifier
