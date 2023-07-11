@@ -124,8 +124,7 @@ class QuestionHandler:
                 "role": "tool",
                 "content": {"citations": [], "intent": result["generated_question"]},
                 "end_turn": False,
-            },
-            {"role": "assistant", "content": answer, "end_turn": True},
+            }
         ]
         
         container_sas = self.blob_client.get_container_sas()
@@ -154,8 +153,11 @@ class QuestionHandler:
                         ),
                         "metadata": doc.metadata,
                     })
-
-        # everything in content needs to be stringified to work with Azure BYOD frontend
+            else:
+                answer = re.sub(r'\[doc\d+\]', '', answer)
+                
+            messages.append({"role": "assistant", "content": answer, "end_turn": True})
+                # everything in content needs to be stringified to work with Azure BYOD frontend
         messages[0]["content"] = json.dumps(messages[0]["content"])
         return messages
 

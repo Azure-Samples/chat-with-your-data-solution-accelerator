@@ -79,11 +79,11 @@ Please reply to the question using only the information Context section above. I
 The context is structured like this:
 
 Content:  <information>
-Source: url/to/file.pdf#0
+Source: 
 <and more of them>
 
 When you give your answer, you ALWAYS MUST include one or more of the above sources in your response in the following format: <answer> [[url/to/file.pdf#1]]
-Always use double square brackets to reference the filename source, e.g. [[url/to/file.pdf#1]]. When using multiple sources, list each source separately, e.g. [[url/to/file.pdf#1]][[file2.pdf#0]].
+Always use double square brackets to reference the full source url. When using multiple sources, list each source separately.
 
 Question: {question}
 Answer:""",
