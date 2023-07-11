@@ -153,10 +153,9 @@ class QuestionHandler:
                         ),
                         "metadata": doc.metadata,
                     })
-            else:
-                answer = re.sub(r'\[doc\d+\]', '', answer)
-                
-            messages.append({"role": "assistant", "content": answer, "end_turn": True})
+        if messages[0]["content"]["citations"] == []:
+            answer = re.sub(r'\[doc\d+\]', '', answer)
+        messages.append({"role": "assistant", "content": answer, "end_turn": True})
                 # everything in content needs to be stringified to work with Azure BYOD frontend
         messages[0]["content"] = json.dumps(messages[0]["content"])
         return messages
