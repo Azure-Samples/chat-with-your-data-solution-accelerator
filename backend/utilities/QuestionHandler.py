@@ -16,6 +16,7 @@ from .azuresearch import AzureSearch
 from .ConfigHelper import ConfigHelper
 from .LLMHelper import LLMHelper
 from .azureblobstorage import AzureBlobStorageClient
+from .EnvHelper import EnvHelper
 
 
 # Setting logging
@@ -26,16 +27,16 @@ logger.setLevel(logging.INFO)
 
 class QuestionHandler:
     def __init__(self):
-        load_dotenv()
+        env_helper : EnvHelper = EnvHelper()
 
         self.llm = LLMHelper().get_llm()
         self.embeddings = LLMHelper().get_embedding_model()
 
         # Connect to search
         self.vector_store = AzureSearch(
-                azure_cognitive_search_name=os.getenv('AZURE_SEARCH_SERVICE'),
-                azure_cognitive_search_key=os.getenv('AZURE_SEARCH_KEY'),
-                index_name=os.getenv('AZURE_SEARCH_INDEX'),
+                azure_cognitive_search_name= env_helper.AZURE_SEARCH_SERVICE,
+                azure_cognitive_search_key= env_helper.AZURE_SEARCH_KEY,
+                index_name= env_helper.AZURE_SEARCH_INDEX,
                 embedding_function=self.embeddings.embed_query
             )
         self.blob_client = AzureBlobStorageClient()

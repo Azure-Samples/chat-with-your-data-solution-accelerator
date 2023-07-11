@@ -1,6 +1,4 @@
 
-import os
-from dotenv import load_dotenv
 import logging
 from typing import List
 
@@ -10,6 +8,7 @@ from .azuresearch import AzureSearch
 from .LLMHelper import LLMHelper
 from .DocumentLoading import DocumentLoading, Loading
 from .DocumentChunking import DocumentChunking, Chunking
+from .EnvHelper import EnvHelper
 
 logger = logging.getLogger(__name__)
 
@@ -21,17 +20,13 @@ class Processor(Chunking, Loading):
 
 class DocumentProcessor:
     def __init__(self):
-        load_dotenv()        
+        env_helper = EnvHelper()
         # Azure Search settings
-        self.azure_search_endpoint: str = os.getenv("AZURE_SEARCH_SERVICE")
-        self.azure_search_key: str = os.getenv("AZURE_SEARCH_KEY")
-        self.index_name: str = os.getenv("AZURE_SEARCH_INDEX")
-        self.embeddings = LLMHelper().get_embedding_model()
         self.vector_store: AzureSearch = AzureSearch(
-                azure_cognitive_search_name=self.azure_search_endpoint,
-                azure_cognitive_search_key=self.azure_search_key,
-                index_name=self.index_name,
-                embedding_function=self.embeddings.embed_query)
+                azure_cognitive_search_name=  env_helper.AZURE_SEARCH_SERVICE,
+                azure_cognitive_search_key= env_helper.AZURE_SEARCH_KEY,
+                index_name= env_helper.AZURE_SEARCH_INDEX,
+                embedding_function=LLMHelper().get_embedding_model().embed_query)
         self.k: int = 4
         
     def process(self, source_url: str, processors: List[Processor]):

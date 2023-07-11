@@ -1,15 +1,15 @@
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.formrecognizer import DocumentAnalysisClient
-import os
 import html
 import traceback
-from dotenv import load_dotenv
+from .EnvHelper import EnvHelper
 
 class AzureFormRecognizerClient:
     def __init__(self) -> None:
-        load_dotenv()
-        self.AZURE_FORM_RECOGNIZER_ENDPOINT : str = os.getenv('AZURE_FORM_RECOGNIZER_ENDPOINT','')
-        self.AZURE_FORM_RECOGNIZER_KEY : str = os.getenv('AZURE_FORM_RECOGNIZER_KEY','')
+        env_helper : EnvHelper = EnvHelper()
+        
+        self.AZURE_FORM_RECOGNIZER_ENDPOINT : str = env_helper.AZURE_FORM_RECOGNIZER_ENDPOINT
+        self.AZURE_FORM_RECOGNIZER_KEY : str = env_helper.AZURE_FORM_RECOGNIZER_KEY
         
         self.document_analysis_client = DocumentAnalysisClient(
             endpoint=self.AZURE_FORM_RECOGNIZER_ENDPOINT, credential=AzureKeyCredential(self.AZURE_FORM_RECOGNIZER_KEY)

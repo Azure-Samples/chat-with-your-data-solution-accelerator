@@ -1,17 +1,17 @@
-import os
+from typing import Optional
 from datetime import datetime, timedelta
-from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient, generate_blob_sas, generate_container_sas, ContentSettings
-from dotenv import load_dotenv
+from azure.storage.blob import BlobServiceClient, generate_blob_sas, generate_container_sas, ContentSettings
+from .EnvHelper import EnvHelper
 
 class AzureBlobStorageClient:
-    def __init__(self, account_name: str = None, account_key: str = None, container_name: str = None):
+    def __init__(self, account_name: Optional[str] = None, account_key: Optional[str] = None, container_name: Optional[str] = None):
 
-        load_dotenv()
+        env_helper : EnvHelper = EnvHelper()
 
-        self.account_name : str = account_name if account_name else os.getenv('AZURE_BLOB_ACCOUNT_NAME')
-        self.account_key : str = account_key if account_key else os.getenv('AZURE_BLOB_ACCOUNT_KEY')
-        self.connect_str : str = f"DefaultEndpointsProtocol=https;AccountName={self.account_name};AccountKey={self.account_key};EndpointSuffix=core.windows.net"
-        self.container_name : str = container_name if container_name else os.getenv('AZURE_BLOB_CONTAINER_NAME')
+        self.account_name = account_name if account_name else env_helper.AZURE_BLOB_ACCOUNT_NAME
+        self.account_key = account_key if account_key else env_helper.AZURE_BLOB_ACCOUNT_KEY
+        self.connect_str = f"DefaultEndpointsProtocol=https;AccountName={self.account_name};AccountKey={self.account_key};EndpointSuffix=core.windows.net"
+        self.container_name : str = container_name if container_name else env_helper.AZURE_BLOB_CONTAINER_NAME
         self.blob_service_client : BlobServiceClient = BlobServiceClient.from_connection_string(self.connect_str)
 
 

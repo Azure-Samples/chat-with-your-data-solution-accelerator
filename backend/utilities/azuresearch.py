@@ -6,7 +6,6 @@ import logging
 import uuid
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, Type
 from pydantic import BaseModel, root_validator
-import os
 
 import numpy as np
 from azure.core.exceptions import ResourceNotFoundError
@@ -37,23 +36,26 @@ from langchain.schema import BaseRetriever
 from langchain.utils import get_from_dict_or_env
 from langchain.vectorstores.base import VectorStore
 
+from .EnvHelper import EnvHelper
+
 logger = logging.getLogger()
 
-AZURESEARCH_DIMENSIONS = int(os.environ.get("AZURESEARCH_DIMENSIONS", 1536)) # Default to OpenAI's ada-002 embedding model vector size
+env_helper = EnvHelper()
+
+AZURESEARCH_DIMENSIONS = env_helper.AZURE_SEARCH_DIMENSIONS
 
 # Allow overriding field names for Azure Search
-FIELDS_ID = os.environ.get("AZURESEARCH_FIELDS_ID", "id")
-FIELDS_TITLE = os.environ.get("AZURESEARCH_FIELDS_TITLE", "title")
-FIELDS_CONTENT = os.environ.get("AZURESEARCH_FIELDS_CONTENT", "content")
-FIELDS_CONTENT_VECTOR = os.environ.get(
-    "AZURESEARCH_FIELDS_CONTENT_VECTOR", "content_vector")
-FIELDS_TAG = os.environ.get("AZURESEARCH_FIELDS_TAG", "tag")
-FIELDS_METADATA = os.environ.get("AZURESEARCH_FIELDS_TAG", "metadata")
+FIELDS_ID = env_helper.AZURE_SEARCH_FIELDS_ID 
+FIELDS_TITLE = env_helper.AZURE_SEARCH_TITLE_COLUMN
+FIELDS_CONTENT = env_helper.AZURE_SEARCH_CONTENT_COLUMNS
+FIELDS_CONTENT_VECTOR = env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMNS
+FIELDS_TAG = env_helper.AZURE_SEARCH_FIELDS_TAG
+FIELDS_METADATA = env_helper.AZURE_SEARCH_FIELDS_METADATA
 
 MAX_UPLOAD_BATCH_SIZE = 1000
 MAX_DELETE_BATCH_SIZE = 1000
 
-def get_search_client(endpoint: str, key: str, index_name: str, semantic_configuration_name:str = None) -> SearchClient:
+def get_search_client(endpoint: str, key: str, index_name: str, semantic_configuration_name: Optional[str] = None) -> SearchClient:
     if key is None:
         credential = DefaultAzureCredential()
     else:
