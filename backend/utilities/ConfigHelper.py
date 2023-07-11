@@ -23,6 +23,7 @@ class Prompts:
         self.condense_question_prompt = prompts['condense_question_prompt']
         self.answering_prompt = prompts['answering_prompt']
         self.post_answering_prompt = prompts['post_answering_prompt']
+        self.enable_post_answering_prompt = prompts['enable_post_answering_prompt']
         
 class Messages:
     def __init__(self, messages: dict):
@@ -89,6 +90,7 @@ Sources:
 
 Question: {question}
 Answer: {answer}""",
+                "enable_post_answering_prompt": False
                 },
             "messages": {
                 "post_answering_filter": "I'm sorry, but I can't answer this question correctly. Please try again by altering or rephrasing your question."

@@ -29,6 +29,8 @@ if 'answering_prompt' not in st.session_state:
     st.session_state['answering_prompt'] = config.prompts.answering_prompt
 if 'post_answering_prompt' not in st.session_state:
     st.session_state['post_answering_prompt'] = config.prompts.post_answering_prompt
+if 'enable_post_answering_prompt' not in st.session_state:
+    st.session_state['enable_post_answering_prompt'] = config.prompts.enable_post_answering_prompt
     
 if 'post_answering_filter_message' not in st.session_state:
     st.session_state['post_answering_filter_message'] = config.messages.post_answering_filter
@@ -77,24 +79,28 @@ try:
     with st.expander("Prompt configuration", expanded=True):
         st.text_area("Condense question prompt", key='condense_question_prompt', on_change=validate_question_prompt, help=condense_question_prompt_help, height=200)
         st.text_area("Answering prompt", key='answering_prompt', on_change=validate_answering_prompt, help=answering_prompt_help, height=400)
+
         st.text_area("Post-answering prompt", key='post_answering_prompt', on_change=validate_post_answering_prompt, help=post_answering_prompt_help, height=200)
+        st.checkbox('Enable post-answering prompt', key='enable_post_answering_prompt')
+
         st.text_area("Post-answering filter message", key='post_answering_filter_message', help=post_answering_filter_help, height=200)
 
     with st.expander("Chunking configuration", expanded=True):
-        chunking_strategy = st.selectbox('Chunking strategy', [s.value for s in ChunkingStrategy], key="chunking_strategy")
-        chunking_size = st.number_input("Chunk size (in tokens)", key='chunking_size', min_value=10)
-        chunking_overlap = st.number_input("Chunk overlap (in tokens)", key='chunking_overlap', min_value=10)
+        st.selectbox('Chunking strategy', [s.value for s in ChunkingStrategy], key="chunking_strategy")
+        st.number_input("Chunk size (in tokens)", key='chunking_size', min_value=10)
+        st.number_input("Chunk overlap (in tokens)", key='chunking_overlap', min_value=10)
 
     with st.expander("Logging configuration", expanded=True):       
-        log_questions = st.checkbox('Log user input and output (questions, answers, chat history, sources)', value=True, key='log_user_interactions')
-        log_answers = st.checkbox('Log tokens', value=True, key='log_tokens')
+        st.checkbox('Log user input and output (questions, answers, chat history, sources)', key='log_user_interactions')
+        st.checkbox('Log tokens', key='log_tokens')
     
     if st.button("Save configuration"):
         current_config = {
             "prompts": {
                 "condense_question_prompt": st.session_state['condense_question_prompt'],
                 "answering_prompt": st.session_state['answering_prompt'],
-                "post_answering_prompt": st.session_state['post_answering_prompt']
+                "post_answering_prompt": st.session_state['post_answering_prompt'],
+                "enable_post_answering_prompt": st.session_state['enable_post_answering_prompt']
                 },
             "messages": {
                 "post_answering_filter": st.session_state['post_answering_filter_message']
