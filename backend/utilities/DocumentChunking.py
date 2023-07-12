@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 from enum import Enum
 import hashlib
 from urllib.parse import urlparse

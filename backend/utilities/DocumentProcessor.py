@@ -2,7 +2,6 @@
 import logging
 from typing import List
 
-from langchain.vectorstores.base import VectorStore
 
 from .azuresearch import AzureSearch
 from .LLMHelper import LLMHelper

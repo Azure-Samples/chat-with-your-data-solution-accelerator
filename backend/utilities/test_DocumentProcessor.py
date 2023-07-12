@@ -1,4 +1,3 @@
-import pytest
 from .DocumentProcessor import DocumentProcessor
 from .ConfigHelper import ConfigHelper
 

@@ -49,7 +49,7 @@ This project framework provides the following features:
 
 
 ## Development 
-### Runnind the solution locally
+### Running the solution locally
 You can run the full solution locally with the following commands.
 It will spin up 3 different docker containers for the:
 - Frontend

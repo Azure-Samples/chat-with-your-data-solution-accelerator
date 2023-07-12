@@ -49,5 +49,5 @@ try:
     st.table(df)
     
 
-except Exception as e:
+except Exception:
     st.error(traceback.format_exc())

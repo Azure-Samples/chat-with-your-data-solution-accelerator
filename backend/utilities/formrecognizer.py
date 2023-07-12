@@ -55,8 +55,8 @@ class AzureFormRecognizerClient:
                 # if paragraph.role!=None:
                 para_start = paragraph.spans[0].offset
                 para_end = paragraph.spans[0].offset + paragraph.spans[0].length
-                roles_start[para_start] = paragraph.role if paragraph.role!=None else "paragraph"
-                roles_end[para_end] = paragraph.role if paragraph.role!=None else "paragraph"
+                roles_start[para_start] = paragraph.role if paragraph.role is not None else "paragraph"
+                roles_end[para_end] = paragraph.role if paragraph.role is not None else "paragraph"
 
             for page_num, page in enumerate(form_recognizer_results.pages):
                 tables_on_page = [table for table in form_recognizer_results.tables if table.bounding_regions[0].page_number == page_num + 1]
@@ -82,17 +82,17 @@ class AzureFormRecognizerClient:
                         if position in roles_start.keys():
                             role = roles_start[position]
                             html_role = self.form_recognizer_role_to_html.get(role)
-                            if html_role != None:
+                            if html_role is not None:
                                 page_text += f"<{html_role}>"
                         if position in roles_end.keys():
                             role = roles_end[position]
                             html_role = self.form_recognizer_role_to_html.get(role)
-                            if html_role != None:
+                            if html_role is not None:
                                 page_text += f"</{html_role}>"
                                                     
                         page_text += form_recognizer_results.content[page_offset + idx]
                         
-                    elif not table_id in added_tables:
+                    elif table_id not in added_tables:
                         page_text += self._table_to_html(tables_on_page[table_id])
                         added_tables.add(table_id)
 
@@ -101,5 +101,5 @@ class AzureFormRecognizerClient:
                 offset += len(page_text)
                 
             return page_map
-        except Exception as e:
+        except Exception:
             raise ValueError(f"Error: {traceback.format_exc()}")
