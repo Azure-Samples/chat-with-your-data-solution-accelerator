@@ -22,7 +22,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             document_processor = DocumentProcessor()
             processors = list(filter(lambda x : x.document_type == "url" , config.document_processors))
             document_processor.process(source_url=url, processors=processors)
-        except Exception as e:
+        except Exception:
             return func.HttpResponse(
                 f"Error: {traceback.format_exc()}",
                 status_code=500)

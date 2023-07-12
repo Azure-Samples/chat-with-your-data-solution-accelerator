@@ -1,6 +1,5 @@
 import streamlit as st
 import os
-import json
 import traceback
 import logging
 from dotenv import load_dotenv
@@ -148,5 +147,5 @@ try:
         ConfigHelper.save_config_as_active(current_config)
         st.success("Configuration saved successfully!")
 
-except Exception as e:
+except Exception:
     st.error(traceback.format_exc())

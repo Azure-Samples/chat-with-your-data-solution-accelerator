@@ -4,8 +4,8 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, Type
-from pydantic import BaseModel, root_validator
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
+from pydantic import BaseModel
 
 import numpy as np
 from azure.core.exceptions import ResourceNotFoundError
@@ -33,7 +33,6 @@ from azure.search.documents.indexes.models import (
 from langchain.docstore.document import Document
 from langchain.embeddings.base import Embeddings
 from langchain.schema import BaseRetriever
-from langchain.utils import get_from_dict_or_env
 from langchain.vectorstores.base import VectorStore
 
 from .EnvHelper import EnvHelper
@@ -64,7 +63,7 @@ def get_search_client(endpoint: str, key: str, index_name: str, semantic_configu
         endpoint=endpoint, credential=credential)
     try:
         index_client.get_index(name=index_name)
-    except ResourceNotFoundError as ex:
+    except ResourceNotFoundError:
         # Fields configuration
         fields = [
             SimpleField(name=FIELDS_ID, type=SearchFieldDataType.String,

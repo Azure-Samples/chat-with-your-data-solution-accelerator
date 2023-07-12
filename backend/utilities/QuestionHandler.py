@@ -1,5 +1,4 @@
 import os
-import openai
 import logging
 import re
 import json
@@ -107,7 +106,7 @@ class QuestionHandler:
             }
             log_properties['custom_dimensions'].update(user_interactions_properties)
         
-        logger.info(f"ConversationalRetrievalChain", extra=log_properties)
+        logger.info("ConversationalRetrievalChain", extra=log_properties)
 
         # Replace answer with filtered message
         if was_message_filtered:

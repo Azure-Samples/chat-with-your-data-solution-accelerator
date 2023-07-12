@@ -1,5 +1,5 @@
 import streamlit as st
-import os, json
+import os
 from typing import Optional
 import mimetypes
 import traceback
@@ -26,7 +26,7 @@ st.markdown(mod_page_style, unsafe_allow_html=True)
 def remote_convert_files_and_add_embeddings(process_all=False):
     backend_url = urllib.parse.urljoin(os.getenv('BACKEND_URL','http://localhost:7071'), "/api/BatchStartProcessing")
     params = {}
-    if os.getenv('FUNCTION_KEY') != None:
+    if os.getenv('FUNCTION_KEY') is not None:
         params['clientKey'] = os.getenv('FUNCTION_KEY')
     if process_all:
         params['process_all'] = "true"
@@ -36,12 +36,12 @@ def remote_convert_files_and_add_embeddings(process_all=False):
             st.success(f"{response.text}\nPlease note this is an asynchronous process and may take a few minutes to complete.")
         else:
             st.error(f"Error: {response.text}")
-    except Exception as e:
+    except Exception:
         st.error(traceback.format_exc())
 
 def add_urls():
     params = {}
-    if os.getenv('FUNCTION_KEY') != None:
+    if os.getenv('FUNCTION_KEY') is not None:
         params['clientKey'] = os.getenv('FUNCTION_KEY')
     urls = st.session_state['urls'].split('\n')
     for url in urls:
@@ -59,13 +59,13 @@ def add_urls():
 def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] = None):    
     # Upload a new file
     st.session_state['filename'] = file_name
-    if content_type == None:
+    if content_type is None:
         content_type = mimetypes.MimeTypes().guess_type(file_name)[0]
         charset = f"; charset={chardet.detect(bytes_data)['encoding']}" if content_type == 'text/plain' else ''
     account_name = os.getenv('AZURE_BLOB_ACCOUNT_NAME')
     account_key =  os.getenv('AZURE_BLOB_ACCOUNT_KEY')
     container_name = os.getenv('AZURE_BLOB_CONTAINER_NAME')
-    if account_name == None or account_key == None or container_name == None:
+    if account_name is None or account_key is None or container_name is None:
         raise ValueError("Please provide values for AZURE_BLOB_ACCOUNT_NAME, AZURE_BLOB_ACCOUNT_KEY and AZURE_BLOB_CONTAINER_NAME")
     connect_str = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
     blob_service_client : BlobServiceClient = BlobServiceClient.from_connection_string(connect_str)
@@ -102,5 +102,5 @@ try:
             st.selectbox('Embeddings models', [os.getenv('AZURE_OPENAI_EMBEDDING_MODEL')], disabled=True)
             st.button("Process and ingest web pages", on_click=add_urls, key="add_url")
 
-except Exception as e:
+except Exception:
     st.error(traceback.format_exc())
