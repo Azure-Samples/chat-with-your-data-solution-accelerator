@@ -25,4 +25,10 @@ col1, col2, col3 = st.columns([1,2,1])
 with col1:
     st.image(os.path.join('images','logo.png'))
     
-st.write("TODO: Welcome text, etc.")
+st.write("# Chat with your data Solution Accelerator")
+
+st.write("""
+         * If you want to ingest data (pdf, websites, etc.), then use the `Ingest Data` tab
+         * If you want to explore how your data was chunked, check the `Explore Data` tab
+         * If you want to adapt the underlying prompts, logging settings and others, use the `Configuration` tab
+         """)

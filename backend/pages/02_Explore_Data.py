@@ -1,8 +1,9 @@
 import streamlit as st
 import os
-import math
+import json
 import traceback
 import logging
+import pandas as pd
 from utilities import azuresearch
 from dotenv import load_dotenv
 load_dotenv()
@@ -17,28 +18,36 @@ mod_page_style = """
             </style>
             """
 st.markdown(mod_page_style, unsafe_allow_html=True)
-st.write("This is work in progress!")
+
+# CSS to inject contained in a string
+hide_table_row_index = """
+            <style>
+            thead tr th:first-child {display:none}
+            tbody th {display:none}
+            </style>
+            """
+
+# Inject CSS with Markdown
+st.markdown(hide_table_row_index, unsafe_allow_html=True)
+
+
 try:
     search_client = azuresearch.get_search_client(endpoint=os.getenv("AZURE_SEARCH_SERVICE"),
                                       key=os.getenv("AZURE_SEARCH_KEY"),
                                       index_name=os.getenv("AZURE_SEARCH_INDEX"))
-
-    count = search_client.get_document_count()
     
-    page_size = 10
-    num_pages = math.ceil(count / page_size)
-    page = st.slider("Page", min_value=1, max_value=num_pages, value=1)
-    start_index = (page - 1) * page_size
-    end_index = min(start_index + page_size, count)
+    # get unique document names by getting facets for title field
+    results = search_client.search("*", facets=["title"])
+    unique_files = [filename['value'] for filename in results.get_facets()["title"]]
+    filename = st.selectbox('Select your file:', unique_files)
+    st.write('Showing chunks for:', filename)
     
-    results = search_client.search("*", select="title, metadata", top=page_size, skip=start_index)
-    print(results)
+    results = search_client.search("*", select="title, content, metadata", filter=f"title eq '{filename}'")
     
-    st.write(f"Showing chunks {start_index + 1} to {end_index} (of total {count})")
-    with st.container():
-        for i, result in enumerate(results):
-            st.write(f"{result['title']}\n\n```{result['metadata']}```")
-            st.divider()
+    data = [[json.loads(result['metadata'])['chunk'], result['content']] for result in results]
+    df = pd.DataFrame(data, columns=('Chunk', 'Content')).sort_values(by=['Chunk'])           
+    st.table(df)
+    
 
 except Exception as e:
     st.error(traceback.format_exc())

@@ -70,7 +70,7 @@ def get_search_client(endpoint: str, key: str, index_name: str, semantic_configu
             SimpleField(name=FIELDS_ID, type=SearchFieldDataType.String,
                         key=True, filterable=True),
             SearchableField(name=FIELDS_TITLE, type=SearchFieldDataType.String,
-                            searchable=True, retrievable=True),
+                            searchable=True, facetable=True, filterable=True, retrievable=True),
             SearchableField(name=FIELDS_CONTENT, type=SearchFieldDataType.String,
                             searchable=True, retrievable=True),
             SearchField(name=FIELDS_CONTENT_VECTOR, type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
