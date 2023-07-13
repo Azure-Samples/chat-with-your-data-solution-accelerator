@@ -44,8 +44,6 @@ class DocumentLoading:
     def web_load(self, document_url: str) -> List[Document]:
         documents = WebBaseLoader(document_url).load() 
         for document in documents:
-            if document.page_content.encode("iso-8859-1") == document.page_content.encode("latin-1"):
-                document.page_content = document.page_content.encode("iso-8859-1").decode("utf-8", errors="ignore")
             document.page_content = re.sub('\n{3,}', '\n\n', document.page_content)
             # Remove half non-ascii character from start/end of doc content
             pattern = re.compile(
