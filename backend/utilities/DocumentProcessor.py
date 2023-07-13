@@ -23,9 +23,9 @@ class DocumentProcessor:
         env_helper = EnvHelper()
         # Azure Search settings
         self.vector_store: AzureSearch = AzureSearch(
-                azure_cognitive_search_name=  env_helper.AZURE_SEARCH_SERVICE,
-                azure_cognitive_search_key= env_helper.AZURE_SEARCH_KEY,
-                index_name= env_helper.AZURE_SEARCH_INDEX,
+                azure_cognitive_search_name=env_helper.AZURE_SEARCH_SERVICE,
+                azure_cognitive_search_key=env_helper.AZURE_SEARCH_KEY,
+                index_name=env_helper.AZURE_SEARCH_INDEX,
                 embedding_function=LLMHelper().get_embedding_model().embed_query)
         self.k: int = 4
         

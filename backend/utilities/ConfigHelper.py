@@ -65,7 +65,7 @@ class ConfigHelper:
     def get_default_config():
         default_config = {
             "prompts": {
-                "condense_question_prompt": """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question.
+                "condense_question_prompt": """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question. If the user asks multiple questions at once, break them up into multiple standalone questions, all in one line.
 
 Chat History:
 {chat_history}
@@ -79,11 +79,11 @@ Please reply to the question using only the information Context section above. I
 The context is structured like this:
 
 Content:  <information>
-Source: 
+Source: <url/to/some/file>#<chunk id>
 <and more of them>
 
-When you give your answer, you ALWAYS MUST include one or more of the above sources in your response in the following format: <answer> [[url/to/file.pdf#1]]
-Always use double square brackets to reference the full source url. When using multiple sources, list each source separately.
+When you give your answer, you ALWAYS MUST include one or more of the above sources in your response in the following format: <answer> [[<url/to/some/file>#<chunk id>]]
+Always use double square brackets to reference the full file source. When you create the answer from multiple sources, list each source separately, e.g. <answer> [[<url/to/some/file 1>#<chunk id 1>]][[<url/to/some/file 2>#<chunk id 2>]] and so on.
 
 Question: {question}
 Answer:""",

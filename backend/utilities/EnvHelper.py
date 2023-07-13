@@ -20,9 +20,9 @@ class EnvHelper:
         self.AZURE_SEARCH_CONTENT_COLUMNS = os.getenv('AZURE_SEARCH_CONTENT_COLUMNS', 'content')
         self.AZURE_SEARCH_CONTENT_VECTOR_COLUMNS = os.getenv('AZURE_SEARCH_CONTENT_VECTOR_COLUMNS', 'content_vector')
         self.AZURE_SEARCH_DIMENSIONS = os.getenv('AZURE_SEARCH_DIMENSIONS', '1536')
-        self.AZURE_SEARCH_FILENAME_COLUMN = os.getenv('AZURE_SEARCH_FILENAME_COLUMN', '')
-        self.AZURE_SEARCH_TITLE_COLUMN = os.getenv('AZURE_SEARCH_TITLE_COLUMN', '')
-        self.AZURE_SEARCH_URL_COLUMN = os.getenv('AZURE_SEARCH_URL_COLUMN', '')
+        self.AZURE_SEARCH_FILENAME_COLUMN = os.getenv('AZURE_SEARCH_FILENAME_COLUMN', 'filepath')       
+        self.AZURE_SEARCH_TITLE_COLUMN = os.getenv('AZURE_SEARCH_TITLE_COLUMN', 'title')
+        self.AZURE_SEARCH_URL_COLUMN = os.getenv('AZURE_SEARCH_URL_COLUMN', 'url')
         self.AZURE_SEARCH_FIELDS_TAG = os.getenv('AZURE_SEARCH_FIELDS_TAG', 'tag')
         self.AZURE_SEARCH_FIELDS_METADATA = os.getenv('AZURE_SEARCH_FIELDS_METADATA', 'metadata')
         # Azure OpenAI
