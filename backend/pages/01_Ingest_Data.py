@@ -74,7 +74,7 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
     # Upload the created file
     blob_client.upload_blob(bytes_data, overwrite=True, content_settings=ContentSettings(content_type=content_type+charset))
     # Generate a SAS URL to the blob and return it
-    st.session_state['file_url'] =  blob_client.url + '?' + generate_blob_sas(account_name, container_name, file_name,account_key=account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
+    st.session_state['file_url'] = blob_client.url + '?' + generate_blob_sas(account_name, container_name, file_name,account_key=account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
 
 try:
     with st.expander("Add documents in Batch", expanded=True):
@@ -96,7 +96,7 @@ try:
     with st.expander("Add URLs to the knowledge base", expanded=True):
         col1, col2 = st.columns([3,1])
         with col1: 
-            st.session_state['urls'] = st.text_area("Add a URLs and than click on 'Compute Embeddings'", placeholder="PLACE YOUR URLS HERE SEPARATED BY A NEW LINE", height=100)
+            st.text_area("Add a URLs and than click on 'Compute Embeddings'", placeholder="PLACE YOUR URLS HERE SEPARATED BY A NEW LINE", height=100, key="urls")
 
         with col2:
             st.selectbox('Embeddings models', [os.getenv('AZURE_OPENAI_EMBEDDING_MODEL')], disabled=True)
