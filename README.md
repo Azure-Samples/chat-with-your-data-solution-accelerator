@@ -75,6 +75,8 @@ npm run build
 python ./app.py
 ```
 
+Then visit `http://127.0.0.1:5000/` for accessing the chat interface.
+
 #### Building the frontend Docker image
 
 ```shell
@@ -92,6 +94,8 @@ cd backend
 python -m pip install -r requirements.txt
 streamlit run Admin.py
 ```
+
+Then access `http://localhost:8501/` for getting to the admin interface.
 
 #### Building the backend Docker image
 
