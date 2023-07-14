@@ -6,7 +6,6 @@ The "Chat with your data" Solution Accelerator is a powerful tool that combines 
 
 This repository provides a template for setting up the solution accelerator, along with detailed instructions on how to use and customize it to fit your specific needs.
 
-
 ## When should you use this repo? 
 
 *If you are looking to implement the RAG (Retrieval Augmented Generation) pattern and chat with your enterprise data, Microsoft built-in and recommended product for this is here: [Azure OpenAI Service on your data][../azure/cognitive-services/openai/use-your-data-quickstart]. If there is any functionality that you require that is still not available in the product, follow up with [Azure OpenAI Service on your data contact](emailto:wedne_support@microsoft.com) for feedback and to understand your business need.*
@@ -26,10 +25,10 @@ To get this deployed directly in your Azure Subscription follow these steps:
 - Azure Subscription with Contributor access
 - Azure OpenAI resource
 
-
 ### Quickstart
 
- [![Deploy to Azure](https://aka.ms/deploytoazurebutton)]() 
+ [![Deploy to Azure](https://aka.ms/deploytoazurebutton)]()
+
 1. Click on the Deploy to Azure button and configure your settings in the Azure Portal as described in the [Environment variables section](#environment-variables).
 The button will work when the repo goes public, please copy past the ARM template in the infrastructure folder and follow these [instructions](https://learn.microsoft.com/en-us/azure/azure-resource-manager/templates/quickstart-create-templates-use-the-portal).
 2. Navigate to the Admin
@@ -47,54 +46,77 @@ This project framework provides the following features:
 * Easy prompt configuration
 * Multiple chunking strategies
 
+## Development
 
-## Development 
-### Runnind the solution locally
-You can run the full solution locally with the following commands.
-It will spin up 3 different docker containers for the:
+First, copy `.env.sample` to `.env` and edit it according to the recommendations below.
+
+### Running the full solution locally
+
+You can run the full solution locally with the following commands - this will spin up 3 different docker containers for the:
+
 - Frontend
 - Backend
-- BatchProcessing
+- Batch processing Functions
 
 ```shell
 cd docker
 docker compose up
 ```
-### Develop Frontend
-#### Running the frontend locally:
-- python -m pip install -r requirements.txt
-- cd frontend
-- npm install
-- npm run build
-- python ./app.py
 
-#### Docker image
+### Develop & run the frontend
+
+#### Running the frontend locally
+
+```shell
+python -m pip install -r requirements.txt
+cd frontend
+npm install
+npm run build
+python ./app.py
+```
+
+#### Building the frontend Docker image
+
 ```shell
 docker build -f docker\WebApp.Dockerfile -t YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE .
 docker run --env-file .env -p 8080:80 YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 ```
 
-### Develop Backend
-#### Running the backend locally:
-- cd backend
-- python -m pip install -r requirements.txt
-- streamlit run Admin.py
+### Develop & run the backend
 
-#### Docker image
+#### Running the backend locally
+
+```shell
+cd backend
+python -m pip install -r requirements.txt
+streamlit run Admin.py
+```
+
+#### Building the backend Docker image
+
 ```shell
 docker build -f docker\AdminWebApp.Dockerfile -t YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE .
 docker run --env-file .env -p 8081:80 YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 ```
 
-### Develop Batch processing
-#### Running the batch processing
-- Install [Azure Functions Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=windows%2Cportal%2Cv2%2Cbash&pivots=programming-language-python)
-- cd backend
-- func start or Use the [Azure Functions VS Code extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions)
+### Develop & run the batch processing Functions
 
-#### Docker image
+#### Running the batch processing locally
+
+First, install [Azure Functions Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=windows%2Cportal%2Cv2%2Cbash&pivots=programming-language-python).
+
+
+```shell
+cd backend
+func start
+```
+
+Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions).
+
+#### Building the batch processing Docker image
+
 ```shell
 docker build -f docker\Backend.Dockerfile -t YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE .
 docker run --env-file .env -p 7071:80 YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
