@@ -192,7 +192,7 @@ The data set under the /data folder has been generated with Azure OpenAI GPT and
 
 ## Upcoming Release Schedule and Internal Feedback Guidelines (TO BE REMOVED BEFORE GOING PUBLIC)
 
-We are excited to announce that the initial version of our project will be released during the week of July 10th for early reviews and feedback. This release will include a minimal amount of documentation focusing on deployment. The majority of the documentation will be created, added, and reviewed between July 10th and July 21st, along with any code improvements, before our initial public release.
+We are excited to announce that the initial version of our project will be released during the week of July 10th for early reviews and feedback. This release will include a minimal amount of documentation focusing on deployment. The majority of the documentation will be created, added, and reviewed between July 26th and August 11th, along with any code improvements, before our initial public release.
 
 To provide feedback internally, please follow these guidelines:
 
