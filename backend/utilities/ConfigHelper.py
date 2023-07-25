@@ -1,7 +1,7 @@
 import json
 from .azureblobstorage import AzureBlobStorageClient
-from .DocumentChunking import Chunking, ChunkingStrategy
-from .DocumentLoading import Loading, LoadingStrategy
+from .document_chunking import ChunkingSettings, ChunkingStrategy
+from .document_loading import LoadingSettings, LoadingStrategy
 from .DocumentProcessor import Processor
 
 CONFIG_CONTAINER_NAME = "config"
@@ -14,8 +14,8 @@ class Config:
         self.document_processors = [
             Processor(
                 document_type=c['document_type'], 
-                chunking=Chunking(c['chunking']), 
-                loading=Loading(c['loading'])
+                chunking=ChunkingSettings(c['chunking']), 
+                loading=LoadingSettings(c['loading'])
             ) 
             for c in config['document_processors']]
     

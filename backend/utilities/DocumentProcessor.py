@@ -6,14 +6,14 @@ from langchain.vectorstores.base import VectorStore
 
 from .azuresearch import AzureSearch
 from .LLMHelper import LLMHelper
-from .DocumentLoading import DocumentLoading, Loading
-from .DocumentChunking import DocumentChunking, Chunking
+from .DocumentLoading import DocumentLoading, LoadingSettings
+from .DocumentChunking import DocumentChunking, ChunkingSettings
 from .EnvHelper import EnvHelper
 
 logger = logging.getLogger(__name__)
 
-class Processor(Chunking, Loading):
-    def __init__(self, document_type: str, chunking: Chunking, loading: Loading):
+class Processor(ChunkingSettings, LoadingSettings):
+    def __init__(self, document_type: str, chunking: ChunkingSettings, loading: LoadingSettings):
         self.document_type = document_type
         self.chunking = chunking
         self.loading = loading
