@@ -1,7 +1,7 @@
 import pytest
 from typing import List
 from langchain.docstore.document import Document
-from .DocumentChunking import DocumentChunking, Chunking, ChunkingStrategy
+from .DocumentChunking import DocumentChunking, ChunkingSettings, ChunkingStrategy
 
 # Create a sample document
 documents = [
@@ -25,7 +25,7 @@ documents = [
 
 def test_document_chunking_layout():
     # Test layout chunking strategy
-    chunking = Chunking({"strategy": ChunkingStrategy.LAYOUT, "size": 10, "overlap": 5})
+    chunking = ChunkingSettings({"strategy": ChunkingStrategy.LAYOUT, "size": 10, "overlap": 5})
     document_chunking = DocumentChunking()
     chunked_documents = document_chunking.chunk(documents, chunking)
     assert len(chunked_documents) == 8
@@ -61,7 +61,7 @@ def test_document_chunking_layout():
 
 def test_document_chunking_page():
     # Test page chunking strategy
-    chunking = Chunking({"strategy": ChunkingStrategy.PAGE, "size": 10, "overlap": 5})
+    chunking = ChunkingSettings({"strategy": ChunkingStrategy.PAGE, "size": 10, "overlap": 5})
     document_chunking = DocumentChunking()
     chunked_documents = document_chunking.chunk(documents, chunking)
     assert len(chunked_documents) == 8
@@ -98,7 +98,7 @@ def test_document_chunking_page():
     
 def test_document_chunking_fixed_size_overlap():
     # Test fixed size overlap chunking strategy
-    chunking = Chunking(
+    chunking = ChunkingSettings(
         {"strategy": ChunkingStrategy.FIXED_SIZE_OVERLAP, "size": 10, "overlap": 5}
     )
     document_chunking = DocumentChunking()
