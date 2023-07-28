@@ -1,4 +1,5 @@
 import openai
+from typing import List
 from langchain.chat_models import AzureChatOpenAI
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
@@ -27,6 +28,12 @@ class LLMHelper:
                                max_tokens=self.llm_max_tokens, openai_api_version=openai.api_version)
     
     def get_embedding_model(self):
-        return OpenAIEmbeddings(model=self.embedding_model, chunk_size=1)
+        return OpenAIEmbeddings(deployment_id=self.embedding_model, chunk_size=1)
     
-    
+    def get_chat_completion(self, messages: List[dict], functions: List[dict], function_call: str = "auto"):
+        return openai.ChatCompletion.create(
+            deployment_id=self.llm_model,
+            messages=messages,
+            functions=functions,
+            function_call=function_call,
+            )
