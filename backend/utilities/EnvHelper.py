@@ -58,6 +58,10 @@ class EnvHelper:
         self.AZURE_FORM_RECOGNIZER_KEY = os.getenv('AZURE_FORM_RECOGNIZER_KEY', '')
         # Azure App Insights
         self.APPINSIGHTS_CONNECTION_STRING = os.getenv('APPINSIGHTS_CONNECTION_STRING', '')
+        # Azure AI Content Safety
+        self.AZURE_CONTENT_SAFETY_ENDPOINT = os.getenv('AZURE_CONTENT_SAFETY_ENDPOINT', '')
+        self.AZURE_CONTENT_SAFETY_KEY = os.getenv('AZURE_CONTENT_SAFETY_KEY', '')
+
     
     @staticmethod
     def check_env():
