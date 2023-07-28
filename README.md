@@ -131,7 +131,7 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 
 | App Setting | Value | Note |
 | --- | --- | ------------- |
-|AZURE_SEARCH_SERVICE||The name of your Azure Cognitive Search resource|
+|AZURE_SEARCH_SERVICE||The Url of your Azure Cognitive Search resource. e.g. https://<search-service>.search.windows.net|
 |AZURE_SEARCH_INDEX||The name of your Azure Cognitive Search Index|
 |AZURE_SEARCH_KEY||An **admin key** for your Azure Cognitive Search resource|
 |AZURE_SEARCH_USE_SEMANTIC_SEARCH|False|Whether or not to use semantic search|
