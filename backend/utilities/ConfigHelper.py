@@ -28,12 +28,14 @@ class Config:
     def get_available_loading_strategies(self):
         return [c.value for c in LoadingStrategy]
         
+# TODO: Change to AnsweringChain or something, Prompts is not a good name
 class Prompts:
     def __init__(self, prompts: dict):
         self.condense_question_prompt = prompts['condense_question_prompt']
         self.answering_prompt = prompts['answering_prompt']
         self.post_answering_prompt = prompts['post_answering_prompt']
         self.enable_post_answering_prompt = prompts['enable_post_answering_prompt']
+        self.enable_content_safety = prompts['enable_content_safety']
         
 class Messages:
     def __init__(self, messages: dict):
@@ -94,7 +96,8 @@ Sources:
 
 Question: {question}
 Answer: {answer}""",
-                "enable_post_answering_prompt": False
+                "enable_post_answering_prompt": False,
+                "enable_content_safety": False
                 },
             "messages": {
                 "post_answering_filter": "I'm sorry, but I can't answer this question correctly. Please try again by altering or rephrasing your question."

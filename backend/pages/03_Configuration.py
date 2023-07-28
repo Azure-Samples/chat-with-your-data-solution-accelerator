@@ -33,9 +33,10 @@ if 'post_answering_prompt' not in st.session_state:
     st.session_state['post_answering_prompt'] = config.prompts.post_answering_prompt
 if 'enable_post_answering_prompt' not in st.session_state:
     st.session_state['enable_post_answering_prompt'] = config.prompts.enable_post_answering_prompt
-    
 if 'post_answering_filter_message' not in st.session_state:
     st.session_state['post_answering_filter_message'] = config.messages.post_answering_filter
+if 'enable_content_safety' not in st.session_state:
+    st.session_state['enable_content_safety'] = config.prompts.enable_content_safety
     
 # if 'chunking_strategy' not in st.session_state:
 #     st.session_state['chunking_strategy'] = config.chunking[0].chunking_strategy.value
@@ -84,8 +85,10 @@ try:
 
         st.text_area("Post-answering prompt", key='post_answering_prompt', on_change=validate_post_answering_prompt, help=post_answering_prompt_help, height=200)
         st.checkbox('Enable post-answering prompt', key='enable_post_answering_prompt')
-
         st.text_area("Post-answering filter message", key='post_answering_filter_message', help=post_answering_filter_help, height=200)
+        
+        st.checkbox('Enable Azure AI Content Safety', key='enable_content_safety')
+
     
     document_processors = list(map(lambda x: {
         "document_type": x.document_type, 
@@ -134,8 +137,9 @@ try:
                 "condense_question_prompt": st.session_state['condense_question_prompt'],
                 "answering_prompt": st.session_state['answering_prompt'],
                 "post_answering_prompt": st.session_state['post_answering_prompt'],
-                "enable_post_answering_prompt": st.session_state['enable_post_answering_prompt']
-                },
+                "enable_post_answering_prompt": st.session_state['enable_post_answering_prompt'],
+                "enable_content_safety": st.session_state['enable_content_safety']
+            },
             "messages": {
                 "post_answering_filter": st.session_state['post_answering_filter_message']
             },
