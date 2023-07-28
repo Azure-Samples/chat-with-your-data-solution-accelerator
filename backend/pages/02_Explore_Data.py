@@ -4,7 +4,7 @@ import json
 import traceback
 import logging
 import pandas as pd
-from utilities import azuresearch
+from utilities.AzureSearchHelper import AzureSearchHelper
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -32,10 +32,8 @@ st.markdown(hide_table_row_index, unsafe_allow_html=True)
 
 
 try:
-    search_client = azuresearch.get_search_client(endpoint=os.getenv("AZURE_SEARCH_SERVICE"),
-                                      key=os.getenv("AZURE_SEARCH_KEY"),
-                                      index_name=os.getenv("AZURE_SEARCH_INDEX"))
-    
+    vector_store_helper : AzureSearchHelper = AzureSearchHelper()
+    search_client = vector_store_helper.get_vector_store().client
     # get unique document names by getting facets for title field
     results = search_client.search("*", facets=["title"])
     unique_files = [filename['value'] for filename in results.get_facets()["title"]]

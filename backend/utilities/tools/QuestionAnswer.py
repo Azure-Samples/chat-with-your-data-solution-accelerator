@@ -1,7 +1,6 @@
 from typing import List
 from .ToolBase import ToolBase
 
-from azuresearch import AzureSearch
 from langchain.chains.qa_with_sources import load_qa_with_sources_chain
 from dotenv import load_dotenv
 from langchain.chains.llm import LLMChain
@@ -10,10 +9,10 @@ from langchain.prompts import PromptTemplate
 from langchain.callbacks import get_openai_callback
 from opencensus.ext.azure.log_exporter import AzureLogHandler
 
-from ..azuresearch import AzureSearch
 from ..ConfigHelper import ConfigHelper
 from ..LLMHelper import LLMHelper
 from ..EnvHelper import EnvHelper
+from ..AzureSearchHelper import AzureSearchHelper
 
 
 class QuestionAnswerTool(ToolBase):
@@ -29,7 +28,8 @@ class QuestionAnswerTool(ToolBase):
         answering_prompt = PromptTemplate(template=config.prompts.answering_prompt, input_variables=["question", "sources"])
         
         llm_helper = LLMHelper()
-        env_helper = EnvHelper()
+        vector_store_helper = AzureSearchHelper()
+        vector_store = vector_store_helper.get_vector_store()
 
         question_generator = LLMChain(llm=llm_helper.get_llm(), prompt=condense_question_prompt, verbose=True) 
         
@@ -40,17 +40,9 @@ class QuestionAnswerTool(ToolBase):
             document_variable_name="sources",
             verbose=True            
         )
-        
-        # Connect to search
-        self.vector_store = AzureSearch(
-                azure_cognitive_search_name= env_helper.AZURE_SEARCH_SERVICE,
-                azure_cognitive_search_key= env_helper.AZURE_SEARCH_KEY,
-                index_name= env_helper.AZURE_SEARCH_INDEX,
-                embedding_function=llm_helper.get_embedding_model().embed_query,
-            )
-        
+                
         chain = ConversationalRetrievalChain(
-            retriever=self.vector_store.as_retriever(),
+            retriever=vector_store.as_retriever(),
             question_generator=question_generator,
             combine_docs_chain=doc_chain,
             return_source_documents=True,

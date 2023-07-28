@@ -45,14 +45,14 @@ class OutputParserTool(ParserBase):
                 # Then update the citation object in the response, it needs to have filepath and chunk_id to render in the UI as a file
                 messages[0]["content"]["citations"].append(
                     {
-                        "content": doc.metadata["markdown_url"].replace(
+                        "content": doc.metadata["source"].replace(
                             "_SAS_TOKEN_PLACEHOLDER_", container_sas
                         ) + "\n\n\n" + doc.page_content,
                         "id": url_idx,
                         "chunk_id": doc.metadata["chunk"],
-                        "title": doc.metadata["filename"], # we need to use original_filename as LangChain needs filename-chunk as unique identifier
-                        "filepath": doc.metadata["filename"],
-                        "url": doc.metadata["markdown_url"].replace(
+                        "title": doc.metadata["title"], # we need to use original_filename as LangChain needs filename-chunk as unique identifier
+                        "filepath": doc.metadata["title"],
+                        "url": doc.metadata["source"].replace(
                             "_SAS_TOKEN_PLACEHOLDER_", container_sas
                         ),
                         "metadata": doc.metadata,

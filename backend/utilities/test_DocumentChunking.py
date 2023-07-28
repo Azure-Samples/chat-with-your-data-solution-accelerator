@@ -1,26 +1,22 @@
 import pytest
 from typing import List
-from langchain.docstore.document import Document
+from .parser.SourceDocument import SourceDocument
 from .DocumentChunking import DocumentChunking, ChunkingSettings, ChunkingStrategy
 
 # Create a sample document
 documents = [
-    Document(
-        page_content="PAGE 1: This short sentence with 20 tokens shows how the different chunking strategies work now!",
-        metadata={
-            "document_url": "https://example.com/sample_document.pdf",
-            "offset": 0,
-            "page_number": 1,
-        },
+    SourceDocument(
+        content="PAGE 1: This short sentence with 20 tokens shows how the different chunking strategies work now!",
+        source="https://example.com/sample_document.pdf",
+        offset=0,
+        page_number=1,
     ),
-    Document(
-        page_content="PAGE 2: This short sentence with 20 tokens shows how the different chunking strategies work now!",
-        metadata={
-            "document_url": "https://example.com/sample_document.pdf",
-            "offset": 0,
-            "page_number": 2,
-        },
-    ),
+    SourceDocument(
+        content="PAGE 2: This short sentence with 20 tokens shows how the different chunking strategies work now!",
+        source="https://example.com/sample_document_1.pdf",
+        offset=0,
+        page_number=2,
+    )
 ]
 
 def test_document_chunking_layout():
@@ -30,32 +26,32 @@ def test_document_chunking_layout():
     chunked_documents = document_chunking.chunk(documents, chunking)
     assert len(chunked_documents) == 8
     assert (
-        chunked_documents[0].page_content
+        chunked_documents[0].content
         == "PAGE 1: This short sentence with 20 tokens"
     )
     assert (
-        chunked_documents[1].page_content
+        chunked_documents[1].content
         == "short sentence with 20 tokens shows how the different"
     )
     assert (
-        chunked_documents[2].page_content
+        chunked_documents[2].content
         == "tokens shows how the different chunking strategies work"
     )
     assert (
-        chunked_documents[3].page_content
+        chunked_documents[3].content
         == "different chunking strategies work now!PAGE"
     )
-    assert chunked_documents[4].page_content == "work now!PAGE 2: This short sentence"
+    assert chunked_documents[4].content == "work now!PAGE 2: This short sentence"
     assert (
-        chunked_documents[5].page_content
+        chunked_documents[5].content
         == "2: This short sentence with 20 tokens shows how"
     )
     assert (
-        chunked_documents[6].page_content
+        chunked_documents[6].content
         == "with 20 tokens shows how the different chunking strategies"
     )
     assert (
-        chunked_documents[7].page_content
+        chunked_documents[7].content
         == "the different chunking strategies work now!"
     )
 
@@ -66,34 +62,34 @@ def test_document_chunking_page():
     chunked_documents = document_chunking.chunk(documents, chunking)
     assert len(chunked_documents) == 8
     assert (
-        chunked_documents[0].page_content
+        chunked_documents[0].content
         == "PAGE 1: This short sentence with 20 tokens"
     )
     assert (
-        chunked_documents[1].page_content
+        chunked_documents[1].content
         == "short sentence with 20 tokens shows how the different"
     )
     assert (
-        chunked_documents[2].page_content
+        chunked_documents[2].content
         == "tokens shows how the different chunking strategies work"
     )
     assert (
-        chunked_documents[3].page_content == "different chunking strategies work now!"
+        chunked_documents[3].content == "different chunking strategies work now!"
     )
     assert (
-        chunked_documents[4].page_content
+        chunked_documents[4].content
         == "PAGE 2: This short sentence with 20 tokens"
     )
     assert (
-        chunked_documents[5].page_content
+        chunked_documents[5].content
         == "short sentence with 20 tokens shows how the different"
     )
     assert (
-        chunked_documents[6].page_content
+        chunked_documents[6].content
         == "tokens shows how the different chunking strategies work"
     )
     assert (
-        chunked_documents[7].page_content == "different chunking strategies work now!"
+        chunked_documents[7].content == "different chunking strategies work now!"
     )
     
 def test_document_chunking_fixed_size_overlap():
@@ -105,28 +101,28 @@ def test_document_chunking_fixed_size_overlap():
     chunked_documents = document_chunking.chunk(documents, chunking)
     assert len(chunked_documents) == 8
     assert (
-        chunked_documents[0].page_content
+        chunked_documents[0].content
         == "PAGE 1: This short sentence with 20 tokens"
     )
     assert (
-        chunked_documents[1].page_content
+        chunked_documents[1].content
         == " short sentence with 20 tokens shows how the different chunk"
     )
     assert (
-        chunked_documents[2].page_content
+        chunked_documents[2].content
         == " shows how the different chunking strategies work now!"
     )
-    assert chunked_documents[3].page_content == "ing strategies work now!PAGE 2: This"
+    assert chunked_documents[3].content == "ing strategies work now!PAGE 2: This"
     assert (
-        chunked_documents[4].page_content
+        chunked_documents[4].content
         == "PAGE 2: This short sentence with 20 tokens"
     )
     assert (
-        chunked_documents[5].page_content
+        chunked_documents[5].content
         == " short sentence with 20 tokens shows how the different chunk"
     )
     assert (
-        chunked_documents[6].page_content
+        chunked_documents[6].content
         == " shows how the different chunking strategies work now!"
     )
-    assert chunked_documents[7].page_content == "ing strategies work now!"
+    assert chunked_documents[7].content == "ing strategies work now!"

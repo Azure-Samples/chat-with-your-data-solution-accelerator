@@ -2,13 +2,10 @@
 import logging
 from typing import List
 
-from langchain.vectorstores.base import VectorStore
-
-from .azuresearch import AzureSearch
-from .LLMHelper import LLMHelper
+from .AzureSearchHelper import AzureSearchHelper
 from .DocumentLoading import DocumentLoading, LoadingSettings
 from .DocumentChunking import DocumentChunking, ChunkingSettings
-from .EnvHelper import EnvHelper
+from .parser.SourceDocument import SourceDocument
 
 logger = logging.getLogger(__name__)
 
@@ -20,24 +17,21 @@ class Processor(ChunkingSettings, LoadingSettings):
 
 class DocumentProcessor:
     def __init__(self):
-        env_helper = EnvHelper()
-        # Azure Search settings
-        self.vector_store: AzureSearch = AzureSearch(
-                azure_cognitive_search_name=env_helper.AZURE_SEARCH_SERVICE,
-                azure_cognitive_search_key=env_helper.AZURE_SEARCH_KEY,
-                index_name=env_helper.AZURE_SEARCH_INDEX,
-                embedding_function=LLMHelper().get_embedding_model().embed_query)
-        self.k: int = 4
-        
+        pass
+            
     def process(self, source_url: str, processors: List[Processor]):
+        vector_store_helper = AzureSearchHelper()
+        vector_store = vector_store_helper.get_vector_store()
         for processor in processors:            
             try:
                 document_loading = DocumentLoading()
                 document_chunking = DocumentChunking()
+                documents : List[SourceDocument] = []
                 documents = document_loading.load(source_url, processor.loading)
                 documents = document_chunking.chunk(documents, processor.chunking)
-                keys = list(map(lambda x: x.metadata['key'], documents))
-                return self.vector_store.add_documents(documents=documents, keys=keys)
+                keys = list(map(lambda x: x.id, documents))
+                documents = [document.convert_to_langchain_document() for document in documents]
+                return vector_store.add_documents(documents=documents, keys=keys)
             except Exception as e:
                 logging.error(f"Error adding embeddings for {source_url}: {e}")
                 raise e
