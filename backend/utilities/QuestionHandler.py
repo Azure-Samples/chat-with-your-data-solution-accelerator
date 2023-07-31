@@ -35,7 +35,10 @@ class QuestionHandler:
         self.blob_client = AzureBlobStorageClient()
 
     def get_answer_using_langchain(self, question, chat_history):
-        config = ConfigHelper.get_active_config_or_default()    
+        config = ConfigHelper.get_active_config_or_default()
+        
+        # TODO: check if question is safe
+
         condense_question_prompt = PromptTemplate(template=config.prompts.condense_question_prompt, input_variables=["question", "chat_history"])
         answering_prompt = PromptTemplate(template=config.prompts.answering_prompt, input_variables=["question", "sources"])
         
@@ -62,7 +65,7 @@ class QuestionHandler:
             result = chain({"question": question, "chat_history": chat_history})
 
         answer = result['answer'].replace('  ', ' ')
-
+        
         was_message_filtered = False
         post_total_tokens, post_prompt_tokens, post_completion_tokens = 0, 0, 0
         if config.prompts.enable_post_answering_prompt:
@@ -77,6 +80,9 @@ class QuestionHandler:
             
             post_total_tokens, post_prompt_tokens, post_completion_tokens = cb_post.total_tokens, cb_post.prompt_tokens, cb_post.completion_tokens
             was_message_filtered = not (post_result['correct'].lower() == 'true' or post_result['correct'].lower() == 'yes')
+
+        # TODO: check if answer is safe with content safety
+
 
         # Setting log properties
         log_properties = {
@@ -150,7 +156,7 @@ class QuestionHandler:
         if messages[0]["content"]["citations"] == []:
             answer = re.sub(r'\[doc\d+\]', '', answer)
         messages.append({"role": "assistant", "content": answer, "end_turn": True})
-                # everything in content needs to be stringified to work with Azure BYOD frontend
+        # everything in content needs to be stringified to work with Azure BYOD frontend
         messages[0]["content"] = json.dumps(messages[0]["content"])
         return messages
 

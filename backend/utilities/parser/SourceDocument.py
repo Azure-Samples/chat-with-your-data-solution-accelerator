@@ -1,6 +1,7 @@
 from typing import Optional, Type
 import hashlib
 from urllib.parse import urlparse
+from ..azureblobstorage import AzureBlobStorageClient
 
 class SourceDocument:
     def __init__(self, content: str, source: str, id: Optional[str] = None, title: Optional[str]= None, chunk: Optional[int] = None, offset: Optional[int] = None, page_number: Optional[int] = None):
@@ -49,3 +50,21 @@ class SourceDocument:
                 "page_number": self.page_number,
             }
         )
+
+        
+    def get_filename(self, include_path=False):
+        filename = self.source_url.replace('_SAS_TOKEN_PLACEHOLDER_', '').replace('http://', '')
+        if include_path:
+            filename = filename.split('/')[-1]
+        else:
+            filename = filename.split('/')[-1].split('.')[0]
+        return filename
+    
+    def get_markdown_url(self):
+        url = self.source_url
+        if url.contains("_SAS_TOKEN_PLACEHOLDER_"):
+            blob_client = AzureBlobStorageClient()
+            container_sas = blob_client.get_container_sas()
+            url = url.replace("_SAS_TOKEN_PLACEHOLDER_", container_sas)
+        return f"[{self.title}]({self.url})"
+        

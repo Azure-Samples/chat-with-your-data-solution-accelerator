@@ -1,5 +1,5 @@
 # Create an abstract class for orchestrator
-from typing import Optional
+from typing import List
 from abc import ABC, abstractmethod
 
 class OrchestratorBase(ABC):
@@ -7,6 +7,6 @@ class OrchestratorBase(ABC):
         pass
     
     @abstractmethod
-    def orchestrate(self, question: str, functions: dict, system_message: Optional[dict], **kwargs: dict) -> dict:        
+    def orchestrate(self, question: str, chat_history: List[dict], **kwargs: dict) -> dict:        
         pass
     

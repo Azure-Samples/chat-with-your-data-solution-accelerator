@@ -1,4 +1,4 @@
-from .ToolBase import ToolBase
+from .AnsweringToolBase import AnsweringToolBase
 
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
@@ -7,7 +7,7 @@ from opencensus.ext.azure.log_exporter import AzureLogHandler
 
 from ..ConfigHelper import ConfigHelper
 
-class PostPromptTool(ToolBase):
+class PostPromptTool(AnsweringToolBase):
     def __init__(self) -> None:
         self.name = "PostPrompt"
     
