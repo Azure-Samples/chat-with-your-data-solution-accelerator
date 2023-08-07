@@ -261,7 +261,7 @@ def conversation_custom():
     message_orchestrator = OpenAIFunctionsOrchestrator()
     
     try:
-        question = request.json["messages"][-1]['content']
+        user_message = request.json["messages"][-1]['content']
         user_assistent_messages = list(filter(lambda x: x['role'] in ('user','assistant'), request.json["messages"][0:-1]))        
         chat_history = []
         for i,k in enumerate(user_assistent_messages):
@@ -269,7 +269,7 @@ def conversation_custom():
                 chat_history.append((user_assistent_messages[i]['content'],user_assistent_messages[i+1]['content']))
         
         # messages = question_handler.handle_question(question=question, chat_history=chat_history)
-        messages = message_orchestrator.orchestrate(question=question, chat_history=chat_history)
+        messages = message_orchestrator.orchestrate(user_message=user_message, chat_history=chat_history)
 
         response_obj = {
             "id": "response.id",

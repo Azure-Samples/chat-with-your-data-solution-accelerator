@@ -7,6 +7,6 @@ class OrchestratorBase(ABC):
         pass
     
     @abstractmethod
-    def orchestrate(self, question: str, chat_history: List[dict], **kwargs: dict) -> dict:        
+    def orchestrate(self, user_message: str, chat_history: List[dict], **kwargs: dict) -> dict:        
         pass
     

@@ -8,26 +8,29 @@ from .SourceDocument import SourceDocument
 class OutputParserTool(ParserBase):
     def __init__(self) -> None:
         self.name = "OutputParser"
-
     
-    def _clean_up_answer(answer):
+    def _clean_up_answer(self, answer):
         return answer.replace('  ', ' ')
     
-    def _get_source_urls_from_answer(answer):
-        return re.findall(r'\[\[(.*?)\]\]', answer)
-    
-    def _replaces_urls_with_doc_in_answer(answer, source_urls):
-        for idx, url in enumerate(source_urls):
-            answer = answer.replace(f'[[{url}]]', f'[doc{idx+1}]')
+    def _get_source_docs_from_answer(self, answer):
+        # extract all [docN] from answer and extract N, and just return the N's as a list of ints
+        results = re.findall(r'\[doc(\d+)\]', answer)
+        return [int(i) for i in results]
+       
+    def _make_doc_references_sequential(self, answer, doc_ids):
+        for i, idx in enumerate(doc_ids):
+            print(f"Mapping doc{idx} to doc{i+1}")
+            answer = answer.replace(f'[doc{idx}]', f'[doc{i+1}]')
         return answer
     
     def parse(self, question: str, answer: str, source_documents: List[SourceDocument], **kwargs: dict) -> List[dict]:     
         
-        # Replace [[url]] with [docx] for citation feature to work
         answer = self._clean_up_answer(answer)
-        source_urls = self._get_source_urls_from_answer(answer)
-        answer = self._replaces_urls_with_doc_in_answer(answer, source_urls)
-            
+        doc_ids = self._get_source_docs_from_answer(answer)
+        print("Doc ids", doc_ids)
+        
+        answer = self._make_doc_references_sequential(answer, doc_ids)
+
         # create return message object
         messages = [
             {
@@ -36,41 +39,35 @@ class OutputParserTool(ParserBase):
                 "end_turn": False,
             }
         ]
-        
-        for url_idx, url in enumerate(source_urls):
-            # Check which result['source_documents'][x].metadata['source'] matches the url
-            idx = None
-            try:
-                idx = [doc.metadata['source'] for doc in source_documents].index(url)
-            except ValueError:
-                print('Could not find source document for url: ' + url)
-            if idx is not None:
-                doc = source_documents[idx]
 
-                # Then update the citation object in the response, it needs to have filepath and chunk_id to render in the UI as a file
-                messages[0]["content"]["citations"].append(
-                    {
-                        "content": doc.get_markdown_url() + "\n\n\n" + doc.content,
-                        "id": url_idx,
-                        "chunk_id": doc.chunk,
+        for i in doc_ids:
+            idx = i-1
+            doc = source_documents[idx]
+            print(f"doc{idx}", doc)
+
+            # Then update the citation object in the response, it needs to have filepath and chunk_id to render in the UI as a file
+            messages[0]["content"]["citations"].append(
+                {
+                    "content": doc.get_markdown_url() + "\n\n\n" + doc.content,
+                    "id": doc.id,
+                    "chunk_id": doc.chunk,
+                    "title": doc.title,
+                    "filepath": doc.get_filename(include_path=True),
+                    "url": doc.get_markdown_url(),
+                    "metadata": {
+                        "offset": doc.offset,
+                        "source": doc.source,
+                        "markdown_url": doc.get_markdown_url(),
                         "title": doc.title,
-                        "filepath": doc.get_filename(include_path=True),
-                        "url": doc.get_markdown_url(),
-                        "metadata": {
-                            "offset": doc.offset,
-                            "source": doc.source_url,
-                            "markdown_url": doc.get_markdown_url(),
-                            "title": doc.title,
-                            "original_url": doc.source_url,
-                            "chunk": doc.chunk,
-                            "key": doc.id,
-                            "filename": doc.get_filename()
-                        },
-                    })
+                        "original_url": doc.source, # TODO: do we need this?
+                        "chunk": doc.chunk,
+                        "key": doc.id,
+                        "filename": doc.get_filename()
+                    },
+                })
         if messages[0]["content"]["citations"] == []:
             answer = re.sub(r'\[doc\d+\]', '', answer)
         messages.append({"role": "assistant", "content": answer, "end_turn": True})
         # everything in content needs to be stringified to work with Azure BYOD frontend
         messages[0]["content"] = json.dumps(messages[0]["content"])
         return messages
-    
