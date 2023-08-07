@@ -35,12 +35,22 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
         
         # Call function to determine route
         llm_helper = LLMHelper()
-        system_message = """You are an AI assistant that helps users answers questions using private information sources. You must prioritize the function call over your general knowledge for any fact-based question by calling the search_documents function. When you do this, you take the user's question and convert it into a standalone question, given the chat history listed below. If the user asks multiple questions at once, break them up into multiple standalone questions, all in one line. If the user asks you to perform operations on prior messages, you just help them to do that.
 
-        Chat History:
-        {chat_history}
+        # Question converter call
+        system_message = f"""Considering the conversation going on between an AI assistant and a user, take the user's question and convert it into a standalone question, given the chat history listed below.
+        If the user asks multiple questions at once, break them up into multiple standalone questions, all in one line.
+        
+        Chat history:
+        {chat_history}    
+        """
+        
+        messages = [{"role": "system", "content": system_message}, {"role": "user", "content": user_message}]
+        result = llm_helper.get_chat_completion(messages, self.functions, function_call="none")        
+        user_message = result['choices'][0]['message']['content']
 
-        You are permitted to perform normal chit chat.
+        # Function call
+        system_message = """You help employees to navigate only private information sources. 
+        You must prioritize the function call over your general knowledge for any question by calling the search_documents function.
         """
 
         messages = [{"role": "system", "content": system_message}, {"role": "user", "content": user_message}]
