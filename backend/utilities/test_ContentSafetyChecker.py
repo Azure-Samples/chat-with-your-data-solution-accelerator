@@ -1,6 +1,5 @@
 import pytest
-from .ContentSafetyChecker import ContentSafetyChecker
-
+from .tools.ContentSafetyChecker import ContentSafetyChecker
 
 def test_document_chunking_layout():
     

@@ -1,12 +1,13 @@
 # Create an abstract class for tool
 from abc import ABC, abstractmethod
 from typing import List
+from .Answer import Answer
 
-class ToolBase(ABC):
+class AnswerProcessingBase(ABC):
     def __init__(self) -> None:
         pass
     
     @abstractmethod
-    def process_answer(self, question: str, answer: str, sources: List,**kwargs: dict) -> dict:        
+    def process_answer(self, answer: Answer,**kwargs: dict) -> Answer:        
         pass
     
