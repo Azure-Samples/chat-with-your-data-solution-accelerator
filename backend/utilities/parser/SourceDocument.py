@@ -1,6 +1,8 @@
 from typing import Optional, Type
 import hashlib
 from urllib.parse import urlparse
+from ..azureblobstorage import AzureBlobStorageClient
+from urllib.parse import quote
 
 class SourceDocument:
     def __init__(self, content: str, source: str, id: Optional[str] = None, title: Optional[str]= None, chunk: Optional[int] = None, offset: Optional[int] = None, page_number: Optional[int] = None):
@@ -11,7 +13,10 @@ class SourceDocument:
         self.chunk = chunk
         self.offset = offset
         self.page_number = page_number
-            
+        
+    def __str__(self):
+        return f"SourceDocument(id={self.id}, title={self.title}, source={self.source}, chunk={self.chunk}, offset={self.offset}, page_number={self.page_number})"
+    
     @classmethod
     def from_metadata(
         cls: Type['SourceDocument'],
@@ -49,3 +54,20 @@ class SourceDocument:
                 "page_number": self.page_number,
             }
         )
+        
+    def get_filename(self, include_path=False):
+        filename = self.source.replace('_SAS_TOKEN_PLACEHOLDER_', '').replace('http://', '')
+        if include_path:
+            filename = filename.split('/')[-1]
+        else:
+            filename = filename.split('/')[-1].split('.')[0]
+        return filename
+    
+    def get_markdown_url(self):
+        url = quote(self.source, safe=':/')
+        if '_SAS_TOKEN_PLACEHOLDER_' in url:
+            blob_client = AzureBlobStorageClient()
+            container_sas = blob_client.get_container_sas()
+            url = url.replace("_SAS_TOKEN_PLACEHOLDER_", container_sas)
+        return f"[{self.title}]({url})"
+        
