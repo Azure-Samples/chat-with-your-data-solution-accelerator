@@ -1,7 +1,6 @@
 from typing import List
-from .AnsweringToolBase import AnsweringToolBase
-
 from ..LLMHelper import LLMHelper
+from .AnsweringToolBase import AnsweringToolBase
 from .Answer import Answer
 
 

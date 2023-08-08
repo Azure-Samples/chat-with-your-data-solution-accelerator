@@ -86,6 +86,7 @@ Source: <url/to/some/file>#<chunk id>
 
 When you give your answer, you ALWAYS MUST include one or more of the above sources in your response in the following format: <answer> [[<url/to/some/file>#<chunk id>]]
 Always use double square brackets to reference the full file source. When you create the answer from multiple sources, list each source separately, e.g. <answer> [[<url/to/some/file 1>#<chunk id 1>]][[<url/to/some/file 2>#<chunk id 2>]] and so on.
+Always reply in the language of the question.
 
 Question: {question}
 Answer:""",
