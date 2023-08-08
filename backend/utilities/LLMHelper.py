@@ -30,10 +30,16 @@ class LLMHelper:
     def get_embedding_model(self):
         return OpenAIEmbeddings(deployment_id=self.embedding_model, chunk_size=1)
     
-    def get_chat_completion(self, messages: List[dict], functions: List[dict], function_call: str="auto"):
+    def get_chat_completion_with_functions(self, messages: List[dict], functions: List[dict], function_call: str="auto"):
         return openai.ChatCompletion.create(
             deployment_id=self.llm_model,
             messages=messages,
             functions=functions,
             function_call=function_call,
+            )
+        
+    def get_chat_completion(self, messages: List[dict]):
+        return openai.ChatCompletion.create(
+            deployment_id=self.llm_model,
+            messages=messages,
             )

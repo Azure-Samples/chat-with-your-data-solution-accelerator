@@ -1,6 +1,7 @@
 from typing import List
 
 from backend.utilities.tools.QuestionAnswerTool import QuestionAnswerTool
+from backend.utilities.tools.TextProcessingTool import TextProcessingTool
 from .OrchestratorBase import OrchestratorBase
 from ..LLMHelper import LLMHelper
 from ..parser.OutputParserTool import OutputParserTool
@@ -26,47 +27,60 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
                     "required": ["question"],
                 },
             },
+            {
+                "name": "text_processing",
+                "description": "Useful when you want to apply a transformation on the text, like translate, summarize, rephrase and so on.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string",
+                            "description": "The text to be processed",
+                        },
+                        "operation": {
+                            "type": "string",
+                            "description": "The operation to be performed on the text. Like Translate to Italian, Summarize, Paraphrase, etc. If a language is specified, return that as part of the operation.",
+                        },
+                    },
+                    "required": ["text", "operation"],
+                },
+            }
         ]
         
     def orchestrate(self, user_message: str, chat_history: List[dict], **kwargs: dict) -> dict:
         
-        # Call Content Safety tool
-        
-        
+        # TODO: Call Content Safety tool
+            
         # Call function to determine route
         llm_helper = LLMHelper()
 
-        # Question converter call
-        system_message = f"""Considering the conversation going on between an AI assistant and a user, take the user's question and convert it into a standalone question, given the chat history listed below.
-        If the user asks multiple questions at once, break them up into multiple standalone questions, all in one line.
-        
-        Chat history:
-        {chat_history}    
-        """
-        
-        messages = [{"role": "system", "content": system_message}, {"role": "user", "content": user_message}]
-        result = llm_helper.get_chat_completion(messages, self.functions, function_call="none")        
-        user_message = result['choices'][0]['message']['content']
-
-        # Function call
-        system_message = """You help employees to navigate only private information sources. 
+        system_message = """You help employees to navigate only private information sources.
         You must prioritize the function call over your general knowledge for any question by calling the search_documents function.
+        Call the text_processing function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.
         """
-
-        messages = [{"role": "system", "content": system_message}, {"role": "user", "content": user_message}]
-        result = llm_helper.get_chat_completion(messages, self.functions, function_call="auto")
-        print("function: ", result['choices'][0])
+        # Create conversation history
+        messages = [{"role": "system", "content": system_message}]        
+        for message in chat_history:
+            messages.append({"role": "user", "content": message[0]})
+            messages.append({"role": "assistant", "content": message[1]})
+        messages.append({"role": "user", "content": user_message})
+        
+        result = llm_helper.get_chat_completion_with_functions(messages, self.functions, function_call="auto")
         
         # TODO: call content safety if needed
-        
-        # if question
+                        
         if result['choices'][0]['finish_reason'] == "function_call":
-            
-            question = json.loads(result['choices'][0]['message']['function_call']['arguments'])['question']          
-            # run answering chain
-            answering_tool = QuestionAnswerTool()
-            answer = answering_tool.answer_question(question, chat_history)
-            # TODO: run post prompt if needed
+            if result['choices'][0]['message'].function_call.name == "search_documents":
+                question = json.loads(result['choices'][0]['message']['function_call']['arguments'])['question']          
+                # run answering chain
+                answering_tool = QuestionAnswerTool()
+                answer = answering_tool.answer_question(question, chat_history)
+                # TODO: run post prompt if needed
+            elif result['choices'][0]['message'].function_call.name == "text_processing":
+                text = json.loads(result['choices'][0]['message']['function_call']['arguments'])['text']
+                operation = json.loads(result['choices'][0]['message']['function_call']['arguments'])['operation']
+                text_processing_tool = TextProcessingTool()
+                answer = text_processing_tool.answer_question(user_message, chat_history, text=text, operation=operation)
             
         else:
             text = result['choices'][0]['message']['content']
