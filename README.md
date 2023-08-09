@@ -24,6 +24,15 @@ This repository provides a template for setting up the solution accelerator, alo
 
 *Have you seen [ChatGPT + Enterprise data with Azure OpenAI and Cognitive Search demo](https://github.com/Azure-Samples/azure-search-openai-demo)? If you would like to play with prompts, understanding RAG pattern different implementation approaches and similar demo tasks, that is your repo!*
 
+## Supported file types
+
+Out-of-the-box, you can upload the following file types:
+* PDF
+* JPEG
+* JPG
+* PNG
+* TXT
+
 ## Prerequisites
 
 * Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with contributor access.
@@ -35,7 +44,9 @@ This repository provides a template for setting up the solution accelerator, alo
 
 1. Click the following deployment button to create the required resources for this accelerator directly in your Azure Subscription. 
 
-    [![Deploy to Azure](https://aka.ms/deploytoazurebutton)]()
+    [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-search-openai-solution-accelerator%2Fmain%2Finfrastructure%2Fdeployment.json%3Ftoken%3DGHSAT0AAAAAAB47C325DQBSNOF2UZNHQE2CZGTZSTA)
+
+    
 
 1. Add the following fields:
 
