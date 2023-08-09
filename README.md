@@ -88,7 +88,7 @@ You can run the full solution locally with the following commands - this will sp
 |---------|---------|
 |Frontend | A container for the chat app, enabling you to chat on top of your data.         |
 |backend     | A container for the "admin" site where you can upload and explore your data.         |
-|batch processing functions     | TBD - A container helping with process batch data ingestion requests          |
+|batch processing functions     | A container helping with processing requests.          |
 
 Run the following `docker compose` command.
 
