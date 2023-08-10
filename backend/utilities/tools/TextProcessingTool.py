@@ -18,11 +18,14 @@ class TextProcessingTool(AnsweringToolBase):
 
         print(operation, " the following TEXT: ", text)
 
-        answer_text = llm_helper.get_chat_completion(
+        result = llm_helper.get_chat_completion(
                    [{"role": "system", "content": system_message}, 
                     {"role": "user", "content": f"{operation} the following TEXT: {text}"}]
                    )
                
-        answer_text= answer_text['choices'][0]['message']['content']
-        answer = Answer(question=question, answer=answer_text, source_documents=[]) 
+        answer = Answer(question=question, 
+                        answer=result['choices'][0]['message']['content'], 
+                        source_documents=[],
+                        prompt_tokens=result['usage']['prompt_tokens'],
+                        completion_tokens=result['usage']['completion_tokens'])
         return answer

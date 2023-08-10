@@ -257,7 +257,6 @@ def conversation_azure_byod():
 
 @app.route("/api/conversation/custom", methods=["GET","POST"])
 def conversation_custom():
-    # question_handler = QuestionHandler()
     message_orchestrator = OpenAIFunctionsOrchestrator()
     
     try:
@@ -268,8 +267,7 @@ def conversation_custom():
             if i % 2 == 0:
                 chat_history.append((user_assistent_messages[i]['content'],user_assistent_messages[i+1]['content']))
         
-        # messages = question_handler.handle_question(question=question, chat_history=chat_history)
-        messages = message_orchestrator.orchestrate(user_message=user_message, chat_history=chat_history)
+        messages = message_orchestrator.handle_message(user_message=user_message, chat_history=chat_history)
 
         response_obj = {
             "id": "response.id",
