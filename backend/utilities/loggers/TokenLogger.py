@@ -2,7 +2,7 @@ import logging
 from opencensus.ext.azure.log_exporter import AzureLogHandler
 from ..helpers.EnvHelper import EnvHelper
 
-class Logger:
+class TokenLogger:
     def __init__(self, name: str = __name__):
         env_helper : EnvHelper = EnvHelper()
         self.logger = logging.getLogger(name)

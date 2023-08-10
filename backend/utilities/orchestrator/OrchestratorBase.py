@@ -2,7 +2,7 @@
 from uuid import uuid4
 from typing import List
 from abc import ABC, abstractmethod
-from ..loggers.Logger import Logger
+from ..loggers.TokenLogger import TokenLogger
 
 class OrchestratorBase(ABC):
     def __init__(self) -> None:
@@ -14,7 +14,7 @@ class OrchestratorBase(ABC):
             'total': 0
         }
         print(f"New message id: {self.message_id} with tokens {self.tokens}")
-        self.logger : Logger = Logger(name=__name__)
+        self.logger : TokenLogger = TokenLogger()
     
     def log(self, prompt_tokens, completion_tokens):
         self.tokens['prompt'] += prompt_tokens
