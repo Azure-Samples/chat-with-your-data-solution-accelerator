@@ -1,12 +1,12 @@
 from typing import List
+import json
 
 from backend.utilities.tools.QuestionAnswerTool import QuestionAnswerTool
 from backend.utilities.tools.TextProcessingTool import TextProcessingTool
 from .OrchestratorBase import OrchestratorBase
-from ..LLMHelper import LLMHelper
+from ..helpers.LLMHelper import LLMHelper
 from ..parser.OutputParserTool import OutputParserTool
-from ..tools.Answer import Answer
-import json
+from ..common.Answer import Answer
 
 class OpenAIFunctionsOrchestrator(OrchestratorBase):
     def __init__(self) -> None:

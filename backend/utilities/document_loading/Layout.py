@@ -1,7 +1,7 @@
 from typing import List
 from .DocumentLoadingBase import DocumentLoadingBase
-from ..formrecognizer import AzureFormRecognizerClient
-from ..parser.SourceDocument import SourceDocument
+from ..helpers.AzureFormRecognizerHelper import AzureFormRecognizerClient
+from ..common.SourceDocument import SourceDocument
 
 class LayoutDocumentLoading(DocumentLoadingBase):
     def __init__(self) -> None:

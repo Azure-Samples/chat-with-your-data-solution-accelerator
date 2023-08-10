@@ -1,11 +1,9 @@
-
 import logging
 from typing import List
-
 from .AzureSearchHelper import AzureSearchHelper
-from .DocumentLoading import DocumentLoading, LoadingSettings
-from .DocumentChunking import DocumentChunking, ChunkingSettings
-from .parser.SourceDocument import SourceDocument
+from .DocumentLoadingHelper import DocumentLoading, LoadingSettings
+from .DocumentChunkingHelper import DocumentChunking, ChunkingSettings
+from ..common.SourceDocument import SourceDocument
 
 logger = logging.getLogger(__name__)
 

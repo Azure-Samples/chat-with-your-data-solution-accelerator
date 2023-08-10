@@ -3,7 +3,7 @@ import re
 from langchain.docstore.document import Document
 from langchain.document_loaders import WebBaseLoader
 from .DocumentLoadingBase import DocumentLoadingBase
-from ..parser.SourceDocument import SourceDocument
+from ..common.SourceDocument import SourceDocument
 
 class WebDocumentLoading(DocumentLoadingBase):
     def __init__(self) -> None:

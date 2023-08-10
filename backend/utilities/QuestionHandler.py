@@ -11,11 +11,11 @@ from langchain.prompts import PromptTemplate
 from langchain.callbacks import get_openai_callback
 from opencensus.ext.azure.log_exporter import AzureLogHandler
 
-from .AzureSearchHelper import AzureSearchHelper
-from .ConfigHelper import ConfigHelper
-from .LLMHelper import LLMHelper
-from .azureblobstorage import AzureBlobStorageClient
-from .EnvHelper import EnvHelper
+from .helpers.AzureSearchHelper import AzureSearchHelper
+from .helpers.ConfigHelper import ConfigHelper
+from .helpers.LLMHelper import LLMHelper
+from .helpers.AzureBlobStorageHelper import AzureBlobStorageClient
+from .helpers.EnvHelper import EnvHelper
 
 
 # Setting logging

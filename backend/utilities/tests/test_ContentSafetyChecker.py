@@ -1,5 +1,5 @@
 import pytest
-from .tools.ContentSafetyChecker import ContentSafetyChecker
+from ..tools.ContentSafetyChecker import ContentSafetyChecker
 
 def test_document_chunking_layout():
     
@@ -12,4 +12,3 @@ def test_document_chunking_layout():
     assert cut.validate_output_and_replace_if_harmful(safe_input) == safe_input
     assert cut.validate_input_and_replace_if_harmful(unsafe_input) != unsafe_input
     assert cut.validate_output_and_replace_if_harmful(unsafe_input) != unsafe_input
-    

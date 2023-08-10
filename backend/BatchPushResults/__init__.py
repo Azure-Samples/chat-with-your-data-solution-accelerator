@@ -1,8 +1,8 @@
 import logging, json
 import azure.functions as func
-from utilities.azureblobstorage import AzureBlobStorageClient
-from utilities.DocumentProcessor import DocumentProcessor
-from utilities.ConfigHelper import ConfigHelper
+from utilities.helpers.AzureBlobStorageHelper import AzureBlobStorageClient
+from utilities.helpers.DocumentProcessorHelper import DocumentProcessor
+from utilities.helpers.ConfigHelper import ConfigHelper
 
 def main(msg: func.QueueMessage) -> None:
     logging.info('Python queue trigger function processed a queue item: %s',

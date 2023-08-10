@@ -5,7 +5,7 @@ from langchain.prompts import PromptTemplate
 from langchain.callbacks import get_openai_callback
 from opencensus.ext.azure.log_exporter import AzureLogHandler
 
-from ..ConfigHelper import ConfigHelper
+from ..helpers.ConfigHelper import ConfigHelper
 
 class PostPromptTool(AnsweringToolBase):
     def __init__(self) -> None:

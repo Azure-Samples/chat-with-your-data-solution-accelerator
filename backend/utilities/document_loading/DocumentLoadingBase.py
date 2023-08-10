@@ -1,7 +1,7 @@
 # Create an abstract class for document loading
 from typing import List
 from abc import ABC, abstractmethod
-from ..parser.SourceDocument import SourceDocument
+from ..common.SourceDocument import SourceDocument
 
 class DocumentLoadingBase(ABC):
     def __init__(self) -> None:

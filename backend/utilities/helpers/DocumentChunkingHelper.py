@@ -1,7 +1,7 @@
 from typing import List
 from urllib.parse import urlparse
 from langchain.docstore.document import Document
-from .document_chunking import get_document_chunker, ChunkingSettings, ChunkingStrategy
+from ..document_chunking import get_document_chunker, ChunkingSettings, ChunkingStrategy
 
 class DocumentChunking:
     def __init__(self) -> None:

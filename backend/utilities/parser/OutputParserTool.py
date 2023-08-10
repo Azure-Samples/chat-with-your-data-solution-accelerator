@@ -3,7 +3,7 @@ import logging
 import re
 import json
 from .ParserBase import ParserBase
-from .SourceDocument import SourceDocument
+from ..common.SourceDocument import SourceDocument
 
 class OutputParserTool(ParserBase):
     def __init__(self) -> None:

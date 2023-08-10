@@ -1,7 +1,7 @@
 from typing import List
 from .DocumentChunkingBase import DocumentChunkingBase
 from .Strategies import ChunkingSettings
-from ..parser.SourceDocument import SourceDocument
+from ..common.SourceDocument import SourceDocument
 
 class ParagraphDocumentChunking(DocumentChunkingBase):
     def __init__(self) -> None:

@@ -26,6 +26,19 @@ class AzureBlobStorageClient:
     def download_file(self, file_name):
         blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=file_name)
         return blob_client.download_blob().readall()
+    
+    def delete_file(self, file_name):
+        """
+        Deletes a file from the Azure Blob Storage container.
+
+        Args:
+            file_name (str): The name of the file to delete.
+
+        Returns:
+            None
+        """
+        blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=file_name)
+        blob_client.delete_blob()
 
     def get_all_files(self):
         # Get all files in the container from Azure Blob Storage

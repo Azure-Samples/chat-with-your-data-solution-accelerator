@@ -1,6 +1,6 @@
 import pytest
 from typing import List
-from .DocumentLoading import DocumentLoading, LoadingSettings
+from ..helpers.DocumentLoadingHelper import DocumentLoading, LoadingSettings
 
 
 def test_document_loading_layout():

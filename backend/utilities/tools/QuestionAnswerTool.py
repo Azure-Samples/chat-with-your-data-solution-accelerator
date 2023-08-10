@@ -5,11 +5,11 @@ from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 from langchain.callbacks import get_openai_callback
 
-from ..AzureSearchHelper import AzureSearchHelper
-from ..ConfigHelper import ConfigHelper
-from ..LLMHelper import LLMHelper
-from .Answer import Answer
-from ..parser.SourceDocument import SourceDocument
+from ..helpers.AzureSearchHelper import AzureSearchHelper
+from ..helpers.ConfigHelper import ConfigHelper
+from ..helpers.LLMHelper import LLMHelper
+from ..common.Answer import Answer
+from ..common.SourceDocument import SourceDocument
 
 class QuestionAnswerTool(AnsweringToolBase):
     def __init__(self) -> None:

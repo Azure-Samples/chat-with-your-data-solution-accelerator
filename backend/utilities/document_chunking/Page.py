@@ -2,7 +2,7 @@ from typing import List
 from .DocumentChunkingBase import DocumentChunkingBase
 from langchain.text_splitter import MarkdownTextSplitter
 from .Strategies import ChunkingSettings
-from ..parser.SourceDocument import SourceDocument
+from ..common.SourceDocument import SourceDocument
 
 class PageDocumentChunking(DocumentChunkingBase):
     def __init__(self) -> None:

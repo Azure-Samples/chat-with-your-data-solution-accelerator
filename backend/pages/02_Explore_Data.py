@@ -4,7 +4,7 @@ import json
 import traceback
 import logging
 import pandas as pd
-from utilities.AzureSearchHelper import AzureSearchHelper
+from utilities.helpers.AzureSearchHelper import AzureSearchHelper
 from dotenv import load_dotenv
 load_dotenv()
 

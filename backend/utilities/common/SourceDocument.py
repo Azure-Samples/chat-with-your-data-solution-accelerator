@@ -1,8 +1,7 @@
 from typing import Optional, Type
 import hashlib
-from urllib.parse import urlparse
-from ..azureblobstorage import AzureBlobStorageClient
-from urllib.parse import quote
+from urllib.parse import urlparse, quote
+from ..helpers.AzureBlobStorageHelper import AzureBlobStorageClient
 
 class SourceDocument:
     def __init__(self, content: str, source: str, id: Optional[str] = None, title: Optional[str]= None, chunk: Optional[int] = None, offset: Optional[int] = None, page_number: Optional[int] = None):
@@ -21,9 +20,9 @@ class SourceDocument:
     def from_metadata(
         cls: Type['SourceDocument'],
         content: str,
-        document_url: str,
-        idx: int,
         metadata: dict,
+        document_url: Optional[str],
+        idx: Optional[int],
     ) -> 'SourceDocument':   
         parsed_url = urlparse(document_url)
         file_url = parsed_url.scheme + '://' + parsed_url.netloc + parsed_url.path
@@ -32,11 +31,11 @@ class SourceDocument:
         hash_key = f"doc_{hash_key}"
         sas_placeholder = "_SAS_TOKEN_PLACEHOLDER_" if 'blob.core.windows.net' in parsed_url.netloc else ""
         return cls(
-            id = hash_key,
+            id = metadata.get('id', hash_key),
             content = content,
-            source = f"{file_url}{sas_placeholder}",
-            title = filename,
-            chunk = idx,
+            source = metadata.get('source', f"{file_url}{sas_placeholder}"),
+            title = metadata.get('title', filename),
+            chunk = metadata.get('chunk', idx),
             offset = metadata.get('offset'),
             page_number = metadata.get('page_number'),
         )

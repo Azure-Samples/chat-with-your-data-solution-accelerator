@@ -3,9 +3,9 @@ from azure.ai.contentsafety import ContentSafetyClient
 from azure.core.credentials import AzureKeyCredential
 from azure.core.exceptions import HttpResponseError
 from azure.ai.contentsafety.models import AnalyzeTextOptions
-from ..EnvHelper import EnvHelper
+from ..helpers.EnvHelper import EnvHelper
 from .AnswerProcessingBase import AnswerProcessingBase
-from .Answer import Answer
+from ..common.Answer import Answer
  
 class ContentSafetyChecker(AnswerProcessingBase):
     def __init__(self):
@@ -44,3 +44,4 @@ class ContentSafetyChecker(AnswerProcessingBase):
             filtered_text = response_template
        
         return filtered_text
+    

@@ -1,8 +1,8 @@
 import json
-from .azureblobstorage import AzureBlobStorageClient
-from .document_chunking import ChunkingSettings, ChunkingStrategy
-from .document_loading import LoadingSettings, LoadingStrategy
-from .DocumentProcessor import Processor
+from .AzureBlobStorageHelper import AzureBlobStorageClient
+from ..document_chunking import ChunkingSettings, ChunkingStrategy
+from ..document_loading import LoadingSettings, LoadingStrategy
+from .DocumentProcessorHelper import Processor
 
 CONFIG_CONTAINER_NAME = "config"
 

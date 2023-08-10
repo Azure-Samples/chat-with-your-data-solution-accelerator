@@ -1,7 +1,7 @@
 import pytest
 from typing import List
-from .parser.SourceDocument import SourceDocument
-from .DocumentChunking import DocumentChunking, ChunkingSettings, ChunkingStrategy
+from ..common.SourceDocument import SourceDocument
+from ..helpers.DocumentChunkingHelper import DocumentChunking, ChunkingSettings, ChunkingStrategy
 
 # Create a sample document
 documents = [

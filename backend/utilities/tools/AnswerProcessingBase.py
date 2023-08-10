@@ -1,7 +1,7 @@
 # Create an abstract class for tool
 from abc import ABC, abstractmethod
 from typing import List
-from .Answer import Answer
+from ..common.Answer import Answer
 
 class AnswerProcessingBase(ABC):
     def __init__(self) -> None:
