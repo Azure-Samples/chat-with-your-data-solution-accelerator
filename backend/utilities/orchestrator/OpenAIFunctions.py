@@ -1,10 +1,11 @@
 from typing import List
 import json
 
-from backend.utilities.tools.QuestionAnswerTool import QuestionAnswerTool
-from backend.utilities.tools.TextProcessingTool import TextProcessingTool
 from .OrchestratorBase import OrchestratorBase
 from ..helpers.LLMHelper import LLMHelper
+from ..tools.QuestionAnswerTool import QuestionAnswerTool
+from ..tools.TextProcessingTool import TextProcessingTool
+from ..tools.ContentSafetyChecker import ContentSafetyChecker
 from ..parser.OutputParserTool import OutputParserTool
 from ..common.Answer import Answer
 
@@ -48,9 +49,15 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
         ]
         
     def orchestrate(self, user_message: str, chat_history: List[dict], **kwargs: dict) -> dict:
+        output_formatter = OutputParserTool()
         
-        # TODO: Call Content Safety tool
-            
+        # Call Content Safety tool
+        content_safety_checker = ContentSafetyChecker()
+        filtered_user_message = content_safety_checker.validate_input_and_replace_if_harmful(user_message)
+        if user_message != filtered_user_message:
+            messages = output_formatter.parse(question=user_message, answer=filtered_user_message, source_documents=[])
+            return messages
+        
         # Call function to determine route
         llm_helper = LLMHelper()
 
@@ -88,11 +95,15 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
         else:
             text = result['choices'][0]['message']['content']
             answer = Answer(question=user_message, answer=text)
-        # TODO: call content safety if needed
+
+        # Call Content Safety tool        
+        filtered_answer = content_safety_checker.validate_output_and_replace_if_harmful(answer.answer)
+        if answer.answer != filtered_answer:
+            messages = output_formatter.parse(question=user_message, answer=filtered_answer, source_documents=[])
+            return messages
         
-        output_formatter = OutputParserTool()
+        # Format the output for the UI        
         messages = output_formatter.parse(question=answer.question, answer=answer.answer, source_documents=answer.source_documents)
-        
         return messages
         
         
