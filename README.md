@@ -22,7 +22,7 @@ This repository provides a template for setting up the solution accelerator, alo
 * When you are looking to implement RAG (Retrieval Augmented Generation) and chat with a LLM using your enterprise data.
 * When you have a use case that requires more customization than the pre-configured experience offered by [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data).
 
-*Have you seen [ChatGPT + Enterprise data with Azure OpenAI and Cognitive Search demo](https://github.com/Azure-Samples/azure-search-openai-demo)? If you would like to play with prompts, understanding RAG pattern different implementation approaches and similar demo tasks, that is your repo!*
+*Have you seen [ChatGPT + Enterprise data with Azure OpenAI and Cognitive Search demo](https://github.com/Azure-Samples/azure-search-openai-demo)? If you would like to play with prompts, understanding RAG pattern different implementation approaches and similar demo tasks, take a look at that repo. Note that the demo in that repo should not be used in production environments.*
 
 ## Supported file types
 
