@@ -3,7 +3,7 @@
 Welcome to the "Chat with your data" Solution Accelerator repository!
 The "Chat with your data" Solution Accelerator is a powerful tool that combines the capabilities of Azure Cognitive Search and Large Language Models (LLMs) to create a conversational search experience. This solution accelerator uses an Azure OpenAI GPT model and an Azure Cognitive Search index generated from your data, which is integrated into a web application to provide a natural language interface for search queries.
 
-`<screenshot of web app>`
+![A screenshot of the accelerator architecture.](media/architecture.png)
 
 This repository provides a template for setting up the solution accelerator, along with detailed instructions on how to use and customize it to fit your specific needs.
 
