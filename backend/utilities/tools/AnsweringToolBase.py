@@ -10,4 +10,3 @@ class AnsweringToolBase(ABC):
     @abstractmethod
     def answer_question(self, question: str, chat_history: List[dict], **kwargs: dict) -> Answer:
         pass
-    
