@@ -1,6 +1,6 @@
 import pytest
-from .DocumentProcessor import DocumentProcessor
-from .ConfigHelper import ConfigHelper
+from ..helpers.DocumentProcessorHelper import DocumentProcessor
+from ..helpers.ConfigHelper import ConfigHelper
 
 document_url = "https://csciblob.blob.core.windows.net/rag-sol-acc/cognitive-services.pdf"
 url = "https://learn.microsoft.com/en-us/azure/search/search-what-is-azure-search"

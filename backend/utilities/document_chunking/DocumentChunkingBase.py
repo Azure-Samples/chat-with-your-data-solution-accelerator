@@ -1,7 +1,7 @@
 # Create an abstract class for document loading
 from typing import List
 from abc import ABC, abstractmethod
-from langchain.docstore.document import Document
+from ..common.SourceDocument import SourceDocument
 from .Strategies import ChunkingSettings
 
 class DocumentChunkingBase(ABC):
@@ -9,5 +9,5 @@ class DocumentChunkingBase(ABC):
         pass
     
     @abstractmethod
-    def chunk(self, documents: List[Document], chunking: ChunkingSettings) -> List[Document]:        
+    def chunk(self, documents: List[SourceDocument], chunking: ChunkingSettings) -> List[SourceDocument]:        
         pass

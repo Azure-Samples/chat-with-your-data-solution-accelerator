@@ -17,3 +17,4 @@ def get_document_loader(loader_strategy: str):
         return WebDocumentLoading()
     else:
         raise Exception(f"Unknown loader strategy: {loader_strategy}")    
+    

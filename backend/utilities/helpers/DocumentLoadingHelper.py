@@ -1,6 +1,6 @@
 from typing import List
 from langchain.docstore.document import Document
-from .document_loading import get_document_loader, LoadingSettings, LoadingStrategy
+from ..document_loading import get_document_loader, LoadingSettings, LoadingStrategy
        
 class DocumentLoading:
     def __init__(self) -> None:

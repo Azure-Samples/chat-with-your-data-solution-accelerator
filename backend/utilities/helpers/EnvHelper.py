@@ -39,9 +39,11 @@ class EnvHelper:
         self.AZURE_OPENAI_STREAM = os.getenv('AZURE_OPENAI_STREAM', '')
         self.AZURE_OPENAI_EMBEDDING_MODEL = os.getenv('AZURE_OPENAI_EMBEDDING_MODEL', '')
          # Set env for OpenAI SDK
+        self.OPENAI_API_TYPE = "azure"
         self.OPENAI_API_BASE = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
         self.OPENAI_API_KEY = self.AZURE_OPENAI_KEY
         self.OPENAI_API_VERSION = self.AZURE_OPENAI_API_VERSION
+        os.environ["OPENAI_API_TYPE"] = "azure"
         os.environ["OPENAI_API_BASE"] = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
         os.environ["OPENAI_API_KEY"] = self.AZURE_OPENAI_KEY
         os.environ["OPENAI_API_VERSION"] = self.AZURE_OPENAI_API_VERSION

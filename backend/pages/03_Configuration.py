@@ -5,7 +5,7 @@ import traceback
 import logging
 from dotenv import load_dotenv
 
-from utilities.ConfigHelper import ConfigHelper
+from utilities.helpers.ConfigHelper import ConfigHelper
 
 
 load_dotenv()

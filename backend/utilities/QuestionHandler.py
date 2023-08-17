@@ -3,7 +3,6 @@ import openai
 import logging
 import re
 import json
-from azuresearch import AzureSearch
 from langchain.chains.qa_with_sources import load_qa_with_sources_chain
 from dotenv import load_dotenv
 from langchain.chains.llm import LLMChain
@@ -12,11 +11,11 @@ from langchain.prompts import PromptTemplate
 from langchain.callbacks import get_openai_callback
 from opencensus.ext.azure.log_exporter import AzureLogHandler
 
-from .azuresearch import AzureSearch
-from .ConfigHelper import ConfigHelper
-from .LLMHelper import LLMHelper
-from .azureblobstorage import AzureBlobStorageClient
-from .EnvHelper import EnvHelper
+from .helpers.AzureSearchHelper import AzureSearchHelper
+from .helpers.ConfigHelper import ConfigHelper
+from .helpers.LLMHelper import LLMHelper
+from .helpers.AzureBlobStorageHelper import AzureBlobStorageClient
+from .helpers.EnvHelper import EnvHelper
 
 
 # Setting logging
@@ -28,21 +27,18 @@ logger.setLevel(logging.INFO)
 class QuestionHandler:
     def __init__(self):
         env_helper : EnvHelper = EnvHelper()
+        vector_store_helper : AzureSearchHelper = AzureSearchHelper()
 
         self.llm = LLMHelper().get_llm()
         self.embeddings = LLMHelper().get_embedding_model()
-
-        # Connect to search
-        self.vector_store = AzureSearch(
-                azure_cognitive_search_name= env_helper.AZURE_SEARCH_SERVICE,
-                azure_cognitive_search_key= env_helper.AZURE_SEARCH_KEY,
-                index_name= env_helper.AZURE_SEARCH_INDEX,
-                embedding_function=self.embeddings.embed_query
-            )
+        self.vector_store = vector_store_helper.get_vector_store()
         self.blob_client = AzureBlobStorageClient()
 
     def get_answer_using_langchain(self, question, chat_history):
-        config = ConfigHelper.get_active_config_or_default()    
+        config = ConfigHelper.get_active_config_or_default()
+        
+        # TODO: check if question is safe
+
         condense_question_prompt = PromptTemplate(template=config.prompts.condense_question_prompt, input_variables=["question", "chat_history"])
         answering_prompt = PromptTemplate(template=config.prompts.answering_prompt, input_variables=["question", "sources"])
         
@@ -69,7 +65,7 @@ class QuestionHandler:
             result = chain({"question": question, "chat_history": chat_history})
 
         answer = result['answer'].replace('  ', ' ')
-
+        
         was_message_filtered = False
         post_total_tokens, post_prompt_tokens, post_completion_tokens = 0, 0, 0
         if config.prompts.enable_post_answering_prompt:
@@ -84,6 +80,9 @@ class QuestionHandler:
             
             post_total_tokens, post_prompt_tokens, post_completion_tokens = cb_post.total_tokens, cb_post.prompt_tokens, cb_post.completion_tokens
             was_message_filtered = not (post_result['correct'].lower() == 'true' or post_result['correct'].lower() == 'yes')
+
+        # TODO: check if answer is safe with content safety
+
 
         # Setting log properties
         log_properties = {
@@ -142,14 +141,14 @@ class QuestionHandler:
                 # Then update the citation object in the response, it needs to have filepath and chunk_id to render in the UI as a file
                 messages[0]["content"]["citations"].append(
                     {
-                        "content": doc.metadata["markdown_url"].replace(
+                        "content": doc.metadata["source"].replace(
                             "_SAS_TOKEN_PLACEHOLDER_", container_sas
                         ) + "\n\n\n" + doc.page_content,
                         "id": url_idx,
                         "chunk_id": doc.metadata["chunk"],
-                        "title": doc.metadata["filename"], # we need to use original_filename as LangChain needs filename-chunk as unique identifier
-                        "filepath": doc.metadata["filename"],
-                        "url": doc.metadata["markdown_url"].replace(
+                        "title": doc.metadata["title"], # we need to use original_filename as LangChain needs filename-chunk as unique identifier
+                        "filepath": doc.metadata["title"],
+                        "url": doc.metadata["source"].replace(
                             "_SAS_TOKEN_PLACEHOLDER_", container_sas
                         ),
                         "metadata": doc.metadata,
@@ -157,7 +156,7 @@ class QuestionHandler:
         if messages[0]["content"]["citations"] == []:
             answer = re.sub(r'\[doc\d+\]', '', answer)
         messages.append({"role": "assistant", "content": answer, "end_turn": True})
-                # everything in content needs to be stringified to work with Azure BYOD frontend
+        # everything in content needs to be stringified to work with Azure BYOD frontend
         messages[0]["content"] = json.dumps(messages[0]["content"])
         return messages
 
