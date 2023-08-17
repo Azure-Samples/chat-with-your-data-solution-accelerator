@@ -1,69 +1,108 @@
 # "Chat with your data" Solution Accelerator  
-  
-Welcome to the "Chat with your data" Solution Accelerator repository! 
 
-The "Chat with your data" Solution Accelerator is a powerful tool that combines the capabilities of Azure Cognitive Search and GPT language model to create a conversational search experience. The solution accelerator includes ChatGPT model and a search index generated from your data, which can be integrated into a web application to provide users with a natural language interface for search queries.
+Welcome to the "Chat with your data" Solution Accelerator repository!
+The "Chat with your data" Solution Accelerator is a powerful tool that combines the capabilities of Azure Cognitive Search and Large Language Models (LLMs) to create a conversational search experience. This solution accelerator uses an Azure OpenAI GPT model and an Azure Cognitive Search index generated from your data, which is integrated into a web application to provide a natural language interface for search queries.
+
+![A screenshot of the accelerator architecture.](media/architecture.png)
 
 This repository provides a template for setting up the solution accelerator, along with detailed instructions on how to use and customize it to fit your specific needs.
 
-## When should you use this repo? 
+## About this repo
 
-*If you are looking to implement the RAG (Retrieval Augmented Generation) pattern and chat with your enterprise data, Microsoft built-in and recommended product for this is here: [Azure OpenAI Service on your data][../azure/cognitive-services/openai/use-your-data-quickstart]. If there is any functionality that you require that is still not available in the product, follow up with [Azure OpenAI Service on your data contact](emailto:wedne_support@microsoft.com) for feedback and to understand your business need.*
+This repository provides a template for setting up the solution accelerator, along with detailed instructions on how to use and customize it to fit your specific needs. It provides the following features:
 
-In case your setup requires more customization than what is currently available out-of-the-box with [Azure OpenAI Service on your data][../azure/cognitive-services/openai/use-your-data-quickstart], this is the repo for you!
-
-*Have you seen [ChatGPT + Enterprise data with Azure OpenAI and Cognitive Search demo](https://github.com/Azure-Samples/azure-search-openai-demo)? If you would like to play with prompts, understanding RAG pattern different implementation approaches and similar demo tasks, that is your repo!*
-
-If you would like to create a POC [Proof of Concept] and customize to your own business needs and understand best practices, this is the repo for you!
-
-## Getting Started
-
-To get this deployed directly in your Azure Subscription follow these steps:
-
-### Prerequisites
-
-- Azure Subscription with Contributor access
-- Azure OpenAI resource
-
-### Quickstart
-
- [![Deploy to Azure](https://aka.ms/deploytoazurebutton)]()
-
-1. Click on the Deploy to Azure button and configure your settings in the Azure Portal as described in the [Environment variables section](#environment-variables).
-The button will work when the repo goes public, please copy past the ARM template in the infrastructure folder and follow these [instructions](https://learn.microsoft.com/en-us/azure/azure-resource-manager/templates/quickstart-create-templates-use-the-portal).
-2. Navigate to the Admin
-    - TO DO: Add a picture here
-3. Upload documents
-4. Navigate to the Web App and "Chat with your data"
-
-## Features
-
-This project framework provides the following features:
-
-* Chat with your own data
+* Chat with an Azure OpenAI model using your own data
 * Upload and process your documents
 * Index public web pages
 * Easy prompt configuration
 * Multiple chunking strategies
 
-## Development
+## When should you use this repo? 
 
-First, copy `.env.sample` to `.env` and edit it according to the recommendations below.
+You should use this repo when the complexity of your scenario exceeds the out-of-the-box experience offered by [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data). The accelerator presented here provides several options not provided by Azure OpenAI on your data, for example:
+* The ability to ground a model using both data and public web pages
+* Advanced prompt engineering capabilities
+* An admin site for ingesting/inspecting/configuring your dataset on the fly
+* Running a Retrieval Augmented Generation (RAG) solution locally, as a Docker container
+
+*Have you seen [ChatGPT + Enterprise data with Azure OpenAI and Cognitive Search demo](https://github.com/Azure-Samples/azure-search-openai-demo)? If you would like to play with prompts, understanding RAG pattern different implementation approaches and similar demo tasks, take a look at that repo. Note that the demo in that repo should not be used in production environments.*
+
+## Supported file types
+
+Out-of-the-box, you can upload the following file types:
+* PDF
+* JPEG
+* JPG
+* PNG
+* TXT
+
+## Prerequisites
+
+* Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with contributor access.
+* An [Azure OpenAI resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=web-portal) and a deployment for one of the following models:
+    * GPT-3.5
+    * GPT-4
+
+## Getting started
+
+1. Click the following deployment button to create the required resources for this accelerator directly in your Azure Subscription. 
+
+    [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-search-openai-solution-accelerator%2Fmain%2Finfrastructure%2Fdeployment.json%3Ftoken%3DGHSAT0AAAAAAB47C325DQBSNOF2UZNHQE2CZGTZSTA)
+
+    
+
+1. Add the following fields:
+
+    
+    |Field  |Description  |
+    |---------|---------|
+    |Resource group   | The resource group that will contain the resources for this accelerator. You can select **Create new** to create a new group.        |
+    |Resource prefix   | A text string that will be appended to each resource that gets created, and used as the website name for the web app. This name cannot contain spaces or special characters.        |
+    |Azure OpenAI resource    | The name of your Azure OpenAI resource. This resource must have already been created previously.         |
+    |Azure OpenAI key    | The access key associated with your Azure OpenAI resource.        |
+    
+    You can find the [ARM template](./infrastructure/deployment.json) used, along with a [Bicep file](./infrastructure/deployment.bicep) for deploying this accelerator in the `/infrastructure` directory.
+    
+1. Navigate to the admin site, where you can upload documents. It will be located at:
+    
+    `https://{MY_RESOURCE_PREFIX}-website-admin.azurewebsites.net/`
+
+    Where `{MY_RESOURCE_PREFIX}` is replaced with the resource prefix you used during deployment. Then select **Ingest Data** and add your data. You can find sample data in the `/data` directory.
+
+    `<screenshot of admin site's data ingestion menu>`
+
+2. Navigate to the web app to start chatting on top of your data. The web app can be found at:
+
+    `https://{MY_RESOURCE_PREFIX}-website.azurewebsites.net/`
+
+    Where `{MY_RESOURCE_PREFIX}` is replaced with the resource prefix you used during deployment. 
+
+    `<screenshot of web app`
+
+## Development and run the accelerator locally
+
+To customize the accelerator or run it locally, first, copy the `.env.sample` file to your development environment's `.env` file, and edit it according to [environment variable values table](#environment-variables) below.
 
 ### Running the full solution locally
 
-You can run the full solution locally with the following commands - this will spin up 3 different docker containers for the:
+You can run the full solution locally with the following commands - this will spin up 3 different Docker containers:
 
-- Frontend
-- Backend
-- Batch processing Functions
+|Container  |Description  |
+|---------|---------|
+|Frontend | A container for the chat app, enabling you to chat on top of your data.         |
+|backend     | A container for the "admin" site where you can upload and explore your data.         |
+|batch processing functions     | A container helping with processing requests.          |
+
+Run the following `docker compose` command.
 
 ```shell
 cd docker
 docker compose up
 ```
 
-### Develop & run the frontend
+### Develop & run the frontend locally
+
+if you want to develop and run the frontend container locally, use the following commands.
 
 #### Running the frontend locally
 
@@ -87,6 +126,8 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 
 ### Develop & run the backend
 
+if you want to develop and run the backend container locally, use the following commands.
+
 #### Running the backend locally
 
 ```shell
@@ -105,7 +146,9 @@ docker run --env-file .env -p 8081:80 YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 ```
 
-### Develop & run the batch processing Functions
+### Develop & run the batch processing functions
+
+if you want to develop and run the batch processing functions container locally, use the following commands.
 
 #### Running the batch processing locally
 
@@ -131,7 +174,7 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 
 | App Setting | Value | Note |
 | --- | --- | ------------- |
-|AZURE_SEARCH_SERVICE||The Url of your Azure Cognitive Search resource. e.g. https://<search-service>.search.windows.net|
+|AZURE_SEARCH_SERVICE||The URL of your Azure Cognitive Search resource. e.g. https://<search-service>.search.windows.net|
 |AZURE_SEARCH_INDEX||The name of your Azure Cognitive Search Index|
 |AZURE_SEARCH_KEY||An **admin key** for your Azure Cognitive Search resource|
 |AZURE_SEARCH_USE_SEMANTIC_SEARCH|False|Whether or not to use semantic search|
@@ -189,23 +232,6 @@ The data set under the /data folder is licensed under the [CDLA-Permissive-2 Lic
 ## Data Set
 
 The data set under the /data folder has been generated with Azure OpenAI GPT and DALL-E 2 models.
-
-## Upcoming Release Schedule and Internal Feedback Guidelines (TO BE REMOVED BEFORE GOING PUBLIC)
-
-We are excited to announce that the initial version of our project will be released during the week of July 10th for early reviews and feedback. This release will include a minimal amount of documentation focusing on deployment. The majority of the documentation will be created, added, and reviewed between July 26th and August 11th, along with any code improvements, before our initial public release.
-
-To provide feedback internally, please follow these guidelines:
-
-a) **Report errors using GitHub Issues:** If you encounter any errors, please log an issue in the repository at [Issues · Azure-Samples/azure-search-openai-solution-accelerator (github.com)](https://github.com/Azure-Samples/azure-search-openai-solution-accelerator/issues).
-
-b) **Submit recommendations for documentation/code via Pull Requests**: If you have suggestions for improvements in documentation or code (once tested), please submit a pull request (PR) at [Pull requests · Azure-Samples/azure-search-openai-solution-accelerator (github.com](https://github.com/Azure-Samples/azure-search-openai-solution-accelerator/pulls)). Note that new functionality PRs involving other products not included in Version 1 will not be considered for the initial public release but will be triaged for future updates. We will review and approve PRs related to the current deployment if they enhance customer understanding, follow best practices, or help fix identified errors.
-
-c) **Provide feedback on other topics in the Feedback Channel**: For any other feedback, please create a post in the ["Chat with your data" Solution Accelerator Feedback Channel](https://teams.microsoft.com/l/channel/19%3acee78935c39448e1a53474e88464e68e%40thread.tacv2/Feedback?groupId=845e2cfa-3fff-4488-affe-1d9c616545b7&tenantId=72f988bf-86f1-41af-91ab-2d7cd011db47) for discussion.
-
-d) **Consider creating a forked repository for specific use cases**: This project serves as a general, robust sample for Proof of Concepts (POCs) of the RAG implementation, including best practices and recommendations. It is designed to be easy for customers to understand, deploy, modify, and adapt. If you have suggestions for additional functionality that may not be applicable to most deployments, we recommend discussing whether it would be more appropriate to create a forked repository tailored to specific industries or use cases.
-
-By following these guidelines, you help us improve the project and ensure its success. We appreciate your feedback and collaboration!
- 
 
 # DISCLAIMER
 This presentation, demonstration, and demonstration model are for informational purposes only and (1) are not subject to SOC 1 and SOC 2 compliance audits, and (2) are not designed, intended or made available as a medical device(s) or as a substitute for professional medical advice, diagnosis, treatment or judgment. Microsoft makes no warranties, express or implied, in this presentation, demonstration, and demonstration model. Nothing in this presentation, demonstration, or demonstration model modifies any of the terms and conditions of Microsoft’s written and signed agreements. This is not an offer and applicable terms and the information provided are subject to revision and may be changed at any time by Microsoft.
