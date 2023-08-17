@@ -211,18 +211,6 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 |AZURE_FORM_RECOGNIZER_KEY||The key of the Azure Form Recognizer for extracting the text from the documents|
 |APPINSIGHTS_CONNECTION_STRING||The Application Insights connection string to store the application logs|
 
-## How to extend the project
-### Class description
-### Module logic
-
-## Resources
-
-(Any additional resources or related projects)
-
-- Link to supporting information
-- Link to similar sample
-- ...
-
 ## Licensing
 
 This repository is licensed under the [MIT License](LICENSE.md).
