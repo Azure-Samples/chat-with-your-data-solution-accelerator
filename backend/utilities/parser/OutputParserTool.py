@@ -19,16 +19,13 @@ class OutputParserTool(ParserBase):
        
     def _make_doc_references_sequential(self, answer, doc_ids):
         for i, idx in enumerate(doc_ids):
-            print(f"Mapping doc{idx} to doc{i+1}")
             answer = answer.replace(f'[doc{idx}]', f'[doc{i+1}]')
         return answer
     
     def parse(self, question: str, answer: str, source_documents: List[SourceDocument], **kwargs: dict) -> List[dict]:     
         
         answer = self._clean_up_answer(answer)
-        doc_ids = self._get_source_docs_from_answer(answer)
-        print("Doc ids", doc_ids)
-        
+        doc_ids = self._get_source_docs_from_answer(answer)      
         answer = self._make_doc_references_sequential(answer, doc_ids)
 
         # create return message object

@@ -3,6 +3,8 @@ import json
 
 from .OrchestratorBase import OrchestratorBase
 from ..helpers.LLMHelper import LLMHelper
+from ..helpers.ConfigHelper import ConfigHelper
+from ..tools.PostPromptTool import PostPromptTool
 from ..tools.QuestionAnswerTool import QuestionAnswerTool
 from ..tools.TextProcessingTool import TextProcessingTool
 from ..tools.ContentSafetyChecker import ContentSafetyChecker
@@ -11,8 +13,9 @@ from ..common.Answer import Answer
 
 class OpenAIFunctionsOrchestrator(OrchestratorBase):
     def __init__(self) -> None:
-        super().__init__()     
-
+        super().__init__()   
+        self.config = ConfigHelper.get_active_config_or_default()
+        self.content_safety_checker = ContentSafetyChecker()
         self.functions = [
             {
                 "name": "search_documents",
@@ -52,11 +55,11 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
         output_formatter = OutputParserTool()
         
         # Call Content Safety tool
-        content_safety_checker = ContentSafetyChecker()
-        filtered_user_message = content_safety_checker.validate_input_and_replace_if_harmful(user_message)
-        if user_message != filtered_user_message:
-            messages = output_formatter.parse(question=user_message, answer=filtered_user_message, source_documents=[])
-            return messages
+        if self.config.prompts.enable_content_safety:
+            filtered_user_message = self.content_safety_checker.validate_input_and_replace_if_harmful(user_message)
+            if user_message != filtered_user_message:
+                messages = output_formatter.parse(question=user_message, answer=filtered_user_message, source_documents=[])
+                return messages
         
         # Call function to determine route
         llm_helper = LLMHelper()
@@ -84,8 +87,14 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
                 # run answering chain
                 answering_tool = QuestionAnswerTool()
                 answer = answering_tool.answer_question(question, chat_history)
+
                 self.log_tokens(prompt_tokens=answer.prompt_tokens, completion_tokens=answer.completion_tokens)
-                # TODO: run post prompt if needed
+
+                # Run post prompt if needed
+                if self.config.prompts.enable_post_answering_prompt:
+                    post_prompt_tool = PostPromptTool()
+                    answer = post_prompt_tool.validate_answer(answer)
+                    self.log(prompt_tokens=answer.prompt_tokens, completion_tokens=answer.completion_tokens)                
             elif result['choices'][0]['message'].function_call.name == "text_processing":
                 text = json.loads(result['choices'][0]['message']['function_call']['arguments'])['text']
                 operation = json.loads(result['choices'][0]['message']['function_call']['arguments'])['operation']
@@ -96,16 +105,14 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
             text = result['choices'][0]['message']['content']
             answer = Answer(question=user_message, answer=text)
 
-        # Call Content Safety tool        
-        filtered_answer = content_safety_checker.validate_output_and_replace_if_harmful(answer.answer)
-        if answer.answer != filtered_answer:
-            messages = output_formatter.parse(question=user_message, answer=filtered_answer, source_documents=[])
-            return messages
+        # Call Content Safety tool
+        if self.config.prompts.enable_content_safety:
+            filtered_answer = self.content_safety_checker.validate_output_and_replace_if_harmful(answer.answer)
+            if answer.answer != filtered_answer:
+                messages = output_formatter.parse(question=user_message, answer=filtered_answer, source_documents=[])
+                return messages
         
         # Format the output for the UI        
         messages = output_formatter.parse(question=answer.question, answer=answer.answer, source_documents=answer.source_documents)
         return messages
         
-        
-
-    
