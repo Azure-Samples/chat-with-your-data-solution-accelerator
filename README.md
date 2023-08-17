@@ -126,7 +126,7 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 
 ### Develop & run the backend
 
-if you want to develop and run the backend container locally, use the following commands.
+If you want to develop and run the backend container locally, use the following commands.
 
 #### Running the backend locally
 
@@ -148,7 +148,7 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 
 ### Develop & run the batch processing functions
 
-if you want to develop and run the batch processing functions container locally, use the following commands.
+If you want to develop and run the batch processing functions container locally, use the following commands.
 
 #### Running the batch processing locally
 
