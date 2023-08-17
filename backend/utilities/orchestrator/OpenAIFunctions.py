@@ -14,7 +14,6 @@ from ..common.Answer import Answer
 class OpenAIFunctionsOrchestrator(OrchestratorBase):
     def __init__(self) -> None:
         super().__init__()   
-        self.config = ConfigHelper.get_active_config_or_default()
         self.content_safety_checker = ContentSafetyChecker()
         self.functions = [
             {
