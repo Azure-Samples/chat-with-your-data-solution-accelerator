@@ -23,7 +23,8 @@ export async function customConversationApi(options: ConversationRequest, abortS
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            messages: options.messages
+            messages: options.messages,
+            conversation_id: options.id
         }),
         signal: abortSignal
     });

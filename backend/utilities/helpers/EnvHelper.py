@@ -25,6 +25,7 @@ class EnvHelper:
         self.AZURE_SEARCH_URL_COLUMN = os.getenv('AZURE_SEARCH_URL_COLUMN', 'url')
         self.AZURE_SEARCH_FIELDS_TAG = os.getenv('AZURE_SEARCH_FIELDS_TAG', 'tag')
         self.AZURE_SEARCH_FIELDS_METADATA = os.getenv('AZURE_SEARCH_FIELDS_METADATA', 'metadata')
+        self.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = os.getenv('AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', '')
         # Azure OpenAI
         self.AZURE_OPENAI_RESOURCE = os.getenv('AZURE_OPENAI_RESOURCE', '')
         self.AZURE_OPENAI_MODEL = os.getenv('AZURE_OPENAI_MODEL', '')
@@ -47,7 +48,7 @@ class EnvHelper:
         os.environ["OPENAI_API_BASE"] = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
         os.environ["OPENAI_API_KEY"] = self.AZURE_OPENAI_KEY
         os.environ["OPENAI_API_VERSION"] = self.AZURE_OPENAI_API_VERSION
-         # Azure Functions - Batch processing
+        # Azure Functions - Batch processing
         self.BACKEND_URL = os.getenv('BACKEND_URL', '')
         self.AzureWebJobsStorage = os.getenv('AzureWebJobsStorage', '')
         self.DOCUMENT_PROCESSING_QUEUE_NAME = os.getenv('DOCUMENT_PROCESSING_QUEUE_NAME', '')
