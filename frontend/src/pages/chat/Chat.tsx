@@ -5,6 +5,7 @@ import { BroomRegular, DismissRegular, SquareRegular } from "@fluentui/react-ico
 import ReactMarkdown from "react-markdown";
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from "rehype-raw"; 
+import { v4 as uuidv4 } from "uuid";
 
 import styles from "./Chat.module.css";
 import Azure from "../../assets/Azure.svg";
@@ -30,6 +31,7 @@ const Chat = () => {
     const [isCitationPanelOpen, setIsCitationPanelOpen] = useState<boolean>(false);
     const [answers, setAnswers] = useState<ChatMessage[]>([]);
     const abortFuncs = useRef([] as AbortController[]);
+    const [conversationId, setConversationId] = useState<string>(uuidv4());
 
     const makeApiRequest = async (question: string) => {
         lastQuestionRef.current = question;
@@ -45,6 +47,7 @@ const Chat = () => {
         };
 
         const request: ConversationRequest = {
+            id: conversationId,
             messages: [...answers, userMessage]
         };
 
@@ -94,6 +97,7 @@ const Chat = () => {
         lastQuestionRef.current = "";
         setActiveCitation(undefined);
         setAnswers([]);
+        setConversationId(uuidv4());
     };
 
     const stopGenerating = () => {

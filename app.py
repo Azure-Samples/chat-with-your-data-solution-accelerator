@@ -261,13 +261,14 @@ def conversation_custom():
     
     try:
         user_message = request.json["messages"][-1]['content']
+        conversation_id = request.json["conversation_id"]
         user_assistent_messages = list(filter(lambda x: x['role'] in ('user','assistant'), request.json["messages"][0:-1]))        
         chat_history = []
         for i,k in enumerate(user_assistent_messages):
             if i % 2 == 0:
                 chat_history.append((user_assistent_messages[i]['content'],user_assistent_messages[i+1]['content']))
         
-        messages = message_orchestrator.handle_message(user_message=user_message, chat_history=chat_history)
+        messages = message_orchestrator.handle_message(user_message=user_message, chat_history=chat_history, conversation_id=conversation_id)
 
         response_obj = {
             "id": "response.id",
