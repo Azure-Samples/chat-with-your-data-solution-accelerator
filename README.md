@@ -19,7 +19,7 @@ This repository provides a template for setting up the solution accelerator, alo
 
 ## When should you use this repo? 
 
-You should use this repo when the complexity of your scenario exceeds the out-of-the-box experience offered by [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data). The accelerator presented here provides several options not provided by Azure OpenAI on your data, for example:
+You should use this repo when the complexity of your scenario or your customization needs exceed the out-of-the-box experience offered by [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data). The accelerator presented here provides several options not provided by Azure OpenAI on your data, for example:
 * The ability to ground a model using both data and public web pages
 * Advanced prompt engineering capabilities
 * An admin site for ingesting/inspecting/configuring your dataset on the fly
