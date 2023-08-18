@@ -62,6 +62,7 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
     if content_type == None:
         content_type = mimetypes.MimeTypes().guess_type(file_name)[0]
         charset = f"; charset={chardet.detect(bytes_data)['encoding']}" if content_type == 'text/plain' else ''
+        content_type = content_type if content_type != None else 'text/plain'
     account_name = os.getenv('AZURE_BLOB_ACCOUNT_NAME')
     account_key =  os.getenv('AZURE_BLOB_ACCOUNT_KEY')
     container_name = os.getenv('AZURE_BLOB_CONTAINER_NAME')
@@ -78,7 +79,7 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
 
 try:
     with st.expander("Add documents in Batch", expanded=True):
-        uploaded_files = st.file_uploader("Upload a document to add it to the Azure Storage Account", type=['pdf','jpeg','jpg','png', 'txt'], accept_multiple_files=True)
+        uploaded_files = st.file_uploader("Upload a document to add it to the Azure Storage Account", type=['pdf','jpeg','jpg','png', 'txt', 'html', 'md'], accept_multiple_files=True)
         if uploaded_files is not None:
             for up in uploaded_files:
                 # To read file as bytes:
