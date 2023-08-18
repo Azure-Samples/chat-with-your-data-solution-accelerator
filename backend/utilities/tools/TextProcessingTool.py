@@ -11,16 +11,15 @@ class TextProcessingTool(AnsweringToolBase):
     def answer_question(self, question: str, chat_history: List[dict], **kwargs: dict):
         
         llm_helper = LLMHelper()
-        text = kwargs['text']
-        operation = kwargs['operation']
+        text = kwargs.get('text')
+        operation = kwargs.get('operation')
+        user_content = f"{operation} the following TEXT: {text}" if question == "" else question
         
         system_message = """You are an AI assistant for the user."""
 
-        print(operation, " the following TEXT: ", text)
-
         result = llm_helper.get_chat_completion(
                    [{"role": "system", "content": system_message}, 
-                    {"role": "user", "content": f"{operation} the following TEXT: {text}"}]
+                    {"role": "user", "content": user_content},]
                    )
                
         answer = Answer(question=question, 

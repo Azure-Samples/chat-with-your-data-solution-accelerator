@@ -50,7 +50,7 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
             }
         ]
         
-    def orchestrate(self, user_message: str, chat_history: List[dict], conversation_id: Optional[str], **kwargs: dict) -> dict:
+    def orchestrate(self, user_message: str, chat_history: List[dict], **kwargs: dict) -> dict:
         output_formatter = OutputParserTool()
         
         # Call Content Safety tool
@@ -93,7 +93,7 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
                 if self.config.prompts.enable_post_answering_prompt:
                     post_prompt_tool = PostPromptTool()
                     answer = post_prompt_tool.validate_answer(answer)
-                    self.log(prompt_tokens=answer.prompt_tokens, completion_tokens=answer.completion_tokens)                
+                    self.log_tokens(prompt_tokens=answer.prompt_tokens, completion_tokens=answer.completion_tokens)                
             elif result['choices'][0]['message'].function_call.name == "text_processing":
                 text = json.loads(result['choices'][0]['message']['function_call']['arguments'])['text']
                 operation = json.loads(result['choices'][0]['message']['function_call']['arguments'])['operation']
