@@ -26,11 +26,11 @@ class OrchestratorBase(ABC):
         self.tokens['total'] += prompt_tokens + completion_tokens
         
     @abstractmethod
-    def orchestrate(self, user_message: str, chat_history: List[dict], conversation_id: Optional[str], **kwargs: dict) -> dict:
+    def orchestrate(self, user_message: str, chat_history: List[dict], **kwargs: dict) -> dict:
         pass
     
-    def handle_message(self, user_message: str, chat_history: List[dict], conversation_id: Optional[str], **kwargs: dict) -> dict:
-        result = self.orchestrate(user_message, chat_history, conversation_id, **kwargs)
+    def handle_message(self, user_message: str, chat_history: List[dict], conversation_id: Optional[str], **kwargs: Optional[dict]) -> dict:
+        result = self.orchestrate(user_message, chat_history, **kwargs)
         if self.config.logging.log_tokens:
             custom_dimensions = {
                 "conversation_id": conversation_id,

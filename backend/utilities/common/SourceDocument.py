@@ -1,5 +1,6 @@
 from typing import Optional, Type
 import hashlib
+import json
 from urllib.parse import urlparse, quote
 from ..helpers.AzureBlobStorageHelper import AzureBlobStorageClient
 
@@ -15,6 +16,25 @@ class SourceDocument:
         
     def __str__(self):
         return f"SourceDocument(id={self.id}, title={self.title}, source={self.source}, chunk={self.chunk}, offset={self.offset}, page_number={self.page_number})"
+    
+    def to_json(self):
+        return json.dumps(self, cls=SourceDocumentEncoder)
+    
+    @classmethod
+    def from_json(cls, json_string):
+        return json.loads(json_string, cls=SourceDocumentDecoder)
+    
+    @classmethod
+    def from_dict(cls, dict_obj):
+        return cls(
+            dict_obj['id'],
+            dict_obj['content'],
+            dict_obj['source'],
+            dict_obj['title'],
+            dict_obj['chunk'],
+            dict_obj['offset'],
+            dict_obj['page_number']
+        )
     
     @classmethod
     def from_metadata(
@@ -70,3 +90,29 @@ class SourceDocument:
             url = url.replace("_SAS_TOKEN_PLACEHOLDER_", container_sas)
         return f"[{self.title}]({url})"
         
+class SourceDocumentEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, SourceDocument):
+            return {
+                'id': obj.id,
+                'content': obj.content,
+                'source': obj.source,
+                'title': obj.title,
+                'chunk': obj.chunk,
+                'offset': obj.offset,
+                'page_number': obj.page_number
+            }
+        return super().default(obj)
+    
+class SourceDocumentDecoder(json.JSONDecoder):
+    def decode(self, s, **kwargs):
+        obj = super().decode(s, **kwargs)
+        return SourceDocument(
+            id=obj['id'],
+            content=obj['content'],
+            source=obj['source'],
+            title=obj['title'],
+            chunk=obj['chunk'],
+            offset=obj['offset'],
+            page_number=obj['page_number']
+        )
