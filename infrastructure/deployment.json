@@ -237,6 +237,13 @@
         "description": "Azure Cognitive Search Index"
       }
     },
+    "AzureSearchConversationLogIndex": {
+      "type": "string",
+      "defaultValue": "conversations",
+      "metadata": {
+        "description": "Azure Cognitive Search Conversation Log Index"
+      }
+    },
     "StorageAccountName": {
       "type": "string",
       "defaultValue": "[format('{0}str', parameters('ResourcePrefix'))]",
@@ -339,6 +346,10 @@
             {
               "name": "AZURE_SEARCH_INDEX",
               "value": "[parameters('AzureSearchIndex')]"
+            },
+            {
+              "name": "AZURE_SEARCH_CONVERSATIONS_LOG_INDEX",
+              "value": "[parameters('AzureSearchConversationLogIndex')]"
             },
             {
               "name": "AZURE_SEARCH_KEY",
