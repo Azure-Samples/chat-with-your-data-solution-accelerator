@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.18.4.5664",
-      "templateHash": "49221670686646934"
+      "version": "0.20.4.51522",
+      "templateHash": "12213482358545635509"
     }
   },
   "parameters": {
@@ -276,7 +276,8 @@
     "BackendImageName": "DOCKER|fruoccopublic.azurecr.io/rag-backend",
     "BlobContainerName": "documents",
     "QueueName": "doc-processing",
-    "ClientKey": "[format('{0}{1}', uniqueString(guid(resourceGroup().id, deployment().name)), parameters('newGuidString'))]"
+    "ClientKey": "[format('{0}{1}', uniqueString(guid(resourceGroup().id, deployment().name)), parameters('newGuidString'))]",
+    "EventGridSystemTopicName": "doc-processing"
   },
   "resources": [
     {
@@ -826,6 +827,53 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.Web/sites', parameters('FunctionName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.EventGrid/systemTopics",
+      "apiVersion": "2021-12-01",
+      "name": "[variables('EventGridSystemTopicName')]",
+      "location": "[parameters('Location')]",
+      "properties": {
+        "source": "[resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName'))]",
+        "topicType": "Microsoft.Storage.StorageAccounts"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.EventGrid/systemTopics/eventSubscriptions",
+      "apiVersion": "2021-12-01",
+      "name": "[format('{0}/{1}', variables('EventGridSystemTopicName'), 'BlobCreatedEvent')]",
+      "properties": {
+        "destination": {
+          "endpointType": "StorageQueue",
+          "properties": {
+            "queueMessageTimeToLiveInSeconds": -1,
+            "queueName": "doc-processing",
+            "resourceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName'))]"
+          }
+        },
+        "filter": {
+          "includedEventTypes": [
+            "Microsoft.Storage.BlobCreated",
+            "Microsoft.Storage.BlobDeleted"
+          ],
+          "enableAdvancedFilteringOnArrays": true,
+          "subjectBeginsWith": "[format('/blobServices/default/containers/{0}/blobs/', variables('BlobContainerName'))]"
+        },
+        "labels": [],
+        "eventDeliverySchema": "EventGridSchema",
+        "retryPolicy": {
+          "maxDeliveryAttempts": 30,
+          "eventTimeToLiveInMinutes": 1440
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.EventGrid/systemTopics', variables('EventGridSystemTopicName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts/queueServices/queues', parameters('StorageAccountName'), 'default', 'doc-processing')]"
       ]
     }
   ]

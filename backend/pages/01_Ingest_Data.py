@@ -79,7 +79,8 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
 
 try:
     with st.expander("Add documents in Batch", expanded=True):
-        uploaded_files = st.file_uploader("Upload a document to add it to the Azure Storage Account", type=['pdf','jpeg','jpg','png', 'txt', 'html', 'md'], accept_multiple_files=True)
+        file_type = ['pdf','jpeg','jpg','png', 'txt', 'html', 'md']
+        uploaded_files = st.file_uploader("Upload a document to add it to the Azure Storage Account, compute embeddings and add them to the Azure Cognitive Search index", type=file_type, accept_multiple_files=True)
         if uploaded_files is not None:
             for up in uploaded_files:
                 # To read file as bytes:
@@ -87,10 +88,12 @@ try:
                 if st.session_state.get('filename', '') != up.name:
                     # Upload a new file
                     upload_file(bytes_data, up.name)
+            if len(uploaded_files) > 0:
+                st.success(f"{len(uploaded_files)} documents uploaded. Embeddings computation in progress. \nPlease note this is an asynchronous process and may take a few minutes to complete.\nYou can check for further details in the Azure Function logs.")
 
-        col1, col2, col3 = st.columns([2,2,2])
-        with col1:
-            st.button("Process and ingest new files", on_click=remote_convert_files_and_add_embeddings)
+        col1, col2, col3 = st.columns([2,1,2])
+        # with col1:
+        #     st.button("Process and ingest new files", on_click=remote_convert_files_and_add_embeddings)
         with col3:
             st.button("Reprocess all documents in the Azure Storage account", on_click=remote_convert_files_and_add_embeddings, args=(True,))
 

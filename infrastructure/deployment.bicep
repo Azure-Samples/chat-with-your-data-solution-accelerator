@@ -129,6 +129,7 @@ var BackendImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-backend'
 var BlobContainerName = 'documents'
 var QueueName = 'doc-processing'
 var ClientKey = '${uniqueString(guid(resourceGroup().id, deployment().name))}${newGuidString}'
+var EventGridSystemTopicName = 'doc-processing'
 
 resource AzureCognitiveSearch_resource 'Microsoft.Search/searchServices@2015-08-19' = {
   name: AzureCognitiveSearch
@@ -406,4 +407,42 @@ resource WaitFunctionDeploymentSection 'Microsoft.Resources/deploymentScripts@20
   dependsOn: [
     Function
   ]
+}
+
+resource EventGridSystemTopic 'Microsoft.EventGrid/systemTopics@2021-12-01' = {
+  name: EventGridSystemTopicName
+  location: Location
+  properties: {
+    source: StorageAccount.id
+    topicType: 'Microsoft.Storage.StorageAccounts'
+  }
+}
+
+resource EventGridSystemTopicName_BlobEvents 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2021-12-01' = {
+  parent: EventGridSystemTopic
+  name: 'BlobEvents'
+  properties: {
+    destination: {
+      endpointType: 'StorageQueue'
+      properties: {
+        queueMessageTimeToLiveInSeconds: -1
+        queueName: StorageAccountName_default_doc_processing.name
+        resourceId: StorageAccount.id
+      }
+    }
+    filter: {
+      includedEventTypes: [
+        'Microsoft.Storage.BlobCreated'
+        'Microsoft.Storage.BlobDeleted'
+      ]
+      enableAdvancedFilteringOnArrays: true
+      subjectBeginsWith: '/blobServices/default/containers/${BlobContainerName}/blobs/'
+    }
+    labels: []
+    eventDeliverySchema: 'EventGridSchema'
+    retryPolicy: {
+      maxDeliveryAttempts: 30
+      eventTimeToLiveInMinutes: 1440
+    }
+  }
 }
