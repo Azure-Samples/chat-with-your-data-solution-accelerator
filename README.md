@@ -35,6 +35,9 @@ Out-of-the-box, you can upload the following file types:
 * JPG
 * PNG
 * TXT
+* HTML
+* MD (Markdown)
+* DOCX
 
 ## Prerequisites
 
