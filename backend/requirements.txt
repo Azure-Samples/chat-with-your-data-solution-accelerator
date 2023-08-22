@@ -23,3 +23,4 @@ chardet==5.1.0
 azure-search-documents==11.4.0b6
 opencensus-ext-azure==1.1.9
 pandas==1.5.1
+python-docx==0.8.11

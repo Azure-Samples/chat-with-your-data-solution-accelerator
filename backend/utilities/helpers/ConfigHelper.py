@@ -20,7 +20,7 @@ class Config:
             for c in config['document_processors']]
     
     def get_available_document_types(self):
-        return ["txt", "pdf", "url", "html", "md", "jpeg", "jpg", "png"]    
+        return ["txt", "pdf", "url", "html", "md", "jpeg", "jpg", "png", "docx"]    
     
     def get_available_chunking_strategies(self):
         return [c.value for c in ChunkingStrategy]
@@ -157,6 +157,17 @@ Answer: {answer}""",
                     },
                     "loading": {
                         "strategy": LoadingStrategy.WEB
+                    }
+                },
+                {
+                    "document_type": "docx",
+                    "chunking": {
+                        "strategy": ChunkingStrategy.LAYOUT,
+                        "size": 500,
+                        "overlap": 100
+                    },
+                    "loading": {
+                        "strategy": LoadingStrategy.DOCX
                     }
                 },
             ],

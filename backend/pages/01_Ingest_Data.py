@@ -9,6 +9,7 @@ import logging
 import requests
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, ContentSettings
 import urllib.parse
+from utilities.helpers.ConfigHelper import ConfigHelper
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -79,8 +80,9 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
 
 try:
     with st.expander("Add documents in Batch", expanded=True):
-        file_type = ['pdf','jpeg','jpg','png', 'txt', 'html', 'md']
-        uploaded_files = st.file_uploader("Upload a document to add it to the Azure Storage Account, compute embeddings and add them to the Azure Cognitive Search index", type=file_type, accept_multiple_files=True)
+        config = ConfigHelper.get_active_config_or_default()
+        file_type = [processor.document_type for processor in config.document_processors]
+        uploaded_files = st.file_uploader("Upload a document to add it to the Azure Storage Account, compute embeddings and add them to the Azure Cognitive Search index. Check your configuration for available document processors.", type=file_type, accept_multiple_files=True)
         if uploaded_files is not None:
             for up in uploaded_files:
                 # To read file as bytes:
