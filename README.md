@@ -19,13 +19,25 @@ This repository provides a template for setting up the solution accelerator, alo
 
 ## When should you use this repo? 
 
-You should use this repo when the complexity of your scenario or your customization needs exceed the out-of-the-box experience offered by [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data). The accelerator presented here provides several options not provided by Azure OpenAI on your data, for example:
+You should use this repo when your scenario customization needs exceed the out-of-the-box experience offered by [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data) and you don't require to streamline the entire development cycle of your AI application, as you can with [Azure Machine Learning prompt flow](https://learn.microsoft.com/en-us/azure/machine-learning/prompt-flow/overview-what-is-prompt-flow). 
+
+The accelerator presented here provides several options, for example:
 * The ability to ground a model using both data and public web pages
 * Advanced prompt engineering capabilities
 * An admin site for ingesting/inspecting/configuring your dataset on the fly
 * Running a Retrieval Augmented Generation (RAG) solution locally, as a Docker container
 
-*Have you seen [ChatGPT + Enterprise data with Azure OpenAI and Cognitive Search demo](https://github.com/Azure-Samples/azure-search-openai-demo)? If you would like to play with prompts, understanding RAG pattern different implementation approaches and similar demo tasks, take a look at that repo. Note that the demo in that repo should not be used in production environments.*
+*Have you seen [ChatGPT + Enterprise data with Azure OpenAI and Cognitive Search demo](https://github.com/Azure-Samples/azure-search-openai-demo)? If you would like to play with prompts, understanding RAG pattern different implementation approaches and similar demo tasks, take a look at that repo. Note that the demo in that repo should not be used in Proof of Concepts (POCs) that later will be adapted for production environments. Instead, consider the use of this repo and follow the [Best Practices-TBD](TBD-link)*
+
+Here is a comparison table with a few features offered by Azure, an available GitHub demo sample and this repo, that can provide guidance when you need to decide which one to use:
+
+| Name	| Feature or Sample? |	What is it? | When to use? |
+| ---------|---------|---------|---------|
+|[Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data) | Azure feature | Azure OpenAI Out-of-the-box, end-to-end RAG implementation that uses a REST API or the web-based interface in the Azure OpenAI Studio to create a solution that connects to your data to enable an enhanced chat experience with Azure OpenAI ChatGPT models and Azure Cognitive Search. | First option when you need an end-to-end solution for Azure OpenAI ChatGPT-based application with an Azure Cognitive Search as a retriever. You need to pick your supported data sources, Azure OpenAI ChatGPT model and any other Azure resources needed and configuration options for your Enterprise application needs. |
+|[Azure Machine Learning prompt flow](https://learn.microsoft.com/azure/machine-learning/prompt-flow/overview-what-is-prompt-flow)	| Azure feature | Azure Machine Learning comprehensive solution that simplifies the process of prototyping, experimenting, iterating, and deploying your LLM-based AI applications. | You need more control of each process involved in the entire development cycle of LLM-based AI applications, create executable flows, evaluate performance through large-scale testing, among others. |
+|["Chat with your data" Solution Accelerator](https://aka.ms/ChatWithYourDataSolutionAccelerator) - (This repo)	| Azure sample | End-to-end baseline RAG pattern sample that uses Azure Cognitive Search as a retriever.	| Your RAG pattern implementation has requirements that the features already provided by Azure to build a ChatGPT-based application are not able to satisfy and you need a baseline sample to create Proof of Concept (POC). You must add your own code to meet those requirements, and finally adapt with best practices and according to your company policies to deploy your own custom version in your production environment. |
+|[ChatGPT + Enterprise data with Azure OpenAI and Cognitive Search demo](https://github.com/Azure-Samples/azure-search-openai-demo) | Azure sample | RAG pattern demo that uses Azure Cognitive Search as a retriever. |	You would like to use or present an end-to-end demo that shows what the RAG pattern is, deploy and test with different retrieval modes, understand the train of thought of the components while you test and play with different prompts to understand which ones you can adapt better to your use cases. |
+
 
 ## Supported file types
 
@@ -92,7 +104,7 @@ You can run the full solution locally with the following commands - this will sp
 
 |Container  |Description  |
 |---------|---------|
-|Frontend | A container for the chat app, enabling you to chat on top of your data.         |
+|frontend | A container for the chat app, enabling you to chat on top of your data.         |
 |backend     | A container for the "admin" site where you can upload and explore your data.         |
 |batch processing functions     | A container helping with processing requests.          |
 
