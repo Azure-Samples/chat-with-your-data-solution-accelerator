@@ -68,8 +68,9 @@ Out-of-the-box, you can upload the following file types:
     `https://{MY_RESOURCE_PREFIX}-website-admin.azurewebsites.net/`
 
     Where `{MY_RESOURCE_PREFIX}` is replaced with the resource prefix you used during deployment. Then select **Ingest Data** and add your data. You can find sample data in the `/data` directory.
+    
+    ![A screenshot of the admin site.](./media/admin-site.png)
 
-    `<screenshot of admin site's data ingestion menu>`
 
 2. Navigate to the web app to start chatting on top of your data. The web app can be found at:
 
@@ -77,7 +78,9 @@ Out-of-the-box, you can upload the following file types:
 
     Where `{MY_RESOURCE_PREFIX}` is replaced with the resource prefix you used during deployment. 
 
-    `<screenshot of web app`
+    
+    ![A screenshot of the chat app.](./media/chat-app.png)
+
 
 ## Development and run the accelerator locally
 
