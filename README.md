@@ -77,6 +77,8 @@ Out-of-the-box, you can upload the following file types:
     |Azure OpenAI key    | The access key associated with your Azure OpenAI resource.        |
     
     You can find the [ARM template](./infrastructure/deployment.json) used, along with a [Bicep file](./infrastructure/deployment.bicep) for deploying this accelerator in the `/infrastructure` directory.
+
+   **NOTE**: By default, the deployment name in the application settings is equal to the model name (gpt-35-turbo and text-embedding-ada-002). If you named the deployment in a different way, you should update the application settings to match your deployment names.
     
 1. Navigate to the admin site, where you can upload documents. It will be located at:
     
