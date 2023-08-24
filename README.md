@@ -42,9 +42,14 @@ Out-of-the-box, you can upload the following file types:
 ## Prerequisites
 
 * Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with contributor access.
-* An [Azure OpenAI resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=web-portal) and a deployment for one of the following models:
-    * GPT-3.5
-    * GPT-4
+* An [Azure OpenAI resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=web-portal) and a deployment for one of the following Chat model and an embedding model:
+    * Chat Models
+       * GPT-3.5
+       * GPT-4
+  * Embedding Model 
+     * text-embedding-ada-002
+    
+  **NOTE**: The deployment template defaults to **gpt-35-turbo** and **text-embedding-ada-002**. If your deployment names are different, update them in the deployment process.
 
 ## Getting started
 
