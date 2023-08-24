@@ -43,6 +43,9 @@ if 'log_user_interactions' not in st.session_state:
 if 'log_tokens' not in st.session_state:
     st.session_state['log_tokens'] = config.logging.log_tokens
     
+if 'orchestrator_strategy' not in st.session_state:
+    st.session_state['orchestrator_strategy'] = config.orchestrator.strategy.value
+    
     
 # # # def validate_question_prompt():
 # # #     if "{chat_history}" not in st.session_state.condense_question_prompt:
@@ -66,7 +69,12 @@ def validate_post_answering_prompt():
     if "{answer}" not in st.session_state.post_answering_prompt:
         st.warning("Your post answering prompt doesn't contain the variable `{answer}`")
 
-try:
+try:  
+    with st.expander("Orchestrator configuration", expanded=True):
+        cols = st.columns([2,4])
+        with cols[0]:
+            st.selectbox("Orchestrator strategy", key='orchestrator_strategy' ,options=config.get_available_orchestration_strategies())
+    
     # # # condense_question_prompt_help = "This prompt is used to convert the user's input to a standalone question, using the context of the chat history."
     answering_prompt_help = "This prompt is used to answer the user's question, using the sources that were retrieved from the knowledge base."
     post_answering_prompt_help = "You can configure a post prompt that allows to fact-check or process the answer, given the sources, question and answer. This prompt needs to return `True` or `False`."
@@ -140,6 +148,9 @@ try:
             "logging": {
                 "log_user_interactions": st.session_state['log_user_interactions'],
                 "log_tokens": st.session_state['log_tokens']
+            },
+            "orchestrator": {
+                "strategy": st.session_state['orchestrator_strategy']
             }
         }
         ConfigHelper.save_config_as_active(current_config)

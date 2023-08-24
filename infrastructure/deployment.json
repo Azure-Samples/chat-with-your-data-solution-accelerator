@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.20.4.51522",
-      "templateHash": "12213482358545635509"
+      "templateHash": "17828718345622078337"
     }
   },
   "parameters": {
@@ -151,6 +151,16 @@
       "type": "securestring",
       "metadata": {
         "description": "Azure OpenAI Key"
+      }
+    },
+    "OrchestrationStrategy": {
+      "type": "string",
+      "allowedValues": [
+        "openai_function",
+        "langchain"
+      ],
+      "metadata": {
+        "description": "Orchestration strategy: openai_function or langchain str. If you use a old version of turbo (0301), plese select langchain"
       }
     },
     "AzureOpenAITemperature": {
@@ -455,6 +465,10 @@
             {
               "name": "AZURE_BLOB_CONTAINER_NAME",
               "value": "[variables('BlobContainerName')]"
+            },
+            {
+              "name": "ORCHESTRATION_STRATEGY",
+              "value": "[parameters('OrchestrationStrategy')]"
             }
           ],
           "linuxFxVersion": "[variables('WebAppImageName')]"
@@ -606,6 +620,10 @@
             {
               "name": "FUNCTION_KEY",
               "value": "[variables('ClientKey')]"
+            },
+            {
+              "name": "ORCHESTRATION_STRATEGY",
+              "value": "[parameters('OrchestrationStrategy')]"
             }
           ],
           "linuxFxVersion": "[variables('AdminWebAppImageName')]"
@@ -778,6 +796,10 @@
             {
               "name": "AZURE_SEARCH_INDEX",
               "value": "[parameters('AzureSearchIndex')]"
+            },
+            {
+              "name": "ORCHESTRATION_STRATEGY",
+              "value": "[parameters('OrchestrationStrategy')]"
             }
           ],
           "cors": {
@@ -845,7 +867,7 @@
     {
       "type": "Microsoft.EventGrid/systemTopics/eventSubscriptions",
       "apiVersion": "2021-12-01",
-      "name": "[format('{0}/{1}', variables('EventGridSystemTopicName'), 'BlobCreatedEvent')]",
+      "name": "[format('{0}/{1}', variables('EventGridSystemTopicName'), 'BlobEvents')]",
       "properties": {
         "destination": {
           "endpointType": "StorageQueue",

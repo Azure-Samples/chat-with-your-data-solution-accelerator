@@ -3,6 +3,8 @@ from .AzureBlobStorageHelper import AzureBlobStorageClient
 from ..document_chunking import ChunkingSettings, ChunkingStrategy
 from ..document_loading import LoadingSettings, LoadingStrategy
 from .DocumentProcessorHelper import Processor
+from .OrchestratorHelper import Orchestrator, OrchestrationSettings, OrchestrationStrategy
+from .EnvHelper import EnvHelper
 
 CONFIG_CONTAINER_NAME = "config"
 
@@ -18,6 +20,9 @@ class Config:
                 loading=LoadingSettings(c['loading'])
             ) 
             for c in config['document_processors']]
+        self.env_helper = EnvHelper()
+        self.default_orchestration_settings = {'strategy' : self.env_helper.ORCHESTRATION_STRATEGY}
+        self.orchestrator = OrchestrationSettings(config.get('orchestrator', self.default_orchestration_settings))
     
     def get_available_document_types(self):
         return ["txt", "pdf", "url", "html", "md", "jpeg", "jpg", "png", "docx"]    
@@ -27,6 +32,9 @@ class Config:
     
     def get_available_loading_strategies(self):
         return [c.value for c in LoadingStrategy]
+    
+    def get_available_orchestration_strategies(self):
+        return [c.value for c in OrchestrationStrategy]
         
 # TODO: Change to AnsweringChain or something, Prompts is not a good name
 class Prompts:
@@ -174,6 +182,9 @@ Answer: {answer}""",
             "logging": {
                 "log_user_interactions": True,
                 "log_tokens": True
+            },
+            "orchestrator": {
+                "strategy": "openai_function"
             }
         }
         return Config(default_config)

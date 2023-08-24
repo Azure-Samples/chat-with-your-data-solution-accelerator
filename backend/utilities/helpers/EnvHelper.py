@@ -64,7 +64,8 @@ class EnvHelper:
         # Azure AI Content Safety
         self.AZURE_CONTENT_SAFETY_ENDPOINT = os.getenv('AZURE_CONTENT_SAFETY_ENDPOINT', '')
         self.AZURE_CONTENT_SAFETY_KEY = os.getenv('AZURE_CONTENT_SAFETY_KEY', '')
-
+        # Orchestration Settings
+        self.ORCHESTRATION_STRATEGY = os.getenv('ORCHESTRATION_STRATEGY', 'openai_function')
     
     @staticmethod
     def check_env():

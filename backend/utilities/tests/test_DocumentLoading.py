@@ -34,3 +34,11 @@ def test_document_loading_web():
     data = document_loading.load(url, LoadingSettings({"strategy": "web"}))
     assert len(data) == 1
     assert data[0].source == url
+    
+def test_document_loading_docx():
+    document_loading = DocumentLoading()
+    url = "https://csciblob.blob.core.windows.net/rag-sol-acc/What is Azure OpenAI Service.docx"
+    data = document_loading.load(url, LoadingSettings({"strategy": "docx"}))
+    assert len(data) == 1
+    assert data[0].source == url
+    print(data[0].content)
