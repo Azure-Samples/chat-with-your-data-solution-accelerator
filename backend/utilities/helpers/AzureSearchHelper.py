@@ -66,6 +66,7 @@ class AzureSearchHelper():
             index_name=env_helper.AZURE_SEARCH_INDEX,
             embedding_function=llm_helper.get_embedding_model().embed_query,
             fields=fields,
+            user_agent="langchain chatwithyourdata-sa",
         )
     
     def get_conversation_logger(self):
@@ -135,5 +136,6 @@ class AzureSearchHelper():
             index_name=env_helper.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX,
             embedding_function=llm_helper.get_embedding_model().embed_query,
             fields=fields,
+            user_agent="langchain chatwithyourdata-sa",
         )
     

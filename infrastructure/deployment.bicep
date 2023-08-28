@@ -138,9 +138,12 @@ var QueueName = 'doc-processing'
 var ClientKey = '${uniqueString(guid(resourceGroup().id, deployment().name))}${newGuidString}'
 var EventGridSystemTopicName = 'doc-processing'
 
-resource AzureCognitiveSearch_resource 'Microsoft.Search/searchServices@2015-08-19' = {
+resource AzureCognitiveSearch_resource 'Microsoft.Search/searchServices@2022-09-01' = {
   name: AzureCognitiveSearch
   location: Location
+  tags: {
+    deployment : 'chatwithyourdata-sa'
+  }
   sku: {
     name: AzureCognitiveSearchSku
   }

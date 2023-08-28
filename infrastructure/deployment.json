@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.20.4.51522",
-      "templateHash": "17828718345622078337"
+      "templateHash": "4453445457127590997"
     }
   },
   "parameters": {
@@ -292,9 +292,12 @@
   "resources": [
     {
       "type": "Microsoft.Search/searchServices",
-      "apiVersion": "2015-08-19",
+      "apiVersion": "2022-09-01",
       "name": "[parameters('AzureCognitiveSearch')]",
       "location": "[parameters('Location')]",
+      "tags": {
+        "deployment": "chatwithyourdata-sa"
+      },
       "sku": {
         "name": "[parameters('AzureCognitiveSearchSku')]"
       },
