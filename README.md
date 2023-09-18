@@ -19,13 +19,25 @@ This repository provides a template for setting up the solution accelerator, alo
 
 ## When should you use this repo? 
 
-You should use this repo when the complexity of your scenario or your customization needs exceed the out-of-the-box experience offered by [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data). The accelerator presented here provides several options not provided by Azure OpenAI on your data, for example:
+You should use this repo when your scenario customization needs exceed the out-of-the-box experience offered by [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data) and you don't require to streamline the entire development cycle of your AI application, as you can with [Azure Machine Learning prompt flow](https://learn.microsoft.com/en-us/azure/machine-learning/prompt-flow/overview-what-is-prompt-flow). 
+
+The accelerator presented here provides several options, for example:
 * The ability to ground a model using both data and public web pages
 * Advanced prompt engineering capabilities
 * An admin site for ingesting/inspecting/configuring your dataset on the fly
 * Running a Retrieval Augmented Generation (RAG) solution locally, as a Docker container
 
-*Have you seen [ChatGPT + Enterprise data with Azure OpenAI and Cognitive Search demo](https://github.com/Azure-Samples/azure-search-openai-demo)? If you would like to play with prompts, understanding RAG pattern different implementation approaches and similar demo tasks, take a look at that repo. Note that the demo in that repo should not be used in production environments.*
+*Have you seen [ChatGPT + Enterprise data with Azure OpenAI and Cognitive Search demo](https://github.com/Azure-Samples/azure-search-openai-demo)? If you would like to play with prompts, understanding RAG pattern different implementation approaches and similar demo tasks, take a look at that repo. Note that the demo in that repo should not be used in Proof of Concepts (POCs) that later will be adapted for production environments. Instead, consider the use of this repo and follow the [Best Practices-TBD](TBD-link)*
+
+Here is a comparison table with a few features offered by Azure, an available GitHub demo sample and this repo, that can provide guidance when you need to decide which one to use:
+
+| Name	| Feature or Sample? |	What is it? | When to use? |
+| ---------|---------|---------|---------|
+|[Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data) | Azure feature | Azure OpenAI Service offers out-of-the-box, end-to-end RAG implementation that uses a REST API or the web-based interface in the Azure AI Studio to create a solution that connects to your data to enable an enhanced chat experience with Azure OpenAI ChatGPT models and Azure Cognitive Search. | This should be the first option considered for developers that need an end-to-end solution for Azure OpenAI Service with an Azure Cognitive Search retriever. Simply select supported data sources, that ChatGPT model in Azure OpenAI Service , and any other Azure resources needed to configure your enterprise application needs. |
+|[Azure Machine Learning prompt flow](https://learn.microsoft.com/azure/machine-learning/concept-retrieval-augmented-generation)	| Azure feature | RAG in Azure Machine Learning is enabled by integration with Azure OpenAI Service for large language models and vectorization. It includes support for Faiss and Azure Cognitive Search as vector stores, as well as support for open-source offerings, tools, and frameworks such as LangChain for data chunking. Azure Machine Learning prompt flow offers the ability to test data generation, automate prompt creation, visualize prompt evaluation metrics, and integrate RAG workflows into MLOps using pipelines.  | When Developers need more control overprocesses involved in the development cycle of LLM-based AI applications, they should use Azure Machine Learning prompt flow to create executable flows and evaluate performance through large-scale testing. |
+|["Chat with your data" Solution Accelerator](https://aka.ms/ChatWithYourDataSolutionAccelerator) - (This repo)	| Azure sample | End-to-end baseline RAG pattern sample that uses Azure Cognitive Search as a retriever.	| This sample should be used by Developers when the  RAG pattern implementation provided by Azure  are not able to satisfy business requirements. This sample provides a means to customize the solution. Developers must add their own code to meet requirements, and adapt with best practices according to individual company policies. |
+|[ChatGPT + Enterprise data with Azure OpenAI and Cognitive Search demo](https://github.com/Azure-Samples/azure-search-openai-demo) | Azure sample | RAG pattern demo that uses Azure Cognitive Search as a retriever. | Developers who would like to use or present an end-to-end demonstration of the RAG pattern should use this sample. This includes the ability to deploy and test different retrieval modes, and prompts to support business use cases. |
+
 
 ## Supported file types
 
@@ -55,7 +67,7 @@ Out-of-the-box, you can upload the following file types:
 
 1. Click the following deployment button to create the required resources for this accelerator directly in your Azure Subscription. 
 
-    [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-search-openai-solution-accelerator%2Fmain%2Finfrastructure%2Fdeployment.json%3Ftoken%3DGHSAT0AAAAAAB47C325DQBSNOF2UZNHQE2CZGTZSTA)
+    [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fgithub.com%2FAzure-Samples%2Fazure-search-openai-solution-accelerator%2Fblob%2Fmain%2Finfrastructure%2Fdeployment.json)
 
     
 
@@ -71,14 +83,17 @@ Out-of-the-box, you can upload the following file types:
     |Orchestration strategy| Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain"|
     
     You can find the [ARM template](./infrastructure/deployment.json) used, along with a [Bicep file](./infrastructure/deployment.bicep) for deploying this accelerator in the `/infrastructure` directory.
+
+   **NOTE**: By default, the deployment name in the application settings is equal to the model name (gpt-35-turbo and text-embedding-ada-002). If you named the deployment in a different way, you should update the application settings to match your deployment names.
     
 1. Navigate to the admin site, where you can upload documents. It will be located at:
     
     `https://{MY_RESOURCE_PREFIX}-website-admin.azurewebsites.net/`
 
     Where `{MY_RESOURCE_PREFIX}` is replaced with the resource prefix you used during deployment. Then select **Ingest Data** and add your data. You can find sample data in the `/data` directory.
+    
+    ![A screenshot of the admin site.](./media/admin-site.png)
 
-    `<screenshot of admin site's data ingestion menu>`
 
 2. Navigate to the web app to start chatting on top of your data. The web app can be found at:
 
@@ -86,7 +101,9 @@ Out-of-the-box, you can upload the following file types:
 
     Where `{MY_RESOURCE_PREFIX}` is replaced with the resource prefix you used during deployment. 
 
-    `<screenshot of web app`
+    
+    ![A screenshot of the chat app.](./media/chat-app.png)
+
 
 ## Development and run the accelerator locally
 
@@ -98,7 +115,7 @@ You can run the full solution locally with the following commands - this will sp
 
 |Container  |Description  |
 |---------|---------|
-|Frontend | A container for the chat app, enabling you to chat on top of your data.         |
+|frontend | A container for the chat app, enabling you to chat on top of your data.         |
 |backend     | A container for the "admin" site where you can upload and explore your data.         |
 |batch processing functions     | A container helping with processing requests.          |
 
