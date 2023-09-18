@@ -5,15 +5,14 @@ from langchain.agents import ZeroShotAgent, AgentExecutor
 from langchain import LLMChain
 from langchain.callbacks import get_openai_callback
         
-from backend.utilities.helpers.LLMHelper import LLMHelper
-from backend.utilities.orchestrator.OrchestratorBase import OrchestratorBase
-from backend.utilities.helpers.LLMHelper import LLMHelper
-from backend.utilities.tools.PostPromptTool import PostPromptTool
-from backend.utilities.tools.QuestionAnswerTool import QuestionAnswerTool
-from backend.utilities.tools.TextProcessingTool import TextProcessingTool
-from backend.utilities.tools.ContentSafetyChecker import ContentSafetyChecker
-from backend.utilities.parser.OutputParserTool import OutputParserTool
-from backend.utilities.common.Answer import Answer
+from .OrchestratorBase import OrchestratorBase
+from ..helpers.LLMHelper import LLMHelper
+from ..tools.PostPromptTool import PostPromptTool
+from ..tools.QuestionAnswerTool import QuestionAnswerTool
+from ..tools.TextProcessingTool import TextProcessingTool
+from ..tools.ContentSafetyChecker import ContentSafetyChecker
+from ..parser.OutputParserTool import OutputParserTool
+from ..common.Answer import Answer
 
 class LangChainAgent(OrchestratorBase):
     def __init__(self) -> None:

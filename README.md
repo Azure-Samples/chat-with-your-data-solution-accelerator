@@ -54,9 +54,14 @@ Out-of-the-box, you can upload the following file types:
 ## Prerequisites
 
 * Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with contributor access.
-* An [Azure OpenAI resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=web-portal) and a deployment for one of the following models:
-    * GPT-3.5
-    * GPT-4
+* An [Azure OpenAI resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=web-portal) and a deployment for one of the following Chat model and an embedding model:
+    * Chat Models
+       * GPT-3.5
+       * GPT-4
+  * Embedding Model 
+     * text-embedding-ada-002
+    
+  **NOTE**: The deployment template defaults to **gpt-35-turbo** and **text-embedding-ada-002**. If your deployment names are different, update them in the deployment process.
 
 ## Getting started
 
@@ -75,6 +80,7 @@ Out-of-the-box, you can upload the following file types:
     |Resource prefix   | A text string that will be appended to each resource that gets created, and used as the website name for the web app. This name cannot contain spaces or special characters.        |
     |Azure OpenAI resource    | The name of your Azure OpenAI resource. This resource must have already been created previously.         |
     |Azure OpenAI key    | The access key associated with your Azure OpenAI resource.        |
+    |Orchestration strategy| Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain"|
     
     You can find the [ARM template](./infrastructure/deployment.json) used, along with a [Bicep file](./infrastructure/deployment.bicep) for deploying this accelerator in the `/infrastructure` directory.
 
@@ -230,6 +236,7 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 |AZURE_FORM_RECOGNIZER_ENDPOINT||The name of the Azure Form Recognizer for extracting the text from the documents|
 |AZURE_FORM_RECOGNIZER_KEY||The key of the Azure Form Recognizer for extracting the text from the documents|
 |APPINSIGHTS_CONNECTION_STRING||The Application Insights connection string to store the application logs|
+|ORCHESTRATION_STRATEGY | openai_functions | Orchestration strategy. Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain" |
 
 ## Licensing
 

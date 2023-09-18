@@ -70,6 +70,13 @@ param AzureOpenAIModelName string = 'gpt-35-turbo'
 @secure()
 param AzureOpenAIKey string
 
+@description('Orchestration strategy: openai_function or langchain str. If you use a old version of turbo (0301), plese select langchain')
+@allowed([
+  'openai_function'
+  'langchain'
+])
+param OrchestrationStrategy string
+
 @description('Azure OpenAI Temperature')
 param AzureOpenAITemperature string = '0'
 
@@ -131,9 +138,12 @@ var QueueName = 'doc-processing'
 var ClientKey = '${uniqueString(guid(resourceGroup().id, deployment().name))}${newGuidString}'
 var EventGridSystemTopicName = 'doc-processing'
 
-resource AzureCognitiveSearch_resource 'Microsoft.Search/searchServices@2015-08-19' = {
+resource AzureCognitiveSearch_resource 'Microsoft.Search/searchServices@2022-09-01' = {
   name: AzureCognitiveSearch
   location: Location
+  tags: {
+    deployment : 'chatwithyourdata-sa'
+  }
   sku: {
     name: AzureCognitiveSearchSku
   }
@@ -212,6 +222,7 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'AZURE_BLOB_ACCOUNT_NAME', value: StorageAccountName}
         { name: 'AZURE_BLOB_ACCOUNT_KEY', value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value}
         { name: 'AZURE_BLOB_CONTAINER_NAME', value: BlobContainerName}
+        { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
       ]
       linuxFxVersion: WebAppImageName
     }
@@ -261,6 +272,7 @@ resource WebsiteName_admin 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'DOCUMENT_PROCESSING_QUEUE_NAME', value: QueueName}
         { name: 'BACKEND_URL', value: 'https://${FunctionName}.azurewebsites.net'}
         { name: 'FUNCTION_KEY', value: ClientKey}
+        { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
       ]
       linuxFxVersion: AdminWebAppImageName
     }
@@ -365,6 +377,7 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
         { name: 'DOCUMENT_PROCESSING_QUEUE_NAME', value: QueueName}
         { name: 'AZURE_OPENAI_API_VERSION', value: AzureOpenAIApiVersion}
         { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}
+        { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
       ]
       cors: {
         allowedOrigins: [

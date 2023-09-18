@@ -7,7 +7,6 @@ import openai
 # Fixing MIME types for static files under Windows
 import mimetypes
 
-from backend.utilities.orchestrator.OpenAIFunctions import OpenAIFunctionsOrchestrator
 mimetypes.add_type('application/javascript', '.js')
 mimetypes.add_type('text/css', '.css')
 
@@ -257,7 +256,8 @@ def conversation_azure_byod():
 
 @app.route("/api/conversation/custom", methods=["GET","POST"])
 def conversation_custom():
-    message_orchestrator = OpenAIFunctionsOrchestrator()
+    from backend.utilities.helpers.OrchestratorHelper import Orchestrator, OrchestrationSettings
+    message_orchestrator = Orchestrator()
     
     try:
         user_message = request.json["messages"][-1]['content']
@@ -267,8 +267,8 @@ def conversation_custom():
         for i,k in enumerate(user_assistent_messages):
             if i % 2 == 0:
                 chat_history.append((user_assistent_messages[i]['content'],user_assistent_messages[i+1]['content']))
-        
-        messages = message_orchestrator.handle_message(user_message=user_message, chat_history=chat_history, conversation_id=conversation_id)
+        from backend.utilities.helpers.ConfigHelper import ConfigHelper
+        messages = message_orchestrator.handle_message(user_message=user_message, chat_history=chat_history, conversation_id=conversation_id, orchestrator=ConfigHelper.get_active_config_or_default().orchestrator)
 
         response_obj = {
             "id": "response.id",
