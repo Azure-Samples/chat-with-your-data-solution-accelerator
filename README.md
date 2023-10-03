@@ -128,19 +128,25 @@ docker compose up
 
 ### Develop & run the frontend locally
 
-if you want to develop and run the frontend container locally, use the following commands.
+For faster development, you can run the frontend Typescript React UI app and the Python Flask app in development mode. This allows the app to "hot reload" meaning your changes will automatically be reflected in the app without having to refresh or restart the local servers. 
 
-#### Running the frontend locally
+To run the app locally with hot refresh, first follow the instructions to [update your .env file with the needed values](#develop--run-the-frontend-locally).
 
+#### Starting the Flask app in dev mode
+Open a terminal and enter the following commands
 ```shell
 python -m pip install -r requirements.txt
-cd frontend
-npm install
-npm run build
-python ./app.py
+python -m flask --app ./app.py --debug run
 ```
 
-Then visit `http://127.0.0.1:5000/` for accessing the chat interface.
+#### Starting the Typescript React app in dev mode
+Open a new separate terminal and enter the following commands:
+```shell
+cd frontend
+npm install
+npm run dev
+```
+The local vite server will return a url that you can use to access the chat interface locally, such as  `http://localhost:5174/`.
 
 #### Building the frontend Docker image
 
