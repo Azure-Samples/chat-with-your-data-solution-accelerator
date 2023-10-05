@@ -20,6 +20,7 @@ import {
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
 
+
 const Chat = () => {
     const lastQuestionRef = useRef<string>("");
     const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
@@ -97,34 +98,35 @@ const Chat = () => {
     const startSpeechRecognition = () => {
         if (!isRecognizing) {
             setIsRecognizing(true);
+ // Set your Azure Cognitive Service Speech API credentials here
+    const subscriptionKey = process.env.REACT_APP_AZURE_SPEECH_KEY;
+    const serviceRegion = process.env.REACT_APP_AZURE_SPEECH_REGION;
 
-            // Set your Azure Cognitive Service Speech API credentials here
+    if (!subscriptionKey || !serviceRegion) {
+        console.error("Azure Speech subscription key or region is not defined.");
+    } else {
+        const speechConfig = SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
+        const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
+        const recognizer = new SpeechRecognizer(speechConfig, audioConfig);
 
-            const subscriptionKey ='your_subscription_key';
-            const serviceRegion = 'your_service_region';
+        recognizer.recognized = (s, e) => {
+            if (e.result.reason === ResultReason.RecognizedSpeech) {
+                const recognized = e.result.text;
+                console.log("Recognized:", recognized);
+                setUserMessage(recognized);
+                setRecognizedText(recognized);
+            }
+        };
 
+        recognizer.startContinuousRecognitionAsync(() => {
+            setIsRecognizing(true);
+            console.log("Speech recognition started.");
+        });
 
-            const speechConfig = SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
-            const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
-            const recognizer = new SpeechRecognizer(speechConfig, audioConfig);
-
-            recognizer.recognized = (s, e) => {
-                if (e.result.reason === ResultReason.RecognizedSpeech) {
-                    const recognized = e.result.text;
-                    console.log("Recognized:", recognized);
-                    setUserMessage(recognized);
-                    setRecognizedText(recognized);
-                }
-            };
-
-            recognizer.startContinuousRecognitionAsync(() => {
-                setIsRecognizing(true);
-                console.log("Speech recognition started.");
-            });
-
-            recognizerRef.current = recognizer;
-        }
-    };
+        recognizerRef.current = recognizer; // Store the recognizer in the ref
+    }
+    }
+        };
 
     const stopSpeechRecognition = () => {
         if (isRecognizing) {

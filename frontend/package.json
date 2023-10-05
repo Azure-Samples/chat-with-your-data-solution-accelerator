@@ -26,6 +26,7 @@
         "uuid": "^9.0.0"
     },
     "devDependencies": {
+        "@types/dotenv": "^8.2.0",
         "@types/lodash-es": "^4.17.7",
         "@types/node": "^20.8.2",
         "@types/react": "^18.0.27",
