@@ -99,11 +99,9 @@ const Chat = () => {
             setIsRecognizing(true);
 
             // Set your Azure Cognitive Service Speech API credentials here
-            const subscriptionKey ='b085300415554aca9447dceb10efebdd';
-            const serviceRegion ='eastus';
 
-        //     const subscriptionKey =process.env.REACT_APP_AZURE_SPEECH_KEY;
-        //   const serviceRegion = process.env.REACT_APP_AZURE_SPEECH_REGION;
+            const subscriptionKey ='your_subscription_key';
+            const serviceRegion = 'your_service_region';
 
 
             const speechConfig = SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
