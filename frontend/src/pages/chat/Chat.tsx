@@ -1,15 +1,13 @@
-import { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Stack } from "@fluentui/react";
 import { BroomRegular, DismissRegular, SquareRegular } from "@fluentui/react-icons";
-
+import { SpeechConfig, AudioConfig, SpeechRecognizer, ResultReason } from "microsoft-cognitiveservices-speech-sdk";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from "rehype-raw"; 
 import { v4 as uuidv4 } from "uuid";
-
 import styles from "./Chat.module.css";
 import Azure from "../../assets/Azure.svg";
-
 import {
     ChatMessage,
     ConversationRequest,
@@ -32,6 +30,11 @@ const Chat = () => {
     const [answers, setAnswers] = useState<ChatMessage[]>([]);
     const abortFuncs = useRef([] as AbortController[]);
     const [conversationId, setConversationId] = useState<string>(uuidv4());
+    const [userMessage, setUserMessage] = useState("");
+    const [recognizedText, setRecognizedText] = useState<string>("");
+    const [isRecognizing, setIsRecognizing] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+    const recognizerRef = useRef<SpeechRecognizer | null>(null);
 
     const makeApiRequest = async (question: string) => {
         lastQuestionRef.current = question;
@@ -43,7 +46,7 @@ const Chat = () => {
 
         const userMessage: ChatMessage = {
             role: "user",
-            content: question
+            content: recognizedText || question,
         };
 
         const request: ConversationRequest = {
@@ -55,11 +58,10 @@ const Chat = () => {
         try {
             const response = await customConversationApi(request, abortController.signal);
             if (response?.body) {
-                
                 const reader = response.body.getReader();
                 let runningText = "";
                 while (true) {
-                    const {done, value} = await reader.read();
+                    const { done, value } = await reader.read();
                     if (done) break;
 
                     var text = new TextDecoder("utf-8").decode(value);
@@ -77,8 +79,7 @@ const Chat = () => {
                 }
                 setAnswers([...answers, userMessage, ...result.choices[0].messages]);
             }
-            
-        } catch ( e )  {
+        } catch (e) {
             if (!abortController.signal.aborted) {
                 console.error(result);
                 alert("An error occurred. Please try again. If the problem persists, please contact the site administrator.")
@@ -93,6 +94,64 @@ const Chat = () => {
         return abortController.abort();
     };
 
+    const startSpeechRecognition = () => {
+        if (!isRecognizing) {
+            setIsRecognizing(true);
+
+            // Set your Azure Cognitive Service Speech API credentials here
+            const subscriptionKey ='b085300415554aca9447dceb10efebdd';
+            const serviceRegion ='eastus';
+
+        //     const subscriptionKey =process.env.REACT_APP_AZURE_SPEECH_KEY;
+        //   const serviceRegion = process.env.REACT_APP_AZURE_SPEECH_REGION;
+
+
+            const speechConfig = SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
+            const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
+            const recognizer = new SpeechRecognizer(speechConfig, audioConfig);
+
+            recognizer.recognized = (s, e) => {
+                if (e.result.reason === ResultReason.RecognizedSpeech) {
+                    const recognized = e.result.text;
+                    console.log("Recognized:", recognized);
+                    setUserMessage(recognized);
+                    setRecognizedText(recognized);
+                }
+            };
+
+            recognizer.startContinuousRecognitionAsync(() => {
+                setIsRecognizing(true);
+                console.log("Speech recognition started.");
+            });
+
+            recognizerRef.current = recognizer;
+        }
+    };
+
+    const stopSpeechRecognition = () => {
+        if (isRecognizing) {
+            console.log("Stopping continuous recognition...");
+            if (recognizerRef.current) {
+                recognizerRef.current.stopContinuousRecognitionAsync(() => {
+                    console.log("Speech recognition stopped.");
+                });
+            }
+            setIsRecognizing(false);
+            setRecognizedText("");
+        }
+    };
+
+    const onMicrophoneClick = () => {
+        if (!isRecognizing) {
+            console.log("Starting speech recognition...");
+            startSpeechRecognition();
+        } else {
+            console.log("Stopping speech recognition...");
+            stopSpeechRecognition();
+            setRecognizedText(userMessage);
+        }
+    };
+
     const clearChat = () => {
         lastQuestionRef.current = "";
         setActiveCitation(undefined);
@@ -104,7 +163,7 @@ const Chat = () => {
         abortFuncs.current.forEach(a => a.abort());
         setShowLoadingMessage(false);
         setIsLoading(false);
-    }
+    };
 
     useEffect(() => chatMessageStreamEnd.current?.scrollIntoView({ behavior: "smooth" }), [showLoadingMessage]);
 
@@ -124,7 +183,7 @@ const Chat = () => {
             }
         }
         return [];
-    }
+    };
 
     return (
         <div className={styles.container}>
@@ -141,7 +200,7 @@ const Chat = () => {
                             <h2 className={styles.chatEmptyStateSubtitle}>This chatbot is configured to answer your questions</h2>
                         </Stack>
                     ) : (
-                        <div className={styles.chatMessageStream} style={{ marginBottom: isLoading ? "40px" : "0px"}}>
+                        <div className={styles.chatMessageStream} style={{ marginBottom: isLoading ? "40px" : "0px" }}>
                             {answers.map((answer, index) => (
                                 <>
                                     {answer.role === "user" ? (
@@ -177,13 +236,14 @@ const Chat = () => {
                                     </div>
                                 </>
                             )}
+
                             <div ref={chatMessageStreamEnd} />
                         </div>
                     )}
 
                     <Stack horizontal className={styles.chatInput}>
                         {isLoading && (
-                            <Stack 
+                            <Stack
                                 horizontal
                                 className={styles.stopGeneratingContainer}
                                 role="button"
@@ -191,41 +251,46 @@ const Chat = () => {
                                 tabIndex={0}
                                 onClick={stopGenerating}
                                 onKeyDown={e => e.key === "Enter" || e.key === " " ? stopGenerating() : null}
-                                >
-                                    <SquareRegular className={styles.stopGeneratingIcon} aria-hidden="true"/>
-                                    <span className={styles.stopGeneratingText} aria-hidden="true">Stop generating</span>
+                            >
+                                <SquareRegular className={styles.stopGeneratingIcon} aria-hidden="true" />
+                                <span className={styles.stopGeneratingText} aria-hidden="true">Stop generating</span>
                             </Stack>
                         )}
                         <BroomRegular
                             className={styles.clearChatBroom}
-                            style={{ background: isLoading || answers.length === 0 ? "#BDBDBD" : "radial-gradient(109.81% 107.82% at 100.1% 90.19%, #0F6CBD 33.63%, #2D87C3 70.31%, #8DDDD8 100%)", 
-                                     cursor: isLoading || answers.length === 0 ? "" : "pointer"}}
+                            style={{ background: isLoading || answers.length === 0 ? "#BDBDBD" : "radial-gradient(109.81% 107.82% at 100.1% 90.19%, #0F6CBD 33.63%, #2D87C3 70.31%, #8DDDD8 100%)", cursor: isLoading || answers.length === 0 ? "" : "pointer" }}
                             onClick={clearChat}
                             onKeyDown={e => e.key === "Enter" || e.key === " " ? clearChat() : null}
                             aria-label="Clear session"
                             role="button"
                             tabIndex={0}
                         />
+
                         <QuestionInput
                             clearOnSend
                             placeholder="Type a new question..."
                             disabled={isLoading}
                             onSend={question => makeApiRequest(question)}
+                            recognizedText={recognizedText}
+                            onMicrophoneClick={onMicrophoneClick}
+                            onStopClick={stopSpeechRecognition}
+                            isListening={isListening}
+                            isRecognizing={isRecognizing}
+                            setRecognizedText={setRecognizedText}
                         />
                     </Stack>
                 </div>
                 {answers.length > 0 && isCitationPanelOpen && activeCitation && (
-                <Stack.Item className={styles.citationPanel}>
-                    <Stack horizontal className={styles.citationPanelHeaderContainer} horizontalAlign="space-between" verticalAlign="center">
-                        <span className={styles.citationPanelHeader}>Citations</span>
-                        <DismissRegular className={styles.citationPanelDismiss} onClick={() => setIsCitationPanelOpen(false)}/>
-                    </Stack>
-                    <h5 className={styles.citationPanelTitle}>{activeCitation[2]}</h5>
-                    <ReactMarkdown className={styles.citationPanelContent} children={activeCitation[0]} remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}/>
-                </Stack.Item>
-            )}
+                    <Stack.Item className={styles.citationPanel}>
+                        <Stack horizontal className={styles.citationPanelHeaderContainer} horizontalAlign="space-between" verticalAlign="center">
+                            <span className={styles.citationPanelHeader}>Citations</span>
+                            <DismissRegular className={styles.citationPanelDismiss} onClick={() => setIsCitationPanelOpen(false)} />
+                        </Stack>
+                        <h5 className={styles.citationPanelTitle}>{activeCitation[2]}</h5>
+                        <ReactMarkdown className={styles.citationPanelContent} children={activeCitation[0]} remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} />
+                    </Stack.Item>
+                )}
             </Stack>
-            
         </div>
     );
 };
