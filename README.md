@@ -244,6 +244,10 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 |APPINSIGHTS_CONNECTION_STRING||The Application Insights connection string to store the application logs|
 |ORCHESTRATION_STRATEGY | openai_functions | Orchestration strategy. Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain" |
 
+#Speech-to-text feature
+|REACT_APP_AZURE_SPEECH_KEY||Your Azure Speech Key |
+|REACT_APP_AZURE_SPEECH_REGION||Your Azure Speech Region |
+
 ## Licensing
 
 This repository is licensed under the [MIT License](LICENSE.md).
