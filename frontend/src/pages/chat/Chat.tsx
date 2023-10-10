@@ -108,18 +108,14 @@ const Chat = () => {
                 const fetchedSubscriptionKey = data.azureSpeechKey;
                 const fetchedServiceRegion = data.azureSpeechRegion;
 
-                // Set the fetched values for subscriptionKey and serviceRegion
                 setSubscriptionKey(fetchedSubscriptionKey);
                 setServiceRegion(fetchedServiceRegion);
 
-                // Start speech recognition here if needed
-                startSpeechRecognition(fetchedSubscriptionKey, fetchedServiceRegion);
             } catch (error) {
                 console.error('Error fetching server configuration:', error);
             }
         }
 
-        // Call the function to fetch the server configuration
         fetchServerConfig();
     }, []);
     
