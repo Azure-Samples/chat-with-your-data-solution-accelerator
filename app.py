@@ -23,6 +23,19 @@ app = Flask(__name__)
 def static_file(path):
     return app.send_static_file(path)
 
+@app.route('/api/config', methods=['GET'])
+
+def get_config():
+    # Retrieve the environment variables or other configuration data
+    azure_speech_key = os.getenv('AZURE_SPEECH_KEY')
+    azure_speech_region = os.getenv('AZURE_SPEECH_REGION')
+
+    # Return the configuration data as JSON
+    return jsonify({
+        'azureSpeechKey': azure_speech_key,
+        'azureSpeechRegion': azure_speech_region
+    })
+
 # ACS Integration Settings
 AZURE_SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")
 AZURE_SEARCH_INDEX = os.environ.get("AZURE_SEARCH_INDEX")

@@ -328,6 +328,25 @@
       }
     },
     {
+      "type": "Microsoft.CognitiveServices/accounts",
+      "apiVersion": "2021-03-01-preview",
+      "name": "[parameters('SpeechServiceName')]",
+      "location": "[parameters('Location')]",
+      "sku": {
+        "name": "S0"
+      },
+      "kind": "SpeechServices",
+      "properties": {
+        "encryption": {
+          "services": {
+            "blob": {
+              "enabled": true
+            }
+          }
+        }
+      }
+    },
+    {
       "type": "Microsoft.Web/serverfarms",
       "apiVersion": "2020-06-01",
       "name": "[parameters('HostingPlanName')]",
@@ -787,6 +806,14 @@
             {
               "name": "AZURE_SEARCH_KEY",
               "value": "[listAdminKeys(format('Microsoft.Search/searchServices/{0}', parameters('AzureCognitiveSearch')), '2021-04-01-preview').primaryKey]"
+            },
+            {
+              "name": "AZURE_SPEECH_KEY",
+              "value": "[listKeys(resourceId('Microsoft.CognitiveServices/accounts', parameters('SpeechServiceName')), '2019-05-01-preview').key1]"
+            },
+            {
+              "name": "AZURE_SPEECH_REGION",
+              "value": "[parameters('Location')]"
             },
             {
               "name": "DOCUMENT_PROCESSING_QUEUE_NAME",

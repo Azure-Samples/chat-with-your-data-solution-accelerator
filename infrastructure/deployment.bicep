@@ -153,6 +153,24 @@ resource AzureCognitiveSearch_resource 'Microsoft.Search/searchServices@2022-09-
   }
 }
 
+resource speechService 'Microsoft.CognitiveServices/accounts@2021-03-01-preview' = {
+  name: SpeechServiceName
+  location: Location
+  kind: 'SpeechServices'
+  sku: {
+    name: 'S0'
+  }
+  properties: {
+    encryption: {
+      services: {
+        blob: {
+          enabled: true
+        }
+      }
+    }
+  }
+}
+
 resource FormRecognizer 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
   name: FormRecognizerName
   location: Location
@@ -223,6 +241,9 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'AZURE_BLOB_ACCOUNT_KEY', value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value}
         { name: 'AZURE_BLOB_CONTAINER_NAME', value: BlobContainerName}
         { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
+        { name: 'AZURE_SPEECH_SERVICE_NAME', value: SpeechServiceName}
+        { name: 'AZURE_SPEECH_SERVICE_KEY', value: keys(listKeys(resourceId('Microsoft.CognitiveServices/accounts', 'SpeechServiceName'), '2021-03-01').keys[0])}
+        { name: 'AZURE_SPEECH_SERVICE_REGION', value: split(reference(resourceId('Microsoft.CognitiveServices/accounts', 'SpeechServiceName'), '2021-03-01').location, '/')}
       ]
       linuxFxVersion: WebAppImageName
     }
@@ -459,3 +480,4 @@ resource EventGridSystemTopicName_BlobEvents 'Microsoft.EventGrid/systemTopics/e
     }
   }
 }
+
