@@ -36,6 +36,8 @@ const Chat = () => {
     const [isRecognizing, setIsRecognizing] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const recognizerRef = useRef<SpeechRecognizer | null>(null);
+    const [subscriptionKey, setSubscriptionKey] = useState<string>("");
+    const [serviceRegion, setServiceRegion] = useState<string>("");
 
     const makeApiRequest = async (question: string) => {
         lastQuestionRef.current = question;
@@ -95,38 +97,62 @@ const Chat = () => {
         return abortController.abort();
     };
 
-    const startSpeechRecognition = () => {
+    useEffect(() => {
+        async function fetchServerConfig() {
+            try {
+                const response = await fetch('/api/config');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                const fetchedSubscriptionKey = data.azureSpeechKey;
+                const fetchedServiceRegion = data.azureSpeechRegion;
+
+                // Set the fetched values for subscriptionKey and serviceRegion
+                setSubscriptionKey(fetchedSubscriptionKey);
+                setServiceRegion(fetchedServiceRegion);
+
+                // Start speech recognition here if needed
+                startSpeechRecognition(fetchedSubscriptionKey, fetchedServiceRegion);
+            } catch (error) {
+                console.error('Error fetching server configuration:', error);
+            }
+        }
+
+        // Call the function to fetch the server configuration
+        fetchServerConfig();
+    }, []);
+    
+    
+      const startSpeechRecognition =  (subscriptionKey: string, serviceRegion: string) => {
         if (!isRecognizing) {
-            setIsRecognizing(true);
- // Set your Azure Cognitive Service Speech API credentials here
-    const subscriptionKey = process.env.REACT_APP_AZURE_SPEECH_KEY;
-    const serviceRegion = process.env.REACT_APP_AZURE_SPEECH_REGION;
-
-    if (!subscriptionKey || !serviceRegion) {
-        console.error("Azure Speech subscription key or region is not defined.");
-    } else {
-        const speechConfig = SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
-        const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
-        const recognizer = new SpeechRecognizer(speechConfig, audioConfig);
-
-        recognizer.recognized = (s, e) => {
-            if (e.result.reason === ResultReason.RecognizedSpeech) {
+          setIsRecognizing(true);
+    
+          if (!subscriptionKey || !serviceRegion) {
+            console.error("Azure Speech subscription key or region is not defined.");
+          } else {
+            const speechConfig = SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
+            const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
+            const recognizer = new SpeechRecognizer(speechConfig, audioConfig);
+    
+            recognizer.recognized = (s, e) => {
+              if (e.result.reason === ResultReason.RecognizedSpeech) {
                 const recognized = e.result.text;
                 console.log("Recognized:", recognized);
                 setUserMessage(recognized);
                 setRecognizedText(recognized);
-            }
-        };
-
-        recognizer.startContinuousRecognitionAsync(() => {
-            setIsRecognizing(true);
-            console.log("Speech recognition started.");
-        });
-
-        recognizerRef.current = recognizer; // Store the recognizer in the ref
-    }
-    }
-        };
+              }
+            };
+    
+            recognizer.startContinuousRecognitionAsync(() => {
+              setIsRecognizing(true);
+              console.log("Speech recognition started.");
+            });
+    
+            recognizerRef.current = recognizer; // Store the recognizer in the ref
+          }
+        }
+      };
 
     const stopSpeechRecognition = () => {
         if (isRecognizing) {
@@ -144,7 +170,8 @@ const Chat = () => {
     const onMicrophoneClick = () => {
         if (!isRecognizing) {
             console.log("Starting speech recognition...");
-            startSpeechRecognition();
+            startSpeechRecognition(subscriptionKey, serviceRegion);
+
         } else {
             console.log("Stopping speech recognition...");
             stopSpeechRecognition();
