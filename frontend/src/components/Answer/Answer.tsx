@@ -53,6 +53,16 @@ export const Answer = ({
         return citationFilename;
     }
 
+    useEffect(() => {
+        const handleCopy = () => {
+            alert("Please consider where you paste this content.");
+        };
+        document.addEventListener("copy", handleCopy);
+        return () => {
+            document.removeEventListener("copy", handleCopy);
+        };
+    }, []);
+
     return (
         <>
             <Stack className={styles.answerContainer}>
