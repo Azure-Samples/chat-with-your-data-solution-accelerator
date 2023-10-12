@@ -108,7 +108,7 @@ Sources:
 Question: {question}
 Answer: {answer}""",
                 "enable_post_answering_prompt": False,
-                "enable_content_safety": False
+                "enable_content_safety": True
                 },
             "messages": {
                 "post_answering_filter": "I'm sorry, but I can't answer this question correctly. Please try again by altering or rephrasing your question."

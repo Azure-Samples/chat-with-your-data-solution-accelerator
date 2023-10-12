@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.20.4.51522",
-      "templateHash": "4453445457127590997"
+      "version": "0.21.1.54444",
+      "templateHash": "4730872359172000762"
     }
   },
   "parameters": {
@@ -275,6 +275,13 @@
         "description": "Azure Form Recognizer Name"
       }
     },
+    "ContentSafetyName": {
+      "type": "string",
+      "defaultValue": "[format('{0}-contentsafety', parameters('ResourcePrefix'))]",
+      "metadata": {
+        "description": "Azure Content Safety Name"
+      }
+    },
     "newGuidString": {
       "type": "string",
       "defaultValue": "[newGuid()]"
@@ -325,6 +332,26 @@
           "ipRules": []
         },
         "publicNetworkAccess": "Enabled"
+      }
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts",
+      "apiVersion": "2022-03-01",
+      "name": "[parameters('ContentSafetyName')]",
+      "location": "[parameters('Location')]",
+      "sku": {
+        "name": "S0"
+      },
+      "kind": "ContentSafety",
+      "identity": {
+        "type": "None"
+      },
+      "properties": {
+        "networkAcls": {
+          "defaultAction": "Allow",
+          "virtualNetworkRules": [],
+          "ipRules": []
+        }
       }
     },
     {
@@ -472,6 +499,14 @@
             {
               "name": "ORCHESTRATION_STRATEGY",
               "value": "[parameters('OrchestrationStrategy')]"
+            },
+            {
+              "name": "AZURE_CONTENT_SAFETY_ENDPOINT",
+              "value": "[parameters('ContentSafetyName')]"
+            },
+            {
+              "name": "AZURE_CONTENT_SAFETY_KEY",
+              "value": "[listKeys(format('Microsoft.CognitiveServices/accounts/{0}', parameters('ContentSafetyName')), '2023-05-01').key1]"
             }
           ],
           "linuxFxVersion": "[variables('WebAppImageName')]"
@@ -627,6 +662,14 @@
             {
               "name": "ORCHESTRATION_STRATEGY",
               "value": "[parameters('OrchestrationStrategy')]"
+            },
+            {
+              "name": "AZURE_CONTENT_SAFETY_ENDPOINT",
+              "value": "[parameters('ContentSafetyName')]"
+            },
+            {
+              "name": "AZURE_CONTENT_SAFETY_KEY",
+              "value": "[listKeys(format('Microsoft.CognitiveServices/accounts/{0}', parameters('ContentSafetyName')), '2023-05-01').key1]"
             }
           ],
           "linuxFxVersion": "[variables('AdminWebAppImageName')]"
@@ -803,6 +846,14 @@
             {
               "name": "ORCHESTRATION_STRATEGY",
               "value": "[parameters('OrchestrationStrategy')]"
+            },
+            {
+              "name": "AZURE_CONTENT_SAFETY_ENDPOINT",
+              "value": "[parameters('ContentSafetyName')]"
+            },
+            {
+              "name": "AZURE_CONTENT_SAFETY_KEY",
+              "value": "[listKeys(format('Microsoft.CognitiveServices/accounts/{0}', parameters('ContentSafetyName')), '2023-05-01').key1]"
             }
           ],
           "cors": {

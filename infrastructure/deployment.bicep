@@ -128,6 +128,9 @@ param FunctionName string = '${ResourcePrefix}-backend'
 
 @description('Azure Form Recognizer Name')
 param FormRecognizerName string = '${ResourcePrefix}-formrecog'
+
+@description('Azure Content Safety Name')
+param ContentSafetyName string = '${ResourcePrefix}-contentsafety'
 param newGuidString string = newGuid()
 
 var WebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-webapp'
@@ -170,6 +173,25 @@ resource FormRecognizer 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
       ipRules: []
     }
     publicNetworkAccess: 'Enabled'
+  }
+}
+
+resource ContentSafety 'Microsoft.CognitiveServices/accounts@2022-03-01' = {
+  name: ContentSafetyName
+  location: Location
+  sku: {
+    name: 'S0'
+  }
+  kind: 'ContentSafety'
+  identity: {
+    type: 'None'
+  }
+  properties: {
+    networkAcls: {
+      defaultAction: 'Allow'
+      virtualNetworkRules: []
+      ipRules: [] 
+    }
   }
 }
 
@@ -223,6 +245,8 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'AZURE_BLOB_ACCOUNT_KEY', value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value}
         { name: 'AZURE_BLOB_CONTAINER_NAME', value: BlobContainerName}
         { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
+        { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: ContentSafetyName}
+        { name: 'AZURE_CONTENT_SAFETY_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${ContentSafetyName}', '2023-05-01').key1}
       ]
       linuxFxVersion: WebAppImageName
     }
@@ -273,6 +297,8 @@ resource WebsiteName_admin 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'BACKEND_URL', value: 'https://${FunctionName}.azurewebsites.net'}
         { name: 'FUNCTION_KEY', value: ClientKey}
         { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
+        { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: ContentSafetyName}
+        { name: 'AZURE_CONTENT_SAFETY_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${ContentSafetyName}', '2023-05-01').key1}
       ]
       linuxFxVersion: AdminWebAppImageName
     }
@@ -378,6 +404,8 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
         { name: 'AZURE_OPENAI_API_VERSION', value: AzureOpenAIApiVersion}
         { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}
         { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
+        { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: ContentSafetyName}
+        { name: 'AZURE_CONTENT_SAFETY_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${ContentSafetyName}', '2023-05-01').key1}
       ]
       cors: {
         allowedOrigins: [
