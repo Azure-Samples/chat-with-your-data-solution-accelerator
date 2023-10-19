@@ -244,6 +244,7 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 |APPINSIGHTS_CONNECTION_STRING||The Application Insights connection string to store the application logs|
 |ORCHESTRATION_STRATEGY | openai_functions | Orchestration strategy. Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain" |
 
+
 ## Resources used in this solution
 
 This solution accelerator deploys the following resources. It's crucial to comprehend the functionality of each. Below are the links to their respective documentation:
@@ -253,6 +254,7 @@ This solution accelerator deploys the following resources. It's crucial to compr
 - [Azure Functions Documentation](https://learn.microsoft.com/azure/azure-functions/)
 - [Azure AI Document Intelligence Documentation](https://learn.microsoft.com/azure/ai-services/document-intelligence/)
 - [Azure App Service Documentation](https://learn.microsoft.com/azure/app-service/)
+
 
 ## Pricing Considerations
 
@@ -266,6 +268,7 @@ The following are links to the pricing details for some of the resources:
 - [Azure AI Document Intelligence pricing](https://azure.microsoft.com/pricing/details/ai-document-intelligence/)
 - [Azure Web App Pricing](https://azure.microsoft.com/pricing/details/app-service/windows/)
 
+
 ## Azure Cognitive Search used as retriever in RAG
 
 Azure Cognitive Search, when used as a retriever in the Retrieval-Augmented Generation (RAG) pattern, plays a key role in fetching relevant information from a large corpus of data. The RAG pattern involves two key steps: retrieval of documents and generation of responses. Azure Cognitive Search, in the retrieval phase, filters and ranks the most relevant documents from the dataset based on a given query.
@@ -277,11 +280,13 @@ Azure Cognitive Search allows for fine-tuning the relevance of search results th
 Moreover, optimizing the data in the index also enhances the efficiency, the speed of the retrieval process and increases relevance which is an integral part of the RAG pattern.
 
 
+
 ## Best practices specific to Azure Cognitive Search
 - Consider switching security keys and using [RBAC](https://learn.microsoft.com/azure/search/search-security-rbac) instead for authentication.
 - Consider setting up a [firewall](https://learn.microsoft.com/azure/search/service-configure-firewall), [private endpoints](https://learn.microsoft.com/azure/search/service-create-private-endpoint) for inbound connections and [shared private links](https://learn.microsoft.com/azure/search/search-indexer-howto-access-trusted-service-exception) for [built-in pull indexers](https://learn.microsoft.com/en-us/azure/search/search-indexer-overview).
 - For the best results, prepare your index data and consider [analyzers](https://learn.microsoft.com/azure/search/search-analyzers).
 - Analyze your [resource capacity needs](https://learn.microsoft.com/azure/search/search-capacity-planning)
+
 
 
 ## Best practices before deploying Azure RAG implementations to production
@@ -292,9 +297,10 @@ Moreover, optimizing the data in the index also enhances the efficiency, the spe
 - Follow the [Responsible AI best practices](https://www.microsoft.com/en-us/ai/tools-practices).
 - Understand the [levels of access of your users and application](https://techcommunity.microsoft.com/t5/azure-ai-services-blog/access-control-in-generative-ai-applications-with-azure/ba-p/3956408).
 
-## Chunking: why is it important for RAG and which strategies are implemented as part of this repo?
 
-Chunking is essential for managing large data sets, optimizing relevance, preserving context, integrating workflows, and enhancing the user experience. Check [How to chunk documents]((https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-chunk-documents)) for more information.
+## Chunking: Importance for RAG and strategies implemented as part of this repo
+
+Chunking is essential for managing large data sets, optimizing relevance, preserving context, integrating workflows, and enhancing the user experience. See [How to chunk documents](https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-chunk-documents) for more information.
 
 These are the chunking strategy options you can choose from:
 - **Layout**: An AI approach to determine a good chunking strategy.
@@ -308,6 +314,7 @@ These are the chunking strategy options you can choose from:
 This repository is licensed under the [MIT License](LICENSE.md).
 
 The data set under the /data folder is licensed under the [CDLA-Permissive-2 License](CDLA-Permissive-2.md).
+
 
 ## Data Set
 
