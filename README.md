@@ -244,6 +244,17 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 |APPINSIGHTS_CONNECTION_STRING||The Application Insights connection string to store the application logs|
 |ORCHESTRATION_STRATEGY | openai_functions | Orchestration strategy. Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain" |
 
+## Pricing Considerations
+
+This solution accelerator deploys multiple resources. Evaluate the cost of each component prior to deployment.
+
+The following are links to the pricing details for some of the resources:
+- [Azure OpenAI service pricing](https://azure.microsoft.com/pricing/details/cognitive-services/openai-service/). GPT and embedding models are charged separately.
+- [Azure Cognitive Search pricing](https://azure.microsoft.com/pricing/details/search/). Cognitive Search core service and semantic search are charged separately.
+- [Azure Blob Storage](https://azure.microsoft.com/pricing/details/storage/blobs/)
+- [Azure Functions](https://azure.microsoft.com/pricing/details/functions/)
+- [Azure AI Document Intelligence](https://azure.microsoft.com/pricing/details/ai-document-intelligence/)
+
 ## Licensing
 
 This repository is licensed under the [MIT License](LICENSE.md).
