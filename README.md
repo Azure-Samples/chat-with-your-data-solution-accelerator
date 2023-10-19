@@ -251,9 +251,9 @@ This solution accelerator deploys multiple resources. Evaluate the cost of each 
 The following are links to the pricing details for some of the resources:
 - [Azure OpenAI service pricing](https://azure.microsoft.com/pricing/details/cognitive-services/openai-service/). GPT and embedding models are charged separately.
 - [Azure Cognitive Search pricing](https://azure.microsoft.com/pricing/details/search/). Cognitive Search core service and semantic search are charged separately.
-- [Azure Blob Storage](https://azure.microsoft.com/pricing/details/storage/blobs/)
-- [Azure Functions](https://azure.microsoft.com/pricing/details/functions/)
-- [Azure AI Document Intelligence](https://azure.microsoft.com/pricing/details/ai-document-intelligence/)
+- [Azure Blob Storage pricing](https://azure.microsoft.com/pricing/details/storage/blobs/)
+- [Azure Functions pricing](https://azure.microsoft.com/pricing/details/functions/)
+- [Azure AI Document Intelligence pricing](https://azure.microsoft.com/pricing/details/ai-document-intelligence/)
 
 ## Licensing
 
