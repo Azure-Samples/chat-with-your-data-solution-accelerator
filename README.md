@@ -67,8 +67,7 @@ Out-of-the-box, you can upload the following file types:
 
 1. Click the following deployment button to create the required resources for this accelerator directly in your Azure Subscription. 
 
-    [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fgithub.com%2FAzure-Samples%2Fazure-search-openai-solution-accelerator%2Fblob%2Fmain%2Finfrastructure%2Fdeployment.json)
-
+    [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fchat-with-your-data-solution-accelerator%2Fmain%2Finfrastructure%2Fdeployment.json)
     
 
 1. Add the following fields:
