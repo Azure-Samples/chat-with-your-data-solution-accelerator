@@ -244,6 +244,34 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 |APPINSIGHTS_CONNECTION_STRING||The Application Insights connection string to store the application logs|
 |ORCHESTRATION_STRATEGY | openai_functions | Orchestration strategy. Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain" |
 
+## Resources used in this solution
+
+This solution accelerator deploys the following resources. It's crucial to comprehend the functionality of each. Below are the links to their respective documentation:
+- [Azure OpenAI Service Documentation](https://learn.microsoft.com/azure/ai-services/openai/)
+- [Azure Cognitive Search Documentation](https://learn.microsoft.com/azure/search/)
+- [Azure Blob Storage Documentation](https://learn.microsoft.com/azure/storage/blobs/)
+- [Azure Functions Documentation](https://learn.microsoft.com/azure/azure-functions/)
+- [Azure AI Document Intelligence Documentation](https://learn.microsoft.com/azure/ai-services/document-intelligence/)
+- [Azure App Service Documentation](https://learn.microsoft.com/azure/app-service/)
+
+## Azure Cognitive Search used as retriever in RAG
+
+Azure Cognitive Search, when used as a retriever in the Retrieval-Augmented Generation (RAG) pattern, plays a pivotal role in fetching relevant information from a large corpus of data. The RAG pattern involves two key steps: retrieval of documents and generation of responses. Azure Cognitive Search, in the retrieval phase, filters and ranks the most relevant documents from the dataset based on a given query.
+
+The importance of optimizing data in the index for relevance lies in the fact that the quality of retrieved documents directly impacts the generation phase. The more relevant the retrieved documents are, the more accurate and pertinent the generated responses will be.
+
+Azure Cognitive Search allows for fine-tuning the relevance of search results through features such as scoring profiles, which assign weights to different fields, Lucene's powerful full-text search capabilities, Vector Search for similarity search, multi-modal search, recommendations and Semantic Search to . By leveraging these features, one can ensure that the most relevant documents are retrieved first, thereby improving the overall effectiveness of the RAG pattern.
+
+Moreover, optimizing the data in the index also enhances the efficiency, the speed of the retrieval process and increases relevance which is an integral part of the RAG pattern.
+
+
+## Best practices before deploying Azure RAG implementations to production
+- Follow the best practices described in [Azure Well-Architected-Framework](https://learn.microsoft.com/azure/well-architected/).
+- Understand the [Retrieval Augmented Generation (RAG) in Azure Cognitive Search](https://learn.microsoft.com/en-us/azure/search/retrieval-augmented-generation-overview).
+- Understand [the best functionality and configuration for your solution](https://techcommunity.microsoft.com/t5/azure-ai-services-blog/azure-cognitive-search-outperforming-vector-search-with-hybrid/ba-p/3929167) and test with your own data for optimal retrieval.
+- Experiment with different options, define the prompts that are optimal for your needs and find ways to implement functionality tailored to your business needs with [this demo](https://github.com/Azure-Samples/azure-search-openai-demo), so you can then adapt to the accelerator.
+- Follow the [Responsible AI best practices](https://www.microsoft.com/en-us/ai/tools-practices).
+
 ## Pricing Considerations
 
 This solution accelerator deploys multiple resources. Evaluate the cost of each component prior to deployment.
@@ -254,6 +282,7 @@ The following are links to the pricing details for some of the resources:
 - [Azure Blob Storage pricing](https://azure.microsoft.com/pricing/details/storage/blobs/)
 - [Azure Functions pricing](https://azure.microsoft.com/pricing/details/functions/)
 - [Azure AI Document Intelligence pricing](https://azure.microsoft.com/pricing/details/ai-document-intelligence/)
+- [Azure Web App Pricing](https://azure.microsoft.com/pricing/details/app-service/windows/)
 
 ## Licensing
 
