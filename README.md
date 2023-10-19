@@ -285,7 +285,7 @@ Moreover, optimizing the data in the index also enhances the efficiency, the spe
 - Consider switching security keys and using [RBAC](https://learn.microsoft.com/azure/search/search-security-rbac) instead for authentication.
 - Consider setting up a [firewall](https://learn.microsoft.com/azure/search/service-configure-firewall), [private endpoints](https://learn.microsoft.com/azure/search/service-create-private-endpoint) for inbound connections and [shared private links](https://learn.microsoft.com/azure/search/search-indexer-howto-access-trusted-service-exception) for [built-in pull indexers](https://learn.microsoft.com/en-us/azure/search/search-indexer-overview).
 - For the best results, prepare your index data and consider [analyzers](https://learn.microsoft.com/azure/search/search-analyzers).
-- Analyze your [resource capacity needs](https://learn.microsoft.com/azure/search/search-capacity-planning)
+- Analyze your [resource capacity needs](https://learn.microsoft.com/azure/search/search-capacity-planning).
 
 
 
