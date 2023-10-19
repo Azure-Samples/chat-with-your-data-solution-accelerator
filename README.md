@@ -296,6 +296,12 @@ Moreover, optimizing the data in the index also enhances the efficiency, the spe
 
 Chunking is essential for managing large data sets, optimizing relevance, preserving context, integrating workflows, and enhancing the user experience. Check [How to chunk documents]((https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-chunk-documents)) for more information.
 
+These are the chunking strategy options you can choose from:
+**Layout**: An AI approach to determine a good chunking strategy.
+**Page**: This strategy involves breaking down long documents into pages.
+**Fixed-Size Overlap**: This strategy involves defining a fixed size that’s sufficient for semantically meaningful paragraphs (for example, 250 words) and allows for some overlap (for example, 10-25% of the content). This usually helps creating good inputs for embedding vector models. Overlapping a small amount of text between chunks can help preserve the semantic context.
+**Paragraph**: This strategy allows breaking down a difficult text into more manageable pieces and rewrite these “chunks” with a summarization of them. A
+
 
 ## Licensing
 
