@@ -44,12 +44,17 @@ class SourceDocument:
         document_url: Optional[str],
         idx: Optional[int],
     ) -> 'SourceDocument':   
+        allowlist = [
+            "blob.core.windows.net"
+        ]   
         parsed_url = urlparse(document_url)
         file_url = parsed_url.scheme + '://' + parsed_url.netloc + parsed_url.path
         filename = parsed_url.path
         hash_key = hashlib.sha1(f"{file_url}_{idx}".encode("utf-8")).hexdigest()
         hash_key = f"doc_{hash_key}"
-        sas_placeholder = "_SAS_TOKEN_PLACEHOLDER_" if 'blob.core.windows.net' in parsed_url.netloc else ""
+        core_url = 'blob.core.windows.net'
+        if core_url in allowlist:
+            sas_placeholder = "_SAS_TOKEN_PLACEHOLDER_" if 'blob.core.windows.net' in parsed_url.netloc else ""
         return cls(
             id = metadata.get('id', hash_key),
             content = content,

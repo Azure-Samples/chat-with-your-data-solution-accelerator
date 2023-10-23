@@ -263,9 +263,9 @@ def conversation_azure_byod():
         else:
             return conversation_without_data(request)
     except Exception as e:
-        logging.exception("Exception in /api/conversation/azure_byod")
-        return jsonify({"error": str(e)}), 500
-    
+        errorMessage = str(e)
+        logging.exception(f"Exception in /api/conversation/azure_byod | {errorMessage}")
+        return jsonify({"error": "Exception in /api/conversation/azure_byod. See log for more details."}), 500
 
 @app.route("/api/conversation/custom", methods=["GET","POST"])
 def conversation_custom():
@@ -296,8 +296,9 @@ def conversation_custom():
         return jsonify(response_obj), 200    
     
     except Exception as e:
-        logging.exception("Exception in /api/conversation/custom")
-        return jsonify({"error": str(e)}), 500
+        errorMessage = str(e)
+        logging.exception(f"Exception in /api/conversation/custom | {errorMessage}")
+        return jsonify({"error": "Exception in /api/conversation/custom. See log for more details."}), 500
 
 if __name__ == "__main__":
     app.run()
