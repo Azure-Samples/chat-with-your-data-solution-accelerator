@@ -166,15 +166,13 @@ const Chat = () => {
           "Azure Speech subscription key or region is not defined."
         );
       } else {
-        if (!recognizerRef.current) {
-          const speechConfig = SpeechConfig.fromSubscription(
-            subscriptionKey,
-            serviceRegion
-          );
-          const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
-          const recognizer = new SpeechRecognizer(speechConfig, audioConfig);
-          recognizerRef.current = recognizer; // Store the recognizer in the ref
-        }
+        const speechConfig = SpeechConfig.fromSubscription(
+          subscriptionKey,
+          serviceRegion
+        );
+        const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
+        const recognizer = new SpeechRecognizer(speechConfig, audioConfig);
+        recognizerRef.current = recognizer; // Store the recognizer in the ref
 
         recognizerRef.current.recognized = (s, e) => {
           if (e.result.reason === ResultReason.RecognizedSpeech) {
@@ -190,8 +188,6 @@ const Chat = () => {
           console.log("Speech recognition started.");
           setIsListening(true);
         });
-
-        // recognizerRef.current = recognizer; // Store the recognizer in the ref
       }
     }
   };
@@ -202,6 +198,7 @@ const Chat = () => {
       if (recognizerRef.current) {
         recognizerRef.current.stopContinuousRecognitionAsync(() => {
           console.log("Speech recognition stopped.");
+          recognizerRef.current?.close();
         });
       }
       setIsRecognizing(false);
