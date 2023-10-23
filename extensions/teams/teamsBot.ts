@@ -59,7 +59,6 @@ export class TeamsBot extends TeamsActivityHandler {
     this.likeCountObj = { likeCount: 0 };
 
     this.onMessage(async (context, next) => {
-      console.log("Running with Message Activity.");
 
       // Get the state properties from the turn context.
       const userProfile: UserProfile = await this.userProfileAccessor.get(
@@ -107,10 +106,8 @@ export class TeamsBot extends TeamsActivityHandler {
             userProfile.messageId = context.activity.id;
             if (userProfile.waitingFor === "true") {
               const msg = "Please wait for a moment, I am still thinking ...";
-              console.log(msg);
               await context.sendActivity(msg);
             } else {
-              console.log(userProfile.messageId);
               const reply = await context.sendActivity("Searching ...");
 
               const typingReply = await context.sendActivities([
@@ -204,7 +201,6 @@ export class TeamsBot extends TeamsActivityHandler {
               // Generate the response for the user
               answers.map((answer, index) => {
                 if (answer.role === "user") {
-                  console.log("User: " + answer.content);
                 } else if (answer.role === "assistant") {
                   assistantAnswer = answer.content;
                   if (assistantAnswer.startsWith("[doc")) {
@@ -228,7 +224,6 @@ export class TeamsBot extends TeamsActivityHandler {
                   newActivity.id = reply.id;
                   newActivity.typing = false; // Stop the ellipses visual indicator
                 } else if (answer.role === "error") {
-                  console.log("Error: " + answer.content);
                   newActivity = MessageFactory.text(answer.content);
                   newActivity.id = reply.id;
                   newActivity.typing = false; // Stop the ellipses visual indicator
@@ -239,7 +234,7 @@ export class TeamsBot extends TeamsActivityHandler {
               await this.userState.saveChanges(context, false);
             }
           } catch (error) {
-            console.log(error);
+            // console.log(error);
           } finally {
             userProfile.waitingFor = "false";
           }
