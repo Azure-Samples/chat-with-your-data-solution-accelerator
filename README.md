@@ -113,7 +113,7 @@ Out-of-the-box, you can upload the following file types:
 
 1. Click the following deployment button to create the required resources for this accelerator directly in your Azure Subscription. 
 
-    [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fhunterjam%2Fchat-with-your-data-solution-accelerator%2Fmain%2Fweb%2Finfrastructure%2Fdeployment.json)
+    [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fchat-with-your-data-solution-accelerator%2Fmain%2Fweb%2Finfrastructure%2Fdeployment.json)
 1. Add the following fields:
 
     
@@ -136,7 +136,7 @@ Out-of-the-box, you can upload the following file types:
 ### Teams deployment
 **IMPORTANT**: Before you proceed, installation and configuration of the [Speech-to-text deployment](#speech-to-text-deployment) is required.
 #### Deploy Backend Azure Function
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fhunterjam%2Fchat-with-your-data-solution-accelerator%2Fmain%2Fextensions%2Finfrastructure%2Fmain.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/extensions/infrastructure/deployment.json)
 
 | App Setting | Note |
 | --- | ------------- |

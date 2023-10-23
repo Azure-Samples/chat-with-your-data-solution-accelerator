@@ -295,7 +295,7 @@
     }
   },
   "variables": {
-    "WebAppImageName": "DOCKER|docker.io/hunterjam/rag-webapp-s-to-t",
+    "WebAppImageName": "DOCKER|fruoccopublic.azurecr.io/rag-webapp",
     "AdminWebAppImageName": "DOCKER|fruoccopublic.azurecr.io/rag-adminwebapp",
     "BackendImageName": "DOCKER|fruoccopublic.azurecr.io/rag-backend",
     "BlobContainerName": "documents",

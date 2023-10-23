@@ -137,8 +137,7 @@ param SpeechServiceName string = '${ResourcePrefix}-speechservice'
 param ContentSafetyName string = '${ResourcePrefix}-contentsafety'
 param newGuidString string = newGuid()
 
-// var WebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-webapp'
-var WebAppImageName = 'DOCKER|docker.io/hunterjam/rag-webapp-s-to-t' // TODO: publish to fruoccopublic.azurecr.io/rag-webapp-s-to-t
+var WebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-webapp'
 var AdminWebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-adminwebapp'
 var BackendImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-backend'
 var BlobContainerName = 'documents'

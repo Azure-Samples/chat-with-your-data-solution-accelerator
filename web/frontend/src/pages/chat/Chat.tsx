@@ -177,7 +177,7 @@ const Chat = () => {
         recognizerRef.current.recognized = (s, e) => {
           if (e.result.reason === ResultReason.RecognizedSpeech) {
             const recognized = e.result.text;
-            console.log("Recognized:", recognized);
+            // console.log("Recognized:", recognized);
             setUserMessage(recognized);
             setRecognizedText(recognized);
           }
@@ -185,7 +185,7 @@ const Chat = () => {
 
         recognizerRef.current.startContinuousRecognitionAsync(() => {
           setIsRecognizing(true);
-          console.log("Speech recognition started.");
+          // console.log("Speech recognition started.");
           setIsListening(true);
         });
       }
@@ -194,10 +194,10 @@ const Chat = () => {
 
   const stopSpeechRecognition = () => {
     if (isRecognizing) {
-      console.log("Stopping continuous recognition...");
+      // console.log("Stopping continuous recognition...");
       if (recognizerRef.current) {
         recognizerRef.current.stopContinuousRecognitionAsync(() => {
-          console.log("Speech recognition stopped.");
+          // console.log("Speech recognition stopped.");
           recognizerRef.current?.close();
         });
       }
@@ -209,10 +209,10 @@ const Chat = () => {
 
   const onMicrophoneClick = () => {
     if (!isRecognizing) {
-      console.log("Starting speech recognition...");
+      // console.log("Starting speech recognition...");
       startSpeechRecognition(subscriptionKey, serviceRegion);
     } else {
-      console.log("Stopping speech recognition...");
+      // console.log("Stopping speech recognition...");
       stopSpeechRecognition();
       setRecognizedText(userMessage);
     }
