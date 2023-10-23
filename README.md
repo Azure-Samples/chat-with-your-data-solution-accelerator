@@ -27,7 +27,7 @@ The accelerator presented here provides several options, for example:
 * An admin site for ingesting/inspecting/configuring your dataset on the fly
 * Running a Retrieval Augmented Generation (RAG) solution locally, as a Docker container
 
-*Have you seen [ChatGPT + Enterprise data with Azure OpenAI and Cognitive Search demo](https://github.com/Azure-Samples/azure-search-openai-demo)? If you would like to play with prompts, understanding RAG pattern different implementation approaches and similar demo tasks, take a look at that repo. Note that the demo in that repo should not be used in Proof of Concepts (POCs) that later will be adapted for production environments. Instead, consider the use of this repo and follow the [Best Practices-TBD](TBD-link)*
+*Have you seen [ChatGPT + Enterprise data with Azure OpenAI and Cognitive Search demo](https://github.com/Azure-Samples/azure-search-openai-demo)? If you would like to play with prompts, understanding RAG pattern different implementation approaches and similar demo tasks, take a look at that repo. Note that the demo in that repo should not be used in Proof of Concepts (POCs) that later will be adapted for production environments. Instead, consider the use of this repo and follow the best practices outlines in this repo.
 
 Here is a comparison table with a few features offered by Azure, an available GitHub demo sample and this repo, that can provide guidance when you need to decide which one to use:
 
@@ -67,8 +67,7 @@ Out-of-the-box, you can upload the following file types:
 
 1. Click the following deployment button to create the required resources for this accelerator directly in your Azure Subscription. 
 
-    [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fgithub.com%2FAzure-Samples%2Fazure-search-openai-solution-accelerator%2Fblob%2Fmain%2Finfrastructure%2Fdeployment.json)
-
+    [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fchat-with-your-data-solution-accelerator%2Fmain%2Finfrastructure%2Fdeployment.json)
     
 
 1. Add the following fields:
@@ -244,11 +243,77 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 |APPINSIGHTS_CONNECTION_STRING||The Application Insights connection string to store the application logs|
 |ORCHESTRATION_STRATEGY | openai_functions | Orchestration strategy. Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain" |
 
+
+## Resources used in this solution
+
+This solution accelerator deploys the following resources. It's crucial to comprehend the functionality of each. Below are the links to their respective documentation:
+- [Azure OpenAI Service Documentation](https://learn.microsoft.com/azure/ai-services/openai/)
+- [Azure Cognitive Search Documentation](https://learn.microsoft.com/azure/search/)
+- [Azure Blob Storage Documentation](https://learn.microsoft.com/azure/storage/blobs/)
+- [Azure Functions Documentation](https://learn.microsoft.com/azure/azure-functions/)
+- [Azure AI Document Intelligence Documentation](https://learn.microsoft.com/azure/ai-services/document-intelligence/)
+- [Azure App Service Documentation](https://learn.microsoft.com/azure/app-service/)
+
+
+## Pricing Considerations
+
+This solution accelerator deploys multiple resources. Evaluate the cost of each component prior to deployment.
+
+The following are links to the pricing details for some of the resources:
+- [Azure OpenAI service pricing](https://azure.microsoft.com/pricing/details/cognitive-services/openai-service/). GPT and embedding models are charged separately.
+- [Azure Cognitive Search pricing](https://azure.microsoft.com/pricing/details/search/). Cognitive Search core service and semantic search are charged separately.
+- [Azure Blob Storage pricing](https://azure.microsoft.com/pricing/details/storage/blobs/)
+- [Azure Functions pricing](https://azure.microsoft.com/pricing/details/functions/)
+- [Azure AI Document Intelligence pricing](https://azure.microsoft.com/pricing/details/ai-document-intelligence/)
+- [Azure Web App Pricing](https://azure.microsoft.com/pricing/details/app-service/windows/)
+
+
+## Azure Cognitive Search used as retriever in RAG
+
+Azure Cognitive Search, when used as a retriever in the Retrieval-Augmented Generation (RAG) pattern, plays a key role in fetching relevant information from a large corpus of data. The RAG pattern involves two key steps: retrieval of documents and generation of responses. Azure Cognitive Search, in the retrieval phase, filters and ranks the most relevant documents from the dataset based on a given query.
+
+The importance of optimizing data in the index for relevance lies in the fact that the quality of retrieved documents directly impacts the generation phase. The more relevant the retrieved documents are, the more accurate and pertinent the generated responses will be.
+
+Azure Cognitive Search allows for fine-tuning the relevance of search results through features such as [scoring profiles](https://learn.microsoft.com/azure/search/index-add-scoring-profiles), which assign weights to different fields, [Lucene's powerful full-text search capabilities](https://learn.microsoft.com/azure/search/query-lucene-syntax), [vector search](https://learn.microsoft.com/azure/search/vector-search-overview) for similarity search, multi-modal search, recommendations, [hybrid search](https://learn.microsoft.com/azure/search/hybrid-search-overview) and [semantic search](https://learn.microsoft.com/azure/search/search-get-started-semantic) to use AI from Microsoft to rescore search results and moving results that have more semantic relevance to the top of the list. By leveraging these features, one can ensure that the most relevant documents are retrieved first, thereby improving the overall effectiveness of the RAG pattern.
+
+Moreover, optimizing the data in the index also enhances the efficiency, the speed of the retrieval process and increases relevance which is an integral part of the RAG pattern.
+
+
+
+## Best practices specific to Azure Cognitive Search
+- Consider switching security keys and using [RBAC](https://learn.microsoft.com/azure/search/search-security-rbac) instead for authentication.
+- Consider setting up a [firewall](https://learn.microsoft.com/azure/search/service-configure-firewall), [private endpoints](https://learn.microsoft.com/azure/search/service-create-private-endpoint) for inbound connections and [shared private links](https://learn.microsoft.com/azure/search/search-indexer-howto-access-trusted-service-exception) for [built-in pull indexers](https://learn.microsoft.com/en-us/azure/search/search-indexer-overview).
+- For the best results, prepare your index data and consider [analyzers](https://learn.microsoft.com/azure/search/search-analyzers).
+- Analyze your [resource capacity needs](https://learn.microsoft.com/azure/search/search-capacity-planning).
+
+
+
+## Best practices before deploying Azure RAG implementations to production
+- Follow the best practices described in [Azure Well-Architected-Framework](https://learn.microsoft.com/azure/well-architected/).
+- Understand the [Retrieval Augmented Generation (RAG) in Azure Cognitive Search](https://learn.microsoft.com/en-us/azure/search/retrieval-augmented-generation-overview).
+- Understand the [functionality and configuration that would adapt better to your solution](https://techcommunity.microsoft.com/t5/azure-ai-services-blog/azure-cognitive-search-outperforming-vector-search-with-hybrid/ba-p/3929167) and test with your own data for optimal retrieval.
+- Experiment with different options, define the prompts that are optimal for your needs and find ways to implement functionality tailored to your business needs with [this demo](https://github.com/Azure-Samples/azure-search-openai-demo), so you can then adapt to the accelerator.
+- Follow the [Responsible AI best practices](https://www.microsoft.com/en-us/ai/tools-practices).
+- Understand the [levels of access of your users and application](https://techcommunity.microsoft.com/t5/azure-ai-services-blog/access-control-in-generative-ai-applications-with-azure/ba-p/3956408).
+
+
+## Chunking: Importance for RAG and strategies implemented as part of this repo
+
+Chunking is essential for managing large data sets, optimizing relevance, preserving context, integrating workflows, and enhancing the user experience. See [How to chunk documents](https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-chunk-documents) for more information.
+
+These are the chunking strategy options you can choose from:
+- **Layout**: An AI approach to determine a good chunking strategy.
+-  **Page**: This strategy involves breaking down long documents into pages.
+- **Fixed-Size Overlap**: This strategy involves defining a fixed size that’s sufficient for semantically meaningful paragraphs (for example, 250 words) and allows for some overlap (for example, 10-25% of the content). This usually helps creating good inputs for embedding vector models. Overlapping a small amount of text between chunks can help preserve the semantic context.
+-  **Paragraph**: This strategy allows breaking down a difficult text into more manageable pieces and rewrite these “chunks” with a summarization of all of them.
+
+
 ## Licensing
 
 This repository is licensed under the [MIT License](LICENSE.md).
 
 The data set under the /data folder is licensed under the [CDLA-Permissive-2 License](CDLA-Permissive-2.md).
+
 
 ## Data Set
 
