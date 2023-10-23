@@ -43,12 +43,9 @@ Rather than building the Chat with your data accelerator within Teams from scrat
 Many users are used to the convenience of speech-to-text functionality in their consumer products. With hybrid work increasing, speech-to-text supports a more flexible way for users to chat with their data, whether they’re at their computer or on the go with their mobile device. 
 The speech-to-text capability is combined with NLP capabilities to extract intent and context from spoken language, allowing the chatbot to understand and respond to user requests more intelligently.
 
-![Web - Chat with unstructured data](/images/readme/web-unstructureddata.png)
-<center>Chat with your unstructured data</center>
-<br>
+![Web - Chat with unstructured data](/images/readme/web-unstructureddata.png)<div style="text-align:center">Chat with your unstructured data</div>
 
-![Web - Get responses using natural language](/images/readme/web-nlu.png)
-<center>Get responses using natural language</center>
+![Web - Get responses using natural language](/images/readme/web-nlu.png)<div style="text-align:center">Get responses using natural language</div>
 
 ![Getting started](/images/readme/gettingstarted.png)
 ## Getting started
