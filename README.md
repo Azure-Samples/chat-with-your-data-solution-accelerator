@@ -273,18 +273,23 @@ There is a speech delay between a user's spoken words and the recognition and di
 
 ### Best practices
 **Access to documents**
+
 Only upload data that can be accessed by any user of the application. Anyone who uses the application should also have clearance for any data that is uploaded to the application.
 
 **Depth of responses**
+
 The more limited the data set, the broader the questions should be. If the data in the repo is limited, the depth of information in the LLM response you can get with follow up questions may be limited. For more depth in your response, increase the data available for the LLM to access.  
 
 **Response consistency**
+
 Consider tuning the configuration of prompts to the level of precision required.  The more precision desired, the harder it may be to generate a response.
 
 **Numerical queries**
+
 The accelerator is optimized to summarize unstructured data, such as PDFs or text files. The ChatGPT 3.5 Turbo model used by the accelerator is not currently optimized to handle queries about specific numerical data. The ChatGPT 4 model may be better able to handle numerical queries.  
 
 **Use your own judgement**
+
 AI-generated content may be incorrect and should be reviewed before usage.
 
 ### Resource links for *Chat with your data* Solution Accelerator
