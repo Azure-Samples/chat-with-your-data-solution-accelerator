@@ -10,12 +10,12 @@ The Chat with your data Solution Accelerator allows users to chat with their own
 ### Key features 
 - **Private LLM access on your data**: Get all the benefits of ChatGPT on your private, unstructured data.
 - **Single application access to your full data set**: Minimize endpoints required to access internal company knowledgebases  
-- **Natural language interaction with your unstructured data**: Use natural language to quickly find the answers you need and ask follow up queries to get the supplemental details.
+- **Natural language interaction with your unstructured data**: Use natural language to quickly find the answers you need and ask follow-up queries to get the supplemental details.
 - **Easy access to source documentation when querying**: Review referenced documents in the same chat window for additional context.
 - **Data upload**: Batch upload documents
 - **Accessible orchestration**: Prompt and document configuration (prompt engineering, document processing, and data retrieval)
 
-**Note**: The current model allows users to ask questions against unstructured data, such as PDF, text, and docx files.
+**Note**: The current model allows users to ask questions about unstructured data, such as PDF, text, and docx files.
 
 ### Target end users
 Company personnel (employees, executives) looking to research against internal unstructured company data would leverage this accelerator using natural language to find what they need quickly. 
@@ -43,9 +43,9 @@ Rather than building the Chat with your data accelerator within Teams from scrat
 Many users are used to the convenience of speech-to-text functionality in their consumer products. With hybrid work increasing, speech-to-text supports a more flexible way for users to chat with their data, whether they’re at their computer or on the go with their mobile device. 
 The speech-to-text capability is combined with NLP capabilities to extract intent and context from spoken language, allowing the chatbot to understand and respond to user requests more intelligently.
 
-![Web - Chat with unstructured data](/images/readme/web-unstructureddata.png)<div style="text-align:center">Chat with your unstructured data</div>
+![Web - Chat with unstructured data](/images/readme/web-unstructureddata.png)Chat with your unstructured data
 
-![Web - Get responses using natural language](/images/readme/web-nlu.png)<div style="text-align:center">Get responses using natural language</div>
+![Web - Get responses using natural language](/images/readme/web-nlu.png)Get responses using natural language
 
 ![Getting started](/images/readme/gettingstarted.png)
 ## Getting started
@@ -122,13 +122,13 @@ Out-of-the-box, you can upload the following file types:
     |Resource group   | The resource group that will contain the resources for this accelerator. You can select **Create new** to create a new group.        |
     |Resource prefix   | A text string that will be appended to each resource that gets created, and used as the website name for the web app. This name cannot contain spaces or special characters.        |
     |Azure OpenAI resource    | The name of your Azure OpenAI resource. This resource must have already been created previously.         |
-    |Azure OpenAI key    | The access key associated with your Azure OpenAI resource.        |
-    |Orchestration strategy| Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain"|
+    |Azure OpenAI key    | The access key is associated with your Azure OpenAI resource.        |
+    |Orchestration strategy| Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using model version 0314 select "langchain"|
    
     
     You can find the [ARM template](/web/infrastructure/deployment.json) used, along with a [Bicep file](/web/infrastructure/deployment.bicep) for deploying this accelerator in the `web/infrastructure` directory.
 
-   **NOTE**: By default, the deployment name in the application settings is equal to the model name (gpt-35-turbo and text-embedding-ada-002). If you named the deployment in a different way, you should update the application settings to match your deployment names.
+   **NOTE**: By default, the deployment name in the application settings is equal to the model’s name (gpt-35-turbo and text-embedding-ada-002). If you named the deployment in a different way, you should update the application settings to match your deployment names.
 
 #### Accelerator architecture for speech-to-text feature
 ![Solution Architecture - Speech-to-text](/images/readme/solutionarchitecture-speechtotext.png)
@@ -140,20 +140,20 @@ Out-of-the-box, you can upload the following file types:
 
 | App Setting | Note |
 | --- | ------------- |
-|Resource group	| The resource group that will contain the resources for this accelerator. You can select Create new to create a new group or use the existing resource group created with [Speech-to-text deployment](#speech-to-text-deployment). |
+|Resource group | The resource group that will contain the resources for this accelerator. You can select Create new to create a new group or use the existing resource group created with [Speech-to-text deployment](#speech-to-text-deployment). |
 |Resource prefix | A text string that will be appended to each resource that gets created, and used as the website name for the web app. This name cannot contain spaces or special characters. |
-|App Insights Connection String (p)	| The Application Insights connection string to store the application logs. |
-|Azure Cognitive Search (p)	| The **name** of your Azure Cognitive Search resource. e.g. https://<**name**>.search.windows.net. |
-|Azure Search Index (p)	| The name of your Azure Cognitive Search Index. |
-|Azure Search Key (p)	| An admin key for your Azure Cognitive Search resource. |
-|Azure OpenAI resource (p)	| The name of your Azure OpenAI resource. This resource must have already been created previously. |
-|Azure OpenAI key (p)	| The access key associated with your Azure OpenAI resource. |
-|Orchestration strategy (p)	| Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain". |
-|Azure Form Recognizer Endpoint (p)	| The name of the Azure Form Recognizer for extracting the text from the documents. |
-|Azure Form Recognizer Key (p)	| The key of the Azure Form Recognizer for extracting the text from the documents. |
-|Azure Blob Account Name (p)	| The name of the Azure Blob Storage for storing the original documents to be processed. |
-|Azure Blob Account Key (p)	| The key of the Azure Blob Storage for storing the original documents to be processed. |
-|Azure Blob Container Name (p)	| The name of the Container in the Azure Blob Storage for storing the original documents to be processed. |
+|App Insights Connection String (p) | The Application Insights connection string to store the application logs. |
+|Azure Cognitive Search (p) | The **name** of your Azure Cognitive Search resource. e.g. https://<**name**>.search.windows.net. |
+|Azure Search Index (p) | The name of your Azure Cognitive Search Index. |
+|Azure Search Key (p) | An admin key for your Azure Cognitive Search resource. |
+|Azure OpenAI resource (p) | The name of your Azure OpenAI resource. This resource must have already been created previously. |
+|Azure OpenAI key (p) | The access key is associated with your Azure OpenAI resource. |
+|Orchestration strategy (p) | Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a model version 0314 select "langchain". |
+|Azure Form Recognizer Endpoint (p) | The name of the Azure Form Recognizer for extracting the text from the documents. |
+|Azure Form Recognizer Key (p) | The key of the Azure Form Recognizer for extracting the text from the documents. |
+|Azure Blob Account Name (p) | The name of the Azure Blob Storage for storing the original documents to be processed. |
+|Azure Blob Account Key (p) | The key of the Azure Blob Storage for storing the original documents to be processed. |
+|Azure Blob Container Name (p) | The name of the Container in the Azure Blob Storage for storing the original documents to be processed. |
 
 You can find the [ARM template](/extensions/infrastructure/main.json) used, along with a [Bicep file](/extensions/infrastructure/main.bicep) for deploying this accelerator in the /infrastructure directory.
 
@@ -248,7 +248,7 @@ Where {MY_RESOURCE_PREFIX} is replaced with the resource prefix you used during 
 
 #### Persistent chat vs session-based chat
 Responses may vary between the web application and Teams due to persistent vs session-based chat.
-With the web app, context from the prior questions is included in responses. For example, when you ask a follow up question after your first question, the context from the previous questions impacts the response of follow up questions. To clear previous context, simply clear the chat with the sweep button to the left of the chat window.
+With the web app, context from the prior questions is included in responses. For example, when you ask a follow up question after your first question, the context from the previous questions impacts the response of follow up questions. To clear the previous context, simply clear the chat with the sweep button to the left of the chat window.
 For Teams, context from previous chats do not impact follow up questions. This is because each question is self-contained without context from prior questions. In Teams, that chat is persistent. It is currently not possible for the LLM to determine if the prior question relates to the current question.
 
 #### ChatGPT3.5 vs ChatGPT4
@@ -258,13 +258,13 @@ If you’re using ChatGPT 3.5 Turbo and experiencing many inconsistencies in you
 Consider tuning the configuration of prompts to the level of precision required. The more precision desired, the harder it may be to generate a response.  
 
 ### Teams deployment
-Upon publishing an app within the Teams store (within the Teams admin portal), it is common to see an extended availability delay within the “Apps” section of Teams. In addition, once the app does display within the “Apps” section of Teams, a “Something went wrong" upon selecting “Add”. Reason being, the app is still in the process of deploying.
+Upon publishing an app within the Teams store (within the Teams admin portal), it is common to see an extended availability delay within the “Apps” section of Teams. In addition, once the app does display within the “Apps” section of Teams, a “Something went wrong" upon selecting “Add”. Reason being the app is still in the process of deploying.
 
 ### Reference documentation in Teams
 When an AI response is provided within Teams, the reference article(s) points to an Azure Blob container. Users may not have access to this container, resulting in an error. Due to the limitations of the Teams interface via Bot, rendering a citation panel (like the web-based interface) is outside the scope of this accelerator.
 
 ### Speech Service delay
-There is a speech delay between a user's spoken words and the recognition and display of those words. This delay can occur for various reasons and can impact the user experience during real-time speech recognition applications. It can be attributted to some of these factors:
+There is a speech delay between a user's spoken words and the recognition and display of those words. This delay can occur for various reasons and can impact the user experience during real-time speech recognition applications. It can be attributed to some of these factors:
 - **Network Latency**: In cloud-based speech recognition, the time it takes for audio data to travel to the server and for the recognized text to return can introduce delay.
 - **Server Processing**: The server-side processing of audio data, including transcription and natural language processing, can take some time.
 
@@ -277,7 +277,6 @@ There is a speech delay between a user's spoken words and the recognition and di
 **Response consistency**: Consider tuning the configuration of prompts to the level of precision required.  The more precision desired, the harder it may be to generate a response.
 **Numerical queries**: The accelerator is optimized to summarize unstructured data, such as PDFs or text files. The ChatGPT 3.5 Turbo model used by the accelerator is not currently optimized to handle queries about specific numerical data. The ChatGPT 4 model may be better able to handle numerical queries.  
 **Use your own judgement**: AI-generated content may be incorrect and should be reviewed before usage.
-
 
 ### Resource links for *Chat with your data* Solution Accelerator
 - [Application Insights overview - Azure Monitor | Microsoft Learn](https://learn.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview?tabs=net)
@@ -297,7 +296,7 @@ There is a speech delay between a user's spoken words and the recognition and di
 ![Disclaimers](/images/readme/disclaimers.png)
 ## Disclaimers 
 
-This Sofrware requires the use of third-party components which are governed by separate proprietary or open-source licenses as identified below, and you must comply with the terms of each applicable license in order to use the Software. You acknowledge and agree that this license does not grant you a license or other right to use any such third-party proprietary or open-source components.  
+This Software requires the use of third-party components which are governed by separate proprietary or open-source licenses as identified below, and you must comply with the terms of each applicable license in order to use the Software. You acknowledge and agree that this license does not grant you a license or other right to use any such third-party proprietary or open-source components.  
 
 To the extent that the Software includes components or code used in or derived from Microsoft products or services, including without limitation Microsoft Azure Services (collectively, “Microsoft Products and Services”), you must also comply with the Product Terms applicable to such Microsoft Products and Services. You acknowledge and agree that the license governing the Software does not grant you a license or other right to use Microsoft Products and Services. Nothing in the license or this ReadMe file will serve to supersede, amend, terminate or modify any terms in the Product Terms for any Microsoft Products and Services. 
 
@@ -308,3 +307,4 @@ You acknowledge that the Software and Microsoft Products and Services (1) are no
 You acknowledge the Software is not subject to SOC 1 and SOC 2 compliance audits. No Microsoft technology, nor any of its component technologies, including the Software, is intended or made available as a substitute for the professional advice, opinion, or judgement of a certified financial services professional. Do not use the Software to replace, substitute, or provide professional financial advice or judgment.  
 
 BY ACCESSING OR USING THE SOFTWARE, YOU ACKNOWLEDGE THAT THE SOFTWARE IS NOT DESIGNED OR INTENDED TO SUPPORT ANY USE IN WHICH A SERVICE INTERRUPTION, DEFECT, ERROR, OR OTHER FAILURE OF THE SOFTWARE COULD RESULT IN THE DEATH OR SERIOUS BODILY INJURY OF ANY PERSON OR IN PHYSICAL OR ENVIRONMENTAL DAMAGE (COLLECTIVELY, “HIGH-RISK USE”), AND THAT YOU WILL ENSURE THAT, IN THE EVENT OF ANY INTERRUPTION, DEFECT, ERROR, OR OTHER FAILURE OF THE SOFTWARE, THE SAFETY OF PEOPLE, PROPERTY, AND THE ENVIRONMENT ARE NOT REDUCED BELOW A LEVEL THAT IS REASONABLY, APPROPRIATE, AND LEGAL, WHETHER IN GENERAL OR IN A SPECIFIC INDUSTRY. BY ACCESSING THE SOFTWARE, YOU FURTHER ACKNOWLEDGE THAT YOUR HIGH-RISK USE OF THE SOFTWARE IS AT YOUR OWN RISK.  
+
