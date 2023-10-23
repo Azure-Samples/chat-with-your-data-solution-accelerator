@@ -245,7 +245,7 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'AZURE_BLOB_ACCOUNT_KEY', value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value}
         { name: 'AZURE_BLOB_CONTAINER_NAME', value: BlobContainerName}
         { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
-        { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: ContentSafetyName}
+        { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
         { name: 'AZURE_CONTENT_SAFETY_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${ContentSafetyName}', '2023-05-01').key1}
       ]
       linuxFxVersion: WebAppImageName
@@ -297,7 +297,7 @@ resource WebsiteName_admin 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'BACKEND_URL', value: 'https://${FunctionName}.azurewebsites.net'}
         { name: 'FUNCTION_KEY', value: ClientKey}
         { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
-        { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: ContentSafetyName}
+        { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
         { name: 'AZURE_CONTENT_SAFETY_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${ContentSafetyName}', '2023-05-01').key1}
       ]
       linuxFxVersion: AdminWebAppImageName
@@ -404,7 +404,7 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
         { name: 'AZURE_OPENAI_API_VERSION', value: AzureOpenAIApiVersion}
         { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}
         { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
-        { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: ContentSafetyName}
+        { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
         { name: 'AZURE_CONTENT_SAFETY_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${ContentSafetyName}', '2023-05-01').key1}
       ]
       cors: {

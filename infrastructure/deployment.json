@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.21.1.54444",
-      "templateHash": "4730872359172000762"
+      "version": "0.22.6.54827",
+      "templateHash": "7427399133148149700"
     }
   },
   "parameters": {
@@ -502,7 +502,7 @@
             },
             {
               "name": "AZURE_CONTENT_SAFETY_ENDPOINT",
-              "value": "[parameters('ContentSafetyName')]"
+              "value": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('Location'))]"
             },
             {
               "name": "AZURE_CONTENT_SAFETY_KEY",
@@ -665,7 +665,7 @@
             },
             {
               "name": "AZURE_CONTENT_SAFETY_ENDPOINT",
-              "value": "[parameters('ContentSafetyName')]"
+              "value": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('Location'))]"
             },
             {
               "name": "AZURE_CONTENT_SAFETY_KEY",
@@ -849,7 +849,7 @@
             },
             {
               "name": "AZURE_CONTENT_SAFETY_ENDPOINT",
-              "value": "[parameters('ContentSafetyName')]"
+              "value": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('Location'))]"
             },
             {
               "name": "AZURE_CONTENT_SAFETY_KEY",
