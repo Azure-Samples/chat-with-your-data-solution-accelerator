@@ -2,12 +2,8 @@
 
 [**OVERVIEW**](#overview) | [**GETTING STARTED**](#getting-started) | [**DEPLOY**](#deploy) | [**HOW TO USE**](#how-to-use) | [**TROUBLESHOOTING**](#troubleshooting) | [**MORE INFO**](#more-info) | [**DISCLAIMERS**](#disclaimers)
 
-<div style="display: flex; align-items: center;">
-  <img src="/images/readme/overview.png" alt="Overview" width="50" height="50">
-  <h2 id="overview">Overview</h2>
-</div>
-
-___
+![Overview](/images/readme/overview.png)
+## Overview
 
 The Chat with your data Solution Accelerator allows users to chat with their own unstructured data by combining Azure Cognitive Search and Large Language Models (LLMs) to create a conversational search experience. Users can drag and drop files, point to storage, and take care of technical setup to transform documents. There is a web app that users can create in their own subscription with security and authentication. 
 
@@ -40,21 +36,22 @@ Note: Some of the sample data included with this accelerator was generated using
 ### Teams extension
 By bringing the Chat with your data experience into Teams, users can stay within their current workflow and get the answers they need without switching platforms.  
 Rather than building the Chat with your data accelerator within Teams from scratch, the same underlying backend used for the web application is leveraged within Teams. 
+
 ![Teams - Chat with your Data](/images/readme/image-27.png)
+
 ### Speech-to-text feature
 Many users are used to the convenience of speech-to-text functionality in their consumer products. With hybrid work increasing, speech-to-text supports a more flexible way for users to chat with their data, whether they’re at their computer or on the go with their mobile device. 
 The speech-to-text capability is combined with NLP capabilities to extract intent and context from spoken language, allowing the chatbot to understand and respond to user requests more intelligently.
+
 ![Web - Chat with unstructured data](/images/readme/web-unstructureddata.png)
-Chat with your unstructured data
+<center>Chat with your unstructured data</center>
+<br>
+
 ![Web - Get responses using natural language](/images/readme/web-nlu.png)
-Get responses using natural language
+<center>Get responses using natural language</center>
 
-<div style="display: flex; align-items: center;">
-  <img src="/images/readme/gettingstarted.png" alt="Getting started" width="50" height="50">
-  <h2 id="getting-started">Getting started</h2>
-</div>
-
-___
+![Getting started](/images/readme/gettingstarted.png)
+## Getting started
 
 ### Pre-requisites 
 - Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with contributor access.
@@ -86,12 +83,9 @@ ___
 ### Required licenses
 - No required licenses
 
-<div style="display: flex; align-items: center;">
-  <img src="/images/readme/deploy.png" alt="Deploy" width="50" height="50">
-  <h2 id="deploy">Deploy</h2>
-</div>
+![Deploy](/images/readme/deploy.png)
+## Deploy
 
-___
 ### Speech-to-text deployment
 Click [here for more details on local debugging and deployment](/web/README.md).
 #### Supported file types
@@ -227,12 +221,8 @@ You can find the [ARM template](/extensions/infrastructure/main.json) used, alon
 #### Accelerator architecture for Teams integration
 ![Solution Architecture - Teams](/images/readme/solutionarchitecture-teams.png)
 
-<div style="display: flex; align-items: center;">
-  <img src="/images/readme/howtouse.png" alt="How to use" width="50" height="50">
-  <h2 id="how-to-use">How to use</h2>
-</div>
-
-___
+![How to use](/images/readme/howtouse.png)
+## How to use
 
 ### Web application with speech-to-text feature
 1. Navigate to the admin site, where you can upload documents. It will be located at:
@@ -254,12 +244,8 @@ Where {MY_RESOURCE_PREFIX} is replaced with the resource prefix you used during 
 1. Type a question and select the **Send** icon.
 ![Chat with your Data Teams Interface](/images/readme/image-33.png)
 
-<div style="display: flex; align-items: center;">
-  <img src="/images/readme/troubleshooting.png" alt="Troubleshooting" width="50" height="50">
-  <h2 id="troubleshooting">Troubleshooting</h2>
-</div>
-
-___
+![Troubleshooting](/images/readme/troubleshooting.png)
+## Troubleshooting
 
 ### Response consistency 
 
@@ -285,19 +271,15 @@ There is a speech delay between a user's spoken words and the recognition and di
 - **Network Latency**: In cloud-based speech recognition, the time it takes for audio data to travel to the server and for the recognized text to return can introduce delay.
 - **Server Processing**: The server-side processing of audio data, including transcription and natural language processing, can take some time.
 
-<div style="display: flex; align-items: center;">
-  <img src="/images/readme/moreinfo.png" alt="More info" width="50" height="50">
-  <h2 id="more-info">More info</h2>
-</div>
-
-___
+![More info](/images/readme/moreinfo.png)
+## More info
 
 ### Best practices
-- **Access to documents**: Only upload data that can be accessed by any user of the application. Anyone who uses the application should also have clearance for any data that is uploaded to the application.
-- **Depth of responses**: The more limited the data set, the broader the questions should be. If the data in the repo is limited, the depth of information in the LLM response you can get with follow up questions may be limited. For more depth in your response, increase the data available for the LLM to access.  
-- **Response consistency**: Consider tuning the configuration of prompts to the level of precision required.  The more precision desired, the harder it may be to generate a response.
-- **Numerical queries**: The accelerator is optimized to summarize unstructured data, such as PDFs or text files. The ChatGPT 3.5 Turbo model used by the accelerator is not currently optimized to handle queries about specific numerical data. The ChatGPT 4 model may be better able to handle numerical queries.  
-- **Use your own judgement**: AI-generated content may be incorrect and should be reviewed before usage.
+**Access to documents**: Only upload data that can be accessed by any user of the application. Anyone who uses the application should also have clearance for any data that is uploaded to the application.
+**Depth of responses**: The more limited the data set, the broader the questions should be. If the data in the repo is limited, the depth of information in the LLM response you can get with follow up questions may be limited. For more depth in your response, increase the data available for the LLM to access.  
+**Response consistency**: Consider tuning the configuration of prompts to the level of precision required.  The more precision desired, the harder it may be to generate a response.
+**Numerical queries**: The accelerator is optimized to summarize unstructured data, such as PDFs or text files. The ChatGPT 3.5 Turbo model used by the accelerator is not currently optimized to handle queries about specific numerical data. The ChatGPT 4 model may be better able to handle numerical queries.  
+**Use your own judgement**: AI-generated content may be incorrect and should be reviewed before usage.
 
 
 ### Resource links for *Chat with your data* Solution Accelerator
@@ -315,6 +297,7 @@ ___
 ### Resource links for Teams extension
 - [Bots in Microsoft Teams - Teams | Microsoft Learn](https://learn.microsoft.com/en-us/microsoftteams/platform/bots/what-are-bots)
 
+![Disclaimers](/images/readme/disclaimers.png)
 ## Disclaimers 
 
 This Sofrware requires the use of third-party components which are governed by separate proprietary or open-source licenses as identified below, and you must comply with the terms of each applicable license in order to use the Software. You acknowledge and agree that this license does not grant you a license or other right to use any such third-party proprietary or open-source components.  
