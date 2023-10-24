@@ -289,7 +289,11 @@ const Chat = () => {
                     <div className={styles.chatMessageGpt}>
                       <Answer
                         answer={{
-                          answer: answer.content,
+                          answer:
+                            answer.role === "assistant"
+                              ? answer.content
+                              : "Sorry, an error occurred. Try refreshing the conversation or waiting a few minutes. If the issue persists, contact your system administrator. Error: " +
+                                answer.content,
                           citations:
                             answer.role === "assistant"
                               ? parseCitationFromMessage(answers[index - 1])
