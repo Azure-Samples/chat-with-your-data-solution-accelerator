@@ -3,7 +3,7 @@ Flask==2.3.2
 openai==0.27.8
 azure-storage-blob==12.14.1
 python-dotenv==1.0.0
-langchain==0.0.274
+langchain==0.0.325
 azure-ai-formrecognizer==3.2.0
 requests==2.31.0
 tiktoken==0.2.0
