@@ -1,0 +1,31 @@
+{
+  "name": "Chat with your data Solution Accelerator",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "features": {
+      "ghcr.io/devcontainers/features/node:1": {
+          "version": "16",
+          "nodeGypDependencies": false
+      },
+      "ghcr.io/devcontainers/features/powershell:1.1.1": {},
+      "ghcr.io/devcontainers/features/azure-cli:1.2.1": {},
+      "ghcr.io/azure/azure-dev/azd:latest": {}
+  },
+  "customizations": {
+      "vscode": {
+          "extensions": [
+              "ms-azuretools.azure-dev",
+              "ms-azuretools.vscode-bicep",
+              "ms-python.python",
+              "esbenp.prettier-vscode"
+          ]
+      }
+  },
+  "forwardPorts": [
+      50505
+  ],
+  "postCreateCommand": "",
+  "remoteUser": "vscode",
+  "hostRequirements": {
+      "memory": "8gb"
+  }
+}

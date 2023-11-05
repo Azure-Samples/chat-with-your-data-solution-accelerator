@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: chat-with-your-data-solution-accelerator
+
+services:
+  Website:
+    project: .
+    language: py
+    host: appservice
+    hooks:
+      prepackage:
+        windows:
+          shell: pwsh
+          run:  cd ./frontend;npm install;npm run build
+          interactive: true
+          continueOnError: false
+
+  WebsiteName_admin:
+    project: ./backend
+    language: py
+    host: appservice
+
+  Function:
+    project: ./backend
+    language: py
+    host: function

@@ -104,6 +104,44 @@ Out-of-the-box, you can upload the following file types:
     
     ![A screenshot of the chat app.](./media/chat-app.png)
 
+## Running the sample using Azd template
+
+The Azure Developer CLI (`azd`) is a developer-centric command-line interface (CLI) tool for creating Azure applications.
+
+You need to install it before running and deploying with Azure Developer CLI.
+
+### Windows
+
+```powershell
+powershell -ex AllSigned -c "Invoke-RestMethod 'https://aka.ms/install-azd.ps1' | Invoke-Expression"
+```
+
+### Linux/MacOS
+
+```
+curl -fsSL https://aka.ms/install-azd.sh | bash
+```
+
+After logging in with the following command, you will be able to use the azd cli to quickly provision and deploy the application.
+
+```
+azd auth login
+```
+
+Then, execute the `azd init` command to initialize the environment.
+```
+azd init -t jongio/chat-with-your-data-solution-accelerator
+```
+According to the prompt, enter an `env name`.
+
+Run `azd up` to provision all the resources to Azure and deploy the code to those resources.
+```
+azd up 
+```
+
+According to the prompt, select `subscription` and `location`, these are the necessary parameters when you create resources. Wait a moment for the resource deployment to complete, click the Website endpoint and you will see the web app page.
+
+You can also run the sample directly locally (See below).
 
 ## Development and run the accelerator locally
 
