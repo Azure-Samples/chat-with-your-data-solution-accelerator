@@ -2,7 +2,7 @@ param storageAccountName string = 'Enabled'
 param location string = ''
 param blobContainerName string = 'Enabled'
 
-resource StorageAccount 'Microsoft.Storage/storageAccounts@2021-09-01' = {
+resource storageAccount 'Microsoft.Storage/storageAccounts@2021-09-01' = {
   name: storageAccountName
   location: location
   kind: 'StorageV2'
@@ -11,28 +11,28 @@ resource StorageAccount 'Microsoft.Storage/storageAccounts@2021-09-01' = {
   }
 }
 
-resource StorageAccountName_default_BlobContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-08-01' = {
+resource storageAccountNameDefaultBlobContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-08-01' = {
   name: '${storageAccountName}/default/${blobContainerName}'
   properties: {
     publicAccess: 'None'
   }
   dependsOn: [
-    StorageAccount
+    storageAccount
   ]
 }
 
-resource StorageAccountName_default_config 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-08-01' = {
+resource storageAccountNameDefaultConfig 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-08-01' = {
   name: '${storageAccountName}/default/config'
   properties: {
     publicAccess: 'None'
   }
   dependsOn: [
-    StorageAccount
+    storageAccount
   ]
 }
 
-resource StorageAccountName_default 'Microsoft.Storage/storageAccounts/queueServices@2022-09-01' = {
-  parent: StorageAccount
+resource storageAccountNameDefault 'Microsoft.Storage/storageAccounts/queueServices@2022-09-01' = {
+  parent: storageAccount
   name: 'default'
   properties: {
     cors: {
@@ -41,8 +41,8 @@ resource StorageAccountName_default 'Microsoft.Storage/storageAccounts/queueServ
   }
 }
 
-resource StorageAccountName_default_doc_processing 'Microsoft.Storage/storageAccounts/queueServices/queues@2022-09-01' = {
-  parent: StorageAccountName_default
+resource storageAccountNameDefaultDocProcessing 'Microsoft.Storage/storageAccounts/queueServices/queues@2022-09-01' = {
+  parent: storageAccountNameDefault
   name: 'doc-processing'
   properties: {
     metadata: {}
@@ -50,8 +50,8 @@ resource StorageAccountName_default_doc_processing 'Microsoft.Storage/storageAcc
   dependsOn: []
 }
 
-resource StorageAccountName_default_doc_processing_poison 'Microsoft.Storage/storageAccounts/queueServices/queues@2022-09-01' = {
-  parent: StorageAccountName_default
+resource storageAccountNameDefaultDocProcessingPoison 'Microsoft.Storage/storageAccounts/queueServices/queues@2022-09-01' = {
+  parent: storageAccountNameDefault
   name: 'doc-processing-poison'
   properties: {
     metadata: {}
@@ -59,5 +59,6 @@ resource StorageAccountName_default_doc_processing_poison 'Microsoft.Storage/sto
   dependsOn: []
 }
 
-output StorageAccountId string = StorageAccount.id
-output StorageAccountName_default_doc_processing_name string = StorageAccountName_default_doc_processing.name
+output StorageAccountId string = storageAccount.id
+output StorageAccountName_default_doc_processing_name string = storageAccountNameDefaultDocProcessing.name
+output AZURE_BLOB_ACCOUNT_KEY string =  storageAccount.listKeys().keys[0].value

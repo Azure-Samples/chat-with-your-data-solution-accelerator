@@ -156,7 +156,7 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   tags: tags
 }
 
-module OpenAI 'core/ai/cognitiveservices.bicep' = {
+module openai 'core/ai/cognitiveservices.bicep' = {
   name: 'openai'
   scope: rg
   params: {
@@ -192,7 +192,7 @@ module OpenAI 'core/ai/cognitiveservices.bicep' = {
   }
 }
 
-module AzureCognitiveSearch_resource './core/search/search-services.bicep' = {
+module search './core/search/search-services.bicep' = {
   name: azureCognitiveSearch
   scope: rg
   params:{
@@ -207,7 +207,7 @@ module AzureCognitiveSearch_resource './core/search/search-services.bicep' = {
   }
 }
 
-module Other_Resources './app/resources.bicep' = {
+module resources './app/resources.bicep' = {
   name: 'AllResources'
   scope: rg
   params: {
@@ -215,13 +215,13 @@ module Other_Resources './app/resources.bicep' = {
     contentSafetyName: contentSafetyName
     location: location
     eventGridSystemTopicName: eventGridSystemTopicName
-    storageAccountId: StorageAccount.outputs.StorageAccountId
-    queueName: StorageAccount.outputs.StorageAccountName_default_doc_processing_name
+    storageAccountId: storage.outputs.StorageAccountId
+    queueName: storage.outputs.StorageAccountName_default_doc_processing_name
     blobContainerName: blobContainerName
   }
 }
 
-module HostingPlan './core/host/appserviceplan.bicep' = {
+module hostingplan './core/host/appserviceplan.bicep' = {
   name: hostingPlanName
   scope: rg
   params: {
@@ -243,12 +243,12 @@ module web './app/web.bicep' = {
     location: location
     tags: { 'azd-service-name': 'web' }
     appServicePlanId: hostingPlanName
-    storageAccountName: storageAccountName
+    // storageAccountName: storageAccountName
     applicationInsightsName: monitoring.outputs.applicationInsightsName
-    azureOpenAIName: OpenAI.outputs.name
+    azureOpenAIName: openai.outputs.name
     azureCognitiveSearchName: azureCognitiveSearch
-    formRecognizerName: formRecognizerName
-    contentSafetyName: contentSafetyName
+    // formRecognizerName: formRecognizerName
+    // contentSafetyName: contentSafetyName
     appSettings: {
       AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearch}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -277,13 +277,17 @@ module web './app/web.bicep' = {
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_BLOB_ACCOUNT_KEY: storage.outputs.AZURE_BLOB_ACCOUNT_KEY
+      APPINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
+      AZURE_FORM_RECOGNIZER_KEY: resources.outputs.AZURE_FORM_RECOGNIZER_KEY
+      AZURE_CONTENT_SAFETY_KEY: resources.outputs.AZURE_CONTENT_SAFETY_KEY
     }
   }
   dependsOn:[
-    HostingPlan
-    StorageAccount
+    hostingplan
+    storage
     monitoring
-    OpenAI
+    openai
   ]
 }
 
@@ -295,12 +299,12 @@ module adminweb './app/adminweb.bicep' = {
     location: location
     tags: { 'azd-service-name': 'adminweb' }
     appServicePlanId: hostingPlanName
-    storageAccountName: storageAccountName
+    // storageAccountName: storageAccountName
     applicationInsightsName: monitoring.outputs.applicationInsightsName
-    azureOpenAIName: OpenAI.outputs.name
+    azureOpenAIName: openai.outputs.name
     azureCognitiveSearchName: azureCognitiveSearch
-    formRecognizerName: formRecognizerName
-    contentSafetyName: contentSafetyName
+    // formRecognizerName: formRecognizerName
+    // contentSafetyName: contentSafetyName
     appSettings: {
       AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearch}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -332,17 +336,21 @@ module adminweb './app/adminweb.bicep' = {
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_BLOB_ACCOUNT_KEY: storage.outputs.AZURE_BLOB_ACCOUNT_KEY
+      APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
+      AZURE_FORM_RECOGNIZER_KEY: resources.outputs.AZURE_FORM_RECOGNIZER_KEY
+      AZURE_CONTENT_SAFETY_KEY: resources.outputs.AZURE_CONTENT_SAFETY_KEY
     }
   }
   dependsOn:[
-    HostingPlan
-    StorageAccount
+    hostingplan
+    storage
     monitoring
-    OpenAI
+    openai
   ]
 }
 
-module StorageAccount './app/storage.bicep' = {
+module storage './app/storage.bicep' = {
   name: 'Storage_Account'
   scope: rg
   params: {
@@ -375,11 +383,11 @@ module function './app/function.bicep' = {
     tags: { 'azd-service-name': 'function' }
     appServicePlanId: hostingPlanName
     storageAccountName: storageAccountName
-    applicationInsightsName: monitoring.outputs.applicationInsightsName
-    azureOpenAIName: OpenAI.outputs.name
+    // applicationInsightsName: monitoring.outputs.applicationInsightsName
+    azureOpenAIName: openai.outputs.name
     azureCognitiveSearchName: azureCognitiveSearch
-    formRecognizerName: formRecognizerName
-    contentSafetyName: contentSafetyName
+    // formRecognizerName: formRecognizerName
+    // contentSafetyName: contentSafetyName
     runtimeName:'python'
     runtimeVersion:'3.11'
     clientKey: clientKey
@@ -398,12 +406,16 @@ module function './app/function.bicep' = {
       AZURE_SEARCH_INDEX: azureSearchIndex
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_BLOB_ACCOUNT_KEY: storage.outputs.AZURE_BLOB_ACCOUNT_KEY
+      APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
+      AZURE_FORM_RECOGNIZER_KEY: resources.outputs.AZURE_FORM_RECOGNIZER_KEY
+      AZURE_CONTENT_SAFETY_KEY: resources.outputs.AZURE_CONTENT_SAFETY_KEY
     }
   }
   dependsOn:[
-    StorageAccount
-    HostingPlan
+    storage
+    hostingplan
     monitoring
-    OpenAI
+    openai
   ]
 }

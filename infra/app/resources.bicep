@@ -6,7 +6,7 @@ param storageAccountId string
 param queueName string
 param blobContainerName string
 
-resource FormRecognizer 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
+resource formRecognizer 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
   name: formRecognizerName
   location: location
   sku: {
@@ -26,7 +26,7 @@ resource FormRecognizer 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
   }
 }
 
-resource ContentSafety 'Microsoft.CognitiveServices/accounts@2022-03-01' = {
+resource contentSafety 'Microsoft.CognitiveServices/accounts@2022-03-01' = {
   name: contentSafetyName
   location: location
   sku: {
@@ -45,7 +45,7 @@ resource ContentSafety 'Microsoft.CognitiveServices/accounts@2022-03-01' = {
   }
 }
 
-resource EventGridSystemTopic 'Microsoft.EventGrid/systemTopics@2021-12-01' = {
+resource eventGridSystemTopic 'Microsoft.EventGrid/systemTopics@2021-12-01' = {
   name: eventGridSystemTopicName
   location: location
   properties: {
@@ -54,8 +54,8 @@ resource EventGridSystemTopic 'Microsoft.EventGrid/systemTopics@2021-12-01' = {
   }
 }
 
-resource EventGridSystemTopicName_BlobEvents 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2021-12-01' = {
-  parent: EventGridSystemTopic
+resource eventGridSystemTopicNameBlobEvents 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2021-12-01' = {
+  parent: eventGridSystemTopic
   name: 'BlobEvents'
   properties: {
     destination: {
@@ -82,3 +82,6 @@ resource EventGridSystemTopicName_BlobEvents 'Microsoft.EventGrid/systemTopics/e
     }
   }
 }
+
+output AZURE_FORM_RECOGNIZER_KEY string =  formRecognizer.listKeys().key1
+output AZURE_CONTENT_SAFETY_KEY string =  contentSafety.listKeys().key1
