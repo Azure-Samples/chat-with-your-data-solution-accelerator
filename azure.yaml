@@ -3,7 +3,7 @@
 name: chat-with-your-data-solution-accelerator
 
 services:
-  Website:
+  web:
     project: .
     language: py
     host: appservice
@@ -15,12 +15,12 @@ services:
           interactive: true
           continueOnError: false
 
-  WebsiteName_admin:
+  adminweb:
     project: ./backend
     language: py
     host: appservice
 
-  Function:
+  function:
     project: ./backend
     language: py
     host: function

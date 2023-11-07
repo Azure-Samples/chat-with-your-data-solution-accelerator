@@ -235,13 +235,13 @@ module HostingPlan './core/host/appserviceplan.bicep' = {
   }
 }
 
-module Website './app/websiteapi.bicep' = {
+module web './app/web.bicep' = {
   name: WebsiteName
   scope: rg
   params: {
     name: WebsiteName
     location: Location
-    tags: { 'azd-service-name': 'Website' }
+    tags: { 'azd-service-name': 'web' }
     appServicePlanId: HostingPlanName
     StorageAccountName: StorageAccountName
     applicationInsightsName: monitoring.outputs.applicationInsightsName
@@ -249,35 +249,35 @@ module Website './app/websiteapi.bicep' = {
     AzureCognitiveSearchName: AzureCognitiveSearch
     FormRecognizerName: FormRecognizerName
     ContentSafetyName: ContentSafetyName
-    appSettings: [
-      { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureCognitiveSearch}.search.windows.net'}
-      { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}
-      { name: 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', value: AzureSearchConversationLogIndex}
-      { name: 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', value: AzureSearchSemanticSearchConfig}
-      { name: 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', value: AzureSearchIndexIsPrechunked}
-      { name: 'AZURE_SEARCH_TOP_K', value: AzureSearchTopK}
-      { name: 'AZURE_SEARCH_ENABLE_IN_DOMAIN', value: AzureSearchEnableInDomain}
-      { name: 'AZURE_SEARCH_CONTENT_COLUMNS', value: AzureSearchContentColumns}
-      { name: 'AZURE_SEARCH_FILENAME_COLUMN', value: AzureSearchFilenameColumn}
-      { name: 'AZURE_SEARCH_TITLE_COLUMN', value: AzureSearchTitleColumn}
-      { name: 'AZURE_SEARCH_URL_COLUMN', value: AzureSearchUrlColumn}
-      { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
-      { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIModel}
-      { name: 'AZURE_OPENAI_MODEL_NAME', value: AzureOpenAIModelName}
-      { name: 'AZURE_OPENAI_TEMPERATURE', value: AzureOpenAITemperature}
-      { name: 'AZURE_OPENAI_TOP_P', value: AzureOpenAITopP}
-      { name: 'AZURE_OPENAI_MAX_TOKENS', value: AzureOpenAIMaxTokens}
-      { name: 'AZURE_OPENAI_STOP_SEQUENCE', value: AzureOpenAIStopSequence}
-      { name: 'AZURE_OPENAI_SYSTEM_MESSAGE', value: AzureOpenAISystemMessage}
-      { name: 'AZURE_OPENAI_API_VERSION', value: AzureOpenAIApiVersion}
-      { name: 'AZURE_OPENAI_STREAM', value: AzureOpenAIStream}
-      { name: 'AZURE_OPENAI_EMBEDDING_MODEL', value: AzureOpenAIEmbeddingModel}
-      { name: 'AZURE_FORM_RECOGNIZER_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
-      { name: 'AZURE_BLOB_ACCOUNT_NAME', value: StorageAccountName}
-      { name: 'AZURE_BLOB_CONTAINER_NAME', value: BlobContainerName}
-      { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
-      { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
-    ]
+    appSettings: {
+      AZURE_SEARCH_SERVICE: 'https://${AzureCognitiveSearch}.search.windows.net'
+      AZURE_SEARCH_INDEX: AzureSearchIndex
+      AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: AzureSearchConversationLogIndex
+      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: AzureSearchSemanticSearchConfig
+      AZURE_SEARCH_INDEX_IS_PRECHUNKED: AzureSearchIndexIsPrechunked
+      AZURE_SEARCH_TOP_K: AzureSearchTopK
+      AZURE_SEARCH_ENABLE_IN_DOMAIN: AzureSearchEnableInDomain
+      AZURE_SEARCH_CONTENT_COLUMNS: AzureSearchContentColumns
+      AZURE_SEARCH_FILENAME_COLUMN: AzureSearchFilenameColumn
+      AZURE_SEARCH_TITLE_COLUMN: AzureSearchTitleColumn
+      AZURE_SEARCH_URL_COLUMN: AzureSearchUrlColumn
+      AZURE_OPENAI_RESOURCE: AzureOpenAIResource
+      AZURE_OPENAI_MODEL: AzureOpenAIModel
+      AZURE_OPENAI_MODEL_NAME: AzureOpenAIModelName
+      AZURE_OPENAI_TEMPERATURE: AzureOpenAITemperature
+      AZURE_OPENAI_TOP_P: AzureOpenAITopP
+      AZURE_OPENAI_MAX_TOKENS: AzureOpenAIMaxTokens
+      AZURE_OPENAI_STOP_SEQUENCE: AzureOpenAIStopSequence
+      AZURE_OPENAI_SYSTEM_MESSAGE: AzureOpenAISystemMessage
+      AZURE_OPENAI_API_VERSION: AzureOpenAIApiVersion
+      AZURE_OPENAI_STREAM: AzureOpenAIStream
+      AZURE_OPENAI_EMBEDDING_MODEL: AzureOpenAIEmbeddingModel
+      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${Location}.api.cognitive.microsoft.com/'
+      AZURE_BLOB_ACCOUNT_NAME: StorageAccountName
+      AZURE_BLOB_CONTAINER_NAME: BlobContainerName
+      ORCHESTRATION_STRATEGY: OrchestrationStrategy
+      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${Location}.api.cognitive.microsoft.com/'
+    }
   }
   dependsOn:[
     HostingPlan
@@ -287,13 +287,13 @@ module Website './app/websiteapi.bicep' = {
   ]
 }
 
-module WebsiteName_admin './app/websiteadmin.bicep' = {
+module adminweb './app/adminweb.bicep' = {
   name: '${WebsiteName}-admin'
   scope: rg
   params: {
     name: '${WebsiteName}-admin'
     location: Location
-    tags: { 'azd-service-name': 'WebsiteName_admin' }
+    tags: { 'azd-service-name': 'adminweb' }
     appServicePlanId: HostingPlanName
     StorageAccountName: StorageAccountName
     applicationInsightsName: monitoring.outputs.applicationInsightsName
@@ -301,38 +301,38 @@ module WebsiteName_admin './app/websiteadmin.bicep' = {
     AzureCognitiveSearchName: AzureCognitiveSearch
     FormRecognizerName: FormRecognizerName
     ContentSafetyName: ContentSafetyName
-    appSettings: [
-      { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureCognitiveSearch}.search.windows.net' }
-      { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex }
-      { name: 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', value: AzureSearchUseSemanticSearch }
-      { name: 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', value: AzureSearchSemanticSearchConfig }
-      { name: 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', value: AzureSearchIndexIsPrechunked }
-      { name: 'AZURE_SEARCH_TOP_K', value: AzureSearchTopK }
-      { name: 'AZURE_SEARCH_ENABLE_IN_DOMAIN', value: AzureSearchEnableInDomain }
-      { name: 'AZURE_SEARCH_CONTENT_COLUMNS', value: AzureSearchContentColumns}
-      { name: 'AZURE_SEARCH_FILENAME_COLUMN', value: AzureSearchFilenameColumn }
-      { name: 'AZURE_SEARCH_TITLE_COLUMN', value: AzureSearchTitleColumn}
-      { name: 'AZURE_SEARCH_URL_COLUMN', value: AzureSearchUrlColumn }
-      { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
-      { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIModel }
-      { name: 'AZURE_OPENAI_MODEL_NAME', value: AzureOpenAIModelName }
-      { name: 'AZURE_OPENAI_TEMPERATURE', value: AzureOpenAITemperature }
-      { name: 'AZURE_OPENAI_TOP_P', value: AzureOpenAITopP }
-      { name: 'AZURE_OPENAI_MAX_TOKENS', value: AzureOpenAIMaxTokens }
-      { name: 'AZURE_OPENAI_STOP_SEQUENCE', value: AzureOpenAIStopSequence }
-      { name: 'AZURE_OPENAI_SYSTEM_MESSAGE', value: AzureOpenAISystemMessage }
-      { name: 'AZURE_OPENAI_API_VERSION', value: AzureOpenAIApiVersion }
-      { name: 'AZURE_OPENAI_STREAM', value: AzureOpenAIStream }
-      { name: 'AZURE_OPENAI_EMBEDDING_MODEL', value: AzureOpenAIEmbeddingModel }
-      { name: 'AZURE_FORM_RECOGNIZER_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/' }
-      { name: 'AZURE_BLOB_ACCOUNT_NAME', value: StorageAccountName }
-      { name: 'AZURE_BLOB_CONTAINER_NAME', value: BlobContainerName }
-      { name: 'DOCUMENT_PROCESSING_QUEUE_NAME', value: QueueName}
-      { name: 'BACKEND_URL', value: 'https://${FunctionName}.azurewebsites.net'}
-      { name: 'FUNCTION_KEY', value: ClientKey}
-      { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
-      { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
-    ]
+    appSettings: {
+      AZURE_SEARCH_SERVICE: 'https://${AzureCognitiveSearch}.search.windows.net'
+      AZURE_SEARCH_INDEX: AzureSearchIndex
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH: AzureSearchUseSemanticSearch
+      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: AzureSearchSemanticSearchConfig
+      AZURE_SEARCH_INDEX_IS_PRECHUNKED: AzureSearchIndexIsPrechunked
+      AZURE_SEARCH_TOP_K: AzureSearchTopK
+      AZURE_SEARCH_ENABLE_IN_DOMAIN: AzureSearchEnableInDomain
+      AZURE_SEARCH_CONTENT_COLUMNS: AzureSearchContentColumns
+      AZURE_SEARCH_FILENAME_COLUMN: AzureSearchFilenameColumn
+      AZURE_SEARCH_TITLE_COLUMN: AzureSearchTitleColumn
+      AZURE_SEARCH_URL_COLUMN: AzureSearchUrlColumn
+      AZURE_OPENAI_RESOURCE: AzureOpenAIResource
+      AZURE_OPENAI_MODEL: AzureOpenAIModel
+      AZURE_OPENAI_MODEL_NAME: AzureOpenAIModelName
+      AZURE_OPENAI_TEMPERATURE: AzureOpenAITemperature
+      AZURE_OPENAI_TOP_P: AzureOpenAITopP
+      AZURE_OPENAI_MAX_TOKENS: AzureOpenAIMaxTokens
+      AZURE_OPENAI_STOP_SEQUENCE: AzureOpenAIStopSequence
+      AZURE_OPENAI_SYSTEM_MESSAGE: AzureOpenAISystemMessage
+      AZURE_OPENAI_API_VERSION: AzureOpenAIApiVersion
+      AZURE_OPENAI_STREAM: AzureOpenAIStream
+      AZURE_OPENAI_EMBEDDING_MODEL: AzureOpenAIEmbeddingModel
+      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${Location}.api.cognitive.microsoft.com/'
+      AZURE_BLOB_ACCOUNT_NAME: StorageAccountName
+      AZURE_BLOB_CONTAINER_NAME: BlobContainerName
+      DOCUMENT_PROCESSING_QUEUE_NAME: QueueName
+      BACKEND_URL: 'https://${FunctionName}.azurewebsites.net'
+      FUNCTION_KEY: ClientKey
+      ORCHESTRATION_STRATEGY: OrchestrationStrategy
+      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${Location}.api.cognitive.microsoft.com/'
+    }
   }
   dependsOn:[
     HostingPlan
@@ -366,13 +366,13 @@ module monitoring './core/monitor/monitoring.bicep' = {
   }
 }
 
-module Function './app/function.bicep' = {
+module function './app/function.bicep' = {
   name: FunctionName
   scope: rg
   params:{
     name: FunctionName
     location: Location
-    tags: { 'azd-service-name': 'Function' }
+    tags: { 'azd-service-name': 'function' }
     appServicePlanId: HostingPlanName
     storageAccountName: StorageAccountName
     applicationInsightsName: monitoring.outputs.applicationInsightsName
@@ -383,22 +383,22 @@ module Function './app/function.bicep' = {
     runtimeName:'python'
     runtimeVersion:'3.11'
     ClientKey: ClientKey
-    appSettings: [
-      { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4'}
-      { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false'}
-      { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIModel}
-      { name: 'AZURE_OPENAI_EMBEDDING_MODEL', value: AzureOpenAIEmbeddingModel}
-      { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
-      { name: 'AZURE_BLOB_ACCOUNT_NAME', value: StorageAccountName}
-      { name: 'AZURE_BLOB_CONTAINER_NAME', value: BlobContainerName}
-      { name: 'AZURE_FORM_RECOGNIZER_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
-      { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureCognitiveSearch}.search.windows.net'}
-      { name: 'DOCUMENT_PROCESSING_QUEUE_NAME', value: QueueName}
-      { name: 'AZURE_OPENAI_API_VERSION', value: AzureOpenAIApiVersion}
-      { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}
-      { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
-      { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
-    ]
+    appSettings: {
+      FUNCTIONS_EXTENSION_VERSION: '~4'
+      WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
+      AZURE_OPENAI_MODEL: AzureOpenAIModel
+      AZURE_OPENAI_EMBEDDING_MODEL: AzureOpenAIEmbeddingModel
+      AZURE_OPENAI_RESOURCE: AzureOpenAIResource
+      AZURE_BLOB_ACCOUNT_NAME: StorageAccountName
+      AZURE_BLOB_CONTAINER_NAME: BlobContainerName
+      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${Location}.api.cognitive.microsoft.com/'
+      AZURE_SEARCH_SERVICE: 'https://${AzureCognitiveSearch}.search.windows.net'
+      DOCUMENT_PROCESSING_QUEUE_NAME: QueueName
+      AZURE_OPENAI_API_VERSION: AzureOpenAIApiVersion
+      AZURE_SEARCH_INDEX: AzureSearchIndex
+      ORCHESTRATION_STRATEGY: OrchestrationStrategy
+      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${Location}.api.cognitive.microsoft.com/'
+    }
   }
   dependsOn:[
     StorageAccount

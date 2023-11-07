@@ -13,10 +13,11 @@ param AzureCognitiveSearchName string = ''
 param FormRecognizerName string = ''
 param ContentSafetyName string = ''
 
-param appSettings array = []
-param serviceName string = 'Website'
+@secure()
+param appSettings object = {}
+param serviceName string = 'web'
 
-module Website '../core/host/appservice.bicep' = {
+module web '../core/host/appservice.bicep' = {
   name: '${name}-app-module'
   params: {
     name: name
@@ -26,7 +27,7 @@ module Website '../core/host/appservice.bicep' = {
     appCommandLine: appCommandLine
     applicationInsightsName: applicationInsightsName
     appServicePlanId: appServicePlanId
-    appSettings: union(toObject(appSettings, entry => entry.name, entry => entry.value), {
+    appSettings: union(appSettings, {
       AZURE_BLOB_ACCOUNT_KEY: storage.listKeys().keys[0].value
       APPINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
       AZURE_OPENAI_KEY: openai.listKeys().key1
@@ -66,6 +67,6 @@ resource ContentSafety 'Microsoft.CognitiveServices/accounts@2022-03-01' existin
   name: ContentSafetyName
 }
 
-output FRONTEND_API_IDENTITY_PRINCIPAL_ID string = Website.outputs.identityPrincipalId
-output FRONTEND_API_NAME string = Website.outputs.name
-output FRONTEND_API_URI string = Website.outputs.uri
+output FRONTEND_API_IDENTITY_PRINCIPAL_ID string = web.outputs.identityPrincipalId
+output FRONTEND_API_NAME string = web.outputs.name
+output FRONTEND_API_URI string = web.outputs.uri

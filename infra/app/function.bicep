@@ -4,8 +4,9 @@ param appServicePlanId string
 param storageAccountName string = ''
 param tags object = {}
 
-param appSettings array = []
-param serviceName string = 'Function'
+@secure()
+param appSettings object = {}
+param serviceName string = 'function'
 param applicationInsightsName string = ''
 param runtimeName string
 param runtimeVersion string
@@ -16,7 +17,7 @@ param FormRecognizerName string = ''
 param ContentSafetyName string = ''
 
 
-module Function '../core/host/functions.bicep' = {
+module function '../core/host/functions.bicep' = {
   name: '${name}-app-module'
   params: {
     name: name
@@ -26,7 +27,7 @@ module Function '../core/host/functions.bicep' = {
     storageAccountName: storageAccountName
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
-    appSettings: union(toObject(appSettings, entry => entry.name, entry => entry.value), {
+    appSettings: union(appSettings, {
       AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
       AZURE_BLOB_ACCOUNT_KEY: storage.listKeys().keys[0].value
       APPINSIGHTS_INSTRUMENTATIONKEY: applicationInsights.properties.InstrumentationKey
@@ -69,7 +70,7 @@ resource FunctionName_default_clientKey 'Microsoft.Web/sites/host/functionKeys@2
     value: ClientKey
   }
   dependsOn: [
-    Function
+    function
     WaitFunctionDeploymentSection
   ]
 }
@@ -85,6 +86,6 @@ resource WaitFunctionDeploymentSection 'Microsoft.Resources/deploymentScripts@20
     retentionInterval: 'PT1H'
   }
   dependsOn: [
-    Function
+    function
   ]
 }
