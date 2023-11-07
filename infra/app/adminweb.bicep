@@ -6,12 +6,12 @@ param allowedOrigins array = []
 param appServicePlanId string
 param appCommandLine string = 'python -m streamlit run Admin.py --server.port 8000 --server.address 0.0.0.0 --server.enableXsrfProtection false'
 param applicationInsightsName string = ''
-param StorageAccountName string
+param storageAccountName string
 param keyVaultName string = ''
-param AzureOpenAIName string = ''
-param AzureCognitiveSearchName string = ''
-param FormRecognizerName string = ''
-param ContentSafetyName string = ''
+param azureOpenAIName string = ''
+param azureCognitiveSearchName string = ''
+param formRecognizerName string = ''
+param contentSafetyName string = ''
 
 @secure()
 param appSettings object = {}
@@ -43,7 +43,7 @@ module adminweb '../core/host/appservice.bicep' = {
 }
 
 resource storage 'Microsoft.Storage/storageAccounts@2021-09-01' existing = {
-  name: StorageAccountName
+  name: storageAccountName
 }
 
 resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing = if (!empty(applicationInsightsName)) {
@@ -51,19 +51,19 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing
 }
 
 resource openai 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
-  name: AzureOpenAIName
+  name: azureOpenAIName
 }
 
 resource search 'Microsoft.Search/searchServices@2021-04-01-preview' existing = {
-  name: AzureCognitiveSearchName
+  name: azureCognitiveSearchName
 }
 
 resource formrecognizer 'Microsoft.CognitiveServices/accounts@2022-12-01' existing = {
-  name: FormRecognizerName
+  name: formRecognizerName
 }
 
 resource ContentSafety 'Microsoft.CognitiveServices/accounts@2022-03-01' existing = {
-  name: ContentSafetyName
+  name: contentSafetyName
 }
 
 output WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID string = adminweb.outputs.identityPrincipalId

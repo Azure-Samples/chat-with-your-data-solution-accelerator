@@ -1,10 +1,10 @@
-param StorageAccountName string = 'Enabled'
-param Location string = ''
-param BlobContainerName string = 'Enabled'
+param storageAccountName string = 'Enabled'
+param location string = ''
+param blobContainerName string = 'Enabled'
 
 resource StorageAccount 'Microsoft.Storage/storageAccounts@2021-09-01' = {
-  name: StorageAccountName
-  location: Location
+  name: storageAccountName
+  location: location
   kind: 'StorageV2'
   sku: {
     name: 'Standard_GRS'
@@ -12,7 +12,7 @@ resource StorageAccount 'Microsoft.Storage/storageAccounts@2021-09-01' = {
 }
 
 resource StorageAccountName_default_BlobContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-08-01' = {
-  name: '${StorageAccountName}/default/${BlobContainerName}'
+  name: '${storageAccountName}/default/${blobContainerName}'
   properties: {
     publicAccess: 'None'
   }
@@ -22,7 +22,7 @@ resource StorageAccountName_default_BlobContainer 'Microsoft.Storage/storageAcco
 }
 
 resource StorageAccountName_default_config 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-08-01' = {
-  name: '${StorageAccountName}/default/config'
+  name: '${storageAccountName}/default/config'
   properties: {
     publicAccess: 'None'
   }

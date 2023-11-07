@@ -10,11 +10,11 @@ param serviceName string = 'function'
 param applicationInsightsName string = ''
 param runtimeName string
 param runtimeVersion string
-param ClientKey string
-param AzureOpenAIName string = ''
-param AzureCognitiveSearchName string = ''
-param FormRecognizerName string = ''
-param ContentSafetyName string = ''
+param clientKey string
+param azureOpenAIName string = ''
+param azureCognitiveSearchName string = ''
+param formRecognizerName string = ''
+param contentSafetyName string = ''
 
 
 module function '../core/host/functions.bicep' = {
@@ -48,26 +48,26 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing
 }
 
 resource openai 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
-  name: AzureOpenAIName
+  name: azureOpenAIName
 }
 
 resource search 'Microsoft.Search/searchServices@2021-04-01-preview' existing = {
-  name: AzureCognitiveSearchName
+  name: azureCognitiveSearchName
 }
 
 resource formrecognizer 'Microsoft.CognitiveServices/accounts@2022-12-01' existing = {
-  name: FormRecognizerName
+  name: formRecognizerName
 }
 
 resource ContentSafety 'Microsoft.CognitiveServices/accounts@2022-03-01' existing = {
-  name: ContentSafetyName
+  name: contentSafetyName
 }
 
 resource FunctionName_default_clientKey 'Microsoft.Web/sites/host/functionKeys@2018-11-01' = {
   name: '${name}/default/clientKey'
   properties: {
     name: 'ClientKey'
-    value: ClientKey
+    value: clientKey
   }
   dependsOn: [
     function

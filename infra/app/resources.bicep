@@ -1,14 +1,14 @@
-param ContentSafetyName string
-param FormRecognizerName string
-param EventGridSystemTopicName string
-param Location string
-param StorageAccountId string
-param QueueName string
-param BlobContainerName string
+param contentSafetyName string
+param formRecognizerName string
+param eventGridSystemTopicName string
+param location string
+param storageAccountId string
+param queueName string
+param blobContainerName string
 
 resource FormRecognizer 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
-  name: FormRecognizerName
-  location: Location
+  name: formRecognizerName
+  location: location
   sku: {
     name: 'S0'
   }
@@ -27,8 +27,8 @@ resource FormRecognizer 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
 }
 
 resource ContentSafety 'Microsoft.CognitiveServices/accounts@2022-03-01' = {
-  name: ContentSafetyName
-  location: Location
+  name: contentSafetyName
+  location: location
   sku: {
     name: 'S0'
   }
@@ -46,10 +46,10 @@ resource ContentSafety 'Microsoft.CognitiveServices/accounts@2022-03-01' = {
 }
 
 resource EventGridSystemTopic 'Microsoft.EventGrid/systemTopics@2021-12-01' = {
-  name: EventGridSystemTopicName
-  location: Location
+  name: eventGridSystemTopicName
+  location: location
   properties: {
-    source: StorageAccountId
+    source: storageAccountId
     topicType: 'Microsoft.Storage.StorageAccounts'
   }
 }
@@ -62,8 +62,8 @@ resource EventGridSystemTopicName_BlobEvents 'Microsoft.EventGrid/systemTopics/e
       endpointType: 'StorageQueue'
       properties: {
         queueMessageTimeToLiveInSeconds: -1
-        queueName: QueueName
-        resourceId: StorageAccountId
+        queueName: queueName
+        resourceId: storageAccountId
       }
     }
     filter: {
@@ -72,7 +72,7 @@ resource EventGridSystemTopicName_BlobEvents 'Microsoft.EventGrid/systemTopics/e
         'Microsoft.Storage.BlobDeleted'
       ]
       enableAdvancedFilteringOnArrays: true
-      subjectBeginsWith: '/blobServices/default/containers/${BlobContainerName}/blobs/'
+      subjectBeginsWith: '/blobServices/default/containers/${blobContainerName}/blobs/'
     }
     labels: []
     eventDeliverySchema: 'EventGridSchema'
