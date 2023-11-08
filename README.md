@@ -177,6 +177,9 @@ docker run --env-file .env -p 8081:80 YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 ```
 
+**Note**: If you are using Linux, make sure to go to https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/blob/main/docker/docker-compose.yml#L9 and modify the docker-compose.yml to use forward slash /. The backslash version just works with Windows.
+
+
 ### Develop & run the batch processing functions
 
 If you want to develop and run the batch processing functions container locally, use the following commands.
