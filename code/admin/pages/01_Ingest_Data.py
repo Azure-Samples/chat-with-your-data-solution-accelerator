@@ -9,6 +9,8 @@ import logging
 import requests
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, ContentSettings
 import urllib.parse
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from utilities.helpers.ConfigHelper import ConfigHelper
 from dotenv import load_dotenv
 load_dotenv()
@@ -28,7 +30,8 @@ def remote_convert_files_and_add_embeddings(process_all=False):
     backend_url = urllib.parse.urljoin(os.getenv('BACKEND_URL','http://localhost:7071'), "/api/BatchStartProcessing")
     params = {}
     if os.getenv('FUNCTION_KEY') != None:
-        params['clientKey'] = os.getenv('FUNCTION_KEY')
+        params['code'] = os.getenv('FUNCTION_KEY')
+        params['clientId'] = "clientKey"
     if process_all:
         params['process_all'] = "true"
     try:
@@ -43,7 +46,8 @@ def remote_convert_files_and_add_embeddings(process_all=False):
 def add_urls():
     params = {}
     if os.getenv('FUNCTION_KEY') != None:
-        params['clientKey'] = os.getenv('FUNCTION_KEY')
+        params['code'] = os.getenv('FUNCTION_KEY')
+        params['clientId'] = "clientKey"
     urls = st.session_state['urls'].split('\n')
     for url in urls:
         body = {

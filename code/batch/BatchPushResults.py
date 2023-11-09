@@ -1,15 +1,20 @@
 import logging, json
 import azure.functions as func
 from urllib.parse import urlparse
+import sys
+sys.path.append("..")
 from utilities.helpers.AzureBlobStorageHelper import AzureBlobStorageClient
 from utilities.helpers.DocumentProcessorHelper import DocumentProcessor
 from utilities.helpers.ConfigHelper import ConfigHelper
+
+bp_batch_push_results = func.Blueprint()
 
 def _get_file_name_from_message(msg: func.QueueMessage) -> str:
     message_body = json.loads(msg.get_body().decode('utf-8'))
     return message_body.get('filename', "/".join(urlparse(message_body.get('data', {}).get('url', '')).path.split('/')[2:]))
 
-def main(msg: func.QueueMessage) -> None:
+@bp_batch_push_results.queue_trigger(arg_name='msg', queue_name='doc-processing', connection='AzureWebJobsStorage')
+def batch_push_results(msg: func.QueueMessage) -> None:
     logging.info('Python queue trigger function processed a queue item: %s',
                  msg.get_body().decode('utf-8'))
     document_processor = DocumentProcessor()

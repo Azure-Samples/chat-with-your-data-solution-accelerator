@@ -4,6 +4,8 @@ import logging
 from dotenv import load_dotenv
 load_dotenv()
 
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 logger = logging.getLogger('azure.core.pipeline.policies.http_logging_policy').setLevel(logging.WARNING)
 

@@ -1,10 +1,14 @@
 import logging, traceback
-
 import azure.functions as func
+import sys
+sys.path.append("..")
 from utilities.helpers.DocumentProcessorHelper import DocumentProcessor
 from utilities.helpers.ConfigHelper import ConfigHelper
 
-def main(req: func.HttpRequest) -> func.HttpResponse:
+bp_add_url_embeddings = func.Blueprint() 
+
+@bp_add_url_embeddings.route(route="AddURLEmbeddings")
+def add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
     # Get Url from request
     url = req.params.get('url')
