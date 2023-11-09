@@ -5,9 +5,12 @@ import sys
 sys.path.append("..")
 from utilities.helpers.AzureBlobStorageHelper import AzureBlobStorageClient
 
-DOCUMENT_PROCESSING_QUEUE_NAME = os.environ['DOCUMENT_PROCESSING_QUEUE_NAME']
+bp_batch_start_processing = func.Blueprint()
 
-def main(req: func.HttpRequest) -> func.HttpResponse:
+DOCUMENT_PROCESSING_QUEUE_NAME = os.getenv('DOCUMENT_PROCESSING_QUEUE_NAME', 'doc-processing')
+
+@bp_batch_start_processing.route(route="BatchStartProcessing")
+def batch_start_processing(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Requested to start processing all documents received')
     # Set up Blob Storage Client
     azure_blob_storage_client = AzureBlobStorageClient()
