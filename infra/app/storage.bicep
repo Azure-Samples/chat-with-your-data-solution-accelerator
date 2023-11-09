@@ -9,26 +9,21 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2021-09-01' = {
   sku: {
     name: 'Standard_GRS'
   }
-}
-
-resource storageAccountNameDefaultBlobContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-08-01' = {
-  name: '${storageAccountName}/default/${blobContainerName}'
-  properties: {
-    publicAccess: 'None'
+  resource storageAccountNameDefaultBlob 'blobServices' = {
+    name: 'default'
+    resource storageAccountNameDefaultBlobContainer 'containers' = {
+      name: blobContainerName
+      properties: {
+        publicAccess: 'None'
+      }
+    }
+    resource storageAccountNameDefaultConfig 'containers' = {
+      name: 'config'
+      properties: {
+        publicAccess: 'None'
+      }
+    }
   }
-  dependsOn: [
-    storageAccount
-  ]
-}
-
-resource storageAccountNameDefaultConfig 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-08-01' = {
-  name: '${storageAccountName}/default/config'
-  properties: {
-    publicAccess: 'None'
-  }
-  dependsOn: [
-    storageAccount
-  ]
 }
 
 resource storageAccountNameDefault 'Microsoft.Storage/storageAccounts/queueServices@2022-09-01' = {

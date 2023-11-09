@@ -242,7 +242,7 @@ module web './app/web.bicep' = {
     name: websiteName
     location: location
     tags: { 'azd-service-name': 'web' }
-    appServicePlanId: hostingPlanName
+    appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
     azureCognitiveSearchName: azureCognitiveSearchName
@@ -280,12 +280,6 @@ module web './app/web.bicep' = {
       AZURE_CONTENT_SAFETY_KEY: resources.outputs.AZURE_CONTENT_SAFETY_KEY
     }
   }
-  dependsOn:[
-    hostingplan
-    storage
-    monitoring
-    openai
-  ]
 }
 
 module adminweb './app/adminweb.bicep' = {
@@ -295,7 +289,7 @@ module adminweb './app/adminweb.bicep' = {
     name: '${websiteName}-admin'
     location: location
     tags: { 'azd-service-name': 'adminweb' }
-    appServicePlanId: hostingPlanName
+    appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
     azureCognitiveSearchName: azureCognitiveSearchName
@@ -336,12 +330,6 @@ module adminweb './app/adminweb.bicep' = {
       AZURE_CONTENT_SAFETY_KEY: resources.outputs.AZURE_CONTENT_SAFETY_KEY
     }
   }
-  dependsOn:[
-    hostingplan
-    storage
-    monitoring
-    openai
-  ]
 }
 
 module storage './app/storage.bicep' = {
@@ -375,7 +363,7 @@ module function './app/function.bicep' = {
     name: functionName
     location: location
     tags: { 'azd-service-name': 'function' }
-    appServicePlanId: hostingPlanName
+    appServicePlanId: hostingplan.outputs.name
     storageAccountName: storageAccountName
     azureOpenAIName: openai.outputs.name
     azureCognitiveSearchName: azureCognitiveSearchName
@@ -401,10 +389,4 @@ module function './app/function.bicep' = {
       AZURE_CONTENT_SAFETY_KEY: resources.outputs.AZURE_CONTENT_SAFETY_KEY
     }
   }
-  dependsOn:[
-    storage
-    hostingplan
-    monitoring
-    openai
-  ]
 }
