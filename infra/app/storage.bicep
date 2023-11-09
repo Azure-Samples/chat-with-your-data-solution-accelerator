@@ -59,6 +59,6 @@ resource storageAccountNameDefaultDocProcessingPoison 'Microsoft.Storage/storage
   dependsOn: []
 }
 
-output StorageAccountId string = storageAccount.id
-output StorageAccountName_default_doc_processing_name string = storageAccountNameDefaultDocProcessing.name
+output STORAGE_ACCOUNT_ID string = storageAccount.id
+output STORAGE_ACCOUNT_NAME_DEFAULT_DOC_PROCESSING_NAME string = storageAccountNameDefaultDocProcessing.name
 output AZURE_BLOB_ACCOUNT_KEY string =  storageAccount.listKeys().keys[0].value

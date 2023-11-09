@@ -5,14 +5,13 @@ targetScope = 'subscription'
 @description('Name of the the environment which is used to generate a short unique hash used in all resources.')
 param environmentName string
 
-@description('provide a 2-13 character prefix for all resources.')
-param resourcePrefix string = environmentName
+param resourceToken string = toLower(uniqueString(subscription().id, environmentName, location))
 
 @description('Location for all resources.')
 param location string
 
 @description('Name of App Service plan')
-param hostingPlanName string = '${resourcePrefix}-hosting-plan'
+param hostingPlanName string = '${environmentName}-hosting-plan-${resourceToken}'
 
 @description('The pricing tier for the App Service plan')
 @allowed([
@@ -32,10 +31,10 @@ param hostingPlanName string = '${resourcePrefix}-hosting-plan'
 param hostingPlanSku string = 'B3'
 
 @description('Name of Web App')
-param websiteName string = '${resourcePrefix}-website'
+param websiteName string = '${environmentName}-website-${resourceToken}'
 
 @description('Name of Application Insights')
-param applicationInsightsName string = '${resourcePrefix}-appinsights'
+param applicationInsightsName string = '${environmentName}-appinsights-${resourceToken}'
 
 @description('Use semantic search')
 param azureSearchUseSemanticSearch string = 'false'
@@ -65,7 +64,7 @@ param azureSearchTitleColumn string = 'title'
 param azureSearchUrlColumn string = 'url'
 
 @description('Name of Azure OpenAI Resource')
-param azureOpenAIResource string = '${resourcePrefix}-openai'
+param azureOpenAIResource string = '${environmentName}-openai-${resourceToken}'
 
 @description('Name of Azure OpenAI Resource SKU')
 param azureOpenAISkuName string = 'S0'
@@ -113,7 +112,7 @@ param azureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
 
 @description('Azure Cognitive Search Resource')
-param azureCognitiveSearchName string = '${resourcePrefix}-search'
+param azureCognitiveSearchName string = '${environmentName}-search-${resourceToken}'
 
 @description('The SKU of the search service you want to create. E.g. free or standard')
 @allowed([
@@ -126,22 +125,22 @@ param azureCognitiveSearchName string = '${resourcePrefix}-search'
 param azureCognitiveSearchSku string = 'standard'
 
 @description('Azure Cognitive Search Index')
-param azureSearchIndex string = '${resourcePrefix}-index'
+param azureSearchIndex string = '${environmentName}-index-${resourceToken}'
 
 @description('Azure Cognitive Search Conversation Log Index')
 param azureSearchConversationLogIndex string = 'conversations'
 
 @description('Name of Storage Account')
-param storageAccountName string = '${resourcePrefix}str'
+param storageAccountName string = '${environmentName}str'
 
 @description('Name of Function App for Batch document processing')
-param functionName string = '${resourcePrefix}-backend'
+param functionName string = '${environmentName}-backend-${resourceToken}'
 
 @description('Azure Form Recognizer Name')
-param formRecognizerName string = '${resourcePrefix}-formrecog'
+param formRecognizerName string = '${environmentName}-formrecog-${resourceToken}'
 
 @description('Azure Content Safety Name')
-param contentSafetyName string = '${resourcePrefix}-contentsafety'
+param contentSafetyName string = '${environmentName}-contentsafety-${resourceToken}'
 param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'
 
@@ -151,8 +150,9 @@ var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${ne
 var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
 
+
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
-  name: 'rg-${resourcePrefix}'
+  name: 'rg-${environmentName}'
   location: location
   tags: tags
 }
@@ -216,8 +216,8 @@ module resources './app/resources.bicep' = {
     contentSafetyName: contentSafetyName
     location: location
     eventGridSystemTopicName: eventGridSystemTopicName
-    storageAccountId: storage.outputs.StorageAccountId
-    queueName: storage.outputs.StorageAccountName_default_doc_processing_name
+    storageAccountId: storage.outputs.STORAGE_ACCOUNT_ID
+    queueName: storage.outputs.STORAGE_ACCOUNT_NAME_DEFAULT_DOC_PROCESSING_NAME
     blobContainerName: blobContainerName
   }
 }
@@ -231,7 +231,6 @@ module hostingplan './core/host/appserviceplan.bicep' = {
     sku: {
       name: hostingPlanSku
     }
-    kind: 'linux'
     reserved: true
   }
 }
@@ -364,7 +363,7 @@ module monitoring './core/monitor/monitoring.bicep' = {
     tags: {
       'hidden-link:${resourceId('Microsoft.Web/sites', applicationInsightsName)}': 'Resource'
     }
-    logAnalyticsName: '${resourcePrefix}-logAnalytics'
+    logAnalyticsName: '${environmentName}-logAnalytics-${resourceToken}'
     applicationInsightsDashboardName: 'dash-${applicationInsightsName}'
   }
 }
@@ -380,8 +379,6 @@ module function './app/function.bicep' = {
     storageAccountName: storageAccountName
     azureOpenAIName: openai.outputs.name
     azureCognitiveSearchName: azureCognitiveSearchName
-    runtimeName:'python'
-    runtimeVersion:'3.11'
     clientKey: clientKey
     appSettings: {
       FUNCTIONS_EXTENSION_VERSION: '~4'

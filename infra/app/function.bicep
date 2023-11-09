@@ -7,8 +7,8 @@ param tags object = {}
 @secure()
 param appSettings object = {}
 param serviceName string = 'function'
-param runtimeName string
-param runtimeVersion string
+param runtimeName string = 'python'
+param runtimeVersion string = '3.11'
 
 @secure()
 param clientKey string
