@@ -1,6 +1,6 @@
-param storageAccountName string = 'Enabled'
+param storageAccountName string = ''
 param location string = ''
-param blobContainerName string = 'Enabled'
+param blobContainerName string = ''
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2021-09-01' = {
   name: storageAccountName

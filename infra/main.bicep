@@ -113,7 +113,7 @@ param azureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
 
 @description('Azure Cognitive Search Resource')
-param azureCognitiveSearch string = '${resourcePrefix}-search'
+param azureCognitiveSearchName string = '${resourcePrefix}-search'
 
 @description('The SKU of the search service you want to create. E.g. free or standard')
 @allowed([
@@ -143,6 +143,7 @@ param formRecognizerName string = '${resourcePrefix}-formrecog'
 @description('Azure Content Safety Name')
 param contentSafetyName string = '${resourcePrefix}-contentsafety'
 param newGuidString string = newGuid()
+param searchTag string = 'chatwithyourdata-sa'
 
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
@@ -193,13 +194,13 @@ module openai 'core/ai/cognitiveservices.bicep' = {
 }
 
 module search './core/search/search-services.bicep' = {
-  name: azureCognitiveSearch
+  name: azureCognitiveSearchName
   scope: rg
   params:{
-    name: azureCognitiveSearch
+    name: azureCognitiveSearchName
     location: location
-    tags: {
-      deployment : 'chatwithyourdata-sa'
+    tags: { 
+      deployment : searchTag
     }
     sku: {
       name: azureCognitiveSearchSku
@@ -208,7 +209,7 @@ module search './core/search/search-services.bicep' = {
 }
 
 module resources './app/resources.bicep' = {
-  name: 'AllResources'
+  name: 'resource'
   scope: rg
   params: {
     formRecognizerName: formRecognizerName
@@ -243,14 +244,11 @@ module web './app/web.bicep' = {
     location: location
     tags: { 'azd-service-name': 'web' }
     appServicePlanId: hostingPlanName
-    // storageAccountName: storageAccountName
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
-    azureCognitiveSearchName: azureCognitiveSearch
-    // formRecognizerName: formRecognizerName
-    // contentSafetyName: contentSafetyName
+    azureCognitiveSearchName: azureCognitiveSearchName
     appSettings: {
-      AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearch}.search.windows.net'
+      AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
       AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
       AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
@@ -299,14 +297,11 @@ module adminweb './app/adminweb.bicep' = {
     location: location
     tags: { 'azd-service-name': 'adminweb' }
     appServicePlanId: hostingPlanName
-    // storageAccountName: storageAccountName
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
-    azureCognitiveSearchName: azureCognitiveSearch
-    // formRecognizerName: formRecognizerName
-    // contentSafetyName: contentSafetyName
+    azureCognitiveSearchName: azureCognitiveSearchName
     appSettings: {
-      AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearch}.search.windows.net'
+      AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
       AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
@@ -383,11 +378,8 @@ module function './app/function.bicep' = {
     tags: { 'azd-service-name': 'function' }
     appServicePlanId: hostingPlanName
     storageAccountName: storageAccountName
-    // applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
-    azureCognitiveSearchName: azureCognitiveSearch
-    // formRecognizerName: formRecognizerName
-    // contentSafetyName: contentSafetyName
+    azureCognitiveSearchName: azureCognitiveSearchName
     runtimeName:'python'
     runtimeVersion:'3.11'
     clientKey: clientKey
@@ -400,7 +392,7 @@ module function './app/function.bicep' = {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
       AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearch}.search.windows.net'
+      AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearchName}.search.windows.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_SEARCH_INDEX: azureSearchIndex
