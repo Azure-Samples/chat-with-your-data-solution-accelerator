@@ -1,8 +1,2 @@
-backend/__pycache__
-backend/images
-backend/pages
-backend/.funcignore
-backend/environment.yml
-backend/host.json
-backend/local.settings.json
-backend/Admin.py
+code/admin
+code/app

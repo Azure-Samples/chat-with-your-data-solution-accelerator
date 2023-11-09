@@ -12,9 +12,10 @@ mimetypes.add_type('text/css', '.css')
 
 from flask import Flask, Response, request, jsonify
 from dotenv import load_dotenv
-from backend.utilities.QuestionHandler import QuestionHandler
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env')) # Load environment variables from .env file
 
 app = Flask(__name__)
 
@@ -256,7 +257,7 @@ def conversation_azure_byod():
 
 @app.route("/api/conversation/custom", methods=["GET","POST"])
 def conversation_custom():
-    from backend.utilities.helpers.OrchestratorHelper import Orchestrator, OrchestrationSettings
+    from utilities.helpers.OrchestratorHelper import Orchestrator, OrchestrationSettings
     message_orchestrator = Orchestrator()
     
     try:
@@ -267,7 +268,7 @@ def conversation_custom():
         for i,k in enumerate(user_assistent_messages):
             if i % 2 == 0:
                 chat_history.append((user_assistent_messages[i]['content'],user_assistent_messages[i+1]['content']))
-        from backend.utilities.helpers.ConfigHelper import ConfigHelper
+        from utilities.helpers.ConfigHelper import ConfigHelper
         messages = message_orchestrator.handle_message(user_message=user_message, chat_history=chat_history, conversation_id=conversation_id, orchestrator=ConfigHelper.get_active_config_or_default().orchestrator)
 
         response_obj = {

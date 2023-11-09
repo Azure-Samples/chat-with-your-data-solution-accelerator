@@ -1,7 +1,7 @@
 {
-    "azureFunctions.deploySubpath": "backend",
+    "azureFunctions.deploySubpath": "code\\batch",
     "azureFunctions.scmDoBuildDuringDeployment": true,
-    "azureFunctions.pythonVenv": "..\\.venv",
+    "azureFunctions.pythonVenv": ".venv",
     "azureFunctions.projectLanguage": "Python",
     "azureFunctions.projectRuntime": "~4",
     "debug.internalConsoleOptions": "neverOpen"

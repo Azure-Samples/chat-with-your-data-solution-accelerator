@@ -1,6 +1,8 @@
 import logging, json, os
 import azure.functions as func
 from azure.storage.queue import QueueClient, BinaryBase64EncodePolicy
+import sys
+sys.path.append("..")
 from utilities.helpers.AzureBlobStorageHelper import AzureBlobStorageClient
 
 DOCUMENT_PROCESSING_QUEUE_NAME = os.environ['DOCUMENT_PROCESSING_QUEUE_NAME']

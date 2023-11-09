@@ -1,6 +1,7 @@
 import logging, traceback
-
 import azure.functions as func
+import sys
+sys.path.append("..")
 from utilities.helpers.DocumentProcessorHelper import DocumentProcessor
 from utilities.helpers.ConfigHelper import ConfigHelper
 
