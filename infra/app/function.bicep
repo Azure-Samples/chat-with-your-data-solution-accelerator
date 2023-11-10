@@ -27,14 +27,10 @@ module function '../core/host/functions.bicep' = {
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
     appSettings: union(appSettings, {
-      AZURE_OPENAI_KEY: openAI.listKeys().key1
+      AZURE_OPENAI_KEY: listKeys('Microsoft.CognitiveServices/accounts/${azureOpenAIName}', '2023-05-01').key1
       AZURE_SEARCH_KEY: listAdminKeys('Microsoft.Search/searchServices/${azureCognitiveSearchName}', '2021-04-01-preview').primaryKey
     })
   }
-}
-
-resource openAI 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
-  name: azureOpenAIName
 }
 
 resource functionNameDefaultClientKey 'Microsoft.Web/sites/host/functionKeys@2018-11-01' = {

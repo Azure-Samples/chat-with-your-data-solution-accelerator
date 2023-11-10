@@ -25,7 +25,7 @@ module adminweb '../core/host/appservice.bicep' = {
     applicationInsightsName: applicationInsightsName
     appServicePlanId: appServicePlanId
     appSettings: union(appSettings, {
-      AZURE_OPENAI_KEY: openAI.listKeys().key1
+      AZURE_OPENAI_KEY: listKeys('Microsoft.CognitiveServices/accounts/${azureOpenAIName}', '2023-05-01').key1
       AZURE_SEARCH_KEY: listAdminKeys('Microsoft.Search/searchServices/${azureCognitiveSearchName}', '2021-04-01-preview').primaryKey
     })
     keyVaultName: keyVaultName
@@ -33,10 +33,6 @@ module adminweb '../core/host/appservice.bicep' = {
     runtimeVersion: '3.11'
     scmDoBuildDuringDeployment: true
   }
-}
-
-resource openAI 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
-  name: azureOpenAIName
 }
 
 output WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID string = adminweb.outputs.identityPrincipalId
