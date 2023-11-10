@@ -114,8 +114,8 @@ You can run the full solution locally with the following commands - this will sp
 
 |Container  |Description  |
 |---------|---------|
-|frontend | A container for the chat app, enabling you to chat on top of your data.         |
-|backend     | A container for the "admin" site where you can upload and explore your data.         |
+|webapp | A container for the chat app, enabling you to chat on top of your data.         |
+|admin webapp     | A container for the "admin" site where you can upload and explore your data.         |
 |batch processing functions     | A container helping with processing requests.          |
 
 Run the following `docker compose` command.
@@ -134,20 +134,23 @@ To run the app locally with hot refresh, first follow the instructions to [updat
 #### Starting the Flask app in dev mode
 Open a terminal and enter the following commands
 ```shell
+cd code
 python -m pip install -r requirements.txt
+cd app
 python -m flask --app ./app.py --debug run
 ```
 
 #### Starting the Typescript React app in dev mode
 Open a new separate terminal and enter the following commands:
 ```shell
+cd code
 cd frontend
 npm install
 npm run dev
 ```
 The local vite server will return a url that you can use to access the chat interface locally, such as  `http://localhost:5174/`.
 
-#### Building the frontend Docker image
+#### Building the user app Docker image
 
 ```shell
 docker build -f docker\WebApp.Dockerfile -t YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE .
@@ -155,14 +158,15 @@ docker run --env-file .env -p 8080:80 YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 ```
 
-### Develop & run the backend
+### Develop & run the admin app
 
 If you want to develop and run the backend container locally, use the following commands.
 
-#### Running the backend locally
+#### Running the admin app locally
 
 ```shell
-cd backend
+cd code
+cd admin
 python -m pip install -r requirements.txt
 streamlit run Admin.py
 ```
@@ -190,7 +194,8 @@ First, install [Azure Functions Core Tools](https://learn.microsoft.com/en-us/az
 
 
 ```shell
-cd backend
+cd code
+cd batch
 func start
 ```
 
@@ -245,6 +250,8 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 |AZURE_FORM_RECOGNIZER_KEY||The key of the Azure Form Recognizer for extracting the text from the documents|
 |APPINSIGHTS_CONNECTION_STRING||The Application Insights connection string to store the application logs|
 |ORCHESTRATION_STRATEGY | openai_functions | Orchestration strategy. Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain" |
+|AZURE_CONTENT_SAFETY_ENDPOINT | | The endpoint of the Azure AI Content Safety service |
+|AZURE_CONTENT_SAFETY_KEY | | The key of the Azure AI Content Safety service|
 
 
 ## Resources used in this solution
