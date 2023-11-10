@@ -1,4 +1,4 @@
-targetScope = 'subscription'
+targetScope = 'resourceGroup'
 
 @minLength(1)
 @maxLength(64)
@@ -64,7 +64,7 @@ param azureSearchTitleColumn string = 'title'
 param azureSearchUrlColumn string = 'url'
 
 @description('Name of Azure OpenAI Resource')
-param azureOpenAIResource string = '${environmentName}-openai-${resourceToken}'
+param azureOpenAIResourceName string = '${environmentName}-openai-${resourceToken}'
 
 @description('Name of Azure OpenAI Resource SKU')
 param azureOpenAISkuName string = 'S0'
@@ -150,18 +150,10 @@ var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${ne
 var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
 
-
-resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
-  name: 'rg-${environmentName}'
-  location: location
-  tags: tags
-}
-
 module openai 'core/ai/cognitiveservices.bicep' = {
   name: 'openai'
-  scope: rg
   params: {
-    name: azureOpenAIResource
+    name: azureOpenAIResourceName
     location: location
     tags: tags
     sku: {
@@ -195,7 +187,6 @@ module openai 'core/ai/cognitiveservices.bicep' = {
 
 module search './core/search/search-services.bicep' = {
   name: azureCognitiveSearchName
-  scope: rg
   params:{
     name: azureCognitiveSearchName
     location: location
@@ -208,23 +199,8 @@ module search './core/search/search-services.bicep' = {
   }
 }
 
-module resources './app/resources.bicep' = {
-  name: 'resource'
-  scope: rg
-  params: {
-    formRecognizerName: formRecognizerName
-    contentSafetyName: contentSafetyName
-    location: location
-    eventGridSystemTopicName: eventGridSystemTopicName
-    storageAccountId: storage.outputs.STORAGE_ACCOUNT_ID
-    queueName: storage.outputs.STORAGE_ACCOUNT_NAME_DEFAULT_DOC_PROCESSING_NAME
-    blobContainerName: blobContainerName
-  }
-}
-
 module hostingplan './core/host/appserviceplan.bicep' = {
   name: hostingPlanName
-  scope: rg
   params: {
     name: hostingPlanName
     location: location
@@ -237,7 +213,6 @@ module hostingplan './core/host/appserviceplan.bicep' = {
 
 module web './app/web.bicep' = {
   name: websiteName
-  scope: rg
   params: {
     name: websiteName
     location: location
@@ -258,7 +233,7 @@ module web './app/web.bicep' = {
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-      AZURE_OPENAI_RESOURCE: azureOpenAIResource
+      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
       AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
@@ -276,15 +251,14 @@ module web './app/web.bicep' = {
       AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
       AZURE_BLOB_ACCOUNT_KEY: storage.outputs.AZURE_BLOB_ACCOUNT_KEY
       APPINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
-      AZURE_FORM_RECOGNIZER_KEY: resources.outputs.AZURE_FORM_RECOGNIZER_KEY
-      AZURE_CONTENT_SAFETY_KEY: resources.outputs.AZURE_CONTENT_SAFETY_KEY
+      AZURE_FORM_RECOGNIZER_KEY: formRecognizer.listKeys().key1
+      AZURE_CONTENT_SAFETY_KEY: contentSafety.listKeys().key1
     }
   }
 }
 
 module adminweb './app/adminweb.bicep' = {
   name: '${websiteName}-admin'
-  scope: rg
   params: {
     name: '${websiteName}-admin'
     location: location
@@ -305,7 +279,7 @@ module adminweb './app/adminweb.bicep' = {
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-      AZURE_OPENAI_RESOURCE: azureOpenAIResource
+      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
       AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
@@ -326,15 +300,14 @@ module adminweb './app/adminweb.bicep' = {
       AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
       AZURE_BLOB_ACCOUNT_KEY: storage.outputs.AZURE_BLOB_ACCOUNT_KEY
       APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
-      AZURE_FORM_RECOGNIZER_KEY: resources.outputs.AZURE_FORM_RECOGNIZER_KEY
-      AZURE_CONTENT_SAFETY_KEY: resources.outputs.AZURE_CONTENT_SAFETY_KEY
+      AZURE_FORM_RECOGNIZER_KEY: formRecognizer.listKeys().key1
+      AZURE_CONTENT_SAFETY_KEY: contentSafety.listKeys().key1
     }
   }
 }
 
 module storage './app/storage.bicep' = {
   name: 'Storage_Account'
-  scope: rg
   params: {
     storageAccountName: storageAccountName
     location: location
@@ -344,7 +317,6 @@ module storage './app/storage.bicep' = {
 
 module monitoring './core/monitor/monitoring.bicep' = {
   name: 'monitoring'
-  scope: rg
   params: {
     applicationInsightsName: applicationInsightsName
     location: location
@@ -358,7 +330,6 @@ module monitoring './core/monitor/monitoring.bicep' = {
 
 module function './app/function.bicep' = {
   name: functionName
-  scope: rg
   params:{
     name: functionName
     location: location
@@ -373,7 +344,7 @@ module function './app/function.bicep' = {
       WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-      AZURE_OPENAI_RESOURCE: azureOpenAIResource
+      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
       AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
@@ -385,8 +356,85 @@ module function './app/function.bicep' = {
       AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
       AZURE_BLOB_ACCOUNT_KEY: storage.outputs.AZURE_BLOB_ACCOUNT_KEY
       APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
-      AZURE_FORM_RECOGNIZER_KEY: resources.outputs.AZURE_FORM_RECOGNIZER_KEY
-      AZURE_CONTENT_SAFETY_KEY: resources.outputs.AZURE_CONTENT_SAFETY_KEY
+      AZURE_FORM_RECOGNIZER_KEY: formRecognizer.listKeys().key1
+      AZURE_CONTENT_SAFETY_KEY: contentSafety.listKeys().key1
+    }
+  }
+}
+
+resource formRecognizer 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
+  name: formRecognizerName
+  location: location
+  sku: {
+    name: 'S0'
+  }
+  kind: 'FormRecognizer'
+  identity: {
+    type: 'None'
+  }
+  properties: {
+    networkAcls: {
+      defaultAction: 'Allow'
+      virtualNetworkRules: []
+      ipRules: []
+    }
+    publicNetworkAccess: 'Enabled'
+  }
+}
+
+resource contentSafety 'Microsoft.CognitiveServices/accounts@2022-03-01' = {
+  name: contentSafetyName
+  location: location
+  sku: {
+    name: 'S0'
+  }
+  kind: 'ContentSafety'
+  identity: {
+    type: 'None'
+  }
+  properties: {
+    networkAcls: {
+      defaultAction: 'Allow'
+      virtualNetworkRules: []
+      ipRules: [] 
+    }
+  }
+}
+
+resource eventGridSystemTopic 'Microsoft.EventGrid/systemTopics@2021-12-01' = {
+  name: eventGridSystemTopicName
+  location: location
+  properties: {
+    source: storage.outputs.STORAGE_ACCOUNT_ID
+    topicType: 'Microsoft.Storage.StorageAccounts'
+  }
+}
+
+resource eventGridSystemTopicNameBlobEvents 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2021-12-01' = {
+  parent: eventGridSystemTopic
+  name: 'BlobEvents'
+  properties: {
+    destination: {
+      endpointType: 'StorageQueue'
+      properties: {
+        queueMessageTimeToLiveInSeconds: -1
+        queueName: queueName
+        resourceId: storage.outputs.STORAGE_ACCOUNT_ID
+      }
+    }
+    filter: {
+      includedEventTypes: [
+        'Microsoft.Storage.BlobCreated'
+        'Microsoft.Storage.BlobDeleted'
+      ]
+      enableAdvancedFilteringOnArrays: true
+      subjectBeginsWith: '/blobServices/default/containers/${blobContainerName}/blobs/'
+    }
+    labels: []
+    eventDeliverySchema: 'EventGridSchema'
+    retryPolicy: {
+      maxDeliveryAttempts: 30
+      eventTimeToLiveInMinutes: 1440
     }
   }
 }
