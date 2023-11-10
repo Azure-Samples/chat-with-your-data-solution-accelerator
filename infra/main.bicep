@@ -151,7 +151,7 @@ var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
 
 module openai 'core/ai/cognitiveservices.bicep' = {
-  name: 'openai'
+  name: azureOpenAIResourceName
   params: {
     name: azureOpenAIResourceName
     location: location
@@ -220,7 +220,7 @@ module web './app/web.bicep' = {
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
-    azureCognitiveSearchName: azureCognitiveSearchName
+    azureCognitiveSearchName: search.outputs.name
     appSettings: {
       AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -249,7 +249,7 @@ module web './app/web.bicep' = {
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_BLOB_ACCOUNT_KEY: storage.outputs.AZURE_BLOB_ACCOUNT_KEY
+      AZURE_BLOB_ACCOUNT_KEY: storageAccount.listKeys().keys[0].value
       APPINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
       AZURE_FORM_RECOGNIZER_KEY: formRecognizer.listKeys().key1
       AZURE_CONTENT_SAFETY_KEY: contentSafety.listKeys().key1
@@ -266,7 +266,7 @@ module adminweb './app/adminweb.bicep' = {
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
-    azureCognitiveSearchName: azureCognitiveSearchName
+    azureCognitiveSearchName: search.outputs.name
     appSettings: {
       AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -298,20 +298,11 @@ module adminweb './app/adminweb.bicep' = {
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_BLOB_ACCOUNT_KEY: storage.outputs.AZURE_BLOB_ACCOUNT_KEY
+      AZURE_BLOB_ACCOUNT_KEY: storageAccount.listKeys().keys[0].value
       APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
       AZURE_FORM_RECOGNIZER_KEY: formRecognizer.listKeys().key1
       AZURE_CONTENT_SAFETY_KEY: contentSafety.listKeys().key1
     }
-  }
-}
-
-module storage './app/storage.bicep' = {
-  name: 'Storage_Account'
-  params: {
-    storageAccountName: storageAccountName
-    location: location
-    blobContainerName: blobContainerName
   }
 }
 
@@ -337,7 +328,7 @@ module function './app/function.bicep' = {
     appServicePlanId: hostingplan.outputs.name
     storageAccountName: storageAccountName
     azureOpenAIName: openai.outputs.name
-    azureCognitiveSearchName: azureCognitiveSearchName
+    azureCognitiveSearchName: search.outputs.name
     clientKey: clientKey
     appSettings: {
       FUNCTIONS_EXTENSION_VERSION: '~4'
@@ -354,7 +345,7 @@ module function './app/function.bicep' = {
       AZURE_SEARCH_INDEX: azureSearchIndex
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_BLOB_ACCOUNT_KEY: storage.outputs.AZURE_BLOB_ACCOUNT_KEY
+      AZURE_BLOB_ACCOUNT_KEY: storageAccount.listKeys().keys[0].value
       APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
       AZURE_FORM_RECOGNIZER_KEY: formRecognizer.listKeys().key1
       AZURE_CONTENT_SAFETY_KEY: contentSafety.listKeys().key1
@@ -405,7 +396,7 @@ resource eventGridSystemTopic 'Microsoft.EventGrid/systemTopics@2021-12-01' = {
   name: eventGridSystemTopicName
   location: location
   properties: {
-    source: storage.outputs.STORAGE_ACCOUNT_ID
+    source: storageAccount.id
     topicType: 'Microsoft.Storage.StorageAccounts'
   }
 }
@@ -419,7 +410,7 @@ resource eventGridSystemTopicNameBlobEvents 'Microsoft.EventGrid/systemTopics/ev
       properties: {
         queueMessageTimeToLiveInSeconds: -1
         queueName: queueName
-        resourceId: storage.outputs.STORAGE_ACCOUNT_ID
+        resourceId: storageAccount.id
       }
     }
     filter: {
@@ -437,4 +428,56 @@ resource eventGridSystemTopicNameBlobEvents 'Microsoft.EventGrid/systemTopics/ev
       eventTimeToLiveInMinutes: 1440
     }
   }
+}
+
+resource storageAccount 'Microsoft.Storage/storageAccounts@2021-09-01' = {
+  name: storageAccountName
+  location: location
+  kind: 'StorageV2'
+  sku: {
+    name: 'Standard_GRS'
+  }
+  resource storageAccountNameDefaultBlob 'blobServices' = {
+    name: 'default'
+    resource storageAccountNameDefaultBlobContainer 'containers' = {
+      name: blobContainerName
+      properties: {
+        publicAccess: 'None'
+      }
+    }
+    resource storageAccountNameDefaultConfig 'containers' = {
+      name: 'config'
+      properties: {
+        publicAccess: 'None'
+      }
+    }
+  }
+}
+
+resource storageAccountNameDefault 'Microsoft.Storage/storageAccounts/queueServices@2022-09-01' = {
+  parent: storageAccount
+  name: 'default'
+  properties: {
+    cors: {
+      corsRules: []
+    }
+  }
+}
+
+resource storageAccountNameDefaultDocProcessing 'Microsoft.Storage/storageAccounts/queueServices/queues@2022-09-01' = {
+  parent: storageAccountNameDefault
+  name: 'doc-processing'
+  properties: {
+    metadata: {}
+  }
+  dependsOn: []
+}
+
+resource storageAccountNameDefaultDocProcessingPoison 'Microsoft.Storage/storageAccounts/queueServices/queues@2022-09-01' = {
+  parent: storageAccountNameDefault
+  name: 'doc-processing-poison'
+  properties: {
+    metadata: {}
+  }
+  dependsOn: []
 }

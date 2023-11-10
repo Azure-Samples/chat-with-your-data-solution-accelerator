@@ -139,7 +139,7 @@ Run `azd up` to provision all the resources to Azure and deploy the code to thos
 azd up 
 ```
 
-According to the prompt, select `subscription` and `location`, these are the necessary parameters when you create resources. Wait a moment for the resource deployment to complete, click the Website endpoint and you will see the web app page.
+According to the prompt, select `subscription` and `location`, these are the necessary parameters when you create resources. After that, choose a resource group created or create a new resource group. Wait a moment for the resource deployment to complete, click the Website endpoint and you will see the web app page.
 
 You can also run the sample directly locally (See below).
 
