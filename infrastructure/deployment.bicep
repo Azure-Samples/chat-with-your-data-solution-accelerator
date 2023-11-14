@@ -27,6 +27,9 @@ param HostingPlanSku string = 'B3'
 @description('Name of Web App')
 param WebsiteName string = '${ResourcePrefix}-website'
 
+@description('Name of Log Analytics Workspace for App Insights')
+param logAnalyticsWorkspaceName string = '${ResourcePrefix}-loganalytics'
+
 @description('Name of Application Insights')
 param ApplicationInsightsName string = '${ResourcePrefix}-appinsights'
 
@@ -121,13 +124,16 @@ param AzureSearchIndex string = '${ResourcePrefix}-index'
 param AzureSearchConversationLogIndex string = 'conversations'
 
 @description('Name of Storage Account')
-param StorageAccountName string = '${ResourcePrefix}str'
+param StorageAccountName string = substring('${ResourcePrefix}str${uniqueString(resourceGroup().id)}', 0, 24)
 
 @description('Name of Function App for Batch document processing')
 param FunctionName string = '${ResourcePrefix}-backend'
 
 @description('Azure Form Recognizer Name')
 param FormRecognizerName string = '${ResourcePrefix}-formrecog'
+
+@description('Azure Form Recognizer Location')
+param FormRecognizerLocation string
 
 @description('Azure Content Safety Name')
 param ContentSafetyName string = '${ResourcePrefix}-contentsafety'
@@ -158,7 +164,7 @@ resource AzureCognitiveSearch_resource 'Microsoft.Search/searchServices@2022-09-
 
 resource FormRecognizer 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
   name: FormRecognizerName
-  location: Location
+  location: FormRecognizerLocation
   sku: {
     name: 'S0'
   }
@@ -365,6 +371,17 @@ resource StorageAccountName_default_doc_processing_poison 'Microsoft.Storage/sto
   dependsOn: []
 }
 
+
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2021-06-01' = {
+  name: logAnalyticsWorkspaceName
+  location: Location
+  properties: {
+    sku: {
+      name: 'pergb2018'
+    }
+  }
+}
+
 resource ApplicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: ApplicationInsightsName
   location: Location
@@ -373,6 +390,7 @@ resource ApplicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
   properties: {
     Application_Type: 'web'
+    WorkspaceResourceId: logAnalyticsWorkspace.id
   }
   kind: 'web'
 }
