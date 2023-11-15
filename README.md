@@ -104,11 +104,11 @@ Out-of-the-box, you can upload the following file types:
     
     ![A screenshot of the chat app.](./media/chat-app.png)
 
-## Running the sample using Azd template
+## Running the sample using the Azure Developer CLI (azd) template
 
 The Azure Developer CLI (`azd`) is a developer-centric command-line interface (CLI) tool for creating Azure applications.
 
-You need to install it before running and deploying with Azure Developer CLI.
+You need to install it before running and deploying with the Azure Developer CLI.
 
 ### Windows
 
@@ -122,7 +122,7 @@ powershell -ex AllSigned -c "Invoke-RestMethod 'https://aka.ms/install-azd.ps1' 
 curl -fsSL https://aka.ms/install-azd.sh | bash
 ```
 
-After logging in with the following command, you will be able to use the azd cli to quickly provision and deploy the application.
+After logging in with the following command, you will be able to use azd cli to quickly provision and deploy the application.
 
 ```
 azd auth login
@@ -132,18 +132,18 @@ Then, execute the `azd init` command to initialize the environment.
 ```
 azd init -t jongio/chat-with-your-data-solution-accelerator
 ```
-According to the prompt, enter an `env name`.
+According to the prompt, enter an environment name.
 
 Run `azd up` to provision all the resources to Azure and deploy the code to those resources.
 ```
 azd up 
 ```
 
-According to the prompt, select `subscription` and `location`, these are the necessary parameters when you create resources. After that, choose a resource group created or create a new resource group. Wait a moment for the resource deployment to complete, click the Website endpoint and you will see the web app page.
+According to the prompt, select `subscription` and `location`, these are the necessary parameters when you create resources. After that, choose a resource group or create a new resource group. Wait a moment for the resource deployment to complete, click the Website endpoint and you will see the web app page.
 
 You can also run the sample directly locally (See below).
 
-## Development and run the accelerator locally
+## Develop and run the accelerator locally
 
 To customize the accelerator or run it locally, first, copy the `.env.sample` file to your development environment's `.env` file, and edit it according to [environment variable values table](#environment-variables) below.
 
