@@ -223,7 +223,7 @@
       "type": "string",
       "defaultValue": "[format('{0}-search', parameters('ResourcePrefix'))]",
       "metadata": {
-        "description": "Azure Cognitive Search Resource"
+        "description": "Azure AI Search Resource"
       }
     },
     "AzureCognitiveSearchSku": {
@@ -244,14 +244,14 @@
       "type": "string",
       "defaultValue": "[format('{0}-index', parameters('ResourcePrefix'))]",
       "metadata": {
-        "description": "Azure Cognitive Search Index"
+        "description": "Azure AI Search Index"
       }
     },
     "AzureSearchConversationLogIndex": {
       "type": "string",
       "defaultValue": "conversations",
       "metadata": {
-        "description": "Azure Cognitive Search Conversation Log Index"
+        "description": "Azure AI Search Conversation Log Index"
       }
     },
     "StorageAccountName": {

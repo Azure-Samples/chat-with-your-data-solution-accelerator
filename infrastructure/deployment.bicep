@@ -101,7 +101,7 @@ param AzureOpenAIStream string = 'true'
 @description('Azure OpenAI Embedding Model')
 param AzureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 
-@description('Azure Cognitive Search Resource')
+@description('Azure AI Search Resource')
 param AzureCognitiveSearch string = '${ResourcePrefix}-search'
 
 @description('The SKU of the search service you want to create. E.g. free or standard')
@@ -114,10 +114,10 @@ param AzureCognitiveSearch string = '${ResourcePrefix}-search'
 ])
 param AzureCognitiveSearchSku string = 'standard'
 
-@description('Azure Cognitive Search Index')
+@description('Azure AI Search Index')
 param AzureSearchIndex string = '${ResourcePrefix}-index'
 
-@description('Azure Cognitive Search Conversation Log Index')
+@description('Azure AI Search Conversation Log Index')
 param AzureSearchConversationLogIndex string = 'conversations'
 
 @description('Name of Storage Account')
