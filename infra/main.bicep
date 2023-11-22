@@ -1,4 +1,4 @@
-targetScope = 'resourceGroup'
+targetScope = 'subscription'
 
 @minLength(1)
 @maxLength(64)
@@ -149,9 +149,18 @@ var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
 var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
+var rgName = 'rg-${environmentName}'
+
+// Organize resources in a resource group
+resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+  name: rgName
+  location: location
+  tags: tags
+}
 
 module openai 'core/ai/cognitiveservices.bicep' = {
   name: azureOpenAIResourceName
+  scope: rg
   params: {
     name: azureOpenAIResourceName
     location: location
@@ -187,6 +196,7 @@ module openai 'core/ai/cognitiveservices.bicep' = {
 
 module search './core/search/search-services.bicep' = {
   name: azureCognitiveSearchName
+  scope: rg
   params:{
     name: azureCognitiveSearchName
     location: location
@@ -201,6 +211,7 @@ module search './core/search/search-services.bicep' = {
 
 module hostingplan './core/host/appserviceplan.bicep' = {
   name: hostingPlanName
+  scope: rg
   params: {
     name: hostingPlanName
     location: location
@@ -213,14 +224,19 @@ module hostingplan './core/host/appserviceplan.bicep' = {
 
 module web './app/web.bicep' = {
   name: websiteName
+  scope: rg
   params: {
     name: websiteName
     location: location
     tags: { 'azd-service-name': 'web' }
+    rgName: rgName
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
     azureCognitiveSearchName: search.outputs.name
+    storageAccountName: storage.outputs.STORAGE_ACCOUNT_NAME
+    formRecognizerName: formrecognizer.outputs.name
+    contentSafetyName: contentsafety.outputs.name
     appSettings: {
       AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -249,24 +265,26 @@ module web './app/web.bicep' = {
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_BLOB_ACCOUNT_KEY: storageAccount.listKeys().keys[0].value
       APPINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
-      AZURE_FORM_RECOGNIZER_KEY: formRecognizer.listKeys().key1
-      AZURE_CONTENT_SAFETY_KEY: contentSafety.listKeys().key1
     }
   }
 }
 
 module adminweb './app/adminweb.bicep' = {
   name: '${websiteName}-admin'
+  scope: rg
   params: {
     name: '${websiteName}-admin'
     location: location
     tags: { 'azd-service-name': 'adminweb' }
+    rgName: rgName
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
     azureCognitiveSearchName: search.outputs.name
+    storageAccountName: storage.outputs.STORAGE_ACCOUNT_NAME
+    formRecognizerName: formrecognizer.outputs.name
+    contentSafetyName: contentsafety.outputs.name
     appSettings: {
       AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -298,16 +316,14 @@ module adminweb './app/adminweb.bicep' = {
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_BLOB_ACCOUNT_KEY: storageAccount.listKeys().keys[0].value
       APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
-      AZURE_FORM_RECOGNIZER_KEY: formRecognizer.listKeys().key1
-      AZURE_CONTENT_SAFETY_KEY: contentSafety.listKeys().key1
     }
   }
 }
 
 module monitoring './core/monitor/monitoring.bicep' = {
   name: 'monitoring'
+  scope: rg
   params: {
     applicationInsightsName: applicationInsightsName
     location: location
@@ -321,14 +337,18 @@ module monitoring './core/monitor/monitoring.bicep' = {
 
 module function './app/function.bicep' = {
   name: functionName
+  scope: rg
   params:{
     name: functionName
     location: location
     tags: { 'azd-service-name': 'function' }
+    rgName: rgName
     appServicePlanId: hostingplan.outputs.name
-    storageAccountName: storageAccountName
     azureOpenAIName: openai.outputs.name
     azureCognitiveSearchName: search.outputs.name
+    storageAccountName: storage.outputs.STORAGE_ACCOUNT_NAME
+    formRecognizerName: formrecognizer.outputs.name
+    contentSafetyName: contentsafety.outputs.name
     clientKey: clientKey
     appSettings: {
       FUNCTIONS_EXTENSION_VERSION: '~4'
@@ -345,139 +365,51 @@ module function './app/function.bicep' = {
       AZURE_SEARCH_INDEX: azureSearchIndex
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_BLOB_ACCOUNT_KEY: storageAccount.listKeys().keys[0].value
       APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
-      AZURE_FORM_RECOGNIZER_KEY: formRecognizer.listKeys().key1
-      AZURE_CONTENT_SAFETY_KEY: contentSafety.listKeys().key1
     }
   }
 }
 
-resource formRecognizer 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
+module formrecognizer 'core/ai/cognitiveservices.bicep' = {
   name: formRecognizerName
-  location: location
-  sku: {
-    name: 'S0'
-  }
-  kind: 'FormRecognizer'
-  identity: {
-    type: 'None'
-  }
-  properties: {
-    networkAcls: {
-      defaultAction: 'Allow'
-      virtualNetworkRules: []
-      ipRules: []
-    }
-    publicNetworkAccess: 'Enabled'
+  scope: rg
+  params: {
+    name: formRecognizerName
+    location: location
+    tags: tags
+    kind: 'FormRecognizer'
   }
 }
 
-resource contentSafety 'Microsoft.CognitiveServices/accounts@2022-03-01' = {
+module contentsafety 'core/ai/cognitiveservices.bicep' = {
   name: contentSafetyName
-  location: location
-  sku: {
-    name: 'S0'
-  }
-  kind: 'ContentSafety'
-  identity: {
-    type: 'None'
-  }
-  properties: {
-    networkAcls: {
-      defaultAction: 'Allow'
-      virtualNetworkRules: []
-      ipRules: [] 
-    }
+  scope: rg
+  params: {
+    name: contentSafetyName
+    location: location
+    tags: tags
+    kind: 'ContentSafety'
   }
 }
 
-resource eventGridSystemTopic 'Microsoft.EventGrid/systemTopics@2021-12-01' = {
+module eventgrid 'app/eventgrid.bicep' = {
   name: eventGridSystemTopicName
-  location: location
-  properties: {
-    source: storageAccount.id
-    topicType: 'Microsoft.Storage.StorageAccounts'
+  scope: rg
+  params: {
+    name: eventGridSystemTopicName
+    location: location
+    storageAccountId: storage.outputs.STORAGE_ACCOUNT_ID
+    queueName: queueName
+    blobContainerName: blobContainerName
   }
 }
 
-resource eventGridSystemTopicNameBlobEvents 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2021-12-01' = {
-  parent: eventGridSystemTopic
-  name: 'BlobEvents'
-  properties: {
-    destination: {
-      endpointType: 'StorageQueue'
-      properties: {
-        queueMessageTimeToLiveInSeconds: -1
-        queueName: queueName
-        resourceId: storageAccount.id
-      }
-    }
-    filter: {
-      includedEventTypes: [
-        'Microsoft.Storage.BlobCreated'
-        'Microsoft.Storage.BlobDeleted'
-      ]
-      enableAdvancedFilteringOnArrays: true
-      subjectBeginsWith: '/blobServices/default/containers/${blobContainerName}/blobs/'
-    }
-    labels: []
-    eventDeliverySchema: 'EventGridSchema'
-    retryPolicy: {
-      maxDeliveryAttempts: 30
-      eventTimeToLiveInMinutes: 1440
-    }
-  }
-}
-
-resource storageAccount 'Microsoft.Storage/storageAccounts@2021-09-01' = {
+module storage 'app/storage.bicep' = {
   name: storageAccountName
-  location: location
-  kind: 'StorageV2'
-  sku: {
-    name: 'Standard_GRS'
+  scope: rg
+  params: {
+    name: storageAccountName
+    location: location
+    blobContainerName: blobContainerName
   }
-  resource storageAccountNameDefaultBlob 'blobServices' = {
-    name: 'default'
-    resource storageAccountNameDefaultBlobContainer 'containers' = {
-      name: blobContainerName
-      properties: {
-        publicAccess: 'None'
-      }
-    }
-    resource storageAccountNameDefaultConfig 'containers' = {
-      name: 'config'
-      properties: {
-        publicAccess: 'None'
-      }
-    }
-  }
-}
-
-resource storageAccountNameDefault 'Microsoft.Storage/storageAccounts/queueServices@2022-09-01' = {
-  parent: storageAccount
-  name: 'default'
-  properties: {
-    cors: {
-      corsRules: []
-    }
-  }
-}
-
-resource storageAccountNameDefaultDocProcessing 'Microsoft.Storage/storageAccounts/queueServices/queues@2022-09-01' = {
-  parent: storageAccountNameDefault
-  name: 'doc-processing'
-  properties: {
-    metadata: {}
-  }
-  dependsOn: []
-}
-
-resource storageAccountNameDefaultDocProcessingPoison 'Microsoft.Storage/storageAccounts/queueServices/queues@2022-09-01' = {
-  parent: storageAccountNameDefault
-  name: 'doc-processing-poison'
-  properties: {
-    metadata: {}
-  }
-  dependsOn: []
 }

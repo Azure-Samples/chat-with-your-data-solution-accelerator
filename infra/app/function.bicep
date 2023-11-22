@@ -3,18 +3,18 @@ param location string = ''
 param appServicePlanId string 
 param storageAccountName string = ''
 param tags object = {}
-
 @secure()
 param appSettings object = {}
 param serviceName string = 'function'
 param runtimeName string = 'python'
 param runtimeVersion string = '3.11'
-
 @secure()
 param clientKey string
 param azureOpenAIName string = ''
 param azureCognitiveSearchName string = ''
-
+param rgName string = ''
+param formRecognizerName string = ''
+param contentSafetyName string = ''
 
 module function '../core/host/functions.bicep' = {
   name: '${name}-app-module'
@@ -27,8 +27,11 @@ module function '../core/host/functions.bicep' = {
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
     appSettings: union(appSettings, {
-      AZURE_OPENAI_KEY: listKeys('Microsoft.CognitiveServices/accounts/${azureOpenAIName}', '2023-05-01').key1
-      AZURE_SEARCH_KEY: listAdminKeys('Microsoft.Search/searchServices/${azureCognitiveSearchName}', '2021-04-01-preview').primaryKey
+      AZURE_OPENAI_KEY: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', azureOpenAIName), '2023-05-01').key1
+      AZURE_SEARCH_KEY: listAdminKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.Search/searchServices', azureCognitiveSearchName), '2021-04-01-preview').primaryKey
+      AZURE_BLOB_ACCOUNT_KEY: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.Storage/storageAccounts', storageAccountName), '2021-09-01').keys[0].value
+      AZURE_FORM_RECOGNIZER_KEY: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', formRecognizerName), '2023-05-01').key1
+      AZURE_CONTENT_SAFETY_KEY: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', contentSafetyName), '2023-05-01').key1
     })
   }
 }

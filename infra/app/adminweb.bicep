@@ -1,7 +1,10 @@
 param name string
 param location string = resourceGroup().location
 param tags object = {}
-
+param rgName string = ''
+param storageAccountName string = ''
+param formRecognizerName string = ''
+param contentSafetyName string = ''
 param allowedOrigins array = []
 param appServicePlanId string
 param appCommandLine string = 'python -m streamlit run Admin.py --server.port 8000 --server.address 0.0.0.0 --server.enableXsrfProtection false'
@@ -9,7 +12,6 @@ param applicationInsightsName string = ''
 param keyVaultName string = ''
 param azureOpenAIName string = ''
 param azureCognitiveSearchName string = ''
-
 @secure()
 param appSettings object = {}
 param serviceName string = 'adminweb'
@@ -25,8 +27,11 @@ module adminweb '../core/host/appservice.bicep' = {
     applicationInsightsName: applicationInsightsName
     appServicePlanId: appServicePlanId
     appSettings: union(appSettings, {
-      AZURE_OPENAI_KEY: listKeys('Microsoft.CognitiveServices/accounts/${azureOpenAIName}', '2023-05-01').key1
-      AZURE_SEARCH_KEY: listAdminKeys('Microsoft.Search/searchServices/${azureCognitiveSearchName}', '2021-04-01-preview').primaryKey
+      AZURE_OPENAI_KEY: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', azureOpenAIName), '2023-05-01').key1
+      AZURE_SEARCH_KEY: listAdminKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.Search/searchServices', azureCognitiveSearchName), '2021-04-01-preview').primaryKey
+      AZURE_BLOB_ACCOUNT_KEY: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.Storage/storageAccounts', storageAccountName), '2021-09-01').keys[0].value
+      AZURE_FORM_RECOGNIZER_KEY: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', formRecognizerName), '2023-05-01').key1
+      AZURE_CONTENT_SAFETY_KEY: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', contentSafetyName), '2023-05-01').key1
     })
     keyVaultName: keyVaultName
     runtimeName: 'python'
