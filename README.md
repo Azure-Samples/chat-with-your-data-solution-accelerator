@@ -58,7 +58,7 @@ Out-of-the-box, you can upload the following file types:
 
 * Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with contributor access.
 * An [Azure OpenAI resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=web-portal) and a deployment for one of the following Chat model and an embedding model:
-    * Chat Models
+    * Chat Models (select model version 0613 if you wish to use Azure OpenAI Functions as the orchestration stategy)
        * GPT-3.5
        * GPT-4
   * Embedding Model 
@@ -106,6 +106,17 @@ Out-of-the-box, you can upload the following file types:
     
     ![A screenshot of the chat app.](./media/chat-app.png)
 
+
+## Troubleshooting
+
+### Unrecognized request argument supplied: functions
+
+This error can occur when sending a message using the chat app. The error message "An error occurred. Please try again. 
+If the problem persists, please contact the site administrator" is displayed on the UI and the exception with message 
+"Unrecognized request argument supplied: functions" is logged to the developer console.
+
+This is caused when the orchestration stategy is set to `openai_functions` but the OpenAI deployment model **is not** 
+set to version 0613. To fix, please update your OpenAI deployment model to versoin 0613 and try again.
 
 ## Development and run the accelerator locally
 
