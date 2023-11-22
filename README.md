@@ -147,6 +147,7 @@ python -m flask --app ./app.py --debug run
 Open a new separate terminal and enter the following commands:
 ```shell
 cd code
+cd app
 cd frontend
 npm install
 npm run dev
