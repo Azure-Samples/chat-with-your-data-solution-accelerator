@@ -83,6 +83,7 @@ Out-of-the-box, you can upload the following file types:
     |Azure OpenAI resource    | The name of your Azure OpenAI resource. This resource must have already been created previously.         |
     |Azure OpenAI key    | The access key associated with your Azure OpenAI resource.        |
     |Orchestration strategy| Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain"|
+    Azure Document Intelligence resource location   | The location of the Azure Document Intelligence resource
     
     You can find the [ARM template](./infrastructure/deployment.json) used, along with a [Bicep file](./infrastructure/deployment.bicep) for deploying this accelerator in the `/infrastructure` directory.
 

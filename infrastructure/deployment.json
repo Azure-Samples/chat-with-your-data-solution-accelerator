@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.22.6.54827",
-      "templateHash": "7427399133148149700"
+      "version": "0.23.1.45101",
+      "templateHash": "6225439783988414033"
     }
   },
   "parameters": {
@@ -55,6 +55,13 @@
       "defaultValue": "[format('{0}-website', parameters('ResourcePrefix'))]",
       "metadata": {
         "description": "Name of Web App"
+      }
+    },
+    "logAnalyticsWorkspaceName": {
+      "type": "string",
+      "defaultValue": "[format('{0}-loganalytics', parameters('ResourcePrefix'))]",
+      "metadata": {
+        "description": "Name of Log Analytics Workspace for App Insights"
       }
     },
     "ApplicationInsightsName": {
@@ -256,7 +263,7 @@
     },
     "StorageAccountName": {
       "type": "string",
-      "defaultValue": "[format('{0}str', parameters('ResourcePrefix'))]",
+      "defaultValue": "[substring(format('{0}str{1}', parameters('ResourcePrefix'), uniqueString(resourceGroup().id)), 0, 24)]",
       "metadata": {
         "description": "Name of Storage Account"
       }
@@ -273,6 +280,12 @@
       "defaultValue": "[format('{0}-formrecog', parameters('ResourcePrefix'))]",
       "metadata": {
         "description": "Azure Form Recognizer Name"
+      }
+    },
+    "FormRecognizerLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure Form Recognizer Location"
       }
     },
     "ContentSafetyName": {
@@ -317,7 +330,7 @@
       "type": "Microsoft.CognitiveServices/accounts",
       "apiVersion": "2022-12-01",
       "name": "[parameters('FormRecognizerName')]",
-      "location": "[parameters('Location')]",
+      "location": "[parameters('FormRecognizerLocation')]",
       "sku": {
         "name": "S0"
       },
@@ -749,6 +762,17 @@
       ]
     },
     {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2021-06-01",
+      "name": "[parameters('logAnalyticsWorkspaceName')]",
+      "location": "[parameters('Location')]",
+      "properties": {
+        "sku": {
+          "name": "pergb2018"
+        }
+      }
+    },
+    {
       "type": "Microsoft.Insights/components",
       "apiVersion": "2020-02-02",
       "name": "[parameters('ApplicationInsightsName')]",
@@ -757,9 +781,13 @@
         "[format('hidden-link:{0}', resourceId('Microsoft.Web/sites', parameters('ApplicationInsightsName')))]": "Resource"
       },
       "properties": {
-        "Application_Type": "web"
+        "Application_Type": "web",
+        "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]"
       },
-      "kind": "web"
+      "kind": "web",
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]"
+      ]
     },
     {
       "type": "Microsoft.Web/sites",
