@@ -11,6 +11,8 @@ from azure.storage.blob import BlobServiceClient, generate_blob_sas, ContentSett
 import urllib.parse
 from utilities.helpers.ConfigHelper import ConfigHelper
 from dotenv import load_dotenv
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
 load_dotenv()
 
 logger = logging.getLogger('azure.core.pipeline.policies.http_logging_policy').setLevel(logging.WARNING)
@@ -65,7 +67,9 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
         charset = f"; charset={chardet.detect(bytes_data)['encoding']}" if content_type == 'text/plain' else ''
         content_type = content_type if content_type != None else 'text/plain'
     account_name = os.getenv('AZURE_BLOB_ACCOUNT_NAME')
-    account_key =  os.getenv('AZURE_BLOB_ACCOUNT_KEY')
+    credential = DefaultAzureCredential()
+    secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential)
+    account_key =  secret_client.get_secret(os.getenv("AZURE_BLOB_ACCOUNT_KEY")).value if os.getenv("USE_KEY_VAULT") else os.getenv("AZURE_BLOB_ACCOUNT_KEY")
     container_name = os.getenv('AZURE_BLOB_CONTAINER_NAME')
     if account_name == None or account_key == None or container_name == None:
         raise ValueError("Please provide values for AZURE_BLOB_ACCOUNT_NAME, AZURE_BLOB_ACCOUNT_KEY and AZURE_BLOB_CONTAINER_NAME")

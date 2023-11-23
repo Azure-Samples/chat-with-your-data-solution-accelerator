@@ -16,3 +16,4 @@ azure-search-documents==11.4.0b8
 opencensus-ext-azure==1.1.9
 azure-ai-contentsafety==1.0.0b1
 python-docx==0.8.11
+azure-keyvault-secrets == 4.4.*
