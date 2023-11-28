@@ -148,7 +148,7 @@ var BackendImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-backend'
 var BlobContainerName = 'documents'
 var QueueName = 'doc-processing'
 var ClientKey = '${uniqueString(guid(resourceGroup().id, deployment().name))}${newGuidString}'
-var EventGridSystemTopicName = 'doc-processing-test'
+var EventGridSystemTopicName = 'doc-processing'
 
 resource AzureCognitiveSearch_resource 'Microsoft.Search/searchServices@2022-09-01' = {
   name: AzureCognitiveSearch
@@ -337,18 +337,6 @@ resource StorageAccount 'Microsoft.Storage/storageAccounts@2021-08-01' = {
     type: 'SystemAssigned'
   }
 }
-
-// resource StorageAccountContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-//   name: guid(subscription().id, resourceGroup().id, principalId, 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-//   properties: {
-//     roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-//     principalId: principalId
-//     principalType: 'User'
-//   }
-//   dependsOn: [
-//     StorageAccount
-//   ]
-// }
 
 module storageRoleUser 'security/role.bicep' = {
   scope: resourceGroup()
