@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "6225439783988414033"
+      "templateHash": "14989688851250758011"
     }
   },
   "parameters": {
@@ -52,7 +52,6 @@
     },
     "principalId": {
       "type": "string",
-      "defaultValue": "77f478c6-666e-4aeb-91cb-78adaea7744a",
       "metadata": {
         "description": "Id of the user or app to assign application roles"
       }

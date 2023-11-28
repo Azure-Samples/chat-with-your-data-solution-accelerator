@@ -25,7 +25,7 @@ param HostingPlanName string = '${ResourcePrefix}-hosting-plan'
 param HostingPlanSku string = 'B3'
 
 @description('Id of the user or app to assign application roles')
-param principalId string = '77f478c6-666e-4aeb-91cb-78adaea7744a'
+param principalId string
 
 @description('Name of Web App')
 param WebsiteName string = '${ResourcePrefix}-website'
