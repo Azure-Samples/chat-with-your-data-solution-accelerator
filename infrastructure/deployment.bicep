@@ -24,6 +24,9 @@ param HostingPlanName string = '${ResourcePrefix}-hosting-plan'
 ])
 param HostingPlanSku string = 'B3'
 
+@description('Id of the user or app to assign application roles')
+param principalId string = '77f478c6-666e-4aeb-91cb-78adaea7744a'
+
 @description('Name of Web App')
 param WebsiteName string = '${ResourcePrefix}-website'
 
@@ -139,11 +142,14 @@ var BackendImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-backend'
 var BlobContainerName = 'documents'
 var QueueName = 'doc-processing'
 var ClientKey = '${uniqueString(guid(resourceGroup().id, deployment().name))}${newGuidString}'
-var EventGridSystemTopicName = 'doc-processing'
+var EventGridSystemTopicName = 'doc-processing-test'
 
 resource AzureCognitiveSearch_resource 'Microsoft.Search/searchServices@2022-09-01' = {
   name: AzureCognitiveSearch
   location: Location
+  identity: {
+    type: 'SystemAssigned'
+  }
   tags: {
     deployment : 'chatwithyourdata-sa'
   }
@@ -210,6 +216,9 @@ resource HostingPlan 'Microsoft.Web/serverfarms@2020-06-01' = {
 resource Website 'Microsoft.Web/sites@2020-06-01' = {
   name: WebsiteName
   location: Location
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: HostingPlanName
     siteConfig: {
@@ -259,6 +268,9 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
 resource WebsiteName_admin 'Microsoft.Web/sites@2020-06-01' = {
   name: '${WebsiteName}-admin'
   location: Location
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: HostingPlanName
     siteConfig: {
@@ -315,7 +327,43 @@ resource StorageAccount 'Microsoft.Storage/storageAccounts@2021-08-01' = {
   sku: {
     name: 'Standard_GRS'
   }
+  identity: {
+    type: 'SystemAssigned'
+  }
 }
+
+// resource StorageAccountContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+//   name: guid(subscription().id, resourceGroup().id, principalId, 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+//   properties: {
+//     roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+//     principalId: principalId
+//     principalType: 'User'
+//   }
+//   dependsOn: [
+//     StorageAccount
+//   ]
+// }
+
+module storageRoleUser 'security/role.bicep' = {
+  scope: resourceGroup()
+  name: 'storage-role-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
+    principalType: 'User'
+  }
+}
+
+module storageContribRoleUser 'security/role.bicep' = {
+  scope: resourceGroup()
+  name: 'storage-contribrole-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    principalType: 'User'
+  }
+}
+
 
 resource StorageAccountName_default_BlobContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-08-01' = {
   name: '${StorageAccountName}/default/${BlobContainerName}'
@@ -381,6 +429,9 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
   name: FunctionName
   kind: 'functionapp,linux'
   location: Location
+  identity: {
+    type: 'SystemAssigned'
+  }
   tags: {}
   properties: {
     siteConfig: {

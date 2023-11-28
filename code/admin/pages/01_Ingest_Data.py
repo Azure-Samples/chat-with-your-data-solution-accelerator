@@ -13,6 +13,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from utilities.helpers.ConfigHelper import ConfigHelper
 from dotenv import load_dotenv
+from azure.identity import DefaultAzureCredential
 load_dotenv()
 
 logger = logging.getLogger('azure.core.pipeline.policies.http_logging_policy').setLevel(logging.WARNING)
@@ -73,14 +74,14 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
     container_name = os.getenv('AZURE_BLOB_CONTAINER_NAME')
     if account_name == None or account_key == None or container_name == None:
         raise ValueError("Please provide values for AZURE_BLOB_ACCOUNT_NAME, AZURE_BLOB_ACCOUNT_KEY and AZURE_BLOB_CONTAINER_NAME")
-    connect_str = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
-    blob_service_client : BlobServiceClient = BlobServiceClient.from_connection_string(connect_str)
+    #connect_str = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+    blob_service_client : BlobServiceClient = BlobServiceClient(account_url=f"https://{account_name}.blob.core.windows.net", credential=DefaultAzureCredential())
     # Create a blob client using the local file name as the name for the blob
     blob_client = blob_service_client.get_blob_client(container=container_name, blob=file_name)
     # Upload the created file
     blob_client.upload_blob(bytes_data, overwrite=True, content_settings=ContentSettings(content_type=content_type+charset))
     # Generate a SAS URL to the blob and return it
-    st.session_state['file_url'] = blob_client.url + '?' + generate_blob_sas(account_name, container_name, file_name,account_key=account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
+    st.session_state['file_url'] = blob_client.url #+ '?' + generate_blob_sas(account_name, container_name, file_name,account_key=account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
 
 try:
     with st.expander("Add documents in Batch", expanded=True):
