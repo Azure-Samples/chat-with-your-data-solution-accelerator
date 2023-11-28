@@ -144,7 +144,7 @@ param contentSafetyName string = '${environmentName}-contentsafety-${resourceTok
 
 param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'
-param useKeyVault bool = true
+param useKeyVault bool
 
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
@@ -155,6 +155,7 @@ var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${ne
 var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
 var rgName = 'rg-${environmentName}'
+var keyVaultName = 'kv-${resourceToken}'
 
 // Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
@@ -227,11 +228,11 @@ module hostingplan './core/host/appserviceplan.bicep' = {
   }
 }
 
-module storekeys './app/storekeys.bicep' = if(useKeyVault){
+module storekeys './app/storekeys.bicep' = if (useKeyVault) {
   name: 'storekeys'
   scope: rg
   params: {
-    keyVaultName: keyvault.outputs.name
+    keyVaultName: keyVaultName
     azureOpenAIName: openai.outputs.name
     azureCognitiveSearchName: search.outputs.name
     storageAccountName: storage.outputs.STORAGE_ACCOUNT_NAME
@@ -242,7 +243,7 @@ module storekeys './app/storekeys.bicep' = if(useKeyVault){
 }
 
 // Store secrets in a keyvault
-module keyvault './core/security/keyvault.bicep' = if(useKeyVault){
+module keyvault './core/security/keyvault.bicep' = if (useKeyVault) {
   name: 'keyvault'
   scope: rg
   params: {
@@ -253,29 +254,29 @@ module keyvault './core/security/keyvault.bicep' = if(useKeyVault){
   }
 }
 
-module webaccess './core/security/keyvault-access.bicep' = if(useKeyVault){
+module webaccess './core/security/keyvault-access.bicep' = if (useKeyVault) {
   name: 'web-keyvault-access'
   scope: rg
   params: {
-    keyVaultName: keyvault.outputs.name
+    keyVaultName: keyVaultName
     principalId: web.outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID
   }
 }
 
-module adminwebaccess './core/security/keyvault-access.bicep' = if(useKeyVault){
+module adminwebaccess './core/security/keyvault-access.bicep' = if (useKeyVault) {
   name: 'adminweb-keyvault-access'
   scope: rg
   params: {
-    keyVaultName: keyvault.outputs.name
+    keyVaultName: keyVaultName
     principalId: adminweb.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
   }
 }
 
-module functionaccess './core/security/keyvault-access.bicep' = if(useKeyVault){
+module functionaccess './core/security/keyvault-access.bicep' = if (useKeyVault) {
   name: 'function-keyvault-access'
   scope: rg
   params: {
-    keyVaultName: keyvault.outputs.name
+    keyVaultName: keyVaultName
     principalId: function.outputs.FUNCTION_IDENTITY_PRINCIPAL_ID
   }
 }
@@ -301,8 +302,8 @@ module web './app/web.bicep' = {
     searchKey: useKeyVault ? storekeys.outputs.SEARCH_KEY: ''
     contentSafetyKey: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY: ''
     useKeyVault: useKeyVault
-    keyVaultName: keyvault.outputs.name
-    keyVaultEndpoint: keyvault.outputs.endpoint
+    keyVaultName: useKeyVault ? keyvault.outputs.name : ''
+    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     appSettings: {
       AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -357,8 +358,8 @@ module adminweb './app/adminweb.bicep' = {
     searchKey: useKeyVault ? storekeys.outputs.SEARCH_KEY: ''
     contentSafetyKey: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY: ''
     useKeyVault: useKeyVault
-    keyVaultName: keyvault.outputs.name
-    keyVaultEndpoint: keyvault.outputs.endpoint
+    keyVaultName: useKeyVault ? keyvault.outputs.name : ''
+    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     appSettings: {
       AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -430,8 +431,8 @@ module function './app/function.bicep' = {
     searchKey: useKeyVault ? storekeys.outputs.SEARCH_KEY: ''
     contentSafetyKey: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY: ''
     useKeyVault: useKeyVault
-    keyVaultName: keyvault.outputs.name
-    keyVaultEndpoint: keyvault.outputs.endpoint
+    keyVaultName: useKeyVault ? keyvault.outputs.name : ''
+    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     appSettings: {
       FUNCTIONS_EXTENSION_VERSION: '~4'
       WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
@@ -496,18 +497,42 @@ module storage 'app/storage.bicep' = {
   }
 }
 
-output AZURE_KEY_VAULT_ENDPOINT string = keyvault.outputs.endpoint
-output AZURE_KEY_VAULT_NAME string = keyvault.outputs.name
-output AZURE_LOCATION string = location
-output AZURE_TENANT_ID string = tenant().tenantId
-output USE_KEY_VAULT bool = useKeyVault
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output APPINSIGHTS_INSTRUMENTATIONKEY string = monitoring.outputs.applicationInsightsInstrumentationKey
+output AZURE_KEY_VAULT_ENDPOINT string = useKeyVault ? keyvault.outputs.endpoint : ''
+output AZURE_KEY_VAULT_NAME string = useKeyVault ? keyvault.outputs.name : ''
+output AZURE_LOCATION string = location
+output AZURE_TENANT_ID string = tenant().tenantId
 output AZURE_CONTENT_SAFETY_ENDPOINT string = contentsafety.outputs.endpoint
 output AZURE_SEARCH_SERVICE string = search.outputs.endpoint
 output AZURE_FORM_RECOGNIZER_ENDPOINT string = formrecognizer.outputs.endpoint
-output OPENAI_KEY string = useKeyVault ? storekeys.outputs.OPENAI_KEY : ''
-output STORAGE_ACCOUNT_KEY string = useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY: ''
-output FORM_RECOGNIZER_KEY string = useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY: ''
-output SEARCH_KEY string = useKeyVault ? storekeys.outputs.SEARCH_KEY: ''
-output CONTENT_SAFETY_KEY string = useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY: ''
+output AZURE_SEARCH_USE_SEMANTIC_SEARCH string = azureSearchUseSemanticSearch
+output AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG string = azureSearchSemanticSearchConfig
+output AZURE_SEARCH_INDEX_IS_PRECHUNKED string = azureSearchIndexIsPrechunked
+output AZURE_SEARCH_TOP_K string = azureSearchTopK
+output AZURE_SEARCH_ENABLE_IN_DOMAIN string = azureSearchEnableInDomain
+output AZURE_SEARCH_CONTENT_COLUMNS string = azureSearchContentColumns
+output AZURE_SEARCH_FILENAME_COLUMN string = azureSearchFilenameColumn
+output AZURE_SEARCH_TITLE_COLUMN string = azureSearchTitleColumn
+output AZURE_SEARCH_URL_COLUMN string = azureSearchUrlColumn
+output AZURE_OPENAI_MODEL_NAME string = azureOpenAIModelName
+output AZURE_OPENAI_STREAM string = azureOpenAIStream
+output AZURE_OPENAI_SYSTEM_MESSAGE string = azureOpenAISystemMessage
+output AZURE_OPENAI_STOP_SEQUENCE string = azureOpenAIStopSequence
+output AZURE_OPENAI_MAX_TOKENS string = azureOpenAIMaxTokens
+output AZURE_OPENAI_TOP_P string = azureOpenAITopP
+output AZURE_OPENAI_TEMPERATURE string = azureOpenAITemperature
+output AZURE_SEARCH_INDEX string = azureSearchIndex
+output AZURE_OPENAI_API_VERSION string = azureOpenAIApiVersion
+output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
+output AZURE_BLOB_CONTAINER_NAME string = blobContainerName
+output AZURE_BLOB_ACCOUNT_NAME string = storageAccountName
+output AZURE_OPENAI_RESOURCE string = azureOpenAIResourceName
+output AZURE_OPENAI_EMBEDDING_MODEL string = azureOpenAIEmbeddingModel
+output AZURE_OPENAI_MODEL string = azureOpenAIModel
+output USE_KEY_VAULT bool = useKeyVault
+output AZURE_OPENAI_KEY string = useKeyVault ? storekeys.outputs.OPENAI_KEY : ''
+output AZURE_BLOB_ACCOUNT_KEY string = useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY: ''
+output AZURE_FORM_RECOGNIZER_KEY string = useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY: ''
+output AZURE_SEARCH_KEY string = useKeyVault ? storekeys.outputs.SEARCH_KEY: ''
+output AZURE_CONTENT_SAFETY_KEY string = useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY: ''

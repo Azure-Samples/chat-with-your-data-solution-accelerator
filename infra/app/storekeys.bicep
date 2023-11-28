@@ -5,10 +5,16 @@ param azureCognitiveSearchName string = ''
 param rgName string = ''
 param formRecognizerName string = ''
 param contentSafetyName string = ''
+param storageAccountKeyName string = 'AZURE-STORAGE-ACCOUNT-KEY'
+param openAIKeyName string = 'AZURE-OPEN-AI-KEY'
+param searchKeyName string = 'AZURE-SEARCH-KEY'
+param formRecognizerKeyName string = 'AZURE-FORM-RECOGNIZER-KEY'
+param contentSafety string = 'AZURE-CONTENT-SAFETY-KEY'
+
 
 resource storageAccountKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: keyVault
-  name: 'storageAccountKey'
+  name: storageAccountKeyName
   properties: {
     value: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.Storage/storageAccounts', storageAccountName), '2021-09-01').keys[0].value
   }
@@ -16,7 +22,7 @@ resource storageAccountKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' 
 
 resource openAIKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: keyVault
-  name: 'openAIKey'
+  name: openAIKeyName
   properties: {
     value: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', azureOpenAIName), '2023-05-01').key1
   }
@@ -24,7 +30,7 @@ resource openAIKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
 
 resource searchKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: keyVault
-  name: 'searchKey'
+  name: searchKeyName
   properties: {
     value: listAdminKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.Search/searchServices', azureCognitiveSearchName), '2021-04-01-preview').primaryKey
   }
@@ -32,7 +38,7 @@ resource searchKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
 
 resource formRecognizerKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: keyVault
-  name: 'formRecognizerKey'
+  name: formRecognizerKeyName
   properties: {
     value: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', formRecognizerName), '2023-05-01').key1
   }
@@ -40,7 +46,7 @@ resource formRecognizerKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' 
 
 resource contentSafetyKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: keyVault
-  name: 'contentSafetyKey'
+  name: contentSafety
   properties: {
     value: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', contentSafetyName), '2023-05-01').key1
   }

@@ -25,8 +25,10 @@ app = Flask(__name__)
 def static_file(path):
     return app.send_static_file(path)
 
-credential = DefaultAzureCredential()
-secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential)
+if os.environ.get("USE_KEY_VAULT"):
+    credential = DefaultAzureCredential()
+    secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential)
+
 # ACS Integration Settings
 AZURE_SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")
 AZURE_SEARCH_INDEX = os.environ.get("AZURE_SEARCH_INDEX")

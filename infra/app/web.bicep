@@ -15,7 +15,7 @@ param contentSafetyName string = ''
 @secure()
 param appSettings object = {}
 param serviceName string = 'web'
-param useKeyVault bool = true
+param useKeyVault bool
 param openAIKey string = ''
 param storageAccountKey string = ''
 param formRecognizerKey string = ''

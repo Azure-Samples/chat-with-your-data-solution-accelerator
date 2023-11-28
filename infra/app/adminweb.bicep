@@ -15,7 +15,7 @@ param azureCognitiveSearchName string = ''
 @secure()
 param appSettings object = {}
 param serviceName string = 'adminweb'
-param useKeyVault bool = true
+param useKeyVault bool
 param openAIKey string = ''
 param storageAccountKey string = ''
 param formRecognizerKey string = ''

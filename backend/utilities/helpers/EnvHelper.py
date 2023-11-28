@@ -9,8 +9,9 @@ logger = logging.getLogger(__name__)
 class EnvHelper:
     def __init__(self, **kwargs) -> None:
         load_dotenv()
-        credential = DefaultAzureCredential()
-        secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential)
+        if os.environ.get("USE_KEY_VAULT"):
+            credential = DefaultAzureCredential()
+            secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential)
         # Azure Search
         self.AZURE_SEARCH_SERVICE = os.getenv('AZURE_SEARCH_SERVICE', '')
         self.AZURE_SEARCH_INDEX = os.getenv('AZURE_SEARCH_INDEX', '')

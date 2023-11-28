@@ -16,7 +16,7 @@ param azureCognitiveSearchName string = ''
 param rgName string = ''
 param formRecognizerName string = ''
 param contentSafetyName string = ''
-param useKeyVault bool = true
+param useKeyVault bool
 param openAIKey string = ''
 param storageAccountKey string = ''
 param formRecognizerKey string = ''

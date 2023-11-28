@@ -67,8 +67,9 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
         charset = f"; charset={chardet.detect(bytes_data)['encoding']}" if content_type == 'text/plain' else ''
         content_type = content_type if content_type != None else 'text/plain'
     account_name = os.getenv('AZURE_BLOB_ACCOUNT_NAME')
-    credential = DefaultAzureCredential()
-    secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential)
+    if os.environ.get("USE_KEY_VAULT"):
+        credential = DefaultAzureCredential()
+        secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential)
     account_key =  secret_client.get_secret(os.getenv("AZURE_BLOB_ACCOUNT_KEY")).value if os.getenv("USE_KEY_VAULT") else os.getenv("AZURE_BLOB_ACCOUNT_KEY")
     container_name = os.getenv('AZURE_BLOB_CONTAINER_NAME')
     if account_name == None or account_key == None or container_name == None:
