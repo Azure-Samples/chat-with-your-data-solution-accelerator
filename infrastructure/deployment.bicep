@@ -30,6 +30,9 @@ param principalId string = '77f478c6-666e-4aeb-91cb-78adaea7744a'
 @description('Name of Web App')
 param WebsiteName string = '${ResourcePrefix}-website'
 
+@description('Name of Log Analytics Workspace for App Insights')
+param logAnalyticsWorkspaceName string = '${ResourcePrefix}-loganalytics'
+
 @description('Name of Application Insights')
 param ApplicationInsightsName string = '${ResourcePrefix}-appinsights'
 
@@ -104,7 +107,7 @@ param AzureOpenAIStream string = 'true'
 @description('Azure OpenAI Embedding Model')
 param AzureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 
-@description('Azure Cognitive Search Resource')
+@description('Azure AI Search Resource')
 param AzureCognitiveSearch string = '${ResourcePrefix}-search'
 
 @description('The SKU of the search service you want to create. E.g. free or standard')
@@ -117,20 +120,23 @@ param AzureCognitiveSearch string = '${ResourcePrefix}-search'
 ])
 param AzureCognitiveSearchSku string = 'standard'
 
-@description('Azure Cognitive Search Index')
+@description('Azure AI Search Index')
 param AzureSearchIndex string = '${ResourcePrefix}-index'
 
-@description('Azure Cognitive Search Conversation Log Index')
+@description('Azure AI Search Conversation Log Index')
 param AzureSearchConversationLogIndex string = 'conversations'
 
 @description('Name of Storage Account')
-param StorageAccountName string = '${ResourcePrefix}str'
+param StorageAccountName string = substring('${ResourcePrefix}str${uniqueString(resourceGroup().id)}', 0, 24)
 
 @description('Name of Function App for Batch document processing')
 param FunctionName string = '${ResourcePrefix}-backend'
 
 @description('Azure Form Recognizer Name')
 param FormRecognizerName string = '${ResourcePrefix}-formrecog'
+
+@description('Azure Form Recognizer Location')
+param FormRecognizerLocation string
 
 @description('Azure Content Safety Name')
 param ContentSafetyName string = '${ResourcePrefix}-contentsafety'
@@ -164,7 +170,7 @@ resource AzureCognitiveSearch_resource 'Microsoft.Search/searchServices@2022-09-
 
 resource FormRecognizer 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
   name: FormRecognizerName
-  location: Location
+  location: FormRecognizerLocation
   sku: {
     name: 'S0'
   }
@@ -413,6 +419,17 @@ resource StorageAccountName_default_doc_processing_poison 'Microsoft.Storage/sto
   dependsOn: []
 }
 
+
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2021-06-01' = {
+  name: logAnalyticsWorkspaceName
+  location: Location
+  properties: {
+    sku: {
+      name: 'pergb2018'
+    }
+  }
+}
+
 resource ApplicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: ApplicationInsightsName
   location: Location
@@ -421,6 +438,7 @@ resource ApplicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
   properties: {
     Application_Type: 'web'
+    WorkspaceResourceId: logAnalyticsWorkspace.id
   }
   kind: 'web'
 }
