@@ -150,8 +150,6 @@ The following are links to the pricing details for some of the resources:
 
     <!-- TODO: Updated prior to PR -->
     [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template) 
-    
-    
 
 1. Add the following fields:
 
