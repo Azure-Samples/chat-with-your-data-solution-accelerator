@@ -12,7 +12,7 @@ This extension brings the Chat with your data experience into Teams, allowing us
 **IMPORTANT**: Before you proceed, installation and configuration of the [Chat with your data with speech-to-text deployment](#chat-with-your-data-with-speech-to-text-deployment) is required.
 ### Deploy Backend Azure Function
 <!-- TODO: Updated prior to PR -->
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fhunterjam%2Fchat-with-your-data-solution-accelerator%2Fmain%2Fextensions%2Finfrastructure%2Fmain.json)
 
 | App Setting | Note |
 | --- | ------------- |

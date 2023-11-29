@@ -149,7 +149,7 @@ The following are links to the pricing details for some of the resources:
 1. Click the following deployment button to create the required resources for this accelerator directly in your Azure Subscription. 
 
     <!-- TODO: Updated prior to PR -->
-    [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template) 
+    [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fhunterjam%2Fchat-with-your-data-solution-accelerator%2Fmain%2Finfrastructure%2Fdeployment.json) 
 
 1. Add the following fields:
 
