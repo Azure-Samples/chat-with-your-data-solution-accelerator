@@ -32,6 +32,9 @@ const CONVERSATION_DATA_PROPERTY = "conversationData";
 const USER_PROFILE_PROPERTY = "userProfile";
 const EMPTY_RESPONSE = "Sorry, I do not have an answer. Please try again.";
 
+/**
+ * Represents a Teams bot that handles activities and messaging extensions.
+ */
 export class TeamsBot extends TeamsActivityHandler {
   // record the likeCount
   likeCountObj: { likeCount: number };

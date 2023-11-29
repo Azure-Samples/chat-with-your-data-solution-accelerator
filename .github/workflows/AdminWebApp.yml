@@ -22,8 +22,8 @@ jobs:
     - uses: actions/checkout@v3
     - name: Build the Docker image
       run:
-        docker pull cscicontainer.azurecr.io/rag-adminwebapp:latest || true;
-        docker build . --file docker/AdminWebApp.Dockerfile --cache-from cscicontainer.azurecr.io/rag-adminwebapp:latest --tag cscicontainer.azurecr.io/rag-adminwebapp:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
-        docker tag cscicontainer.azurecr.io/rag-adminwebapp:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER cscicontainer.azurecr.io/rag-adminwebapp:latest;
-        docker push cscicontainer.azurecr.io/rag-adminwebapp:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
-        docker push cscicontainer.azurecr.io/rag-adminwebapp:latest;
+        docker pull cscicontainer.azurecr.io/rag-adminwebapp-pr:latest || true;
+        docker build . --file docker/AdminWebApp.Dockerfile --cache-from cscicontainer.azurecr.io/rag-adminwebapp-pr:latest --tag cscicontainer.azurecr.io/rag-adminwebapp-pr:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
+        docker tag cscicontainer.azurecr.io/rag-adminwebapp-pr:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER cscicontainer.azurecr.io/rag-adminwebapp-pr:latest;
+        docker push cscicontainer.azurecr.io/rag-adminwebapp-pr:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
+        docker push cscicontainer.azurecr.io/rag-adminwebapp-pr:latest;
