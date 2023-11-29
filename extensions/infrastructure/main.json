@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "15798189635788820274"
+      "templateHash": "1952203594014398841"
     }
   },
   "parameters": {
@@ -268,7 +268,7 @@
     }
   },
   "variables": {
-    "BackendImageName": "DOCKER|cscicontainer.azurecr.io/cwyod_backend-fork"
+    "BackendImageName": "DOCKER|aispeechtotext.azurecr.io/cwyod_backend-fork"
   },
   "resources": [
     {

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "4984099229773585869"
+      "templateHash": "7715529990889198212"
     }
   },
   "parameters": {
@@ -309,9 +309,9 @@
     }
   },
   "variables": {
-    "WebAppImageName": "DOCKER|cscicontainer.azurecr.io/rag-webapp-fork",
-    "AdminWebAppImageName": "DOCKER|cscicontainer.azurecr.io/rag-adminwebapp-fork",
-    "BackendImageName": "DOCKER|cscicontainer.azurecr.io/rag-backend-fork",
+    "WebAppImageName": "DOCKER|aispeechtotext.azurecr.io/rag-webapp-fork",
+    "AdminWebAppImageName": "DOCKER|aispeechtotext.azurecr.io/rag-adminwebapp-fork",
+    "BackendImageName": "DOCKER|aispeechtotext.azurecr.io/rag-backend-fork",
     "BlobContainerName": "documents",
     "QueueName": "doc-processing",
     "ClientKey": "[format('{0}{1}', uniqueString(guid(resourceGroup().id, deployment().name)), parameters('newGuidString'))]",

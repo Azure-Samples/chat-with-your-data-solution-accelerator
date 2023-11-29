@@ -147,9 +147,9 @@ param newGuidString string = newGuid()
 // var BackendImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-backend'
 
 //BELOW IS FOR INTERNAL REPO - REPLACE PRIOR TO PR
-var WebAppImageName = 'DOCKER|cscicontainer.azurecr.io/rag-webapp-fork'
-var AdminWebAppImageName = 'DOCKER|cscicontainer.azurecr.io/rag-adminwebapp-fork'
-var BackendImageName = 'DOCKER|cscicontainer.azurecr.io/rag-backend-fork'
+var WebAppImageName = 'DOCKER|aispeechtotext.azurecr.io/rag-webapp-fork'
+var AdminWebAppImageName = 'DOCKER|aispeechtotext.azurecr.io/rag-adminwebapp-fork'
+var BackendImageName = 'DOCKER|aispeechtotext.azurecr.io/rag-backend-fork'
 //END
 
 var BlobContainerName = 'documents'
