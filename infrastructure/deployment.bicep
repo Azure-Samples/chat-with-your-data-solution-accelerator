@@ -474,17 +474,18 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
   }
 }
 
-resource FunctionName_default_clientKey 'Microsoft.Web/sites/host/functionKeys@2018-11-01' = {
-  name: '${FunctionName}/default/clientKey'
-  properties: {
-    name: 'ClientKey'
-    value: ClientKey
-  }
-  dependsOn: [
-    Function
-    WaitFunctionDeploymentSection
-  ]
-}
+//TODO --- Uncomment when ready to submit PR
+// resource FunctionName_default_clientKey 'Microsoft.Web/sites/host/functionKeys@2018-11-01' = {
+//   name: '${FunctionName}/default/clientKey'
+//   properties: {
+//     name: 'ClientKey'
+//     value: ClientKey
+//   }
+//   dependsOn: [
+//     Function
+//     WaitFunctionDeploymentSection
+//   ]
+// }
 
 resource WaitFunctionDeploymentSection 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   kind: 'AzurePowerShell'
