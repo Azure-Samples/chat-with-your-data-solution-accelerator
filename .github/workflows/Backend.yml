@@ -23,7 +23,7 @@ jobs:
     - name: Build the Docker image
       run:
         docker pull aispeechtotext.azurecr.io/rag-backend-fork:latest || true;
-        docker build . --file web/docker/Backend.Dockerfile --cache-from aispeechtotext.azurecr.io/rag-backend-fork:latest --tag aispeechtotext.azurecr.io/rag-backend-fork:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
+        docker build . --file docker/Backend.Dockerfile --cache-from aispeechtotext.azurecr.io/rag-backend-fork:latest --tag aispeechtotext.azurecr.io/rag-backend-fork:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
         docker tag aispeechtotext.azurecr.io/rag-backend-fork:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER aispeechtotext.azurecr.io/rag-backend-fork:latest;
         docker push aispeechtotext.azurecr.io/rag-backend-fork:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
         docker push aispeechtotext.azurecr.io/rag-backend-fork:latest;
