@@ -147,9 +147,9 @@ param newGuidString string = newGuid()
 // var BackendImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-backend'
 
 //BELOW IS FOR INTERNAL REPO - REPLACE PRIOR TO PR
-var WebAppImageName = 'DOCKER|aispeechtotext.azurecr.io/rag-webapp'
-var AdminWebAppImageName = 'DOCKER|aispeechtotext.azurecr.io/rag-adminwebapp'
-var BackendImageName = 'DOCKER|aispeechtotext.azurecr.io/rag-backend'
+var WebAppImageName = 'DOCKER|cscicontainer.azurecr.io/rag-webapp-pr'
+var AdminWebAppImageName = 'DOCKER|cscicontainer.azurecr.io/rag-adminwebapp-pr'
+var BackendImageName = 'DOCKER|cscicontainer.azurecr.io/rag-backend-pr'
 //END
 
 var BlobContainerName = 'documents'
@@ -474,18 +474,17 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
   }
 }
 
-//TODO --- Uncomment when ready to submit PR
-// resource FunctionName_default_clientKey 'Microsoft.Web/sites/host/functionKeys@2018-11-01' = {
-//   name: '${FunctionName}/default/clientKey'
-//   properties: {
-//     name: 'ClientKey'
-//     value: ClientKey
-//   }
-//   dependsOn: [
-//     Function
-//     WaitFunctionDeploymentSection
-//   ]
-// }
+resource FunctionName_default_clientKey 'Microsoft.Web/sites/host/functionKeys@2018-11-01' = {
+  name: '${FunctionName}/default/clientKey'
+  properties: {
+    name: 'ClientKey'
+    value: ClientKey
+  }
+  dependsOn: [
+    Function
+    WaitFunctionDeploymentSection
+  ]
+}
 
 resource WaitFunctionDeploymentSection 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   kind: 'AzurePowerShell'

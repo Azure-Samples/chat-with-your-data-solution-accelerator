@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "3207031547938518936"
+      "templateHash": "14810559130180155938"
     }
   },
   "parameters": {
@@ -309,9 +309,9 @@
     }
   },
   "variables": {
-    "WebAppImageName": "DOCKER|aispeechtotext.azurecr.io/rag-webapp",
-    "AdminWebAppImageName": "DOCKER|aispeechtotext.azurecr.io/rag-adminwebapp",
-    "BackendImageName": "DOCKER|aispeechtotext.azurecr.io/rag-backend",
+    "WebAppImageName": "DOCKER|cscicontainer.azurecr.io/rag-webapp-pr",
+    "AdminWebAppImageName": "DOCKER|cscicontainer.azurecr.io/rag-adminwebapp-pr",
+    "BackendImageName": "DOCKER|cscicontainer.azurecr.io/rag-backend-pr",
     "BlobContainerName": "documents",
     "QueueName": "doc-processing",
     "ClientKey": "[format('{0}{1}', uniqueString(guid(resourceGroup().id, deployment().name)), parameters('newGuidString'))]",
@@ -943,6 +943,19 @@
         "[resourceId('Microsoft.Insights/components', parameters('ApplicationInsightsName'))]",
         "[resourceId('Microsoft.Web/serverfarms', parameters('HostingPlanName'))]",
         "[resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/sites/host/functionKeys",
+      "apiVersion": "2018-11-01",
+      "name": "[format('{0}/default/clientKey', parameters('FunctionName'))]",
+      "properties": {
+        "name": "ClientKey",
+        "value": "[variables('ClientKey')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('FunctionName'))]",
+        "[resourceId('Microsoft.Resources/deploymentScripts', 'WaitFunctionDeploymentSection')]"
       ]
     },
     {
