@@ -15,16 +15,16 @@ jobs:
     - name: Docker Login
       uses: docker/login-action@v2.2.0
       with:
-        registry: fruoccopublic.azurecr.io
-        username: fruoccopublic
+        registry: cscicontainer.azurecr.io
+        username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
     
     - uses: actions/checkout@v3
     - name: Build the Docker image
       run:
-        docker pull fruoccopublic.azurecr.io/rag-backend:latest || true;
-        docker build . --file docker/Backend.Dockerfile --cache-from fruoccopublic.azurecr.io/rag-backend:latest --tag fruoccopublic.azurecr.io/rag-backend:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
-        docker tag fruoccopublic.azurecr.io/rag-backend:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER fruoccopublic.azurecr.io/rag-backend:latest;
-        docker push fruoccopublic.azurecr.io/rag-backend:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
-        docker push fruoccopublic.azurecr.io/rag-backend:latest;
+        docker pull cscicontainer.azurecr.io/rag-backend-fork:latest || true;
+        docker build . --file web/docker/Backend.Dockerfile --cache-from cscicontainer.azurecr.io/rag-backend-fork:latest --tag cscicontainer.azurecr.io/rag-backend-fork:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
+        docker tag cscicontainer.azurecr.io/rag-backend-fork:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER cscicontainer.azurecr.io/rag-backend-fork:latest;
+        docker push cscicontainer.azurecr.io/rag-backend-fork:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
+        docker push cscicontainer.azurecr.io/rag-backend-fork:latest;
         

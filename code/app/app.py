@@ -23,7 +23,18 @@ app = Flask(__name__)
 @app.route("/<path:path>")
 def static_file(path):
     return app.send_static_file(path)
+@app.route('/api/config', methods=['GET'])
 
+def get_config():
+    # Retrieve the environment variables or other configuration data
+    azure_speech_key = os.getenv('AZURE_SPEECH_SERVICE_KEY')
+    azure_speech_region = os.getenv('AZURE_SPEECH_SERVICE_REGION')
+
+    # Return the configuration data as JSON
+    return jsonify({
+        'azureSpeechKey': azure_speech_key,
+        'azureSpeechRegion': azure_speech_region
+    })
 # ACS Integration Settings
 AZURE_SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")
 AZURE_SEARCH_INDEX = os.environ.get("AZURE_SEARCH_INDEX")
@@ -251,9 +262,9 @@ def conversation_azure_byod():
         else:
             return conversation_without_data(request)
     except Exception as e:
-        logging.exception("Exception in /api/conversation/azure_byod")
-        return jsonify({"error": str(e)}), 500
-    
+        errorMessage = str(e)
+        logging.exception(f"Exception in /api/conversation/azure_byod | {errorMessage}")
+        return jsonify({"error": "Exception in /api/conversation/azure_byod. See log for more details."}), 500    
 
 @app.route("/api/conversation/custom", methods=["GET","POST"])
 def conversation_custom():
@@ -284,8 +295,8 @@ def conversation_custom():
         return jsonify(response_obj), 200    
     
     except Exception as e:
-        logging.exception("Exception in /api/conversation/custom")
-        return jsonify({"error": str(e)}), 500
-
+        errorMessage = str(e)
+        logging.exception(f"Exception in /api/conversation/custom | {errorMessage}")
+        return jsonify({"error": "Exception in /api/conversation/custom. See log for more details."}), 500
 if __name__ == "__main__":
     app.run()

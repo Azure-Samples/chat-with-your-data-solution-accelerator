@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "6225439783988414033"
+      "templateHash": "4984099229773585869"
     }
   },
   "parameters": {
@@ -284,8 +284,16 @@
     },
     "FormRecognizerLocation": {
       "type": "string",
+      "defaultValue": "[parameters('Location')]",
       "metadata": {
         "description": "Azure Form Recognizer Location"
+      }
+    },
+    "SpeechServiceName": {
+      "type": "string",
+      "defaultValue": "[format('{0}-speechservice', parameters('ResourcePrefix'))]",
+      "metadata": {
+        "description": "Azure Speech Service Name"
       }
     },
     "ContentSafetyName": {
@@ -301,9 +309,9 @@
     }
   },
   "variables": {
-    "WebAppImageName": "DOCKER|fruoccopublic.azurecr.io/rag-webapp",
-    "AdminWebAppImageName": "DOCKER|fruoccopublic.azurecr.io/rag-adminwebapp",
-    "BackendImageName": "DOCKER|fruoccopublic.azurecr.io/rag-backend",
+    "WebAppImageName": "DOCKER|cscicontainer.azurecr.io/rag-webapp-fork",
+    "AdminWebAppImageName": "DOCKER|cscicontainer.azurecr.io/rag-adminwebapp-fork",
+    "BackendImageName": "DOCKER|cscicontainer.azurecr.io/rag-backend-fork",
     "BlobContainerName": "documents",
     "QueueName": "doc-processing",
     "ClientKey": "[format('{0}{1}', uniqueString(guid(resourceGroup().id, deployment().name)), parameters('newGuidString'))]",
@@ -324,6 +332,27 @@
       "properties": {
         "replicaCount": 1,
         "partitionCount": 1
+      }
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts",
+      "apiVersion": "2023-05-01",
+      "name": "[parameters('SpeechServiceName')]",
+      "location": "[parameters('Location')]",
+      "sku": {
+        "name": "S0"
+      },
+      "kind": "SpeechServices",
+      "identity": {
+        "type": "None"
+      },
+      "properties": {
+        "networkAcls": {
+          "defaultAction": "Allow",
+          "virtualNetworkRules": [],
+          "ipRules": []
+        },
+        "publicNetworkAccess": "Enabled"
       }
     },
     {
@@ -520,6 +549,18 @@
             {
               "name": "AZURE_CONTENT_SAFETY_KEY",
               "value": "[listKeys(format('Microsoft.CognitiveServices/accounts/{0}', parameters('ContentSafetyName')), '2023-05-01').key1]"
+            },
+            {
+              "name": "AZURE_SPEECH_SERVICE_NAME",
+              "value": "[parameters('SpeechServiceName')]"
+            },
+            {
+              "name": "AZURE_SPEECH_SERVICE_KEY",
+              "value": "[listKeys(format('Microsoft.CognitiveServices/accounts/{0}', parameters('SpeechServiceName')), '2023-05-01').key1]"
+            },
+            {
+              "name": "AZURE_SPEECH_SERVICE_REGION",
+              "value": "[parameters('Location')]"
             }
           ],
           "linuxFxVersion": "[variables('WebAppImageName')]"

@@ -133,15 +133,25 @@ param FunctionName string = '${ResourcePrefix}-backend'
 param FormRecognizerName string = '${ResourcePrefix}-formrecog'
 
 @description('Azure Form Recognizer Location')
-param FormRecognizerLocation string
+param FormRecognizerLocation string = Location
+
+@description('Azure Speech Service Name')
+param SpeechServiceName string = '${ResourcePrefix}-speechservice'
 
 @description('Azure Content Safety Name')
 param ContentSafetyName string = '${ResourcePrefix}-contentsafety'
 param newGuidString string = newGuid()
 
-var WebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-webapp'
-var AdminWebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-adminwebapp'
-var BackendImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-backend'
+// var WebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-webapp'
+// var AdminWebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-adminwebapp'
+// var BackendImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-backend'
+
+//BELOW IS FOR INTERNAL REPO - REPLACE PRIOR TO PR
+var WebAppImageName = 'DOCKER|cscicontainer.azurecr.io/rag-webapp-fork'
+var AdminWebAppImageName = 'DOCKER|cscicontainer.azurecr.io/rag-adminwebapp-fork'
+var BackendImageName = 'DOCKER|cscicontainer.azurecr.io/rag-backend-fork'
+//END
+
 var BlobContainerName = 'documents'
 var QueueName = 'doc-processing'
 var ClientKey = '${uniqueString(guid(resourceGroup().id, deployment().name))}${newGuidString}'
@@ -159,6 +169,26 @@ resource AzureCognitiveSearch_resource 'Microsoft.Search/searchServices@2022-09-
   properties: {
     replicaCount: 1
     partitionCount: 1
+  }
+}
+
+resource SpeechService 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
+  name: SpeechServiceName
+  location: Location
+  sku: {
+    name: 'S0'
+  }
+  kind: 'SpeechServices'
+  identity: {
+    type: 'None'
+  }
+  properties: {
+    networkAcls: {
+      defaultAction: 'Allow'
+      virtualNetworkRules: []
+      ipRules: []
+    }
+    publicNetworkAccess: 'Enabled'
   }
 }
 
@@ -253,6 +283,9 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
         { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
         { name: 'AZURE_CONTENT_SAFETY_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${ContentSafetyName}', '2023-05-01').key1}
+        { name: 'AZURE_SPEECH_SERVICE_NAME', value: SpeechServiceName}
+        { name: 'AZURE_SPEECH_SERVICE_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${SpeechServiceName}', '2023-05-01').key1}
+        { name: 'AZURE_SPEECH_SERVICE_REGION', value: Location}
       ]
       linuxFxVersion: WebAppImageName
     }
