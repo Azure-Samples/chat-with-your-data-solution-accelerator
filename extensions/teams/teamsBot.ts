@@ -47,6 +47,7 @@ export class TeamsBot extends TeamsActivityHandler {
     let assistantAnswer = "";
 
     // Create the state property accessors for the conversation data and user profile.
+    // Setting up a way for the bot to store and retrieve data that is specific to the current conversation
     this.conversationDataAccessor = conversationState.createProperty(
       CONVERSATION_DATA_PROPERTY
     );
@@ -56,6 +57,7 @@ export class TeamsBot extends TeamsActivityHandler {
     this.conversationState = conversationState;
     this.userState = userState;
 
+    // Track of the number of likes in the context of the bot's operation.
     this.likeCountObj = { likeCount: 0 };
 
     this.onMessage(async (context, next) => {
