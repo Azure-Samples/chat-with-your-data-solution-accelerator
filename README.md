@@ -2,13 +2,14 @@
 
 [**USER STORY**](#user-story) | [**ONE-CLICK DEPLOY**](#one-click-deploy) | [**SUPPORTING DOCUMENTATION**](#supporting-documentation) | [**CUSTOMER TRUTH**](#customer-truth)
 
+
 ![User Story](/media/userStory.png)
 ## User story
 Welcome to the *Chat with your data* Solution accelerator repository! The *Chat with your data* Solution accelerator is a powerful tool that combines the capabilities of Azure AI Search and Large Language Models (LLMs) to create a conversational search experience. This solution accelerator uses an Azure OpenAI GPT model and an Azure AI Search index generated from your data, which is integrated into a web application to provide a natural language interface, including speech-to-text functionality, for search queries. Users can drag and drop files, point to storage, and take care of technical setup to transform documents. There is a web app that users can create in their own subscription with security and authentication.
 
 ![Solution Architecture - Chat with your data](/media/cwyd-solution-architecture.png)
 
-## About this repo
+### About this repo
 
 This repository provides a template for setting up the solution accelerator, along with detailed instructions on how to use and customize it to fit your specific needs. It provides the following features:
 
@@ -18,9 +19,9 @@ This repository provides a template for setting up the solution accelerator, alo
 * Easy prompt configuration
 * Multiple chunking strategies
 
-## When should you use this repo? 
+### When should you use this repo? 
 
-You should use this repo when your scenario customization needs exceed the out-of-the-box experience offered by [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data) and you don't require to streamline the entire development cycle of your AI application, as you can with [Azure Machine Learning prompt flow](https://learn.microsoft.com/en-us/azure/machine-learning/prompt-flow/overview-what-is-prompt-flow). 
+If you need to customize your scenario beyond what [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data) offers out-of-the-box and you don’t want to streamline the entire development cycle of your AI application, you can use this repository. However, if you want to streamline the entire development cycle of your AI application, you can use [Azure Machine Learning prompt flow](https://learn.microsoft.com/en-us/azure/machine-learning/prompt-flow/overview-what-is-prompt-flow) instead.
 
 The accelerator presented here provides several options, for example:
 * The ability to ground a model using both data and public web pages
@@ -87,11 +88,14 @@ Many users are used to the convenience of speech-to-text functionality in their 
 ### [Teams extension](./TEAMS_EXTENSION.md)
 By bringing the Chat with your data experience into Teams, users can stay within their current workflow and get the answers they need without switching platforms. Rather than building the Chat with your data accelerator within Teams from scratch, the same underlying backend used for the web application is leveraged within Teams. 
 
-Learn more about deploying the Teams extension [here]().
+Learn more about deploying the Teams extension [here](./TEAMS_EXTENSION.md).
+
 ![Teams - Chat with your Data](/media/teams-cwyd.png)
+
 
 ![One-click Deploy](/media/oneClickDeploy.png)
 ## One-click deploy
+
 
 ### Pre-requisites 
 * An [Azure OpenAI resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=web-portal) and a deployment for one of the following Chat model and an embedding model:
@@ -101,7 +105,7 @@ Learn more about deploying the Teams extension [here]().
   * Embedding Model 
      * text-embedding-ada-002
     
-  **NOTE**: The deployment template defaults to **gpt-35-turbo** and **text-embedding-ada-002**. If your deployment names are different, update them in the deployment process.
+  **Note**: The deployment template defaults to **gpt-35-turbo** and **text-embedding-ada-002**. If your deployment names are different, update them in the deployment process.
 
 - Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with contributor access.
 - [Visual Studio Code](https://code.visualstudio.com/)
@@ -130,7 +134,7 @@ Learn more about deploying the Teams extension [here]().
 - Teams (optional: Teams extension only)
 
 ### Required licenses
-- No required licenses
+- Microsoft 365 (optional: Teams extension only)
 
 ### Pricing Considerations
 
@@ -186,28 +190,34 @@ The following are links to the pricing details for some of the resources:
     ![A screenshot of the chat app.](./media/web-unstructureddata.png)
 
 ### [Local deployment instructions](./LOCAL_DEPLOYMENT.md)
-To customize the accelerator or run it locally, first, copy the .env.sample file to your development environment's .env file, and edit it according to environment variable values table.
+To customize the accelerator or run it locally, first, copy the .env.sample file to your development environment's .env file, and edit it according to environment variable values table. Learn more about deploying locally [here](./LOCAL_DEPLOYMENT.md).
+
 
 ![Supporting documentation](/media/supportingDocuments.png)
 ## Supporting documentation
 
 ### Best practices
 **Access to documents**
+
  Only upload data that can be accessed by any user of the application. Anyone who uses the application should also have clearance for any data that is uploaded to the application.
 
 **Depth of responses** 
+
 The more limited the data set, the broader the questions should be. If the data in the repo is limited, the depth of information in the LLM response you can get with follow up questions may be limited. For more depth in your response, increase the data available for the LLM to access.  
 
 **Response consistency**
+
  Consider tuning the configuration of prompts to the level of precision required.  The more precision desired, the harder it may be to generate a response.
 
 **Numerical queries**
+
  The accelerator is optimized to summarize unstructured data, such as PDFs or text files. The ChatGPT 3.5 Turbo model used by the accelerator is not currently optimized to handle queries about specific numerical data. The ChatGPT 4 model may be better able to handle numerical queries.  
 
 **Use your own judgement**
+
  AI-generated content may be incorrect and should be reviewed before usage.
 
-### Azure AI Search used as retriever in RAG
+**Azure AI Search used as retriever in RAG**
 Azure AI Search, when used as a retriever in the Retrieval-Augmented Generation (RAG) pattern, plays a key role in fetching relevant information from a large corpus of data. The RAG pattern involves two key steps: retrieval of documents and generation of responses. Azure AI Search, in the retrieval phase, filters and ranks the most relevant documents from the dataset based on a given query.
 
 The importance of optimizing data in the index for relevance lies in the fact that the quality of retrieved documents directly impacts the generation phase. The more relevant the retrieved documents are, the more accurate and pertinent the generated responses will be.
@@ -216,13 +226,13 @@ Azure AI Search allows for fine-tuning the relevance of search results through f
 
 Moreover, optimizing the data in the index also enhances the efficiency, the speed of the retrieval process and increases relevance which is an integral part of the RAG pattern.
 
-### Azure AI Search
+**Azure AI Search**
 - Consider switching security keys and using [RBAC](https://learn.microsoft.com/azure/search/search-security-rbac) instead for authentication.
 - Consider setting up a [firewall](https://learn.microsoft.com/azure/search/service-configure-firewall), [private endpoints](https://learn.microsoft.com/azure/search/service-create-private-endpoint) for inbound connections and [shared private links](https://learn.microsoft.com/azure/search/search-indexer-howto-access-trusted-service-exception) for [built-in pull indexers](https://learn.microsoft.com/en-us/azure/search/search-indexer-overview).
 - For the best results, prepare your index data and consider [analyzers](https://learn.microsoft.com/azure/search/search-analyzers).
 - Analyze your [resource capacity needs](https://learn.microsoft.com/azure/search/search-capacity-planning).
 
-### Before deploying Azure RAG implementations to production
+**Before deploying Azure RAG implementations to production**
 - Follow the best practices described in [Azure Well-Architected-Framework](https://learn.microsoft.com/azure/well-architected/).
 - Understand the [Retrieval Augmented Generation (RAG) in Azure AI Search](https://learn.microsoft.com/en-us/azure/search/retrieval-augmented-generation-overview).
 - Understand the [functionality and configuration that would adapt better to your solution](https://techcommunity.microsoft.com/t5/azure-ai-services-blog/azure-cognitive-search-outperforming-vector-search-with-hybrid/ba-p/3929167) and test with your own data for optimal retrieval.
@@ -230,7 +240,7 @@ Moreover, optimizing the data in the index also enhances the efficiency, the spe
 - Follow the [Responsible AI best practices](https://www.microsoft.com/en-us/ai/tools-practices).
 - Understand the [levels of access of your users and application](https://techcommunity.microsoft.com/t5/azure-ai-services-blog/access-control-in-generative-ai-applications-with-azure/ba-p/3956408).
 
-### Chunking: Importance for RAG and strategies implemented as part of this repo
+**Chunking: Importance for RAG and strategies implemented as part of this repo**
 
 Chunking is essential for managing large data sets, optimizing relevance, preserving context, integrating workflows, and enhancing the user experience. See [How to chunk documents](https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-chunk-documents) for more information.
 
@@ -259,13 +269,14 @@ This repository is licensed under the [MIT License](LICENSE.md).
 
 The data set under the /data folder is licensed under the [CDLA-Permissive-2 License](CDLA-Permissive-2.md).
 
+
 ![Customer truth](/media/customerTruth.png)
 ## Customer truth
 
 Customer stories coming soon. For early access, contact: fabrizio.ruocco@microsoft.com
 
-### Disclaimers 
-
+#Disclaimers
+---
 This Software requires the use of third-party components which are governed by separate proprietary or open-source licenses as identified below, and you must comply with the terms of each applicable license in order to use the Software. You acknowledge and agree that this license does not grant you a license or other right to use any such third-party proprietary or open-source components.  
 
 To the extent that the Software includes components or code used in or derived from Microsoft products or services, including without limitation Microsoft Azure Services (collectively, “Microsoft Products and Services”), you must also comply with the Product Terms applicable to such Microsoft Products and Services. You acknowledge and agree that the license governing the Software does not grant you a license or other right to use Microsoft Products and Services. Nothing in the license or this ReadMe file will serve to supersede, amend, terminate or modify any terms in the Product Terms for any Microsoft Products and Services. 
