@@ -21,7 +21,7 @@ This repository provides a template for setting up the solution accelerator, alo
 
 ### When should you use this repo? 
 
-If you need to customize your scenario beyond what [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data) offers out-of-the-box and you don’t want to streamline the entire development cycle of your AI application, you can use this repository. However, if you want to streamline the entire development cycle of your AI application, you can use [Azure Machine Learning prompt flow](https://learn.microsoft.com/en-us/azure/machine-learning/prompt-flow/overview-what-is-prompt-flow) instead.
+If you need to customize your scenario beyond what [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data) offers out-of-the-box, use this repository. If you don't require customizations, use [Azure Machine Learning prompt flow](https://learn.microsoft.com/en-us/azure/machine-learning/prompt-flow/overview-what-is-prompt-flow).
 
 The accelerator presented here provides several options, for example:
 * The ability to ground a model using both data and public web pages
@@ -167,7 +167,7 @@ The following are links to the pricing details for some of the resources:
     
     You can find the [ARM template](./infrastructure/deployment.json) used, along with a [Bicep file](./infrastructure/deployment.bicep) for deploying this accelerator in the `/infrastructure` directory.
 
-   **NOTE**: By default, the deployment name in the application settings is equal to the model name (gpt-35-turbo and text-embedding-ada-002). If you named the deployment in a different way, you should update the application settings to match your deployment names.
+   **Note**: By default, the deployment name in the application settings is equal to the model name (gpt-35-turbo and text-embedding-ada-002). If you named the deployment in a different way, you should update the application settings to match your deployment names.
     
 1. Navigate to the admin site, where you can upload documents. It will be located at:
     
@@ -272,8 +272,7 @@ The data set under the /data folder is licensed under the [CDLA-Permissive-2 Lic
 ## Customer truth
 Customer stories coming soon. For early access, contact: fabrizio.ruocco@microsoft.com
 
-# Disclaimers
----
+## Disclaimers
 This Software requires the use of third-party components which are governed by separate proprietary or open-source licenses as identified below, and you must comply with the terms of each applicable license in order to use the Software. You acknowledge and agree that this license does not grant you a license or other right to use any such third-party proprietary or open-source components.  
 
 To the extent that the Software includes components or code used in or derived from Microsoft products or services, including without limitation Microsoft Azure Services (collectively, “Microsoft Products and Services”), you must also comply with the Product Terms applicable to such Microsoft Products and Services. You acknowledge and agree that the license governing the Software does not grant you a license or other right to use Microsoft Products and Services. Nothing in the license or this ReadMe file will serve to supersede, amend, terminate or modify any terms in the Product Terms for any Microsoft Products and Services. 
