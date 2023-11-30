@@ -2,13 +2,13 @@
 
 # Teams extension
 [**USER STORY**](#user-story) | [**ONE-CLICK DEPLOY**](#one-click-deploy) | [**SUPPORTING DOCUMENTATION**](#supporting-documentation)
-
-
+\
+\
 ![User Story](/media/userStory.png)
 ## User story
 This extension enables users to experience Chat with your data within Teams, without having to switch platforms. It allows them to stay within their existing workflow and get the answers they need. Instead of building the Chat with your data solution accelerator from scratch within Teams, the same underlying backend used for the web application is leveraged within Teams.
-
-
+\
+\
 ![One-click Deploy](/media/oneClickDeploy.png)
 ## One-click deploy
 **IMPORTANT**: Before you proceed, installation and configuration of the [Chat with your data with speech-to-text deployment](README.md) is required.
@@ -117,8 +117,8 @@ You can find the [ARM template](/extensions/infrastructure/main.json) used, alon
 1. Depending on your environment, it may take several hours to publish.
 
 ![Teams Publish Success](/media/teams-22.png) 
-
-
+\
+\
 ![Supporting documentation](/media/supportingDocuments.png)
 ## Supporting documentation
 ### Resource links for Teams extension

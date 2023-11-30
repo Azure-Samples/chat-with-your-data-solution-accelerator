@@ -1,9 +1,9 @@
 # Chat with your data - Solution accelerator
 
-[**USER STORY**](#user-story) | [**ONE-CLICK DEPLOY**](#one-click-deploy) | [**SUPPORTING DOCUMENTATION**](#supporting-documentation) | [**CUSTOMER TRUTH**](#customer-truth)
-
-
-![User Story](/media/userStory.png)
+[**USER STORY**](#user-story) | [**ONE-CLICK DEPLOY**](#one-click-deploy) | [**SUPPORTING DOCUMENTATION**](#supporting-documentation) | [**CUSTOMER TRUTH**](#customer-truth)\
+\
+\
+![User Story](/media/userStory.png)  
 ## User story
 Welcome to the *Chat with your data* Solution accelerator repository! The *Chat with your data* Solution accelerator is a powerful tool that combines the capabilities of Azure AI Search and Large Language Models (LLMs) to create a conversational search experience. This solution accelerator uses an Azure OpenAI GPT model and an Azure AI Search index generated from your data, which is integrated into a web application to provide a natural language interface, including speech-to-text functionality, for search queries. Users can drag and drop files, point to storage, and take care of technical setup to transform documents. There is a web app that users can create in their own subscription with security and authentication.
 
@@ -91,12 +91,10 @@ By bringing the Chat with your data experience into Teams, users can stay within
 Learn more about deploying the Teams extension [here](./TEAMS_EXTENSION.md).
 
 ![Teams - Chat with your Data](/media/teams-cwyd.png)
-
-
+\
+\
 ![One-click Deploy](/media/oneClickDeploy.png)
 ## One-click deploy
-
-
 ### Pre-requisites 
 * An [Azure OpenAI resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=web-portal) and a deployment for one of the following Chat model and an embedding model:
     * Chat Models
@@ -191,8 +189,8 @@ The following are links to the pricing details for some of the resources:
 
 ### [Local deployment instructions](./LOCAL_DEPLOYMENT.md)
 To customize the accelerator or run it locally, first, copy the .env.sample file to your development environment's .env file, and edit it according to environment variable values table. Learn more about deploying locally [here](./LOCAL_DEPLOYMENT.md).
-
-
+\
+\
 ![Supporting documentation](/media/supportingDocuments.png)
 ## Supporting documentation
 
@@ -268,14 +266,13 @@ This solution accelerator deploys the following resources. It's critical to comp
 This repository is licensed under the [MIT License](LICENSE.md).
 
 The data set under the /data folder is licensed under the [CDLA-Permissive-2 License](CDLA-Permissive-2.md).
-
-
+\
+\
 ![Customer truth](/media/customerTruth.png)
 ## Customer truth
-
 Customer stories coming soon. For early access, contact: fabrizio.ruocco@microsoft.com
 
-#Disclaimers
+# Disclaimers
 ---
 This Software requires the use of third-party components which are governed by separate proprietary or open-source licenses as identified below, and you must comply with the terms of each applicable license in order to use the Software. You acknowledge and agree that this license does not grant you a license or other right to use any such third-party proprietary or open-source components.  
 
