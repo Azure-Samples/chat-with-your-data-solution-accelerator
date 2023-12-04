@@ -142,15 +142,9 @@ param SpeechServiceName string = '${ResourcePrefix}-speechservice'
 param ContentSafetyName string = '${ResourcePrefix}-contentsafety'
 param newGuidString string = newGuid()
 
-// var WebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-webapp'
-// var AdminWebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-adminwebapp'
-// var BackendImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-backend'
-
-//BELOW IS FOR INTERNAL REPO - REPLACE PRIOR TO PR
-var WebAppImageName = 'DOCKER|cscicontainer.azurecr.io/rag-webapp-pr'
-var AdminWebAppImageName = 'DOCKER|cscicontainer.azurecr.io/rag-adminwebapp-pr'
-var BackendImageName = 'DOCKER|cscicontainer.azurecr.io/rag-backend-pr'
-//END
+var WebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-webapp'
+var AdminWebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-adminwebapp'
+var BackendImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-backend'
 
 var BlobContainerName = 'documents'
 var QueueName = 'doc-processing'

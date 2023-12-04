@@ -129,7 +129,7 @@ param AzureBlobAccountKey string
 @description('Storage Account Container Name - Created during the "Chat with your data" Solution Accelerator')
 param AzureBlobContainerName string
 
-var BackendImageName = 'DOCKER|cscicontainer.azurecr.io/cwyod_backend-pr'
+var BackendImageName = 'DOCKER|fruoccopublic.azurecr.io/cwyod_backend'
 
 resource HostingPlan 'Microsoft.Web/serverfarms@2020-06-01' = {
   name: HostingPlanName

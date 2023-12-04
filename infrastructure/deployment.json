@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "14810559130180155938"
+      "templateHash": "2151030802603975433"
     }
   },
   "parameters": {
@@ -309,9 +309,9 @@
     }
   },
   "variables": {
-    "WebAppImageName": "DOCKER|cscicontainer.azurecr.io/rag-webapp-pr",
-    "AdminWebAppImageName": "DOCKER|cscicontainer.azurecr.io/rag-adminwebapp-pr",
-    "BackendImageName": "DOCKER|cscicontainer.azurecr.io/rag-backend-pr",
+    "WebAppImageName": "DOCKER|fruoccopublic.azurecr.io/rag-webapp",
+    "AdminWebAppImageName": "DOCKER|fruoccopublic.azurecr.io/rag-adminwebapp",
+    "BackendImageName": "DOCKER|fruoccopublic.azurecr.io/rag-backend",
     "BlobContainerName": "documents",
     "QueueName": "doc-processing",
     "ClientKey": "[format('{0}{1}', uniqueString(guid(resourceGroup().id, deployment().name)), parameters('newGuidString'))]",
