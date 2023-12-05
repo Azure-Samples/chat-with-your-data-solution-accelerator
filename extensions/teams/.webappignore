@@ -1,7 +1,10 @@
 .webappignore
 .fx
 .deployment
+.localConfigs.testTool
 .localConfigs
+.notification.localstore.json
+.notification.testtoolstore.json
 .vscode
 *.js.map
 *.ts.map

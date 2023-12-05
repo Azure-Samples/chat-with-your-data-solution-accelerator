@@ -1,8 +1,7 @@
 {
   "compilerOptions": {
     "declaration": true,
-    "target": "es2017",
-    "lib": ["es2021", "dom"],
+    "target": "es2021",
     "module": "commonjs",
     "outDir": "./lib",
     "rootDir": "./",

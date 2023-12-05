@@ -8,9 +8,6 @@ import {
   ConfigurationServiceClientCredentialFactory,
   ConfigurationBotFrameworkAuthentication,
   TurnContext,
-  MemoryStorage,
-  ConversationState,
-  UserState,
 } from "botbuilder";
 
 // This bot's main dialog.
@@ -29,12 +26,6 @@ const botFrameworkAuthentication = new ConfigurationBotFrameworkAuthentication(
   {},
   credentialsFactory
 );
-
-const memoryStorage = new MemoryStorage();
-
-// Create conversation and user state with in-memory storage provider.
-const conversationState = new ConversationState(memoryStorage);
-const userState = new UserState(memoryStorage);
 
 const adapter = new CloudAdapter(botFrameworkAuthentication);
 
@@ -62,13 +53,13 @@ const onTurnErrorHandler = async (context: TurnContext, error: Error) => {
 adapter.onTurnError = onTurnErrorHandler;
 
 // Create the bot that will handle incoming messages.
-const bot = new TeamsBot(conversationState, userState);
+const bot = new TeamsBot();
 
 // Create HTTP server.
 const server = restify.createServer();
 server.use(restify.plugins.bodyParser());
 server.listen(process.env.port || process.env.PORT || 3978, () => {
-  // console.log(`\nBot Started, ${server.name} listening to ${server.url}`);
+  console.log(`\nBot Started, ${server.name} listening to ${server.url}`);
 });
 
 // Listen for incoming requests.

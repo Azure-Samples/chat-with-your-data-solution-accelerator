@@ -15,10 +15,7 @@
       "value": "B1"
     },
     "botDisplayName": {
-      "value": "Chat with your own Data"
-    },
-    "azureFunctionUrl": {
-      "value": "${{AZURE_FUNCTION_URL}}"
+      "value": "cwyod_ts"
     }
   }
 }

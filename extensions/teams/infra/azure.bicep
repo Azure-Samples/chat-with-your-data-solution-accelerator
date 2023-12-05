@@ -19,9 +19,6 @@ param serverfarmsName string = resourceBaseName
 param webAppName string = resourceBaseName
 param location string = resourceGroup().location
 
-@description('The Azure Function URL that will be used to Chat with your data')
-param azureFunctionUrl string = 'https://<YOUR AZURE FUNCTION NAME>.azurewebsites.net/api/http_cwyod'
-
 // Compute resources for your Web App
 resource serverfarm 'Microsoft.Web/serverfarms@2021-02-01' = {
   kind: 'app'
@@ -45,7 +42,7 @@ resource webApp 'Microsoft.Web/sites@2021-02-01' = {
       appSettings: [
         {
           name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '1' // Run Azure APP Service from a package file
+          value: '1' // Run Azure App Service from a package file
         }
         {
           name: 'WEBSITE_NODE_DEFAULT_VERSION'
@@ -63,10 +60,6 @@ resource webApp 'Microsoft.Web/sites@2021-02-01' = {
           name: 'BOT_PASSWORD'
           value: botAadAppClientSecret
         }
-        {
-          name: 'AZURE_FUNCTION_URL'
-          value: azureFunctionUrl
-        }
       ]
       ftpsState: 'FtpsOnly'
     }
@@ -81,7 +74,6 @@ module azureBotRegistration './botRegistration/azurebot.bicep' = {
     botAadAppClientId: botAadAppClientId
     botAppDomain: webApp.properties.defaultHostName
     botDisplayName: botDisplayName
-
   }
 }
 
