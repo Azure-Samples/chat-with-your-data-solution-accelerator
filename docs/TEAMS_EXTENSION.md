@@ -154,6 +154,10 @@ You can find the [ARM template](/extensions/infrastructure/main.json) used, alon
 22. Depending on your environment, it may take several hours to publish.
 
 ![Teams Publish Success](/media/teams-22.png) 
+
+
+### [Local deployment instructions](./TEAMS_LOCAL_DEPLOYMENT.md)
+To customize the accelerator or run it locally, first, copy the .env.sample file to your development environment's .env file, and edit it according to environment variable values table. Learn more about deploying locally [here](./TEAMS_LOCAL_DEPLOYMENT.md).
 \
 \
 ![Supporting documentation](/media/supportingDocuments.png)
