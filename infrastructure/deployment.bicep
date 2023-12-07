@@ -24,6 +24,9 @@ param HostingPlanName string = '${ResourcePrefix}-hosting-plan'
 ])
 param HostingPlanSku string = 'B3'
 
+@description('Id of the user or app to assign application roles')
+param principalId string
+
 @description('Name of Web App')
 param WebsiteName string = '${ResourcePrefix}-website'
 
@@ -150,6 +153,9 @@ var EventGridSystemTopicName = 'doc-processing'
 resource AzureCognitiveSearch_resource 'Microsoft.Search/searchServices@2022-09-01' = {
   name: AzureCognitiveSearch
   location: Location
+  identity: {
+    type: 'SystemAssigned'
+  }
   tags: {
     deployment : 'chatwithyourdata-sa'
   }
@@ -216,6 +222,9 @@ resource HostingPlan 'Microsoft.Web/serverfarms@2020-06-01' = {
 resource Website 'Microsoft.Web/sites@2020-06-01' = {
   name: WebsiteName
   location: Location
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: HostingPlanName
     siteConfig: {
@@ -265,6 +274,9 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
 resource WebsiteName_admin 'Microsoft.Web/sites@2020-06-01' = {
   name: '${WebsiteName}-admin'
   location: Location
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: HostingPlanName
     siteConfig: {
@@ -321,7 +333,31 @@ resource StorageAccount 'Microsoft.Storage/storageAccounts@2021-08-01' = {
   sku: {
     name: 'Standard_GRS'
   }
+  identity: {
+    type: 'SystemAssigned'
+  }
 }
+
+module storageRoleUser 'security/role.bicep' = {
+  scope: resourceGroup()
+  name: 'storage-role-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
+    principalType: 'User'
+  }
+}
+
+module storageContribRoleUser 'security/role.bicep' = {
+  scope: resourceGroup()
+  name: 'storage-contribrole-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    principalType: 'User'
+  }
+}
+
 
 resource StorageAccountName_default_BlobContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-08-01' = {
   name: '${StorageAccountName}/default/${BlobContainerName}'
@@ -399,6 +435,9 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
   name: FunctionName
   kind: 'functionapp,linux'
   location: Location
+  identity: {
+    type: 'SystemAssigned'
+  }
   tags: {}
   properties: {
     siteConfig: {

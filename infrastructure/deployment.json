@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "6225439783988414033"
+      "templateHash": "14989688851250758011"
     }
   },
   "parameters": {
@@ -48,6 +48,12 @@
       ],
       "metadata": {
         "description": "The pricing tier for the App Service plan"
+      }
+    },
+    "principalId": {
+      "type": "string",
+      "metadata": {
+        "description": "Id of the user or app to assign application roles"
       }
     },
     "WebsiteName": {
@@ -307,7 +313,7 @@
     "BlobContainerName": "documents",
     "QueueName": "doc-processing",
     "ClientKey": "[format('{0}{1}', uniqueString(guid(resourceGroup().id, deployment().name)), parameters('newGuidString'))]",
-    "EventGridSystemTopicName": "doc-processing"
+    "EventGridSystemTopicName": "doc-processing-test"
   },
   "resources": [
     {
@@ -315,6 +321,9 @@
       "apiVersion": "2022-09-01",
       "name": "[parameters('AzureCognitiveSearch')]",
       "location": "[parameters('Location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
       "tags": {
         "deployment": "chatwithyourdata-sa"
       },
@@ -385,6 +394,9 @@
       "apiVersion": "2020-06-01",
       "name": "[parameters('WebsiteName')]",
       "location": "[parameters('Location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
       "properties": {
         "serverFarmId": "[parameters('HostingPlanName')]",
         "siteConfig": {
@@ -536,6 +548,9 @@
       "apiVersion": "2020-06-01",
       "name": "[format('{0}-admin', parameters('WebsiteName'))]",
       "location": "[parameters('Location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
       "properties": {
         "serverFarmId": "[parameters('HostingPlanName')]",
         "siteConfig": {
@@ -702,6 +717,9 @@
       "kind": "StorageV2",
       "sku": {
         "name": "Standard_GRS"
+      },
+      "identity": {
+        "type": "SystemAssigned"
       }
     },
     {
@@ -795,6 +813,9 @@
       "name": "[parameters('FunctionName')]",
       "kind": "functionapp,linux",
       "location": "[parameters('Location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
       "tags": {},
       "properties": {
         "siteConfig": {
@@ -979,6 +1000,136 @@
         "[resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName'))]",
         "[resourceId('Microsoft.Storage/storageAccounts/queueServices/queues', parameters('StorageAccountName'), 'default', 'doc-processing')]"
       ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "storage-role-user",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "principalId": {
+            "value": "[parameters('principalId')]"
+          },
+          "roleDefinitionId": {
+            "value": "2a2b9908-6ea1-4ae2-8e65-a410df84e7d1"
+          },
+          "principalType": {
+            "value": "User"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.23.1.45101",
+              "templateHash": "8211880587811090337"
+            },
+            "description": "Creates a role assignment for a service principal."
+          },
+          "parameters": {
+            "principalId": {
+              "type": "string"
+            },
+            "principalType": {
+              "type": "string",
+              "defaultValue": "ServicePrincipal",
+              "allowedValues": [
+                "Device",
+                "ForeignGroup",
+                "Group",
+                "ServicePrincipal",
+                "User"
+              ]
+            },
+            "roleDefinitionId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "principalType": "[parameters('principalType')]",
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "storage-contribrole-user",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "principalId": {
+            "value": "[parameters('principalId')]"
+          },
+          "roleDefinitionId": {
+            "value": "ba92f5b4-2d11-453d-a403-e96b0029c9fe"
+          },
+          "principalType": {
+            "value": "User"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.23.1.45101",
+              "templateHash": "8211880587811090337"
+            },
+            "description": "Creates a role assignment for a service principal."
+          },
+          "parameters": {
+            "principalId": {
+              "type": "string"
+            },
+            "principalType": {
+              "type": "string",
+              "defaultValue": "ServicePrincipal",
+              "allowedValues": [
+                "Device",
+                "ForeignGroup",
+                "Group",
+                "ServicePrincipal",
+                "User"
+              ]
+            },
+            "roleDefinitionId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "principalType": "[parameters('principalType')]",
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+              }
+            }
+          ]
+        }
+      }
     }
   ]
 }
