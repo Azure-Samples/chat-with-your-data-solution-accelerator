@@ -85,10 +85,10 @@ Many users are used to the convenience of speech-to-text functionality in their 
 
 ![Web - Get responses using natural language](/media/web-nlu.png)Get responses using natural language
 
-### [Teams extension](./TEAMS_EXTENSION.md)
+### [Teams extension](./docs/TEAMS_EXTENSION.md)
 By bringing the Chat with your data experience into Teams, users can stay within their current workflow and get the answers they need without switching platforms. Rather than building the Chat with your data accelerator within Teams from scratch, the same underlying backend used for the web application is leveraged within Teams. 
 
-Learn more about deploying the Teams extension [here](./TEAMS_EXTENSION.md).
+Learn more about deploying the Teams extension [here](./docs/TEAMS_EXTENSION.md).
 
 ![Teams - Chat with your Data](/media/teams-cwyd.png)
 \
@@ -187,8 +187,8 @@ The following are links to the pricing details for some of the resources:
     
     ![A screenshot of the chat app.](./media/web-unstructureddata.png)
 
-### [Local deployment instructions](./LOCAL_DEPLOYMENT.md)
-To customize the accelerator or run it locally, first, copy the .env.sample file to your development environment's .env file, and edit it according to environment variable values table. Learn more about deploying locally [here](./LOCAL_DEPLOYMENT.md).
+### [Local deployment instructions](./docs/LOCAL_DEPLOYMENT.md)
+To customize the accelerator or run it locally, first, copy the .env.sample file to your development environment's .env file, and edit it according to environment variable values table. Learn more about deploying locally [here](./docs/LOCAL_DEPLOYMENT.md).
 \
 \
 ![Supporting documentation](/media/supportingDocuments.png)

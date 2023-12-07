@@ -1,4 +1,4 @@
-[Back to *Chat with your data* README](README.md)
+[Back to *Chat with your data* README](../README.md)
 
 ## Local deployment
 
