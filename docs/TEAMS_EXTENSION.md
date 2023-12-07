@@ -12,9 +12,22 @@ This extension enables users to experience Chat with your data within Teams, wit
 ![One-click Deploy](/media/oneClickDeploy.png)
 ## One-click deploy
 **IMPORTANT**: Before you proceed, installation and configuration of the [Chat with your data with speech-to-text deployment](../README.md) is required.
+
+### Pre-requisites 
+- Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with contributor access.
+- [Visual Studio Code](https://code.visualstudio.com/)
+    - Extensions
+        - [Teams Toolkit](https://marketplace.visualstudio.com/items?itemName=TeamsDevApp.ms-teams-vscode-extension) (optional: Teams extension only)
+- Install [Node.js](https://nodejs.org/en)
+  - Install the LTS version (Recommended for Most Users)
+- [Enable custom Teams apps and turn on custom app uploading](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/prepare-your-o365-tenant#enable-custom-teams-apps-and-turn-on-custom-app-uploading) (optional: Teams extension only)
+- In order to publish the App to the Teams Store, the Teams Administrator role is required. 
+
 ### Deploy backend Azure Function
 <!-- TODO: Updated prior to PR -->
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%Azure-Samples%2Fchat-with-your-data-solution-accelerator%2Fmain%2Fextensions%2Finfrastructure%2Fmain.json)
+
+Note: The (p) suffix on the App Setting (below) means that you should use the same resources and services deployed during the [Chat with your data with speech-to-text deployment](../README.md)
 
 | App Setting | Note |
 | --- | ------------- |
