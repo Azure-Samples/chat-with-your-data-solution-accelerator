@@ -43,6 +43,7 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 6. Select Teams Toolkit from the navigation panel. 
 7. Verify your signed into O365 and Azure with sideloading enabled.
 8. Select the "play" button next to Local.
+
 ![Teams Toolkit](/media/teams-local-2.png)
 
 ## Environment variables
