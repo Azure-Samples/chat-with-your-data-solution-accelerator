@@ -263,7 +263,7 @@
     },
     "StorageAccountName": {
       "type": "string",
-      "defaultValue": "[substring(format('{0}str{1}', parameters('ResourcePrefix'), uniqueString(resourceGroup().id)), 0, 24)]",
+      "defaultValue": "[take(format('{0}str{1}', parameters('ResourcePrefix'), uniqueString(resourceGroup().id)), 24)]",
       "metadata": {
         "description": "Name of Storage Account"
       }
