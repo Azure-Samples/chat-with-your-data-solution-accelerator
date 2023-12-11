@@ -1,9 +1,6 @@
 import {
   TeamsActivityHandler,
-  CardFactory,
   TurnContext,
-  AdaptiveCardInvokeValue,
-  AdaptiveCardInvokeResponse,
   ActivityTypes,
   MessageFactory,
 } from "botbuilder";
@@ -146,10 +143,7 @@ export class TeamsBot extends TeamsActivityHandler {
         });
         newActivity.typing = false; // Stop the ellipses visual indicator
         await context.updateActivity(newActivity);
-
-        // await this.saveChanges(context, false);
       } catch (error) {
-        // console.log(error);
       } finally {
       }
 

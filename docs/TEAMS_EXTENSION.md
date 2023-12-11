@@ -50,108 +50,110 @@ You can find the [ARM template](/extensions/infrastructure/main.json) used, alon
 
 ### Deploy Teams application
 1. Clone this GitHub repo.
-1. Open the “extensions/teams” folder with Visual Studio Code 
+2. Open the “extensions/teams” folder with Visual Studio Code 
 
 ![Teams](/media/teams.png) 
 
-1. Open the file env\.env.test
+3. Open the file env\\.env.test
 
 ![ENV](/media/teams-1.png) 
 
-1. Locate the environment variable AZURE_FUNCTION_URL.
-1. Replace the <YOUR AZURE FUNCTION NAME> with the name of your Function App resource (created in previous section)
-1. Save the file.
-1. Select Teams Toolkit from the navigation panel. 
+4. Locate the environment variable AZURE_FUNCTION_URL.
+5. Replace the <YOUR AZURE FUNCTION NAME> with the name of your Function App resource (created in previous section)
+6. Save the file.
+7. Select Teams Toolkit from the navigation panel. 
 
 ![Teams Toolkit in VS Code](/media/teams-2.png) 
 
-1. Within the Teams Toolkit panel, login to the following accounts:
+8. Within the Teams Toolkit panel, login to the following accounts:
+
   **Sign in to Microsoft 365**: Use your Microsoft 365 work or school account with a valid E5 subscription for building your app. If you don't have a valid account, you can join [Microsoft 365 developer program](https://developer.microsoft.com/microsoft-365/dev-program) to get a free account before you start.
+  
   **Sign in to Azure**: Use your Azure account for deploying your app on Azure. You can [create a free Azure account](https://azure.microsoft.com/free/) before you start.
 
 ![Teams Toolkit Accounts](/media/teams-3.png)
 
-2. Under **Environment**, select **test**.
+9. Under **Environment**, select **test**.
 
 ![Teams Toolkit Environment](/media/teams-4.png)
 
-3. Under **Lifecycle**, select **Provision**.
+10. Under **Lifecycle**, select **Provision**.
 
 ![Teams Toolkit Lifecycle Provision](/media/teams-5.png)
 
-4. Within the command palette, select **test** for the environment.
+11. Within the command palette, select **test** for the environment.
 
 ![Select an Environment](/media/teams-6.png) 
 
-5. Select the resource group created earlier in the installation
+12. Select the resource group created earlier in the installation
 
 ![Select a Resource Group](/media/teams-7.png) 
 
-6. When prompted about Azure charges, select **Provision**.
+13. When prompted about Azure charges, select **Provision**.
 
 ![Azure Charges Prompt](/media/teams-8.png)
 
-7. Verify that the provisioning was successful.
+14. Verify that the provisioning was successful.
 
 ![Provision Successful](/media/teams-9.png)
 
-8. Under **Lifecycle**, select **Deploy**.
+15. Under **Lifecycle**, select **Deploy**.
 
 ![Teams Toolkit Lifecycle Deploy](/media/teams-10.png) 
 
-9. Within the command palette, select **test** for the environment.
+16. Within the command palette, select **test** for the environment.
 
 ![Select an Environment](/media/teams-6.png) 
 
-10. When prompted, select **Deploy**.
+17. When prompted, select **Deploy**.
 
 ![VS Code Prompt to Deploy](/media/teams-11.png) 
 
-11. Verify that the Deployment was successful.
+18. Verify that the Deployment was successful.
 
 ![Deployment successful](/media/teams-12.png)
 
-12. Under **Lifecycle**, select **Publish**.
+19. Under **Lifecycle**, select **Publish**.
 
 ![Teams Toolkit Lifecycle Publish](/media/teams-13.png)
 
-13. Within the command palette, select **test** for the environment.
+20. Within the command palette, select **test** for the environment.
 
 ![Select an Environment](/media/teams-6.png) 
 
-14. Verify that the Publish was successful.
+21. Verify that the Publish was successful.
 
 ![Publishing successful](/media/teams-14.png) 
 
-15. Select **Go to admin portal**.
+22. Select **Go to admin portal**.
 
 ![Go to Admin Portal](/media/teams-15.png) 
 
-16. On the Manage apps page within the Teams Admin portal, you should see one submitted custom app pending approval.
+23. On the Manage apps page within the Teams Admin portal, you should see one submitted custom app pending approval.
 
 ![Pending Approval](/media/teams-16.png) 
 
-17. In the search by name input box, enter: **enterprise chat**
+24. In the search by name input box, enter: **enterprise chat**
 
 ![Filtered app](/media/teams-17.png) 
 
-18. Select the app and then select **Allow**.
+25. Select the app and then select **Allow**.
 
 ![Selected app](/media/teams-18.png) 
 
-19. Select the app name.
+26. Select the app name.
 
 ![Select app name](/media/teams-19.png) 
 
-20. Select **Publish**.
+27. Select **Publish**.
 
 ![Publish app](/media/teams-20.png)
 
-21. When prompted, select **Publish**.
+28. When prompted, select **Publish**.
 
 ![Prompt to publish](/media/teams-21.png) 
 
-22. Depending on your environment, it may take several hours to publish.
+29. Depending on your environment, it may take several hours to publish.
 
 ![Teams Publish Success](/media/teams-22.png) 
 
