@@ -25,7 +25,7 @@ def batch_push_results(msg: func.QueueMessage) -> None:
     file_sas = blob_client.get_blob_sas(file_name)
     # Get file extension's processors
     file_extension = file_name.split(".")[-1]
-    processors = list(filter(lambda x: lower(x.document_type) == lower(file_extension), ConfigHelper.get_active_config_or_default().document_processors))
+    processors = list(filter(lambda x: x.document_type.lower() == file_extension.lower(), ConfigHelper.get_active_config_or_default().document_processors))
     # Process the file
     document_processor.process(source_url=file_sas, processors=processors)
     blob_client.upsert_blob_metadata(file_name, {'embeddings_added': 'true'})
