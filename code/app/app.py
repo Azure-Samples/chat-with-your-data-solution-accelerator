@@ -23,8 +23,8 @@ app = Flask(__name__)
 @app.route("/<path:path>")
 def static_file(path):
     return app.send_static_file(path)
-@app.route('/api/config', methods=['GET'])
 
+@app.route('/api/config', methods=['GET'])
 def get_config():
     # Retrieve the environment variables or other configuration data
     azure_speech_key = os.getenv('AZURE_SPEECH_SERVICE_KEY')
@@ -35,6 +35,7 @@ def get_config():
         'azureSpeechKey': azure_speech_key,
         'azureSpeechRegion': azure_speech_region
     })
+
 # ACS Integration Settings
 AZURE_SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")
 AZURE_SEARCH_INDEX = os.environ.get("AZURE_SEARCH_INDEX")
@@ -274,11 +275,11 @@ def conversation_custom():
     try:
         user_message = request.json["messages"][-1]['content']
         conversation_id = request.json["conversation_id"]
-        user_assistent_messages = list(filter(lambda x: x['role'] in ('user','assistant'), request.json["messages"][0:-1]))        
+        user_assistant_messages = list(filter(lambda x: x['role'] in ('user','assistant'), request.json["messages"][0:-1]))        
         chat_history = []
-        for i,k in enumerate(user_assistent_messages):
+        for i,k in enumerate(user_assistant_messages):
             if i % 2 == 0:
-                chat_history.append((user_assistent_messages[i]['content'],user_assistent_messages[i+1]['content']))
+                chat_history.append((user_assistant_messages[i]['content'],user_assistant_messages[i+1]['content']))
         from utilities.helpers.ConfigHelper import ConfigHelper
         messages = message_orchestrator.handle_message(user_message=user_message, chat_history=chat_history, conversation_id=conversation_id, orchestrator=ConfigHelper.get_active_config_or_default().orchestrator)
 
