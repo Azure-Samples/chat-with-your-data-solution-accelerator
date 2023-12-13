@@ -1,0 +1,465 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.23.1.45101",
+      "templateHash": "3711349996173669799"
+    }
+  },
+  "parameters": {
+    "ResourcePrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "provide a 2-13 character prefix for all resources."
+      }
+    },
+    "functionAppName": {
+      "type": "string",
+      "defaultValue": "[format('{0}-func-backend', parameters('ResourcePrefix'))]",
+      "metadata": {
+        "description": "The name of the Azure Function app."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    },
+    "HostingPlanName": {
+      "type": "string",
+      "defaultValue": "[format('{0}-hosting-plan', parameters('ResourcePrefix'))]",
+      "metadata": {
+        "description": "Name of App Service plan"
+      }
+    },
+    "HostingPlanSku": {
+      "type": "string",
+      "defaultValue": "B3",
+      "allowedValues": [
+        "F1",
+        "D1",
+        "B1",
+        "B2",
+        "B3",
+        "S1",
+        "S2",
+        "S3",
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+      ],
+      "metadata": {
+        "description": "The pricing tier for the App Service plan"
+      }
+    },
+    "AppInsightsConnectionString": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Application Insights Connection String - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureCognitiveSearch": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure Cognitive Search Resource - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureSearchIndex": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure Cognitive Search Index - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureSearchConversationLogIndex": {
+      "type": "string",
+      "defaultValue": "conversations",
+      "metadata": {
+        "description": "Azure Cognitive Search Conversation Log Index - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureSearchKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Azure Cognitive Search Key - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureSearchSemanticSearchConfig": {
+      "type": "string",
+      "defaultValue": "default",
+      "metadata": {
+        "description": "Semantic search config - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureSearchIndexIsPrechunked": {
+      "type": "string",
+      "defaultValue": "false",
+      "metadata": {
+        "description": "Is the index prechunked - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureSearchTopK": {
+      "type": "string",
+      "defaultValue": "5",
+      "metadata": {
+        "description": "Top K results - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureSearchEnableInDomain": {
+      "type": "string",
+      "defaultValue": "false",
+      "metadata": {
+        "description": "Enable in domain - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureSearchContentColumns": {
+      "type": "string",
+      "defaultValue": "content",
+      "metadata": {
+        "description": "Content columns - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureSearchFilenameColumn": {
+      "type": "string",
+      "defaultValue": "filename",
+      "metadata": {
+        "description": "Filename column - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureSearchTitleColumn": {
+      "type": "string",
+      "defaultValue": "title",
+      "metadata": {
+        "description": "Title column - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureSearchUrlColumn": {
+      "type": "string",
+      "defaultValue": "url",
+      "metadata": {
+        "description": "Url column - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureOpenAIResource": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of Azure OpenAI Resource - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureOpenAIModel": {
+      "type": "string",
+      "defaultValue": "gpt-35-turbo",
+      "metadata": {
+        "description": "Azure OpenAI Model Deployment Name - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureOpenAIModelName": {
+      "type": "string",
+      "defaultValue": "gpt-35-turbo",
+      "metadata": {
+        "description": "Azure OpenAI Model Name - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureOpenAIKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Azure OpenAI Key - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "OrchestrationStrategy": {
+      "type": "string",
+      "allowedValues": [
+        "openai_function",
+        "langchain"
+      ],
+      "metadata": {
+        "description": "Orchestration strategy: openai_function or langchain str. If you use a old version of turbo (0301), plese select langchain - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureOpenAITemperature": {
+      "type": "string",
+      "defaultValue": "0",
+      "metadata": {
+        "description": "Azure OpenAI Temperature - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureOpenAITopP": {
+      "type": "string",
+      "defaultValue": "1",
+      "metadata": {
+        "description": "Azure OpenAI Top P - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureOpenAIMaxTokens": {
+      "type": "string",
+      "defaultValue": "1000",
+      "metadata": {
+        "description": "Azure OpenAI Max Tokens - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureOpenAIStopSequence": {
+      "type": "string",
+      "defaultValue": "\n",
+      "metadata": {
+        "description": "Azure OpenAI Stop Sequence - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureOpenAISystemMessage": {
+      "type": "string",
+      "defaultValue": "You are an AI assistant that helps people find information.",
+      "metadata": {
+        "description": "Azure OpenAI System Message - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureOpenAIApiVersion": {
+      "type": "string",
+      "defaultValue": "2023-07-01-preview",
+      "metadata": {
+        "description": "Azure OpenAI Api Version - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureOpenAIStream": {
+      "type": "string",
+      "defaultValue": "true",
+      "metadata": {
+        "description": "Whether or not to stream responses from Azure OpenAI - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureOpenAIEmbeddingModel": {
+      "type": "string",
+      "defaultValue": "text-embedding-ada-002",
+      "metadata": {
+        "description": "Azure OpenAI Embedding Model - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureFormRecognizerEndpoint": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure Form Recognizer Endpoint - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureFormRecognizerKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Azure Form Recognizer Key - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureBlobAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Storage Account Name - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureBlobAccountKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Storage Account Key - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    },
+    "AzureBlobContainerName": {
+      "type": "string",
+      "metadata": {
+        "description": "Storage Account Container Name - Created during the \"Chat with your data\" Solution Accelerator"
+      }
+    }
+  },
+  "variables": {
+    "BackendImageName": "DOCKER|fruoccopublic.azurecr.io/cwyod_backend"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2020-06-01",
+      "name": "[parameters('HostingPlanName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('HostingPlanSku')]"
+      },
+      "properties": {
+        "reserved": true
+      },
+      "kind": "linux"
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2018-11-01",
+      "name": "[parameters('functionAppName')]",
+      "kind": "functionapp,linux",
+      "location": "[parameters('location')]",
+      "tags": {},
+      "properties": {
+        "siteConfig": {
+          "appSettings": [
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~4"
+            },
+            {
+              "name": "WEBSITES_ENABLE_APP_SERVICE_STORAGE",
+              "value": "false"
+            },
+            {
+              "name": "APPINSIGHTS_CONNECTION_STRING",
+              "value": "[parameters('AppInsightsConnectionString')]"
+            },
+            {
+              "name": "AZURE_SEARCH_SERVICE",
+              "value": "[format('https://{0}.search.windows.net', parameters('AzureCognitiveSearch'))]"
+            },
+            {
+              "name": "AZURE_SEARCH_INDEX",
+              "value": "[parameters('AzureSearchIndex')]"
+            },
+            {
+              "name": "AZURE_SEARCH_CONVERSATIONS_LOG_INDEX",
+              "value": "[parameters('AzureSearchConversationLogIndex')]"
+            },
+            {
+              "name": "AZURE_SEARCH_KEY",
+              "value": "[parameters('AzureSearchKey')]"
+            },
+            {
+              "name": "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG",
+              "value": "[parameters('AzureSearchSemanticSearchConfig')]"
+            },
+            {
+              "name": "AZURE_SEARCH_INDEX_IS_PRECHUNKED",
+              "value": "[parameters('AzureSearchIndexIsPrechunked')]"
+            },
+            {
+              "name": "AZURE_SEARCH_TOP_K",
+              "value": "[parameters('AzureSearchTopK')]"
+            },
+            {
+              "name": "AZURE_SEARCH_ENABLE_IN_DOMAIN",
+              "value": "[parameters('AzureSearchEnableInDomain')]"
+            },
+            {
+              "name": "AZURE_SEARCH_CONTENT_COLUMNS",
+              "value": "[parameters('AzureSearchContentColumns')]"
+            },
+            {
+              "name": "AZURE_SEARCH_FILENAME_COLUMN",
+              "value": "[parameters('AzureSearchFilenameColumn')]"
+            },
+            {
+              "name": "AZURE_SEARCH_TITLE_COLUMN",
+              "value": "[parameters('AzureSearchTitleColumn')]"
+            },
+            {
+              "name": "AZURE_SEARCH_URL_COLUMN",
+              "value": "[parameters('AzureSearchUrlColumn')]"
+            },
+            {
+              "name": "AZURE_OPENAI_RESOURCE",
+              "value": "[parameters('AzureOpenAIResource')]"
+            },
+            {
+              "name": "AZURE_OPENAI_KEY",
+              "value": "[parameters('AzureOpenAIKey')]"
+            },
+            {
+              "name": "AZURE_OPENAI_MODEL",
+              "value": "[parameters('AzureOpenAIModel')]"
+            },
+            {
+              "name": "AZURE_OPENAI_MODEL_NAME",
+              "value": "[parameters('AzureOpenAIModelName')]"
+            },
+            {
+              "name": "AZURE_OPENAI_TEMPERATURE",
+              "value": "[parameters('AzureOpenAITemperature')]"
+            },
+            {
+              "name": "AZURE_OPENAI_TOP_P",
+              "value": "[parameters('AzureOpenAITopP')]"
+            },
+            {
+              "name": "AZURE_OPENAI_MAX_TOKENS",
+              "value": "[parameters('AzureOpenAIMaxTokens')]"
+            },
+            {
+              "name": "AZURE_OPENAI_STOP_SEQUENCE",
+              "value": "[parameters('AzureOpenAIStopSequence')]"
+            },
+            {
+              "name": "AZURE_OPENAI_SYSTEM_MESSAGE",
+              "value": "[parameters('AzureOpenAISystemMessage')]"
+            },
+            {
+              "name": "AZURE_OPENAI_API_VERSION",
+              "value": "[parameters('AzureOpenAIApiVersion')]"
+            },
+            {
+              "name": "AZURE_OPENAI_STREAM",
+              "value": "[parameters('AzureOpenAIStream')]"
+            },
+            {
+              "name": "AZURE_OPENAI_EMBEDDING_MODEL",
+              "value": "[parameters('AzureOpenAIEmbeddingModel')]"
+            },
+            {
+              "name": "AZURE_FORM_RECOGNIZER_ENDPOINT",
+              "value": "[parameters('AzureFormRecognizerEndpoint')]"
+            },
+            {
+              "name": "AZURE_FORM_RECOGNIZER_KEY",
+              "value": "[parameters('AzureFormRecognizerKey')]"
+            },
+            {
+              "name": "AZURE_BLOB_ACCOUNT_NAME",
+              "value": "[parameters('AzureBlobAccountName')]"
+            },
+            {
+              "name": "AZURE_BLOB_ACCOUNT_KEY",
+              "value": "[parameters('AzureBlobAccountKey')]"
+            },
+            {
+              "name": "AZURE_BLOB_CONTAINER_NAME",
+              "value": "[parameters('AzureBlobContainerName')]"
+            },
+            {
+              "name": "ORCHESTRATION_STRATEGY",
+              "value": "[parameters('OrchestrationStrategy')]"
+            }
+          ],
+          "cors": {
+            "allowedOrigins": [
+              "https://portal.azure.com"
+            ]
+          },
+          "use32BitWorkerProcess": false,
+          "linuxFxVersion": "[variables('BackendImageName')]",
+          "appCommandLine": "",
+          "alwaysOn": true
+        },
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('HostingPlanName'))]",
+        "clientAffinityEnabled": false,
+        "httpsOnly": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('HostingPlanName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deploymentScripts",
+      "apiVersion": "2020-10-01",
+      "name": "WaitFunctionDeploymentSection",
+      "kind": "AzurePowerShell",
+      "location": "[parameters('location')]",
+      "properties": {
+        "azPowerShellVersion": "3.0",
+        "scriptContent": "start-sleep -Seconds 300",
+        "cleanupPreference": "Always",
+        "retentionInterval": "PT1H"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+      ]
+    }
+  ]
+}

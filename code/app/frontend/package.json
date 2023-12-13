@@ -9,10 +9,15 @@
         "watch": "tsc && vite build --watch"
     },
     "dependencies": {
+        "@babel/traverse": "^7.23.2",
         "@fluentui/react": "^8.105.3",
         "@fluentui/react-icons": "^2.0.195",
+        "@fortawesome/free-solid-svg-icons": "^6.4.2",
+        "@fortawesome/react-fontawesome": "github:fortawesome/react-fontawesome",
         "lodash": "^4.17.21",
         "lodash-es": "^4.17.21",
+        "microsoft-cognitiveservices-speech-sdk": "^1.32.0",
+        "postcss": "^8.4.31",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "react-markdown": "^7.0.1",
@@ -24,6 +29,7 @@
     },
     "devDependencies": {
         "@types/lodash-es": "^4.17.7",
+        "@types/node": "^20.10.4",
         "@types/react": "^18.0.27",
         "@types/react-dom": "^18.0.10",
         "@types/uuid": "^9.0.2",
