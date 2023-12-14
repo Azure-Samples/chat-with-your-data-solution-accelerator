@@ -1,7 +1,9 @@
 from typing import Optional
 from datetime import datetime, timedelta
-from azure.storage.blob import BlobServiceClient, generate_blob_sas, generate_container_sas, ContentSettings
+from azure.storage.blob import BlobServiceClient, generate_blob_sas, generate_container_sas, ContentSettings, UserDelegationKey
 from .EnvHelper import EnvHelper
+from datetime import datetime, timedelta
+from azure.identity import DefaultAzureCredential
 
 class AzureBlobStorageClient:
     def __init__(self, account_name: Optional[str] = None, account_key: Optional[str] = None, container_name: Optional[str] = None):
@@ -9,19 +11,32 @@ class AzureBlobStorageClient:
         env_helper : EnvHelper = EnvHelper()
 
         self.account_name = account_name if account_name else env_helper.AZURE_BLOB_ACCOUNT_NAME
-        self.account_key = account_key if account_key else env_helper.AZURE_BLOB_ACCOUNT_KEY
-        self.connect_str = f"DefaultEndpointsProtocol=https;AccountName={self.account_name};AccountKey={self.account_key};EndpointSuffix=core.windows.net"
+        # self.account_key = account_key if account_key else env_helper.AZURE_BLOB_ACCOUNT_KEY
+        # self.connect_str = f"DefaultEndpointsProtocol=https;AccountName={self.account_name};AccountKey={self.account_key};EndpointSuffix=core.windows.net"
         self.container_name : str = container_name if container_name else env_helper.AZURE_BLOB_CONTAINER_NAME
-        self.blob_service_client : BlobServiceClient = BlobServiceClient.from_connection_string(self.connect_str)
-
-
+        # self.blob_service_client : BlobServiceClient = BlobServiceClient.from_connection_string(self.connect_str)
+        credential = DefaultAzureCredential()
+        self.blob_service_client = BlobServiceClient(account_url='', credential=credential)
+        self.user_delegation_key = self.request_user_delegation_key(blob_service_client=self.blob_service_client)
+    
+    def request_user_delegation_key(blob_service_client: BlobServiceClient) -> UserDelegationKey:
+        # Get a user delegation key that's valid for 1 day
+        delegation_key_start_time = datetime.utcnow()
+        delegation_key_expiry_time = delegation_key_start_time + timedelta(days=1)
+    
+        user_delegation_key = blob_service_client.get_user_delegation_key(
+            key_start_time=delegation_key_start_time,
+            key_expiry_time=delegation_key_expiry_time
+        )
+        return user_delegation_key
+    
     def upload_file(self, bytes_data, file_name, content_type='application/pdf'):
         # Create a blob client using the local file name as the name for the blob
         blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=file_name)
         # Upload the created file
         blob_client.upload_blob(bytes_data, overwrite=True, content_settings=ContentSettings(content_type=content_type))
         # Generate a SAS URL to the blob and return it
-        return blob_client.url + '?' + generate_blob_sas(self.account_name, self.container_name, file_name,account_key=self.account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
+        return blob_client.url + '?' + generate_blob_sas(self.account_name, self.container_name, file_name, user_delegation_key=self.user_delegation_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
 
     def download_file(self, file_name):
         blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=file_name)
@@ -45,7 +60,7 @@ class AzureBlobStorageClient:
         container_client = self.blob_service_client.get_container_client(self.container_name)
         blob_list = container_client.list_blobs(include='metadata')
         # sas = generate_blob_sas(account_name, container_name, blob.name,account_key=account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
-        sas = generate_container_sas(self.account_name, self.container_name,account_key=self.account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
+        sas = generate_container_sas(self.account_name, self.container_name, user_delegation_key=self.user_delegation_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
         files = []
         converted_files = {}
         for blob in blob_list:
@@ -70,7 +85,7 @@ class AzureBlobStorageClient:
         return files
 
     def upsert_blob_metadata(self, file_name, metadata):
-        blob_client = BlobServiceClient.from_connection_string(self.connect_str).get_blob_client(container=self.container_name, blob=file_name)
+        blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=file_name)
         # Read metadata from the blob
         blob_metadata = blob_client.get_blob_properties().metadata
         # Update metadata
@@ -80,8 +95,8 @@ class AzureBlobStorageClient:
 
     def get_container_sas(self):
         # Generate a SAS URL to the container and return it
-        return "?" + generate_container_sas(account_name= self.account_name, container_name= self.container_name,account_key=self.account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=1))
+        return "?" + generate_container_sas(account_name= self.account_name, container_name= self.container_name, user_delegation_key=self.user_delegation_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=1))
 
     def get_blob_sas(self, file_name):
         # Generate a SAS URL to the blob and return it
-        return f"https://{self.account_name}.blob.core.windows.net/{self.container_name}/{file_name}" + "?" + generate_blob_sas(account_name= self.account_name, container_name=self.container_name, blob_name= file_name, account_key= self.account_key, permission='r', expiry=datetime.utcnow() + timedelta(hours=1))
+        return f"https://{self.account_name}.blob.core.windows.net/{self.container_name}/{file_name}" + "?" + generate_blob_sas(account_name= self.account_name, container_name=self.container_name, blob_name= file_name, user_delegation_key= self.user_delegation_key, permission='r', expiry=datetime.utcnow() + timedelta(hours=1))

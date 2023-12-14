@@ -28,6 +28,7 @@ def static_file(path):
 if os.environ.get("USE_KEY_VAULT"):
     credential = DefaultAzureCredential()
     secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential)
+    openai_token = credential.get_token("https://cognitiveservices.azure.com/.default")
 
 # ACS Integration Settings
 AZURE_SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")
@@ -45,7 +46,7 @@ AZURE_SEARCH_URL_COLUMN = os.environ.get("AZURE_SEARCH_URL_COLUMN")
 # AOAI Integration Settings
 AZURE_OPENAI_RESOURCE = os.environ.get("AZURE_OPENAI_RESOURCE")
 AZURE_OPENAI_MODEL = os.environ.get("AZURE_OPENAI_MODEL")
-AZURE_OPENAI_KEY = secret_client.get_secret(os.environ.get("AZURE_OPENAI_KEY")).value if os.environ.get("USE_KEY_VAULT") else os.environ.get("AZURE_OPENAI_KEY")
+AZURE_OPENAI_KEY = openai_token.token
 AZURE_OPENAI_TEMPERATURE = os.environ.get("AZURE_OPENAI_TEMPERATURE", 0)
 AZURE_OPENAI_TOP_P = os.environ.get("AZURE_OPENAI_TOP_P", 1.0)
 AZURE_OPENAI_MAX_TOKENS = os.environ.get("AZURE_OPENAI_MAX_TOKENS", 1000)
