@@ -61,17 +61,25 @@ param AzureSearchTitleColumn string = 'title'
 param AzureSearchUrlColumn string = 'url'
 
 @description('Name of Azure OpenAI Resource')
-param AzureOpenAIResource string
+param AzureOpenAIResource string = '${ResourcePrefix}oai'
 
-@description('Azure OpenAI Model Deployment Name')
-param AzureOpenAIModel string = 'gpt-35-turbo'
+@description('Azure OpenAI GPT Model Deployment Name')
+param AzureOpenAIGPTModel string = 'gpt-35-turbo'
 
-@description('Azure OpenAI Model Name')
-param AzureOpenAIModelName string = 'gpt-35-turbo'
+@description('Azure OpenAI GPT Model Name')
+param AzureOpenAIGPTModelName string = 'gpt-35-turbo'
 
-@description('Azure OpenAI Key')
-@secure()
-param AzureOpenAIKey string
+@description('Azure OpenAI GPT Model Version')
+param AzureOpenAIGPTModelVersion string = '0613'
+
+@description('Azure OpenAI Embedding Model Deployment Name')
+param AzureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
+
+@description('Azure OpenAI GPT Model Name')
+param AzureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
+
+@description('Azure OpenAI GPT Model Version')
+param AzureOpenAIEmbeddingModelVersion string = '2'
 
 @description('Orchestration strategy: openai_function or langchain str. If you use a old version of turbo (0301), plese select langchain')
 @allowed([
@@ -100,9 +108,6 @@ param AzureOpenAIApiVersion string = '2023-07-01-preview'
 
 @description('Whether or not to stream responses from Azure OpenAI')
 param AzureOpenAIStream string = 'true'
-
-@description('Azure OpenAI Embedding Model')
-param AzureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 
 @description('Azure AI Search Resource')
 param AzureCognitiveSearch string = '${ResourcePrefix}-search'
@@ -150,6 +155,51 @@ var BlobContainerName = 'documents'
 var QueueName = 'doc-processing'
 var ClientKey = '${uniqueString(guid(resourceGroup().id, deployment().name))}${newGuidString}'
 var EventGridSystemTopicName = 'doc-processing'
+
+resource OpenAI 'Microsoft.CognitiveServices/accounts@2021-10-01' = {
+  name: AzureOpenAIResource
+  location: Location
+  kind: 'OpenAI'
+  sku: {
+    name: 'S0'
+  }
+  properties: {
+    customSubDomainName: AzureOpenAIResource
+  }
+
+  resource OpenAIGPTDeployment 'deployments@2023-05-01' = {
+    name: AzureOpenAIGPTModelName
+    properties: {
+      model: {
+        format: 'OpenAI'
+        name: AzureOpenAIGPTModel
+        version: AzureOpenAIGPTModelVersion
+      }
+    }
+    sku: {
+      name: 'Standard'
+      capacity: 30
+    }
+  }
+
+  resource OpenAIEmbeddingDeployment 'deployments@2023-05-01' = {
+    name: AzureOpenAIEmbeddingModelName
+    properties: {
+      model: {
+        format: 'OpenAI'
+        name: AzureOpenAIEmbeddingModel
+        version: AzureOpenAIEmbeddingModelVersion
+      }
+    }
+    sku: {
+      name: 'Standard'
+      capacity: 30
+    }
+    dependsOn: [
+      OpenAIGPTDeployment
+    ]
+  }
+}
 
 resource AzureCognitiveSearch_resource 'Microsoft.Search/searchServices@2022-09-01' = {
   name: AzureCognitiveSearch
@@ -258,9 +308,9 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'AZURE_SEARCH_TITLE_COLUMN', value: AzureSearchTitleColumn}
         { name: 'AZURE_SEARCH_URL_COLUMN', value: AzureSearchUrlColumn}
         { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
-        { name: 'AZURE_OPENAI_KEY', value: AzureOpenAIKey}
-        { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIModel}
-        { name: 'AZURE_OPENAI_MODEL_NAME', value: AzureOpenAIModelName}
+        { name: 'AZURE_OPENAI_KEY', value: OpenAI.listKeys('2023-05-01').key1}
+        { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIGPTModel}
+        { name: 'AZURE_OPENAI_MODEL_NAME', value: AzureOpenAIGPTModelName}
         { name: 'AZURE_OPENAI_TEMPERATURE', value: AzureOpenAITemperature}
         { name: 'AZURE_OPENAI_TOP_P', value: AzureOpenAITopP}
         { name: 'AZURE_OPENAI_MAX_TOKENS', value: AzureOpenAIMaxTokens}
@@ -310,9 +360,9 @@ resource WebsiteName_admin 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'AZURE_SEARCH_TITLE_COLUMN', value: AzureSearchTitleColumn}
         { name: 'AZURE_SEARCH_URL_COLUMN', value: AzureSearchUrlColumn }
         { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
-        { name: 'AZURE_OPENAI_KEY', value: AzureOpenAIKey}
-        { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIModel }
-        { name: 'AZURE_OPENAI_MODEL_NAME', value: AzureOpenAIModelName }
+        { name: 'AZURE_OPENAI_KEY', value: OpenAI.listKeys('2023-05-01').key1}
+        { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIGPTModel }
+        { name: 'AZURE_OPENAI_MODEL_NAME', value: AzureOpenAIGPTModelName }
         { name: 'AZURE_OPENAI_TEMPERATURE', value: AzureOpenAITemperature }
         { name: 'AZURE_OPENAI_TOP_P', value: AzureOpenAITopP }
         { name: 'AZURE_OPENAI_MAX_TOKENS', value: AzureOpenAIMaxTokens }
@@ -434,10 +484,10 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
         { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false'}
         { name: 'APPINSIGHTS_INSTRUMENTATIONKEY', value: reference(ApplicationInsights.id, '2015-05-01').InstrumentationKey}
         { name: 'AzureWebJobsStorage', value: 'DefaultEndpointsProtocol=https;AccountName=${StorageAccountName};AccountKey=${listKeys(StorageAccount.id, '2019-06-01').keys[0].value};EndpointSuffix=core.windows.net'}
-        { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIModel}
+        { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIGPTModel}
         { name: 'AZURE_OPENAI_EMBEDDING_MODEL', value: AzureOpenAIEmbeddingModel}
         { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
-        { name: 'AZURE_OPENAI_KEY', value: AzureOpenAIKey}
+        { name: 'AZURE_OPENAI_KEY', value: OpenAI.listKeys('2023-05-01').key1}
         { name: 'AZURE_BLOB_ACCOUNT_NAME', value: StorageAccountName}
         { name: 'AZURE_BLOB_ACCOUNT_KEY', value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value}
         { name: 'AZURE_BLOB_CONTAINER_NAME', value: BlobContainerName}
