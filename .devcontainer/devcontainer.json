@@ -16,6 +16,7 @@
 	"customizations": {
 		"vscode": {
 			"extensions": [
+				"github.vscode-pull-request-github",
 				"ms-azuretools.vscode-azurefunctions",
 				"ms-azuretools.vscode-bicep",
 				"ms-azuretools.vscode-docker",
