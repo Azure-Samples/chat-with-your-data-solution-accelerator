@@ -4,21 +4,31 @@
 	"features": {
 		"ghcr.io/devcontainers/features/azure-cli:1": {},
 		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
-		"ghcr.io/devcontainers/features/node:1" : {},
+		"ghcr.io/devcontainers/features/node:1": {},
 		"ghcr.io/jlaundry/devcontainer-features/azure-functions-core-tools:1": {},
-		"rchaganti/vsc-devcontainer-features/azurebicep" : {
+		"rchaganti/vsc-devcontainer-features/azurebicep": {
 			"version": "latest"
 		}
 	},
 
-	// "postCreateCommand": "cd docker && docker compose up",
+	"postCreateCommand": "pip install -r code/requirements.txt -r code/app/requirements.txt -r extensions/backend/requirements.txt",
 
 	"customizations": {
 		"vscode": {
 			"extensions": [
 				"ms-azuretools.vscode-azurefunctions",
-				"ms-python.python"
-			]
+				"ms-azuretools.vscode-bicep",
+				"ms-azuretools.vscode-docker",
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"ms-vscode.vscode-node-azure-pack",
+				"TeamsDevApp.ms-teams-vscode-extension"
+			],
+			"settings": {
+				"azureFunctions.projectSubpath": "code/batch",
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+				"python.pythonPath": "/usr/local/bin/python"
+            }
 		}
 	}
 }
