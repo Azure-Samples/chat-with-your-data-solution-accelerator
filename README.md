@@ -160,15 +160,16 @@ The following are links to the pricing details for some of the resources:
     |---------|---------|
     |Resource group   | The resource group that will contain the resources for this accelerator. You can select **Create new** to create a new group.        |
     |Resource prefix   | A text string that will be appended to each resource that gets created, and used as the website name for the web app. This name cannot contain spaces or special characters.        |
-    |Azure OpenAI resource    | The name of your Azure OpenAI resource. This resource must have already been created previously.         |
-    |Azure OpenAI key    | The access key associated with your Azure OpenAI resource.        |
     |Orchestration strategy| Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain"|
     Azure Document Intelligence resource location   | The location of the Azure Document Intelligence resource
     
     You can find the [ARM template](./infrastructure/deployment.json) used, along with a [Bicep file](./infrastructure/deployment.bicep) for deploying this accelerator in the `/infrastructure` directory.
 
-   **Note**: By default, the deployment name in the application settings is equal to the model name (gpt-35-turbo and text-embedding-ada-002). If you named the deployment in a different way, you should update the application settings to match your deployment names.
-    
+    **Note**: The default configuration deploys an OpenAI Model "gpt-35-turbo" with version 0613. However, not all 
+    locations support this version. If you're deploying to a location that doesn't support version 0613, you'll need to 
+    switch to a lower version. To find out which versions are supported in different regions, visit the 
+    [GPT-35 Turbo Model Availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#gpt-35-turbo-model-availability) page.
+
 1. Navigate to the admin site, where you can upload documents. It will be located at:
     
     `https://{MY_RESOURCE_PREFIX}-website-admin.azurewebsites.net/`

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "2151030802603975433"
+      "templateHash": "3721248203809389213"
     }
   },
   "parameters": {
@@ -136,28 +136,51 @@
     },
     "AzureOpenAIResource": {
       "type": "string",
+      "defaultValue": "[format('{0}oai', parameters('ResourcePrefix'))]",
       "metadata": {
-        "description": "Name of Azure OpenAI Resource"
+        "description": "Azure AI Resource"
       }
     },
-    "AzureOpenAIModel": {
+    "AzureOpenAIGPTModel": {
       "type": "string",
       "defaultValue": "gpt-35-turbo",
       "metadata": {
-        "description": "Azure OpenAI Model Deployment Name"
+        "description": "Azure OpenAI GPT Model Deployment Name"
       }
     },
-    "AzureOpenAIModelName": {
+    "AzureOpenAIGPTModelName": {
       "type": "string",
       "defaultValue": "gpt-35-turbo",
       "metadata": {
-        "description": "Azure OpenAI Model Name"
+        "description": "Azure OpenAI GPT Model Name"
       }
     },
-    "AzureOpenAIKey": {
-      "type": "securestring",
+    "AzureOpenAIGPTModelVersion": {
+      "type": "string",
+      "defaultValue": "0613",
       "metadata": {
-        "description": "Azure OpenAI Key"
+        "description": "Azure OpenAI GPT Model Version"
+      }
+    },
+    "AzureOpenAIEmbeddingModel": {
+      "type": "string",
+      "defaultValue": "text-embedding-ada-002",
+      "metadata": {
+        "description": "Azure OpenAI Embedding Model Deployment Name"
+      }
+    },
+    "AzureOpenAIEmbeddingModelName": {
+      "type": "string",
+      "defaultValue": "text-embedding-ada-002",
+      "metadata": {
+        "description": "Azure OpenAI GPT Model Name"
+      }
+    },
+    "AzureOpenAIEmbeddingModelVersion": {
+      "type": "string",
+      "defaultValue": "2",
+      "metadata": {
+        "description": "Azure OpenAI GPT Model Version"
       }
     },
     "OrchestrationStrategy": {
@@ -217,13 +240,6 @@
       "defaultValue": "true",
       "metadata": {
         "description": "Whether or not to stream responses from Azure OpenAI"
-      }
-    },
-    "AzureOpenAIEmbeddingModel": {
-      "type": "string",
-      "defaultValue": "text-embedding-ada-002",
-      "metadata": {
-        "description": "Azure OpenAI Embedding Model"
       }
     },
     "AzureCognitiveSearch": {
@@ -318,6 +334,58 @@
     "EventGridSystemTopicName": "doc-processing"
   },
   "resources": [
+    {
+      "type": "Microsoft.CognitiveServices/accounts/deployments",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/{1}', parameters('AzureOpenAIResource'), parameters('AzureOpenAIGPTModelName'))]",
+      "properties": {
+        "model": {
+          "format": "OpenAI",
+          "name": "[parameters('AzureOpenAIGPTModel')]",
+          "version": "[parameters('AzureOpenAIGPTModelVersion')]"
+        }
+      },
+      "sku": {
+        "name": "Standard",
+        "capacity": 30
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts/deployments",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/{1}', parameters('AzureOpenAIResource'), parameters('AzureOpenAIEmbeddingModelName'))]",
+      "properties": {
+        "model": {
+          "format": "OpenAI",
+          "name": "[parameters('AzureOpenAIEmbeddingModel')]",
+          "version": "[parameters('AzureOpenAIEmbeddingModelVersion')]"
+        }
+      },
+      "sku": {
+        "name": "Standard",
+        "capacity": 30
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource'))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts/deployments', parameters('AzureOpenAIResource'), parameters('AzureOpenAIGPTModelName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts",
+      "apiVersion": "2021-10-01",
+      "name": "[parameters('AzureOpenAIResource')]",
+      "location": "[parameters('Location')]",
+      "kind": "OpenAI",
+      "sku": {
+        "name": "S0"
+      },
+      "properties": {
+        "customSubDomainName": "[parameters('AzureOpenAIResource')]"
+      }
+    },
     {
       "type": "Microsoft.Search/searchServices",
       "apiVersion": "2022-09-01",
@@ -476,15 +544,15 @@
             },
             {
               "name": "AZURE_OPENAI_KEY",
-              "value": "[parameters('AzureOpenAIKey')]"
+              "value": "[listKeys(resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource')), '2023-05-01').key1]"
             },
             {
               "name": "AZURE_OPENAI_MODEL",
-              "value": "[parameters('AzureOpenAIModel')]"
+              "value": "[parameters('AzureOpenAIGPTModel')]"
             },
             {
               "name": "AZURE_OPENAI_MODEL_NAME",
-              "value": "[parameters('AzureOpenAIModelName')]"
+              "value": "[parameters('AzureOpenAIGPTModelName')]"
             },
             {
               "name": "AZURE_OPENAI_TEMPERATURE",
@@ -569,6 +637,7 @@
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', parameters('ApplicationInsightsName'))]",
         "[resourceId('Microsoft.Web/serverfarms', parameters('HostingPlanName'))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource'))]",
         "[resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName'))]"
       ]
     },
@@ -639,15 +708,15 @@
             },
             {
               "name": "AZURE_OPENAI_KEY",
-              "value": "[parameters('AzureOpenAIKey')]"
+              "value": "[listKeys(resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource')), '2023-05-01').key1]"
             },
             {
               "name": "AZURE_OPENAI_MODEL",
-              "value": "[parameters('AzureOpenAIModel')]"
+              "value": "[parameters('AzureOpenAIGPTModel')]"
             },
             {
               "name": "AZURE_OPENAI_MODEL_NAME",
-              "value": "[parameters('AzureOpenAIModelName')]"
+              "value": "[parameters('AzureOpenAIGPTModelName')]"
             },
             {
               "name": "AZURE_OPENAI_TEMPERATURE",
@@ -732,6 +801,7 @@
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', parameters('ApplicationInsightsName'))]",
         "[resourceId('Microsoft.Web/serverfarms', parameters('HostingPlanName'))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource'))]",
         "[resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName'))]"
       ]
     },
@@ -858,7 +928,7 @@
             },
             {
               "name": "AZURE_OPENAI_MODEL",
-              "value": "[parameters('AzureOpenAIModel')]"
+              "value": "[parameters('AzureOpenAIGPTModel')]"
             },
             {
               "name": "AZURE_OPENAI_EMBEDDING_MODEL",
@@ -870,7 +940,7 @@
             },
             {
               "name": "AZURE_OPENAI_KEY",
-              "value": "[parameters('AzureOpenAIKey')]"
+              "value": "[listKeys(resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource')), '2023-05-01').key1]"
             },
             {
               "name": "AZURE_BLOB_ACCOUNT_NAME",
@@ -942,6 +1012,7 @@
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', parameters('ApplicationInsightsName'))]",
         "[resourceId('Microsoft.Web/serverfarms', parameters('HostingPlanName'))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource'))]",
         "[resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName'))]"
       ]
     },
