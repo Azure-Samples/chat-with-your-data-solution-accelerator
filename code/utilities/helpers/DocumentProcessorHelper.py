@@ -74,7 +74,7 @@ class DocumentProcessor:
                     documents, processor.chunking)
                 keys = list(map(lambda x: x.id, documents))
                 documents = [document.convert_to_langchain_document()
-                             for document in documents]
+                            for document in documents]
                 return vector_store.add_documents(documents=documents, keys=keys)
             except Exception as e:
                 logging.error(f"Error adding embeddings for {source_url}: {e}")

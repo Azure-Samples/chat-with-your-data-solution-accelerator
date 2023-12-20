@@ -55,9 +55,9 @@ class ContentSafetyChecker(AnswerProcessingBase):
         Returns:
             str: The validated and replaced text.
         """
-        response_template = (f"Unfortunately, I am not able to process your question, as I have detected sensitive "
-                             f"content that I am not allowed to process. This might be a mistake, so please try "
-                             f"rephrasing your question.")
+        response_template = "Unfortunately, I am not able to process your question, as I have detected sensitive " \
+                            "content that I am not allowed to process. This might be a mistake, so please try " \
+                            "rephrasing your question."
         return self.process_answer(Answer(question="", answer=text, source_documents=[]), response_template=response_template).answer
 
     def validate_output_and_replace_if_harmful(self, text: str) -> str:
@@ -70,9 +70,9 @@ class ContentSafetyChecker(AnswerProcessingBase):
         Returns:
             str: The validated and replaced text.
         """
-        response_template = (f"Unfortunately, I have detected sensitive content in my answer, which I am not allowed "
-                             f"to show you. This might be a mistake, so please try again and maybe rephrase your "
-                             f"question.")
+        response_template = ("Unfortunately, I have detected sensitive content in my answer, which I am not allowed "
+                            "to show you. This might be a mistake, so please try again and maybe rephrase your "
+                            "question.")
         return self.process_answer(Answer(question="", answer=text, source_documents=[]), response_template=response_template).answer
 
     def _filter_text_and_replace(self, text: str, response_template: str) -> str:

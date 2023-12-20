@@ -33,6 +33,5 @@ class Orchestrator:
         """
         orchestrator = get_orchestrator(orchestrator.strategy.value)
         if orchestrator is None:
-            raise Exception(
-                f"Unknown orchestration strategy: {orchestrator.strategy.value}")
+            raise ValueError(f"Unknown orchestration strategy: {orchestrator.strategy.value}")
         return orchestrator.handle_message(user_message, chat_history, conversation_id)

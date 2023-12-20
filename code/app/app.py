@@ -192,27 +192,27 @@ def stream_with_data(body, headers, endpoint):
         with s.post(endpoint, json=body, headers=headers, stream=True) as r:
             for line in r.iter_lines(chunk_size=10):
                 if line:
-                    lineJson = json.loads(
+                    line_json = json.loads(
                         line.lstrip(b'data:').decode('utf-8'))
-                    if 'error' in lineJson:
-                        yield json.dumps(lineJson).replace("\n", "\\n") + "\n"
-                    response["id"] = lineJson["id"]
-                    response["model"] = lineJson["model"]
-                    response["created"] = lineJson["created"]
-                    response["object"] = lineJson["object"]
+                    if 'error' in line_json:
+                        yield json.dumps(line_json).replace("\n", "\\n") + "\n"
+                    response["id"] = line_json["id"]
+                    response["model"] = line_json["model"]
+                    response["created"] = line_json["created"]
+                    response["object"] = line_json["object"]
 
-                    role = lineJson["choices"][0]["messages"][0]["delta"].get(
+                    role = line_json["choices"][0]["messages"][0]["delta"].get(
                         "role")
                     if role == "tool":
                         response["choices"][0]["messages"].append(
-                            lineJson["choices"][0]["messages"][0]["delta"])
+                            line_json["choices"][0]["messages"][0]["delta"])
                     elif role == "assistant":
                         response["choices"][0]["messages"].append({
                             "role": "assistant",
                             "content": ""
                         })
                     else:
-                        deltaText = lineJson["choices"][0]["messages"][0]["delta"]["content"]
+                        deltaText = line_json["choices"][0]["messages"][0]["delta"]["content"]
                         if deltaText != "[DONE]":
                             response["choices"][0]["messages"][1]["content"] += deltaText
 

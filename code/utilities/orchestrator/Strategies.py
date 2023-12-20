@@ -30,5 +30,4 @@ def get_orchestrator(orchestration_strategy: str):
         from .LangChainAgent import LangChainAgent
         return LangChainAgent()
     else:
-        raise Exception(
-            f"Unknown orchestration strategy: {orchestration_strategy}")
+        raise ValueError(f"Unknown orchestration strategy: {orchestration_strategy}")

@@ -24,6 +24,5 @@ class DocumentLoading:
         """
         loader = get_document_loader(loading.loading_strategy.value)
         if loader is None:
-            raise Exception(
-                f"Unknown loader strategy: {loading.loading_strategy.value}")
+            raise ValueError(f"Unknown loader strategy: {loading.loading_strategy.value}")
         return loader.load(document_url)

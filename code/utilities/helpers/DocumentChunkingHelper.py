@@ -25,6 +25,5 @@ class DocumentChunking:
         """
         chunker = get_document_chunker(chunking.chunking_strategy.value)
         if chunker is None:
-            raise Exception(
-                f"Unknown chunking strategy: {chunking.chunking_strategy.value}")
+            raise ValueError(f"Unknown chunking strategy: {chunking.chunking_strategy.value}")
         return chunker.chunk(documents, chunking)
