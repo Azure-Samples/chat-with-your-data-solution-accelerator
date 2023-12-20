@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.23.1.45101",
-      "templateHash": "3721248203809389213"
+      "version": "0.24.24.22086",
+      "templateHash": "7491509633272107593"
     }
   },
   "parameters": {
@@ -138,7 +138,7 @@
       "type": "string",
       "defaultValue": "[format('{0}oai', parameters('ResourcePrefix'))]",
       "metadata": {
-        "description": "Azure AI Resource"
+        "description": "Name of Azure OpenAI Resource"
       }
     },
     "AzureOpenAIGPTModel": {

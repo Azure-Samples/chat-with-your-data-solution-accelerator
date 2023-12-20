@@ -148,28 +148,35 @@ The following are links to the pricing details for some of the resources:
 
 ### Deploy instructions
 
-1. Click the following deployment button to create the required resources for this accelerator directly in your Azure Subscription. 
+**Note**: The default configuration deploys an OpenAI Model "gpt-35-turbo" with version 0613. However, not all 
+locations support this version. If you're deploying to a location that doesn't support version 0613, you'll need to 
+switch to a lower version. To find out which versions are supported in different regions, visit the 
+[GPT-35 Turbo Model Availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#gpt-35-turbo-model-availability) page.
 
-    <!-- TODO: Updated prior to PR -->
-    [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fchat-with-your-data-solution-accelerator%2Fmain%2Finfrastructure%2Fdeployment.json) 
+#### Azure Resource Manager
+Click the following deployment button to create the required resources for this accelerator directly in your Azure Subscription. 
 
-1. Add the following fields:
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fchat-with-your-data-solution-accelerator%2Fmain%2Finfra%2Fdeployment.json) 
 
-    
-    |Field  |Description  |
-    |---------|---------|
-    |Resource group   | The resource group that will contain the resources for this accelerator. You can select **Create new** to create a new group.        |
-    |Resource prefix   | A text string that will be appended to each resource that gets created, and used as the website name for the web app. This name cannot contain spaces or special characters.        |
-    |Orchestration strategy| Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain"|
-    Azure Document Intelligence resource location   | The location of the Azure Document Intelligence resource
-    
-    You can find the [ARM template](./infrastructure/deployment.json) used, along with a [Bicep file](./infrastructure/deployment.bicep) for deploying this accelerator in the `/infrastructure` directory.
+This requires the following fields to be entered:
+   
+|Field  |Description  |
+|---------|---------|
+|Resource group   | The resource group that will contain the resources for this accelerator. You can select **Create new** to create a new group.        |
+|Resource prefix   | A text string that will be appended to each resource that gets created, and used as the website name for the web app. This name cannot contain spaces or special characters.        |
+|Orchestration strategy| Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain"|
 
-    **Note**: The default configuration deploys an OpenAI Model "gpt-35-turbo" with version 0613. However, not all 
-    locations support this version. If you're deploying to a location that doesn't support version 0613, you'll need to 
-    switch to a lower version. To find out which versions are supported in different regions, visit the 
-    [GPT-35 Turbo Model Availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#gpt-35-turbo-model-availability) page.
+#### Bicep
 
+A [Bicep file](./infra/deployment.bicep) is used to generate the [ARM template](./infra/deployment.json). You can deploy this accelerator by the following command
+
+```sh
+RESOURCE_GROUP_NAME=cwyd
+az group create --location uksouth --resource-group $RESOURCE_GROUP_NAME
+az deployment group create --resource-group $RESOURCE_GROUP_NAME --template-file ./infra/deployment.bicep
+ ```
+
+#### Testing the deployment
 1. Navigate to the admin site, where you can upload documents. It will be located at:
     
     `https://{MY_RESOURCE_PREFIX}-website-admin.azurewebsites.net/`
