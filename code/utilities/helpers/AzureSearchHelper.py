@@ -8,11 +8,22 @@ from azure.search.documents.indexes.models import (
 from .LLMHelper import LLMHelper
 from .EnvHelper import EnvHelper
 
+
 class AzureSearchHelper():
+    """
+    Helper class for working with Azure Search.
+    """
+
     def __init__(self):
         pass
-    
+
     def get_vector_store(self):
+        """
+        Returns an instance of AzureSearch configured with the necessary fields and settings for vector search.
+
+        Returns:
+            AzureSearch: An instance of AzureSearch.
+        """
         llm_helper = LLMHelper()
         env_helper = EnvHelper()
         fields = [
@@ -28,9 +39,11 @@ class AzureSearchHelper():
             ),
             SearchField(
                 name="content_vector",
-                type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
+                type=SearchFieldDataType.Collection(
+                    SearchFieldDataType.Single),
                 searchable=True,
-                vector_search_dimensions=len(llm_helper.get_embedding_model().embed_query("Text")),
+                vector_search_dimensions=len(
+                    llm_helper.get_embedding_model().embed_query("Text")),
                 vector_search_configuration="default",
             ),
             SearchableField(
@@ -59,7 +72,7 @@ class AzureSearchHelper():
                 filterable=True,
             ),
         ]
-        
+
         return AzureSearch(
             azure_search_endpoint=env_helper.AZURE_SEARCH_SERVICE,
             azure_search_key=env_helper.AZURE_SEARCH_KEY,
@@ -68,8 +81,14 @@ class AzureSearchHelper():
             fields=fields,
             user_agent="langchain chatwithyourdata-sa",
         )
-    
+
     def get_conversation_logger(self):
+        """
+        Returns an instance of AzureSearch configured for logging conversations.
+
+        Returns:
+            AzureSearch: An instance of AzureSearch configured for logging conversations.
+        """
         llm_helper = LLMHelper()
         env_helper = EnvHelper()
         fields = [
@@ -91,9 +110,11 @@ class AzureSearchHelper():
             ),
             SearchField(
                 name="content_vector",
-                type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
+                type=SearchFieldDataType.Collection(
+                    SearchFieldDataType.Single),
                 searchable=True,
-                vector_search_dimensions=len(llm_helper.get_embedding_model().embed_query("Text")),
+                vector_search_dimensions=len(
+                    llm_helper.get_embedding_model().embed_query("Text")),
                 vector_search_configuration="default",
             ),
             SearchableField(
@@ -114,7 +135,8 @@ class AzureSearchHelper():
             ),
             SimpleField(
                 name="sources",
-                type=SearchFieldDataType.Collection(SearchFieldDataType.String),
+                type=SearchFieldDataType.Collection(
+                    SearchFieldDataType.String),
                 filterable=True,
                 facetable=True,
             ),
@@ -129,7 +151,7 @@ class AzureSearchHelper():
                 filterable=True,
             ),
         ]
-        
+
         return AzureSearch(
             azure_search_endpoint=env_helper.AZURE_SEARCH_SERVICE,
             azure_search_key=env_helper.AZURE_SEARCH_KEY,
@@ -138,4 +160,3 @@ class AzureSearchHelper():
             fields=fields,
             user_agent="langchain chatwithyourdata-sa",
         )
-    
