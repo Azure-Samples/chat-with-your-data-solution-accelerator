@@ -19,7 +19,7 @@ jobs:
         username: fruoccopublic
         password: ${{ secrets.DOCKER_PASSWORD }}
     
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Build the Docker image
       run:
         docker pull fruoccopublic.azurecr.io/rag-webapp:latest || true;
