@@ -13,7 +13,7 @@ jobs:
     steps:
     
     - name: Docker Login
-      uses: docker/login-action@v2.2.0
+      uses: docker/login-action@v3.0.0
       with:
         registry: fruoccopublic.azurecr.io
         username: fruoccopublic
