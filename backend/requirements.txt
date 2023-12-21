@@ -10,8 +10,8 @@ transformers==4.30.0
 python-dotenv==1.0.0
 azure-ai-formrecognizer==3.2.0
 azure-storage-blob==12.14.1
-azure-identity==1.12.0
-azure-ai-contentsafety==1.0.0b1
+azure-identity==1.15.0
+azure-ai-contentsafety==1.0.0
 requests==2.31.0
 tiktoken==0.2.0
 azure-storage-queue==12.5.0
@@ -24,4 +24,3 @@ azure-search-documents==11.4.0b8
 opencensus-ext-azure==1.1.9
 pandas==1.5.1
 python-docx==0.8.11
-azure-keyvault-secrets==4.4.*

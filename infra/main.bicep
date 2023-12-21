@@ -149,6 +149,12 @@ param useKeyVault bool
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 
+@allowed([
+  'rbac'
+  'keys'
+])
+param authType string
+
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
@@ -162,6 +168,45 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: rgName
   location: location
   tags: tags
+}
+
+// Store secrets in a keyvault
+module keyvault './core/security/keyvault.bicep' = if (useKeyVault) {
+  name: 'keyvault'
+  scope: rg
+  params: {
+    name: 'kv-${resourceToken}'
+    location: location
+    tags: tags
+    principalId: principalId
+  }
+}
+
+module webaccess './core/security/keyvault-access.bicep' = if (useKeyVault) {
+  name: 'web-keyvault-access'
+  scope: rg
+  params: {
+    keyVaultName: keyVaultName
+    principalId: web.outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID
+  }
+}
+
+module adminwebaccess './core/security/keyvault-access.bicep' = if (useKeyVault) {
+  name: 'adminweb-keyvault-access'
+  scope: rg
+  params: {
+    keyVaultName: keyVaultName
+    principalId: adminweb.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
+  }
+}
+
+module functionaccess './core/security/keyvault-access.bicep' = if (useKeyVault) {
+  name: 'function-keyvault-access'
+  scope: rg
+  params: {
+    keyVaultName: keyVaultName
+    principalId: function.outputs.FUNCTION_IDENTITY_PRINCIPAL_ID
+  }
 }
 
 module openai 'core/ai/cognitiveservices.bicep' = {
@@ -212,6 +257,11 @@ module search './core/search/search-services.bicep' = {
     sku: {
       name: azureCognitiveSearchSku
     }
+    authOptions: {
+      aadOrApiKey: {
+        aadAuthFailureMode: 'http403'
+      }
+    }
   }
 }
 
@@ -225,59 +275,6 @@ module hostingplan './core/host/appserviceplan.bicep' = {
       name: hostingPlanSku
     }
     reserved: true
-  }
-}
-
-module storekeys './app/storekeys.bicep' = if (useKeyVault) {
-  name: 'storekeys'
-  scope: rg
-  params: {
-    keyVaultName: keyVaultName
-    azureOpenAIName: openai.outputs.name
-    azureCognitiveSearchName: search.outputs.name
-    storageAccountName: storage.outputs.STORAGE_ACCOUNT_NAME
-    formRecognizerName: formrecognizer.outputs.name
-    contentSafetyName: contentsafety.outputs.name
-    rgName: rgName
-  }
-}
-
-// Store secrets in a keyvault
-module keyvault './core/security/keyvault.bicep' = if (useKeyVault) {
-  name: 'keyvault'
-  scope: rg
-  params: {
-    name: 'kv-${resourceToken}'
-    location: location
-    tags: tags
-    principalId: principalId
-  }
-}
-
-module webaccess './core/security/keyvault-access.bicep' = if (useKeyVault) {
-  name: 'web-keyvault-access'
-  scope: rg
-  params: {
-    keyVaultName: keyVaultName
-    principalId: web.outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID
-  }
-}
-
-module adminwebaccess './core/security/keyvault-access.bicep' = if (useKeyVault) {
-  name: 'adminweb-keyvault-access'
-  scope: rg
-  params: {
-    keyVaultName: keyVaultName
-    principalId: adminweb.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
-  }
-}
-
-module functionaccess './core/security/keyvault-access.bicep' = if (useKeyVault) {
-  name: 'function-keyvault-access'
-  scope: rg
-  params: {
-    keyVaultName: keyVaultName
-    principalId: function.outputs.FUNCTION_IDENTITY_PRINCIPAL_ID
   }
 }
 
@@ -296,14 +293,8 @@ module web './app/web.bicep' = {
     storageAccountName: storage.outputs.STORAGE_ACCOUNT_NAME
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
-    openAIKey: useKeyVault ? storekeys.outputs.OPENAI_KEY : ''
-    storageAccountKey: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY: ''
-    formRecognizerKey: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY: ''
-    searchKey: useKeyVault ? storekeys.outputs.SEARCH_KEY: ''
-    contentSafetyKey: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY: ''
-    useKeyVault: useKeyVault
     keyVaultName: useKeyVault ? keyvault.outputs.name : ''
-    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
+    authType: authType
     appSettings: {
       AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -352,14 +343,8 @@ module adminweb './app/adminweb.bicep' = {
     storageAccountName: storage.outputs.STORAGE_ACCOUNT_NAME
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
-    openAIKey: useKeyVault ? storekeys.outputs.OPENAI_KEY : ''
-    storageAccountKey: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY: ''
-    formRecognizerKey: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY: ''
-    searchKey: useKeyVault ? storekeys.outputs.SEARCH_KEY: ''
-    contentSafetyKey: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY: ''
-    useKeyVault: useKeyVault
     keyVaultName: useKeyVault ? keyvault.outputs.name : ''
-    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
+    authType: authType
     appSettings: {
       AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -425,14 +410,8 @@ module function './app/function.bicep' = {
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
     clientKey: clientKey
-    openAIKey: useKeyVault ? storekeys.outputs.OPENAI_KEY : ''
-    storageAccountKey: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY: ''
-    formRecognizerKey: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY: ''
-    searchKey: useKeyVault ? storekeys.outputs.SEARCH_KEY: ''
-    contentSafetyKey: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY: ''
-    useKeyVault: useKeyVault
     keyVaultName: useKeyVault ? keyvault.outputs.name : ''
-    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
+    authType: authType
     appSettings: {
       FUNCTIONS_EXTENSION_VERSION: '~4'
       WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
@@ -497,10 +476,118 @@ module storage 'app/storage.bicep' = {
   }
 }
 
+// SYSTEM IDENTITIES
+module storageRoleBackend 'core/security/role.bicep' = if (authType == 'rbac'){
+  scope: rg
+  name: 'storage-role-backend'
+  params: {
+    principalId: adminweb.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// SYSTEM IDENTITIES
+module openAIRoleBackend 'core/security/role.bicep' = if (authType == 'rbac'){
+  scope: rg
+  name: 'openai-role-backend'
+  params: {
+    principalId: adminweb.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// SYSTEM IDENTITIES
+module openAIRoleWeb 'core/security/role.bicep' = if (authType == 'rbac'){
+  scope: rg
+  name: 'openai-role-web'
+  params: {
+    principalId: web.outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// SYSTEM IDENTITIES
+module openAIRoleFunction 'core/security/role.bicep' = if (authType == 'rbac'){
+  scope: rg
+  name: 'openai-role-function'
+  params: {
+    principalId: function.outputs.FUNCTION_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// SYSTEM IDENTITIES
+module openAIRoleBackendContributor 'core/security/role.bicep' = if (authType == 'rbac'){
+  scope: rg
+  name: 'openai-role-backend-contributor'
+  params: {
+    principalId: adminweb.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// SYSTEM IDENTITIES
+module openAIRoleWebContributor 'core/security/role.bicep' = if (authType == 'rbac'){
+  scope: rg
+  name: 'openai-role-web-contributor'
+  params: {
+    principalId: web.outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// SYSTEM IDENTITIES
+module openAIRoleFunctionContributor 'core/security/role.bicep' = if (authType == 'rbac'){
+  scope: rg
+  name: 'openai-role-function-contributor'
+  params: {
+    principalId: function.outputs.FUNCTION_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// SYSTEM IDENTITIES
+module searchRoleBackend 'core/security/role.bicep' = if (authType == 'rbac'){
+  scope: rg
+  name: 'search-role-backend'
+  params: {
+    principalId: adminweb.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// SYSTEM IDENTITIES
+module searchRoleWeb 'core/security/role.bicep' = if (authType == 'rbac'){
+  scope: rg
+  name: 'search-role-web'
+  params: {
+    principalId: web.outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// SYSTEM IDENTITIES
+module searchRoleFunction 'core/security/role.bicep' = if (authType == 'rbac'){
+  scope: rg
+  name: 'search-role-function'
+  params: {
+    principalId: function.outputs.FUNCTION_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+    principalType: 'ServicePrincipal'
+  }
+}
+
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output APPINSIGHTS_INSTRUMENTATIONKEY string = monitoring.outputs.applicationInsightsInstrumentationKey
-output AZURE_KEY_VAULT_ENDPOINT string = useKeyVault ? keyvault.outputs.endpoint : ''
-output AZURE_KEY_VAULT_NAME string = useKeyVault ? keyvault.outputs.name : ''
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId
 output AZURE_CONTENT_SAFETY_ENDPOINT string = contentsafety.outputs.endpoint
@@ -530,9 +617,3 @@ output AZURE_BLOB_ACCOUNT_NAME string = storageAccountName
 output AZURE_OPENAI_RESOURCE string = azureOpenAIResourceName
 output AZURE_OPENAI_EMBEDDING_MODEL string = azureOpenAIEmbeddingModel
 output AZURE_OPENAI_MODEL string = azureOpenAIModel
-output USE_KEY_VAULT bool = useKeyVault
-output AZURE_OPENAI_KEY string = useKeyVault ? storekeys.outputs.OPENAI_KEY : ''
-output AZURE_BLOB_ACCOUNT_KEY string = useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY: ''
-output AZURE_FORM_RECOGNIZER_KEY string = useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY: ''
-output AZURE_SEARCH_KEY string = useKeyVault ? storekeys.outputs.SEARCH_KEY: ''
-output AZURE_CONTENT_SAFETY_KEY string = useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY: ''

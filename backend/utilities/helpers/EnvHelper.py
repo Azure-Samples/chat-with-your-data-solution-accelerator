@@ -2,21 +2,24 @@ import os
 import logging
 from dotenv import load_dotenv
 from azure.identity import DefaultAzureCredential
-from azure.keyvault.secrets import SecretClient
 
 logger = logging.getLogger(__name__)
 
 class EnvHelper:
     def __init__(self, **kwargs) -> None:
         load_dotenv()
-        if os.environ.get("USE_KEY_VAULT"):
+
+        USE_RBAC = False
+
+        if os.environ.get("AUTH_TYPE") == 'rbac':
+            USE_RBAC = True
             credential = DefaultAzureCredential()
-            secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential)
             openai_token = credential.get_token("https://cognitiveservices.azure.com/.default")
+
         # Azure Search
         self.AZURE_SEARCH_SERVICE = os.getenv('AZURE_SEARCH_SERVICE', '')
         self.AZURE_SEARCH_INDEX = os.getenv('AZURE_SEARCH_INDEX', '')
-        self.AZURE_SEARCH_KEY = secret_client.get_secret(os.getenv("AZURE_SEARCH_KEY", '')).value if os.getenv("USE_KEY_VAULT", '') else os.getenv("AZURE_SEARCH_KEY", '')
+        self.AZURE_SEARCH_KEY = None if USE_RBAC else os.getenv('AZURE_SEARCH_KEY', '')
         self.AZURE_SEARCH_USE_SEMANTIC_SEARCH = os.getenv('AZURE_SEARCH_USE_SEMANTIC_SEARCH', '')
         self.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = os.getenv('AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', '')
         self.AZURE_SEARCH_INDEX_IS_PRECHUNKED = os.getenv('AZURE_SEARCH_INDEX_IS_PRECHUNKED', '')
@@ -35,7 +38,7 @@ class EnvHelper:
         # Azure OpenAI
         self.AZURE_OPENAI_RESOURCE = os.getenv('AZURE_OPENAI_RESOURCE', '')
         self.AZURE_OPENAI_MODEL = os.getenv('AZURE_OPENAI_MODEL', '')
-        self.AZURE_OPENAI_KEY = openai_token.token
+        self.AZURE_OPENAI_KEY = openai_token.token if USE_RBAC else os.getenv('AZURE_OPENAI_KEY')
         self.AZURE_OPENAI_MODEL_NAME = os.getenv('AZURE_OPENAI_MODEL_NAME', '')
         self.AZURE_OPENAI_TEMPERATURE = os.getenv('AZURE_OPENAI_TEMPERATURE', '')
         self.AZURE_OPENAI_TOP_P = os.getenv('AZURE_OPENAI_TOP_P', '')
@@ -46,11 +49,11 @@ class EnvHelper:
         self.AZURE_OPENAI_STREAM = os.getenv('AZURE_OPENAI_STREAM', '')
         self.AZURE_OPENAI_EMBEDDING_MODEL = os.getenv('AZURE_OPENAI_EMBEDDING_MODEL', '')
          # Set env for OpenAI SDK
-        self.OPENAI_API_TYPE = "azuread"
+        self.OPENAI_API_TYPE = "azuread" if USE_RBAC else "azure"
         self.OPENAI_API_BASE = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
         self.OPENAI_API_KEY = self.AZURE_OPENAI_KEY
         self.OPENAI_API_VERSION = self.AZURE_OPENAI_API_VERSION
-        os.environ["OPENAI_API_TYPE"] = "azuread"
+        os.environ["OPENAI_API_TYPE"] = "azuread" if USE_RBAC else "azure"
         os.environ["OPENAI_API_BASE"] = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
         os.environ["OPENAI_API_KEY"] = self.AZURE_OPENAI_KEY
         os.environ["OPENAI_API_VERSION"] = self.AZURE_OPENAI_API_VERSION
@@ -60,16 +63,16 @@ class EnvHelper:
         self.DOCUMENT_PROCESSING_QUEUE_NAME = os.getenv('DOCUMENT_PROCESSING_QUEUE_NAME', '')
         # Azure Blob Storage
         self.AZURE_BLOB_ACCOUNT_NAME = os.getenv('AZURE_BLOB_ACCOUNT_NAME', '')
-        self.AZURE_BLOB_ACCOUNT_KEY = secret_client.get_secret(os.getenv("AZURE_BLOB_ACCOUNT_KEY", '')).value if os.getenv("USE_KEY_VAULT", '') else os.getenv("AZURE_BLOB_ACCOUNT_KEY", '')
+        self.AZURE_BLOB_ACCOUNT_KEY = os.getenv('AZURE_BLOB_ACCOUNT_KEY', '')
         self.AZURE_BLOB_CONTAINER_NAME = os.getenv('AZURE_BLOB_CONTAINER_NAME', '')
         # Azure Form Recognizer
         self.AZURE_FORM_RECOGNIZER_ENDPOINT = os.getenv('AZURE_FORM_RECOGNIZER_ENDPOINT', '')
-        self.AZURE_FORM_RECOGNIZER_KEY = openai_token.token
+        self.AZURE_FORM_RECOGNIZER_KEY = os.getenv('AZURE_FORM_RECOGNIZER_KEY', '')
         # Azure App Insights
         self.APPINSIGHTS_CONNECTION_STRING = os.getenv('APPINSIGHTS_CONNECTION_STRING', '')
         # Azure AI Content Safety
         self.AZURE_CONTENT_SAFETY_ENDPOINT = os.getenv('AZURE_CONTENT_SAFETY_ENDPOINT', '')
-        self.AZURE_CONTENT_SAFETY_KEY = openai_token.token
+        self.AZURE_CONTENT_SAFETY_KEY = os.getenv('AZURE_CONTENT_SAFETY_KEY', '')
         # Orchestration Settings
         self.ORCHESTRATION_STRATEGY = os.getenv('ORCHESTRATION_STRATEGY', 'openai_function')
     

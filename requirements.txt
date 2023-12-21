@@ -1,4 +1,4 @@
-azure-identity==1.12.0
+azure-identity==1.15.0
 Flask==2.3.2
 openai==0.27.8
 azure-storage-blob==12.14.1
@@ -14,6 +14,5 @@ chardet==5.1.0
 --extra-index-url https://pkgs.dev.azure.com/azure-sdk/public/_packaging/azure-sdk-for-python/pypi/simple/
 azure-search-documents==11.4.0b8
 opencensus-ext-azure==1.1.9
-azure-ai-contentsafety==1.0.0b1
+azure-ai-contentsafety==1.0.0
 python-docx==0.8.11
-azure-keyvault-secrets==4.4.*

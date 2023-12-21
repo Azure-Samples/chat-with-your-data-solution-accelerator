@@ -1,19 +1,26 @@
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.formrecognizer import DocumentAnalysisClient
+from azure.identity import DefaultAzureCredential
 import html
 import traceback
 from .EnvHelper import EnvHelper
+import os
 
 class AzureFormRecognizerClient:
     def __init__(self) -> None:
         env_helper : EnvHelper = EnvHelper()
         
         self.AZURE_FORM_RECOGNIZER_ENDPOINT : str = env_helper.AZURE_FORM_RECOGNIZER_ENDPOINT
-        self.AZURE_FORM_RECOGNIZER_KEY : str = env_helper.AZURE_FORM_RECOGNIZER_KEY
+        if os.environ.get("AUTH_TYPE") == 'rbac':
+            self.document_analysis_client = DocumentAnalysisClient(
+                endpoint=self.AZURE_FORM_RECOGNIZER_ENDPOINT, credential=DefaultAzureCredential()
+            )
+        else:
+            self.AZURE_FORM_RECOGNIZER_KEY : str = env_helper.AZURE_FORM_RECOGNIZER_KEY
         
-        self.document_analysis_client = DocumentAnalysisClient(
-            endpoint=self.AZURE_FORM_RECOGNIZER_ENDPOINT, credential=AzureKeyCredential(self.AZURE_FORM_RECOGNIZER_KEY)
-        )
+            self.document_analysis_client = DocumentAnalysisClient(
+                endpoint=self.AZURE_FORM_RECOGNIZER_ENDPOINT, credential=AzureKeyCredential(self.AZURE_FORM_RECOGNIZER_KEY)
+            )
     
     form_recognizer_role_to_html = {
         "title": "h1",

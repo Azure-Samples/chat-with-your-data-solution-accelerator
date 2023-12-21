@@ -4,22 +4,30 @@ from azure.storage.blob import BlobServiceClient, generate_blob_sas, generate_co
 from .EnvHelper import EnvHelper
 from datetime import datetime, timedelta
 from azure.identity import DefaultAzureCredential
+import os
 
 class AzureBlobStorageClient:
     def __init__(self, account_name: Optional[str] = None, account_key: Optional[str] = None, container_name: Optional[str] = None):
 
         env_helper : EnvHelper = EnvHelper()
 
-        self.account_name = account_name if account_name else env_helper.AZURE_BLOB_ACCOUNT_NAME
-        # self.account_key = account_key if account_key else env_helper.AZURE_BLOB_ACCOUNT_KEY
-        # self.connect_str = f"DefaultEndpointsProtocol=https;AccountName={self.account_name};AccountKey={self.account_key};EndpointSuffix=core.windows.net"
-        self.container_name : str = container_name if container_name else env_helper.AZURE_BLOB_CONTAINER_NAME
-        # self.blob_service_client : BlobServiceClient = BlobServiceClient.from_connection_string(self.connect_str)
-        credential = DefaultAzureCredential()
-        self.blob_service_client = BlobServiceClient(account_url='', credential=credential)
-        self.user_delegation_key = self.request_user_delegation_key(blob_service_client=self.blob_service_client)
+        self.use_rbac = False
+        if os.environ.get("AUTH_TYPE") == 'rbac':
+            self.use_rbac = True
+            self.account_name = account_name if account_name else env_helper.AZURE_BLOB_ACCOUNT_NAME
+            self.container_name : str = container_name if container_name else env_helper.AZURE_BLOB_CONTAINER_NAME
+            credential = DefaultAzureCredential()
+            account_url = 'https://' + self.account_name +'.blob.core.windows.net/'
+            self.blob_service_client = BlobServiceClient(account_url=account_url, credential=credential)
+            self.user_delegation_key = self.request_user_delegation_key(blob_service_client=self.blob_service_client)
+        else:
+            self.account_name = account_name if account_name else env_helper.AZURE_BLOB_ACCOUNT_NAME
+            self.account_key = account_key if account_key else env_helper.AZURE_BLOB_ACCOUNT_KEY
+            self.connect_str = f"DefaultEndpointsProtocol=https;AccountName={self.account_name};AccountKey={self.account_key};EndpointSuffix=core.windows.net"
+            self.container_name : str = container_name if container_name else env_helper.AZURE_BLOB_CONTAINER_NAME
+            self.blob_service_client : BlobServiceClient = BlobServiceClient.from_connection_string(self.connect_str)
     
-    def request_user_delegation_key(blob_service_client: BlobServiceClient) -> UserDelegationKey:
+    def request_user_delegation_key(self, blob_service_client: BlobServiceClient) -> UserDelegationKey:
         # Get a user delegation key that's valid for 1 day
         delegation_key_start_time = datetime.utcnow()
         delegation_key_expiry_time = delegation_key_start_time + timedelta(days=1)
@@ -36,7 +44,12 @@ class AzureBlobStorageClient:
         # Upload the created file
         blob_client.upload_blob(bytes_data, overwrite=True, content_settings=ContentSettings(content_type=content_type))
         # Generate a SAS URL to the blob and return it
-        return blob_client.url + '?' + generate_blob_sas(self.account_name, self.container_name, file_name, user_delegation_key=self.user_delegation_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
+        sas_url = blob_client.url + '?'
+        if self.use_rbac:
+            sas_url += generate_blob_sas(self.account_name, self.container_name, file_name, user_delegation_key=self.user_delegation_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
+        else:
+            sas_url += generate_blob_sas(self.account_name, self.container_name, file_name, account_key=self.account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
+        return  sas_url
 
     def download_file(self, file_name):
         blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=file_name)
@@ -60,7 +73,10 @@ class AzureBlobStorageClient:
         container_client = self.blob_service_client.get_container_client(self.container_name)
         blob_list = container_client.list_blobs(include='metadata')
         # sas = generate_blob_sas(account_name, container_name, blob.name,account_key=account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
-        sas = generate_container_sas(self.account_name, self.container_name, user_delegation_key=self.user_delegation_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
+        if self.use_rbac:
+            sas = generate_container_sas(self.account_name, self.container_name, user_delegation_key=self.user_delegation_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
+        else:
+            sas = generate_container_sas(self.account_name, self.container_name,account_key=self.account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
         files = []
         converted_files = {}
         for blob in blob_list:
@@ -85,7 +101,10 @@ class AzureBlobStorageClient:
         return files
 
     def upsert_blob_metadata(self, file_name, metadata):
-        blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=file_name)
+        if self.use_rbac:
+            blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=file_name)
+        else:
+            blob_client = BlobServiceClient.from_connection_string(self.connect_str).get_blob_client(container=self.container_name, blob=file_name)
         # Read metadata from the blob
         blob_metadata = blob_client.get_blob_properties().metadata
         # Update metadata
@@ -95,8 +114,14 @@ class AzureBlobStorageClient:
 
     def get_container_sas(self):
         # Generate a SAS URL to the container and return it
-        return "?" + generate_container_sas(account_name= self.account_name, container_name= self.container_name, user_delegation_key=self.user_delegation_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=1))
+        if self.use_rbac:
+            return "?" + generate_container_sas(account_name= self.account_name, container_name= self.container_name, user_delegation_key=self.user_delegation_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=1))
+        else:
+            return "?" + generate_container_sas(account_name= self.account_name, container_name= self.container_name,account_key=self.account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=1))
 
     def get_blob_sas(self, file_name):
         # Generate a SAS URL to the blob and return it
-        return f"https://{self.account_name}.blob.core.windows.net/{self.container_name}/{file_name}" + "?" + generate_blob_sas(account_name= self.account_name, container_name=self.container_name, blob_name= file_name, user_delegation_key= self.user_delegation_key, permission='r', expiry=datetime.utcnow() + timedelta(hours=1))
+        if self.use_rbac:
+            return f"https://{self.account_name}.blob.core.windows.net/{self.container_name}/{file_name}" + "?" + generate_blob_sas(account_name= self.account_name, container_name=self.container_name, blob_name= file_name, user_delegation_key= self.user_delegation_key, permission='r', expiry=datetime.utcnow() + timedelta(hours=1))
+        else:
+            return f"https://{self.account_name}.blob.core.windows.net/{self.container_name}/{file_name}" + "?" + generate_blob_sas(account_name= self.account_name, container_name=self.container_name, blob_name= file_name, account_key= self.account_key, permission='r', expiry=datetime.utcnow() + timedelta(hours=1))
