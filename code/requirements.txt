@@ -20,6 +20,6 @@ fake-useragent==1.1.3
 chardet==5.1.0
 --extra-index-url https://pkgs.dev.azure.com/azure-sdk/public/_packaging/azure-sdk-for-python/pypi/simple/
 azure-search-documents==11.4.0b8
-opencensus-ext-azure==1.1.9
+opencensus-ext-azure==1.1.12
 pandas==1.5.1
 python-docx==0.8.11
