@@ -15,6 +15,47 @@
             "request": "attach",
             "port": 9091,
             "preLaunchTask": "func: host start"
+        },
+        {
+            "name": "Launch Admin site",
+            "type": "python",
+            "request": "launch",
+            "module": "streamlit",
+            "args": [
+                "run",
+                "Admin.py"
+            ],
+            "cwd": "${workspaceFolder}/code/admin",
+            "preLaunchTask": "pip install (code)",
+        },
+        {
+            "name": "Launch Frontend (api)",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "args": [
+                "--app",
+                "./app.py",
+                "--debug",
+                "run"
+            ],
+            "cwd": "${workspaceFolder}/code/app",
+            "preLaunchTask": "pip install (code)"
+        },
+        {
+            "name": "Launch Frontend (UI)",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/code/app/frontend",
+            "preLaunchTask": "npm install (code)",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run",
+                "dev"
+            ],
+            "skipFiles": [
+                "node_modules/**"
+            ],
         }
     ]
 }

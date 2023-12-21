@@ -4,7 +4,7 @@
 
 To customize the accelerator or run it locally, first, copy the `.env.sample` file to your development environment's `.env` file, and edit it according to [environment variable values table](#environment-variables) below.
 
-### Running the full solution locally
+### Running the full solution locally with Docker Compose
 
 You can run the full solution locally with the following commands - this will spin up 3 different Docker containers:
 
@@ -23,12 +23,12 @@ docker compose up
 
 ### Develop & run the frontend locally
 
-For faster development, you can run the frontend Typescript React UI app and the Python Flask app in development mode. This allows the app to "hot reload" meaning your changes will automatically be reflected in the app without having to refresh or restart the local servers. 
+For faster development, you can run the frontend Typescript React UI app and the Python Flask api app in development mode. This allows the app to "hot reload" meaning your changes will automatically be reflected in the app without having to refresh or restart the local servers.
 
-To run the app locally with hot refresh, first follow the instructions to [update your .env file with the needed values](#develop--run-the-frontend-locally).
+They can be launched locally from vscode (Ctrl+Shift+D) and selecting "Launch Frontend (api)" and "Launch Frontend (UI). You will also be able to place breakpoints in the code should you wish. This will automatically install any dependencies for Node and Python.
 
-#### Starting the Flask app in dev mode
-Open a terminal and enter the following commands
+#### Starting the Flask app in dev mode from the command line (optional)
+This step is included if you cannot use the Launch configuration in VSCode. Open a terminal and enter the following commands
 ```shell
 cd code
 python -m pip install -r requirements.txt
@@ -36,12 +36,10 @@ cd app
 python -m flask --app ./app.py --debug run
 ```
 
-#### Starting the Typescript React app in dev mode
-Open a new separate terminal and enter the following commands:
+#### Starting the Typescript React app in dev mode (optional)
+This step is included if you cannot use the Launch configuration in VSCode. Open a new separate terminal and enter the following commands:
 ```shell
-cd code
-cd app
-cd frontend
+cd code\app\frontend
 npm install
 npm run dev
 ```
@@ -57,18 +55,9 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 
 ### Develop & run the admin app
 
-If you want to develop and run the backend container locally, use the following commands.
+The admin app can be launched locally from vscode (Ctrl+Shift+D) and selecting "Launch Admin site". You will also be able to place breakpoints in the Python Code should you wish.
 
-#### Running the admin app locally
-
-```shell
-cd code
-cd admin
-python -m pip install -r requirements.txt
-streamlit run Admin.py
-```
-
-Then access `http://localhost:8501/` for getting to the admin interface.
+This should automatically open `http://localhost:8501/` and render the admin interface.
 
 #### Building the backend Docker image
 
@@ -91,8 +80,7 @@ First, install [Azure Functions Core Tools](https://learn.microsoft.com/en-us/az
 
 
 ```shell
-cd code
-cd batch
+cd code\batch
 func start
 ```
 
