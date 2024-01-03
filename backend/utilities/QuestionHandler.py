@@ -1,4 +1,5 @@
 import os
+import openai
 import logging
 import re
 import json
