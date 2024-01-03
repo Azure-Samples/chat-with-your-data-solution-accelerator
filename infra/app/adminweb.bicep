@@ -29,11 +29,11 @@ module adminweb '../core/host/appservice.bicep' = {
     appServicePlanId: appServicePlanId
     appSettings: union(appSettings, {
       AUTH_TYPE: authType
-      AZURE_OPENAI_KEY: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', azureOpenAIName), '2023-05-01').key1
-      AZURE_SEARCH_KEY: listAdminKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.Search/searchServices', azureCognitiveSearchName), '2021-04-01-preview').primaryKey
-      AZURE_BLOB_ACCOUNT_KEY: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.Storage/storageAccounts', storageAccountName), '2021-09-01').keys[0].value
-      AZURE_FORM_RECOGNIZER_KEY: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', formRecognizerName), '2023-05-01').key1
-      AZURE_CONTENT_SAFETY_KEY: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', contentSafetyName), '2023-05-01').key1
+      AZURE_OPENAI_KEY: listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', azureOpenAIName), '2023-05-01').key1
+      AZURE_SEARCH_KEY: listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', azureCognitiveSearchName), '2021-04-01-preview').primaryKey
+      AZURE_BLOB_ACCOUNT_KEY: listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', storageAccountName), '2021-09-01').keys[0].value
+      AZURE_FORM_RECOGNIZER_KEY: listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', formRecognizerName), '2023-05-01').key1
+      AZURE_CONTENT_SAFETY_KEY: listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', contentSafetyName), '2023-05-01').key1
     })
     keyVaultName: keyVaultName
     runtimeName: 'python'

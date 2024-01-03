@@ -2,7 +2,6 @@ from typing import Optional
 from datetime import datetime, timedelta
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, generate_container_sas, ContentSettings, UserDelegationKey
 from .EnvHelper import EnvHelper
-from datetime import datetime, timedelta
 from azure.identity import DefaultAzureCredential
 import os
 
@@ -17,7 +16,7 @@ class AzureBlobStorageClient:
             self.account_name = account_name if account_name else env_helper.AZURE_BLOB_ACCOUNT_NAME
             self.container_name : str = container_name if container_name else env_helper.AZURE_BLOB_CONTAINER_NAME
             credential = DefaultAzureCredential()
-            account_url = 'https://' + self.account_name +'.blob.core.windows.net/'
+            account_url = f"https://{self.account_name}.blob.core.windows.net/"
             self.blob_service_client = BlobServiceClient(account_url=account_url, credential=credential)
             self.user_delegation_key = self.request_user_delegation_key(blob_service_client=self.blob_service_client)
         else:

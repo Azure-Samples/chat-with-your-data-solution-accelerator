@@ -476,6 +476,50 @@ module storage 'app/storage.bicep' = {
   }
 }
 
+// USER ROLES
+module storageRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'storage-role-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    principalType: 'User'
+  }
+}
+
+// USER ROLES
+module openaiRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'openai-role-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+    principalType: 'User'
+  }
+}
+
+// USER ROLES
+module openaiRoleUserContributor 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'openai-role-user-contributor'
+  params: {
+    principalId: principalId
+    roleDefinitionId: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
+    principalType: 'User'
+  }
+}
+
+// USER ROLES
+module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'search-role-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+    principalType: 'User'
+  }
+}
+
 // SYSTEM IDENTITIES
 module storageRoleBackend 'core/security/role.bicep' = if (authType == 'rbac'){
   scope: rg
