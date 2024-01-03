@@ -1,7 +1,6 @@
 param name string
 param location string = resourceGroup().location
 param tags object = {}
-param rgName string = ''
 param storageAccountName string = ''
 param formRecognizerName string = ''
 param contentSafetyName string = ''

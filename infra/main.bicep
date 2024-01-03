@@ -285,7 +285,6 @@ module web './app/web.bicep' = {
     name: websiteName
     location: location
     tags: { 'azd-service-name': 'web' }
-    rgName: rgName
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
@@ -335,7 +334,6 @@ module adminweb './app/adminweb.bicep' = {
     name: '${websiteName}-admin'
     location: location
     tags: { 'azd-service-name': 'adminweb' }
-    rgName: rgName
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
@@ -402,7 +400,6 @@ module function './app/function.bicep' = {
     name: functionName
     location: location
     tags: { 'azd-service-name': 'function' }
-    rgName: rgName
     appServicePlanId: hostingplan.outputs.name
     azureOpenAIName: openai.outputs.name
     azureCognitiveSearchName: search.outputs.name
