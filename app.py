@@ -2,7 +2,7 @@ import json
 import os
 import logging
 import requests
-import openai
+from openai import AzureOpenAI
 
 # Fixing MIME types for static files under Windows
 import mimetypes
@@ -199,10 +199,7 @@ def stream_without_data(response):
 
 
 def conversation_without_data(request):
-    openai.api_type = "azure"
-    openai.api_base = f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/"
-    openai.api_version = "2023-03-15-preview"
-    openai.api_key = AZURE_OPENAI_KEY
+    openai_client = AzureOpenAI(azure_endpoint=f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/",  api_version=AZURE_OPENAI_API_VERSION, api_key=AZURE_OPENAI_KEY)
 
     request_messages = request.json["messages"]
     messages = [
@@ -218,7 +215,7 @@ def conversation_without_data(request):
             "content": message["content"]
         })
 
-    response = openai.ChatCompletion.create(
+    response = openai_client.chat.completions.create(
         engine=AZURE_OPENAI_MODEL,
         messages = messages,
         temperature=float(AZURE_OPENAI_TEMPERATURE),
