@@ -7,12 +7,11 @@ import chardet
 from datetime import datetime, timedelta
 import logging
 import requests
+from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, ContentSettings, UserDelegationKey
 import urllib.parse
 from utilities.helpers.ConfigHelper import ConfigHelper
 from dotenv import load_dotenv
-from azure.identity import DefaultAzureCredential
-from datetime import datetime, timedelta
 load_dotenv()
 
 logger = logging.getLogger('azure.core.pipeline.policies.http_logging_policy').setLevel(logging.WARNING)
@@ -81,7 +80,7 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
     account_name = os.getenv('AZURE_BLOB_ACCOUNT_NAME')
     if os.environ.get("AUTH_TYPE") == 'rbac':
         credential = DefaultAzureCredential()
-        account_url = 'https://' + account_name +'.blob.core.windows.net/'
+        account_url = f"https://{account_name}.blob.core.windows.net/"
         blob_service_client = BlobServiceClient(account_url=account_url, credential=credential)
         user_delegation_key = request_user_delegation_key(blob_service_client=blob_service_client)
         container_name = os.getenv('AZURE_BLOB_CONTAINER_NAME')

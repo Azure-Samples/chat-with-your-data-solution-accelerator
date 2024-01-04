@@ -104,7 +104,7 @@ Out-of-the-box, you can upload the following file types:
     
     ![A screenshot of the chat app.](./media/chat-app.png)
 
-## Running the sample using the Azure Developer CLI (azd) template
+## Running the sample using the Azure Developer CLI (azd)
 
 The Azure Developer CLI (`azd`) is a developer-centric command-line interface (CLI) tool for creating Azure applications.
 
@@ -130,7 +130,7 @@ azd auth login
 
 Then, execute the `azd init` command to initialize the environment.
 ```
-azd init -t jongio/chat-with-your-data-solution-accelerator
+azd init -t chat-with-your-data-solution-accelerator
 ```
 According to the prompt, enter an environment name.
 

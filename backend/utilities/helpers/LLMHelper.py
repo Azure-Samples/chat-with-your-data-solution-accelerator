@@ -1,7 +1,7 @@
-from openai import AzureOpenAI
+import openai
 from typing import List
 from langchain.chat_models import AzureChatOpenAI
-from langchain.embeddings import AzureOpenAIEmbeddings
+from langchain.embeddings import OpenAIEmbeddings
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from .EnvHelper import EnvHelper
 
@@ -42,7 +42,7 @@ class LLMHelper:
             return AzureOpenAIEmbeddings(azure_deployment=self.embedding_model, chunk_size=1)
     
     def get_chat_completion_with_functions(self, messages: List[dict], functions: List[dict], function_call: str="auto"):
-        return self.openai_client.chat.completions.create(
+        return openai.ChatCompletion.create(
             deployment_id=self.llm_model,
             messages=messages,
             functions=functions,
@@ -50,7 +50,7 @@ class LLMHelper:
             )
         
     def get_chat_completion(self, messages: List[dict]):
-        return self.openai_client.chat.completions.create(
+        return openai.ChatCompletion.create(
             deployment_id=self.llm_model,
             messages=messages,
             )
