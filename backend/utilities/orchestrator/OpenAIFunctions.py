@@ -76,13 +76,13 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
         messages.append({"role": "user", "content": user_message})
         
         result = llm_helper.get_chat_completion_with_functions(messages, self.functions, function_call="auto")      
-        self.log_tokens(prompt_tokens=result['usage']['prompt_tokens'], completion_tokens=result['usage']['completion_tokens'])
+        self.log_tokens(prompt_tokens=result.usage.prompt_tokens, completion_tokens=result.usage.completion_tokens)
         
         # TODO: call content safety if needed
                         
-        if result['choices'][0]['finish_reason'] == "function_call":
-            if result['choices'][0]['message'].function_call.name == "search_documents":
-                question = json.loads(result['choices'][0]['message']['function_call']['arguments'])['question']
+        if result.choices[0].finish_reason == "function_call":
+            if result.choices[0].message.function_call.name == "search_documents":
+                question = json.loads(result.choices[0].message.function_call.arguments)['question']
                 # run answering chain
                 answering_tool = QuestionAnswerTool()
                 answer = answering_tool.answer_question(question, chat_history)
@@ -94,14 +94,14 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
                     post_prompt_tool = PostPromptTool()
                     answer = post_prompt_tool.validate_answer(answer)
                     self.log_tokens(prompt_tokens=answer.prompt_tokens, completion_tokens=answer.completion_tokens)                
-            elif result['choices'][0]['message'].function_call.name == "text_processing":
-                text = json.loads(result['choices'][0]['message']['function_call']['arguments'])['text']
-                operation = json.loads(result['choices'][0]['message']['function_call']['arguments'])['operation']
+            elif result.choices[0].message.function_call.name == "text_processing":
+                text = json.loads(result.choices[0].message.function_call.arguments)['text']
+                operation = json.loads(result.choices[0].message.function_call.arguments)['operation']
                 text_processing_tool = TextProcessingTool()
                 answer = text_processing_tool.answer_question(user_message, chat_history, text=text, operation=operation)
                 self.log_tokens(prompt_tokens=answer.prompt_tokens, completion_tokens=answer.completion_tokens)
         else:
-            text = result['choices'][0]['message']['content']
+            text = result.choices[0].message.content
             answer = Answer(question=user_message, answer=text)
 
         # Call Content Safety tool

@@ -215,7 +215,7 @@ def conversation_without_data(request):
         })
 
     response = openai_client.chat.completions.create(
-        engine=AZURE_OPENAI_MODEL,
+        model=AZURE_OPENAI_MODEL,
         messages = messages,
         temperature=float(AZURE_OPENAI_TEMPERATURE),
         max_tokens=int(AZURE_OPENAI_MAX_TOKENS),

@@ -43,7 +43,7 @@ class LLMHelper:
     
     def get_chat_completion_with_functions(self, messages: List[dict], functions: List[dict], function_call: str="auto"):
         return self.openai_client.chat.completions.create(
-            deployment_id=self.llm_model,
+            model=self.llm_model,
             messages=messages,
             functions=functions,
             function_call=function_call,
@@ -51,6 +51,6 @@ class LLMHelper:
         
     def get_chat_completion(self, messages: List[dict]):
         return self.openai_client.chat.completions.create(
-            deployment_id=self.llm_model,
+            model=self.llm_model,
             messages=messages,
             )
