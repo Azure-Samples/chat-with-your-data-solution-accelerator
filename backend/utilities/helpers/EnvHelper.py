@@ -1,7 +1,7 @@
 import os
 import logging
 from dotenv import load_dotenv
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 logger = logging.getLogger(__name__)
 
@@ -9,17 +9,12 @@ class EnvHelper:
     def __init__(self, **kwargs) -> None:
         load_dotenv()
 
-        USE_RBAC = False
-
-        if os.environ.get("AUTH_TYPE") == 'rbac':
-            USE_RBAC = True
-            credential = DefaultAzureCredential()
-            openai_token = credential.get_token("https://cognitiveservices.azure.com/.default")
+        self.USE_RBAC = True if os.environ.get("AUTH_TYPE") == 'rbac' else False
 
         # Azure Search
         self.AZURE_SEARCH_SERVICE = os.getenv('AZURE_SEARCH_SERVICE', '')
         self.AZURE_SEARCH_INDEX = os.getenv('AZURE_SEARCH_INDEX', '')
-        self.AZURE_SEARCH_KEY = None if USE_RBAC else os.getenv('AZURE_SEARCH_KEY', '')
+        self.AZURE_SEARCH_KEY = None if self.USE_RBAC else os.getenv('AZURE_SEARCH_KEY', '')
         self.AZURE_SEARCH_USE_SEMANTIC_SEARCH = os.getenv('AZURE_SEARCH_USE_SEMANTIC_SEARCH', '')
         self.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = os.getenv('AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', '')
         self.AZURE_SEARCH_INDEX_IS_PRECHUNKED = os.getenv('AZURE_SEARCH_INDEX_IS_PRECHUNKED', '')
@@ -38,7 +33,7 @@ class EnvHelper:
         # Azure OpenAI
         self.AZURE_OPENAI_RESOURCE = os.getenv('AZURE_OPENAI_RESOURCE', '')
         self.AZURE_OPENAI_MODEL = os.getenv('AZURE_OPENAI_MODEL', '')
-        self.AZURE_OPENAI_KEY = openai_token.token if USE_RBAC else os.getenv('AZURE_OPENAI_KEY')
+        self.AZURE_OPENAI_KEY = os.getenv('AZURE_OPENAI_KEY')
         self.AZURE_OPENAI_MODEL_NAME = os.getenv('AZURE_OPENAI_MODEL_NAME', '')
         self.AZURE_OPENAI_TEMPERATURE = os.getenv('AZURE_OPENAI_TEMPERATURE', '')
         self.AZURE_OPENAI_TOP_P = os.getenv('AZURE_OPENAI_TOP_P', '')
@@ -48,12 +43,13 @@ class EnvHelper:
         self.AZURE_OPENAI_API_VERSION = os.getenv('AZURE_OPENAI_API_VERSION', '')
         self.AZURE_OPENAI_STREAM = os.getenv('AZURE_OPENAI_STREAM', '')
         self.AZURE_OPENAI_EMBEDDING_MODEL = os.getenv('AZURE_OPENAI_EMBEDDING_MODEL', '')
+        self.AZURE_TOKEN_PROVIDER = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
          # Set env for OpenAI SDK
-        self.OPENAI_API_TYPE = "azuread" if USE_RBAC else "azure"
+        self.OPENAI_API_TYPE = "azuread" if self.USE_RBAC else "azure"
         self.OPENAI_API_BASE = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
         self.OPENAI_API_KEY = self.AZURE_OPENAI_KEY
         self.OPENAI_API_VERSION = self.AZURE_OPENAI_API_VERSION
-        os.environ["OPENAI_API_TYPE"] = "azuread" if USE_RBAC else "azure"
+        os.environ["OPENAI_API_TYPE"] = "azuread" if self.USE_RBAC else "azure"
         os.environ["OPENAI_API_BASE"] = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
         os.environ["OPENAI_API_KEY"] = self.AZURE_OPENAI_KEY
         os.environ["OPENAI_API_VERSION"] = self.AZURE_OPENAI_API_VERSION
