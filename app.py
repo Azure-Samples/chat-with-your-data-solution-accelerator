@@ -13,7 +13,7 @@ mimetypes.add_type('text/css', '.css')
 from flask import Flask, Response, request, jsonify
 from dotenv import load_dotenv
 from backend.utilities.QuestionHandler import QuestionHandler
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 load_dotenv()
 
@@ -24,12 +24,7 @@ app = Flask(__name__)
 def static_file(path):
     return app.send_static_file(path)
 
-USE_RBAC = False
-
-if os.environ.get("AUTH_TYPE") == 'rbac':
-    USE_RBAC = True
-    credential = DefaultAzureCredential()
-    openai_token = credential.get_token("https://cognitiveservices.azure.com/.default")
+USE_RBAC = True if os.environ.get("AUTH_TYPE") == 'rbac' else False
 
 # ACS Integration Settings
 AZURE_SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")
@@ -47,7 +42,7 @@ AZURE_SEARCH_URL_COLUMN = os.environ.get("AZURE_SEARCH_URL_COLUMN")
 # AOAI Integration Settings
 AZURE_OPENAI_RESOURCE = os.environ.get("AZURE_OPENAI_RESOURCE")
 AZURE_OPENAI_MODEL = os.environ.get("AZURE_OPENAI_MODEL")
-AZURE_OPENAI_KEY = openai_token.token if USE_RBAC else os.environ.get("AZURE_OPENAI_KEY")
+AZURE_OPENAI_KEY = os.environ.get("AZURE_OPENAI_KEY")
 AZURE_OPENAI_TEMPERATURE = os.environ.get("AZURE_OPENAI_TEMPERATURE", 0)
 AZURE_OPENAI_TOP_P = os.environ.get("AZURE_OPENAI_TOP_P", 1.0)
 AZURE_OPENAI_MAX_TOKENS = os.environ.get("AZURE_OPENAI_MAX_TOKENS", 1000)
@@ -56,6 +51,7 @@ AZURE_OPENAI_SYSTEM_MESSAGE = os.environ.get("AZURE_OPENAI_SYSTEM_MESSAGE", "You
 AZURE_OPENAI_API_VERSION = os.environ.get("AZURE_OPENAI_API_VERSION", "2023-06-01-preview")
 AZURE_OPENAI_STREAM = os.environ.get("AZURE_OPENAI_STREAM", "true")
 AZURE_OPENAI_MODEL_NAME = os.environ.get("AZURE_OPENAI_MODEL_NAME", "gpt-35-turbo") # Name of the model, e.g. 'gpt-35-turbo' or 'gpt-4'
+AZURE_TOKEN_PROVIDER = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
 
 SHOULD_STREAM = True if AZURE_OPENAI_STREAM.lower() == "true" else False
 
@@ -199,7 +195,10 @@ def stream_without_data(response):
 
 
 def conversation_without_data(request):
-    openai_client = AzureOpenAI(azure_endpoint=f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/",  api_version=AZURE_OPENAI_API_VERSION, api_key=AZURE_OPENAI_KEY)
+    if USE_RBAC:
+        openai_client = AzureOpenAI(azure_endpoint=f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/",  api_version=AZURE_OPENAI_API_VERSION, azure_ad_token_provider=AZURE_TOKEN_PROVIDER)
+    else:
+        openai_client = AzureOpenAI(azure_endpoint=f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/",  api_version=AZURE_OPENAI_API_VERSION, api_key=AZURE_OPENAI_KEY)
 
     request_messages = request.json["messages"]
     messages = [
