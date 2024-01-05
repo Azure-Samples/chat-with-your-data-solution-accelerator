@@ -23,8 +23,8 @@ class TextProcessingTool(AnsweringToolBase):
                    )
                
         answer = Answer(question=question, 
-                        answer=result['choices'][0]['message']['content'], 
+                        answer=result.choices[0].message.content, 
                         source_documents=[],
-                        prompt_tokens=result['usage']['prompt_tokens'],
-                        completion_tokens=result['usage']['completion_tokens'])
+                        prompt_tokens=result.usage.prompt_tokens,
+                        completion_tokens=result.usage.completion_tokens)
         return answer
