@@ -12,7 +12,7 @@ class AzureFormRecognizerClient:
         self.AZURE_FORM_RECOGNIZER_KEY : str = env_helper.AZURE_FORM_RECOGNIZER_KEY
         
         self.document_analysis_client = DocumentAnalysisClient(
-            endpoint=self.AZURE_FORM_RECOGNIZER_ENDPOINT, credential=AzureKeyCredential(self.AZURE_FORM_RECOGNIZER_KEY)
+            endpoint=self.AZURE_FORM_RECOGNIZER_ENDPOINT, credential=AzureKeyCredential(self.AZURE_FORM_RECOGNIZER_KEY), headers={"x-ms-useragent": "chat-with-your-data-solution-accelerator/1.0.0"}
         )
     
     form_recognizer_role_to_html = {
