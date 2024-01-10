@@ -8,10 +8,10 @@ from .EnvHelper import EnvHelper
 class LLMHelper:
     def __init__(self):
         env_helper: EnvHelper = EnvHelper()
-        self.use_rbac = env_helper.USE_RBAC
+        self.auth_type = env_helper.AUTH_TYPE
         self.token_provider = env_helper.AZURE_TOKEN_PROVIDER
 
-        if self.use_rbac:
+        if self.auth_type == 'rbac':
             self.openai_client = AzureOpenAI(azure_endpoint=env_helper.OPENAI_API_BASE, api_version=env_helper.AZURE_OPENAI_API_VERSION, azure_ad_token_provider=self.token_provider)
         else:
             self.openai_client = AzureOpenAI(azure_endpoint=env_helper.OPENAI_API_BASE, api_version=env_helper.AZURE_OPENAI_API_VERSION, api_key=env_helper.OPENAI_API_KEY)
@@ -21,14 +21,14 @@ class LLMHelper:
         self.embedding_model = env_helper.AZURE_OPENAI_EMBEDDING_MODEL
                     
     def get_llm(self):
-        if self.use_rbac:
+        if self.auth_type == 'rbac':
             return AzureChatOpenAI(deployment_name=self.llm_model, temperature=0, max_tokens=self.llm_max_tokens, openai_api_version=self.openai_client._api_version, azure_ad_token_provider=self.token_provider)
         else:
             return AzureChatOpenAI(deployment_name=self.llm_model, temperature=0, max_tokens=self.llm_max_tokens, openai_api_version=self.openai_client._api_version)
     
     # TODO: This needs to have a custom callback to stream back to the UI
     def get_streaming_llm(self):
-        if self.use_rbac:
+        if self.auth_type == 'rbac':
             return AzureChatOpenAI(streaming=True, callbacks=[StreamingStdOutCallbackHandler], deployment_name=self.llm_model, temperature=0, 
                                max_tokens=self.llm_max_tokens, openai_api_version=self.openai_client._api_version, azure_ad_token_provider=self.token_provider)
         else:
@@ -36,7 +36,7 @@ class LLMHelper:
                                max_tokens=self.llm_max_tokens, openai_api_version=self.openai_client._api_version)
     
     def get_embedding_model(self):
-        if self.use_rbac:
+        if self.auth_type == 'rbac':
             return AzureOpenAIEmbeddings(azure_deployment=self.embedding_model, chunk_size=1, azure_ad_token_provider=self.token_provider)
         else:
             return AzureOpenAIEmbeddings(azure_deployment=self.embedding_model, chunk_size=1)

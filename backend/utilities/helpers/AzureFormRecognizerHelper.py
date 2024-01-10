@@ -11,7 +11,7 @@ class AzureFormRecognizerClient:
         env_helper : EnvHelper = EnvHelper()
         
         self.AZURE_FORM_RECOGNIZER_ENDPOINT : str = env_helper.AZURE_FORM_RECOGNIZER_ENDPOINT
-        if os.environ.get("AUTH_TYPE") == 'rbac':
+        if env_helper.AUTH_TYPE == 'rbac':
             self.document_analysis_client = DocumentAnalysisClient(
                 endpoint=self.AZURE_FORM_RECOGNIZER_ENDPOINT, credential=DefaultAzureCredential()
             )

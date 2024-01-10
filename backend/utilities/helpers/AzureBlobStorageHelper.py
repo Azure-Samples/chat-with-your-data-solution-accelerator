@@ -10,9 +10,8 @@ class AzureBlobStorageClient:
 
         env_helper : EnvHelper = EnvHelper()
 
-        self.use_rbac = False
-        if os.environ.get("AUTH_TYPE") == 'rbac':
-            self.use_rbac = True
+        self.auth_type = env_helper.AUTH_TYPE
+        if self.auth_type == 'rbac':
             self.account_name = account_name if account_name else env_helper.AZURE_BLOB_ACCOUNT_NAME
             self.container_name : str = container_name if container_name else env_helper.AZURE_BLOB_CONTAINER_NAME
             credential = DefaultAzureCredential()
@@ -44,7 +43,7 @@ class AzureBlobStorageClient:
         blob_client.upload_blob(bytes_data, overwrite=True, content_settings=ContentSettings(content_type=content_type))
         # Generate a SAS URL to the blob and return it
         sas_url = blob_client.url + '?'
-        if self.use_rbac:
+        if self.auth_type == 'rbac':
             sas_url += generate_blob_sas(self.account_name, self.container_name, file_name, user_delegation_key=self.user_delegation_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
         else:
             sas_url += generate_blob_sas(self.account_name, self.container_name, file_name, account_key=self.account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
@@ -72,7 +71,7 @@ class AzureBlobStorageClient:
         container_client = self.blob_service_client.get_container_client(self.container_name)
         blob_list = container_client.list_blobs(include='metadata')
         # sas = generate_blob_sas(account_name, container_name, blob.name,account_key=account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
-        if self.use_rbac:
+        if self.auth_type == 'rbac':
             sas = generate_container_sas(self.account_name, self.container_name, user_delegation_key=self.user_delegation_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
         else:
             sas = generate_container_sas(self.account_name, self.container_name,account_key=self.account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
@@ -100,7 +99,7 @@ class AzureBlobStorageClient:
         return files
 
     def upsert_blob_metadata(self, file_name, metadata):
-        if self.use_rbac:
+        if self.auth_type == 'rbac':
             blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=file_name)
         else:
             blob_client = BlobServiceClient.from_connection_string(self.connect_str).get_blob_client(container=self.container_name, blob=file_name)
@@ -113,14 +112,14 @@ class AzureBlobStorageClient:
 
     def get_container_sas(self):
         # Generate a SAS URL to the container and return it
-        if self.use_rbac:
+        if self.auth_type == 'rbac':
             return "?" + generate_container_sas(account_name= self.account_name, container_name= self.container_name, user_delegation_key=self.user_delegation_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=1))
         else:
             return "?" + generate_container_sas(account_name= self.account_name, container_name= self.container_name,account_key=self.account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=1))
 
     def get_blob_sas(self, file_name):
         # Generate a SAS URL to the blob and return it
-        if self.use_rbac:
+        if self.auth_type == 'rbac':
             return f"https://{self.account_name}.blob.core.windows.net/{self.container_name}/{file_name}" + "?" + generate_blob_sas(account_name= self.account_name, container_name=self.container_name, blob_name= file_name, user_delegation_key= self.user_delegation_key, permission='r', expiry=datetime.utcnow() + timedelta(hours=1))
         else:
             return f"https://{self.account_name}.blob.core.windows.net/{self.container_name}/{file_name}" + "?" + generate_blob_sas(account_name= self.account_name, container_name=self.container_name, blob_name= file_name, account_key= self.account_key, permission='r', expiry=datetime.utcnow() + timedelta(hours=1))

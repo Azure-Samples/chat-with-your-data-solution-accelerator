@@ -13,7 +13,7 @@ class ContentSafetyChecker(AnswerProcessingBase):
     def __init__(self):
         env_helper = EnvHelper()
 
-        if os.environ.get("AUTH_TYPE") == 'rbac':
+        if env_helper.AUTH_TYPE == 'rbac':
             self.content_safety_client = ContentSafetyClient(env_helper.AZURE_CONTENT_SAFETY_ENDPOINT, DefaultAzureCredential())
         else:
             self.content_safety_client = ContentSafetyClient(env_helper.AZURE_CONTENT_SAFETY_ENDPOINT, AzureKeyCredential(env_helper.AZURE_CONTENT_SAFETY_KEY))

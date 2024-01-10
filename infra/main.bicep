@@ -245,6 +245,20 @@ module openai 'core/ai/cognitiveservices.bicep' = {
   }
 }
 
+module storekeys './app/storekeys.bicep' = if (useKeyVault) {
+  name: 'storekeys'
+  scope: rg
+  params: {
+    keyVaultName: keyVaultName
+    azureOpenAIName: openai.outputs.name
+    azureCognitiveSearchName: search.outputs.name
+    storageAccountName: storage.outputs.STORAGE_ACCOUNT_NAME
+    formRecognizerName: formrecognizer.outputs.name
+    contentSafetyName: contentsafety.outputs.name
+    rgName: rgName
+  }
+}
+
 module search './core/search/search-services.bicep' = {
   name: azureCognitiveSearchName
   scope: rg
@@ -292,7 +306,14 @@ module web './app/web.bicep' = {
     storageAccountName: storage.outputs.STORAGE_ACCOUNT_NAME
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
-    keyVaultName: useKeyVault ? keyvault.outputs.name : ''
+    openAIKey: useKeyVault ? storekeys.outputs.OPENAI_KEY : ''
+    storageAccountKey: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY: ''
+    formRecognizerKey: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY: ''
+    searchKey: useKeyVault ? storekeys.outputs.SEARCH_KEY: ''
+    contentSafetyKey: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY: ''
+    useKeyVault: useKeyVault
+    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
+    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     authType: authType
     appSettings: {
       AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearchName}.search.windows.net'
@@ -341,7 +362,14 @@ module adminweb './app/adminweb.bicep' = {
     storageAccountName: storage.outputs.STORAGE_ACCOUNT_NAME
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
-    keyVaultName: useKeyVault ? keyvault.outputs.name : ''
+    openAIKey: useKeyVault ? storekeys.outputs.OPENAI_KEY : ''
+    storageAccountKey: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY: ''
+    formRecognizerKey: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY: ''
+    searchKey: useKeyVault ? storekeys.outputs.SEARCH_KEY: ''
+    contentSafetyKey: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY: ''
+    useKeyVault: useKeyVault
+    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
+    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     authType: authType
     appSettings: {
       AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearchName}.search.windows.net'
@@ -407,7 +435,14 @@ module function './app/function.bicep' = {
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
     clientKey: clientKey
-    keyVaultName: useKeyVault ? keyvault.outputs.name : ''
+    openAIKey: useKeyVault ? storekeys.outputs.OPENAI_KEY : ''
+    storageAccountKey: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY: ''
+    formRecognizerKey: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY: ''
+    searchKey: useKeyVault ? storekeys.outputs.SEARCH_KEY: ''
+    contentSafetyKey: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY: ''
+    useKeyVault: useKeyVault
+    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
+    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     authType: authType
     appSettings: {
       FUNCTIONS_EXTENSION_VERSION: '~4'
@@ -629,6 +664,8 @@ module searchRoleFunction 'core/security/role.bicep' = if (authType == 'rbac'){
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output APPINSIGHTS_INSTRUMENTATIONKEY string = monitoring.outputs.applicationInsightsInstrumentationKey
+output AZURE_KEY_VAULT_ENDPOINT string = useKeyVault ? keyvault.outputs.endpoint : ''
+output AZURE_KEY_VAULT_NAME string = useKeyVault ? keyvault.outputs.name : ''
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId
 output AZURE_CONTENT_SAFETY_ENDPOINT string = contentsafety.outputs.endpoint
@@ -658,3 +695,9 @@ output AZURE_BLOB_ACCOUNT_NAME string = storageAccountName
 output AZURE_OPENAI_RESOURCE string = azureOpenAIResourceName
 output AZURE_OPENAI_EMBEDDING_MODEL string = azureOpenAIEmbeddingModel
 output AZURE_OPENAI_MODEL string = azureOpenAIModel
+output USE_KEY_VAULT bool = useKeyVault
+output AZURE_OPENAI_KEY string = useKeyVault ? storekeys.outputs.OPENAI_KEY : ''
+output AZURE_BLOB_ACCOUNT_KEY string = useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY: ''
+output AZURE_FORM_RECOGNIZER_KEY string = useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY: ''
+output AZURE_SEARCH_KEY string = useKeyVault ? storekeys.outputs.SEARCH_KEY: ''
+output AZURE_CONTENT_SAFETY_KEY string = useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY: ''

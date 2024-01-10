@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import logging
 import requests
 from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, ContentSettings, UserDelegationKey
 import urllib.parse
 from utilities.helpers.ConfigHelper import ConfigHelper
@@ -88,7 +89,10 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
         blob_client.upload_blob(bytes_data, overwrite=True, content_settings=ContentSettings(content_type=content_type+charset))
         st.session_state['file_url'] = blob_client.url + '?' + generate_blob_sas(account_name, container_name, file_name,user_delegation_key=user_delegation_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
     else:
-        account_key = os.getenv("AZURE_BLOB_ACCOUNT_KEY")
+        if os.environ.get("USE_KEY_VAULT"):
+            credential = DefaultAzureCredential()
+            secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential)
+        account_key =  secret_client.get_secret(os.getenv("AZURE_BLOB_ACCOUNT_KEY")).value if os.getenv("USE_KEY_VAULT") else os.getenv("AZURE_BLOB_ACCOUNT_KEY")
         container_name = os.getenv('AZURE_BLOB_CONTAINER_NAME')
         if account_name == None or account_key == None or container_name == None:
             raise ValueError("Please provide values for AZURE_BLOB_ACCOUNT_NAME, AZURE_BLOB_ACCOUNT_KEY and AZURE_BLOB_CONTAINER_NAME")

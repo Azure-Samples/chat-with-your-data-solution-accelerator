@@ -14,6 +14,7 @@ from flask import Flask, Response, request, jsonify
 from dotenv import load_dotenv
 from backend.utilities.QuestionHandler import QuestionHandler
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from azure.keyvault.secrets import SecretClient
 
 load_dotenv()
 
@@ -24,12 +25,20 @@ app = Flask(__name__)
 def static_file(path):
     return app.send_static_file(path)
 
-USE_RBAC = True if os.environ.get("AUTH_TYPE") == 'rbac' else False
+AUTH_TYPE = os.environ.get("AUTH_TYPE")
+
+if not AUTH_TYPE == 'rbac' and os.environ.get("USE_KEY_VAULT"):
+    credential = DefaultAzureCredential()
+    secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential)
+    AZURE_SEARCH_KEY = secret_client.get_secret(os.environ.get("AZURE_SEARCH_KEY")).value
+    AZURE_OPENAI_KEY = secret_client.get_secret(os.environ.get("AZURE_OPENAI_KEY")).value
+else:
+    AZURE_SEARCH_KEY = None if AUTH_TYPE == 'rbac' else os.environ.get("AZURE_SEARCH_KEY")
+    AZURE_OPENAI_KEY = None if AUTH_TYPE == 'rbac' else os.environ.get("AZURE_OPENAI_KEY")
 
 # ACS Integration Settings
 AZURE_SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")
 AZURE_SEARCH_INDEX = os.environ.get("AZURE_SEARCH_INDEX")
-AZURE_SEARCH_KEY = None if USE_RBAC else os.environ.get("AZURE_SEARCH_KEY")
 AZURE_SEARCH_USE_SEMANTIC_SEARCH = os.environ.get("AZURE_SEARCH_USE_SEMANTIC_SEARCH", False)
 AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = os.environ.get("AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG", "default")
 AZURE_SEARCH_TOP_K = os.environ.get("AZURE_SEARCH_TOP_K", 5)
@@ -42,7 +51,6 @@ AZURE_SEARCH_URL_COLUMN = os.environ.get("AZURE_SEARCH_URL_COLUMN")
 # AOAI Integration Settings
 AZURE_OPENAI_RESOURCE = os.environ.get("AZURE_OPENAI_RESOURCE")
 AZURE_OPENAI_MODEL = os.environ.get("AZURE_OPENAI_MODEL")
-AZURE_OPENAI_KEY = os.environ.get("AZURE_OPENAI_KEY")
 AZURE_OPENAI_TEMPERATURE = os.environ.get("AZURE_OPENAI_TEMPERATURE", 0)
 AZURE_OPENAI_TOP_P = os.environ.get("AZURE_OPENAI_TOP_P", 1.0)
 AZURE_OPENAI_MAX_TOKENS = os.environ.get("AZURE_OPENAI_MAX_TOKENS", 1000)
@@ -195,7 +203,7 @@ def stream_without_data(response):
 
 
 def conversation_without_data(request):
-    if USE_RBAC:
+    if AUTH_TYPE == 'rbac':
         openai_client = AzureOpenAI(azure_endpoint=f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/",  api_version=AZURE_OPENAI_API_VERSION, azure_ad_token_provider=AZURE_TOKEN_PROVIDER)
     else:
         openai_client = AzureOpenAI(azure_endpoint=f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/",  api_version=AZURE_OPENAI_API_VERSION, api_key=AZURE_OPENAI_KEY)
