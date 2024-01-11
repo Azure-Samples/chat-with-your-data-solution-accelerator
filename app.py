@@ -34,7 +34,7 @@ if not AUTH_TYPE == 'rbac' and os.environ.get("USE_KEY_VAULT"):
     AZURE_OPENAI_KEY = secret_client.get_secret(os.environ.get("AZURE_OPENAI_KEY")).value
 else:
     AZURE_SEARCH_KEY = None if AUTH_TYPE == 'rbac' else os.environ.get("AZURE_SEARCH_KEY")
-    AZURE_OPENAI_KEY = None if AUTH_TYPE == 'rbac' else os.environ.get("AZURE_OPENAI_KEY")
+    AZURE_OPENAI_KEY = "" if AUTH_TYPE == 'rbac' else os.environ.get("AZURE_OPENAI_KEY")
 
 # ACS Integration Settings
 AZURE_SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")

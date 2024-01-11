@@ -6,6 +6,7 @@ param location = readEnvironmentVariable('AZURE_LOCATION', 'location')
 
 param principalId = readEnvironmentVariable('AZURE_PRINCIPAL_ID', 'principal_id')
 
-param useKeyVault = bool(readEnvironmentVariable('USE_KEY_VAULT', 'true'))
+// Please make sure to set this value to false when using rbac with AUTH_TYPE
+param useKeyVault = bool(readEnvironmentVariable('USE_KEY_VAULT', 'false'))
 
-param authType = readEnvironmentVariable('AUTH_TYPE', 'keys')
+param authType = readEnvironmentVariable('AUTH_TYPE', 'rbac')

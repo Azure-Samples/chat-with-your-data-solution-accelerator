@@ -18,7 +18,7 @@ class EnvHelper:
             self.AZURE_OPENAI_KEY = self.secret_client.get_secret(os.environ.get("AZURE_OPENAI_KEY")).value
         else:
             self.AZURE_SEARCH_KEY = None if self.AUTH_TYPE == 'rbac' else os.environ.get("AZURE_SEARCH_KEY")
-            self.AZURE_OPENAI_KEY = None if self.AUTH_TYPE == 'rbac' else os.environ.get("AZURE_OPENAI_KEY")
+            self.AZURE_OPENAI_KEY = "" if self.AUTH_TYPE == 'rbac' else os.environ.get("AZURE_OPENAI_KEY")
             
         # Azure Search
         self.AZURE_SEARCH_SERVICE = os.getenv('AZURE_SEARCH_SERVICE', '')
