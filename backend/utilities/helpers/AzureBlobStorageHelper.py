@@ -18,9 +18,11 @@ class AzureBlobStorageClient:
             account_url = f"https://{self.account_name}.blob.core.windows.net/"
             self.blob_service_client = BlobServiceClient(account_url=account_url, credential=credential)
             self.user_delegation_key = self.request_user_delegation_key(blob_service_client=self.blob_service_client)
+            self.account_key = None
         else:
             self.account_name = account_name if account_name else env_helper.AZURE_BLOB_ACCOUNT_NAME
             self.account_key = account_key if account_key else env_helper.AZURE_BLOB_ACCOUNT_KEY
+            self.user_delegation_key = None
             self.connect_str = f"DefaultEndpointsProtocol=https;AccountName={self.account_name};AccountKey={self.account_key};EndpointSuffix=core.windows.net"
             self.container_name : str = container_name if container_name else env_helper.AZURE_BLOB_CONTAINER_NAME
             self.blob_service_client : BlobServiceClient = BlobServiceClient.from_connection_string(self.connect_str)
@@ -36,25 +38,13 @@ class AzureBlobStorageClient:
         )
         return user_delegation_key
     
-    def get_blob_sas_with_diff_key(self, file_name, auth_type):
-        if auth_type == 'rbac':
-            return generate_blob_sas(self.account_name, self.container_name, file_name, user_delegation_key=self.user_delegation_key, permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
-        else:
-            return generate_blob_sas(self.account_name, self.container_name, file_name, account_key=self.account_key, permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
-
-    def get_container_sas_with_diff_key(self, auth_type):
-        if auth_type == 'rbac':
-            return generate_container_sas(self.account_name, self.container_name, user_delegation_key=self.user_delegation_key, permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
-        else:
-            return generate_container_sas(self.account_name, self.container_name, account_key=self.account_key, permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
-
     def upload_file(self, bytes_data, file_name, content_type='application/pdf'):
         # Create a blob client using the local file name as the name for the blob
         blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=file_name)
         # Upload the created file
         blob_client.upload_blob(bytes_data, overwrite=True, content_settings=ContentSettings(content_type=content_type))
-        # Generate a SAS URL to the blob and return it
-        return blob_client.url + '?' + self.get_blob_sas_with_diff_key(file_name=file_name, auth_type=self.auth_type)
+        # Generate a SAS URL to the blob and return it, if auth_type is rbac, account_key is None, if not, user_delegation_key is None.
+        return blob_client.url + '?' + generate_blob_sas(self.account_name, self.container_name, file_name, user_delegation_key=self.user_delegation_key, account_key=self.account_key, permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
 
     def download_file(self, file_name):
         blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=file_name)
@@ -78,7 +68,7 @@ class AzureBlobStorageClient:
         container_client = self.blob_service_client.get_container_client(self.container_name)
         blob_list = container_client.list_blobs(include='metadata')
         # sas = generate_blob_sas(account_name, container_name, blob.name,account_key=account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
-        sas = self.get_container_sas_with_diff_key(auth_type=self.auth_type)
+        sas = generate_container_sas(self.account_name, self.container_name, user_delegation_key=self.user_delegation_key, account_key=self.account_key, permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
         files = []
         converted_files = {}
         for blob in blob_list:
@@ -116,8 +106,7 @@ class AzureBlobStorageClient:
 
     def get_container_sas(self):
         # Generate a SAS URL to the container and return it
-        return "?" + self.get_container_sas_with_diff_key(auth_type=self.auth_type)
-
+        return "?" + generate_container_sas(self.account_name, self.container_name, user_delegation_key=self.user_delegation_key, account_key=self.account_key, permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
     def get_blob_sas(self, file_name):
         # Generate a SAS URL to the blob and return it
-        return f"https://{self.account_name}.blob.core.windows.net/{self.container_name}/{file_name}" + "?" + self.get_blob_sas_with_diff_key(file_name=file_name, auth_type=self.auth_type)
+        return f"https://{self.account_name}.blob.core.windows.net/{self.container_name}/{file_name}" + "?" + generate_blob_sas(self.account_name, self.container_name, file_name, user_delegation_key=self.user_delegation_key, account_key=self.account_key, permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
