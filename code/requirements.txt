@@ -7,7 +7,7 @@ scipy==1.10.0
 scikit-learn==1.2.0
 transformers==4.36.0
 python-dotenv==1.0.0
-azure-ai-formrecognizer==3.2.0
+azure-ai-formrecognizer==3.3.2
 azure-storage-blob==12.14.1
 azure-identity==1.15.0
 azure-ai-contentsafety==1.0.0b1
