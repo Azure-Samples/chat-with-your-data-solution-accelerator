@@ -252,7 +252,7 @@ module storekeys './app/storekeys.bicep' = if (useKeyVault) {
     keyVaultName: keyVaultName
     azureOpenAIName: openai.outputs.name
     azureCognitiveSearchName: search.outputs.name
-    storageAccountName: storage.outputs.STORAGE_ACCOUNT_NAME
+    storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
     rgName: rgName
@@ -303,7 +303,7 @@ module web './app/web.bicep' = {
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
     azureCognitiveSearchName: search.outputs.name
-    storageAccountName: storage.outputs.STORAGE_ACCOUNT_NAME
+    storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
     openAIKey: useKeyVault ? storekeys.outputs.OPENAI_KEY : ''
@@ -359,7 +359,7 @@ module adminweb './app/adminweb.bicep' = {
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
     azureCognitiveSearchName: search.outputs.name
-    storageAccountName: storage.outputs.STORAGE_ACCOUNT_NAME
+    storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
     openAIKey: useKeyVault ? storekeys.outputs.OPENAI_KEY : ''
@@ -431,7 +431,7 @@ module function './app/function.bicep' = {
     appServicePlanId: hostingplan.outputs.name
     azureOpenAIName: openai.outputs.name
     azureCognitiveSearchName: search.outputs.name
-    storageAccountName: storage.outputs.STORAGE_ACCOUNT_NAME
+    storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
     clientKey: clientKey
@@ -492,19 +492,39 @@ module eventgrid 'app/eventgrid.bicep' = {
   params: {
     name: eventGridSystemTopicName
     location: location
-    storageAccountId: storage.outputs.STORAGE_ACCOUNT_ID
+    storageAccountId: storage.outputs.id
     queueName: queueName
     blobContainerName: blobContainerName
   }
 }
 
-module storage 'app/storage.bicep' = {
+module storage 'core/storage/storage-account.bicep' = {
   name: storageAccountName
   scope: rg
   params: {
     name: storageAccountName
     location: location
-    blobContainerName: blobContainerName
+    sku:{
+      name: 'Standard_GRS'
+    }
+    containers:[
+      {
+        name: blobContainerName
+        publicAccess: 'None'
+      }
+      {
+        name: 'config'
+        publicAccess: 'None'
+      } 
+    ]
+    queues: [
+      {
+        name: 'doc-processing'
+      }
+      {
+        name: 'doc-processing-poison'
+      } 
+    ]
   }
 }
 

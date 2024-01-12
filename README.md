@@ -128,18 +128,18 @@ After logging in with the following command, you will be able to use azd cli to 
 azd auth login
 ```
 
-Then, execute the `azd init` command to initialize the environment.
+Then, execute the `azd init` command to initialize the environment (You do not need to run this command if you already have the code or have opened this in a Codespace or DevContainer).
 ```
 azd init -t chat-with-your-data-solution-accelerator
 ```
-According to the prompt, enter an environment name.
+Enter an environment name.
 
 Run `azd up` to provision all the resources to Azure and deploy the code to those resources.
 ```
 azd up 
 ```
 
-According to the prompt, select `subscription` and `location`, these are the necessary parameters when you create resources. After that, choose a resource group or create a new resource group. Wait a moment for the resource deployment to complete, click the Website endpoint and you will see the web app page.
+Select your desired `subscription` and `location`. Then choose a resource group or create a new resource group. Wait a moment for the resource deployment to complete, click the Website endpoint and you will see the web app page.
 
 You can also run the sample directly locally (See below).
 
