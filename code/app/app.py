@@ -82,13 +82,13 @@ def prepare_body_headers_with_data(request):
         "temperature": AZURE_OPENAI_TEMPERATURE,
         "max_tokens": AZURE_OPENAI_MAX_TOKENS,
         "top_p": AZURE_OPENAI_TOP_P,
-        "stop": AZURE_OPENAI_STOP_SEQUENCE.split("|") if AZURE_OPENAI_STOP_SEQUENCE else [],
+        "stop": AZURE_OPENAI_STOP_SEQUENCE.split("|") if AZURE_OPENAI_STOP_SEQUENCE else None,
         "stream": SHOULD_STREAM,
         "dataSources": [
             {
                 "type": "AzureCognitiveSearch",
                 "parameters": {
-                    "endpoint": f"https://{AZURE_SEARCH_SERVICE}.search.windows.net",
+                    "endpoint": AZURE_SEARCH_SERVICE,
                     "key": AZURE_SEARCH_KEY,
                     "indexName": AZURE_SEARCH_INDEX,
                     "fieldsMapping": {
@@ -106,7 +106,7 @@ def prepare_body_headers_with_data(request):
             }
         ]
     }
-    
+
     chatgpt_url = f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/openai/deployments/{AZURE_OPENAI_MODEL}"
     if is_chat_model():
         chatgpt_url += "/chat/completions?api-version=2023-03-15-preview"
@@ -150,7 +150,7 @@ def stream_with_data(body, headers, endpoint):
                     role = lineJson["choices"][0]["messages"][0]["delta"].get("role")
                     if role == "tool":
                         response["choices"][0]["messages"].append(lineJson["choices"][0]["messages"][0]["delta"])
-                    elif role == "assistant": 
+                    elif role == "assistant":
                         response["choices"][0]["messages"].append({
                             "role": "assistant",
                             "content": ""
@@ -158,7 +158,7 @@ def stream_with_data(body, headers, endpoint):
                     else:
                         deltaText = lineJson["choices"][0]["messages"][0]["delta"]["content"]
                         if deltaText != "[DONE]":
-                            response["choices"][0]["messages"][1]["content"] += deltaText                
+                            response["choices"][0]["messages"][1]["content"] += deltaText
 
                     yield json.dumps(response).replace("\n", "\\n") + "\n"
     except Exception as e:
@@ -168,7 +168,7 @@ def stream_with_data(body, headers, endpoint):
 def conversation_with_data(request):
     body, headers = prepare_body_headers_with_data(request)
     endpoint = f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/openai/deployments/{AZURE_OPENAI_MODEL}/extensions/chat/completions?api-version={AZURE_OPENAI_API_VERSION}"
-    
+
     if not SHOULD_STREAM:
         r = requests.post(endpoint, headers=headers, json=body)
         status_code = r.status_code
@@ -177,9 +177,9 @@ def conversation_with_data(request):
         return Response(json.dumps(r).replace("\n", "\\n"), status=status_code)
     else:
         if request.method == "POST":
-            return Response(stream_with_data(body, headers, endpoint), mimetype='text/event-stream')
+            return Response(stream_with_data(body, headers, endpoint))
         else:
-            return Response(None, mimetype='text/event-stream')
+            return Response(None)
 
 def stream_without_data(response):
     responseText = ""
@@ -250,9 +250,9 @@ def conversation_without_data(request):
         return jsonify(response_obj), 200
     else:
         if request.method == "POST":
-            return Response(stream_without_data(response), mimetype='text/event-stream')
+            return Response(stream_without_data(response))
         else:
-            return Response(None, mimetype='text/event-stream')
+            return Response(None)
 
 @app.route("/api/conversation/azure_byod", methods=["GET", "POST"])
 def conversation_azure_byod():
@@ -265,17 +265,17 @@ def conversation_azure_byod():
     except Exception as e:
         errorMessage = str(e)
         logging.exception(f"Exception in /api/conversation/azure_byod | {errorMessage}")
-        return jsonify({"error": "Exception in /api/conversation/azure_byod. See log for more details."}), 500    
+        return jsonify({"error": "Exception in /api/conversation/azure_byod. See log for more details."}), 500
 
 @app.route("/api/conversation/custom", methods=["GET","POST"])
 def conversation_custom():
     from utilities.helpers.OrchestratorHelper import Orchestrator, OrchestrationSettings
     message_orchestrator = Orchestrator()
-    
+
     try:
         user_message = request.json["messages"][-1]['content']
         conversation_id = request.json["conversation_id"]
-        user_assistant_messages = list(filter(lambda x: x['role'] in ('user','assistant'), request.json["messages"][0:-1]))        
+        user_assistant_messages = list(filter(lambda x: x['role'] in ('user','assistant'), request.json["messages"][0:-1]))
         chat_history = []
         for i,k in enumerate(user_assistant_messages):
             if i % 2 == 0:
@@ -293,8 +293,8 @@ def conversation_custom():
             }]
         }
 
-        return jsonify(response_obj), 200    
-    
+        return jsonify(response_obj), 200
+
     except Exception as e:
         errorMessage = str(e)
         logging.exception(f"Exception in /api/conversation/custom | {errorMessage}")
