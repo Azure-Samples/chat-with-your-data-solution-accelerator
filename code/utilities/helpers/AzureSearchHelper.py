@@ -60,19 +60,9 @@ class AzureSearchHelper():
             ),
         ]
         
-        if env_helper.AZURE_AUTH_TYPE == "keys":
-            search_key = env_helper.AZURE_SEARCH_KEY
-            return AzureSearch(
-                azure_search_endpoint=env_helper.AZURE_SEARCH_SERVICE,
-                azure_search_key=search_key,
-                index_name=env_helper.AZURE_SEARCH_INDEX,
-                embedding_function=llm_helper.get_embedding_model().embed_query,
-                fields=fields,
-                user_agent="langchain chatwithyourdata-sa",
-            )
         return AzureSearch(
                 azure_search_endpoint=env_helper.AZURE_SEARCH_SERVICE,
-                azure_search_key=None,
+                azure_search_key=env_helper.AZURE_SEARCH_KEY if env_helper.AZURE_AUTH_TYPE == "keys" else None,
                 index_name=env_helper.AZURE_SEARCH_INDEX,
                 embedding_function=llm_helper.get_embedding_model().embed_query,
                 fields=fields,
@@ -140,21 +130,11 @@ class AzureSearchHelper():
             ),
         ]
         
-        if env_helper.AZURE_AUTH_TYPE == "keys":
-            search_key = env_helper.AZURE_SEARCH_KEY
-            return AzureSearch(
+        return AzureSearch(
                 azure_search_endpoint=env_helper.AZURE_SEARCH_SERVICE,
-                azure_search_key=search_key,
+                azure_search_key=env_helper.AZURE_SEARCH_KEY if env_helper.AZURE_AUTH_TYPE == "keys" else None,
                 index_name=env_helper.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX,
                 embedding_function=llm_helper.get_embedding_model().embed_query,
                 fields=fields,
                 user_agent="langchain chatwithyourdata-sa",
             )
-        return AzureSearch(
-        azure_search_endpoint=env_helper.AZURE_SEARCH_SERVICE,
-        azure_search_key=None,
-        index_name=env_helper.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX,
-        embedding_function=llm_helper.get_embedding_model().embed_query,
-        fields=fields,
-        user_agent="langchain chatwithyourdata-sa")
-    

@@ -43,12 +43,11 @@ class EnvHelper:
         self.AZURE_OPENAI_EMBEDDING_MODEL = os.getenv('AZURE_OPENAI_EMBEDDING_MODEL', '')
          # Set env for OpenAI SDK
         self.OPENAI_API_BASE = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
+        self.OPENAI_API_TYPE = "azure" if self.AZURE_AUTH_TYPE == "keys" else "azure_ad"
         if self.AZURE_AUTH_TYPE == "keys": 
             self.OPENAI_API_KEY = self.AZURE_OPENAI_KEY
-            self.OPENAI_API_TYPE = "azure"
         else:
             self.OPENAI_API_KEY = DefaultAzureCredential(exclude_shared_token_cache_credential=True).get_token("https://cognitiveservices.azure.com/.default").token
-            self.OPENAI_API_TYPE = "azure_ad"
         self.OPENAI_API_VERSION = self.AZURE_OPENAI_API_VERSION
         os.environ["OPENAI_API_TYPE"] = self.OPENAI_API_TYPE
         os.environ["OPENAI_API_BASE"] = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
