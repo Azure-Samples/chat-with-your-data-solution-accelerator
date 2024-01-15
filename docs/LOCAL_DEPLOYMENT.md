@@ -86,24 +86,9 @@ func start
 Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions).
 
 #### Debugging the batch processing functions locally
-Add a new file `local.settings.json` in the `batch` folder with content as below and update the `AzureWebJobsStorage` value with the storage account connection string:
-``` json
-{
-    "IsEncrypted": false,
-    "Values": {
-      "FUNCTIONS_WORKER_RUNTIME": "python",
-      "AzureWebJobsStorage": "",
-      "MyBindingConnection": "",
-      "AzureWebJobs.HttpExample.Disabled": "true"
-    },
-    "Host": {
-      "LocalHttpPort": 7071,
-      "CORS": "*",
-      "CORSCredentials": false
-    }
-  }
-```
-Execute the above shell command to run the function locally. You may need to stop the deployed function on the portal so that all requests are debugged locally.
+Rename the file `local.settings.json.sample` in the `batch` folder to `local.settings.json` and update the `AzureWebJobsStorage` value with the storage account connection string.
+
+Execute the above [shell command](#L81) to run the function locally. You may need to stop the deployed function on the portal so that all requests are debugged locally.
 
 #### Building the batch processing Docker image
 
