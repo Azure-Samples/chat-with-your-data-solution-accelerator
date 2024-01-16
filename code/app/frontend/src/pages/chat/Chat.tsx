@@ -118,7 +118,7 @@ const Chat = () => {
       }
     } catch (e) {
       if (!abortController.signal.aborted) {
-        console.error(result);
+        // console.error(result);
         alert(
           "An error occurred. Please try again. If the problem persists, please contact the site administrator."
         );
@@ -387,7 +387,8 @@ const Chat = () => {
           </Stack>
         </div>
         {answers.length > 0 && isCitationPanelOpen && activeCitation && (
-          <Stack.Item className={styles.citationPanel}>
+          
+          <Stack.Item className={`${styles.citationPanel} ${styles.mobileStyles}`}>
             <Stack
               horizontal
               className={styles.citationPanelHeaderContainer}
