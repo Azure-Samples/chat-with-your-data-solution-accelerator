@@ -4,6 +4,18 @@
 
 To customize the accelerator or run it locally, first, copy the `.env.sample` file to your development environment's `.env` file, and edit it according to [environment variable values table](#environment-variables) below.
 
+### Authenticate using RBAC
+To authenticate using API Keys, update the value of `AZURE_AUTH_TYPE` to keys. For accessing using 'rbac', manually make changes by following the below steps:
+1. Ensure role assignments listed on [this page](https://techcommunity.microsoft.com/t5/ai-azure-ai-services-blog/eliminate-dependency-on-key-based-authentication-in-azure/ba-p/3821880) 
+have been created.
+2. Navigate to your Search service in the Azure Portal
+3. Under Settings, select `Keys`
+4. Select either `Role-based access control` or `Both`
+5. Navigate to your App service in the Azure Portal
+6. Under Settings, select `Configuration`
+7. Set the value of the `AZURE_AUTH_TYPE` setting to `rbac`
+8. Restart the application
+
 ### Running the full solution locally with Docker Compose
 
 You can run the full solution locally with the following commands - this will spin up 3 different Docker containers:
@@ -143,3 +155,4 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 |AZURE_CONTENT_SAFETY_KEY | | The key of the Azure AI Content Safety service|
 |AZURE_SPEECH_SERVICE_KEY | | The key of the Azure Speech service|
 |AZURE_SPEECH_SERVICE_REGION | | The region (location) of the Azure Speech service|
+|AZURE_AUTH_TYPE | rbac | Change the value to 'keys' to authenticate using AZURE API keys. For more information refer to section [Authenticate using RBAC](#authenticate-using-rbac)
