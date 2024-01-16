@@ -2,14 +2,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "justMyCode": true
-        },
-        {
             "name": "Attach to Python Functions",
             "type": "python",
             "request": "attach",
@@ -56,6 +48,20 @@
             "skipFiles": [
                 "node_modules/**"
             ],
+        },
+        {
+            "name": "Debug tests",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest"
+        },
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
         }
     ]
 }
