@@ -78,13 +78,17 @@ If you want to develop and run the batch processing functions container locally,
 
 First, install [Azure Functions Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=windows%2Cportal%2Cv2%2Cbash&pivots=programming-language-python).
 
-
 ```shell
 cd code\batch
 func start
 ```
 
 Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions).
+
+#### Debugging the batch processing functions locally
+Rename the file `local.settings.json.sample` in the `batch` folder to `local.settings.json` and update the `AzureWebJobsStorage` value with the storage account connection string.
+
+Execute the above [shell command](#L81) to run the function locally. You may need to stop the deployed function on the portal so that all requests are debugged locally.
 
 #### Building the batch processing Docker image
 
