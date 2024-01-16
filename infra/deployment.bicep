@@ -147,6 +147,12 @@ param SpeechServiceName string = '${ResourcePrefix}-speechservice'
 param ContentSafetyName string = '${ResourcePrefix}-contentsafety'
 param newGuidString string = newGuid()
 
+@allowed([
+  'keys'
+  'rbac'
+])
+param authType string = 'rbac'
+
 var WebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-webapp'
 var AdminWebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-adminwebapp'
 var BackendImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-backend'
@@ -165,6 +171,9 @@ resource OpenAI 'Microsoft.CognitiveServices/accounts@2021-10-01' = {
   }
   properties: {
     customSubDomainName: AzureOpenAIResource
+  }
+  identity: {
+    type: 'SystemAssigned'
   }
 
   resource OpenAIGPTDeployment 'deployments@2023-05-01' = {
@@ -210,7 +219,16 @@ resource AzureCognitiveSearch_resource 'Microsoft.Search/searchServices@2022-09-
   sku: {
     name: AzureCognitiveSearchSku
   }
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
+    authOptions: authType == 'keys' ? {
+      aadOrApiKey: {
+        aadAuthFailureMode: 'http401WithBearerChallenge'
+      }
+    } : null
+    disableLocalAuth: authType == 'keys' ? false : true
     replicaCount: 1
     partitionCount: 1
   }
@@ -298,7 +316,8 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureCognitiveSearch}.search.windows.net'}
         { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}
         { name: 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', value: AzureSearchConversationLogIndex}
-        { name: 'AZURE_SEARCH_KEY', value: listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey}
+        { name: 'AZURE_AUTH_TYPE', value: authType }
+        { name: 'AZURE_SEARCH_KEY', value: authType == 'keys' ? listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey : null}
         { name: 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', value: AzureSearchSemanticSearchConfig}
         { name: 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', value: AzureSearchIndexIsPrechunked}
         { name: 'AZURE_SEARCH_TOP_K', value: AzureSearchTopK}
@@ -308,7 +327,7 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'AZURE_SEARCH_TITLE_COLUMN', value: AzureSearchTitleColumn}
         { name: 'AZURE_SEARCH_URL_COLUMN', value: AzureSearchUrlColumn}
         { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
-        { name: 'AZURE_OPENAI_KEY', value: OpenAI.listKeys('2023-05-01').key1}
+        { name: 'AZURE_OPENAI_KEY', value: authType == 'keys' ? OpenAI.listKeys('2023-05-01').key1 : null}
         { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIGPTModel}
         { name: 'AZURE_OPENAI_MODEL_NAME', value: AzureOpenAIGPTModelName}
         { name: 'AZURE_OPENAI_TEMPERATURE', value: AzureOpenAITemperature}
@@ -334,6 +353,7 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
       linuxFxVersion: WebAppImageName
     }
   }
+  identity: { type: authType == 'rbac' ? 'SystemAssigned' : 'None' }
   dependsOn: [
     HostingPlan
   ]
@@ -348,7 +368,8 @@ resource WebsiteName_admin 'Microsoft.Web/sites@2020-06-01' = {
       appSettings: [
         { name: 'APPINSIGHTS_INSTRUMENTATIONKEY', value: reference(ApplicationInsights.id, '2015-05-01').InstrumentationKey }
         { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureCognitiveSearch}.search.windows.net' }
-        { name: 'AZURE_SEARCH_KEY', value: listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey }
+        { name: 'AZURE_AUTH_TYPE', value: authType }
+        { name: 'AZURE_SEARCH_KEY', value: authType == 'keys' ? listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey : null}
         { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex }
         { name: 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', value: AzureSearchUseSemanticSearch }
         { name: 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', value: AzureSearchSemanticSearchConfig }
@@ -360,7 +381,7 @@ resource WebsiteName_admin 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'AZURE_SEARCH_TITLE_COLUMN', value: AzureSearchTitleColumn}
         { name: 'AZURE_SEARCH_URL_COLUMN', value: AzureSearchUrlColumn }
         { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
-        { name: 'AZURE_OPENAI_KEY', value: OpenAI.listKeys('2023-05-01').key1}
+        { name: 'AZURE_OPENAI_KEY', value: authType == 'keys' ? OpenAI.listKeys('2023-05-01').key1 : null}
         { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIGPTModel }
         { name: 'AZURE_OPENAI_MODEL_NAME', value: AzureOpenAIGPTModelName }
         { name: 'AZURE_OPENAI_TEMPERATURE', value: AzureOpenAITemperature }
@@ -386,6 +407,7 @@ resource WebsiteName_admin 'Microsoft.Web/sites@2020-06-01' = {
       linuxFxVersion: AdminWebAppImageName
     }
   }
+  identity: { type: authType == 'rbac' ? 'SystemAssigned' : 'None' }
   dependsOn: [
     HostingPlan
   ]
@@ -487,14 +509,14 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
         { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIGPTModel}
         { name: 'AZURE_OPENAI_EMBEDDING_MODEL', value: AzureOpenAIEmbeddingModel}
         { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
-        { name: 'AZURE_OPENAI_KEY', value: OpenAI.listKeys('2023-05-01').key1}
+        { name: 'AZURE_OPENAI_KEY', value: authType == 'keys' ? OpenAI.listKeys('2023-05-01').key1 : null}
         { name: 'AZURE_BLOB_ACCOUNT_NAME', value: StorageAccountName}
         { name: 'AZURE_BLOB_ACCOUNT_KEY', value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value}
         { name: 'AZURE_BLOB_CONTAINER_NAME', value: BlobContainerName}
         { name: 'AZURE_FORM_RECOGNIZER_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
         { name: 'AZURE_FORM_RECOGNIZER_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1}
         { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureCognitiveSearch}.search.windows.net'}
-        { name: 'AZURE_SEARCH_KEY', value: listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey}
+        { name: 'AZURE_SEARCH_KEY', value: authType == 'keys' ? listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey : null}
         { name: 'DOCUMENT_PROCESSING_QUEUE_NAME', value: QueueName}
         { name: 'AZURE_OPENAI_API_VERSION', value: AzureOpenAIApiVersion}
         { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}
@@ -580,5 +602,71 @@ resource EventGridSystemTopicName_BlobEvents 'Microsoft.EventGrid/systemTopics/e
       maxDeliveryAttempts: 30
       eventTimeToLiveInMinutes: 1440
     }
+  }
+}
+
+// Cognitive Services OpenAI Contributor role
+module openAiContributorRoleSearch 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'openai-contributor-role-search'
+  params: {
+    principalId: AzureCognitiveSearch_resource.identity.principalId
+    roleDefinitionId: 'a001fd3d-188f-4b5d-821b-7da978bf7442'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Cognitive Services Contributor role
+module cognitiveServicesContributorRoleSearch 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'cognitive-services-contributor-role-search'
+  params: {
+    principalId: AzureCognitiveSearch_resource.identity.principalId
+    roleDefinitionId: '25fbc0a9-bd7c-42a3-aa1a-3b75d497ee68'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Cognitive Services OpenAI User role
+module openAiRoleBackend 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'openai-role-backend'
+  params: {
+    principalId:  Website.identity.principalId
+    roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Search Index Data Reader role
+module searchRoleOpenAi 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'search-role-openai'
+  params: {
+    principalId: OpenAI.identity.principalId
+    roleDefinitionId: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Search Service Contributor role
+module searchServiceRoleOpenAi 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'search-service-role-openai'
+  params: {
+    principalId: OpenAI.identity.principalId
+    roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Search Index Data Reader role
+module searchRoleBackend 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'search-role-backend'
+  params: {
+    principalId: Website.identity.principalId
+    roleDefinitionId: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
+    principalType: 'ServicePrincipal'
   }
 }
