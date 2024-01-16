@@ -277,12 +277,8 @@ def conversation_custom():
         user_message = request.json["messages"][-1]['content']
         conversation_id = request.json["conversation_id"]
         user_assistant_messages = list(filter(lambda x: x['role'] in ('user','assistant'), request.json["messages"][0:-1]))
-        chat_history = []
-        for i,k in enumerate(user_assistant_messages):
-            if i % 2 == 0:
-                chat_history.append((user_assistant_messages[i]['content'],user_assistant_messages[i+1]['content']))
         from utilities.helpers.ConfigHelper import ConfigHelper
-        messages = message_orchestrator.handle_message(user_message=user_message, chat_history=chat_history, conversation_id=conversation_id, orchestrator=ConfigHelper.get_active_config_or_default().orchestrator)
+        messages = message_orchestrator.handle_message(user_message=user_message, chat_history=user_assistant_messages, conversation_id=conversation_id, orchestrator=ConfigHelper.get_active_config_or_default().orchestrator)
 
         response_obj = {
             "id": "response.id",
