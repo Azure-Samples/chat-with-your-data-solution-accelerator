@@ -8,8 +8,17 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+  # Dependabot will only find requirements.txt files in the directory
+  # specified, plus one level of subdirectories, therefore two separate entries
+  # are required here. When updating a dependency, ensure that each package is
+  # updated to the same version across both directories.
   - package-ecosystem: "pip"
-    directory: "/"
+    directory: "/code"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 50
+  - package-ecosystem: "pip"
+    directory: "/extensions"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 50
