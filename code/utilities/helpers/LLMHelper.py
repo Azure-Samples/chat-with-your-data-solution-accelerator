@@ -10,7 +10,7 @@ class LLMHelper:
         env_helper: EnvHelper = EnvHelper()
 
         # Configure OpenAI API
-        openai.api_type = "azure"
+        openai.api_type = env_helper.OPENAI_API_TYPE
         openai.api_version = env_helper.AZURE_OPENAI_API_VERSION
         openai.api_base = env_helper.OPENAI_API_BASE
         openai.api_key = env_helper.OPENAI_API_KEY

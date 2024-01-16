@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.24.24.22086",
-      "templateHash": "7491509633272107593"
+      "version": "0.23.1.45101",
+      "templateHash": "2615259070782652518"
     }
   },
   "parameters": {
@@ -322,6 +322,14 @@
     "newGuidString": {
       "type": "string",
       "defaultValue": "[newGuid()]"
+    },
+    "authType": {
+      "type": "string",
+      "defaultValue": "rbac",
+      "allowedValues": [
+        "keys",
+        "rbac"
+      ]
     }
   },
   "variables": {
@@ -384,6 +392,9 @@
       },
       "properties": {
         "customSubDomainName": "[parameters('AzureOpenAIResource')]"
+      },
+      "identity": {
+        "type": "SystemAssigned"
       }
     },
     {
@@ -397,7 +408,12 @@
       "sku": {
         "name": "[parameters('AzureCognitiveSearchSku')]"
       },
+      "identity": {
+        "type": "SystemAssigned"
+      },
       "properties": {
+        "authOptions": "[if(equals(parameters('authType'), 'keys'), createObject('aadOrApiKey', createObject('aadAuthFailureMode', 'http401WithBearerChallenge')), null())]",
+        "disableLocalAuth": "[if(equals(parameters('authType'), 'keys'), false(), true())]",
         "replicaCount": 1,
         "partitionCount": 1
       }
@@ -503,8 +519,12 @@
               "value": "[parameters('AzureSearchConversationLogIndex')]"
             },
             {
+              "name": "AZURE_AUTH_TYPE",
+              "value": "[parameters('authType')]"
+            },
+            {
               "name": "AZURE_SEARCH_KEY",
-              "value": "[listAdminKeys(format('Microsoft.Search/searchServices/{0}', parameters('AzureCognitiveSearch')), '2021-04-01-preview').primaryKey]"
+              "value": "[if(equals(parameters('authType'), 'keys'), listAdminKeys(format('Microsoft.Search/searchServices/{0}', parameters('AzureCognitiveSearch')), '2021-04-01-preview').primaryKey, null())]"
             },
             {
               "name": "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG",
@@ -544,7 +564,7 @@
             },
             {
               "name": "AZURE_OPENAI_KEY",
-              "value": "[listKeys(resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource')), '2023-05-01').key1]"
+              "value": "[if(equals(parameters('authType'), 'keys'), listKeys(resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource')), '2023-05-01').key1, null())]"
             },
             {
               "name": "AZURE_OPENAI_MODEL",
@@ -634,6 +654,9 @@
           "linuxFxVersion": "[variables('WebAppImageName')]"
         }
       },
+      "identity": {
+        "type": "[if(equals(parameters('authType'), 'rbac'), 'SystemAssigned', 'None')]"
+      },
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', parameters('ApplicationInsightsName'))]",
         "[resourceId('Microsoft.Web/serverfarms', parameters('HostingPlanName'))]",
@@ -659,8 +682,12 @@
               "value": "[format('https://{0}.search.windows.net', parameters('AzureCognitiveSearch'))]"
             },
             {
+              "name": "AZURE_AUTH_TYPE",
+              "value": "[parameters('authType')]"
+            },
+            {
               "name": "AZURE_SEARCH_KEY",
-              "value": "[listAdminKeys(format('Microsoft.Search/searchServices/{0}', parameters('AzureCognitiveSearch')), '2021-04-01-preview').primaryKey]"
+              "value": "[if(equals(parameters('authType'), 'keys'), listAdminKeys(format('Microsoft.Search/searchServices/{0}', parameters('AzureCognitiveSearch')), '2021-04-01-preview').primaryKey, null())]"
             },
             {
               "name": "AZURE_SEARCH_INDEX",
@@ -708,7 +735,7 @@
             },
             {
               "name": "AZURE_OPENAI_KEY",
-              "value": "[listKeys(resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource')), '2023-05-01').key1]"
+              "value": "[if(equals(parameters('authType'), 'keys'), listKeys(resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource')), '2023-05-01').key1, null())]"
             },
             {
               "name": "AZURE_OPENAI_MODEL",
@@ -797,6 +824,9 @@
           ],
           "linuxFxVersion": "[variables('AdminWebAppImageName')]"
         }
+      },
+      "identity": {
+        "type": "[if(equals(parameters('authType'), 'rbac'), 'SystemAssigned', 'None')]"
       },
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', parameters('ApplicationInsightsName'))]",
@@ -940,7 +970,7 @@
             },
             {
               "name": "AZURE_OPENAI_KEY",
-              "value": "[listKeys(resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource')), '2023-05-01').key1]"
+              "value": "[if(equals(parameters('authType'), 'keys'), listKeys(resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource')), '2023-05-01').key1, null())]"
             },
             {
               "name": "AZURE_BLOB_ACCOUNT_NAME",
@@ -968,7 +998,7 @@
             },
             {
               "name": "AZURE_SEARCH_KEY",
-              "value": "[listAdminKeys(format('Microsoft.Search/searchServices/{0}', parameters('AzureCognitiveSearch')), '2021-04-01-preview').primaryKey]"
+              "value": "[if(equals(parameters('authType'), 'keys'), listAdminKeys(format('Microsoft.Search/searchServices/{0}', parameters('AzureCognitiveSearch')), '2021-04-01-preview').primaryKey, null())]"
             },
             {
               "name": "DOCUMENT_PROCESSING_QUEUE_NAME",
@@ -1090,6 +1120,420 @@
         "[resourceId('Microsoft.EventGrid/systemTopics', variables('EventGridSystemTopicName'))]",
         "[resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName'))]",
         "[resourceId('Microsoft.Storage/storageAccounts/queueServices/queues', parameters('StorageAccountName'), 'default', 'doc-processing')]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('authType'), 'rbac')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "openai-contributor-role-search",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "principalId": {
+            "value": "[reference(resourceId('Microsoft.Search/searchServices', parameters('AzureCognitiveSearch')), '2022-09-01', 'full').identity.principalId]"
+          },
+          "roleDefinitionId": {
+            "value": "a001fd3d-188f-4b5d-821b-7da978bf7442"
+          },
+          "principalType": {
+            "value": "ServicePrincipal"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.23.1.45101",
+              "templateHash": "8211880587811090337"
+            },
+            "description": "Creates a role assignment for a service principal."
+          },
+          "parameters": {
+            "principalId": {
+              "type": "string"
+            },
+            "principalType": {
+              "type": "string",
+              "defaultValue": "ServicePrincipal",
+              "allowedValues": [
+                "Device",
+                "ForeignGroup",
+                "Group",
+                "ServicePrincipal",
+                "User"
+              ]
+            },
+            "roleDefinitionId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "principalType": "[parameters('principalType')]",
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Search/searchServices', parameters('AzureCognitiveSearch'))]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('authType'), 'rbac')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "cognitive-services-contributor-role-search",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "principalId": {
+            "value": "[reference(resourceId('Microsoft.Search/searchServices', parameters('AzureCognitiveSearch')), '2022-09-01', 'full').identity.principalId]"
+          },
+          "roleDefinitionId": {
+            "value": "25fbc0a9-bd7c-42a3-aa1a-3b75d497ee68"
+          },
+          "principalType": {
+            "value": "ServicePrincipal"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.23.1.45101",
+              "templateHash": "8211880587811090337"
+            },
+            "description": "Creates a role assignment for a service principal."
+          },
+          "parameters": {
+            "principalId": {
+              "type": "string"
+            },
+            "principalType": {
+              "type": "string",
+              "defaultValue": "ServicePrincipal",
+              "allowedValues": [
+                "Device",
+                "ForeignGroup",
+                "Group",
+                "ServicePrincipal",
+                "User"
+              ]
+            },
+            "roleDefinitionId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "principalType": "[parameters('principalType')]",
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Search/searchServices', parameters('AzureCognitiveSearch'))]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('authType'), 'rbac')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "openai-role-backend",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "principalId": {
+            "value": "[reference(resourceId('Microsoft.Web/sites', parameters('WebsiteName')), '2020-06-01', 'full').identity.principalId]"
+          },
+          "roleDefinitionId": {
+            "value": "5e0bd9bd-7b93-4f28-af87-19fc36ad61bd"
+          },
+          "principalType": {
+            "value": "ServicePrincipal"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.23.1.45101",
+              "templateHash": "8211880587811090337"
+            },
+            "description": "Creates a role assignment for a service principal."
+          },
+          "parameters": {
+            "principalId": {
+              "type": "string"
+            },
+            "principalType": {
+              "type": "string",
+              "defaultValue": "ServicePrincipal",
+              "allowedValues": [
+                "Device",
+                "ForeignGroup",
+                "Group",
+                "ServicePrincipal",
+                "User"
+              ]
+            },
+            "roleDefinitionId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "principalType": "[parameters('principalType')]",
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('WebsiteName'))]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('authType'), 'rbac')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "search-role-openai",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "principalId": {
+            "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource')), '2021-10-01', 'full').identity.principalId]"
+          },
+          "roleDefinitionId": {
+            "value": "1407120a-92aa-4202-b7e9-c0e197c71c8f"
+          },
+          "principalType": {
+            "value": "ServicePrincipal"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.23.1.45101",
+              "templateHash": "8211880587811090337"
+            },
+            "description": "Creates a role assignment for a service principal."
+          },
+          "parameters": {
+            "principalId": {
+              "type": "string"
+            },
+            "principalType": {
+              "type": "string",
+              "defaultValue": "ServicePrincipal",
+              "allowedValues": [
+                "Device",
+                "ForeignGroup",
+                "Group",
+                "ServicePrincipal",
+                "User"
+              ]
+            },
+            "roleDefinitionId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "principalType": "[parameters('principalType')]",
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource'))]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('authType'), 'rbac')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "search-service-role-openai",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "principalId": {
+            "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource')), '2021-10-01', 'full').identity.principalId]"
+          },
+          "roleDefinitionId": {
+            "value": "7ca78c08-252a-4471-8644-bb5ff32d4ba0"
+          },
+          "principalType": {
+            "value": "ServicePrincipal"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.23.1.45101",
+              "templateHash": "8211880587811090337"
+            },
+            "description": "Creates a role assignment for a service principal."
+          },
+          "parameters": {
+            "principalId": {
+              "type": "string"
+            },
+            "principalType": {
+              "type": "string",
+              "defaultValue": "ServicePrincipal",
+              "allowedValues": [
+                "Device",
+                "ForeignGroup",
+                "Group",
+                "ServicePrincipal",
+                "User"
+              ]
+            },
+            "roleDefinitionId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "principalType": "[parameters('principalType')]",
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', parameters('AzureOpenAIResource'))]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('authType'), 'rbac')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "search-role-backend",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "principalId": {
+            "value": "[reference(resourceId('Microsoft.Web/sites', parameters('WebsiteName')), '2020-06-01', 'full').identity.principalId]"
+          },
+          "roleDefinitionId": {
+            "value": "1407120a-92aa-4202-b7e9-c0e197c71c8f"
+          },
+          "principalType": {
+            "value": "ServicePrincipal"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.23.1.45101",
+              "templateHash": "8211880587811090337"
+            },
+            "description": "Creates a role assignment for a service principal."
+          },
+          "parameters": {
+            "principalId": {
+              "type": "string"
+            },
+            "principalType": {
+              "type": "string",
+              "defaultValue": "ServicePrincipal",
+              "allowedValues": [
+                "Device",
+                "ForeignGroup",
+                "Group",
+                "ServicePrincipal",
+                "User"
+              ]
+            },
+            "roleDefinitionId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "principalType": "[parameters('principalType')]",
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('WebsiteName'))]"
       ]
     }
   ]
