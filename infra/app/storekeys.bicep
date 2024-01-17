@@ -56,8 +56,8 @@ resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
   name: keyVaultName
 }
 
-output CONTENT_SAFETY_KEY string = contentSafetyKeySecret.name
-output FORM_RECOGNIZER_KEY string = formRecognizerKeySecret.name
-output SEARCH_KEY string = searchKeySecret.name
-output OPENAI_KEY string = openAIKeySecret.name
-output STORAGE_ACCOUNT_KEY string = storageAccountKeySecret.name
+output CONTENT_SAFETY_KEY_NAME string = contentSafetyKeySecret.name
+output FORM_RECOGNIZER_KEY_NAME string = formRecognizerKeySecret.name
+output SEARCH_KEY_NAME string = searchKeySecret.name
+output OPENAI_KEY_NAME string = openAIKeySecret.name
+output STORAGE_ACCOUNT_KEY_NAME string = storageAccountKeySecret.name

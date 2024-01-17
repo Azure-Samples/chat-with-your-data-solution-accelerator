@@ -306,11 +306,11 @@ module web './app/web.bicep' = {
     storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
-    openAIKey: useKeyVault ? storekeys.outputs.OPENAI_KEY : ''
-    storageAccountKey: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY: ''
-    formRecognizerKey: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY: ''
-    searchKey: useKeyVault ? storekeys.outputs.SEARCH_KEY: ''
-    contentSafetyKey: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY: ''
+    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
@@ -362,11 +362,11 @@ module adminweb './app/adminweb.bicep' = {
     storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
-    openAIKey: useKeyVault ? storekeys.outputs.OPENAI_KEY : ''
-    storageAccountKey: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY: ''
-    formRecognizerKey: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY: ''
-    searchKey: useKeyVault ? storekeys.outputs.SEARCH_KEY: ''
-    contentSafetyKey: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY: ''
+    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
@@ -435,11 +435,11 @@ module function './app/function.bicep' = {
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
     clientKey: clientKey
-    openAIKey: useKeyVault ? storekeys.outputs.OPENAI_KEY : ''
-    storageAccountKey: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY: ''
-    formRecognizerKey: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY: ''
-    searchKey: useKeyVault ? storekeys.outputs.SEARCH_KEY: ''
-    contentSafetyKey: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY: ''
+    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
@@ -716,8 +716,8 @@ output AZURE_OPENAI_RESOURCE string = azureOpenAIResourceName
 output AZURE_OPENAI_EMBEDDING_MODEL string = azureOpenAIEmbeddingModel
 output AZURE_OPENAI_MODEL string = azureOpenAIModel
 output USE_KEY_VAULT bool = useKeyVault
-output AZURE_OPENAI_KEY string = useKeyVault ? storekeys.outputs.OPENAI_KEY : ''
-output AZURE_BLOB_ACCOUNT_KEY string = useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY: ''
-output AZURE_FORM_RECOGNIZER_KEY string = useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY: ''
-output AZURE_SEARCH_KEY string = useKeyVault ? storekeys.outputs.SEARCH_KEY: ''
-output AZURE_CONTENT_SAFETY_KEY string = useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY: ''
+output AZURE_OPENAI_KEY_NAME string = useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+output AZURE_BLOB_ACCOUNT_KEY_NAME string = useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+output AZURE_FORM_RECOGNIZER_KEY_NAME string = useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+output AZURE_SEARCH_KEY_NAME string = useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+output AZURE_CONTENT_SAFETY_KEY_NAME string = useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
