@@ -288,7 +288,7 @@ resource ContentSafety 'Microsoft.CognitiveServices/accounts@2022-03-01' = {
     networkAcls: {
       defaultAction: 'Allow'
       virtualNetworkRules: []
-      ipRules: [] 
+      ipRules: []
     }
   }
 }
@@ -315,6 +315,7 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'APPINSIGHTS_CONNECTION_STRING', value: reference(ApplicationInsights.id, '2015-05-01').ConnectionString}
         { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureCognitiveSearch}.search.windows.net'}
         { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}
+        { name: 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', value: AzureSearchUseSemanticSearch }
         { name: 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', value: AzureSearchConversationLogIndex}
         { name: 'AZURE_AUTH_TYPE', value: authType }
         { name: 'AZURE_SEARCH_KEY', value: authType == 'keys' ? listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey : null}
