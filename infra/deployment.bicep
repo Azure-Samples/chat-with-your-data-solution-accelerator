@@ -151,7 +151,7 @@ param newGuidString string = newGuid()
   'keys'
   'rbac'
 ])
-param authType string = 'rbac'
+param authType string = 'keys'
 
 var WebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-webapp'
 var AdminWebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-adminwebapp'

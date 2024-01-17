@@ -178,9 +178,9 @@ def conversation_with_data(request):
         return Response(json.dumps(r).replace("\n", "\\n"), status=status_code)
     else:
         if request.method == "POST":
-            return Response(stream_with_data(body, headers, endpoint))
+            return Response(stream_with_data(body, headers, endpoint), mimetype="application/json-lines")
         else:
-            return Response(None)
+            return Response(None, mimetype="application/json-lines")
 
 def stream_without_data(response):
     responseText = ""
@@ -251,9 +251,9 @@ def conversation_without_data(request):
         return jsonify(response_obj), 200
     else:
         if request.method == "POST":
-            return Response(stream_without_data(response))
+            return Response(stream_without_data(response), mimetype="application/json-lines")
         else:
-            return Response(None)
+            return Response(None, mimetype="application/json-lines")
 
 @app.route("/api/conversation/azure_byod", methods=["GET", "POST"])
 def conversation_azure_byod():
