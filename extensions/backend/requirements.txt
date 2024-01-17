@@ -16,7 +16,7 @@ azure-storage-blob==12.19.0
 azure-identity==1.15.0
 azure-ai-contentsafety==1.0.0b1
 requests==2.31.0
-tiktoken==0.2.0
+tiktoken==0.5.2
 azure-storage-queue==12.9.0
 langchain==0.0.329
 beautifulsoup4==4.12.2
