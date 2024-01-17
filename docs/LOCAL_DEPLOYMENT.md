@@ -1,5 +1,31 @@
 [Back to *Chat with your data* README](../README.md)
 
+## Development Container
+
+The solution contains a [development container](https://code.visualstudio.com/docs/remote/containers) with all the required tooling to develop and deploy the accelerator. To deploy the Chat With Your Data accelerator using the provided development container you will also need:
+
+* [Visual Studio Code](https://code.visualstudio.com)
+* [Remote containers extension for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+
+If you are running this on Windows, we recommend you clone this repository in [WSL](https://code.visualstudio.com/docs/remote/wsl)
+
+```cmd
+git clone https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator
+```
+
+Open the cloned repository in Visual Studio Code and connect to the development container.
+
+```cmd
+code .
+```
+
+!!! tip
+    Visual Studio Code should recognize the available development container and ask you to open the folder using it. For additional details on connecting to remote containers, please see the [Open an existing folder in a container](https://code.visualstudio.com/docs/remote/containers#_quick-start-open-an-existing-folder-in-a-container) quickstart.
+
+When you start the development container for the first time, the container will be built. This usually takes a few minutes. **Please use the development container for all further steps.**
+
+The files for the dev container are located in `/.devcontainer/` folder.
+
 ## Local deployment
 
 To customize the accelerator or run it locally, first, copy the `.env.sample` file to your development environment's `.env` file, and edit it according to [environment variable values table](#environment-variables) below.
