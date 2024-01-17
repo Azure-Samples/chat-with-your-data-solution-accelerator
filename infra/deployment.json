@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "2615259070782652518"
+      "templateHash": "7448892413282893472"
     }
   },
   "parameters": {
@@ -325,7 +325,7 @@
     },
     "authType": {
       "type": "string",
-      "defaultValue": "rbac",
+      "defaultValue": "keys",
       "allowedValues": [
         "keys",
         "rbac"
