@@ -31,16 +31,16 @@ param HostingPlanSku string = 'B3'
 @secure()
 param AppInsightsConnectionString string
 
-@description('Azure Cognitive Search Resource - Created during the "Chat with your data" Solution Accelerator')
-param AzureCognitiveSearch string
+@description('Azure AI Search Resource - Created during the "Chat with your data" Solution Accelerator')
+param AzureSearchName string
 
-@description('Azure Cognitive Search Index - Created during the "Chat with your data" Solution Accelerator')
+@description('Azure AI Search Index - Created during the "Chat with your data" Solution Accelerator')
 param AzureSearchIndex string
 
-@description('Azure Cognitive Search Conversation Log Index - Created during the "Chat with your data" Solution Accelerator')
+@description('Azure AI Search Conversation Log Index - Created during the "Chat with your data" Solution Accelerator')
 param AzureSearchConversationLogIndex string = 'conversations'
 
-@description('Azure Cognitive Search Key - Created during the "Chat with your data" Solution Accelerator')
+@description('Azure AI Search Key - Created during the "Chat with your data" Solution Accelerator')
 @secure()
 param AzureSearchKey string
 
@@ -154,7 +154,7 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
         { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4'}
         { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false'}
         { name: 'APPINSIGHTS_CONNECTION_STRING', value: AppInsightsConnectionString}
-        { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureCognitiveSearch}.search.windows.net'}
+        { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureSearchName}.search.windows.net'}
         { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}
         { name: 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', value: AzureSearchConversationLogIndex}
         { name: 'AZURE_SEARCH_KEY', value: AzureSearchKey}
