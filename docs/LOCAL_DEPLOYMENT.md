@@ -35,23 +35,20 @@ To run the accelerator in local you need to assign some roles to your principal 
 
 ### Manually assign roles
 You need to assign the following roles to your `PRINCIPALID` (you can get your 'principal id' from Microsoft Entra ID):
-1. Cognitive Services OpenAI Contributor role - a001fd3d-188f-4b5d-821b-7da978bf7442
-2. Search Service Contributor role -7ca78c08-252a-4471-8644-bb5ff32d4ba0
-3. Search Index Data Contributor - 8ebe5a00-799e-43f5-93ac-243d3dce84a7
-4. Storage Blob Data Reader role - 2a2b9908-6ea1-4ae2-8e65-a410df84e7d1 
-5. Reader role - acdd72a7-3385-48ef-bd42-f606fba81ae7
+| Role | GUID |
+|----|----|
+|  Cognitive Services OpenAI Contributor | a001fd3d-188f-4b5d-821b-7da978bf7442 |
+| Search Service Contributor role | 7ca78c08-252a-4471-8644-bb5ff32d4ba0
+| Search Index Data Contributor | 8ebe5a00-799e-43f5-93ac-243d3dce84a7
+| Storage Blob Data Reader role | 2a2b9908-6ea1-4ae2-8e65-a410df84e7d1 
+| Reader role | acdd72a7-3385-48ef-bd42-f606fba81ae7
 
 ### Programatically assign roles
 You can also update the `principalId` value with your own principalId in `deployment.bicep` file.
-Build the bicep file using the below command:
 
-```shell
-cd infra
-bicep build deployment.bicep
-```
 Then deploy the bicep file using the below command:
 ```shell
-az deployment group create --resource-group {your_resource_group} --template-file deployment.json --subscription {your_azure_subscription_id}
+az deployment group create --resource-group {your_resource_group} --template-file deployment.bicep --subscription {your_azure_subscription_id}
 ```
 
 ### Authenticate using RBAC
