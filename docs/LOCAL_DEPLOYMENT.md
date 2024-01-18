@@ -38,10 +38,10 @@ You need to assign the following roles to your `PRINCIPALID` (you can get your '
 | Role | GUID |
 |----|----|
 |  Cognitive Services OpenAI Contributor | a001fd3d-188f-4b5d-821b-7da978bf7442 |
-| Search Service Contributor | 7ca78c08-252a-4471-8644-bb5ff32d4ba0
-| Search Index Data Contributor | 8ebe5a00-799e-43f5-93ac-243d3dce84a7
-| Storage Blob Data Reader | 2a2b9908-6ea1-4ae2-8e65-a410df84e7d1 
-| Reader | acdd72a7-3385-48ef-bd42-f606fba81ae7
+| Search Service Contributor | 7ca78c08-252a-4471-8644-bb5ff32d4ba0 |
+| Search Index Data Contributor | 8ebe5a00-799e-43f5-93ac-243d3dce84a7 |
+| Storage Blob Data Reader | 2a2b9908-6ea1-4ae2-8e65-a410df84e7d1 |
+| Reader | acdd72a7-3385-48ef-bd42-f606fba81ae7 |
 
 ### Programatically assign roles
 You can also update the `principalId` value with your own principalId in `deployment.bicep` file.
