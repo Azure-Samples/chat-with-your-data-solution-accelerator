@@ -27,7 +27,7 @@ class EnvHelper:
         self.AZURE_SEARCH_FIELDS_TAG = os.getenv('AZURE_SEARCH_FIELDS_TAG', 'tag')
         self.AZURE_SEARCH_FIELDS_METADATA = os.getenv('AZURE_SEARCH_FIELDS_METADATA', 'metadata')
         self.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = os.getenv('AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', 'conversations')
-        self.AZURE_AUTH_TYPE = os.environ.get("AZURE_AUTH_TYPE", "rbac")
+        self.AZURE_AUTH_TYPE = os.environ.get("AZURE_AUTH_TYPE", "keys")
         # Azure OpenAI
         self.AZURE_OPENAI_RESOURCE = os.getenv('AZURE_OPENAI_RESOURCE', '')
         self.AZURE_OPENAI_MODEL = os.getenv('AZURE_OPENAI_MODEL', '')
