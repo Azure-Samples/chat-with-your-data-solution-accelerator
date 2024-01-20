@@ -14,7 +14,6 @@ This extension enables users to experience Chat with your data within Teams, wit
 **IMPORTANT**: Before you proceed, installation and configuration of the [Chat with your data with speech-to-text deployment](../README.md) is required.
 
 ### Pre-requisites 
-- Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with contributor access.
 - [Visual Studio Code](https://code.visualstudio.com/)
     - Extensions
         - [Teams Toolkit](https://marketplace.visualstudio.com/items?itemName=TeamsDevApp.ms-teams-vscode-extension) (optional: Teams extension only)
@@ -24,7 +23,7 @@ This extension enables users to experience Chat with your data within Teams, wit
 - In order to publish the App to the Teams Store, the Teams Administrator role is required. 
 
 ### Deploy backend Azure Function
-<!-- TODO: Updated prior to PR -->
+
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fchat-with-your-data-solution-accelerator%2Fmain%2Fextensions%2Finfrastructure%2Fmain.json)
 
 Note: The (p) suffix on the App Setting (below) means that you should use the same resources and services deployed during the [Chat with your data with speech-to-text deployment](../README.md)
@@ -34,9 +33,9 @@ Note: The (p) suffix on the App Setting (below) means that you should use the sa
 |Resource group | The resource group that will contain the resources for this accelerator. You can select Create new to create a new group or use the existing resource group created with [Speech-to-text deployment](#speech-to-text-deployment). |
 |Resource prefix | A text string that will be appended to each resource that gets created, and used as the website name for the web app. This name cannot contain spaces or special characters. |
 |App Insights Connection String (p) | The Application Insights connection string to store the application logs. |
-|Azure Cognitive Search (p) | The **name** of your Azure Cognitive Search resource. e.g. https://<**name**>.search.windows.net. |
-|Azure Search Index (p) | The name of your Azure Cognitive Search Index. |
-|Azure Search Key (p) | An admin key for your Azure Cognitive Search resource. |
+|Azure AI Search (p) | The **name** of your Azure AI Search resource. e.g. https://<**name**>.search.windows.net. |
+|Azure Search Index (p) | The name of your Azure AI Search Index. |
+|Azure Search Key (p) | An admin key for your Azure AI Search resource. |
 |Azure OpenAI resource (p) | The name of your Azure OpenAI resource. This resource must have already been created previously. |
 |Azure OpenAI key (p) | The access key is associated with your Azure OpenAI resource. |
 |Orchestration strategy (p) | Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a model version 0314 select "langchain". |
