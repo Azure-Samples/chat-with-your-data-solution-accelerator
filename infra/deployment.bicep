@@ -151,7 +151,7 @@ param newGuidString string = newGuid()
   'keys'
   'rbac'
 ])
-param authType string = 'rbac'
+param authType string = 'keys'
 
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
