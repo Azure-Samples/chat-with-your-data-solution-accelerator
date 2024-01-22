@@ -248,3 +248,11 @@
     align-self: stretch;
     flex-grow: 0;
 } 
+
+
+.mobileStyles {
+    @media (max-width: 600px) {
+      max-width: 100%;
+      
+    }
+  }
