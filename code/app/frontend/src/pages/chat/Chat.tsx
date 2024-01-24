@@ -356,7 +356,7 @@ const Chat = () => {
               </Stack>
             )}
             <BroomRegular
-              className={styles.clearChatBroom}
+              className={`${styles.clearChatBroom} ${styles.mobileclearChatBroom}`}
               style={{
                 background:
                   isLoading || answers.length === 0
@@ -387,7 +387,7 @@ const Chat = () => {
           </Stack>
         </div>
         {answers.length > 0 && isCitationPanelOpen && activeCitation && (
-          <Stack.Item className={styles.citationPanel}>
+          <Stack.Item className={`${styles.citationPanel} ${styles.mobileStyles}`}>
             <Stack
               horizontal
               className={styles.citationPanelHeaderContainer}

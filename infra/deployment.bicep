@@ -156,9 +156,9 @@ param authType string = 'keys'
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 
-var WebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-webapp'
-var AdminWebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-adminwebapp'
-var BackendImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-backend'
+var WebAppImageName = 'DOCKER|cwydversionii.azurecr.io/rag-webapp'
+var AdminWebAppImageName = 'DOCKER|cwydversionii.azurecr.io/rag-adminwebapp'
+var BackendImageName = 'DOCKER|cwydversionii.azurecr.io/rag-backend'
 
 var BlobContainerName = 'documents'
 var QueueName = 'doc-processing'
