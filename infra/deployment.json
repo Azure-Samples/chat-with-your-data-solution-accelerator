@@ -340,9 +340,9 @@
     }
   },
   "variables": {
-    "WebAppImageName": "DOCKER|cwydversionii.azurecr.io/rag-webapp",
-    "AdminWebAppImageName": "DOCKER|cwydversionii.azurecr.io/rag-adminwebapp",
-    "BackendImageName": "DOCKER|cwydversionii.azurecr.io/rag-backend",
+    "WebAppImageName": "DOCKER|docker.io/fr4nc3/cwydv2/rag-webapp",
+    "AdminWebAppImageName": "DOCKER|docker.io/fr4nc3/cwydv2/rag-adminwebapp",
+    "BackendImageName": "DOCKER|docker.io/fr4nc3/cwydv2/rag-backend",
     "BlobContainerName": "documents",
     "QueueName": "doc-processing",
     "ClientKey": "[format('{0}{1}', uniqueString(guid(resourceGroup().id, deployment().name)), parameters('newGuidString'))]",

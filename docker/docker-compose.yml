@@ -2,19 +2,19 @@ version: "0.1"
 name: rag
 services:
   web:
-    image: cwydversionii.azurecr.io/rag-webapp
+    image: docker.io/fr4nc3/cwydv2/rag-webapp
     ports:
       - "8080:80"
     env_file:
       - ../.env
   admin:
-    image: cwydversionii.azurecr.io/rag-adminwebapp
+    image: docker.io/fr4nc3/cwydv2/rag-adminwebapp
     ports:
       - "8081:80"
     env_file:
       - ../.env
   backend:
-    image: cwydversionii.azurecr.io/rag-backend
+    image: docker.io/fr4nc3/cwydv2/rag-backend
     ports: 
       - "8082:80"
     env_file:
