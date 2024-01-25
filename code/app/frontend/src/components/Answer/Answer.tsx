@@ -99,7 +99,7 @@ export const Answer = ({
                 
                 </Stack>
                 {chevronIsExpanded && 
-                    <div style={{ marginTop: 8, display: "flex", flexFlow: "wrap column", maxHeight: "150px", gap: "4px" }}>
+                    <div style={{ marginTop: 8, display: "flex", flexDirection: "column", maxHeight: "150px", gap: "4px", maxWidth: "100%" }}>
                         {parsedAnswer.citations.map((citation, idx) => {
                             return (
                                 <span title={createCitationFilepath(citation, ++idx)} key={idx} onClick={() => onCitationClicked(citation)} className={styles.citationContainer}>

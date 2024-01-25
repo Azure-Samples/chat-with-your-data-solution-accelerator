@@ -30,11 +30,9 @@
 
 .answerFooter {
     display: flex;
-    flex-flow: row nowrap;
+    flex-direction: column;
     width: 100%;
-    height: auto;
     box-sizing: border-box;
-    justify-content: space-between;
 }
 
 .answerDisclaimerContainer {
@@ -50,6 +48,7 @@
     line-height: 16px;
     margin-right: 5px;
     margin-left: 10px;
+    padding-bottom:5px;
     display: flex;
     align-items: center;
     text-align: center;
