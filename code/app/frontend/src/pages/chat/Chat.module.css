@@ -249,10 +249,20 @@
     flex-grow: 0;
 } 
 
+.MobileChatContainer{
+    @media screen and (max-width: 500px)  {
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 8px;
+        
+      }
+}
+
 .mobileStyles {
     @media screen and (max-width: 500px)  {
-      max-width: 100%;
-      
+        max-width: 100%;
+        flex-grow: 1; /* Adjust as needed based on your layout */
+        max-height: 100vh;
     }
   }
 
@@ -263,3 +273,28 @@
       }
     }
   
+    .mobileCitationPanelTitle{
+        @media screen and (max-width: 500px)  {
+            font-weight: 400;
+            font-size: 14px;
+            line-height: 15px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+            
+          }
+    }
+
+    .mobileCitationPanelContent{
+        @media screen and (max-width: 500px){
+            font-weight: 250;
+            font-size: 11px;
+            line-height: 14px;
+        } 
+    }
+
+    @media screen and (max-width: 500px){
+        h2{
+            font-weight: 300;
+            font-size: 14px;
+        }
+     }
