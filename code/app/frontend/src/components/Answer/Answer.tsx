@@ -73,7 +73,11 @@ export const Answer = ({
                         className={styles.answerText}
                     />
                 </Stack.Item>
-                <Stack horizontal className={styles.answerFooter}>
+                <Stack horizontal className={styles.answerFooter} verticalAlign="start">
+                <Stack.Item className={styles.answerDisclaimerContainer}>
+                    <span className={`${styles.answerDisclaimer} ${styles.mobileAnswerDisclaimer}`}>AI-generated content may be incorrect</span>
+                </Stack.Item>
+
                 {!!parsedAnswer.citations.length && (
                     <Stack.Item aria-label="References">
                         <Stack style={{width: "100%"}} >
@@ -92,9 +96,7 @@ export const Answer = ({
                         </Stack>
                     </Stack.Item>
                 )}
-                <Stack.Item className={styles.answerDisclaimerContainer}>
-                    <span className={styles.answerDisclaimer}>AI-generated content may be incorrect</span>
-                </Stack.Item>
+                
                 </Stack>
                 {chevronIsExpanded && 
                     <div style={{ marginTop: 8, display: "flex", flexFlow: "wrap column", maxHeight: "150px", gap: "4px" }}>

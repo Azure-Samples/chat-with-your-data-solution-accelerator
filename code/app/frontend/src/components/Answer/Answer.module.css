@@ -7,6 +7,7 @@
     background: #FFFFFF;
     box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.14), 0px 0px 2px rgba(0, 0, 0, 0.12);
     border-radius: 5.419px;
+    max-width: 100%;
 }
 
 .answerText {
@@ -47,7 +48,8 @@
     font-weight: 400;
     font-size: 12px;
     line-height: 16px;
-
+    margin-right: 5px;
+    margin-left: 10px;
     display: flex;
     align-items: center;
     text-align: center;
@@ -64,7 +66,7 @@
     font-weight: 600;
     font-size: 12px;
     line-height: 16px;
-
+    max-width: 100%;
     color: #115EA3;
     display: flex;
     flex-direction: row;
@@ -175,3 +177,14 @@ sup {
     font-size: 10px;
     line-height: 10px;
 }
+
+
+@media (max-width: 500px) {
+    .answerFooter {
+      flex-direction: column; 
+    }
+  
+    .citationContainer {
+      width: 100%; 
+    }
+  }
