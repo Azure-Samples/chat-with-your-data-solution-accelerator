@@ -1,18 +1,18 @@
 azure-identity==1.15.0
-Flask==2.3.2
-openai==0.27.8
+Flask==3.0.0
+openai==1.7.2
 azure-storage-blob==12.19.0
 python-dotenv==1.0.0
-langchain==0.0.329
+langchain==0.1.0
 azure-ai-formrecognizer==3.3.2
 requests==2.31.0
 tiktoken==0.5.2
 azure-storage-queue==12.9.0
-beautifulsoup4==4.12.2
+beautifulsoup4==4.12.3
 fake-useragent==1.4.0
 chardet==5.2.0
 --extra-index-url https://pkgs.dev.azure.com/azure-sdk/public/_packaging/azure-sdk-for-python/pypi/simple/
-azure-search-documents==11.4.0b8
+azure-search-documents==11.5.0a20240119001
 opencensus-ext-azure==1.1.13
-azure-ai-contentsafety==1.0.0b1
+azure-ai-contentsafety==1.0.0
 python-docx==1.1.0
