@@ -1,0 +1,9 @@
+First use az cli to login and set correct subscription as default
+  az login
+  az account set --subscription <subid>
+Verify with
+  az account show
+if not already created
+  az group create -n <rgname> -l <location>
+For deployments
+  az deployment group create -g rg-tx-openai-private-eu2 -f deployment.bicep --parameters deployment.bicepparam

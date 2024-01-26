@@ -165,258 +165,41 @@ var QueueName = 'doc-processing'
 var ClientKey = '${uniqueString(guid(resourceGroup().id, deployment().name))}${newGuidString}'
 var EventGridSystemTopicName = 'doc-processing'
 
-resource OpenAI 'Microsoft.CognitiveServices/accounts@2021-10-01' = {
-  name: AzureOpenAIResource
-  location: Location
-  kind: 'OpenAI'
-  sku: {
-    name: 'S0'
-  }
-  properties: {
-    customSubDomainName: AzureOpenAIResource
-  }
-  identity: {
-    type: 'SystemAssigned'
-  }
+var privateStorageFileDnsZoneName = 'privatelink.file.${environment().suffixes.storage}'
+var privateEndpointStorageFileName = '${StorageAccountName}-file-private-endpoint'
+var privateStorageTableDnsZoneName = 'privatelink.table.${environment().suffixes.storage}'
+var privateEndpointStorageTableName = '${StorageAccountName}-table-private-endpoint'
+var privateStorageBlobDnsZoneName = 'privatelink.blob.${environment().suffixes.storage}'
+var privateEndpointStorageBlobName = '${StorageAccountName}-blob-private-endpoint'
+var privateStorageQueueDnsZoneName = 'privatelink.queue.${environment().suffixes.storage}'
+var privateEndpointStorageQueueName = '${StorageAccountName}-queue-private-endpoint'
 
-  resource OpenAIGPTDeployment 'deployments@2023-05-01' = {
-    name: AzureOpenAIGPTModelName
-    properties: {
-      model: {
-        format: 'OpenAI'
-        name: AzureOpenAIGPTModel
-        version: AzureOpenAIGPTModelVersion
-      }
-    }
-    sku: {
-      name: 'Standard'
-      capacity: 30
-    }
-  }
+var oaiPrivateDnsZoneName = 'privatelink.openai.azure.com'
+var oaiPrivateEndpointName = '${AzureOpenAIResource}-private-endpoint'
 
-  resource OpenAIEmbeddingDeployment 'deployments@2023-05-01' = {
-    name: AzureOpenAIEmbeddingModelName
-    properties: {
-      model: {
-        format: 'OpenAI'
-        name: AzureOpenAIEmbeddingModel
-        version: AzureOpenAIEmbeddingModelVersion
-      }
-    }
-    sku: {
-      name: 'Standard'
-      capacity: 30
-    }
-    dependsOn: [
-      OpenAIGPTDeployment
-    ]
-  }
+// VNET References
+resource vnet 'Microsoft.Network/virtualNetworks@2023-06-01' existing = {
+  scope: resourceGroup('tx-openai-poc')
+  name: 'vnet-tx-openai-poc-eu2'
 }
 
-resource AzureCognitiveSearch_resource 'Microsoft.Search/searchServices@2022-09-01' = {
-  name: AzureCognitiveSearch
-  location: Location
-  tags: {
-    deployment : 'chatwithyourdata-sa'
-  }
-  sku: {
-    name: AzureCognitiveSearchSku
-  }
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    authOptions: authType == 'keys' ? {
-      aadOrApiKey: {
-        aadAuthFailureMode: 'http401WithBearerChallenge'
-      }
-    } : null
-    disableLocalAuth: authType == 'keys' ? false : true
-    replicaCount: 1
-    partitionCount: 1
-  }
+resource defaultSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-06-01' existing = {
+  parent: vnet
+  name: 'default'
 }
 
-resource SpeechService 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
-  name: SpeechServiceName
-  location: Location
-  sku: {
-    name: 'S0'
-  }
-  kind: 'SpeechServices'
-  identity: {
-    type: 'None'
-  }
-  properties: {
-    networkAcls: {
-      defaultAction: 'Allow'
-      virtualNetworkRules: []
-      ipRules: []
-    }
-    publicNetworkAccess: 'Enabled'
-  }
+resource endpointsSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-06-01' existing = {
+  parent: vnet
+  name: 'endpoints'
 }
 
-resource FormRecognizer 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
-  name: FormRecognizerName
-  location: FormRecognizerLocation
-  sku: {
-    name: 'S0'
-  }
-  kind: 'FormRecognizer'
-  identity: {
-    type: 'None'
-  }
-  properties: {
-    networkAcls: {
-      defaultAction: 'Allow'
-      virtualNetworkRules: []
-      ipRules: []
-    }
-    publicNetworkAccess: 'Enabled'
-  }
+resource gatewaySubnet 'Microsoft.Network/virtualNetworks/subnets@2023-06-01' existing = {
+  parent: vnet
+  name: 'GatewaySubnet'
 }
 
-resource ContentSafety 'Microsoft.CognitiveServices/accounts@2022-03-01' = {
-  name: ContentSafetyName
-  location: Location
-  sku: {
-    name: 'S0'
-  }
-  kind: 'ContentSafety'
-  identity: {
-    type: 'None'
-  }
-  properties: {
-    networkAcls: {
-      defaultAction: 'Allow'
-      virtualNetworkRules: []
-      ipRules: []
-    }
-  }
-}
 
-resource HostingPlan 'Microsoft.Web/serverfarms@2020-06-01' = {
-  name: HostingPlanName
-  location: Location
-  sku: {
-    name: HostingPlanSku
-  }
-  properties: {
-    reserved: true
-  }
-  kind: 'linux'
-}
-
-resource Website 'Microsoft.Web/sites@2020-06-01' = {
-  name: WebsiteName
-  location: Location
-  properties: {
-    serverFarmId: HostingPlanName
-    siteConfig: {
-      appSettings: [
-        { name: 'APPINSIGHTS_CONNECTION_STRING', value: reference(ApplicationInsights.id, '2015-05-01').ConnectionString}
-        { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureCognitiveSearch}.search.windows.net'}
-        { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}
-        { name: 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', value: AzureSearchUseSemanticSearch }
-        { name: 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', value: AzureSearchConversationLogIndex}
-        { name: 'AZURE_AUTH_TYPE', value: authType }
-        { name: 'AZURE_SEARCH_KEY', value: authType == 'keys' ? listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey : null}
-        { name: 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', value: AzureSearchSemanticSearchConfig}
-        { name: 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', value: AzureSearchIndexIsPrechunked}
-        { name: 'AZURE_SEARCH_TOP_K', value: AzureSearchTopK}
-        { name: 'AZURE_SEARCH_ENABLE_IN_DOMAIN', value: AzureSearchEnableInDomain}
-        { name: 'AZURE_SEARCH_CONTENT_COLUMNS', value: AzureSearchContentColumns}
-        { name: 'AZURE_SEARCH_FILENAME_COLUMN', value: AzureSearchFilenameColumn}
-        { name: 'AZURE_SEARCH_TITLE_COLUMN', value: AzureSearchTitleColumn}
-        { name: 'AZURE_SEARCH_URL_COLUMN', value: AzureSearchUrlColumn}
-        { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
-        { name: 'AZURE_OPENAI_KEY', value: authType == 'keys' ? OpenAI.listKeys('2023-05-01').key1 : null}
-        { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIGPTModel}
-        { name: 'AZURE_OPENAI_MODEL_NAME', value: AzureOpenAIGPTModelName}
-        { name: 'AZURE_OPENAI_TEMPERATURE', value: AzureOpenAITemperature}
-        { name: 'AZURE_OPENAI_TOP_P', value: AzureOpenAITopP}
-        { name: 'AZURE_OPENAI_MAX_TOKENS', value: AzureOpenAIMaxTokens}
-        { name: 'AZURE_OPENAI_STOP_SEQUENCE', value: AzureOpenAIStopSequence}
-        { name: 'AZURE_OPENAI_SYSTEM_MESSAGE', value: AzureOpenAISystemMessage}
-        { name: 'AZURE_OPENAI_API_VERSION', value: AzureOpenAIApiVersion}
-        { name: 'AZURE_OPENAI_STREAM', value: AzureOpenAIStream}
-        { name: 'AZURE_OPENAI_EMBEDDING_MODEL', value: AzureOpenAIEmbeddingModel}
-        { name: 'AZURE_FORM_RECOGNIZER_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
-        { name: 'AZURE_FORM_RECOGNIZER_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1}
-        { name: 'AZURE_BLOB_ACCOUNT_NAME', value: StorageAccountName}
-        { name: 'AZURE_BLOB_ACCOUNT_KEY', value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value}
-        { name: 'AZURE_BLOB_CONTAINER_NAME', value: BlobContainerName}
-        { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
-        { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
-        { name: 'AZURE_CONTENT_SAFETY_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${ContentSafetyName}', '2023-05-01').key1}
-        { name: 'AZURE_SPEECH_SERVICE_NAME', value: SpeechServiceName}
-        { name: 'AZURE_SPEECH_SERVICE_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${SpeechServiceName}', '2023-05-01').key1}
-        { name: 'AZURE_SPEECH_SERVICE_REGION', value: Location}
-      ]
-      linuxFxVersion: WebAppImageName
-    }
-  }
-  identity: { type: authType == 'rbac' ? 'SystemAssigned' : 'None' }
-  dependsOn: [
-    HostingPlan
-  ]
-}
-
-resource WebsiteName_admin 'Microsoft.Web/sites@2020-06-01' = {
-  name: '${WebsiteName}-admin'
-  location: Location
-  properties: {
-    serverFarmId: HostingPlanName
-    siteConfig: {
-      appSettings: [
-        { name: 'APPINSIGHTS_INSTRUMENTATIONKEY', value: reference(ApplicationInsights.id, '2015-05-01').InstrumentationKey }
-        { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureCognitiveSearch}.search.windows.net' }
-        { name: 'AZURE_AUTH_TYPE', value: authType }
-        { name: 'AZURE_SEARCH_KEY', value: authType == 'keys' ? listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey : null}
-        { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex }
-        { name: 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', value: AzureSearchUseSemanticSearch }
-        { name: 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', value: AzureSearchSemanticSearchConfig }
-        { name: 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', value: AzureSearchIndexIsPrechunked }
-        { name: 'AZURE_SEARCH_TOP_K', value: AzureSearchTopK }
-        { name: 'AZURE_SEARCH_ENABLE_IN_DOMAIN', value: AzureSearchEnableInDomain }
-        { name: 'AZURE_SEARCH_CONTENT_COLUMNS', value: AzureSearchContentColumns}
-        { name: 'AZURE_SEARCH_FILENAME_COLUMN', value: AzureSearchFilenameColumn }
-        { name: 'AZURE_SEARCH_TITLE_COLUMN', value: AzureSearchTitleColumn}
-        { name: 'AZURE_SEARCH_URL_COLUMN', value: AzureSearchUrlColumn }
-        { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
-        { name: 'AZURE_OPENAI_KEY', value: authType == 'keys' ? OpenAI.listKeys('2023-05-01').key1 : null}
-        { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIGPTModel }
-        { name: 'AZURE_OPENAI_MODEL_NAME', value: AzureOpenAIGPTModelName }
-        { name: 'AZURE_OPENAI_TEMPERATURE', value: AzureOpenAITemperature }
-        { name: 'AZURE_OPENAI_TOP_P', value: AzureOpenAITopP }
-        { name: 'AZURE_OPENAI_MAX_TOKENS', value: AzureOpenAIMaxTokens }
-        { name: 'AZURE_OPENAI_STOP_SEQUENCE', value: AzureOpenAIStopSequence }
-        { name: 'AZURE_OPENAI_SYSTEM_MESSAGE', value: AzureOpenAISystemMessage }
-        { name: 'AZURE_OPENAI_API_VERSION', value: AzureOpenAIApiVersion }
-        { name: 'AZURE_OPENAI_STREAM', value: AzureOpenAIStream }
-        { name: 'AZURE_OPENAI_EMBEDDING_MODEL', value: AzureOpenAIEmbeddingModel }
-        { name: 'AZURE_FORM_RECOGNIZER_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/' }
-        { name: 'AZURE_FORM_RECOGNIZER_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1 }
-        { name: 'AZURE_BLOB_ACCOUNT_NAME', value: StorageAccountName }
-        { name: 'AZURE_BLOB_ACCOUNT_KEY', value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value }
-        { name: 'AZURE_BLOB_CONTAINER_NAME', value: BlobContainerName }
-        { name: 'DOCUMENT_PROCESSING_QUEUE_NAME', value: QueueName}
-        { name: 'BACKEND_URL', value: 'https://${FunctionName}.azurewebsites.net'}
-        { name: 'FUNCTION_KEY', value: ClientKey}
-        { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
-        { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
-        { name: 'AZURE_CONTENT_SAFETY_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${ContentSafetyName}', '2023-05-01').key1}
-      ]
-      linuxFxVersion: AdminWebAppImageName
-    }
-  }
-  identity: { type: authType == 'rbac' ? 'SystemAssigned' : 'None' }
-  dependsOn: [
-    HostingPlan
-  ]
-}
-
+// Storage Account
 resource StorageAccount 'Microsoft.Storage/storageAccounts@2021-08-01' = {
   name: StorageAccountName
   location: Location
@@ -424,6 +207,18 @@ resource StorageAccount 'Microsoft.Storage/storageAccounts@2021-08-01' = {
   sku: {
     name: 'Standard_GRS'
   }
+  properties: {
+    publicNetworkAccess: 'Disabled'
+    minimumTlsVersion: 'TLS1_2'
+    allowBlobPublicAccess: false
+    networkAcls: {
+      bypass: 'AzureServices'
+      virtualNetworkRules: []
+      ipRules: []
+      defaultAction: 'Deny'
+    }
+    supportsHttpsTrafficOnly: true
+  }  
 }
 
 resource StorageAccountName_default_BlobContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-08-01' = {
@@ -475,427 +270,337 @@ resource StorageAccountName_default_doc_processing_poison 'Microsoft.Storage/sto
 }
 
 
-resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2021-06-01' = {
-  name: logAnalyticsWorkspaceName
+resource privateStorageFileDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: privateStorageFileDnsZoneName
+  location: 'global'
+}
+
+resource privateStorageBlobDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: privateStorageBlobDnsZoneName
+  location: 'global'
+}
+
+resource privateStorageQueueDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: privateStorageQueueDnsZoneName
+  location: 'global'
+}
+
+resource privateStorageTableDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: privateStorageTableDnsZoneName
+  location: 'global'
+}
+
+resource privateStorageFileDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: privateStorageFileDnsZone
+  name: '${privateStorageFileDnsZoneName}-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnet.id
+    }
+  }
+}
+
+resource privateStorageBlobDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: privateStorageBlobDnsZone
+  name: '${privateStorageBlobDnsZoneName}-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnet.id
+    }
+  }
+}
+
+resource privateStorageTableDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: privateStorageTableDnsZone
+  name: '${privateStorageTableDnsZoneName}-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnet.id
+    }
+  }
+}
+
+resource privateStorageQueueDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: privateStorageQueueDnsZone
+  name: '${privateStorageQueueDnsZoneName}-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnet.id
+    }
+  }
+}
+
+resource privateEndpointStorageFile 'Microsoft.Network/privateEndpoints@2022-05-01' = {
+  name: privateEndpointStorageFileName
   location: Location
   properties: {
+    subnet: {
+      id: endpointsSubnet.id
+    }
+    privateLinkServiceConnections: [
+      {
+        name: 'MyStorageFilePrivateLinkConnection'
+        properties: {
+          privateLinkServiceId: StorageAccount.id
+          groupIds: [
+            'file'
+          ]
+        }
+      }
+    ]
+  }
+  // dependsOn: [
+  //   vnet
+  // ]
+}
+
+resource privateEndpointStorageBlob 'Microsoft.Network/privateEndpoints@2022-05-01' = {
+  name: privateEndpointStorageBlobName
+  location: Location
+  properties: {
+    subnet: {
+      id: endpointsSubnet.id
+    }
+    privateLinkServiceConnections: [
+      {
+        name: 'MyStorageBlobPrivateLinkConnection'
+        properties: {
+          privateLinkServiceId: StorageAccount.id
+          groupIds: [
+            'blob'
+          ]
+        }
+      }
+    ]
+  }
+  // dependsOn: [
+  //   vnet
+  // ]
+}
+
+resource privateEndpointStorageTable 'Microsoft.Network/privateEndpoints@2022-05-01' = {
+  name: privateEndpointStorageTableName
+  location: Location
+  properties: {
+    subnet: {
+      id: endpointsSubnet.id
+    }
+    privateLinkServiceConnections: [
+      {
+        name: 'MyStorageTablePrivateLinkConnection'
+        properties: {
+          privateLinkServiceId: StorageAccount.id
+          groupIds: [
+            'table'
+          ]
+        }
+      }
+    ]
+  }
+  // dependsOn: [
+  //   vnet
+  // ]
+}
+
+resource privateEndpointStorageQueue 'Microsoft.Network/privateEndpoints@2022-05-01' = {
+  name: privateEndpointStorageQueueName
+  location: Location
+  properties: {
+    subnet: {
+      id: endpointsSubnet.id
+    }
+    privateLinkServiceConnections: [
+      {
+        name: 'MyStorageQueuePrivateLinkConnection'
+        properties: {
+          privateLinkServiceId: StorageAccount.id
+          groupIds: [
+            'queue'
+          ]
+        }
+      }
+    ]
+  }
+  // dependsOn: [
+  //   vnet
+  // ]
+}
+
+resource privateEndpointStorageFilePrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2022-05-01' = {
+  parent: privateEndpointStorageFile
+  name: 'filePrivateDnsZoneGroup'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'config'
+        properties: {
+          privateDnsZoneId: privateStorageFileDnsZone.id
+        }
+      }
+    ]
+  }
+}
+
+resource privateEndpointStorageBlobPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2022-05-01' = {
+  parent: privateEndpointStorageBlob
+  name: 'blobPrivateDnsZoneGroup'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'config'
+        properties: {
+          privateDnsZoneId: privateStorageBlobDnsZone.id
+        }
+      }
+    ]
+  }
+}
+
+resource privateEndpointStorageTablePrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2022-05-01' = {
+  parent: privateEndpointStorageTable
+  name: 'tablePrivateDnsZoneGroup'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'config'
+        properties: {
+          privateDnsZoneId: privateStorageTableDnsZone.id
+        }
+      }
+    ]
+  }
+}
+
+resource privateEndpointStorageQueuePrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2022-05-01' = {
+  parent: privateEndpointStorageQueue
+  name: 'queuePrivateDnsZoneGroup'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'config'
+        properties: {
+          privateDnsZoneId: privateStorageQueueDnsZone.id
+        }
+      }
+    ]
+  }
+}
+
+
+// Open AI
+resource OpenAI 'Microsoft.CognitiveServices/accounts@2021-10-01' = {
+  name: AzureOpenAIResource
+  location: Location
+  kind: 'OpenAI'
+  sku: {
+    name: 'S0'
+  }
+  properties: {
+    customSubDomainName: AzureOpenAIResource
+    publicNetworkAccess: 'Disabled'
+  }
+  identity: {
+    type: 'SystemAssigned'
+  }
+
+  resource OpenAIGPTDeployment 'deployments@2023-05-01' = {
+    name: AzureOpenAIGPTModelName
+    properties: {
+      model: {
+        format: 'OpenAI'
+        name: AzureOpenAIGPTModel
+        version: AzureOpenAIGPTModelVersion
+      }
+    }
     sku: {
-      name: 'pergb2018'
+      name: 'Standard'
+      capacity: 30
     }
   }
-}
 
-resource ApplicationInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: ApplicationInsightsName
-  location: Location
-  tags: {
-    'hidden-link:${resourceId('Microsoft.Web/sites', ApplicationInsightsName)}': 'Resource'
-  }
-  properties: {
-    Application_Type: 'web'
-    WorkspaceResourceId: logAnalyticsWorkspace.id
-  }
-  kind: 'web'
-}
-
-resource Function 'Microsoft.Web/sites@2018-11-01' = {
-  name: FunctionName
-  kind: 'functionapp,linux'
-  location: Location
-  tags: {}
-  properties: {
-    siteConfig: {
-      appSettings: [
-        { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4'}
-        { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false'}
-        { name: 'APPINSIGHTS_INSTRUMENTATIONKEY', value: reference(ApplicationInsights.id, '2015-05-01').InstrumentationKey}
-        { name: 'AzureWebJobsStorage', value: 'DefaultEndpointsProtocol=https;AccountName=${StorageAccountName};AccountKey=${listKeys(StorageAccount.id, '2019-06-01').keys[0].value};EndpointSuffix=core.windows.net'}
-        { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIGPTModel}
-        { name: 'AZURE_OPENAI_EMBEDDING_MODEL', value: AzureOpenAIEmbeddingModel}
-        { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
-        { name: 'AZURE_OPENAI_KEY', value: authType == 'keys' ? OpenAI.listKeys('2023-05-01').key1 : null}
-        { name: 'AZURE_BLOB_ACCOUNT_NAME', value: StorageAccountName}
-        { name: 'AZURE_BLOB_ACCOUNT_KEY', value: listKeys(StorageAccount.id, '2019-06-01').keys[0].value}
-        { name: 'AZURE_BLOB_CONTAINER_NAME', value: BlobContainerName}
-        { name: 'AZURE_FORM_RECOGNIZER_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
-        { name: 'AZURE_FORM_RECOGNIZER_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1}
-        { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureCognitiveSearch}.search.windows.net'}
-        { name: 'AZURE_SEARCH_KEY', value: authType == 'keys' ? listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey : null}
-        { name: 'DOCUMENT_PROCESSING_QUEUE_NAME', value: QueueName}
-        { name: 'AZURE_OPENAI_API_VERSION', value: AzureOpenAIApiVersion}
-        { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}
-        { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
-        { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
-        { name: 'AZURE_CONTENT_SAFETY_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${ContentSafetyName}', '2023-05-01').key1}
-      ]
-      cors: {
-        allowedOrigins: [
-          'https://portal.azure.com'
-        ]
-      }
-      use32BitWorkerProcess: false
-      linuxFxVersion: BackendImageName
-      appCommandLine: ''
-      alwaysOn: true
-    }
-    serverFarmId: HostingPlan.id
-    clientAffinityEnabled: false
-    httpsOnly: true
-  }
-  identity: { type: authType == 'rbac' ? 'SystemAssigned' : 'None' }
-}
-
-resource FunctionName_default_clientKey 'Microsoft.Web/sites/host/functionKeys@2018-11-01' = {
-  name: '${FunctionName}/default/clientKey'
-  properties: {
-    name: 'ClientKey'
-    value: ClientKey
-  }
-  dependsOn: [
-    Function
-    WaitFunctionDeploymentSection
-  ]
-}
-
-resource WaitFunctionDeploymentSection 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
-  kind: 'AzurePowerShell'
-  name: 'WaitFunctionDeploymentSection'
-  location: Location
-  properties: {
-    azPowerShellVersion: '3.0'
-    scriptContent: 'start-sleep -Seconds 300'
-    cleanupPreference: 'Always'
-    retentionInterval: 'PT1H'
-  }
-  dependsOn: [
-    Function
-  ]
-}
-
-resource EventGridSystemTopic 'Microsoft.EventGrid/systemTopics@2021-12-01' = {
-  name: EventGridSystemTopicName
-  location: Location
-  properties: {
-    source: StorageAccount.id
-    topicType: 'Microsoft.Storage.StorageAccounts'
-  }
-}
-
-resource EventGridSystemTopicName_BlobEvents 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2021-12-01' = {
-  parent: EventGridSystemTopic
-  name: 'BlobEvents'
-  properties: {
-    destination: {
-      endpointType: 'StorageQueue'
-      properties: {
-        queueMessageTimeToLiveInSeconds: -1
-        queueName: StorageAccountName_default_doc_processing.name
-        resourceId: StorageAccount.id
+  resource OpenAIEmbeddingDeployment 'deployments@2023-05-01' = {
+    name: AzureOpenAIEmbeddingModelName
+    properties: {
+      model: {
+        format: 'OpenAI'
+        name: AzureOpenAIEmbeddingModel
+        version: AzureOpenAIEmbeddingModelVersion
       }
     }
-    filter: {
-      includedEventTypes: [
-        'Microsoft.Storage.BlobCreated'
-        'Microsoft.Storage.BlobDeleted'
-      ]
-      enableAdvancedFilteringOnArrays: true
-      subjectBeginsWith: '/blobServices/default/containers/${BlobContainerName}/blobs/'
+    sku: {
+      name: 'Standard'
+      capacity: 30
     }
-    labels: []
-    eventDeliverySchema: 'EventGridSchema'
-    retryPolicy: {
-      maxDeliveryAttempts: 30
-      eventTimeToLiveInMinutes: 1440
+    dependsOn: [
+      OpenAIGPTDeployment
+    ]
+  }
+}
+
+resource oaiPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: oaiPrivateDnsZoneName
+  location: 'global'
+  properties: {}
+}
+
+resource oaiPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: oaiPrivateDnsZone
+  name: '${oaiPrivateDnsZoneName}-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnet.id
     }
   }
 }
 
-// Cognitive Services OpenAI Contributor role for Seach resource
-module openAiContributorRoleSearch 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'openai-contributor-role-search'
-  params: {
-    principalId: AzureCognitiveSearch_resource.identity.principalId
-    roleDefinitionId: 'a001fd3d-188f-4b5d-821b-7da978bf7442'
-    principalType: 'ServicePrincipal'
+resource oaiPrivateEndpoint 'Microsoft.Network/privateEndpoints@2022-11-01' = {
+  name: oaiPrivateEndpointName
+  location: Location
+  properties: {
+    privateLinkServiceConnections: [
+      {
+        name: '${oaiPrivateEndpointName}-connection'
+        properties: {
+          privateLinkServiceId: OpenAI.id
+          groupIds: [
+            'account'
+          ]
+          privateLinkServiceConnectionState: {
+            status: 'Approved'
+            description: 'Approved'
+            actionsRequired: 'None'
+          }
+        }
+      }
+    ]
+    customNetworkInterfaceName: '${oaiPrivateEndpointName}-nic'
+    subnet: {
+      id: endpointsSubnet.id
+    }
   }
 }
 
-// Cognitive Services Contributor role for Seach resource
-module cognitiveServicesContributorRoleSearch 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'cognitive-services-contributor-role-search'
-  params: {
-    principalId: AzureCognitiveSearch_resource.identity.principalId
-    roleDefinitionId: '25fbc0a9-bd7c-42a3-aa1a-3b75d497ee68'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Cognitive Services OpenAI Contributor role for the Website resource
-module openAiContributorRoleBackend 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'openai-contributor-role-backend'
-  params: {
-    principalId: Website.identity.principalId
-    roleDefinitionId: 'a001fd3d-188f-4b5d-821b-7da978bf7442'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Cognitive Services OpenAI Contributor role for the Function resource
-module openAiContributorRoleFunction 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'openai-contributor-role-function'
-  params: {
-    principalId: Function.identity.principalId
-    roleDefinitionId: 'a001fd3d-188f-4b5d-821b-7da978bf7442'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Cognitive Services OpenAI Contributor role for the Admin Website resource
-module openAiContributorRoleAdmin 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'openai-contributor-role-admin'
-  params: {
-    principalId: WebsiteName_admin.identity.principalId
-    roleDefinitionId: 'a001fd3d-188f-4b5d-821b-7da978bf7442'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Cognitive Services OpenAI Contributor role for Seach resource
-module openAiContributorRolePrincipal 'security/role.bicep' = if (authType == 'rbac' && principalId != '') {
-  scope: resourceGroup()
-  name: 'openai-contributor-role-user'
-  params: {
-    principalId: principalId
-    roleDefinitionId: 'a001fd3d-188f-4b5d-821b-7da978bf7442'
-    principalType: 'User'
-  }
-}
-
-// Cognitive Services OpenAI User role for the Website resource
-module openAiRoleBackend 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'openai-role-backend'
-  params: {
-    principalId:  Website.identity.principalId
-    roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Search Index Data Reader role for the OpenAI resource
-module searchRoleOpenAi 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'search-role-openai'
-  params: {
-    principalId: OpenAI.identity.principalId
-    roleDefinitionId: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Search Service Contributor role for the OpenAI resource
-module searchServiceRoleOpenAi 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'search-service-role-openai'
-  params: {
-    principalId: OpenAI.identity.principalId
-    roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Search Service Contributor role for the Website resource
-module searchServiceRoleBackend 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'search-service-role-backend'
-  params: {
-    principalId: Website.identity.principalId
-    roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Search Service Contributor role for the Function resource
-module searchServiceRoleFunction 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'search-service-role-function'
-  params: {
-    principalId: Function.identity.principalId
-    roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Search Service Contributor role for the Admin Website resource
-module searchServiceRoleAdmin 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'search-service-role-admin'
-  params: {
-    principalId: WebsiteName_admin.identity.principalId
-    roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Search Service Contributor role for the Admin Website resource
-module searchServiceRolePrincipal 'security/role.bicep' = if (authType == 'rbac' && principalId != '') {
-  scope: resourceGroup()
-  name: 'search-service-role-user'
-  params: {
-    principalId: principalId
-    roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
-    principalType: 'User'
-  }
-}
-
-// Search Index Data Reader role for the Website resource
-module searchRoleBackend 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'search-role-backend'
-  params: {
-    principalId: Website.identity.principalId
-    roleDefinitionId: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Storage Blob Data Reader role for the Website resource
-module storageRoleBackend 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'storage-role-backend'
-  params: {
-    principalId: Website.identity.principalId
-    roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Storage Blob Data Reader role for the Function resource
-module storageRoleFunction 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'storage-role-function'
-  params: {
-    principalId: Function.identity.principalId
-    roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Storage Blob Data Reader role for the Admin Website resource
-module storageRoleAdmin 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'storage-role-admin'
-  params: {
-    principalId: WebsiteName_admin.identity.principalId
-    roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Storage Blob Data Reader role for the Admin Website resource
-module storageRoleUser 'security/role.bicep' = if (authType == 'rbac' && principalId != '') {
-  scope: resourceGroup()
-  name: 'storage-role-user'
-  params: {
-    principalId: principalId
-    roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
-    principalType: 'User'
-  }
-}
-
-// Reader role for the Website resource
-// Used to read index definitions
-module searchReaderRoleBackend 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'search-reader-role-backend'
-  params: {
-    principalId: Website.identity.principalId
-    roleDefinitionId: 'acdd72a7-3385-48ef-bd42-f606fba81ae7'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Reader role for Function resource
- // Used to read index definitions
-module searchReaderRoleFunction 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'search-reader-role-function'
-  params: {
-    principalId: Function.identity.principalId
-    roleDefinitionId: 'acdd72a7-3385-48ef-bd42-f606fba81ae7'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Reader role for Admin Website resource
- // Used to read index definitions
-module searchReaderRoleAdmin 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'search-reader-role-admin'
-  params: {
-    principalId: WebsiteName_admin.identity.principalId
-    roleDefinitionId: 'acdd72a7-3385-48ef-bd42-f606fba81ae7'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Reader role for Admin Website resource
- // Used to read index definitions
- module searchReaderRoleUser 'security/role.bicep' = if (authType == 'rbac' && principalId != '') {
-  scope: resourceGroup()
-  name: 'search-reader-role-user'
-  params: {
-    principalId: principalId
-    roleDefinitionId: 'acdd72a7-3385-48ef-bd42-f606fba81ae7'
-    principalType: 'User'
-  }
-}
-
-// Search Index Data Contributor for Website resource
-module searchIndexDataContBackend 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'search-index-data-cont-backend'
-  params: {
-    principalId: Website.identity.principalId
-    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Search Index Data Contributor for Function resource
-module searchIndexDataContFunction 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'search-index-data-cont-function'
-  params: {
-    principalId: Function.identity.principalId
-    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Search Index Data Contributor for Admin Website resource
-module searchIndexDataContAdmin 'security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup()
-  name: 'search-index-data-cont-admin'
-  params: {
-    principalId: WebsiteName_admin.identity.principalId
-    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Search Index Data Contributor for Admin Website resource
-module searchIndexDataContUser 'security/role.bicep' = if (authType == 'rbac' && principalId != '') {
-  scope: resourceGroup()
-  name: 'search-index-data-cont-user'
-  params: {
-    principalId: principalId
-    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
-    principalType: 'User'
+resource pvtEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-05-01' = {
+  parent: oaiPrivateEndpoint
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'config1'
+        properties: {
+          privateDnsZoneId: oaiPrivateDnsZone.id
+        }
+      }
+    ]
   }
 }
