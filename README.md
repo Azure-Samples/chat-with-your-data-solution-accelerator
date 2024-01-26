@@ -122,7 +122,7 @@ powershell -ex AllSigned -c "Invoke-RestMethod 'https://aka.ms/install-azd.ps1' 
 curl -fsSL https://aka.ms/install-azd.sh | bash
 ```
 
-After logging in with the following command, you will be able to use azd cli to quickly provision and deploy the application.
+After logging in with the following command, you will be able to use the `azd` cli to quickly provision and deploy the application.
 
 ```
 azd auth login

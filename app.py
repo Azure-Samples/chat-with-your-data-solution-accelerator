@@ -26,7 +26,11 @@ def static_file(path):
     return app.send_static_file(path)
 
 AUTH_TYPE = os.environ.get("AUTH_TYPE")
-
+# Initialize Azure keys based on authentication type and environment settings. 
+# When AUTH_TYPE is not 'rbac' and USE_KEY_VAULT environment variable is set, 
+# Azure keys are securely fetched from Azure Key Vault using DefaultAzureCredential. 
+# Otherwise, keys are obtained from environment variables, with fallbacks to None or 
+# an empty string depending on the AUTH_TYPE.
 if not AUTH_TYPE == 'rbac' and os.environ.get("USE_KEY_VAULT"):
     credential = DefaultAzureCredential()
     secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential)
@@ -203,10 +207,11 @@ def stream_without_data(response):
 
 
 def conversation_without_data(request):
+    azure_endpoint = f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/"
     if AUTH_TYPE == 'rbac':
-        openai_client = AzureOpenAI(azure_endpoint=f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/",  api_version=AZURE_OPENAI_API_VERSION, azure_ad_token_provider=AZURE_TOKEN_PROVIDER)
+        openai_client = AzureOpenAI(azure_endpoint=azure_endpoint,  api_version=AZURE_OPENAI_API_VERSION, azure_ad_token_provider=AZURE_TOKEN_PROVIDER)
     else:
-        openai_client = AzureOpenAI(azure_endpoint=f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/",  api_version=AZURE_OPENAI_API_VERSION, api_key=AZURE_OPENAI_KEY)
+        openai_client = AzureOpenAI(azure_endpoint=azure_endpoint,  api_version=AZURE_OPENAI_API_VERSION, api_key=AZURE_OPENAI_KEY)
 
     request_messages = request.json["messages"]
     messages = [

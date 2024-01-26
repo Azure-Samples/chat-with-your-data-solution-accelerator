@@ -56,10 +56,10 @@ class EnvHelper:
         self.OPENAI_API_BASE = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
         self.OPENAI_API_KEY = self.AZURE_OPENAI_KEY
         self.OPENAI_API_VERSION = self.AZURE_OPENAI_API_VERSION
-        os.environ["OPENAI_API_TYPE"] = "azuread" if self.AUTH_TYPE == 'rbac' else "azure"
-        os.environ["OPENAI_API_BASE"] = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
-        os.environ["OPENAI_API_KEY"] = self.AZURE_OPENAI_KEY
-        os.environ["OPENAI_API_VERSION"] = self.AZURE_OPENAI_API_VERSION
+        os.environ["OPENAI_API_TYPE"] = self.OPENAI_API_TYPE
+        os.environ["OPENAI_API_BASE"] = self.OPENAI_API_BASE
+        os.environ["OPENAI_API_KEY"] = self.OPENAI_API_KEY
+        os.environ["OPENAI_API_VERSION"] = self.OPENAI_API_VERSION
         # Azure Functions - Batch processing
         self.BACKEND_URL = os.getenv('BACKEND_URL', '')
         self.AzureWebJobsStorage = os.getenv('AzureWebJobsStorage', '')
