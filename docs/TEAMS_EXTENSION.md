@@ -24,7 +24,7 @@ This extension enables users to experience Chat with your data within Teams, wit
 
 ### Deploy backend Azure Function
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Ffr4nc3%2Fchat-with-your-data-solution-accelerator%2Fmain%2Fextensions%2Finfrastructure%2Fmain.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fblessing-msft%2Fchat-with-your-data-solution-accelerator%2Ffeatures%2Fteams-references%2FFextensions%2Finfrastructure%2Fmain.json)
 
 Note: The (p) suffix on the App Setting (below) means that you should use the same resources and services deployed during the [Chat with your data with speech-to-text deployment](../README.md)
 
