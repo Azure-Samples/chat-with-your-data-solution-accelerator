@@ -156,7 +156,7 @@ switch to a lower version. To find out which versions are supported in different
 #### Azure Resource Manager
 Click the following deployment button to create the required resources for this accelerator directly in your Azure Subscription. 
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fchat-with-your-data-solution-accelerator%2Fmain%2Finfra%2Fdeployment.json) 
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Ffr4nc3%2Fchat-with-your-data-solution-accelerator%2Fmain%2Finfra%2Fdeployment.json) 
 
 This requires the following fields to be entered:
    
