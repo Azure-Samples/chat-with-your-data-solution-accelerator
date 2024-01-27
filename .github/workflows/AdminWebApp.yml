@@ -22,8 +22,8 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build the Docker image
       run:
-        docker pull fruoccopublic.azurecr.io/rag-adminwebapp:latest || true;
-        docker build . --file docker/AdminWebApp.Dockerfile --cache-from fruoccopublic.azurecr.io/rag-adminwebapp:latest --tag fruoccopublic.azurecr.io/rag-adminwebapp:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
-        docker tag fruoccopublic.azurecr.io/rag-adminwebapp:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER fruoccopublic.azurecr.io/rag-adminwebapp:latest;
-        docker push fruoccopublic.azurecr.io/rag-adminwebapp:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
-        docker push fruoccopublic.azurecr.io/rag-adminwebapp:latest;
+        docker pull docker.io/fr4nc3/rag-adminwebapp:latest || true;
+        docker build . --file docker/AdminWebApp.Dockerfile --cache-from docker.io/fr4nc3/rag-adminwebapp:latest --tag docker.io/fr4nc3/rag-adminwebapp:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
+        docker tag docker.io/fr4nc3/rag-adminwebapp:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER docker.io/fr4nc3/rag-adminwebapp:latest;
+        docker push docker.io/fr4nc3/rag-adminwebapp:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
+        docker push docker.io/fr4nc3/rag-adminwebapp:latest;
