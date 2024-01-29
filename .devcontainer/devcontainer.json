@@ -12,7 +12,7 @@
 		}
 	},
 
-	"postCreateCommand": "pip install -r code/requirements.txt -r code/app/requirements.txt -r extensions/backend/requirements.txt",
+	"postCreateCommand": "./.devcontainer/postCreate.sh",
 
 	"customizations": {
 		"vscode": {
