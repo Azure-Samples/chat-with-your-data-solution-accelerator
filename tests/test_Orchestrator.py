@@ -1,6 +1,7 @@
 import pytest
-from ..helpers.OrchestratorHelper import Orchestrator, OrchestrationSettings
+from code.utilities.helpers.OrchestratorHelper import Orchestrator, OrchestrationSettings
 
+@pytest.mark.azure("This test requires Azure Open AI configured")
 def test_orchestrator_openai_function():
     message_orchestrator = Orchestrator()
     strategy = "openai_function"
@@ -8,6 +9,7 @@ def test_orchestrator_openai_function():
     assert messages[-1]['role'] == 'assistant'
     assert messages[-1]['content'] != ''
     
+@pytest.mark.azure("This test requires Azure Open AI configured")
 def test_orchestrator_langchain():
     message_orchestrator = Orchestrator()
     strategy = "langchain"
