@@ -1,5 +1,4 @@
 import json
-import pytest
 
 from typing import List
 
@@ -15,20 +14,18 @@ def test_returns_parsed_messages():
     source_documents = []
 
     # When
-    messages = output_parser.parse(question=question, answer=answer, source_documents=source_documents)
+    messages = output_parser.parse(
+        question=question, answer=answer, source_documents=source_documents
+    )
 
     # Then
     assert messages == [
         {
             "content": '{"citations": [], "intent": "A question?"}',
             "end_turn": False,
-            "role": "tool"
+            "role": "tool",
         },
-        {
-            "content": "An answer",
-            "end_turn": True,
-            "role": "assistant"
-        }
+        {"content": "An answer", "end_turn": True, "role": "assistant"},
     ]
 
 
@@ -40,20 +37,18 @@ def test_removes_double_spaces_from_answer():
     source_documents = []
 
     # When
-    messages = output_parser.parse(question=question, answer=answer, source_documents=source_documents)
+    messages = output_parser.parse(
+        question=question, answer=answer, source_documents=source_documents
+    )
 
     # Then
     assert messages == [
         {
             "content": '{"citations": [], "intent": "A question?"}',
             "end_turn": False,
-            "role": "tool"
+            "role": "tool",
         },
-        {
-            "content": "An answer",
-            "end_turn": True,
-            "role": "assistant"
-        }
+        {"content": "An answer", "end_turn": True, "role": "assistant"},
     ]
 
 
@@ -80,17 +75,21 @@ def test_returns_citations():
             chunk="Another chunk",
             offset="Another offset",
             page_number="",
-        )
+        ),
     ]
 
     # When
-    messages = output_parser.parse(question=question, answer=answer, source_documents=source_documents)
+    messages = output_parser.parse(
+        question=question, answer=answer, source_documents=source_documents
+    )
 
     # Then
-    expected_content = json.dumps(_convert_source_documents_to_content(question, source_documents))
+    expected_content = json.dumps(
+        _convert_source_documents_to_content(question, source_documents)
+    )
     assert messages[0]["content"] == expected_content
-    
-    
+
+
 def test_orders_citations_in_ascending_order():
     # Given
     output_parser = OutputParserTool()
@@ -127,12 +126,16 @@ def test_orders_citations_in_ascending_order():
     ]
 
     # When
-    messages = output_parser.parse(question=question, answer=answer, source_documents=source_documents)
+    messages = output_parser.parse(
+        question=question, answer=answer, source_documents=source_documents
+    )
 
     # Then
-    assert messages[1]["content"] == "An answer [doc1] [doc2] [doc3]. With some more text."
-        
-        
+    assert (
+        messages[1]["content"] == "An answer [doc1] [doc2] [doc3]. With some more text."
+    )
+
+
 def test_removes_doc_ids_from_answer_if_no_citations():
     # Given
     output_parser = OutputParserTool()
@@ -141,12 +144,14 @@ def test_removes_doc_ids_from_answer_if_no_citations():
     source_documents = []
 
     # When
-    messages = output_parser.parse(question=question, answer=answer, source_documents=source_documents)
+    messages = output_parser.parse(
+        question=question, answer=answer, source_documents=source_documents
+    )
 
     # Then
     assert messages[1]["content"] == "An answer  "
-    
-    
+
+
 def test_does_not_remove_doc_ids_from_answer_if_missing_citations():
     # Given
     output_parser = OutputParserTool()
@@ -164,36 +169,41 @@ def test_does_not_remove_doc_ids_from_answer_if_missing_citations():
         )
     ]
     # When
-    messages = output_parser.parse(question=question, answer=answer, source_documents=source_documents)
+    messages = output_parser.parse(
+        question=question, answer=answer, source_documents=source_documents
+    )
 
     # Then
     assert messages[1]["content"] == "An answer [doc1] [doc2]"
 
-    
-def _convert_source_documents_to_content(question: str, source_documents: List[SourceDocument]) -> dict:
-    content = {
-        "citations": [],
-        "intent": question
-    }
-    
+
+def _convert_source_documents_to_content(
+    question: str, source_documents: List[SourceDocument]
+) -> dict:
+    content = {"citations": [], "intent": question}
+
     for source_document in source_documents:
-        content["citations"].append({
-            "content": source_document.get_markdown_url() + "\n\n\n" + source_document.content,
-            "id": source_document.id,
-            "chunk_id": source_document.chunk,
-            "title": source_document.title,
-            "filepath": source_document.get_filename(include_path=True),
-            "url": source_document.get_markdown_url(),
-            "metadata": {
-                "offset": source_document.offset,
-                "source": source_document.source,
-                "markdown_url": source_document.get_markdown_url(),
+        content["citations"].append(
+            {
+                "content": source_document.get_markdown_url()
+                + "\n\n\n"
+                + source_document.content,
+                "id": source_document.id,
+                "chunk_id": source_document.chunk,
                 "title": source_document.title,
-                "original_url": source_document.source,
-                "chunk": source_document.chunk,
-                "key": source_document.id,
-                "filename": source_document.get_filename()
-            },
-        })
-            
+                "filepath": source_document.get_filename(include_path=True),
+                "url": source_document.get_markdown_url(),
+                "metadata": {
+                    "offset": source_document.offset,
+                    "source": source_document.source,
+                    "markdown_url": source_document.get_markdown_url(),
+                    "title": source_document.title,
+                    "original_url": source_document.source,
+                    "chunk": source_document.chunk,
+                    "key": source_document.id,
+                    "filename": source_document.get_filename(),
+                },
+            }
+        )
+
     return content

@@ -1,9 +1,11 @@
 import pytest
-from ..helpers.AzureBlobStorageHelper import AzureBlobStorageClient 
+from ..helpers.AzureBlobStorageHelper import AzureBlobStorageClient
+
 
 @pytest.fixture
 def blob_client():
     return AzureBlobStorageClient()
+
 
 def test_upload_and_download_file(blob_client):
     # Upload a file
@@ -16,4 +18,3 @@ def test_upload_and_download_file(blob_client):
     assert downloaded_contents == file_contents
     # Delete the file
     blob_client.delete_file(file_name)
-    
