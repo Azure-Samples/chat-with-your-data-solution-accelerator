@@ -1,6 +1,8 @@
-from ..tools.ContentSafetyChecker import ContentSafetyChecker
+import pytest
+from code.utilities.tools.ContentSafetyChecker import ContentSafetyChecker
 
 
+@pytest.mark.azure("This test requires Azure Content Safety configured")
 def test_document_chunking_layout():
     cut = ContentSafetyChecker()
 

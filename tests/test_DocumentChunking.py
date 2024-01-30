@@ -1,5 +1,6 @@
-from ..common.SourceDocument import SourceDocument
-from ..helpers.DocumentChunkingHelper import (
+import pytest
+from code.utilities.common.SourceDocument import SourceDocument
+from code.utilities.helpers.DocumentChunkingHelper import (
     DocumentChunking,
     ChunkingSettings,
     ChunkingStrategy,
@@ -22,6 +23,7 @@ documents = [
 ]
 
 
+@pytest.mark.unittest("DocumentChunking")
 def test_document_chunking_layout():
     # Test layout chunking strategy
     chunking = ChunkingSettings(

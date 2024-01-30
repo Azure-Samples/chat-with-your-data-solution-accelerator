@@ -1,5 +1,5 @@
 import pytest
-from ..helpers.AzureBlobStorageHelper import AzureBlobStorageClient
+from code.utilities.helpers.AzureBlobStorageHelper import AzureBlobStorageClient
 
 
 @pytest.fixture
@@ -7,6 +7,7 @@ def blob_client():
     return AzureBlobStorageClient()
 
 
+@pytest.mark.azure("This test requires Azure Blob Storage")
 def test_upload_and_download_file(blob_client):
     # Upload a file
     file_name = "test_file.txt"

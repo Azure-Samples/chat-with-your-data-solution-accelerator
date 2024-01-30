@@ -1,6 +1,11 @@
-from ..helpers.DocumentLoadingHelper import DocumentLoading, LoadingSettings
+import pytest
+from code.utilities.helpers.DocumentLoadingHelper import (
+    DocumentLoading,
+    LoadingSettings,
+)
 
 
+@pytest.mark.azure("This test requires Azure Document Intelligence configured")
 def test_document_loading_layout():
     # Azure Form Recognizer Layout
     document_loading = DocumentLoading()
@@ -14,6 +19,7 @@ def test_document_loading_layout():
     assert data[4].source == url
 
 
+@pytest.mark.azure("This test requires Azure Document Intelligence configured")
 def test_document_loading_read():
     # Azure Form Recognizer Read
     document_loading = DocumentLoading()
@@ -36,6 +42,7 @@ def test_document_loading_web():
     assert data[0].source == url
 
 
+@pytest.mark.azure("This test requires Azure Document Intelligence configured")
 def test_document_loading_docx():
     document_loading = DocumentLoading()
     url = "https://csciblob.blob.core.windows.net/rag-sol-acc/What is Azure OpenAI Service.docx"

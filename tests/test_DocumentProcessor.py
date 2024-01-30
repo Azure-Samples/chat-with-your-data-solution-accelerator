@@ -1,5 +1,6 @@
-from ..helpers.DocumentProcessorHelper import DocumentProcessor
-from ..helpers.ConfigHelper import ConfigHelper
+import pytest
+from code.utilities.helpers.DocumentProcessorHelper import DocumentProcessor
+from code.utilities.helpers.ConfigHelper import ConfigHelper
 
 document_url = (
     "https://csciblob.blob.core.windows.net/rag-sol-acc/cognitive-services.pdf"
@@ -8,6 +9,7 @@ url = "https://learn.microsoft.com/en-us/azure/search/search-what-is-azure-searc
 docx_url = "https://csciblob.blob.core.windows.net/rag-sol-acc/What is Azure OpenAI Service.docx"
 
 
+@pytest.mark.azure("This test requires Azure")
 def test_document_processor_layout():
     document_processor = DocumentProcessor()
     processors = list(
@@ -21,6 +23,7 @@ def test_document_processor_layout():
     assert len(keys) > 0
 
 
+@pytest.mark.azure("This test requires Azure")
 def test_document_processor_read():
     document_processor = DocumentProcessor()
     processors = list(
@@ -34,6 +37,7 @@ def test_document_processor_read():
     assert len(keys) > 0
 
 
+@pytest.mark.azure("This test requires Azure")
 def test_document_processor_web():
     document_processor = DocumentProcessor()
     processors = list(
@@ -47,6 +51,7 @@ def test_document_processor_web():
     assert len(keys) > 0
 
 
+@pytest.mark.azure("This test requires Azure")
 def test_document_processor_docx():
     document_processor = DocumentProcessor()
     processors = list(
