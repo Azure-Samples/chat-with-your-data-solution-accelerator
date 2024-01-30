@@ -302,6 +302,7 @@ const Chat = () => {
                               : [],
                         }}
                         onCitationClicked={(c) => onShowCitation(c)}
+                        index={index}
                       />
                     </div>
                   ) : null}
@@ -321,6 +322,7 @@ const Chat = () => {
                         citations: [],
                       }}
                       onCitationClicked={() => null}
+                      index={0}
                     />
                   </div>
                 </>
