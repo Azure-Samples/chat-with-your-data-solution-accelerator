@@ -10,7 +10,7 @@ python-dotenv==1.0.0
 azure-ai-formrecognizer==3.3.2
 azure-storage-blob==12.19.0
 azure-identity==1.15.0
-azure-ai-contentsafety==1.0.0b1
+azure-ai-contentsafety==1.0.0
 requests==2.31.0
 tiktoken==0.5.2
 azure-storage-queue==12.9.0
