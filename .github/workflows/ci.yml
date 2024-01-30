@@ -1,7 +1,6 @@
 name: CI
 
 on:
-  workflow_dispatch:
   pull_request:
   push:
     branches:
@@ -22,11 +21,10 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pre-build image and run make ci-build in dev container
+      - name: Pre-build image and run make in dev container
         uses: devcontainers/ci@v0.3
         with:
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
-          push: always
           runCmd: make unittest build-frontend
-          runArgs: --build-arg GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}      
+          refFilterForPush: refs/heads/main
