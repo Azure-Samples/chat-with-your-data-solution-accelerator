@@ -1,6 +1,12 @@
 from typing import List
 from langchain.docstore.document import Document
-from ..document_chunking import get_document_chunker, ChunkingSettings
+from ..document_chunking.Strategies import (
+    get_document_chunker,
+    ChunkingSettings,
+    ChunkingStrategy,
+)
+
+__all__ = ["ChunkingStrategy"]
 
 
 class DocumentChunking:
