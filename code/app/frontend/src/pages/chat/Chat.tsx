@@ -322,6 +322,7 @@ const Chat = () => {
                         citations: [],
                       }}
                       onCitationClicked={() => null}
+                      index={0}
                     />
                   </div>
                 </>
