@@ -26,5 +26,5 @@ jobs:
         with:
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
-          runCmd: make unittest build-frontend
+          runCmd: make ci
           refFilterForPush: refs/heads/main
