@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.23.1.45101",
-      "templateHash": "3711349996173669799"
+      "version": "0.24.24.22086",
+      "templateHash": "15613566963175325138"
     }
   },
   "parameters": {
@@ -63,29 +63,29 @@
         "description": "Application Insights Connection String - Created during the \"Chat with your data\" Solution Accelerator"
       }
     },
-    "AzureCognitiveSearch": {
+    "AzureSearchName": {
       "type": "string",
       "metadata": {
-        "description": "Azure Cognitive Search Resource - Created during the \"Chat with your data\" Solution Accelerator"
+        "description": "Azure AI Search Resource - Created during the \"Chat with your data\" Solution Accelerator"
       }
     },
     "AzureSearchIndex": {
       "type": "string",
       "metadata": {
-        "description": "Azure Cognitive Search Index - Created during the \"Chat with your data\" Solution Accelerator"
+        "description": "Azure AI Search Index - Created during the \"Chat with your data\" Solution Accelerator"
       }
     },
     "AzureSearchConversationLogIndex": {
       "type": "string",
       "defaultValue": "conversations",
       "metadata": {
-        "description": "Azure Cognitive Search Conversation Log Index - Created during the \"Chat with your data\" Solution Accelerator"
+        "description": "Azure AI Search Conversation Log Index - Created during the \"Chat with your data\" Solution Accelerator"
       }
     },
     "AzureSearchKey": {
       "type": "securestring",
       "metadata": {
-        "description": "Azure Cognitive Search Key - Created during the \"Chat with your data\" Solution Accelerator"
+        "description": "Azure AI Search Key - Created during the \"Chat with your data\" Solution Accelerator"
       }
     },
     "AzureSearchSemanticSearchConfig": {
@@ -308,7 +308,7 @@
             },
             {
               "name": "AZURE_SEARCH_SERVICE",
-              "value": "[format('https://{0}.search.windows.net', parameters('AzureCognitiveSearch'))]"
+              "value": "[format('https://{0}.search.windows.net', parameters('AzureSearchName'))]"
             },
             {
               "name": "AZURE_SEARCH_INDEX",
