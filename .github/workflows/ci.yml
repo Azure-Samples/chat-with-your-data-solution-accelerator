@@ -30,10 +30,3 @@ jobs:
           push: always
           runCmd: make unittest build-frontend
           runArgs: --build-arg GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}      
-
-      - name: Report status
-        uses: github-actions/github-status@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          state: success
-          description: CI checks passed
