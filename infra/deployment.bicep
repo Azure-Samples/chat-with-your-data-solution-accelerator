@@ -186,6 +186,7 @@ var storageBlobPrivateEndpointName = '${StorageAccountName}-blob-private-endpoin
 var storageQueuePrivateEndpointName = '${StorageAccountName}-queue-private-endpoint'
 var oaiPrivateEndpointName = '${AzureOpenAIResource}-private-endpoint'
 var searchPrivateEndpointName = '${AzureAISearchName}-private-endpoint'
+var speechPrivateEndpointName = '${SpeechServiceName}-private-endpoint'
 
 //var storageFilePrivateDnsZoneName = 'privatelink.file.${environment().suffixes.storage}'
 //var storageTablePrivateDnsZoneName = 'privatelink.table.${environment().suffixes.storage}'
@@ -193,6 +194,7 @@ var storageBlobPrivateDnsZoneName = 'privatelink.blob.${environment().suffixes.s
 var storageQueuePrivateDnsZoneName = 'privatelink.queue.${environment().suffixes.storage}'
 var oaiPrivateDnsZoneName = 'privatelink.openai.azure.com'
 var searchPrivateDnsZoneName = 'privatelink.search.windows.net'
+var aiServicesPrivateDnsZoneName = 'privatelink.cognitiveservices.azure.com'
 
 // VNET References
 resource vnet 'Microsoft.Network/virtualNetworks@2023-06-01' existing = {
@@ -230,6 +232,10 @@ resource searchPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' exi
   name: searchPrivateDnsZoneName
 }
 
+resource aiServicesPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+  scope: resourceGroup(PrivateDnsZoneResourceGroup)
+  name: aiServicesPrivateDnsZoneName
+}
 // Storage account
 
 // Using public bicep registry
@@ -478,5 +484,84 @@ resource searchPrivateEndpoint 'Microsoft.Network/privateEndpoints@2022-11-01' =
     subnet: {
       id: endpointsSubnet.id
     }
+  }
+}
+
+resource searchPrivateEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-05-01' = {
+  parent: searchPrivateEndpoint
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'config1'
+        properties: {
+          privateDnsZoneId: searchPrivateDnsZone.id
+        }
+      }
+    ]
+  }
+}
+
+resource SpeechService 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
+  name: SpeechServiceName
+  location: Location
+  sku: {
+    name: 'S0'
+  }
+  kind: 'SpeechServices'
+  identity: {
+    type: 'None'
+  }
+  properties: {
+    networkAcls: {
+      defaultAction: 'Deny'
+      virtualNetworkRules: []
+      ipRules: []
+    }
+    publicNetworkAccess: 'Disabled'  
+    customSubDomainName: SpeechServiceName  
+  }
+}
+
+
+resource speechPrivateEndpoint 'Microsoft.Network/privateEndpoints@2022-11-01' = {
+  name: speechPrivateEndpointName
+  location: Location
+  properties: {
+    privateLinkServiceConnections: [
+      {
+        name: '${speechPrivateEndpointName}-connection'
+        properties: {
+          privateLinkServiceId: SpeechService.id
+          groupIds: [
+            'account'
+          ]
+          privateLinkServiceConnectionState: {
+            status: 'Approved'
+            description: 'Approved'
+            actionsRequired: 'None'
+          }
+        }
+      }
+    ]
+    customNetworkInterfaceName: '${speechPrivateEndpointName}-nic'
+    subnet: {
+      id: endpointsSubnet.id
+    }
+  }
+}
+
+resource speechPrivateEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-05-01' = {
+  parent: speechPrivateEndpoint
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'config1'
+        properties: {
+          privateDnsZoneId: aiServicesPrivateDnsZone.id
+        }
+      }
+    ]
   }
 }
