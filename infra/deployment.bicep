@@ -189,6 +189,7 @@ var searchPrivateEndpointName = '${AzureAISearchName}-private-endpoint'
 var speechPrivateEndpointName = '${SpeechServiceName}-private-endpoint'
 var formRecognizerPrivateEndpointName = '${FormRecognizerName}-private-endpoint'
 var contentSafetyPrivateEndpointName = '${ContentSafetyName}-private-endpoint'
+var functionPrivateEndpointName = '${FunctionName}-private-endpoint'
 
 //var storageFilePrivateDnsZoneName = 'privatelink.file.${environment().suffixes.storage}'
 //var storageTablePrivateDnsZoneName = 'privatelink.table.${environment().suffixes.storage}'
@@ -197,6 +198,8 @@ var storageQueuePrivateDnsZoneName = 'privatelink.queue.${environment().suffixes
 var oaiPrivateDnsZoneName = 'privatelink.openai.azure.com'
 var searchPrivateDnsZoneName = 'privatelink.search.windows.net'
 var aiServicesPrivateDnsZoneName = 'privatelink.cognitiveservices.azure.com'
+var sitesPrivateDnsZoneName = 'privatelink.azurewebsites.net'
+var scmSitesPrivateDnsZoneName = 'scm.privatelink.azurewebsites.net'
 
 // VNET References
 resource vnet 'Microsoft.Network/virtualNetworks@2023-06-01' existing = {
@@ -204,10 +207,10 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-06-01' existing = {
   name: VnetName
 }
 
-// resource appsSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-06-01' existing = {
-//   parent: vnet
-//   name: AppsSubnetName
-// }
+resource appsSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-06-01' existing = {
+  parent: vnet
+  name: AppsSubnetName
+}
 
 resource endpointsSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-06-01' existing = {
   parent: vnet
@@ -238,10 +241,16 @@ resource aiServicesPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01'
   scope: resourceGroup(PrivateDnsZoneResourceGroup)
   name: aiServicesPrivateDnsZoneName
 }
+
+resource sitesPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+  scope: resourceGroup(PrivateDnsZoneResourceGroup)
+  name: sitesPrivateDnsZoneName
+}
+
 // Storage account
 
 // Using public bicep registry
-module storageAccount 'br/public:storage/storage-account:3.0.1' = {
+module storageAccountMod 'modules/storage-account/main.bicep' = {
   name: '${StorageAccountName}-Deploy'
   params: {
     name: StorageAccountName
@@ -288,7 +297,7 @@ module storageAccount 'br/public:storage/storage-account:3.0.1' = {
     ]
   }
 }
-//output storageAccountID string = storageAccount.outputs.id
+output storageAccountID string = storageAccountMod.outputs.id
 
 resource StorageAccountName_default 'Microsoft.Storage/storageAccounts/queueServices@2022-09-01' = {
   name: '${StorageAccountName}/default'
@@ -298,7 +307,7 @@ resource StorageAccountName_default 'Microsoft.Storage/storageAccounts/queueServ
     }
   }
   dependsOn: [
-    storageAccount
+    storageAccountMod
   ]
 }
 
@@ -691,5 +700,184 @@ resource contentSafetyPrivateEndpointDnsGroup 'Microsoft.Network/privateEndpoint
         }
       }
     ]
+  }
+}
+
+resource HostingPlan 'Microsoft.Web/serverfarms@2020-06-01' = {
+  name: HostingPlanName
+  location: Location
+  sku: {
+    name: HostingPlanSku
+  }
+  properties: {
+    reserved: true
+  }
+  kind: 'linux'
+}
+
+resource Function 'Microsoft.Web/sites@2018-11-01' = {
+  name: FunctionName
+  kind: 'functionapp,linux'
+  location: Location
+  tags: {}
+  properties: {
+    siteConfig: {
+      appSettings: [
+        { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4'}
+        { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false'}
+        { name: 'APPINSIGHTS_INSTRUMENTATIONKEY', value: reference(ApplicationInsights.id, '2015-05-01').InstrumentationKey}
+        { name: 'AzureWebJobsStorage', value: 'DefaultEndpointsProtocol=https;AccountName=${StorageAccountName};AccountKey=${listKeys('Microsoft.Storage/storageAccounts/${StorageAccountName}', '2019-06-01').keys[0].value};EndpointSuffix=core.windows.net'}
+        { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIGPTModel}
+        { name: 'AZURE_OPENAI_EMBEDDING_MODEL', value: AzureOpenAIEmbeddingModel}
+        { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
+        { name: 'AZURE_OPENAI_KEY', value: authType == 'keys' ? OpenAI.listKeys('2023-05-01').key1 : null}
+        { name: 'AZURE_BLOB_ACCOUNT_NAME', value: StorageAccountName}
+        { name: 'AZURE_BLOB_ACCOUNT_KEY', value: listKeys('Microsoft.Storage/storageAccounts/${StorageAccountName}', '2019-06-01').keys[0].value}
+        { name: 'AZURE_BLOB_CONTAINER_NAME', value: BlobContainerName}
+        { name: 'AZURE_FORM_RECOGNIZER_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
+        { name: 'AZURE_FORM_RECOGNIZER_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1}
+        { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureAISearchName}.search.windows.net'}
+        { name: 'AZURE_SEARCH_KEY', value: authType == 'keys' ? listAdminKeys('Microsoft.Search/searchServices/${AzureAISearchName}', '2021-04-01-preview').primaryKey : null}
+        { name: 'DOCUMENT_PROCESSING_QUEUE_NAME', value: QueueName}
+        { name: 'AZURE_OPENAI_API_VERSION', value: AzureOpenAIApiVersion}
+        { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}
+        { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
+        { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
+        { name: 'AZURE_CONTENT_SAFETY_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${ContentSafetyName}', '2023-05-01').key1}
+      ]
+      cors: {
+        allowedOrigins: [
+          'https://portal.azure.com'
+        ]
+      }
+      use32BitWorkerProcess: false
+      linuxFxVersion: BackendImageName
+      appCommandLine: ''
+      alwaysOn: true
+    }
+    serverFarmId: HostingPlan.id
+    clientAffinityEnabled: false
+    httpsOnly: true
+  }
+  identity: { type: authType == 'rbac' ? 'SystemAssigned' : 'None' }
+  dependsOn: [
+    storageAccountMod
+  ]
+}
+
+
+// resource FunctionName_default_clientKey 'Microsoft.Web/sites/host/functionKeys@2018-11-01' = {
+//   name: '${FunctionName}/default/clientKey'
+//   properties: {
+//     name: 'ClientKey'
+//     value: ClientKey
+//   }
+//   dependsOn: [
+//     Function
+//     WaitFunctionDeploymentSection
+//   ]
+// }
+
+resource WaitFunctionDeploymentSection 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+  kind: 'AzurePowerShell'
+  name: 'WaitFunctionDeploymentSection'
+  location: Location
+  properties: {
+    azPowerShellVersion: '3.0'
+    scriptContent: 'start-sleep -Seconds 300'
+    cleanupPreference: 'Always'
+    retentionInterval: 'PT1H'
+  }
+  dependsOn: [
+    Function
+  ]
+}
+
+resource EventGridSystemTopic 'Microsoft.EventGrid/systemTopics@2021-12-01' = {
+  name: EventGridSystemTopicName
+  location: Location
+  properties: {
+    source: storageAccountMod.outputs.id
+    topicType: 'Microsoft.Storage.StorageAccounts'
+  }
+}
+
+resource EventGridSystemTopicName_BlobEvents 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2021-12-01' = {
+  parent: EventGridSystemTopic
+  name: 'BlobEvents'
+  properties: {
+    destination: {
+      endpointType: 'StorageQueue'
+      properties: {
+        queueMessageTimeToLiveInSeconds: -1
+        queueName: StorageAccountName_default_doc_processing.name
+        resourceId: storageAccountMod.outputs.id
+      }
+    }
+    filter: {
+      includedEventTypes: [
+        'Microsoft.Storage.BlobCreated'
+        'Microsoft.Storage.BlobDeleted'
+      ]
+      enableAdvancedFilteringOnArrays: true
+      subjectBeginsWith: '/blobServices/default/containers/${BlobContainerName}/blobs/'
+    }
+    labels: []
+    eventDeliverySchema: 'EventGridSchema'
+    retryPolicy: {
+      maxDeliveryAttempts: 30
+      eventTimeToLiveInMinutes: 1440
+    }
+  }
+}
+
+resource functionPrivateEndpoint 'Microsoft.Network/privateEndpoints@2022-11-01' = {
+  name: 'FunctionPrivateEndpoint'
+  location: Location
+  properties: {
+    privateLinkServiceConnections: [
+      {
+        name: '${functionPrivateEndpointName}-connection'
+        properties: {
+          privateLinkServiceId: Function.id
+          groupIds: [
+            'sites'
+          ]
+          privateLinkServiceConnectionState: {
+            status: 'Approved'
+            description: 'Approved'
+            actionsRequired: 'None'
+          }
+        }
+      }
+    ]
+    customNetworkInterfaceName: '${functionPrivateEndpointName}-nic'
+    subnet: {
+      id: endpointsSubnet.id
+    }
+  }
+}
+
+resource functionPrivateEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-05-01' = {
+  parent: functionPrivateEndpoint
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'config1'
+        properties: {
+          privateDnsZoneId: sitesPrivateDnsZone.id
+        }
+      }
+    ]
+  }
+}
+
+resource functionNtworkConfig 'Microsoft.Web/sites/networkConfig@2022-03-01' = {
+  parent: Function
+  name: 'virtualNetwork'
+  properties: {
+    subnetResourceId: appsSubnet.id
+    swiftSupported: true
   }
 }
