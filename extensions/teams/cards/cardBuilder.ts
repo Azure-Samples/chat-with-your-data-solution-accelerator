@@ -7,6 +7,9 @@ export function actionBuilder(citation: Citation, docId: number): any {
     let url = urlParts[urlParts.length - 1].replaceAll("(", "").replaceAll(")", "");
     let title = citation.title.replaceAll("/documents/", "");
     let content = citation.content.replaceAll(citation.title, "").replaceAll("url", "");
+    content = content.replaceAll("<>", "").replaceAll("</>", "\n");
+    content = content.replaceAll("<h2>", "").replaceAll("</h2>", "\n");
+    content = content.replaceAll("<p>", "").replaceAll("</p>", "\n");
     let citationCardAction = {
         title: `Ref${docId}`,
         type: CardType.ShowCard,
