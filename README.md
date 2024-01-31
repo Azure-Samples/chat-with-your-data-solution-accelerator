@@ -96,7 +96,8 @@ Learn more about deploying the Teams extension [here](./docs/TEAMS_EXTENSION.md)
 ![One-click Deploy](/media/oneClickDeploy.png)
 ## One-click deploy
 ### Pre-requisites 
-* An [Azure OpenAI resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=web-portal) and a deployment for one of the following Chat model and an embedding model:
+- Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with owner access.
+- An [Azure OpenAI resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=web-portal) and a deployment for one of the following Chat model and an embedding model:
     * Chat Models
        * GPT-3.5
        * GPT-4
@@ -105,7 +106,6 @@ Learn more about deploying the Teams extension [here](./docs/TEAMS_EXTENSION.md)
     
   **Note**: The deployment template defaults to **gpt-35-turbo** and **text-embedding-ada-002**. If your deployment names are different, update them in the deployment process.
 
-- Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with contributor access.
 - [Visual Studio Code](https://code.visualstudio.com/)
     - Extensions
         - [Azure Functions](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions)

@@ -248,3 +248,57 @@
     align-self: stretch;
     flex-grow: 0;
 } 
+
+.MobileChatContainer{
+    @media screen and (max-width: 600px)  {
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 8px;
+        
+      }
+}
+
+.mobileStyles {
+    @media screen and (max-width: 600px)  {
+        max-width: 100%;
+        flex-grow: 1; 
+        max-height: 100vh;
+    }
+  }
+
+  .mobileclearChatBroom{
+      @media screen and (max-width: 600px)  {
+        left: -30px;
+        
+      }
+    }
+  
+    .mobileCitationPanelTitle{
+        @media screen and (max-width: 600px)  {
+            font-weight: 400;
+            font-size: 12px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+            
+          }
+    }
+
+    .mobileCitationPanelContent{
+        @media screen and (max-width: 600px){
+            font-weight: 250;
+            font-size: 11px;
+
+        } 
+    }
+
+    @media screen and (max-width: 600px){
+        h1{
+            font-weight: 300;
+            font-size: 14px;
+        }
+
+        h2{
+            font-weight: 300;
+            font-size: 12px;
+        }
+     }

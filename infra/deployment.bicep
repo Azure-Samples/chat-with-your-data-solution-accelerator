@@ -153,6 +153,9 @@ param newGuidString string = newGuid()
 ])
 param authType string = 'keys'
 
+@description('Id of the user or app to assign application roles')
+param principalId string = ''
+
 var WebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-webapp'
 var AdminWebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-adminwebapp'
 var BackendImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-backend'
@@ -288,7 +291,7 @@ resource ContentSafety 'Microsoft.CognitiveServices/accounts@2022-03-01' = {
     networkAcls: {
       defaultAction: 'Allow'
       virtualNetworkRules: []
-      ipRules: [] 
+      ipRules: []
     }
   }
 }
@@ -315,6 +318,7 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'APPINSIGHTS_CONNECTION_STRING', value: reference(ApplicationInsights.id, '2015-05-01').ConnectionString}
         { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureCognitiveSearch}.search.windows.net'}
         { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}
+        { name: 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', value: AzureSearchUseSemanticSearch }
         { name: 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', value: AzureSearchConversationLogIndex}
         { name: 'AZURE_AUTH_TYPE', value: authType }
         { name: 'AZURE_SEARCH_KEY', value: authType == 'keys' ? listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey : null}
@@ -538,6 +542,7 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
     clientAffinityEnabled: false
     httpsOnly: true
   }
+  identity: { type: authType == 'rbac' ? 'SystemAssigned' : 'None' }
 }
 
 resource FunctionName_default_clientKey 'Microsoft.Web/sites/host/functionKeys@2018-11-01' = {
@@ -605,7 +610,7 @@ resource EventGridSystemTopicName_BlobEvents 'Microsoft.EventGrid/systemTopics/e
   }
 }
 
-// Cognitive Services OpenAI Contributor role
+// Cognitive Services OpenAI Contributor role for Seach resource
 module openAiContributorRoleSearch 'security/role.bicep' = if (authType == 'rbac') {
   scope: resourceGroup()
   name: 'openai-contributor-role-search'
@@ -616,7 +621,7 @@ module openAiContributorRoleSearch 'security/role.bicep' = if (authType == 'rbac
   }
 }
 
-// Cognitive Services Contributor role
+// Cognitive Services Contributor role for Seach resource
 module cognitiveServicesContributorRoleSearch 'security/role.bicep' = if (authType == 'rbac') {
   scope: resourceGroup()
   name: 'cognitive-services-contributor-role-search'
@@ -627,7 +632,51 @@ module cognitiveServicesContributorRoleSearch 'security/role.bicep' = if (authTy
   }
 }
 
-// Cognitive Services OpenAI User role
+// Cognitive Services OpenAI Contributor role for the Website resource
+module openAiContributorRoleBackend 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'openai-contributor-role-backend'
+  params: {
+    principalId: Website.identity.principalId
+    roleDefinitionId: 'a001fd3d-188f-4b5d-821b-7da978bf7442'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Cognitive Services OpenAI Contributor role for the Function resource
+module openAiContributorRoleFunction 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'openai-contributor-role-function'
+  params: {
+    principalId: Function.identity.principalId
+    roleDefinitionId: 'a001fd3d-188f-4b5d-821b-7da978bf7442'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Cognitive Services OpenAI Contributor role for the Admin Website resource
+module openAiContributorRoleAdmin 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'openai-contributor-role-admin'
+  params: {
+    principalId: WebsiteName_admin.identity.principalId
+    roleDefinitionId: 'a001fd3d-188f-4b5d-821b-7da978bf7442'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Cognitive Services OpenAI Contributor role for Seach resource
+module openAiContributorRolePrincipal 'security/role.bicep' = if (authType == 'rbac' && principalId != '') {
+  scope: resourceGroup()
+  name: 'openai-contributor-role-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: 'a001fd3d-188f-4b5d-821b-7da978bf7442'
+    principalType: 'User'
+  }
+}
+
+// Cognitive Services OpenAI User role for the Website resource
 module openAiRoleBackend 'security/role.bicep' = if (authType == 'rbac') {
   scope: resourceGroup()
   name: 'openai-role-backend'
@@ -638,7 +687,7 @@ module openAiRoleBackend 'security/role.bicep' = if (authType == 'rbac') {
   }
 }
 
-// Search Index Data Reader role
+// Search Index Data Reader role for the OpenAI resource
 module searchRoleOpenAi 'security/role.bicep' = if (authType == 'rbac') {
   scope: resourceGroup()
   name: 'search-role-openai'
@@ -649,7 +698,7 @@ module searchRoleOpenAi 'security/role.bicep' = if (authType == 'rbac') {
   }
 }
 
-// Search Service Contributor role
+// Search Service Contributor role for the OpenAI resource
 module searchServiceRoleOpenAi 'security/role.bicep' = if (authType == 'rbac') {
   scope: resourceGroup()
   name: 'search-service-role-openai'
@@ -660,7 +709,51 @@ module searchServiceRoleOpenAi 'security/role.bicep' = if (authType == 'rbac') {
   }
 }
 
-// Search Index Data Reader role
+// Search Service Contributor role for the Website resource
+module searchServiceRoleBackend 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'search-service-role-backend'
+  params: {
+    principalId: Website.identity.principalId
+    roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Search Service Contributor role for the Function resource
+module searchServiceRoleFunction 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'search-service-role-function'
+  params: {
+    principalId: Function.identity.principalId
+    roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Search Service Contributor role for the Admin Website resource
+module searchServiceRoleAdmin 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'search-service-role-admin'
+  params: {
+    principalId: WebsiteName_admin.identity.principalId
+    roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Search Service Contributor role for the Admin Website resource
+module searchServiceRolePrincipal 'security/role.bicep' = if (authType == 'rbac' && principalId != '') {
+  scope: resourceGroup()
+  name: 'search-service-role-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+    principalType: 'User'
+  }
+}
+
+// Search Index Data Reader role for the Website resource
 module searchRoleBackend 'security/role.bicep' = if (authType == 'rbac') {
   scope: resourceGroup()
   name: 'search-role-backend'
@@ -668,5 +761,141 @@ module searchRoleBackend 'security/role.bicep' = if (authType == 'rbac') {
     principalId: Website.identity.principalId
     roleDefinitionId: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
     principalType: 'ServicePrincipal'
+  }
+}
+
+// Storage Blob Data Reader role for the Website resource
+module storageRoleBackend 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'storage-role-backend'
+  params: {
+    principalId: Website.identity.principalId
+    roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Storage Blob Data Reader role for the Function resource
+module storageRoleFunction 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'storage-role-function'
+  params: {
+    principalId: Function.identity.principalId
+    roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Storage Blob Data Reader role for the Admin Website resource
+module storageRoleAdmin 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'storage-role-admin'
+  params: {
+    principalId: WebsiteName_admin.identity.principalId
+    roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Storage Blob Data Reader role for the Admin Website resource
+module storageRoleUser 'security/role.bicep' = if (authType == 'rbac' && principalId != '') {
+  scope: resourceGroup()
+  name: 'storage-role-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
+    principalType: 'User'
+  }
+}
+
+// Reader role for the Website resource
+// Used to read index definitions
+module searchReaderRoleBackend 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'search-reader-role-backend'
+  params: {
+    principalId: Website.identity.principalId
+    roleDefinitionId: 'acdd72a7-3385-48ef-bd42-f606fba81ae7'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Reader role for Function resource
+ // Used to read index definitions
+module searchReaderRoleFunction 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'search-reader-role-function'
+  params: {
+    principalId: Function.identity.principalId
+    roleDefinitionId: 'acdd72a7-3385-48ef-bd42-f606fba81ae7'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Reader role for Admin Website resource
+ // Used to read index definitions
+module searchReaderRoleAdmin 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'search-reader-role-admin'
+  params: {
+    principalId: WebsiteName_admin.identity.principalId
+    roleDefinitionId: 'acdd72a7-3385-48ef-bd42-f606fba81ae7'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Reader role for Admin Website resource
+ // Used to read index definitions
+ module searchReaderRoleUser 'security/role.bicep' = if (authType == 'rbac' && principalId != '') {
+  scope: resourceGroup()
+  name: 'search-reader-role-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: 'acdd72a7-3385-48ef-bd42-f606fba81ae7'
+    principalType: 'User'
+  }
+}
+
+// Search Index Data Contributor for Website resource
+module searchIndexDataContBackend 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'search-index-data-cont-backend'
+  params: {
+    principalId: Website.identity.principalId
+    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Search Index Data Contributor for Function resource
+module searchIndexDataContFunction 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'search-index-data-cont-function'
+  params: {
+    principalId: Function.identity.principalId
+    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Search Index Data Contributor for Admin Website resource
+module searchIndexDataContAdmin 'security/role.bicep' = if (authType == 'rbac') {
+  scope: resourceGroup()
+  name: 'search-index-data-cont-admin'
+  params: {
+    principalId: WebsiteName_admin.identity.principalId
+    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Search Index Data Contributor for Admin Website resource
+module searchIndexDataContUser 'security/role.bicep' = if (authType == 'rbac' && principalId != '') {
+  scope: resourceGroup()
+  name: 'search-index-data-cont-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+    principalType: 'User'
   }
 }
