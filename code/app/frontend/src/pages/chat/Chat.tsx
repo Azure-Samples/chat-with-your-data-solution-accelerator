@@ -265,7 +265,7 @@ const Chat = () => {
   return (
     <div className={styles.container}>
       <Stack horizontal className={styles.chatRoot}>
-        <div className={styles.chatContainer}>
+        <div className={`${styles.chatContainer} ${styles.MobileChatContainer}`}>
           {!lastQuestionRef.current ? (
             <Stack className={styles.chatEmptyState}>
               <img src={Azure} className={styles.chatIcon} aria-hidden="true" />
@@ -302,6 +302,7 @@ const Chat = () => {
                               : [],
                         }}
                         onCitationClicked={(c) => onShowCitation(c)}
+                        index={index}
                       />
                     </div>
                   ) : null}
@@ -321,6 +322,7 @@ const Chat = () => {
                         citations: [],
                       }}
                       onCitationClicked={() => null}
+                      index={0}
                     />
                   </div>
                 </>
@@ -356,7 +358,7 @@ const Chat = () => {
               </Stack>
             )}
             <BroomRegular
-              className={styles.clearChatBroom}
+              className={`${styles.clearChatBroom} ${styles.mobileclearChatBroom}`}
               style={{
                 background:
                   isLoading || answers.length === 0
@@ -387,7 +389,7 @@ const Chat = () => {
           </Stack>
         </div>
         {answers.length > 0 && isCitationPanelOpen && activeCitation && (
-          <Stack.Item className={styles.citationPanel}>
+          <Stack.Item className={`${styles.citationPanel} ${styles.mobileStyles}`}>
             <Stack
               horizontal
               className={styles.citationPanelHeaderContainer}
@@ -400,9 +402,9 @@ const Chat = () => {
                 onClick={() => setIsCitationPanelOpen(false)}
               />
             </Stack>
-            <h5 className={styles.citationPanelTitle}>{activeCitation[2]}</h5>
+            <h5 className={`${styles.citationPanelTitle} ${styles.mobileCitationPanelTitle}`}>{activeCitation[2]}</h5>
             <ReactMarkdown
-              className={styles.citationPanelContent}
+              className={`${styles.citationPanelContent} ${styles.mobileCitationPanelContent}`}
               children={activeCitation[0]}
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeRaw]}
