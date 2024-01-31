@@ -510,6 +510,7 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
         { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false'}
         { name: 'APPINSIGHTS_INSTRUMENTATIONKEY', value: reference(ApplicationInsights.id, '2015-05-01').InstrumentationKey}
         { name: 'AzureWebJobsStorage', value: 'DefaultEndpointsProtocol=https;AccountName=${StorageAccountName};AccountKey=${listKeys(StorageAccount.id, '2019-06-01').keys[0].value};EndpointSuffix=core.windows.net'}
+        { name: 'AZURE_AUTH_TYPE', value: authType }
         { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIGPTModel}
         { name: 'AZURE_OPENAI_EMBEDDING_MODEL', value: AzureOpenAIEmbeddingModel}
         { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
