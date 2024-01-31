@@ -10,7 +10,7 @@ This solution accelerator provides a web app used for chatting with the LLM usin
 
 This solution accelerator provides an "admin" site that enables you to upload, ingest, and explore your data, along with accessing prompt configuration settings. 
 
-![A screenshot of the admin site.](./media/admin-site.png)
+![A screenshot of the admin site.](../media/admin-site.png)
 
 ### Ingesting data
 

@@ -1,31 +1,37 @@
 {
-  "name": "Chat with your data Solution Accelerator",
-  "image": "mcr.microsoft.com/devcontainers/python:3.11",
-  "features": {
-      "ghcr.io/devcontainers/features/node:1": {
-          "version": "16",
-          "nodeGypDependencies": false
-      },
-      "ghcr.io/devcontainers/features/powershell:1.1.1": {},
-      "ghcr.io/devcontainers/features/azure-cli:1.2.1": {},
-      "ghcr.io/azure/azure-dev/azd:latest": {}
-  },
-  "customizations": {
-      "vscode": {
-          "extensions": [
-              "ms-azuretools.azure-dev",
-              "ms-azuretools.vscode-bicep",
-              "ms-python.python",
-              "esbenp.prettier-vscode"
-          ]
-      }
-  },
-  "forwardPorts": [
-      50505
-  ],
-  "postCreateCommand": "",
-  "remoteUser": "vscode",
-  "hostRequirements": {
-      "memory": "8gb"
-  }
+	"name": "Chat with your data",
+	"image": "mcr.microsoft.com/devcontainers/python:1-3.11-bullseye",
+	"features": {
+		"ghcr.io/devcontainers/features/azure-cli:1": {},
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+		"ghcr.io/devcontainers/features/node:1": {},
+		"ghcr.io/jlaundry/devcontainer-features/azure-functions-core-tools:1": {},
+		"ghcr.io/azure/azure-dev/azd:latest": {},
+		"rchaganti/vsc-devcontainer-features/azurebicep": {
+			"version": "latest"
+		}
+	},
+
+	"postCreateCommand": "pip install -r code/requirements.txt -r code/app/requirements.txt -r extensions/backend/requirements.txt",
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"github.vscode-pull-request-github",
+				"ms-azuretools.azure-dev",
+				"ms-azuretools.vscode-azurefunctions",
+				"ms-azuretools.vscode-bicep",
+				"ms-azuretools.vscode-docker",
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"ms-vscode.vscode-node-azure-pack",
+				"TeamsDevApp.ms-teams-vscode-extension"
+			],
+			"settings": {
+				"azureFunctions.projectSubpath": "code/batch",
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+				"python.pythonPath": "/usr/local/bin/python"
+            }
+		}
+	}
 }

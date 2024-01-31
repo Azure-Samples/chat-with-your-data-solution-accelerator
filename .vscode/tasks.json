@@ -28,6 +28,24 @@
 			"options": {
 				"cwd": "${workspaceFolder}/backend"
 			}
+		},
+		{
+			"label": "pip install (code)",
+			"type": "shell",
+			"command": "python -m pip install -r requirements.txt",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}/code"
+			}
+		},
+		{
+			"label": "npm install (code)",
+			"type": "shell",
+			"command": "npm install",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}/code/app/frontend"
+			}
 		}
 	]
 }

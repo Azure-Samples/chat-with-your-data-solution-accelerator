@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "target": "es2021",
+    "module": "commonjs",
+    "outDir": "./lib",
+    "rootDir": "./",
+    "sourceMap": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./lib/.tsbuildinfo",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+  }
+}

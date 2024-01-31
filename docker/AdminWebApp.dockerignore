@@ -1,9 +1,2 @@
-backend/AddURLEmbeddings
-backend/BatchStartProcessing
-backend/BatchPushResults
-backend/Dockerfile
-backend/__pycache__
-backend/environment.yml
-backend/host.json
-backend/local.settings.json
-data
+code/app
+code/batch
