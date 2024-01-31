@@ -1,7 +1,7 @@
 import pytest
 from typing import List
-from ..common.SourceDocument import SourceDocument
-from ..helpers.DocumentChunkingHelper import DocumentChunking, ChunkingSettings, ChunkingStrategy
+from code.utilities.common.SourceDocument import SourceDocument
+from code.utilities.helpers.DocumentChunkingHelper import DocumentChunking, ChunkingSettings, ChunkingStrategy
 
 # Create a sample document
 documents = [
@@ -19,6 +19,7 @@ documents = [
     )
 ]
 
+@pytest.mark.unittest("DocumentChunking")
 def test_document_chunking_layout():
     # Test layout chunking strategy
     chunking = ChunkingSettings({"strategy": ChunkingStrategy.LAYOUT, "size": 10, "overlap": 5})
