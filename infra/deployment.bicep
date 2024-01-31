@@ -187,6 +187,8 @@ var storageQueuePrivateEndpointName = '${StorageAccountName}-queue-private-endpo
 var oaiPrivateEndpointName = '${AzureOpenAIResource}-private-endpoint'
 var searchPrivateEndpointName = '${AzureAISearchName}-private-endpoint'
 var speechPrivateEndpointName = '${SpeechServiceName}-private-endpoint'
+var formRecognizerPrivateEndpointName = '${FormRecognizerName}-private-endpoint'
+var contentSafetyPrivateEndpointName = '${ContentSafetyName}-private-endpoint'
 
 //var storageFilePrivateDnsZoneName = 'privatelink.file.${environment().suffixes.storage}'
 //var storageTablePrivateDnsZoneName = 'privatelink.table.${environment().suffixes.storage}'
@@ -553,6 +555,132 @@ resource speechPrivateEndpoint 'Microsoft.Network/privateEndpoints@2022-11-01' =
 
 resource speechPrivateEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-05-01' = {
   parent: speechPrivateEndpoint
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'config1'
+        properties: {
+          privateDnsZoneId: aiServicesPrivateDnsZone.id
+        }
+      }
+    ]
+  }
+}
+
+resource FormRecognizer 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
+  name: FormRecognizerName
+  location: FormRecognizerLocation
+  sku: {
+    name: 'S0'
+  }
+  kind: 'FormRecognizer'
+  identity: {
+    type: 'None'
+  }
+  properties: {
+    networkAcls: {      
+      defaultAction: 'Deny'
+      virtualNetworkRules: []
+      ipRules: []
+    }
+    publicNetworkAccess: 'Disabled'
+    customSubDomainName: FormRecognizerName
+  }
+}
+
+resource formRecognizerPrivateEndpoint 'Microsoft.Network/privateEndpoints@2022-11-01' = {
+  name: formRecognizerPrivateEndpointName
+  location: Location
+  properties: {
+    privateLinkServiceConnections: [
+      {
+        name: '${formRecognizerPrivateEndpointName}-connection'
+        properties: {
+          privateLinkServiceId: FormRecognizer.id
+          groupIds: [
+            'account'
+          ]
+          privateLinkServiceConnectionState: {
+            status: 'Approved'
+            description: 'Approved'
+            actionsRequired: 'None'
+          }
+        }
+      }
+    ]
+    customNetworkInterfaceName: '${formRecognizerPrivateEndpointName}-nic'
+    subnet: {
+      id: endpointsSubnet.id
+    }
+  }
+}
+
+resource formRecognizerPrivateEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-05-01' = {
+  parent: formRecognizerPrivateEndpoint
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'config1'
+        properties: {
+          privateDnsZoneId: aiServicesPrivateDnsZone.id
+        }
+      }
+    ]
+  }
+}
+
+resource ContentSafety 'Microsoft.CognitiveServices/accounts@2022-03-01' = {
+  name: ContentSafetyName
+  location: Location
+  sku: {
+    name: 'S0'
+  }
+  kind: 'ContentSafety'
+  identity: {
+    type: 'None'
+  }
+  properties: {
+    networkAcls: {
+      defaultAction: 'Deny'
+      virtualNetworkRules: []
+      ipRules: []
+    }
+    publicNetworkAccess: 'Disabled'
+    customSubDomainName: ContentSafetyName
+  }
+}
+
+resource contentSafetyPrivateEndpoint 'Microsoft.Network/privateEndpoints@2022-11-01' = {
+  name: contentSafetyPrivateEndpointName
+  location: Location
+  properties: {
+    privateLinkServiceConnections: [
+      {
+        name: '${contentSafetyPrivateEndpointName}-connection'
+        properties: {
+          privateLinkServiceId: ContentSafety.id
+          groupIds: [
+            'account'
+          ]
+          privateLinkServiceConnectionState: {
+            status: 'Approved'
+            description: 'Approved'
+            actionsRequired: 'None'
+          }
+        }
+      }
+    ]
+    customNetworkInterfaceName: '${contentSafetyPrivateEndpointName}-nic'
+    subnet: {
+      id: endpointsSubnet.id
+    }
+  }
+}
+
+resource contentSafetyPrivateEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-05-01' = {
+  parent: contentSafetyPrivateEndpoint
   name: 'default'
   properties: {
     privateDnsZoneConfigs: [
