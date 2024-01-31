@@ -5,7 +5,8 @@ export function actionBuilder(citation: Citation, docId: number): any {
 
     const urlParts = citation.url.split("]");
     let url = urlParts[urlParts.length - 1].replaceAll("(", "").replaceAll(")", "");
-    console.log(url);
+    let title = citation.title.replaceAll("/documents/", "");
+    let content = citation.content.replaceAll(citation.title, "").replaceAll("url", "");
     let citationCardAction = {
         title: `Ref${docId}`,
         type: CardType.ShowCard,
@@ -14,12 +15,14 @@ export function actionBuilder(citation: Citation, docId: number): any {
             body: [
                 {
                     type: CardType.TextBlock,
-                    text: citation.title,
-                    wrap: true
+                    text: title,
+                    wrap: true,
+                    weight: "Bolder",
+                    size: "Large",
                 },
                 {
                     type: CardType.TextBlock,
-                    text: citation.content,
+                    text: content,
                     wrap: true
                 }
             ],
@@ -56,9 +59,13 @@ export function cwydResponseBuilder(citations: Citation[], assistantAnswer: stri
                 type: CardType.TextBlock,
                 text: assistantAnswer,
                 wrap: true
+                
             }
         ],
-        actions: citationActions
+        actions: citationActions,
+        msteams: {
+            width: "Full"
+        }
     });
     return answerCard;
 }
