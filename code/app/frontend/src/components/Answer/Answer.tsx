@@ -14,14 +14,18 @@ import supersub from 'remark-supersub'
 interface Props {
     answer: AskResponse;
     onCitationClicked: (citedDocument: Citation) => void;
+    index: number;
 }
 
 export const Answer = ({
     answer,
-    onCitationClicked
+    onCitationClicked,
+    index,
 }: Props) => {
     const [isRefAccordionOpen, { toggle: toggleIsRefAccordionOpen }] = useBoolean(false);
     const filePathTruncationLimit = 50;
+
+    const messageBoxId = "message-" + index;
 
     const parsedAnswer = useMemo(() => parseAnswer(answer), [answer]);
     const [chevronIsExpanded, setChevronIsExpanded] = useState(isRefAccordionOpen);
@@ -57,15 +61,16 @@ export const Answer = ({
         const handleCopy = () => {
             alert("Please consider where you paste this content.");
         };
-        document.addEventListener("copy", handleCopy);
+        const messageBox = document.getElementById(messageBoxId);
+        messageBox?.addEventListener("copy", handleCopy);
         return () => {
-            document.removeEventListener("copy", handleCopy);
+            messageBox?.removeEventListener("copy", handleCopy);
         };
     }, []);
 
     return (
         <>
-            <Stack className={styles.answerContainer}>
+            <Stack className={styles.answerContainer} id={messageBoxId}>
                 <Stack.Item grow>
                     <ReactMarkdown
                         remarkPlugins={[remarkGfm, supersub]}
