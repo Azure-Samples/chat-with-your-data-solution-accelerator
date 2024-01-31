@@ -268,7 +268,7 @@
     }
   },
   "variables": {
-    "BackendImageName": "DOCKER|docker.io/fr4nc3/cwyod_backend"
+    "BackendImageName": "DOCKER|fruoccopublic.azurecr.io/cwyod_backend"
   },
   "resources": [
     {
