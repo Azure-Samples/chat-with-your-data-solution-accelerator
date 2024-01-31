@@ -125,7 +125,7 @@ param AzureOpenAIApiVersion string = '2023-07-01-preview'
 param AzureOpenAIStream string = 'true'
 
 @description('Azure AI Search Resource')
-param AzureCognitiveSearch string = '${ResourcePrefix}-search'
+param AzureAISearchName string = '${ResourcePrefix}-search'
 
 @description('The SKU of the search service you want to create. E.g. free or standard')
 @allowed([
@@ -135,7 +135,7 @@ param AzureCognitiveSearch string = '${ResourcePrefix}-search'
   'standard2'
   'standard3'
 ])
-param AzureCognitiveSearchSku string = 'standard'
+param AzureAISearchSku string = 'standard'
 
 @description('Azure AI Search Index')
 param AzureSearchIndex string = '${ResourcePrefix}-index'
@@ -185,12 +185,14 @@ var EventGridSystemTopicName = 'doc-processing'
 var storageBlobPrivateEndpointName = '${StorageAccountName}-blob-private-endpoint'
 var storageQueuePrivateEndpointName = '${StorageAccountName}-queue-private-endpoint'
 var oaiPrivateEndpointName = '${AzureOpenAIResource}-private-endpoint'
+var searchPrivateEndpointName = '${AzureAISearchName}-private-endpoint'
 
 //var storageFilePrivateDnsZoneName = 'privatelink.file.${environment().suffixes.storage}'
 //var storageTablePrivateDnsZoneName = 'privatelink.table.${environment().suffixes.storage}'
 var storageBlobPrivateDnsZoneName = 'privatelink.blob.${environment().suffixes.storage}'
 var storageQueuePrivateDnsZoneName = 'privatelink.queue.${environment().suffixes.storage}'
 var oaiPrivateDnsZoneName = 'privatelink.openai.azure.com'
+var searchPrivateDnsZoneName = 'privatelink.search.windows.net'
 
 // VNET References
 resource vnet 'Microsoft.Network/virtualNetworks@2023-06-01' existing = {
@@ -221,6 +223,11 @@ resource privateStorageQueueDnsZone 'Microsoft.Network/privateDnsZones@2020-06-0
 resource oaiPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
   scope: resourceGroup(PrivateDnsZoneResourceGroup)
   name: oaiPrivateDnsZoneName
+}
+
+resource searchPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+  scope: resourceGroup(PrivateDnsZoneResourceGroup)
+  name: searchPrivateDnsZoneName
 }
 
 // Storage account
@@ -395,5 +402,81 @@ resource oaiPrivateEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateD
         }
       }
     ]
+  }
+}
+
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2021-06-01' = {
+  name: logAnalyticsWorkspaceName
+  location: Location
+  properties: {
+    sku: {
+      name: 'pergb2018'
+    }
+  }
+}
+
+resource ApplicationInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: ApplicationInsightsName
+  location: Location
+  tags: {
+    'hidden-link:${resourceId('Microsoft.Web/sites', ApplicationInsightsName)}': 'Resource'
+  }
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logAnalyticsWorkspace.id
+  }
+  kind: 'web'
+}
+
+resource AzureAISearch 'Microsoft.Search/searchServices@2022-09-01' = {
+  name: AzureAISearchName
+  location: Location
+  tags: {
+    deployment : 'chatwithyourdata-sa'
+  }
+  sku: {
+    name: AzureAISearchSku
+  }
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    authOptions: authType == 'keys' ? {
+      aadOrApiKey: {
+        aadAuthFailureMode: 'http401WithBearerChallenge'
+      }
+    } : null
+    disableLocalAuth: authType == 'keys' ? false : true
+    replicaCount: 1
+    partitionCount: 1
+    publicNetworkAccess: 'disabled'
+  }
+}
+
+
+resource searchPrivateEndpoint 'Microsoft.Network/privateEndpoints@2022-11-01' = {
+  name: searchPrivateEndpointName
+  location: Location
+  properties: {
+    privateLinkServiceConnections: [
+      {
+        name: '${searchPrivateEndpointName}-connection'
+        properties: {
+          privateLinkServiceId: AzureAISearch.id
+          groupIds: [
+            'searchService'
+          ]
+          privateLinkServiceConnectionState: {
+            status: 'Approved'
+            description: 'Approved'
+            actionsRequired: 'None'
+          }
+        }
+      }
+    ]
+    customNetworkInterfaceName: '${searchPrivateEndpointName}-nic'
+    subnet: {
+      id: endpointsSubnet.id
+    }
   }
 }
