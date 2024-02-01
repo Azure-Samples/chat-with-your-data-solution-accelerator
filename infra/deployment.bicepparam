@@ -7,6 +7,7 @@ param VnetName = ''
 param AppsSubnetName = ''
 param EndpointsSubnetName = ''
 param PrivateDnsZoneResourceGroup = ''
+param DeployNewDnsZones = false
 param HostingPlanName = 'plan-${ResourcePrefix}'
 param HostingPlanSku = 'B3'
 param WebsiteName = '${ResourcePrefix}-website'

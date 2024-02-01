@@ -19,6 +19,9 @@ param EndpointsSubnetName string
 @description('Name of the private DNS zone resource group')
 param PrivateDnsZoneResourceGroup string
 
+@description('Deploy new DNS Zones')
+param DeployNewDnsZones bool = false
+
 @description('Name of App Service plan')
 param HostingPlanName string = '${ResourcePrefix}-hosting-plan'
 
@@ -219,34 +222,138 @@ resource endpointsSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-06-01' 
   name: EndpointsSubnetName
 }
 
-resource storageBlobPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+// DNS Zones
+// Create new ones or reference existing based on parameter choices
+resource storageBlobPrivateDnsZoneExisting 'Microsoft.Network/privateDnsZones@2020-06-01' existing = if (!DeployNewDnsZones) {
   scope: resourceGroup(PrivateDnsZoneResourceGroup)
   name: storageBlobPrivateDnsZoneName
 }
 
-resource privateStorageQueueDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+resource storageBlobPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (DeployNewDnsZones) {
+  name: storageBlobPrivateDnsZoneName
+  location: 'global'
+}
+
+resource storageBlobVNetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (DeployNewDnsZones) {
+  parent: storageBlobPrivateDnsZone
+  name: 'myvnetlink'
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: vnet.id
+    }
+    registrationEnabled: false
+  }
+}
+
+resource storageQueuePrivateDnsZoneExisting 'Microsoft.Network/privateDnsZones@2020-06-01' existing = if (!DeployNewDnsZones) {
   scope: resourceGroup(PrivateDnsZoneResourceGroup)
   name: storageQueuePrivateDnsZoneName
 }
 
-resource oaiPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+resource storageQueuePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (DeployNewDnsZones) {
+  name: storageQueuePrivateDnsZoneName
+  location: 'global'
+}
+
+resource storageQueueVNetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (DeployNewDnsZones) {
+  parent: storageQueuePrivateDnsZone
+  name: 'myvnetlink'
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: vnet.id
+    }
+    registrationEnabled: false
+  }
+}
+
+resource oaiPrivateDnsZoneExisting 'Microsoft.Network/privateDnsZones@2020-06-01' existing = if (!DeployNewDnsZones) {
   scope: resourceGroup(PrivateDnsZoneResourceGroup)
   name: oaiPrivateDnsZoneName
 }
 
-resource searchPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+resource oaiPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (DeployNewDnsZones) {
+  name: oaiPrivateDnsZoneName
+  location: 'global'
+}
+
+resource oaivnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (DeployNewDnsZones) {
+  parent: oaiPrivateDnsZone
+  name: 'myvnetlink'
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: vnet.id
+    }
+    registrationEnabled: false
+  }
+}
+
+resource searchPrivateDnsZoneExisting 'Microsoft.Network/privateDnsZones@2020-06-01' existing = if (!DeployNewDnsZones) {
   scope: resourceGroup(PrivateDnsZoneResourceGroup)
   name: searchPrivateDnsZoneName
 }
 
-resource aiServicesPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+resource searchPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (DeployNewDnsZones) {
+  name: searchPrivateDnsZoneName
+  location: 'global'
+}
+
+resource searchVNetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (DeployNewDnsZones) {
+  parent: searchPrivateDnsZone
+  name: 'myvnetlink'
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: vnet.id
+    }
+    registrationEnabled: false
+  }
+}
+
+resource aiServicesPrivateDnsZoneExisting 'Microsoft.Network/privateDnsZones@2020-06-01' existing = if (!DeployNewDnsZones) {
   scope: resourceGroup(PrivateDnsZoneResourceGroup)
   name: aiServicesPrivateDnsZoneName
 }
 
-resource sitesPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+resource aiServicesPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (DeployNewDnsZones) {
+  name: aiServicesPrivateDnsZoneName
+  location: 'global'
+}
+
+resource aiServicesVNetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (DeployNewDnsZones) {
+  parent: aiServicesPrivateDnsZone
+  name: 'myvnetlink'
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: vnet.id
+    }
+    registrationEnabled: false
+  }
+}
+
+resource sitesPrivateDnsZoneExisting 'Microsoft.Network/privateDnsZones@2020-06-01' existing = if (!DeployNewDnsZones) {
   scope: resourceGroup(PrivateDnsZoneResourceGroup)
   name: sitesPrivateDnsZoneName
+}
+
+resource sitesPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (DeployNewDnsZones) {
+  name: sitesPrivateDnsZoneName
+  location: 'global'
+}
+
+resource sitesPrivateDnsZoneVNetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (DeployNewDnsZones) {
+  parent: sitesPrivateDnsZone
+  name: 'myvnetlink'
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: vnet.id
+    }
+    registrationEnabled: false
+  }
 }
 
 // Storage account
@@ -286,14 +393,14 @@ module storageAccountMod 'modules/storage-account/main.bicep' = {
         name: storageBlobPrivateEndpointName
         subnetId: endpointsSubnet.id
         groupId: 'blob'
-        privateDnsZoneId: storageBlobPrivateDnsZone.id
+        privateDnsZoneId: (DeployNewDnsZones ? storageBlobPrivateDnsZone.id : storageBlobPrivateDnsZoneExisting.id)
         isManualApproval: false
       }
       {
         name: storageQueuePrivateEndpointName
         subnetId: endpointsSubnet.id
         groupId: 'queue'
-        privateDnsZoneId: privateStorageQueueDnsZone.id
+        privateDnsZoneId: (DeployNewDnsZones ? storageQueuePrivateDnsZone.id : storageQueuePrivateDnsZoneExisting.id)
         isManualApproval: false
       }
     ]
@@ -417,7 +524,7 @@ resource oaiPrivateEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateD
       {
         name: 'config1'
         properties: {
-          privateDnsZoneId: oaiPrivateDnsZone.id
+          privateDnsZoneId: (DeployNewDnsZones ? oaiPrivateDnsZone.id : oaiPrivateDnsZoneExisting.id)
         }
       }
     ]
@@ -508,7 +615,7 @@ resource searchPrivateEndpointDnsGroup 'Microsoft.Network/privateEndpoints/priva
       {
         name: 'config1'
         properties: {
-          privateDnsZoneId: searchPrivateDnsZone.id
+          privateDnsZoneId: (DeployNewDnsZones ? searchPrivateDnsZone.id : searchPrivateDnsZoneExisting.id)
         }
       }
     ]
@@ -572,7 +679,7 @@ resource speechPrivateEndpointDnsGroup 'Microsoft.Network/privateEndpoints/priva
       {
         name: 'config1'
         properties: {
-          privateDnsZoneId: aiServicesPrivateDnsZone.id
+          privateDnsZoneId: (DeployNewDnsZones ? aiServicesPrivateDnsZone.id : aiServicesPrivateDnsZoneExisting.id)
         }
       }
     ]
@@ -635,7 +742,7 @@ resource formRecognizerPrivateEndpointDnsGroup 'Microsoft.Network/privateEndpoin
       {
         name: 'config1'
         properties: {
-          privateDnsZoneId: aiServicesPrivateDnsZone.id
+          privateDnsZoneId: (DeployNewDnsZones ? aiServicesPrivateDnsZone.id : aiServicesPrivateDnsZoneExisting.id)
         }
       }
     ]
@@ -698,7 +805,7 @@ resource contentSafetyPrivateEndpointDnsGroup 'Microsoft.Network/privateEndpoint
       {
         name: 'config1'
         properties: {
-          privateDnsZoneId: aiServicesPrivateDnsZone.id
+          privateDnsZoneId: (DeployNewDnsZones ? aiServicesPrivateDnsZone.id : aiServicesPrivateDnsZoneExisting.id)
         }
       }
     ]
@@ -868,7 +975,7 @@ resource functionPrivateEndpointDnsGroup 'Microsoft.Network/privateEndpoints/pri
       {
         name: 'config1'
         properties: {
-          privateDnsZoneId: sitesPrivateDnsZone.id
+          privateDnsZoneId:  (DeployNewDnsZones ? sitesPrivateDnsZone.id : sitesPrivateDnsZoneExisting.id)
         }
       }
     ]
@@ -1029,7 +1136,7 @@ resource websitePrivateEndpointDnsGroup 'Microsoft.Network/privateEndpoints/priv
       {
         name: 'config1'
         properties: {
-          privateDnsZoneId: sitesPrivateDnsZone.id
+          privateDnsZoneId: (DeployNewDnsZones ? sitesPrivateDnsZone.id : sitesPrivateDnsZoneExisting.id)
         }
       }
     ]
@@ -1080,7 +1187,7 @@ resource websiteAdminPrivateEndpointDnsGroup 'Microsoft.Network/privateEndpoints
       {
         name: 'config1'
         properties: {
-          privateDnsZoneId: sitesPrivateDnsZone.id
+          privateDnsZoneId: (DeployNewDnsZones ? sitesPrivateDnsZone.id : sitesPrivateDnsZoneExisting.id)
         }
       }
     ]
