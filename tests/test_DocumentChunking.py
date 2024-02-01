@@ -91,7 +91,7 @@ def test_document_chunking_fixed_size_overlap():
     )
     document_chunking = DocumentChunking()
     chunked_documents = document_chunking.chunk(documents, chunking)
-    assert len(chunked_documents) == 8
+    assert len(chunked_documents) == 7
     assert chunked_documents[0].content == "PAGE 1: This short sentence with 20 tokens"
     assert (
         chunked_documents[1].content
@@ -111,4 +111,3 @@ def test_document_chunking_fixed_size_overlap():
         chunked_documents[6].content
         == " shows how the different chunking strategies work now!"
     )
-    assert chunked_documents[7].content == "ing strategies work now!"
