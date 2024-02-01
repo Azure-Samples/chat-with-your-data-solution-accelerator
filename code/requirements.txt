@@ -23,6 +23,3 @@ azure-search-documents==11.4.0b8
 opencensus-ext-azure==1.1.13
 pandas==2.2.0
 python-docx==1.1.0
-
-# Add dev dependencies here - this will be refactored out by Poetry
-pytest==8.0.0
