@@ -15,6 +15,13 @@ export type Citation = {
     reindex_id: string | null;
 }
 
+export enum CardType {
+    OpenUrl = "Action.OpenUrl",
+    ShowCard = "Action.ShowCard",
+    AdaptiveCard = "AdaptiveCard",
+    TextBlock = "TextBlock"
+}
+
 export type ToolMessageContent = {
     citations: Citation[];
     intent: string;
