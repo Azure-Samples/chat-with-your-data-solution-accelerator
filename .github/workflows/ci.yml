@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2 
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pre-build image and run make in dev container
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+          cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+          runCmd: make ci
+          refFilterForPush: refs/heads/main
