@@ -359,7 +359,7 @@ resource sitesPrivateDnsZoneVNetLink 'Microsoft.Network/privateDnsZones/virtualN
 // Storage account
 
 // Using public bicep registry
-module storageAccountMod 'modules/storage-account/main.bicep' = {
+module storageAccountMod 'br/public:storage/storage-account:3.0.1' = {
   name: '${StorageAccountName}-Deploy'
   params: {
     name: StorageAccountName
