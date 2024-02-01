@@ -142,6 +142,9 @@ param formRecognizerName string = '${environmentName}-formrecog-${resourceToken}
 @description('Azure Content Safety Name')
 param contentSafetyName string = '${environmentName}-contentsafety-${resourceToken}'
 
+@description('Azure Speech Service Name')
+param speechServiceName string = '${environmentName}-speechservice'
+
 param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'
 param useKeyVault bool
@@ -245,6 +248,19 @@ module openai 'core/ai/cognitiveservices.bicep' = {
   }
 }
 
+module speechService 'core/ai/cognitiveservices.bicep' = {
+  scope: rg
+  name: speechServiceName
+  params:{
+    name: speechServiceName
+    location: location
+    sku: {
+      name: 'S0'
+    }
+    kind: 'SpeechServices'
+  }
+}
+
 module storekeys './app/storekeys.bicep' = if (useKeyVault) {
   name: 'storekeys'
   scope: rg
@@ -255,6 +271,7 @@ module storekeys './app/storekeys.bicep' = if (useKeyVault) {
     storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
+    speechServiceName: speechServiceName
     rgName: rgName
   }
 }
@@ -306,11 +323,13 @@ module web './app/web.bicep' = {
     storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
+    speechServiceName: speechService.outputs.name
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
     storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
     formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
+    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME: ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
@@ -344,6 +363,8 @@ module web './app/web.bicep' = {
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
       APPINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
+      AZURE_SPEECH_SERVICE_NAME: speechServiceName
+      AZURE_SPEECH_SERVICE_REGION: location
     }
   }
 }
@@ -721,3 +742,5 @@ output AZURE_BLOB_ACCOUNT_KEY_NAME string = useKeyVault ? storekeys.outputs.STOR
 output AZURE_FORM_RECOGNIZER_KEY_NAME string = useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
 output AZURE_SEARCH_KEY_NAME string = useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
 output AZURE_CONTENT_SAFETY_KEY_NAME string = useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
+output AZURE_SPEECH_SERVICE_REGION string = location
+output AZURE_SPEECH_SERVICE_KEY_NAME string = useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''

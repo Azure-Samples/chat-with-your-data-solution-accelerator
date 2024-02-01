@@ -26,18 +26,6 @@ app = Flask(__name__)
 def static_file(path):
     return app.send_static_file(path)
 
-@app.route('/api/config', methods=['GET'])
-def get_config():
-    # Retrieve the environment variables or other configuration data
-    azure_speech_key = os.getenv('AZURE_SPEECH_SERVICE_KEY')
-    azure_speech_region = os.getenv('AZURE_SPEECH_SERVICE_REGION')
-
-    # Return the configuration data as JSON
-    return jsonify({
-        'azureSpeechKey': azure_speech_key,
-        'azureSpeechRegion': azure_speech_region
-    })
-
 # ACS Integration Settings
 AZURE_SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")
 AZURE_SEARCH_INDEX = os.environ.get("AZURE_SEARCH_INDEX")
@@ -76,9 +64,22 @@ if not AZURE_AUTH_TYPE == 'rbac' and os.environ.get("USE_KEY_VAULT"):
     secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential)
     AZURE_SEARCH_KEY = secret_client.get_secret(os.environ.get("AZURE_SEARCH_KEY")).value
     AZURE_OPENAI_KEY = secret_client.get_secret(os.environ.get("AZURE_OPENAI_KEY")).value
+    AZURE_SPEECH_KEY = secret_client.get_secret(os.environ.get("AZURE_SPEECH_SERVICE_KEY")).value
 else:
     AZURE_SEARCH_KEY = None if AZURE_AUTH_TYPE == 'rbac' else os.environ.get("AZURE_SEARCH_KEY")
     AZURE_OPENAI_KEY = "" if AZURE_AUTH_TYPE == 'rbac' else os.environ.get("AZURE_OPENAI_KEY")
+    AZURE_SPEECH_KEY = None if AZURE_AUTH_TYPE == 'rbac' else os.environ.get("AZURE_SPEECH_SERVICE_KEY")
+
+@app.route('/api/config', methods=['GET'])
+def get_config():
+    # Retrieve the environment variables or other configuration data
+    azure_speech_region = os.getenv('AZURE_SPEECH_SERVICE_REGION')
+
+    # Return the configuration data as JSON
+    return jsonify({
+        'azureSpeechKey': AZURE_SPEECH_KEY,
+        'azureSpeechRegion': azure_speech_region
+    })
 
 def is_chat_model():
     if 'gpt-4' in AZURE_OPENAI_MODEL_NAME.lower():

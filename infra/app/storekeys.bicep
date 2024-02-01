@@ -5,11 +5,13 @@ param azureCognitiveSearchName string = ''
 param rgName string = ''
 param formRecognizerName string = ''
 param contentSafetyName string = ''
+param speechServiceName string = ''
 param storageAccountKeyName string = 'AZURE-STORAGE-ACCOUNT-KEY'
 param openAIKeyName string = 'AZURE-OPEN-AI-KEY'
 param searchKeyName string = 'AZURE-SEARCH-KEY'
 param formRecognizerKeyName string = 'AZURE-FORM-RECOGNIZER-KEY'
-param contentSafety string = 'AZURE-CONTENT-SAFETY-KEY'
+param contentSafetyKeyName string = 'AZURE-CONTENT-SAFETY-KEY'
+param speechKeyName string = 'AZURE-SPEECH-KEY'
 
 
 resource storageAccountKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
@@ -46,9 +48,17 @@ resource formRecognizerKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' 
 
 resource contentSafetyKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: keyVault
-  name: contentSafety
+  name: contentSafetyKeyName
   properties: {
     value: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', contentSafetyName), '2023-05-01').key1
+  }
+}
+
+resource speechKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+  parent: keyVault
+  name: speechKeyName
+  properties: {
+    value: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', speechServiceName), '2023-05-01').key1
   }
 }
 
@@ -61,3 +71,4 @@ output FORM_RECOGNIZER_KEY_NAME string = formRecognizerKeySecret.name
 output SEARCH_KEY_NAME string = searchKeySecret.name
 output OPENAI_KEY_NAME string = openAIKeySecret.name
 output STORAGE_ACCOUNT_KEY_NAME string = storageAccountKeySecret.name
+output SPEECH_KEY_NAME string = speechKeySecret.name

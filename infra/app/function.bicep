@@ -36,7 +36,7 @@ module function '../core/host/functions.bicep' = {
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
     appSettings: union(appSettings, {
-      AUTH_TYPE: authType
+      AZURE_AUTH_TYPE: authType
       USE_KEY_VAULT: useKeyVault ? useKeyVault : ''
       AZURE_KEY_VAULT_ENDPOINT: useKeyVault ? keyVaultEndpoint : ''
       AZURE_OPENAI_KEY: useKeyVault ? openAIKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', azureOpenAIName), '2023-05-01').key1
