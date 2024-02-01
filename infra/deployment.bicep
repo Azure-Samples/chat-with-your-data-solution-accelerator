@@ -355,6 +355,7 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'AZURE_SPEECH_SERVICE_REGION', value: Location}
       ]
       linuxFxVersion: WebAppImageName
+      minTlsVersion: '1.2'
     }
   }
   identity: { type: authType == 'rbac' ? 'SystemAssigned' : 'None' }
@@ -409,6 +410,7 @@ resource WebsiteName_admin 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'AZURE_CONTENT_SAFETY_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${ContentSafetyName}', '2023-05-01').key1}
       ]
       linuxFxVersion: AdminWebAppImageName
+      minTlsVersion: '1.2'
     }
   }
   identity: { type: authType == 'rbac' ? 'SystemAssigned' : 'None' }
@@ -423,6 +425,9 @@ resource StorageAccount 'Microsoft.Storage/storageAccounts@2021-08-01' = {
   kind: 'StorageV2'
   sku: {
     name: 'Standard_GRS'
+  }
+  properties: {
+    minimumTlsVersion: 'TLS1_2'
   }
 }
 
@@ -538,6 +543,7 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
       linuxFxVersion: BackendImageName
       appCommandLine: ''
       alwaysOn: true
+      minTlsVersion: '1.2'
     }
     serverFarmId: HostingPlan.id
     clientAffinityEnabled: false
