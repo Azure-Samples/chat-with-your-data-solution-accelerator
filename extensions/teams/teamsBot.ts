@@ -125,8 +125,13 @@ export class TeamsBot extends TeamsActivityHandler {
               newActivity = MessageFactory.text(assistantAnswer);
             } else {
               const citations = parseCitationFromMessage(answers[index - 1]) as Citation[];
-              newActivity = MessageFactory.attachment(cwydResponseBuilder(citations, assistantAnswer));
-              activityUpdated = false;
+              if (citations.length === 0) {
+                newActivity = MessageFactory.text(assistantAnswer);
+              } else {
+                newActivity = MessageFactory.attachment(cwydResponseBuilder(citations, assistantAnswer));
+                activityUpdated = false;
+              }
+
             }
           } else if (answer.role === "error") {
             newActivity = MessageFactory.text(
