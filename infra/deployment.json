@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.24.24.22086",
-      "templateHash": "8362420292927365599"
+      "templateHash": "16647406633385922905"
     }
   },
   "parameters": {
@@ -317,6 +317,13 @@
       "defaultValue": "[format('{0}-contentsafety', parameters('ResourcePrefix'))]",
       "metadata": {
         "description": "Azure Content Safety Name"
+      }
+    },
+    "RegistryName": {
+      "type": "string",
+      "defaultValue": "[format('{0}acr', parameters('ResourcePrefix'))]",
+      "metadata": {
+        "description": "Azure Container Registry Name"
       }
     },
     "newGuidString": {
@@ -2922,6 +2929,84 @@
               }
             }
           ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[parameters('RegistryName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "acrName": {
+            "value": "[parameters('RegistryName')]"
+          },
+          "location": {
+            "value": "[parameters('Location')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.24.24.22086",
+              "templateHash": "2164522214636164829"
+            }
+          },
+          "parameters": {
+            "acrName": {
+              "type": "string",
+              "defaultValue": "[format('acr{0}', uniqueString(resourceGroup().id))]",
+              "minLength": 5,
+              "maxLength": 50,
+              "metadata": {
+                "description": "Provide a globally unique name of your Azure Container Registry"
+              }
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Provide a location for the registry."
+              }
+            },
+            "acrSku": {
+              "type": "string",
+              "defaultValue": "Basic",
+              "metadata": {
+                "description": "Provide a tier of your Azure Container Registry."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ContainerRegistry/registries",
+              "apiVersion": "2023-01-01-preview",
+              "name": "[parameters('acrName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "[parameters('acrSku')]"
+              },
+              "properties": {
+                "adminUserEnabled": true
+              }
+            }
+          ],
+          "outputs": {
+            "loginServer": {
+              "type": "string",
+              "metadata": {
+                "description": "Output the login server property for later use"
+              },
+              "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-01-01-preview').loginServer]"
+            }
+          }
         }
       }
     }

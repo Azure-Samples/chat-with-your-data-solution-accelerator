@@ -145,6 +145,10 @@ param SpeechServiceName string = '${ResourcePrefix}-speechservice'
 
 @description('Azure Content Safety Name')
 param ContentSafetyName string = '${ResourcePrefix}-contentsafety'
+
+@description('Azure Container Registry Name')
+param RegistryName string = '${ResourcePrefix}acr'
+
 param newGuidString string = newGuid()
 
 @allowed([
@@ -904,5 +908,14 @@ module searchIndexDataContUser 'security/role.bicep' = if (authType == 'rbac' &&
     principalId: principalId
     roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
     principalType: 'User'
+  }
+}
+
+module containerRegistry 'core/acr.bicep' = {
+  name: RegistryName
+  scope: resourceGroup()
+  params: {
+    acrName: RegistryName
+    location: Location
   }
 }
