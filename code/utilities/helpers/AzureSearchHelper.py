@@ -8,10 +8,11 @@ from azure.search.documents.indexes.models import (
 from .LLMHelper import LLMHelper
 from .EnvHelper import EnvHelper
 
-class AzureSearchHelper():
+
+class AzureSearchHelper:
     def __init__(self):
         pass
-    
+
     def get_vector_store(self):
         llm_helper = LLMHelper()
         env_helper = EnvHelper()
@@ -30,7 +31,9 @@ class AzureSearchHelper():
                 name="content_vector",
                 type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
                 searchable=True,
-                vector_search_dimensions=len(llm_helper.get_embedding_model().embed_query("Text")),
+                vector_search_dimensions=len(
+                    llm_helper.get_embedding_model().embed_query("Text")
+                ),
                 vector_search_configuration="default",
             ),
             SearchableField(
@@ -59,16 +62,18 @@ class AzureSearchHelper():
                 filterable=True,
             ),
         ]
-        
+
         return AzureSearch(
-                azure_search_endpoint=env_helper.AZURE_SEARCH_SERVICE,
-                azure_search_key=env_helper.AZURE_SEARCH_KEY if env_helper.AZURE_AUTH_TYPE == "keys" else None,
-                index_name=env_helper.AZURE_SEARCH_INDEX,
-                embedding_function=llm_helper.get_embedding_model().embed_query,
-                fields=fields,
-                user_agent="langchain chatwithyourdata-sa",
-            )
-    
+            azure_search_endpoint=env_helper.AZURE_SEARCH_SERVICE,
+            azure_search_key=env_helper.AZURE_SEARCH_KEY
+            if env_helper.AZURE_AUTH_TYPE == "keys"
+            else None,
+            index_name=env_helper.AZURE_SEARCH_INDEX,
+            embedding_function=llm_helper.get_embedding_model().embed_query,
+            fields=fields,
+            user_agent="langchain chatwithyourdata-sa",
+        )
+
     def get_conversation_logger(self):
         llm_helper = LLMHelper()
         env_helper = EnvHelper()
@@ -93,7 +98,9 @@ class AzureSearchHelper():
                 name="content_vector",
                 type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
                 searchable=True,
-                vector_search_dimensions=len(llm_helper.get_embedding_model().embed_query("Text")),
+                vector_search_dimensions=len(
+                    llm_helper.get_embedding_model().embed_query("Text")
+                ),
                 vector_search_configuration="default",
             ),
             SearchableField(
@@ -129,12 +136,14 @@ class AzureSearchHelper():
                 filterable=True,
             ),
         ]
-        
+
         return AzureSearch(
-                azure_search_endpoint=env_helper.AZURE_SEARCH_SERVICE,
-                azure_search_key=env_helper.AZURE_SEARCH_KEY if env_helper.AZURE_AUTH_TYPE == "keys" else None,
-                index_name=env_helper.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX,
-                embedding_function=llm_helper.get_embedding_model().embed_query,
-                fields=fields,
-                user_agent="langchain chatwithyourdata-sa",
-            )
+            azure_search_endpoint=env_helper.AZURE_SEARCH_SERVICE,
+            azure_search_key=env_helper.AZURE_SEARCH_KEY
+            if env_helper.AZURE_AUTH_TYPE == "keys"
+            else None,
+            index_name=env_helper.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX,
+            embedding_function=llm_helper.get_embedding_model().embed_query,
+            fields=fields,
+            user_agent="langchain chatwithyourdata-sa",
+        )
