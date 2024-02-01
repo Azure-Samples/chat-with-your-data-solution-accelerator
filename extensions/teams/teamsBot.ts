@@ -2,9 +2,7 @@ import {
   TeamsActivityHandler,
   TurnContext,
   ActivityTypes,
-  MessageFactory,
-  CardFactory,
-  Attachment
+  MessageFactory
 } from "botbuilder";
 import config from "./config";
 import {
