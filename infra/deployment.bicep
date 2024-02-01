@@ -1044,6 +1044,7 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
   identity: { type: authType == 'rbac' ? 'SystemAssigned' : 'None' }
   dependsOn: [
     HostingPlan
+    storageAccountMod
   ]
 }
 
@@ -1098,6 +1099,7 @@ resource WebsiteAdmin 'Microsoft.Web/sites@2020-06-01' = {
   identity: { type: authType == 'rbac' ? 'SystemAssigned' : 'None' }
   dependsOn: [
     HostingPlan
+    storageAccountMod
   ]
 }
 
