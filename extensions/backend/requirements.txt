@@ -9,8 +9,8 @@ matplotlib==3.8.2
 plotly==5.18.0
 scipy==1.12.0
 scikit-learn==1.4.0
-transformers==4.37.0
-python-dotenv==1.0.0
+transformers==4.37.1
+python-dotenv==1.0.1
 azure-ai-formrecognizer==3.3.2
 azure-storage-blob==12.19.0
 azure-identity==1.15.0
@@ -25,5 +25,5 @@ chardet==5.2.0
 --extra-index-url https://pkgs.dev.azure.com/azure-sdk/public/_packaging/azure-sdk-for-python/pypi/simple/
 azure-search-documents==11.4.0b8
 opencensus-ext-azure==1.1.13
-pandas==2.1.4
+pandas==2.2.0
 python-docx==1.1.0
