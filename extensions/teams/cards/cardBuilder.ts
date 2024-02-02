@@ -7,9 +7,9 @@ export function actionBuilder(citation: Citation, docId: number): any {
     let url = urlParts[urlParts.length - 1].replaceAll("(", "").replaceAll(")", "");
     let title = citation.title.replaceAll("/documents/", "");
     let content = citation.content.replaceAll(citation.title, "").replaceAll("url", "");
-    content = content.replaceAll("<>", "").replaceAll("</>", "\n");
-    content = content.replaceAll("<h2>", "").replaceAll("</h2>", "\n");
-    content = content.replaceAll("<p>", "").replaceAll("</p>", "\n");
+
+    content = content.replaceAll(/(<([^>]+)>)/ig, "\n").replaceAll("<>", "");
+
     let citationCardAction = {
         title: `Ref${docId}`,
         type: CardType.ShowCard,
@@ -46,14 +46,14 @@ export function cwydResponseBuilder(citations: Citation[], assistantAnswer: stri
 
     let citationActions: any[] = [];
     let docId = 1;
+    let deleteEnd = "";
     citations.map((citation: Citation) => {
         citationActions.push(actionBuilder(citation, docId));
-        assistantAnswer = assistantAnswer.replaceAll(
-            `[doc${docId}]`,
-            ""
-        );
+        deleteEnd += `[${docId}]`;
+        assistantAnswer = assistantAnswer.replaceAll(`[doc${docId}]`, `[${docId}]`);
         docId++;
     });
+    assistantAnswer = assistantAnswer.replaceAll(deleteEnd, "");
     console.log(assistantAnswer);
     let answerCard = CardFactory.adaptiveCard({
         type: CardType.AdaptiveCard,
@@ -62,7 +62,7 @@ export function cwydResponseBuilder(citations: Citation[], assistantAnswer: stri
                 type: CardType.TextBlock,
                 text: assistantAnswer,
                 wrap: true
-                
+
             }
         ],
         actions: citationActions,
