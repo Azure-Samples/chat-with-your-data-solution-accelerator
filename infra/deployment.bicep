@@ -887,20 +887,20 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
 //   ]
 // }
 
-resource WaitFunctionDeploymentSection 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
-  kind: 'AzurePowerShell'
-  name: 'WaitFunctionDeploymentSection'
-  location: Location
-  properties: {
-    azPowerShellVersion: '3.0'
-    scriptContent: 'start-sleep -Seconds 300'
-    cleanupPreference: 'Always'
-    retentionInterval: 'PT1H'
-  }
-  dependsOn: [
-    Function
-  ]
-}
+// resource WaitFunctionDeploymentSection 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+//   kind: 'AzurePowerShell'
+//   name: 'WaitFunctionDeploymentSection'
+//   location: Location
+//   properties: {
+//     azPowerShellVersion: '3.0'
+//     scriptContent: 'start-sleep -Seconds 300'
+//     cleanupPreference: 'Always'
+//     retentionInterval: 'PT1H'
+//   }
+//   dependsOn: [
+//     Function
+//   ]
+// }
 
 resource EventGridSystemTopic 'Microsoft.EventGrid/systemTopics@2021-12-01' = {
   name: EventGridSystemTopicName
