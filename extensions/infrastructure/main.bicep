@@ -104,7 +104,7 @@ param AzureOpenAIStopSequence string = '\n'
 param AzureOpenAISystemMessage string = 'You are an AI assistant that helps people find information.'
 
 @description('Azure OpenAI Api Version - Created during the "Chat with your data" Solution Accelerator')
-param AzureOpenAIApiVersion string = '2023-07-01-preview'
+param AzureOpenAIApiVersion string = '2023-12-01-preview'
 
 @description('Whether or not to stream responses from Azure OpenAI - Created during the "Chat with your data" Solution Accelerator')
 param AzureOpenAIStream string = 'true'

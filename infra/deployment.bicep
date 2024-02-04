@@ -104,7 +104,7 @@ param AzureOpenAIStopSequence string = '\n'
 param AzureOpenAISystemMessage string = 'You are an AI assistant that helps people find information.'
 
 @description('Azure OpenAI Api Version')
-param AzureOpenAIApiVersion string = '2023-07-01-preview'
+param AzureOpenAIApiVersion string = '2023-12-01-preview'
 
 @description('Whether or not to stream responses from Azure OpenAI')
 param AzureOpenAIStream string = 'true'
@@ -321,7 +321,7 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', value: AzureSearchUseSemanticSearch }
         { name: 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', value: AzureSearchConversationLogIndex}
         { name: 'AZURE_AUTH_TYPE', value: authType }
-        { name: 'AZURE_SEARCH_KEY', value: authType == 'keys' ? listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey : null}
+        { name: 'AZURE_SEARCH_KEY', value: authType == 'keys' ? listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2023-12-01-preview').primaryKey : null}
         { name: 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', value: AzureSearchSemanticSearchConfig}
         { name: 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', value: AzureSearchIndexIsPrechunked}
         { name: 'AZURE_SEARCH_TOP_K', value: AzureSearchTopK}
@@ -374,7 +374,7 @@ resource WebsiteName_admin 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'APPINSIGHTS_INSTRUMENTATIONKEY', value: reference(ApplicationInsights.id, '2015-05-01').InstrumentationKey }
         { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureCognitiveSearch}.search.windows.net' }
         { name: 'AZURE_AUTH_TYPE', value: authType }
-        { name: 'AZURE_SEARCH_KEY', value: authType == 'keys' ? listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey : null}
+        { name: 'AZURE_SEARCH_KEY', value: authType == 'keys' ? listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2023-12-01-preview').primaryKey : null}
         { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex }
         { name: 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', value: AzureSearchUseSemanticSearch }
         { name: 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', value: AzureSearchSemanticSearchConfig }
@@ -526,7 +526,7 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
         { name: 'AZURE_FORM_RECOGNIZER_ENDPOINT', value: 'https://${Location}.api.cognitive.microsoft.com/'}
         { name: 'AZURE_FORM_RECOGNIZER_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${FormRecognizerName}', '2023-05-01').key1}
         { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureCognitiveSearch}.search.windows.net'}
-        { name: 'AZURE_SEARCH_KEY', value: authType == 'keys' ? listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2021-04-01-preview').primaryKey : null}
+        { name: 'AZURE_SEARCH_KEY', value: authType == 'keys' ? listAdminKeys('Microsoft.Search/searchServices/${AzureCognitiveSearch}', '2023-12-01-preview').primaryKey : null}
         { name: 'DOCUMENT_PROCESSING_QUEUE_NAME', value: QueueName}
         { name: 'AZURE_OPENAI_API_VERSION', value: AzureOpenAIApiVersion}
         { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}

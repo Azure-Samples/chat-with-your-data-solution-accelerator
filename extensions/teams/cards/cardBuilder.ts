@@ -7,7 +7,6 @@ export function actionBuilder(citation: Citation, docId: number): any {
     let url = urlParts[urlParts.length - 1].replaceAll("(", "").replaceAll(")", "");
     let title = citation.title.replaceAll("/documents/", "");
     let content = citation.content.replaceAll(citation.title, "").replaceAll("url", "");
-
     content = content.replaceAll(/(<([^>]+)>)/ig, "\n").replaceAll("<>", "");
 
     let citationCardAction = {
