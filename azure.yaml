@@ -4,16 +4,9 @@ name: chat-with-your-data-solution-accelerator
 metadata:
   template: chat-with-your-data-solution-accelerator@0.0.1-beta
 
-hooks:
-  prepackage:
-    windows:
-      shell: pwsh
-      run: robocopy -e ./code/utilities ./code/app/utilities; robocopy -e ./code/utilities ./code/admin/utilities; robocopy -e ./code/ ./code/admin/ requirements.txt /lev:1; robocopy -e ./code/utilities ./code/batch/utilities; robocopy -e ./code/ ./code/batch/ requirements.txt /lev:1;
-      continueOnError: true
-
 services:
   web:
-    project: ./code/app
+    project: ./code
     language: py
     host: appservice
     hooks:
@@ -25,11 +18,11 @@ services:
           continueOnError: false
           
   adminweb:
-    project: ./code/admin
+    project: ./code/backend
     language: py
     host: appservice
 
   function:
-    project: ./code/batch
+    project: ./code/backend/batch
     language: py
     host: function

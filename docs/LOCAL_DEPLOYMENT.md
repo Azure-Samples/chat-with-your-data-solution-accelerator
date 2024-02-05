@@ -91,14 +91,13 @@ This step is included if you cannot use the Launch configuration in VSCode. Open
 ```shell
 cd code
 python -m pip install -r requirements.txt
-cd app
 python -m flask --app ./app.py --debug run
 ```
 
 #### Starting the Typescript React app in dev mode (optional)
 This step is included if you cannot use the Launch configuration in VSCode. Open a new separate terminal and enter the following commands:
 ```shell
-cd code\app\frontend
+cd code\frontend
 npm install
 npm run dev
 ```
@@ -138,7 +137,7 @@ If you want to develop and run the batch processing functions container locally,
 First, install [Azure Functions Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=windows%2Cportal%2Cv2%2Cbash&pivots=programming-language-python).
 
 ```shell
-cd code\batch
+cd code\backend\batch
 func start
 ```
 

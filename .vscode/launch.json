@@ -17,7 +17,7 @@
                 "run",
                 "Admin.py"
             ],
-            "cwd": "${workspaceFolder}/code/admin",
+            "cwd": "${workspaceFolder}/code/backend",
             "preLaunchTask": "pip install (code)",
         },
         {
@@ -31,14 +31,14 @@
                 "--debug",
                 "run"
             ],
-            "cwd": "${workspaceFolder}/code/app",
+            "cwd": "${workspaceFolder}/code",
             "preLaunchTask": "pip install (code)"
         },
         {
             "name": "Launch Frontend (UI)",
             "type": "node",
             "request": "launch",
-            "cwd": "${workspaceFolder}/code/app/frontend",
+            "cwd": "${workspaceFolder}/code/frontend",
             "preLaunchTask": "npm install (code)",
             "runtimeExecutable": "npm",
             "runtimeArgs": [
