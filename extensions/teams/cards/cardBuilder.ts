@@ -43,6 +43,8 @@ export function actionBuilder(citation: Citation, docId: number): any {
 
 export function cwydResponseBuilder(citations: Citation[], assistantAnswer: string): Attachment {
 
+    console.log(assistantAnswer);
+    console.log(citations);
     let citationActions: any[] = [];
     let docId = 1;
     let deleteEnd = "";
@@ -53,6 +55,9 @@ export function cwydResponseBuilder(citations: Citation[], assistantAnswer: stri
         docId++;
     });
     assistantAnswer = assistantAnswer.replaceAll(deleteEnd, "");
+    console.log(citationActions);
+    console.log(docId);
+    console.log(deleteEnd);
     console.log(assistantAnswer);
     let answerCard = CardFactory.adaptiveCard({
         type: CardType.AdaptiveCard,
