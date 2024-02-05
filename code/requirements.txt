@@ -1,5 +1,5 @@
 azure-functions==1.18.0
-streamlit==1.30.0
+streamlit==1.31.0
 openai==0.27.8
 matplotlib==3.8.2
 plotly==5.18.0
