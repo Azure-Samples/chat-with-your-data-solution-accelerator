@@ -102,14 +102,10 @@ export class TeamsBot extends TeamsActivityHandler {
         // Parse the citations from the tool message
         const parseCitationFromMessage = (message: ChatMessage) => {
           if (message.role === "tool") {
-            console.log("Message content: ", message.content);
-            console.log("=====\n");
             try {
               const toolMessage = JSON.parse(
                 message.content
               ) as ToolMessageContent;
-              console.log(toolMessage);
-              console.log("=====\n");
               return toolMessage.citations;
             } catch {
               return [];

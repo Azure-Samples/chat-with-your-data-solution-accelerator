@@ -7,16 +7,19 @@ export function actionBuilder(citation: Citation, docId: number): any {
     let url = urlParts[urlParts.length - 1].replaceAll("(", "").replaceAll(")", "");
     let title = citation.title.replaceAll("/documents/", "");
     let content = citation.content.replaceAll(citation.title, "").replaceAll("url", "");
-    console.log(docId);
     content = content.replaceAll(/(<([^>]+)>)/ig, "\n").replaceAll("<>", "");
-    console.log(content);
-    console.log("====================================\n\n");
     let citationCardAction = {
         title: `Ref${docId}`,
         type: CardType.ShowCard,
         card: {
             type: CardType.AdaptiveCard,
             body: [
+                {
+                    type: CardType.TextBlock,
+                    text: `Reference - Part ${parseInt(citation.chunk_id) + 1}`,
+                    wrap: true,
+                    size: "small",
+                },
                 {
                     type: CardType.TextBlock,
                     text: title,
@@ -53,7 +56,7 @@ export function cardBodyBuilder(citations: any[], assistantAnswer: string): any 
                 text: assistantAnswer,
                 wrap: true
 
-            },{
+            }, {
                 type: 'ActionSet',
                 actions: []
             }
@@ -82,13 +85,28 @@ export function cwydResponseBuilder(citations: Citation[], assistantAnswer: stri
     let citationActions: any[] = [];
     let docId = 1;
     let deleteEnd = "";
+    let deleteEndSpace = "";
+    let refCount = 1;
+    let findPart = {};
+    let reIndex = 0;
     citations.map((citation: Citation) => {
-        citationActions.push(actionBuilder(citation, docId));
-        deleteEnd += `[${docId}]`;
-        assistantAnswer = assistantAnswer.replaceAll(`[doc${docId}]`, `[${docId}]`);
-        docId++;
+        if (!(citation.chunk_id in findPart)) {
+            reIndex = docId;
+            citationActions.push(actionBuilder(citation, reIndex));
+            findPart[citation.chunk_id] = reIndex;
+            docId++;
+        } else {
+            reIndex = findPart[citation.chunk_id];
+        }
+
+        deleteEnd += `[${reIndex}]`;
+        deleteEndSpace += ` [${reIndex}]`;
+        assistantAnswer = assistantAnswer.replaceAll(`[doc${refCount}]`, `[${reIndex}]`);
+
+        refCount++;
     });
     assistantAnswer = assistantAnswer.replaceAll(deleteEnd, "");
+    assistantAnswer = assistantAnswer.replaceAll(deleteEndSpace, "");
     let answerCard = CardFactory.adaptiveCard(cardBodyBuilder(citationActions, assistantAnswer));
     return answerCard;
 }
