@@ -340,9 +340,9 @@
     }
   },
   "variables": {
-    "WebAppImageName": "DOCKER|fruoccopublic.azurecr.io/rag-webapp",
-    "AdminWebAppImageName": "DOCKER|fruoccopublic.azurecr.io/rag-adminwebapp",
-    "BackendImageName": "DOCKER|fruoccopublic.azurecr.io/rag-backend",
+    "WebAppImageName": "DOCKER|docker.io/fr4nc3/rag-webapp",
+    "AdminWebAppImageName": "DOCKER|docker.io/fr4nc3/rag-adminwebapp",
+    "BackendImageName": "DOCKER|docker.io/fr4nc3/rag-backend",
     "BlobContainerName": "documents",
     "QueueName": "doc-processing",
     "ClientKey": "[format('{0}{1}', uniqueString(guid(resourceGroup().id, deployment().name)), parameters('newGuidString'))]",

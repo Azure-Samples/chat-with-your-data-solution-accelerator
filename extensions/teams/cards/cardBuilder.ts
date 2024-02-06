@@ -7,8 +7,10 @@ export function actionBuilder(citation: Citation, docId: number): any {
     let url = urlParts[urlParts.length - 1].replaceAll("(", "").replaceAll(")", "");
     let title = citation.title.replaceAll("/documents/", "");
     let content = citation.content.replaceAll(citation.title, "").replaceAll("url", "");
+    console.log(docId);
     content = content.replaceAll(/(<([^>]+)>)/ig, "\n").replaceAll("<>", "");
-
+    console.log(content);
+    console.log("====================================\n\n");
     let citationCardAction = {
         title: `Ref${docId}`,
         type: CardType.ShowCard,
@@ -40,11 +42,43 @@ export function actionBuilder(citation: Citation, docId: number): any {
 
     return citationCardAction;
 }
+export function cardBodyBuilder(citations: any[], assistantAnswer: string): any {
+    let answerCard = {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.6",
+        type: CardType.AdaptiveCard,
+        body: [
+            {
+                type: CardType.TextBlock,
+                text: assistantAnswer,
+                wrap: true
 
+            },{
+                type: 'ActionSet',
+                actions: []
+            }
+        ],
+        actions: [],
+        msteams: {
+            width: "Full"
+        }
+    };
+    if (citations.length <= 6) {
+        answerCard["actions"] = citations;
+    } else {
+        const chunkSize = 5;
+        for (let i = 0; i < citations.length; i += chunkSize) {
+            const chunk = citations.slice(i, i + chunkSize);
+            answerCard["body"].push({
+                type: 'ActionSet',
+                actions: chunk
+            });
+        }
+    }
+
+    return answerCard;
+}
 export function cwydResponseBuilder(citations: Citation[], assistantAnswer: string): Attachment {
-
-    console.log(assistantAnswer);
-    console.log(citations);
     let citationActions: any[] = [];
     let docId = 1;
     let deleteEnd = "";
@@ -55,24 +89,6 @@ export function cwydResponseBuilder(citations: Citation[], assistantAnswer: stri
         docId++;
     });
     assistantAnswer = assistantAnswer.replaceAll(deleteEnd, "");
-    console.log(citationActions);
-    console.log(docId);
-    console.log(deleteEnd);
-    console.log(assistantAnswer);
-    let answerCard = CardFactory.adaptiveCard({
-        type: CardType.AdaptiveCard,
-        body: [
-            {
-                type: CardType.TextBlock,
-                text: assistantAnswer,
-                wrap: true
-
-            }
-        ],
-        actions: citationActions,
-        msteams: {
-            width: "Full"
-        }
-    });
+    let answerCard = CardFactory.adaptiveCard(cardBodyBuilder(citationActions, assistantAnswer));
     return answerCard;
 }
