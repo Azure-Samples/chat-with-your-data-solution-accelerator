@@ -6,6 +6,7 @@ from azure.keyvault.secrets import SecretClient
 
 logger = logging.getLogger(__name__)
 
+
 class EnvHelper:
     def __init__(self, **kwargs) -> None:
         load_dotenv()
@@ -65,9 +66,11 @@ class EnvHelper:
         os.environ["OPENAI_API_KEY"] = self.OPENAI_API_KEY
         os.environ["OPENAI_API_VERSION"] = self.OPENAI_API_VERSION
         # Azure Functions - Batch processing
-        self.BACKEND_URL = os.getenv('BACKEND_URL', '')
-        self.AzureWebJobsStorage = os.getenv('AzureWebJobsStorage', '')
-        self.DOCUMENT_PROCESSING_QUEUE_NAME = os.getenv('DOCUMENT_PROCESSING_QUEUE_NAME', '')
+        self.BACKEND_URL = os.getenv("BACKEND_URL", "")
+        self.AzureWebJobsStorage = os.getenv("AzureWebJobsStorage", "")
+        self.DOCUMENT_PROCESSING_QUEUE_NAME = os.getenv(
+            "DOCUMENT_PROCESSING_QUEUE_NAME", ""
+        )
         # Azure Blob Storage
         self.AZURE_BLOB_ACCOUNT_NAME = os.getenv('AZURE_BLOB_ACCOUNT_NAME', '')
         self.AZURE_BLOB_ACCOUNT_KEY = self.secret_client.get_secret(os.getenv("AZURE_BLOB_ACCOUNT_KEY", '')).value if os.getenv("USE_KEY_VAULT", '') else os.getenv("AZURE_BLOB_ACCOUNT_KEY", '')
@@ -76,15 +79,24 @@ class EnvHelper:
         self.AZURE_FORM_RECOGNIZER_ENDPOINT = os.getenv('AZURE_FORM_RECOGNIZER_ENDPOINT', '')
         self.AZURE_FORM_RECOGNIZER_KEY = self.secret_client.get_secret(os.getenv("AZURE_FORM_RECOGNIZER_KEY", '')).value if os.getenv("USE_KEY_VAULT", '') else os.getenv('AZURE_FORM_RECOGNIZER_KEY', '')
         # Azure App Insights
-        self.APPINSIGHTS_CONNECTION_STRING = os.getenv('APPINSIGHTS_CONNECTION_STRING', '')
+        self.APPINSIGHTS_CONNECTION_STRING = os.getenv(
+            "APPINSIGHTS_CONNECTION_STRING", ""
+        )
         # Azure AI Content Safety
-        self.AZURE_CONTENT_SAFETY_ENDPOINT = os.getenv('AZURE_CONTENT_SAFETY_ENDPOINT', '')
-        if 'https' not in self.AZURE_CONTENT_SAFETY_ENDPOINT and 'api.cognitive.microsoft.com' not in self.AZURE_CONTENT_SAFETY_ENDPOINT:
+        self.AZURE_CONTENT_SAFETY_ENDPOINT = os.getenv(
+            "AZURE_CONTENT_SAFETY_ENDPOINT", ""
+        )
+        if (
+            "https" not in self.AZURE_CONTENT_SAFETY_ENDPOINT
+            and "api.cognitive.microsoft.com" not in self.AZURE_CONTENT_SAFETY_ENDPOINT
+        ):
             self.AZURE_CONTENT_SAFETY_ENDPOINT = self.AZURE_FORM_RECOGNIZER_ENDPOINT
         self.AZURE_CONTENT_SAFETY_KEY = self.secret_client.get_secret(os.getenv("AZURE_CONTENT_SAFETY_KEY", '')).value if os.getenv("USE_KEY_VAULT", '') else os.getenv('AZURE_CONTENT_SAFETY_KEY', '')
         # Orchestration Settings
-        self.ORCHESTRATION_STRATEGY = os.getenv('ORCHESTRATION_STRATEGY', 'openai_function')
-    
+        self.ORCHESTRATION_STRATEGY = os.getenv(
+            "ORCHESTRATION_STRATEGY", "openai_function"
+        )
+
     @staticmethod
     def check_env():
         for attr, value in EnvHelper().__dict__.items():

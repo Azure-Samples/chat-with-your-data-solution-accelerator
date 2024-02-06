@@ -7,14 +7,15 @@ from ..common.Answer import Answer
 class TextProcessingTool(AnsweringToolBase):
     def __init__(self) -> None:
         self.name = "TextProcessing"
-    
+
     def answer_question(self, question: str, chat_history: List[dict], **kwargs: dict):
-        
         llm_helper = LLMHelper()
-        text = kwargs.get('text')
-        operation = kwargs.get('operation')
-        user_content = f"{operation} the following TEXT: {text}" if question == "" else question
-        
+        text = kwargs.get("text")
+        operation = kwargs.get("operation")
+        user_content = (
+            f"{operation} the following TEXT: {text}" if question == "" else question
+        )
+
         system_message = """You are an AI assistant for the user."""
 
         result = llm_helper.get_chat_completion(

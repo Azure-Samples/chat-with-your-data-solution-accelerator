@@ -355,6 +355,7 @@ resource Website 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'AZURE_SPEECH_SERVICE_REGION', value: Location}
       ]
       linuxFxVersion: WebAppImageName
+      minTlsVersion: '1.2'
     }
   }
   identity: { type: authType == 'rbac' ? 'SystemAssigned' : 'None' }
@@ -409,6 +410,7 @@ resource WebsiteName_admin 'Microsoft.Web/sites@2020-06-01' = {
         { name: 'AZURE_CONTENT_SAFETY_KEY', value: listKeys('Microsoft.CognitiveServices/accounts/${ContentSafetyName}', '2023-05-01').key1}
       ]
       linuxFxVersion: AdminWebAppImageName
+      minTlsVersion: '1.2'
     }
   }
   identity: { type: authType == 'rbac' ? 'SystemAssigned' : 'None' }
@@ -423,6 +425,9 @@ resource StorageAccount 'Microsoft.Storage/storageAccounts@2021-08-01' = {
   kind: 'StorageV2'
   sku: {
     name: 'Standard_GRS'
+  }
+  properties: {
+    minimumTlsVersion: 'TLS1_2'
   }
 }
 
@@ -510,6 +515,7 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
         { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false'}
         { name: 'APPINSIGHTS_INSTRUMENTATIONKEY', value: reference(ApplicationInsights.id, '2015-05-01').InstrumentationKey}
         { name: 'AzureWebJobsStorage', value: 'DefaultEndpointsProtocol=https;AccountName=${StorageAccountName};AccountKey=${listKeys(StorageAccount.id, '2019-06-01').keys[0].value};EndpointSuffix=core.windows.net'}
+        { name: 'AZURE_AUTH_TYPE', value: authType }
         { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIGPTModel}
         { name: 'AZURE_OPENAI_EMBEDDING_MODEL', value: AzureOpenAIEmbeddingModel}
         { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
@@ -537,6 +543,7 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
       linuxFxVersion: BackendImageName
       appCommandLine: ''
       alwaysOn: true
+      minTlsVersion: '1.2'
     }
     serverFarmId: HostingPlan.id
     clientAffinityEnabled: false

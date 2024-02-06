@@ -62,6 +62,7 @@ Before you submit your Pull Request (PR) consider the following guidelines:
 * Make your changes in a new git fork:
 
 * Commit your changes using a descriptive commit message
+* If you are using the devcontainer, committing code will run black and flake8 to lint python code. You can run `black .` or `flake8 .` at anytime.
 * Push your fork to GitHub:
 * In GitHub, create a pull request
 * If we suggest changes then:
