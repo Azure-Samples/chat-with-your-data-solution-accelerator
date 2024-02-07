@@ -535,7 +535,7 @@
             },
             {
               "name": "AZURE_SEARCH_KEY",
-              "value": "[if(equals(parameters('authType'), 'keys'), listAdminKeys(format('Microsoft.Search/searchServices/{0}', parameters('AzureCognitiveSearch')), '2023-12-01-preview').primaryKey, null())]"
+              "value": "[if(equals(parameters('authType'), 'keys'), listAdminKeys(format('Microsoft.Search/searchServices/{0}', parameters('AzureCognitiveSearch')), '2021-04-01-preview').primaryKey, null())]"
             },
             {
               "name": "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG",
@@ -1018,7 +1018,7 @@
             },
             {
               "name": "AZURE_SEARCH_KEY",
-              "value": "[if(equals(parameters('authType'), 'keys'), listAdminKeys(format('Microsoft.Search/searchServices/{0}', parameters('AzureCognitiveSearch')), '2023-12-01-preview').primaryKey, null())]"
+              "value": "[if(equals(parameters('authType'), 'keys'), listAdminKeys(format('Microsoft.Search/searchServices/{0}', parameters('AzureCognitiveSearch')), '2021-04-01-preview').primaryKey, null())]"
             },
             {
               "name": "DOCUMENT_PROCESSING_QUEUE_NAME",
