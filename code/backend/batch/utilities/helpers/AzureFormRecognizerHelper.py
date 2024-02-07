@@ -9,7 +9,7 @@ from .EnvHelper import EnvHelper
 class AzureFormRecognizerClient:
     def __init__(self) -> None:
         env_helper: EnvHelper = EnvHelper()
-        
+
         self.AZURE_FORM_RECOGNIZER_ENDPOINT: str = (
             env_helper.AZURE_FORM_RECOGNIZER_ENDPOINT
         )

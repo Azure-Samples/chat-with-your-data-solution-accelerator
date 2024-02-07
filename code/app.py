@@ -343,7 +343,7 @@ def conversation_custom():
                         user_assistant_messages[i]["content"],
                         user_assistant_messages[i + 1]["content"],
                     )
-                        )
+                )
         from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
 
         messages = message_orchestrator.handle_message(
