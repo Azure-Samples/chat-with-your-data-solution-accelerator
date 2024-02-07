@@ -19,13 +19,17 @@ class TextProcessingTool(AnsweringToolBase):
         system_message = """You are an AI assistant for the user."""
 
         result = llm_helper.get_chat_completion(
-                   [{"role": "system", "content": system_message}, 
-                    {"role": "user", "content": user_content},]
-                   )
+            [
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": user_content},
+            ]
+        )
                
-        answer = Answer(question=question, 
-                        answer=result.choices[0].message.content, 
-                        source_documents=[],
-                        prompt_tokens=result.usage.prompt_tokens,
-                        completion_tokens=result.usage.completion_tokens)
+        answer = Answer(
+            question=question, 
+            answer=result.choices[0].message.content, 
+            source_documents=[],
+            prompt_tokens=result.usage.prompt_tokens,
+            completion_tokens=result.usage.completion_tokens,
+        )
         return answer

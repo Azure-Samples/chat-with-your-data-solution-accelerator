@@ -5,7 +5,6 @@ import traceback
 import logging
 import pandas as pd
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from batch.utilities.helpers.AzureSearchHelper import AzureSearchHelper
 from dotenv import load_dotenv
 

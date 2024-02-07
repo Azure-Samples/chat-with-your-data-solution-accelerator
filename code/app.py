@@ -247,7 +247,7 @@ def stream_without_data(response):
 
 def conversation_without_data(request):
     azure_endpoint = f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/"
-    if AZURE_AUTH_TYPE == 'rbac':
+    if AZURE_AUTH_TYPE == "rbac":
         openai_client = AzureOpenAI(azure_endpoint=azure_endpoint,  api_version=AZURE_OPENAI_API_VERSION, azure_ad_token_provider=AZURE_TOKEN_PROVIDER)
     else:
         openai_client = AzureOpenAI(azure_endpoint=azure_endpoint,  api_version=AZURE_OPENAI_API_VERSION, api_key=AZURE_OPENAI_KEY)
@@ -323,6 +323,7 @@ def conversation_azure_byod():
 @app.route("/api/conversation/custom", methods=["GET", "POST"])
 def conversation_custom():
     from backend.batch.utilities.helpers.OrchestratorHelper import Orchestrator, OrchestrationSettings
+
     message_orchestrator = Orchestrator()
 
     try:
@@ -337,7 +338,12 @@ def conversation_custom():
         chat_history = []
         for i, k in enumerate(user_assistant_messages):
             if i % 2 == 0:
-                chat_history.append((user_assistant_messages[i]["content"],user_assistant_messages[i+1]["content"]))
+                chat_history.append(
+                    (
+                        user_assistant_messages[i]["content"],
+                        user_assistant_messages[i + 1]["content"],
+                    )
+                        )
         from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
 
         messages = message_orchestrator.handle_message(

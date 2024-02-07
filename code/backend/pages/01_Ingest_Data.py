@@ -12,7 +12,6 @@ from azure.keyvault.secrets import SecretClient
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, ContentSettings, UserDelegationKey
 import urllib.parse
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
 from dotenv import load_dotenv
 
@@ -95,34 +94,59 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
     st.session_state["filename"] = file_name
     if content_type is None:
         content_type = mimetypes.MimeTypes().guess_type(file_name)[0]
-        charset = f"; charset={chardet.detect(bytes_data)['encoding']}" if content_type == 'text/plain' else ''
-        content_type = content_type if content_type != None else 'text/plain'
-    account_name = os.getenv('AZURE_BLOB_ACCOUNT_NAME')
-    if os.environ.get("AUTH_TYPE") == 'rbac':
+        charset = (
+            f"; charset={chardet.detect(bytes_data)['encoding']}"
+            if content_type == "text/plain"
+            else ""
+        )
+        content_type = content_type if content_type is not None else "text/plain"
+    account_name = os.getenv("AZURE_BLOB_ACCOUNT_NAME")
+    if os.environ.get("AUTH_TYPE") == "rbac":
         credential = DefaultAzureCredential()
         account_url = f"https://{account_name}.blob.core.windows.net/"
         blob_service_client = BlobServiceClient(account_url=account_url, credential=credential)
         user_delegation_key = request_user_delegation_key(blob_service_client=blob_service_client)
-        container_name = os.getenv('AZURE_BLOB_CONTAINER_NAME')
+        container_name = os.getenv("AZURE_BLOB_CONTAINER_NAME")
         blob_client = blob_service_client.get_blob_client(container=container_name, blob=file_name)
         blob_client.upload_blob(bytes_data, overwrite=True, content_settings=ContentSettings(content_type=content_type+charset))
-        st.session_state['file_url'] = blob_client.url + '?' + generate_blob_sas(account_name, container_name, file_name,user_delegation_key=user_delegation_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
+        st.session_state["file_url"] = blob_client.url + "?" + generate_blob_sas(account_name, container_name, file_name,user_delegation_key=user_delegation_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
     else:
         if os.environ.get("USE_KEY_VAULT"):
             credential = DefaultAzureCredential()
             secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential)
         account_key =  secret_client.get_secret(os.getenv("AZURE_BLOB_ACCOUNT_KEY")).value if os.getenv("USE_KEY_VAULT") else os.getenv("AZURE_BLOB_ACCOUNT_KEY")
-        container_name = os.getenv('AZURE_BLOB_CONTAINER_NAME')
-        if account_name == None or account_key == None or container_name == None:
-            raise ValueError("Please provide values for AZURE_BLOB_ACCOUNT_NAME, AZURE_BLOB_ACCOUNT_KEY and AZURE_BLOB_CONTAINER_NAME")
+        container_name = os.getenv("AZURE_BLOB_CONTAINER_NAME")
+        if account_name is None or account_key is None or container_name is None:
+            raise ValueError(
+                "Please provide values for AZURE_BLOB_ACCOUNT_NAME, AZURE_BLOB_ACCOUNT_KEY and AZURE_BLOB_CONTAINER_NAME"
+            )
         connect_str = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
-        blob_service_client : BlobServiceClient = BlobServiceClient.from_connection_string(connect_str)
+        blob_service_client: BlobServiceClient = BlobServiceClient.from_connection_string(
+            connect_str
+        )
         # Create a blob client using the local file name as the name for the blob
-        blob_client = blob_service_client.get_blob_client(container=container_name, blob=file_name)
+        blob_client = blob_service_client.get_blob_client(
+            container=container_name, blob=file_name
+        )
         # Upload the created file
-        blob_client.upload_blob(bytes_data, overwrite=True, content_settings=ContentSettings(content_type=content_type+charset))
+        blob_client.upload_blob(
+            bytes_data,
+            overwrite=True,
+            content_settings=ContentSettings(content_type=content_type + charset),
+        )
         # Generate a SAS URL to the blob and return it
-        st.session_state['file_url'] = blob_client.url + '?' + generate_blob_sas(account_name, container_name, file_name,account_key=account_key,  permission="r", expiry=datetime.utcnow() + timedelta(hours=3))
+        st.session_state["file_url"] = (
+            blob_client.url
+            + "?"
+            + generate_blob_sas(
+                account_name,
+                container_name,
+                file_name,
+                account_key=account_key,
+                permission="r",
+                expiry=datetime.utcnow() + timedelta(hours=3),
+            )
+        )
 
 try:
     with st.expander("Add documents in Batch", expanded=True):

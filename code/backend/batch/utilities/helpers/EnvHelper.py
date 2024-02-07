@@ -29,7 +29,7 @@ class EnvHelper:
         self.AZURE_SEARCH_FIELDS_TAG = os.getenv('AZURE_SEARCH_FIELDS_TAG', 'tag')
         self.AZURE_SEARCH_FIELDS_METADATA = os.getenv('AZURE_SEARCH_FIELDS_METADATA', 'metadata')
         self.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = os.getenv('AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', 'conversations')
-        self.AZURE_AUTH_TYPE = os.environ.get("AZURE_AUTH_TYPE", "keys")
+        self.AZURE_AUTH_TYPE = os.getenv('AZURE_AUTH_TYPE', 'keys')
         # Azure OpenAI
         self.AZURE_OPENAI_RESOURCE = os.getenv('AZURE_OPENAI_RESOURCE', '')
         self.AZURE_OPENAI_MODEL = os.getenv('AZURE_OPENAI_MODEL', '')
@@ -42,64 +42,64 @@ class EnvHelper:
         self.AZURE_OPENAI_API_VERSION = os.getenv('AZURE_OPENAI_API_VERSION', '')
         self.AZURE_OPENAI_STREAM = os.getenv('AZURE_OPENAI_STREAM', '')
         self.AZURE_OPENAI_EMBEDDING_MODEL = os.getenv('AZURE_OPENAI_EMBEDDING_MODEL', '')
-        self.AZURE_TOKEN_PROVIDER = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
+        self.AZURE_TOKEN_PROVIDER = get_bearer_token_provider(DefaultAzureCredential(), 'https://cognitiveservices.azure.com/.default')
         # Initialize Azure keys based on authentication type and environment settings. 
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
         # When USE_KEY_VAULT environment variable is set, keys are securely fetched from Azure Key Vault using DefaultAzureCredential.
         # Otherwise, keys are obtained from environment variables.
-        if self.AZURE_AUTH_TYPE == "rbac":
+        if self.AZURE_AUTH_TYPE == 'rbac':
             self.AZURE_SEARCH_KEY = None
-            self.AZURE_OPENAI_KEY = ""
+            self.AZURE_OPENAI_KEY = ''
             self.AZURE_SPEECH_KEY = None
-        elif os.environ.get("USE_KEY_VAULT"):
+        elif os.environ.get('USE_KEY_VAULT'):
             credential = DefaultAzureCredential()
-            secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential)
-            self.AZURE_SEARCH_KEY = secret_client.get_secret(os.environ.get("AZURE_SEARCH_KEY")).value
-            self.AZURE_OPENAI_KEY = secret_client.get_secret(os.environ.get("AZURE_OPENAI_KEY")).value
-            self.AZURE_SPEECH_KEY = secret_client.get_secret(os.environ.get("AZURE_SPEECH_SERVICE_KEY")).value
+            secret_client = SecretClient(os.environ.get('AZURE_KEY_VAULT_ENDPOINT'), credential)
+            self.AZURE_SEARCH_KEY = secret_client.get_secret(os.environ.get('AZURE_SEARCH_KEY')).value
+            self.AZURE_OPENAI_KEY = secret_client.get_secret(os.environ.get('AZURE_OPENAI_KEY')).value
+            self.AZURE_SPEECH_KEY = secret_client.get_secret(os.environ.get('AZURE_SPEECH_SERVICE_KEY')).value
         else:
-            self.AZURE_SEARCH_KEY = os.environ.get("AZURE_SEARCH_KEY")
-            self.AZURE_OPENAI_KEY = os.environ.get("AZURE_OPENAI_KEY")
-            self.AZURE_SPEECH_KEY = os.environ.get("AZURE_SPEECH_SERVICE_KEY")
+            self.AZURE_SEARCH_KEY = os.environ.get('AZURE_SEARCH_KEY')
+            self.AZURE_OPENAI_KEY = os.environ.get('AZURE_OPENAI_KEY')
+            self.AZURE_SPEECH_KEY = os.environ.get('AZURE_SPEECH_SERVICE_KEY')
          # Set env for OpenAI SDK
         self.OPENAI_API_BASE = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
-        self.OPENAI_API_TYPE = "azure" if self.AZURE_AUTH_TYPE == "keys" else "azure_ad"
+        self.OPENAI_API_TYPE = 'azure' if self.AZURE_AUTH_TYPE == 'keys' else 'azure_ad'
         self.OPENAI_API_KEY = self.AZURE_OPENAI_KEY
         self.OPENAI_API_VERSION = self.AZURE_OPENAI_API_VERSION
-        os.environ["OPENAI_API_TYPE"] = self.OPENAI_API_TYPE
-        os.environ["OPENAI_API_BASE"] = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
-        os.environ["OPENAI_API_KEY"] = self.OPENAI_API_KEY
-        os.environ["OPENAI_API_VERSION"] = self.OPENAI_API_VERSION
+        os.environ['OPENAI_API_TYPE'] = self.OPENAI_API_TYPE
+        os.environ['OPENAI_API_BASE'] = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
+        os.environ['OPENAI_API_KEY'] = self.OPENAI_API_KEY
+        os.environ['OPENAI_API_VERSION'] = self.OPENAI_API_VERSION
         # Azure Functions - Batch processing
-        self.BACKEND_URL = os.getenv("BACKEND_URL", "")
-        self.AzureWebJobsStorage = os.getenv("AzureWebJobsStorage", "")
+        self.BACKEND_URL = os.getenv('BACKEND_URL', '')
+        self.AzureWebJobsStorage = os.getenv('AzureWebJobsStorage', '')
         self.DOCUMENT_PROCESSING_QUEUE_NAME = os.getenv(
-            "DOCUMENT_PROCESSING_QUEUE_NAME", ""
+            'DOCUMENT_PROCESSING_QUEUE_NAME', ''
         )
         # Azure Blob Storage
         self.AZURE_BLOB_ACCOUNT_NAME = os.getenv('AZURE_BLOB_ACCOUNT_NAME', '')
-        self.AZURE_BLOB_ACCOUNT_KEY = self.secret_client.get_secret(os.getenv("AZURE_BLOB_ACCOUNT_KEY", '')).value if os.getenv("USE_KEY_VAULT", '') else os.getenv("AZURE_BLOB_ACCOUNT_KEY", '')
+        self.AZURE_BLOB_ACCOUNT_KEY = self.secret_client.get_secret(os.getenv('AZURE_BLOB_ACCOUNT_KEY', '')).value if os.getenv('USE_KEY_VAULT', '') else os.getenv('AZURE_BLOB_ACCOUNT_KEY', '')
         self.AZURE_BLOB_CONTAINER_NAME = os.getenv('AZURE_BLOB_CONTAINER_NAME', '')
         # Azure Form Recognizer
         self.AZURE_FORM_RECOGNIZER_ENDPOINT = os.getenv('AZURE_FORM_RECOGNIZER_ENDPOINT', '')
-        self.AZURE_FORM_RECOGNIZER_KEY = self.secret_client.get_secret(os.getenv("AZURE_FORM_RECOGNIZER_KEY", '')).value if os.getenv("USE_KEY_VAULT", '') else os.getenv('AZURE_FORM_RECOGNIZER_KEY', '')
+        self.AZURE_FORM_RECOGNIZER_KEY = self.secret_client.get_secret(os.getenv('AZURE_FORM_RECOGNIZER_KEY', '')).value if os.getenv('USE_KEY_VAULT', '') else os.getenv('AZURE_FORM_RECOGNIZER_KEY', '')
         # Azure App Insights
         self.APPINSIGHTS_CONNECTION_STRING = os.getenv(
-            "APPINSIGHTS_CONNECTION_STRING", ""
+            'APPINSIGHTS_CONNECTION_STRING', ''
         )
         # Azure AI Content Safety
         self.AZURE_CONTENT_SAFETY_ENDPOINT = os.getenv(
-            "AZURE_CONTENT_SAFETY_ENDPOINT", ""
+            'AZURE_CONTENT_SAFETY_ENDPOINT', ''
         )
         if (
             "https" not in self.AZURE_CONTENT_SAFETY_ENDPOINT
             and "api.cognitive.microsoft.com" not in self.AZURE_CONTENT_SAFETY_ENDPOINT
         ):
             self.AZURE_CONTENT_SAFETY_ENDPOINT = self.AZURE_FORM_RECOGNIZER_ENDPOINT
-        self.AZURE_CONTENT_SAFETY_KEY = self.secret_client.get_secret(os.getenv("AZURE_CONTENT_SAFETY_KEY", '')).value if os.getenv("USE_KEY_VAULT", '') else os.getenv('AZURE_CONTENT_SAFETY_KEY', '')
+        self.AZURE_CONTENT_SAFETY_KEY = self.secret_client.get_secret(os.getenv('AZURE_CONTENT_SAFETY_KEY', '')).value if os.getenv('USE_KEY_VAULT', '') else os.getenv('AZURE_CONTENT_SAFETY_KEY', '')
         # Orchestration Settings
         self.ORCHESTRATION_STRATEGY = os.getenv(
-            "ORCHESTRATION_STRATEGY", "openai_function"
+            'ORCHESTRATION_STRATEGY', 'openai_function'
         )
 
     @staticmethod

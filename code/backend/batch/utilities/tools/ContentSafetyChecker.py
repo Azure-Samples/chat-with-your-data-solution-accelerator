@@ -6,15 +6,21 @@ from azure.ai.contentsafety.models import AnalyzeTextOptions, TextCategory
 from ..helpers.EnvHelper import EnvHelper
 from .AnswerProcessingBase import AnswerProcessingBase
 from ..common.Answer import Answer
- 
+
 class ContentSafetyChecker(AnswerProcessingBase):
     def __init__(self):
         env_helper = EnvHelper()
 
-        if env_helper.AZURE_AUTH_TYPE == 'rbac':
-            self.content_safety_client = ContentSafetyClient(env_helper.AZURE_CONTENT_SAFETY_ENDPOINT, DefaultAzureCredential())
+        if env_helper.AZURE_AUTH_TYPE == "rbac":
+            self.content_safety_client = ContentSafetyClient(
+                env_helper.AZURE_CONTENT_SAFETY_ENDPOINT, 
+                DefaultAzureCredential(),
+            )
         else:
-            self.content_safety_client = ContentSafetyClient(env_helper.AZURE_CONTENT_SAFETY_ENDPOINT, AzureKeyCredential(env_helper.AZURE_CONTENT_SAFETY_KEY))
+            self.content_safety_client = ContentSafetyClient(
+                env_helper.AZURE_CONTENT_SAFETY_ENDPOINT, 
+                AzureKeyCredential(env_helper.AZURE_CONTENT_SAFETY_KEY),
+            )
 
     def process_answer(self, answer: Answer, **kwargs: dict) -> Answer:
         response_template = kwargs["response_template"]
