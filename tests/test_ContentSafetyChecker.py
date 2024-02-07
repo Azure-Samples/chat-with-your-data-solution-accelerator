@@ -1,5 +1,5 @@
 import pytest
-from code.utilities.tools.ContentSafetyChecker import ContentSafetyChecker
+from code.backend.batch.utilities.tools.ContentSafetyChecker import ContentSafetyChecker
 
 
 @pytest.mark.azure("This test requires Azure Content Safety configured")

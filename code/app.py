@@ -3,8 +3,6 @@ import os
 import logging
 import requests
 from openai import AzureOpenAI
-
-# Fixing MIME types for static files under Windows
 import mimetypes
 from flask import Flask, Response, request, jsonify
 from dotenv import load_dotenv
@@ -47,7 +45,8 @@ else:
     AZURE_OPENAI_KEY = "" if AZURE_AUTH_TYPE == 'rbac' else os.environ.get("AZURE_OPENAI_KEY")
     AZURE_SPEECH_KEY = None if AZURE_AUTH_TYPE == 'rbac' else os.environ.get("AZURE_SPEECH_SERVICE_KEY")
 
-@app.route('/api/config', methods=['GET'])
+
+@app.route("/api/config", methods=["GET"])
 def get_config():
     # Retrieve the environment variables or other configuration data
     azure_speech_region = os.getenv('AZURE_SPEECH_SERVICE_REGION')

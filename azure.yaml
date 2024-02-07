@@ -16,6 +16,11 @@ services:
           run:  cd ./frontend;npm install;npm run build;
           interactive: true
           continueOnError: false
+        posix:
+          shell: sh
+          run:  cd ./frontend;npm install;npm run build;
+          interactive: true
+          continueOnError: false
           
   adminweb:
     project: ./code/backend

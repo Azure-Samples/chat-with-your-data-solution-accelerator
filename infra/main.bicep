@@ -111,8 +111,8 @@ param azureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 @description('Azure OpenAI Embedding Model Name')
 param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
 
-@description('Azure Cognitive Search Resource')
-param azureCognitiveSearchName string = '${environmentName}-search-${resourceToken}'
+@description('Azure AI Search Resource')
+param azureAISearchName string = '${environmentName}-search-${resourceToken}'
 
 @description('The SKU of the search service you want to create. E.g. free or standard')
 @allowed([
@@ -122,16 +122,16 @@ param azureCognitiveSearchName string = '${environmentName}-search-${resourceTok
   'standard2'
   'standard3'
 ])
-param azureCognitiveSearchSku string = 'standard'
+param azureSearchSku string = 'standard'
 
-@description('Azure Cognitive Search Index')
+@description('Azure AI Search Index')
 param azureSearchIndex string = '${environmentName}-index-${resourceToken}'
 
-@description('Azure Cognitive Search Conversation Log Index')
+@description('Azure AI Search Conversation Log Index')
 param azureSearchConversationLogIndex string = 'conversations'
 
 @description('Name of Storage Account')
-param storageAccountName string = '${environmentName}str'
+param storageAccountName string = '${environmentName}str${resourceToken}'
 
 @description('Name of Function App for Batch document processing')
 param functionName string = '${environmentName}-backend-${resourceToken}'
@@ -143,7 +143,7 @@ param formRecognizerName string = '${environmentName}-formrecog-${resourceToken}
 param contentSafetyName string = '${environmentName}-contentsafety-${resourceToken}'
 
 @description('Azure Speech Service Name')
-param speechServiceName string = '${environmentName}-speechservice'
+param speechServiceName string = '${environmentName}-speechservice-${resourceToken}'
 
 param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'
@@ -277,16 +277,16 @@ module storekeys './app/storekeys.bicep' = if (useKeyVault) {
 }
 
 module search './core/search/search-services.bicep' = {
-  name: azureCognitiveSearchName
+  name: azureAISearchName
   scope: rg
   params:{
-    name: azureCognitiveSearchName
+    name: azureAISearchName
     location: location
     tags: { 
       deployment : searchTag
     }
     sku: {
-      name: azureCognitiveSearchSku
+      name: azureSearchSku
     }
     authOptions: {
       aadOrApiKey: {
@@ -335,7 +335,8 @@ module web './app/web.bicep' = {
     keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     authType: authType
     appSettings: {
-      AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearchName}.search.windows.net'
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
       AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
       AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
@@ -393,7 +394,7 @@ module adminweb './app/adminweb.bicep' = {
     keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     authType: authType
     appSettings: {
-      AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearchName}.search.windows.net'
+      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
       AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
@@ -474,7 +475,7 @@ module function './app/function.bicep' = {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
       AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_SEARCH_SERVICE: 'https://${azureCognitiveSearchName}.search.windows.net'
+      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_SEARCH_INDEX: azureSearchIndex

@@ -1,6 +1,6 @@
 import pytest
-from code.utilities.common.SourceDocument import SourceDocument
-from code.utilities.helpers.DocumentChunkingHelper import (
+from code.backend.batch.utilities.common.SourceDocument import SourceDocument
+from code.backend.batch.utilities.helpers.DocumentChunkingHelper import (
     DocumentChunking,
     ChunkingSettings,
     ChunkingStrategy,

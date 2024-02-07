@@ -1,5 +1,5 @@
 import pytest
-from code.utilities.helpers.DocumentLoadingHelper import (
+from code.backend.batch.utilities.helpers.DocumentLoadingHelper import (
     DocumentLoading,
     LoadingSettings,
 )

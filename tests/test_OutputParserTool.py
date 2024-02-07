@@ -2,8 +2,8 @@ import json
 
 from typing import List
 
-from code.utilities.parser.OutputParserTool import OutputParserTool
-from code.utilities.common.SourceDocument import SourceDocument
+from code.backend.batch.utilities.parser.OutputParserTool import OutputParserTool
+from code.backend.batch.utilities.common.SourceDocument import SourceDocument
 
 
 def test_returns_parsed_messages():

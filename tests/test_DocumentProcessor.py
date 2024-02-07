@@ -1,6 +1,6 @@
 import pytest
-from code.utilities.helpers.DocumentProcessorHelper import DocumentProcessor
-from code.utilities.helpers.ConfigHelper import ConfigHelper
+from code.backend.batch.utilities.helpers.DocumentProcessorHelper import DocumentProcessor
+from code.backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
 
 document_url = (
     "https://csciblob.blob.core.windows.net/rag-sol-acc/cognitive-services.pdf"

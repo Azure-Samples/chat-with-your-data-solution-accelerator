@@ -198,7 +198,7 @@ az deployment group create --resource-group $RESOURCE_GROUP_NAME --template-file
 
 The Azure Developer CLI (`azd`) is a developer-centric command-line interface (CLI) tool for creating Azure applications.
 
-You need to install it before running and deploying with the Azure Developer CLI.
+You need to install it before running and deploying with the Azure Developer CLI. (If you use the devcontainer, everything is already installed)
 
 ### Windows
 
@@ -225,16 +225,13 @@ azd init -t chat-with-your-data-solution-accelerator
 Enter an environment name.
 
 **Notes:** the default auth type uses keys, if you want to switch to rbac, please run `azd env set AUTH_TYPE rbac`.
-```
-azd env set AUTH_TYPE rbac
-```
 
 Then, run `azd up` to provision all the resources to Azure and deploy the code to those resources.
 ```
 azd up 
 ```
 
-Select your desired `subscription` and `location`. Then choose a resource group or create a new resource group. Wait a moment for the resource deployment to complete, click the Website endpoint and you will see the web app page.
+Select your desired `subscription` and `location`. Wait a moment for the resource deployment to complete, click the website endpoint and you will see the web app page.
 
 You can also run the sample directly locally (See below).
 
