@@ -119,7 +119,7 @@ param AzureFormRecognizerEndpoint string
 @secure()
 param AzureFormRecognizerKey string
 
-@description('Storage Account Name - Created during the "Chat with your data" Solution Accelerator') 
+@description('Storage Account Name - Created during the "Chat with your data" Solution Accelerator')
 param AzureBlobAccountName string
 
 @description('Storage Account Key - Created during the "Chat with your data" Solution Accelerator')
@@ -151,39 +151,39 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
   properties: {
     siteConfig: {
       appSettings: [
-        { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4'}
-        { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false'}
-        { name: 'APPINSIGHTS_CONNECTION_STRING', value: AppInsightsConnectionString}
-        { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureSearchName}.search.windows.net'}
-        { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex}
-        { name: 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', value: AzureSearchConversationLogIndex}
-        { name: 'AZURE_SEARCH_KEY', value: AzureSearchKey}
-        { name: 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', value: AzureSearchSemanticSearchConfig}
-        { name: 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', value: AzureSearchIndexIsPrechunked}
-        { name: 'AZURE_SEARCH_TOP_K', value: AzureSearchTopK}
-        { name: 'AZURE_SEARCH_ENABLE_IN_DOMAIN', value: AzureSearchEnableInDomain}
-        { name: 'AZURE_SEARCH_CONTENT_COLUMNS', value: AzureSearchContentColumns}
-        { name: 'AZURE_SEARCH_FILENAME_COLUMN', value: AzureSearchFilenameColumn}
-        { name: 'AZURE_SEARCH_TITLE_COLUMN', value: AzureSearchTitleColumn}
-        { name: 'AZURE_SEARCH_URL_COLUMN', value: AzureSearchUrlColumn}
-        { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource}
-        { name: 'AZURE_OPENAI_KEY', value: AzureOpenAIKey}
-        { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIModel}
-        { name: 'AZURE_OPENAI_MODEL_NAME', value: AzureOpenAIModelName}
-        { name: 'AZURE_OPENAI_TEMPERATURE', value: AzureOpenAITemperature}
-        { name: 'AZURE_OPENAI_TOP_P', value: AzureOpenAITopP}
-        { name: 'AZURE_OPENAI_MAX_TOKENS', value: AzureOpenAIMaxTokens}
-        { name: 'AZURE_OPENAI_STOP_SEQUENCE', value: AzureOpenAIStopSequence}
-        { name: 'AZURE_OPENAI_SYSTEM_MESSAGE', value: AzureOpenAISystemMessage}
-        { name: 'AZURE_OPENAI_API_VERSION', value: AzureOpenAIApiVersion}
-        { name: 'AZURE_OPENAI_STREAM', value: AzureOpenAIStream}
-        { name: 'AZURE_OPENAI_EMBEDDING_MODEL', value: AzureOpenAIEmbeddingModel}
-        { name: 'AZURE_FORM_RECOGNIZER_ENDPOINT', value: AzureFormRecognizerEndpoint}
-        { name: 'AZURE_FORM_RECOGNIZER_KEY', value: AzureFormRecognizerKey}
-        { name: 'AZURE_BLOB_ACCOUNT_NAME', value: AzureBlobAccountName}
-        { name: 'AZURE_BLOB_ACCOUNT_KEY', value: AzureBlobAccountKey}
-        { name: 'AZURE_BLOB_CONTAINER_NAME', value: AzureBlobContainerName}
-        { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy}
+        { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
+        { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false' }
+        { name: 'APPINSIGHTS_CONNECTION_STRING', value: AppInsightsConnectionString }
+        { name: 'AZURE_SEARCH_SERVICE', value: 'https://${AzureSearchName}.search.windows.net' }
+        { name: 'AZURE_SEARCH_INDEX', value: AzureSearchIndex }
+        { name: 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', value: AzureSearchConversationLogIndex }
+        { name: 'AZURE_SEARCH_KEY', value: AzureSearchKey }
+        { name: 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', value: AzureSearchSemanticSearchConfig }
+        { name: 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', value: AzureSearchIndexIsPrechunked }
+        { name: 'AZURE_SEARCH_TOP_K', value: AzureSearchTopK }
+        { name: 'AZURE_SEARCH_ENABLE_IN_DOMAIN', value: AzureSearchEnableInDomain }
+        { name: 'AZURE_SEARCH_CONTENT_COLUMNS', value: AzureSearchContentColumns }
+        { name: 'AZURE_SEARCH_FILENAME_COLUMN', value: AzureSearchFilenameColumn }
+        { name: 'AZURE_SEARCH_TITLE_COLUMN', value: AzureSearchTitleColumn }
+        { name: 'AZURE_SEARCH_URL_COLUMN', value: AzureSearchUrlColumn }
+        { name: 'AZURE_OPENAI_RESOURCE', value: AzureOpenAIResource }
+        { name: 'AZURE_OPENAI_KEY', value: AzureOpenAIKey }
+        { name: 'AZURE_OPENAI_MODEL', value: AzureOpenAIModel }
+        { name: 'AZURE_OPENAI_MODEL_NAME', value: AzureOpenAIModelName }
+        { name: 'AZURE_OPENAI_TEMPERATURE', value: AzureOpenAITemperature }
+        { name: 'AZURE_OPENAI_TOP_P', value: AzureOpenAITopP }
+        { name: 'AZURE_OPENAI_MAX_TOKENS', value: AzureOpenAIMaxTokens }
+        { name: 'AZURE_OPENAI_STOP_SEQUENCE', value: AzureOpenAIStopSequence }
+        { name: 'AZURE_OPENAI_SYSTEM_MESSAGE', value: AzureOpenAISystemMessage }
+        { name: 'AZURE_OPENAI_API_VERSION', value: AzureOpenAIApiVersion }
+        { name: 'AZURE_OPENAI_STREAM', value: AzureOpenAIStream }
+        { name: 'AZURE_OPENAI_EMBEDDING_MODEL', value: AzureOpenAIEmbeddingModel }
+        { name: 'AZURE_FORM_RECOGNIZER_ENDPOINT', value: AzureFormRecognizerEndpoint }
+        { name: 'AZURE_FORM_RECOGNIZER_KEY', value: AzureFormRecognizerKey }
+        { name: 'AZURE_BLOB_ACCOUNT_NAME', value: AzureBlobAccountName }
+        { name: 'AZURE_BLOB_ACCOUNT_KEY', value: AzureBlobAccountKey }
+        { name: 'AZURE_BLOB_CONTAINER_NAME', value: AzureBlobContainerName }
+        { name: 'ORCHESTRATION_STRATEGY', value: OrchestrationStrategy }
       ]
       cors: {
         allowedOrigins: [
