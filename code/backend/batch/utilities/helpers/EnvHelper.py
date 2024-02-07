@@ -44,18 +44,23 @@ class EnvHelper:
         self.AZURE_OPENAI_EMBEDDING_MODEL = os.getenv('AZURE_OPENAI_EMBEDDING_MODEL', '')
         self.AZURE_TOKEN_PROVIDER = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
         # Initialize Azure keys based on authentication type and environment settings. 
-        # When AZURE_AUTH_TYPE is not 'rbac' and USE_KEY_VAULT environment variable is set, 
-        # Azure keys are securely fetched from Azure Key Vault using DefaultAzureCredential. 
-        # Otherwise, keys are obtained from environment variables, with fallbacks to None or 
-        # an empty string depending on the AZURE_AUTH_TYPE.
-        if not self.AZURE_AUTH_TYPE == 'rbac' and os.environ.get("USE_KEY_VAULT"):
-            self.credential = DefaultAzureCredential()
-            self.secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), self.credential)
-            self.AZURE_SEARCH_KEY = self.secret_client.get_secret(os.environ.get("AZURE_SEARCH_KEY")).value
-            self.AZURE_OPENAI_KEY = self.secret_client.get_secret(os.environ.get("AZURE_OPENAI_KEY")).value
+        # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
+        # When USE_KEY_VAULT environment variable is set, keys are securely fetched from Azure Key Vault using DefaultAzureCredential.
+        # Otherwise, keys are obtained from environment variables.
+        if self.AZURE_AUTH_TYPE == "rbac":
+            self.AZURE_SEARCH_KEY = None
+            self.AZURE_OPENAI_KEY = ""
+            self.AZURE_SPEECH_KEY = None
+        elif os.environ.get("USE_KEY_VAULT"):
+            credential = DefaultAzureCredential()
+            secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential)
+            self.AZURE_SEARCH_KEY = secret_client.get_secret(os.environ.get("AZURE_SEARCH_KEY")).value
+            self.AZURE_OPENAI_KEY = secret_client.get_secret(os.environ.get("AZURE_OPENAI_KEY")).value
+            self.AZURE_SPEECH_KEY = secret_client.get_secret(os.environ.get("AZURE_SPEECH_SERVICE_KEY")).value
         else:
-            self.AZURE_SEARCH_KEY = None if self.AZURE_AUTH_TYPE == 'rbac' else os.environ.get("AZURE_SEARCH_KEY")
-            self.AZURE_OPENAI_KEY = "" if self.AZURE_AUTH_TYPE == 'rbac' else os.environ.get("AZURE_OPENAI_KEY")
+            self.AZURE_SEARCH_KEY = os.environ.get("AZURE_SEARCH_KEY")
+            self.AZURE_OPENAI_KEY = os.environ.get("AZURE_OPENAI_KEY")
+            self.AZURE_SPEECH_KEY = os.environ.get("AZURE_SPEECH_SERVICE_KEY")
          # Set env for OpenAI SDK
         self.OPENAI_API_BASE = f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
         self.OPENAI_API_TYPE = "azure" if self.AZURE_AUTH_TYPE == "keys" else "azure_ad"

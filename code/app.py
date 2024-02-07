@@ -28,40 +28,33 @@ app = Flask(__name__)
 def static_file(path):
     return app.send_static_file(path)
 
-AZURE_AUTH_TYPE = os.environ.get("AZURE_AUTH_TYPE", "keys")
-# Initialize Azure keys based on authentication type and environment settings. 
-# When AZURE_AUTH_TYPE is not 'rbac' and USE_KEY_VAULT environment variable is set, 
-# Azure keys are securely fetched from Azure Key Vault using DefaultAzureCredential. 
-# Otherwise, keys are obtained from environment variables, with fallbacks to None or 
-# an empty string depending on the AZURE_AUTH_TYPE.
-if not AZURE_AUTH_TYPE == 'rbac' and os.environ.get("USE_KEY_VAULT"):
-    credential = DefaultAzureCredential()
-    secret_client = SecretClient(os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential)
-    AZURE_SEARCH_KEY = secret_client.get_secret(os.environ.get("AZURE_SEARCH_KEY")).value
-    AZURE_OPENAI_KEY = secret_client.get_secret(os.environ.get("AZURE_OPENAI_KEY")).value
-    AZURE_SPEECH_KEY = secret_client.get_secret(os.environ.get("AZURE_SPEECH_SERVICE_KEY")).value
-else:
-    AZURE_SEARCH_KEY = None if AZURE_AUTH_TYPE == 'rbac' else os.environ.get("AZURE_SEARCH_KEY")
-    AZURE_OPENAI_KEY = "" if AZURE_AUTH_TYPE == 'rbac' else os.environ.get("AZURE_OPENAI_KEY")
-    AZURE_SPEECH_KEY = None if AZURE_AUTH_TYPE == 'rbac' else os.environ.get("AZURE_SPEECH_SERVICE_KEY")
-
+from backend.batch.utilities.helpers.EnvHelper import EnvHelper
+env_helper: EnvHelper = EnvHelper()
+AZURE_AUTH_TYPE = env_helper.AZURE_AUTH_TYPE
+AZURE_SEARCH_KEY = env_helper.AZURE_SEARCH_KEY
+AZURE_OPENAI_KEY = env_helper.AZURE_OPENAI_KEY
+AZURE_SPEECH_KEY = env_helper.AZURE_SPEECH_KEY
 
 @app.route("/api/config", methods=["GET"])
 def get_config():
     # Retrieve the environment variables or other configuration data
-    azure_speech_region = os.getenv('AZURE_SPEECH_SERVICE_REGION')
+    azure_speech_region = os.getenv("AZURE_SPEECH_SERVICE_REGION")
 
     # Return the configuration data as JSON
-    return jsonify({
-        'azureSpeechKey': AZURE_SPEECH_KEY,
-        'azureSpeechRegion': azure_speech_region
-    })
+    return jsonify(
+        {"azureSpeechKey": AZURE_SPEECH_KEY, "azureSpeechRegion": azure_speech_region}
+    )
+
 
 # ACS Integration Settings
 AZURE_SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")
 AZURE_SEARCH_INDEX = os.environ.get("AZURE_SEARCH_INDEX")
-AZURE_SEARCH_USE_SEMANTIC_SEARCH = os.environ.get("AZURE_SEARCH_USE_SEMANTIC_SEARCH", "False")
-AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = os.environ.get("AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG", "default")
+AZURE_SEARCH_USE_SEMANTIC_SEARCH = os.environ.get(
+    "AZURE_SEARCH_USE_SEMANTIC_SEARCH", "False"
+)
+AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = os.environ.get(
+    "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG", "default"
+)
 AZURE_SEARCH_TOP_K = os.environ.get("AZURE_SEARCH_TOP_K", 5)
 AZURE_SEARCH_ENABLE_IN_DOMAIN = os.environ.get("AZURE_SEARCH_ENABLE_IN_DOMAIN", "true")
 AZURE_SEARCH_CONTENT_COLUMNS = os.environ.get("AZURE_SEARCH_CONTENT_COLUMNS")
@@ -84,7 +77,9 @@ AZURE_OPENAI_API_VERSION = os.environ.get(
     "AZURE_OPENAI_API_VERSION", "2023-06-01-preview"
 )
 AZURE_OPENAI_STREAM = os.environ.get("AZURE_OPENAI_STREAM", "true")
-AZURE_OPENAI_MODEL_NAME = os.environ.get("AZURE_OPENAI_MODEL_NAME", "gpt-35-turbo") # Name of the model, e.g. 'gpt-35-turbo' or 'gpt-4'
+AZURE_OPENAI_MODEL_NAME = os.environ.get(
+    "AZURE_OPENAI_MODEL_NAME", "gpt-35-turbo"
+)  # Name of the model, e.g. 'gpt-35-turbo' or 'gpt-4'
 AZURE_TOKEN_PROVIDER = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
 
 SHOULD_STREAM = True if AZURE_OPENAI_STREAM.lower() == "true" else False
@@ -263,9 +258,10 @@ def conversation_without_data(request):
     for message in request_messages:
         messages.append({"role": message["role"], "content": message["content"]})
 
+    # Azure Open AI takes the deployment name as the model name, "AZURE_OPENAI_MODEL" means deployment name.
     response = openai_client.chat.completions.create(
         model=AZURE_OPENAI_MODEL,
-        messages = messages,
+        messages=messages,
         temperature=float(AZURE_OPENAI_TEMPERATURE),
         max_tokens=int(AZURE_OPENAI_MAX_TOKENS),
         top_p=float(AZURE_OPENAI_TOP_P),
@@ -341,9 +337,15 @@ def conversation_custom():
         chat_history = []
         for i, k in enumerate(user_assistant_messages):
             if i % 2 == 0:
-                chat_history.append((user_assistant_messages[i]['content'],user_assistant_messages[i+1]['content']))
+                chat_history.append((user_assistant_messages[i]["content"],user_assistant_messages[i+1]["content"]))
         from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
-        messages = message_orchestrator.handle_message(user_message=user_message, chat_history=chat_history, conversation_id=conversation_id, orchestrator=ConfigHelper.get_active_config_or_default().orchestrator)
+
+        messages = message_orchestrator.handle_message(
+            user_message=user_message,
+            chat_history=chat_history,
+            conversation_id=conversation_id,
+            orchestrator=ConfigHelper.get_active_config_or_default().orchestrator,
+        )
 
         response_obj = {
             "id": "response.id",

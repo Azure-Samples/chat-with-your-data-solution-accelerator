@@ -10,7 +10,7 @@ param appCommandLine string = 'python -m streamlit run Admin.py --server.port 80
 param applicationInsightsName string = ''
 param keyVaultName string = ''
 param azureOpenAIName string = ''
-param azureCognitiveSearchName string = ''
+param azureAISearchName string = ''
 @secure()
 param appSettings object = {}
 param serviceName string = 'adminweb'
@@ -38,7 +38,7 @@ module adminweb '../core/host/appservice.bicep' = {
       USE_KEY_VAULT: useKeyVault ? useKeyVault : ''
       AZURE_KEY_VAULT_ENDPOINT: useKeyVault ? keyVaultEndpoint : ''
       AZURE_OPENAI_KEY: useKeyVault ? openAIKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', azureOpenAIName), '2023-05-01').key1
-      AZURE_SEARCH_KEY: useKeyVault ? searchKeyName : listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', azureCognitiveSearchName), '2021-04-01-preview').primaryKey
+      AZURE_SEARCH_KEY: useKeyVault ? searchKeyName : listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', azureAISearchName), '2021-04-01-preview').primaryKey
       AZURE_BLOB_ACCOUNT_KEY: useKeyVault ? storageAccountKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', storageAccountName), '2021-09-01').keys[0].value
       AZURE_FORM_RECOGNIZER_KEY: useKeyVault ? formRecognizerKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', formRecognizerName), '2023-05-01').key1
       AZURE_CONTENT_SAFETY_KEY: useKeyVault ? contentSafetyKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', contentSafetyName), '2023-05-01').key1

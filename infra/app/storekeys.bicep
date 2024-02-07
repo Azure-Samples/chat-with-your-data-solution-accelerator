@@ -1,7 +1,7 @@
 param keyVaultName string = ''
 param storageAccountName string = ''
 param azureOpenAIName string = ''
-param azureCognitiveSearchName string = ''
+param azureAISearchName string = ''
 param rgName string = ''
 param formRecognizerName string = ''
 param contentSafetyName string = ''
@@ -34,7 +34,7 @@ resource searchKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: keyVault
   name: searchKeyName
   properties: {
-    value: listAdminKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.Search/searchServices', azureCognitiveSearchName), '2021-04-01-preview').primaryKey
+    value: listAdminKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.Search/searchServices', azureAISearchName), '2021-04-01-preview').primaryKey
   }
 }
 
