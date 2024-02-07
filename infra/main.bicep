@@ -267,7 +267,7 @@ module storekeys './app/storekeys.bicep' = if (useKeyVault) {
   params: {
     keyVaultName: keyVaultName
     azureOpenAIName: openai.outputs.name
-    azureCognitiveSearchName: search.outputs.name
+    azureAISearchName: search.outputs.name
     storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
@@ -319,7 +319,7 @@ module web './app/web.bicep' = {
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
-    azureCognitiveSearchName: search.outputs.name
+    azureAISearchName: search.outputs.name
     storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
@@ -380,15 +380,17 @@ module adminweb './app/adminweb.bicep' = {
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
-    azureCognitiveSearchName: search.outputs.name
+    azureAISearchName: search.outputs.name
     storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
+    speechServiceName: speechService.outputs.name
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
     storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
     formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
+    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME: ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
@@ -452,7 +454,7 @@ module function './app/function.bicep' = {
     tags: { 'azd-service-name': 'function' }
     appServicePlanId: hostingplan.outputs.name
     azureOpenAIName: openai.outputs.name
-    azureCognitiveSearchName: search.outputs.name
+    azureAISearchName: search.outputs.name
     storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name

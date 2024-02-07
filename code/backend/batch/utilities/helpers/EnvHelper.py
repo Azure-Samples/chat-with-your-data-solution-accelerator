@@ -53,10 +53,10 @@ class EnvHelper:
             self.AZURE_SPEECH_KEY = None
         elif os.environ.get('USE_KEY_VAULT'):
             credential = DefaultAzureCredential()
-            secret_client = SecretClient(os.environ.get('AZURE_KEY_VAULT_ENDPOINT'), credential)
-            self.AZURE_SEARCH_KEY = secret_client.get_secret(os.environ.get('AZURE_SEARCH_KEY')).value
-            self.AZURE_OPENAI_KEY = secret_client.get_secret(os.environ.get('AZURE_OPENAI_KEY')).value
-            self.AZURE_SPEECH_KEY = secret_client.get_secret(os.environ.get('AZURE_SPEECH_SERVICE_KEY')).value
+            self.secret_client = SecretClient(os.environ.get('AZURE_KEY_VAULT_ENDPOINT'), credential)
+            self.AZURE_SEARCH_KEY = self.secret_client.get_secret(os.environ.get('AZURE_SEARCH_KEY')).value
+            self.AZURE_OPENAI_KEY = self.secret_client.get_secret(os.environ.get('AZURE_OPENAI_KEY')).value
+            self.AZURE_SPEECH_KEY = self.secret_client.get_secret(os.environ.get('AZURE_SPEECH_SERVICE_KEY')).value
         else:
             self.AZURE_SEARCH_KEY = os.environ.get('AZURE_SEARCH_KEY')
             self.AZURE_OPENAI_KEY = os.environ.get('AZURE_OPENAI_KEY')

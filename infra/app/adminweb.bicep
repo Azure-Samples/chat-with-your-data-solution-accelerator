@@ -11,6 +11,7 @@ param applicationInsightsName string = ''
 param keyVaultName string = ''
 param azureOpenAIName string = ''
 param azureAISearchName string = ''
+param speechServiceName string = ''
 @secure()
 param appSettings object = {}
 param serviceName string = 'adminweb'
@@ -20,6 +21,7 @@ param storageAccountKeyName string = ''
 param formRecognizerKeyName string = ''
 param searchKeyName string = ''
 param contentSafetyKeyName string = ''
+param speechKeyName string = ''
 param keyVaultEndpoint string = ''
 param authType string
 
@@ -42,6 +44,7 @@ module adminweb '../core/host/appservice.bicep' = {
       AZURE_BLOB_ACCOUNT_KEY: useKeyVault ? storageAccountKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', storageAccountName), '2021-09-01').keys[0].value
       AZURE_FORM_RECOGNIZER_KEY: useKeyVault ? formRecognizerKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', formRecognizerName), '2023-05-01').key1
       AZURE_CONTENT_SAFETY_KEY: useKeyVault ? contentSafetyKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', contentSafetyName), '2023-05-01').key1
+      AZURE_SPEECH_SERVICE_KEY: useKeyVault ? speechKeyName: listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', speechServiceName), '2023-05-01').key1
     })
     keyVaultName: keyVaultName
     runtimeName: 'python'
