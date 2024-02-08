@@ -89,13 +89,12 @@ class TestCoversationCustom:
 
         # then
         message_orchestrator_mock.handle_message.assert_called_once_with(
-            user_message="What is the meaning of life?",
+            user_message=self.body["messages"][-1]["content"],
             chat_history=self.body["messages"][:-1],
             conversation_id=self.body["conversation_id"],
             orchestrator=self.orchestrator_config,
         )
 
-    @patch("code.app.app.get_message_orchestrator")
     @patch("code.app.app.get_orchestrator_config")
     def test_converstation_custom_returns_error_resonse_on_exception(
         self, get_orchestrator_config_mock
@@ -115,3 +114,48 @@ class TestCoversationCustom:
         assert response.json == {
             "error": "Exception in /api/conversation/custom. See log for more details."
         }
+
+    @patch("code.app.app.get_message_orchestrator")
+    @patch("code.app.app.get_orchestrator_config")
+    def test_converstation_custom_allows_multiple_messages_from_user(
+        self, get_orchestrator_config_mock, get_message_orchestrator_mock
+    ):
+        """This can happen if there was an error getting a response from the assistant for the previous user message."""
+
+        # given
+        get_orchestrator_config_mock.return_value = self.orchestrator_config
+
+        message_orchestrator_mock = Mock()
+        message_orchestrator_mock.handle_message.return_value = self.messages
+        get_message_orchestrator_mock.return_value = message_orchestrator_mock
+
+        os.environ["AZURE_OPENAI_MODEL"] = self.openai_model
+
+        body = {
+            "conversation_id": "123",
+            "messages": [
+                {"role": "user", "content": "Hello"},
+                {"role": "assistant", "content": "Hi, how can I help?"},
+                {"role": "user", "content": "What is the meaning of life?"},
+                {
+                    "role": "user",
+                    "content": "Please, what is the meaning of life?",
+                },
+            ],
+        }
+
+        # when
+        response = app.test_client().post(
+            "/api/conversation/custom",
+            headers={"content-type": "application/json"},
+            json=body,
+        )
+
+        # then
+        assert response.status_code == 200
+        message_orchestrator_mock.handle_message.assert_called_once_with(
+            user_message=body["messages"][-1]["content"],
+            chat_history=body["messages"][:-1],
+            conversation_id=body["conversation_id"],
+            orchestrator=self.orchestrator_config,
+        )
