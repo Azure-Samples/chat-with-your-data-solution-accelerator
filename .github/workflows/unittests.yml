@@ -20,6 +20,6 @@ jobs:
             architecture: x64
         - name: Install dependencies
           run: |
-            pip install -r code/requirements.txt -r code/dev-requirements.txt
+            pip install -r code/requirements.txt -r code/dev-requirements.txt -r code/app/requirements.txt
         - name: Run Python tests
           run: python -m pytest --rootdir=code -m "not azure"

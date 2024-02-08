@@ -89,8 +89,10 @@ class LangChainAgent(OrchestratorBase):
             memory_key="chat_history", return_messages=True
         )
         for message in chat_history:
-            memory.chat_memory.add_user_message(message[0])
-            memory.chat_memory.add_ai_message(message[1])
+            if message["role"] == "user":
+                memory.chat_memory.add_user_message(message["content"])
+            elif message["role"] == "assistant":
+                memory.chat_memory.add_ai_message(message["content"])
         # Define Agent and Agent Chain
         llm_chain = LLMChain(llm=llm_helper.get_llm(), prompt=prompt)
         agent = ZeroShotAgent(llm_chain=llm_chain, tools=self.tools, verbose=True)
