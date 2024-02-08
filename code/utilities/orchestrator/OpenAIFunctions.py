@@ -81,8 +81,7 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
         # Create conversation history
         messages = [{"role": "system", "content": system_message}]
         for message in chat_history:
-            messages.append({"role": "user", "content": message[0]})
-            messages.append({"role": "assistant", "content": message[1]})
+            messages.append({"role": message["role"], "content": message["content"]})
         messages.append({"role": "user", "content": user_message})
 
         result = llm_helper.get_chat_completion_with_functions(

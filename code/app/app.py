@@ -313,11 +313,21 @@ def conversation_azure_byod():
         )
 
 
-@app.route("/api/conversation/custom", methods=["GET", "POST"])
-def conversation_custom():
+def get_message_orchestrator():
     from utilities.helpers.OrchestratorHelper import Orchestrator
 
-    message_orchestrator = Orchestrator()
+    return Orchestrator()
+
+
+def get_orchestrator_config():
+    from utilities.helpers.ConfigHelper import ConfigHelper
+
+    return ConfigHelper.get_active_config_or_default().orchestrator
+
+
+@app.route("/api/conversation/custom", methods=["GET", "POST"])
+def conversation_custom():
+    message_orchestrator = get_message_orchestrator()
 
     try:
         user_message = request.json["messages"][-1]["content"]
@@ -328,22 +338,12 @@ def conversation_custom():
                 request.json["messages"][0:-1],
             )
         )
-        chat_history = []
-        for i, k in enumerate(user_assistant_messages):
-            if i % 2 == 0:
-                chat_history.append(
-                    (
-                        user_assistant_messages[i]["content"],
-                        user_assistant_messages[i + 1]["content"],
-                    )
-                )
-        from utilities.helpers.ConfigHelper import ConfigHelper
 
         messages = message_orchestrator.handle_message(
             user_message=user_message,
-            chat_history=chat_history,
+            chat_history=user_assistant_messages,
             conversation_id=conversation_id,
-            orchestrator=ConfigHelper.get_active_config_or_default().orchestrator,
+            orchestrator=get_orchestrator_config(),
         )
 
         response_obj = {
