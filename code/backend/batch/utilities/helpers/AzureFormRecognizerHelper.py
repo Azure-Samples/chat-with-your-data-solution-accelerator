@@ -15,15 +15,15 @@ class AzureFormRecognizerClient:
         )
         if env_helper.AZURE_AUTH_TYPE == "rbac":
             self.document_analysis_client = DocumentAnalysisClient(
-                endpoint=self.AZURE_FORM_RECOGNIZER_ENDPOINT, 
-                credential=DefaultAzureCredential(), 
+                endpoint=self.AZURE_FORM_RECOGNIZER_ENDPOINT,
+                credential=DefaultAzureCredential(),
                 headers={
                     "x-ms-useragent": "chat-with-your-data-solution-accelerator/1.0.0"
                 },
             )
         else:
-            self.AZURE_FORM_RECOGNIZER_KEY : str = env_helper.AZURE_FORM_RECOGNIZER_KEY
-        
+            self.AZURE_FORM_RECOGNIZER_KEY: str = env_helper.AZURE_FORM_RECOGNIZER_KEY
+
             self.document_analysis_client = DocumentAnalysisClient(
                 endpoint=self.AZURE_FORM_RECOGNIZER_ENDPOINT,
                 credential=AzureKeyCredential(self.AZURE_FORM_RECOGNIZER_KEY),

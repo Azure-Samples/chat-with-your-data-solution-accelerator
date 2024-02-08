@@ -22,33 +22,55 @@ class AzureBlobStorageClient:
 
         self.auth_type = env_helper.AZURE_AUTH_TYPE
         if self.auth_type == "rbac":
-            self.account_name = account_name if account_name else env_helper.AZURE_BLOB_ACCOUNT_NAME
-            self.container_name : str = container_name if container_name else env_helper.AZURE_BLOB_CONTAINER_NAME
+            self.account_name = (
+                account_name if account_name else env_helper.AZURE_BLOB_ACCOUNT_NAME
+            )
+            self.container_name: str = (
+                container_name
+                if container_name
+                else env_helper.AZURE_BLOB_CONTAINER_NAME
+            )
             credential = DefaultAzureCredential()
             account_url = f"https://{self.account_name}.blob.core.windows.net/"
-            self.blob_service_client = BlobServiceClient(account_url=account_url, credential=credential)
-            self.user_delegation_key = self.request_user_delegation_key(blob_service_client=self.blob_service_client)
+            self.blob_service_client = BlobServiceClient(
+                account_url=account_url, credential=credential
+            )
+            self.user_delegation_key = self.request_user_delegation_key(
+                blob_service_client=self.blob_service_client
+            )
             self.account_key = None
         else:
-            self.account_name = account_name if account_name else env_helper.AZURE_BLOB_ACCOUNT_NAME
-            self.account_key = account_key if account_key else env_helper.AZURE_BLOB_ACCOUNT_KEY
+            self.account_name = (
+                account_name if account_name else env_helper.AZURE_BLOB_ACCOUNT_NAME
+            )
+            self.account_key = (
+                account_key if account_key else env_helper.AZURE_BLOB_ACCOUNT_KEY
+            )
             self.user_delegation_key = None
             self.connect_str = f"DefaultEndpointsProtocol=https;AccountName={self.account_name};AccountKey={self.account_key};EndpointSuffix=core.windows.net"
-            self.container_name : str = container_name if container_name else env_helper.AZURE_BLOB_CONTAINER_NAME
-            self.blob_service_client : BlobServiceClient = BlobServiceClient.from_connection_string(self.connect_str)
-    
-    def request_user_delegation_key(self, blob_service_client: BlobServiceClient) -> UserDelegationKey:
+            self.container_name: str = (
+                container_name
+                if container_name
+                else env_helper.AZURE_BLOB_CONTAINER_NAME
+            )
+            self.blob_service_client: BlobServiceClient = (
+                BlobServiceClient.from_connection_string(self.connect_str)
+            )
+
+    def request_user_delegation_key(
+        self, blob_service_client: BlobServiceClient
+    ) -> UserDelegationKey:
         # Get a user delegation key that's valid for 1 day
         delegation_key_start_time = datetime.utcnow()
         delegation_key_expiry_time = delegation_key_start_time + timedelta(days=1)
-    
+
         user_delegation_key = blob_service_client.get_user_delegation_key(
             key_start_time=delegation_key_start_time,
-            key_expiry_time=delegation_key_expiry_time
+            key_expiry_time=delegation_key_expiry_time,
         )
         return user_delegation_key
-    
-    def upload_file(self, bytes_data, file_name, content_type='application/pdf'):
+
+    def upload_file(self, bytes_data, file_name, content_type="application/pdf"):
         # Create a blob client using the local file name as the name for the blob
         blob_client = self.blob_service_client.get_blob_client(
             container=self.container_name, blob=file_name
@@ -117,21 +139,22 @@ class AzureBlobStorageClient:
                 files.append(
                     {
                         "filename": blob.name,
-                        "converted": blob.metadata.get("converted", "false") == "true"
-                        if blob.metadata
-                        else False,
-                        "embeddings_added": blob.metadata.get(
-                            "embeddings_added", "false"
-                        )
-                        == "true"
-                        if blob.metadata
-                        else False,
+                        "converted": (
+                            blob.metadata.get("converted", "false") == "true"
+                            if blob.metadata
+                            else False
+                        ),
+                        "embeddings_added": (
+                            blob.metadata.get("embeddings_added", "false") == "true"
+                            if blob.metadata
+                            else False
+                        ),
                         "fullpath": f"https://{self.account_name}.blob.core.windows.net/{self.container_name}/{blob.name}?{sas}",
-                        "converted_filename": blob.metadata.get(
-                            "converted_filename", ""
-                        )
-                        if blob.metadata
-                        else "",
+                        "converted_filename": (
+                            blob.metadata.get("converted_filename", "")
+                            if blob.metadata
+                            else ""
+                        ),
                         "converted_path": "",
                     }
                 )
@@ -150,7 +173,9 @@ class AzureBlobStorageClient:
 
     def upsert_blob_metadata(self, file_name, metadata):
         if self.auth_type == "rbac":
-            blob_client = self.blob_service_client.get_blob_client(container=self.container_name, blob=file_name)
+            blob_client = self.blob_service_client.get_blob_client(
+                container=self.container_name, blob=file_name
+            )
         else:
             blob_client = BlobServiceClient.from_connection_string(
                 self.connect_str

@@ -1,5 +1,7 @@
 import pytest
-from code.backend.batch.utilities.helpers.DocumentProcessorHelper import DocumentProcessor
+from code.backend.batch.utilities.helpers.DocumentProcessorHelper import (
+    DocumentProcessor,
+)
 from code.backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
 
 document_url = (

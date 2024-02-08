@@ -65,9 +65,11 @@ class AzureSearchHelper:
 
         return AzureSearch(
             azure_search_endpoint=env_helper.AZURE_SEARCH_SERVICE,
-            azure_search_key=env_helper.AZURE_SEARCH_KEY
-            if env_helper.AZURE_AUTH_TYPE == "keys"
-            else None,
+            azure_search_key=(
+                env_helper.AZURE_SEARCH_KEY
+                if env_helper.AZURE_AUTH_TYPE == "keys"
+                else None
+            ),
             index_name=env_helper.AZURE_SEARCH_INDEX,
             embedding_function=llm_helper.get_embedding_model().embed_query,
             fields=fields,
@@ -139,9 +141,11 @@ class AzureSearchHelper:
 
         return AzureSearch(
             azure_search_endpoint=env_helper.AZURE_SEARCH_SERVICE,
-            azure_search_key=env_helper.AZURE_SEARCH_KEY
-            if env_helper.AZURE_AUTH_TYPE == "keys"
-            else None,
+            azure_search_key=(
+                env_helper.AZURE_SEARCH_KEY
+                if env_helper.AZURE_AUTH_TYPE == "keys"
+                else None
+            ),
             index_name=env_helper.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX,
             embedding_function=llm_helper.get_embedding_model().embed_query,
             fields=fields,

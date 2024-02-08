@@ -7,8 +7,8 @@ import mimetypes
 from flask import Flask, Response, request, jsonify
 from dotenv import load_dotenv
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from azure.keyvault.secrets import SecretClient
 import sys
+from backend.batch.utilities.helpers.EnvHelper import EnvHelper
 
 # Fixing MIME types for static files under Windows
 mimetypes.add_type("application/javascript", ".js")
@@ -28,12 +28,13 @@ app = Flask(__name__)
 def static_file(path):
     return app.send_static_file(path)
 
-from backend.batch.utilities.helpers.EnvHelper import EnvHelper
+
 env_helper: EnvHelper = EnvHelper()
 AZURE_AUTH_TYPE = env_helper.AZURE_AUTH_TYPE
 AZURE_SEARCH_KEY = env_helper.AZURE_SEARCH_KEY
 AZURE_OPENAI_KEY = env_helper.AZURE_OPENAI_KEY
 AZURE_SPEECH_KEY = env_helper.AZURE_SPEECH_KEY
+
 
 @app.route("/api/config", methods=["GET"])
 def get_config():
@@ -80,7 +81,9 @@ AZURE_OPENAI_STREAM = os.environ.get("AZURE_OPENAI_STREAM", "true")
 AZURE_OPENAI_MODEL_NAME = os.environ.get(
     "AZURE_OPENAI_MODEL_NAME", "gpt-35-turbo"
 )  # Name of the model, e.g. 'gpt-35-turbo' or 'gpt-4'
-AZURE_TOKEN_PROVIDER = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
+AZURE_TOKEN_PROVIDER = get_bearer_token_provider(
+    DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+)
 
 SHOULD_STREAM = True if AZURE_OPENAI_STREAM.lower() == "true" else False
 
@@ -105,9 +108,11 @@ def prepare_body_headers_with_data(request):
         "temperature": AZURE_OPENAI_TEMPERATURE,
         "max_tokens": AZURE_OPENAI_MAX_TOKENS,
         "top_p": AZURE_OPENAI_TOP_P,
-        "stop": AZURE_OPENAI_STOP_SEQUENCE.split("|")
-        if AZURE_OPENAI_STOP_SEQUENCE
-        else None,
+        "stop": (
+            AZURE_OPENAI_STOP_SEQUENCE.split("|")
+            if AZURE_OPENAI_STOP_SEQUENCE
+            else None
+        ),
         "stream": SHOULD_STREAM,
         "dataSources": [
             {
@@ -117,30 +122,42 @@ def prepare_body_headers_with_data(request):
                     "key": AZURE_SEARCH_KEY,
                     "indexName": AZURE_SEARCH_INDEX,
                     "fieldsMapping": {
-                        "contentField": AZURE_SEARCH_CONTENT_COLUMNS.split("|")
-                        if AZURE_SEARCH_CONTENT_COLUMNS
-                        else [],
-                        "titleField": AZURE_SEARCH_TITLE_COLUMN
-                        if AZURE_SEARCH_TITLE_COLUMN
-                        else None,
-                        "urlField": AZURE_SEARCH_URL_COLUMN
-                        if AZURE_SEARCH_URL_COLUMN
-                        else None,
-                        "filepathField": AZURE_SEARCH_FILENAME_COLUMN
-                        if AZURE_SEARCH_FILENAME_COLUMN
-                        else None,
+                        "contentField": (
+                            AZURE_SEARCH_CONTENT_COLUMNS.split("|")
+                            if AZURE_SEARCH_CONTENT_COLUMNS
+                            else []
+                        ),
+                        "titleField": (
+                            AZURE_SEARCH_TITLE_COLUMN
+                            if AZURE_SEARCH_TITLE_COLUMN
+                            else None
+                        ),
+                        "urlField": (
+                            AZURE_SEARCH_URL_COLUMN if AZURE_SEARCH_URL_COLUMN else None
+                        ),
+                        "filepathField": (
+                            AZURE_SEARCH_FILENAME_COLUMN
+                            if AZURE_SEARCH_FILENAME_COLUMN
+                            else None
+                        ),
                     },
-                    "inScope": True
-                    if AZURE_SEARCH_ENABLE_IN_DOMAIN.lower() == "true"
-                    else False,
+                    "inScope": (
+                        True
+                        if AZURE_SEARCH_ENABLE_IN_DOMAIN.lower() == "true"
+                        else False
+                    ),
                     "topNDocuments": AZURE_SEARCH_TOP_K,
-                    "queryType": "semantic"
-                    if AZURE_SEARCH_USE_SEMANTIC_SEARCH.lower() == "true"
-                    else "simple",
-                    "semanticConfiguration": AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
-                    if AZURE_SEARCH_USE_SEMANTIC_SEARCH.lower() == "true"
-                    and AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
-                    else "",
+                    "queryType": (
+                        "semantic"
+                        if AZURE_SEARCH_USE_SEMANTIC_SEARCH.lower() == "true"
+                        else "simple"
+                    ),
+                    "semanticConfiguration": (
+                        AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
+                        if AZURE_SEARCH_USE_SEMANTIC_SEARCH.lower() == "true"
+                        and AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
+                        else ""
+                    ),
                     "roleInformation": AZURE_OPENAI_SYSTEM_MESSAGE,
                 },
             }
@@ -248,9 +265,17 @@ def stream_without_data(response):
 def conversation_without_data(request):
     azure_endpoint = f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/"
     if AZURE_AUTH_TYPE == "rbac":
-        openai_client = AzureOpenAI(azure_endpoint=azure_endpoint,  api_version=AZURE_OPENAI_API_VERSION, azure_ad_token_provider=AZURE_TOKEN_PROVIDER)
+        openai_client = AzureOpenAI(
+            azure_endpoint=azure_endpoint,
+            api_version=AZURE_OPENAI_API_VERSION,
+            azure_ad_token_provider=AZURE_TOKEN_PROVIDER,
+        )
     else:
-        openai_client = AzureOpenAI(azure_endpoint=azure_endpoint,  api_version=AZURE_OPENAI_API_VERSION, api_key=AZURE_OPENAI_KEY)
+        openai_client = AzureOpenAI(
+            azure_endpoint=azure_endpoint,
+            api_version=AZURE_OPENAI_API_VERSION,
+            api_key=AZURE_OPENAI_KEY,
+        )
 
     request_messages = request.json["messages"]
     messages = [{"role": "system", "content": AZURE_OPENAI_SYSTEM_MESSAGE}]
@@ -265,9 +290,11 @@ def conversation_without_data(request):
         temperature=float(AZURE_OPENAI_TEMPERATURE),
         max_tokens=int(AZURE_OPENAI_MAX_TOKENS),
         top_p=float(AZURE_OPENAI_TOP_P),
-        stop=AZURE_OPENAI_STOP_SEQUENCE.split("|")
-        if AZURE_OPENAI_STOP_SEQUENCE
-        else None,
+        stop=(
+            AZURE_OPENAI_STOP_SEQUENCE.split("|")
+            if AZURE_OPENAI_STOP_SEQUENCE
+            else None
+        ),
         stream=SHOULD_STREAM,
     )
 
@@ -322,7 +349,9 @@ def conversation_azure_byod():
 
 @app.route("/api/conversation/custom", methods=["GET", "POST"])
 def conversation_custom():
-    from backend.batch.utilities.helpers.OrchestratorHelper import Orchestrator, OrchestrationSettings
+    from backend.batch.utilities.helpers.OrchestratorHelper import (
+        Orchestrator,
+    )
 
     message_orchestrator = Orchestrator()
 

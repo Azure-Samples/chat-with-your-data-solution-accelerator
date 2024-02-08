@@ -1,5 +1,7 @@
 import pytest
-from code.backend.batch.utilities.helpers.AzureBlobStorageHelper import AzureBlobStorageClient
+from code.backend.batch.utilities.helpers.AzureBlobStorageHelper import (
+    AzureBlobStorageClient,
+)
 
 
 @pytest.fixture
