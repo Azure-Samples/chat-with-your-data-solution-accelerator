@@ -3,7 +3,7 @@ import os
 from unittest.mock import Mock
 from unittest.mock import patch
 
-from code.app.app import app
+from code.app import app
 
 
 class TestConfig:
@@ -35,8 +35,8 @@ class TestCoversationCustom:
             ],
         }
 
-    @patch("code.app.app.get_message_orchestrator")
-    @patch("code.app.app.get_orchestrator_config")
+    @patch("code.app.get_message_orchestrator")
+    @patch("code.app.get_orchestrator_config")
     def test_converstation_custom_returns_correct_response(
         self, get_orchestrator_config_mock, get_message_orchestrator_mock
     ):
@@ -66,8 +66,8 @@ class TestCoversationCustom:
             "object": "response.object",
         }
 
-    @patch("code.app.app.get_message_orchestrator")
-    @patch("code.app.app.get_orchestrator_config")
+    @patch("code.app.get_message_orchestrator")
+    @patch("code.app.get_orchestrator_config")
     def test_converstation_custom_calls_message_orchestrator_correctly(
         self, get_orchestrator_config_mock, get_message_orchestrator_mock
     ):
@@ -95,7 +95,7 @@ class TestCoversationCustom:
             orchestrator=self.orchestrator_config,
         )
 
-    @patch("code.app.app.get_orchestrator_config")
+    @patch("code.app.get_orchestrator_config")
     def test_converstation_custom_returns_error_resonse_on_exception(
         self, get_orchestrator_config_mock
     ):
@@ -115,8 +115,8 @@ class TestCoversationCustom:
             "error": "Exception in /api/conversation/custom. See log for more details."
         }
 
-    @patch("code.app.app.get_message_orchestrator")
-    @patch("code.app.app.get_orchestrator_config")
+    @patch("code.app.get_message_orchestrator")
+    @patch("code.app.get_orchestrator_config")
     def test_converstation_custom_allows_multiple_messages_from_user(
         self, get_orchestrator_config_mock, get_message_orchestrator_mock
     ):
