@@ -8,7 +8,7 @@ from flask import Flask, Response, request, jsonify
 from dotenv import load_dotenv
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 import sys
-from .backend.batch.utilities.helpers.EnvHelper import EnvHelper
+from backend.batch.utilities.helpers.EnvHelper import EnvHelper
 
 # Fixing MIME types for static files under Windows
 mimetypes.add_type("application/javascript", ".js")
@@ -348,13 +348,13 @@ def conversation_azure_byod():
 
 
 def get_message_orchestrator():
-    from .backend.batch.utilities.helpers.OrchestratorHelper import Orchestrator
+    from backend.batch.utilities.helpers.OrchestratorHelper import Orchestrator
 
     return Orchestrator()
 
 
 def get_orchestrator_config():
-    from .backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
+    from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
 
     return ConfigHelper.get_active_config_or_default().orchestrator
 
