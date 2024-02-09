@@ -21,13 +21,7 @@ func start
 
 Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions).
 
-#### Building the Teams Backend Docker image
 
-```shell
-docker build -f extensions\docker\Backend.Dockerfile -t YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE .
-docker run --env-file .env -p 7071:80 YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
-docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
-```
 ### Develop & run the Teams Frontend
 1. Open the “extensions/teams” folder with Visual Studio Code 
 
@@ -35,7 +29,7 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 
 2. Open the file env\\.env.local 
 3. Locate the environment variable AZURE_FUNCTION_URL.
-4. Replace the <YOUR AZURE FUNCTION NAME> with your local Teams Backend URL (i.e., http://localhost:7071/api/http_cwyod)
+4. Replace the <YOUR AZURE FUNCTION NAME> with your local Teams Backend URL (i.e., http://localhost:7071/api/GetConversationResponse)
 
 ![Env](/media/teams-local-3.png)
 

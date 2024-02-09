@@ -3,15 +3,16 @@ import logging
 import json
 import os
 import sys
+from utilities.helpers.OrchestratorHelper import Orchestrator
 
-# Add the path to the code folder to the system path so that the code can be imported
-sys.path.insert(0, "../../code")
+sys.path.append("..")
 
+bp_get_conversation_response = func.Blueprint()
 
-def main(req: func.HttpRequest) -> func.HttpResponse:
+@bp_get_conversation_response.route(route="GetConversationResponse")
+def get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Python HTTP trigger function processed a request.")
 
-    from utilities.helpers.OrchestratorHelper import Orchestrator
 
     message_orchestrator = Orchestrator()
 
