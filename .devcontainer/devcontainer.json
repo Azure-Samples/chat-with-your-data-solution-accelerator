@@ -23,6 +23,7 @@
 				"ms-azuretools.vscode-bicep",
 				"ms-azuretools.vscode-docker",
 				"ms-python.python",
+				"ms-python.black-formatter",
 				"ms-python.vscode-pylance",
 				"ms-vscode.vscode-node-azure-pack",
 				"TeamsDevApp.ms-teams-vscode-extension"

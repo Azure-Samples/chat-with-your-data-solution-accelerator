@@ -1,5 +1,5 @@
 azure-identity==1.15.0
-Flask==2.3.2
+Flask==3.0.2
 openai==1.6.1
 azure-storage-blob==12.19.0
 python-dotenv==1.0.1
