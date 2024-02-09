@@ -82,14 +82,14 @@ class EnvHelper:
                 os.environ.get("AZURE_SEARCH_KEY")
             ).value
             self.AZURE_OPENAI_KEY = self.secret_client.get_secret(
-                os.environ.get("AZURE_OPENAI_KEY")
+                os.environ.get("AZURE_OPENAI_KEY", "")
             ).value
             self.AZURE_SPEECH_KEY = self.secret_client.get_secret(
                 os.environ.get("AZURE_SPEECH_SERVICE_KEY")
             ).value
         else:
             self.AZURE_SEARCH_KEY = os.environ.get("AZURE_SEARCH_KEY")
-            self.AZURE_OPENAI_KEY = os.environ.get("AZURE_OPENAI_KEY")
+            self.AZURE_OPENAI_KEY = os.environ.get("AZURE_OPENAI_KEY", "")
             self.AZURE_SPEECH_KEY = os.environ.get("AZURE_SPEECH_SERVICE_KEY")
         # Set env for OpenAI SDK
         self.OPENAI_API_BASE = (
