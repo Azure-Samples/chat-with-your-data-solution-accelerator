@@ -510,6 +510,7 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
   properties: {
     siteConfig: {
       appSettings: [
+        { name: 'APPINSIGHTS_CONNECTION_STRING', value: reference(ApplicationInsights.id, '2015-05-01').ConnectionString }
         { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
         { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false' }
         { name: 'APPINSIGHTS_INSTRUMENTATIONKEY', value: reference(ApplicationInsights.id, '2015-05-01').InstrumentationKey }
