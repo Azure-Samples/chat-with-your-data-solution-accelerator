@@ -6,7 +6,7 @@ python-dotenv==1.0.1
 langchain==0.1.4
 azure-ai-formrecognizer==3.3.2
 requests==2.31.0
-tiktoken==0.5.2
+tiktoken==0.6.0
 azure-storage-queue==12.9.0
 beautifulsoup4==4.12.3
 fake-useragent==1.4.0
