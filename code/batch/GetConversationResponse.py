@@ -54,5 +54,5 @@ def get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse(json.dumps(response_obj), status_code=200)
 
     except Exception as e:
-        logging.exception("Exception in /api/conversation/custom")
+        logging.exception("Exception in /api/GetConversationResponse")
         return func.HttpResponse(json.dumps({"error": str(e)}), status_code=500)
