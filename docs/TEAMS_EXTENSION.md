@@ -22,31 +22,6 @@ This extension enables users to experience Chat with your data within Teams, wit
 - [Enable custom Teams apps and turn on custom app uploading](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/prepare-your-o365-tenant#enable-custom-teams-apps-and-turn-on-custom-app-uploading) (optional: Teams extension only)
 - In order to publish the App to the Teams Store, the Teams Administrator role is required. 
 
-### Deploy backend Azure Function
-
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fblessing-msft%2Fchat-with-your-data-solution-accelerator%2Fmain%2Fextensions%2Finfrastructure%2Fmain.json)
-
-Note: The (p) suffix on the App Setting (below) means that you should use the same resources and services deployed during the [Chat with your data with speech-to-text deployment](../README.md)
-
-| App Setting | Note |
-| --- | ------------- |
-|Resource group | The resource group that will contain the resources for this accelerator. You can select Create new to create a new group or use the existing resource group created with [Speech-to-text deployment](#speech-to-text-deployment). |
-|Resource prefix | A text string that will be appended to each resource that gets created, and used as the website name for the web app. This name cannot contain spaces or special characters. |
-|App Insights Connection String (p) | The Application Insights connection string to store the application logs. |
-|Azure AI Search (p) | The **name** of your Azure AI Search resource. e.g. https://<**name**>.search.windows.net. |
-|Azure Search Index (p) | The name of your Azure AI Search Index. |
-|Azure Search Key (p) | An admin key for your Azure AI Search resource. |
-|Azure OpenAI resource (p) | The name of your Azure OpenAI resource. This resource must have already been created previously. |
-|Azure OpenAI key (p) | The access key is associated with your Azure OpenAI resource. |
-|Orchestration strategy (p) | Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a model version 0314 select "langchain". |
-|Azure Form Recognizer Endpoint (p) | The name of the Azure Form Recognizer for extracting the text from the documents. |
-|Azure Form Recognizer Key (p) | The key of the Azure Form Recognizer for extracting the text from the documents. |
-|Azure Blob Account Name (p) | The name of the Azure Blob Storage for storing the original documents to be processed. |
-|Azure Blob Account Key (p) | The key of the Azure Blob Storage for storing the original documents to be processed. |
-|Azure Blob Container Name (p) | The name of the Container in the Azure Blob Storage for storing the original documents to be processed. |
-
-You can find the [ARM template](/extensions/infrastructure/main.json) used, along with a [Bicep file](/extensions/infrastructure/main.bicep) for deploying this accelerator in the /infrastructure directory.
-
 ### Deploy Teams application
 1. Clone this GitHub repo.
 2. Open the “extensions/teams” folder with Visual Studio Code 

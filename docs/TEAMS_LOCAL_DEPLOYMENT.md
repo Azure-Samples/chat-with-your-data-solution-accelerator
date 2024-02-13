@@ -14,8 +14,7 @@ First, install [Azure Functions Core Tools](https://learn.microsoft.com/en-us/az
 
 
 ```shell
-cd extensions
-cd backend
+cd code\batch
 func start
 ```
 
