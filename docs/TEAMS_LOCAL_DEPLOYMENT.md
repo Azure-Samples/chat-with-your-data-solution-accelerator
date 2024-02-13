@@ -33,7 +33,6 @@ Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.
     ```env
     AZURE_FUNCTION_URL=http://localhost:7071/api/GetConversationResponse
     ```
-
     ![Env](/media/teams-local-3.png)
 
 5. Save the file.
