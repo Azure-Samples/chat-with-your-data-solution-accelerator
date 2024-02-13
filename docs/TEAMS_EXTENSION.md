@@ -33,7 +33,12 @@ This extension enables users to experience Chat with your data within Teams, wit
 ![ENV](/media/teams-1.png) 
 
 4. Locate the environment variable AZURE_FUNCTION_URL.
-5. Replace the <YOUR AZURE FUNCTION NAME> with the name of your Function App resource (created in previous section)
+5. Replace the `<YOUR AZURE FUNCTION NAME>` with the name of your Function App resource (created in previous section)
+    ```env
+    AZURE_FUNCTION_URL=https://<AZURE_FUNCTION_RESOURCE>.azurewebsites.net/api/GetConversationResponse
+    ```
+
+    ![Env](/media/teams-deploy-env.png)
 6. Save the file.
 7. Select Teams Toolkit from the navigation panel. 
 
