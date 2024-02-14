@@ -29,7 +29,7 @@ Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.
 2. Open the file env\\.env.local 
 3. Locate the environment variable _AZURE_FUNCTION_URL_.
 
-4. Replace the `<YOUR AZURE FUNCTION NAME>` with your local Teams Backend URL (i.e., http://localhost:7071/api/GetConversationResponse)
+4. Replace the `<AZURE_FUNCTION_URL>` with your local Teams Backend URL (i.e., http://localhost:7071/api/GetConversationResponse)
     ```env
     AZURE_FUNCTION_URL=http://localhost:7071/api/GetConversationResponse
     ```
