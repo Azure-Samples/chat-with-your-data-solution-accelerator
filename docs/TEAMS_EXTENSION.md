@@ -1,7 +1,7 @@
 [Back to *Chat with your data* README](../README.md)
 
 # Teams extension
-[**USER STORY**](#user-story) | [**ONE-CLICK DEPLOY**](#one-click-deploy) | [**SUPPORTING DOCUMENTATION**](#supporting-documentation)
+[**USER STORY**](#user-story) | [**TEAMS DEPLOY**](#teams-deploy) | [**SUPPORTING DOCUMENTATION**](#supporting-documentation)
 \
 \
 ![User Story](/media/userStory.png)
