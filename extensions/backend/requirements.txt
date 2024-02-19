@@ -6,7 +6,7 @@ azure-functions
 streamlit==1.30.0
 openai==0.27.8
 matplotlib==3.8.2
-plotly==5.18.0
+plotly==5.19.0
 scipy==1.12.0
 scikit-learn==1.4.0
 transformers==4.37.2
