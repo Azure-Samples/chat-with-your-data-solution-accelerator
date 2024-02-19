@@ -1,0 +1,42 @@
+{
+    "name": "frontend",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "scripts": {
+        "dev": "tsc && vite",
+        "build": "tsc && vite build",
+        "watch": "tsc && vite build --watch"
+    },
+    "dependencies": {
+        "@babel/traverse": "^7.23.2",
+        "@fluentui/react": "^8.105.3",
+        "@fluentui/react-icons": "^2.0.195",
+        "@fortawesome/fontawesome-svg-core": "^6.5.1",
+        "@fortawesome/free-solid-svg-icons": "^6.4.2",
+        "@fortawesome/react-fontawesome": "github:fortawesome/react-fontawesome",
+        "lodash": "^4.17.21",
+        "lodash-es": "^4.17.21",
+        "microsoft-cognitiveservices-speech-sdk": "^1.32.0",
+        "postcss": "^8.4.31",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "react-markdown": "^7.0.1",
+        "react-router-dom": "^6.8.1",
+        "rehype-raw": "^6.1.1",
+        "remark-gfm": "^3.0.1",
+        "remark-supersub": "^1.0.0",
+        "uuid": "^9.0.0"
+    },
+    "devDependencies": {
+        "@types/lodash-es": "^4.17.7",
+        "@types/node": "^20.10.4",
+        "@types/react": "^18.0.27",
+        "@types/react-dom": "^18.0.10",
+        "@types/uuid": "^9.0.2",
+        "@vitejs/plugin-react": "^3.1.0",
+        "prettier": "^2.8.3",
+        "typescript": "^4.9.3",
+        "vite": "^4.5.2"
+    }
+}

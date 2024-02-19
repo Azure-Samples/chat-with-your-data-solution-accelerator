@@ -21,5 +21,7 @@ jobs:
         - name: Install dependencies
           run: |
             pip install -r code/requirements.txt -r code/dev-requirements.txt -r code/backend/requirements.txt
+        - name: Check directory into codes 
+          run: cd codes/
         - name: Run Python tests
-          run: python -m pytest --rootdir=code -m "not azure"
+          run: python -m pytest -m "not azure"

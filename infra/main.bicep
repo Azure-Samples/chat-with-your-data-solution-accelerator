@@ -131,7 +131,7 @@ param azureSearchIndex string = '${environmentName}-index-${resourceToken}'
 param azureSearchConversationLogIndex string = 'conversations'
 
 @description('Name of Storage Account')
-param storageAccountName string = '${environmentName}str${resourceToken}'
+param storageAccountName string = 'str${resourceToken}'
 
 @description('Name of Function App for Batch document processing')
 param functionName string = '${environmentName}-backend-${resourceToken}'
@@ -178,7 +178,7 @@ module keyvault './core/security/keyvault.bicep' = if (useKeyVault || authType =
   name: 'keyvault'
   scope: rg
   params: {
-    name: 'kv-${resourceToken}'
+    name: keyVaultName
     location: location
     tags: tags
     principalId: principalId
