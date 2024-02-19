@@ -6,7 +6,7 @@ metadata:
 
 services:
   web:
-    project: ./codes
+    project: ./code
     language: py
     host: appservice
     hooks:
@@ -23,11 +23,11 @@ services:
           continueOnError: false
           
   adminweb:
-    project: ./codes/backend
+    project: ./code/backend
     language: py
     host: appservice
 
   function:
-    project: ./codes/backend/batch
+    project: ./code/backend/batch
     language: py
     host: function

@@ -6,8 +6,8 @@ ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
     AzureFunctionsJobHost__Logging__Console__IsEnabled=true \
     AzureWebJobsFeatureFlags=EnableWorkerIndexing
 
-COPY ./code/requirements.txt /
+COPY ./code/backend/requirements.txt /
 RUN pip install -r /requirements.txt
 
-COPY ./code/utilities /home/site/wwwroot/utilities
-COPY ./code/batch /home/site/wwwroot
+COPY ./code/backend/batch/utilities /home/site/wwwroot/utilities
+COPY ./code/backend/batch /home/site/wwwroot

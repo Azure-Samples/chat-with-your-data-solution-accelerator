@@ -11,7 +11,7 @@ sys.path.insert(0, "../../code")
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Python HTTP trigger function processed a request.")
 
-    from utilities.helpers.OrchestratorHelper import Orchestrator
+    from code.backend.batch.utilities.helpers.OrchestratorHelper import Orchestrator
 
     message_orchestrator = Orchestrator()
 
@@ -33,7 +33,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                         user_assistant_messages[i + 1]["content"],
                     )
                 )
-        from utilities.helpers.ConfigHelper import ConfigHelper
+        from code.backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
 
         messages = message_orchestrator.handle_message(
             user_message=user_message,
