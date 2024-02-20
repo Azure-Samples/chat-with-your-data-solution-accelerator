@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.24.24.22086",
-      "templateHash": "8362420292927365599"
+      "version": "0.25.53.49325",
+      "templateHash": "10944925979843412005"
     }
   },
   "parameters": {
@@ -230,7 +230,7 @@
     },
     "AzureOpenAIApiVersion": {
       "type": "string",
-      "defaultValue": "2023-07-01-preview",
+      "defaultValue": "2023-12-01-preview",
       "metadata": {
         "description": "Azure OpenAI Api Version"
       }
@@ -340,9 +340,9 @@
     }
   },
   "variables": {
-    "WebAppImageName": "DOCKER|fruoccopublic.azurecr.io/rag-webapp",
-    "AdminWebAppImageName": "DOCKER|fruoccopublic.azurecr.io/rag-adminwebapp",
-    "BackendImageName": "DOCKER|fruoccopublic.azurecr.io/rag-backend",
+    "WebAppImageName": "DOCKER|docker.io/fr4nc3/rag-webapp",
+    "AdminWebAppImageName": "DOCKER|docker.io/fr4nc3/rag-adminwebapp",
+    "BackendImageName": "DOCKER|docker.io/fr4nc3/rag-backend",
     "BlobContainerName": "documents",
     "QueueName": "doc-processing",
     "ClientKey": "[format('{0}{1}', uniqueString(guid(resourceGroup().id, deployment().name)), parameters('newGuidString'))]",
@@ -957,6 +957,9 @@
         "siteConfig": {
           "appSettings": [
             {
+              "name": "APPINSIGHTS_CONNECTION_STRING",
+            },
+            {
               "name": "FUNCTIONS_EXTENSION_VERSION",
               "value": "~4"
             },
@@ -1173,8 +1176,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1242,8 +1245,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1311,8 +1314,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1380,8 +1383,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1449,8 +1452,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1518,8 +1521,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1584,8 +1587,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1653,8 +1656,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1722,8 +1725,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1791,8 +1794,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1860,8 +1863,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1929,8 +1932,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1998,8 +2001,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -2064,8 +2067,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -2133,8 +2136,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -2202,8 +2205,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -2271,8 +2274,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -2340,8 +2343,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -2406,8 +2409,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -2475,8 +2478,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -2544,8 +2547,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -2613,8 +2616,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -2679,8 +2682,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -2748,8 +2751,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -2817,8 +2820,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -2886,8 +2889,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.24.24.22086",
-              "templateHash": "2184194315885104837"
+              "version": "0.25.53.49325",
+              "templateHash": "15698903649631098787"
             },
             "description": "Creates a role assignment for a service principal."
           },

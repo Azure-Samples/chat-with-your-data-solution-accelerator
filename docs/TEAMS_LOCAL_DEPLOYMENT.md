@@ -14,30 +14,26 @@ First, install [Azure Functions Core Tools](https://learn.microsoft.com/en-us/az
 
 
 ```shell
-cd extensions
-cd backend
+cd code\batch
 func start
 ```
 
 Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions).
 
-#### Building the Teams Backend Docker image
 
-```shell
-docker build -f extensions\docker\Backend.Dockerfile -t YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE .
-docker run --env-file .env -p 7071:80 YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
-docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
-```
 ### Develop & run the Teams Frontend
 1. Open the “extensions/teams” folder with Visual Studio Code 
 
 ![Teams](/media/teams.png) 
 
 2. Open the file env\\.env.local 
-3. Locate the environment variable AZURE_FUNCTION_URL.
-4. Replace the <YOUR AZURE FUNCTION NAME> with your local Teams Backend URL (i.e., http://localhost:7071/api/http_cwyod)
+3. Locate the environment variable _AZURE_FUNCTION_URL_.
 
-![Env](/media/teams-local-3.png)
+4. Replace the `<AZURE_FUNCTION_URL>` with your local Teams Backend URL (i.e., http://localhost:7071/api/GetConversationResponse)
+    ```env
+    AZURE_FUNCTION_URL=http://localhost:7071/api/GetConversationResponse
+    ```
+    ![Env](/media/teams-local-3.png)
 
 5. Save the file.
 6. Select Teams Toolkit from the navigation panel. 
@@ -76,7 +72,7 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 |AZURE_OPENAI_MAX_TOKENS|1000|The maximum number of tokens allowed for the generated answer.|
 |AZURE_OPENAI_STOP_SEQUENCE||Up to 4 sequences where the API will stop generating further tokens. Represent these as a string joined with "|", e.g. `"stop1|stop2|stop3"`|
 |AZURE_OPENAI_SYSTEM_MESSAGE|You are an AI assistant that helps people find information.|A brief description of the role and tone the model should use|
-|AZURE_OPENAI_API_VERSION|2023-06-01-preview|API version when using Azure OpenAI on your data|
+|AZURE_OPENAI_API_VERSION|2023-12-01-preview|API version when using Azure OpenAI on your data|
 |AzureWebJobsStorage||The connection string to the Azure Blob Storage for the Azure Functions Batch processing|
 |BACKEND_URL||The URL for the Backend Batch Azure Function. Use http://localhost:7071 for local execution and http://backend for docker compose|
 |DOCUMENT_PROCESSING_QUEUE_NAME|doc-processing|The name of the Azure Queue to handle the Batch processing|

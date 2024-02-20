@@ -104,7 +104,7 @@ param AzureOpenAIStopSequence string = '\n'
 param AzureOpenAISystemMessage string = 'You are an AI assistant that helps people find information.'
 
 @description('Azure OpenAI Api Version')
-param AzureOpenAIApiVersion string = '2023-07-01-preview'
+param AzureOpenAIApiVersion string = '2023-12-01-preview'
 
 @description('Whether or not to stream responses from Azure OpenAI')
 param AzureOpenAIStream string = 'true'
@@ -156,9 +156,9 @@ param authType string = 'keys'
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 
-var WebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-webapp'
-var AdminWebAppImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-adminwebapp'
-var BackendImageName = 'DOCKER|fruoccopublic.azurecr.io/rag-backend'
+var WebAppImageName = 'DOCKER|docker.io/fr4nc3/rag-webapp'
+var AdminWebAppImageName = 'DOCKER|docker.io/fr4nc3/rag-adminwebapp'
+var BackendImageName = 'DOCKER|docker.io/fr4nc3/rag-backend'
 
 var BlobContainerName = 'documents'
 var QueueName = 'doc-processing'
@@ -510,6 +510,7 @@ resource Function 'Microsoft.Web/sites@2018-11-01' = {
   properties: {
     siteConfig: {
       appSettings: [
+        { name: 'APPINSIGHTS_CONNECTION_STRING', value: reference(ApplicationInsights.id, '2015-05-01').ConnectionString }
         { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
         { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false' }
         { name: 'APPINSIGHTS_INSTRUMENTATIONKEY', value: reference(ApplicationInsights.id, '2015-05-01').InstrumentationKey }
