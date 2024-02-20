@@ -2,7 +2,7 @@ import {
   TeamsActivityHandler,
   TurnContext,
   ActivityTypes,
-  MessageFactory,
+  MessageFactory
 } from "botbuilder";
 import config from "./config";
 import {
@@ -11,6 +11,7 @@ import {
   ToolMessageContent,
   Citation,
 } from "./model";
+import { cwydResponseBuilder } from "./cards/cardBuilder";
 
 const EMPTY_RESPONSE = "Sorry, I do not have an answer. Please try again.";
 
@@ -19,6 +20,7 @@ export class TeamsBot extends TeamsActivityHandler {
     super();
     let newActivity;
     let assistantAnswer = "";
+    let activityUpdated = true;
 
     this.onMessage(async (context, next) => {
       console.log("Running with Message Activity.");
@@ -118,32 +120,41 @@ export class TeamsBot extends TeamsActivityHandler {
             assistantAnswer = answer.content;
             if (assistantAnswer.startsWith("[doc")) {
               assistantAnswer = EMPTY_RESPONSE;
+              newActivity = MessageFactory.text(assistantAnswer);
             } else {
-              const citations = parseCitationFromMessage(answers[index - 1]);
-              let docId = 1;
-              citations.map((citation: Citation) => {
-                const urlParts = citation.url.split("]");
-                const url = urlParts[urlParts.length - 1];
-                assistantAnswer = assistantAnswer.replaceAll(
-                  `[doc${docId}]`,
-                  `[[${citation.filepath}]${url}]`
-                );
-                docId++;
-              });
+              const citations = parseCitationFromMessage(answers[index - 1]) as Citation[];
+              if (citations.length === 0) {
+                newActivity = MessageFactory.text(assistantAnswer);
+                newActivity.id = reply.id;
+              } else {
+                newActivity = MessageFactory.attachment(cwydResponseBuilder(citations, assistantAnswer));
+                activityUpdated = false;
+              }
             }
-            newActivity = MessageFactory.text(assistantAnswer);
-            newActivity.id = reply.id;
           } else if (answer.role === "error") {
             newActivity = MessageFactory.text(
               "Sorry, an error occurred. Try waiting a few minutes. If the issue persists, contact your system administrator. Error: " +
-                answer.content
+              answer.content
             );
             newActivity.id = reply.id;
           }
+
         });
         newActivity.typing = false; // Stop the ellipses visual indicator
-        await context.updateActivity(newActivity);
+
+        if (activityUpdated) {
+          await context.updateActivity(newActivity);
+        } else {
+            try {
+              await context.deleteActivity(reply.id);
+            } catch (error) {
+              console.log('Error in deleting message', error);
+            }
+            await context.sendActivity(newActivity);
+        }
+
       } catch (error) {
+        console.log('Error in onMessage:', error);
       } finally {
       }
 
