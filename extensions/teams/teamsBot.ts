@@ -125,11 +125,11 @@ export class TeamsBot extends TeamsActivityHandler {
               const citations = parseCitationFromMessage(answers[index - 1]) as Citation[];
               if (citations.length === 0) {
                 newActivity = MessageFactory.text(assistantAnswer);
+                newActivity.id = reply.id;
               } else {
                 newActivity = MessageFactory.attachment(cwydResponseBuilder(citations, assistantAnswer));
                 activityUpdated = false;
               }
-
             }
           } else if (answer.role === "error") {
             newActivity = MessageFactory.text(
@@ -145,8 +145,12 @@ export class TeamsBot extends TeamsActivityHandler {
         if (activityUpdated) {
           await context.updateActivity(newActivity);
         } else {
-          await context.deleteActivity(reply.id);
-          await context.sendActivity(newActivity);
+            try {
+              await context.deleteActivity(reply.id);
+            } catch (error) {
+              console.log('Error in deleting message', error);
+            }
+            await context.sendActivity(newActivity);
         }
 
       } catch (error) {
