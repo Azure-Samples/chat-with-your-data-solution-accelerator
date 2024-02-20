@@ -39,13 +39,13 @@ if "answering_prompt" not in st.session_state:
 if "post_answering_prompt" not in st.session_state:
     st.session_state["post_answering_prompt"] = config.prompts.post_answering_prompt
 if "enable_post_answering_prompt" not in st.session_state:
-    st.session_state[
-        "enable_post_answering_prompt"
-    ] = config.prompts.enable_post_answering_prompt
+    st.session_state["enable_post_answering_prompt"] = (
+        config.prompts.enable_post_answering_prompt
+    )
 if "post_answering_filter_message" not in st.session_state:
-    st.session_state[
-        "post_answering_filter_message"
-    ] = config.messages.post_answering_filter
+    st.session_state["post_answering_filter_message"] = (
+        config.messages.post_answering_filter
+    )
 if "enable_content_safety" not in st.session_state:
     st.session_state["enable_content_safety"] = config.prompts.enable_content_safety
 

@@ -159,9 +159,9 @@ class AzureBlobStorageClient:
                     }
                 )
             else:
-                converted_files[
-                    blob.name
-                ] = f"https://{self.account_name}.blob.core.windows.net/{self.container_name}/{blob.name}?{sas}"
+                converted_files[blob.name] = (
+                    f"https://{self.account_name}.blob.core.windows.net/{self.container_name}/{blob.name}?{sas}"
+                )
 
         for file in files:
             converted_filename = file.pop("converted_filename", "")
