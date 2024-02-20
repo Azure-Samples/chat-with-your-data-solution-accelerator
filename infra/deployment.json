@@ -958,6 +958,7 @@
           "appSettings": [
             {
               "name": "APPINSIGHTS_CONNECTION_STRING",
+              "value": "[reference(resourceId('Microsoft.Insights/components', parameters('ApplicationInsightsName')), '2015-05-01').ConnectionString]"
             },
             {
               "name": "FUNCTIONS_EXTENSION_VERSION",
