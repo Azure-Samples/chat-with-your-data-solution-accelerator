@@ -217,7 +217,7 @@
     },
     "AzureOpenAIApiVersion": {
       "type": "string",
-      "defaultValue": "2023-07-01-preview",
+      "defaultValue": "2023-12-01-preview",
       "metadata": {
         "description": "Azure OpenAI Api Version - Created during the \"Chat with your data\" Solution Accelerator"
       }
@@ -268,7 +268,7 @@
     }
   },
   "variables": {
-    "BackendImageName": "DOCKER|fruoccopublic.azurecr.io/cwyod_backend"
+    "BackendImageName": "DOCKER|fruoccopublic.azurecr.io//rag-backend"
   },
   "resources": [
     {
