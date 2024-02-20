@@ -20,7 +20,7 @@ ci: unittest build-frontend ## 🚀 Continuous Integration (called by Github Act
 
 unittest: ## 🧪 Run the unit tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@python -m pytest -m "not azure"
+	@cd code/ && python -m pytest -m "not azure"
 
 build-frontend: ## 🏗️ Build the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
