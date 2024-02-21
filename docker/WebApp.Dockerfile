@@ -5,7 +5,7 @@ WORKDIR /home/node/app
 COPY ./code/frontend/package*.json ./  
 USER node
 RUN npm ci  
-COPY --chown=node:node ./code/app/frontend ./frontend 
+COPY --chown=node:node ./code/frontend ./frontend 
 WORKDIR /home/node/app/frontend
 RUN npm run build
   

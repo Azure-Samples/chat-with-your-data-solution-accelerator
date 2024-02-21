@@ -9,4 +9,4 @@ COPY ./extensions/backend/requirements.txt /
 RUN pip install -r /requirements.txt
 
 COPY ./extensions/backend /home/site/wwwroot
-COPY ./code/utilities /home/site/wwwroot/utilities
+COPY ./code/backend/batch/utilities /home/site/wwwroot/utilities

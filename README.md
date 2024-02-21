@@ -1,6 +1,6 @@
 # Chat with your data - Solution accelerator
 
-[**USER STORY**](#user-story) | [**ONE-CLICK DEPLOY**](#one-click-deploy) | [**SUPPORTING DOCUMENTATION**](#supporting-documentation) | [**CUSTOMER TRUTH**](#customer-truth)\
+[**USER STORY**](#user-story) | [**DEPLOY**](#Deploy) | [**SUPPORTING DOCUMENTATION**](#supporting-documentation) | [**CUSTOMER TRUTH**](#customer-truth)\
 \
 \
 ![User Story](/media/userStory.png)  
@@ -94,7 +94,7 @@ Learn more about deploying the Teams extension [here](./docs/TEAMS_EXTENSION.md)
 \
 \
 ![One-click Deploy](/media/oneClickDeploy.png)
-## One-click deploy
+## Deploy
 ### Pre-requisites 
 - Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with owner access.
 - An [Azure OpenAI resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=web-portal) and a deployment for one of the following Chat model and an embedding model:
@@ -106,17 +106,6 @@ Learn more about deploying the Teams extension [here](./docs/TEAMS_EXTENSION.md)
     
   **Note**: The deployment template defaults to **gpt-35-turbo** and **text-embedding-ada-002**. If your deployment names are different, update them in the deployment process.
 
-- [Visual Studio Code](https://code.visualstudio.com/)
-    - Extensions
-        - [Azure Functions](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions)
-        - [Azure Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-node-azure-pack)
-        - [Bicep](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-bicep)
-        - [Docker](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker)
-        - [Pylance](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance)
-        - [Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
-        - [Teams Toolkit](https://marketplace.visualstudio.com/items?itemName=TeamsDevApp.ms-teams-vscode-extension) (optional: Teams extension only)
-- Install [Node.js](https://nodejs.org/en)
-  - Install the LTS version (Recommended for Most Users)
 - [Enable custom Teams apps and turn on custom app uploading](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/prepare-your-o365-tenant#enable-custom-teams-apps-and-turn-on-custom-app-uploading) (optional: Teams extension only)
 
 ### Products used
@@ -153,28 +142,23 @@ locations support this version. If you're deploying to a location that doesn't s
 switch to a lower version. To find out which versions are supported in different regions, visit the 
 [GPT-35 Turbo Model Availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#gpt-35-turbo-model-availability) page.
 
-#### Azure Resource Manager
-Click the following deployment button to create the required resources for this accelerator directly in your Azure Subscription. 
+The easiest way to run this accelerator is in a VS Code Dev Containers, which will open the project in your local VS Code using the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers):
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fchat-with-your-data-solution-accelerator%2Fmain%2Finfra%2Fdeployment.json) 
+1. Start Docker Desktop (install it if not already installed)
+1. Open the project:
+    [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/azure-samples/azure-search-openai-demo)
+1. In the VS Code window that opens, once the project files show up (this may take several minutes), open a terminal window
+1. Run `azd auth login`
+1. Run `azd up` - This will provision Azure resources and deploy the accelerator to those resources.
 
-This requires the following fields to be entered:
-   
-|Field  |Description  |
-|---------|---------|
-|Resource group   | The resource group that will contain the resources for this accelerator. You can select **Create new** to create a new group.        |
-|Resource prefix   | A text string that will be appended to each resource that gets created, and used as the website name for the web app. This name cannot contain spaces or special characters.        |
-|Orchestration strategy| Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain"|
+    * **Important**: Beware that the resources created by this command will incur immediate costs, primarily from the AI Search resource. These resources may accrue costs even if you interrupt the command before it is fully executed. You can run `azd down` or delete the resources manually to avoid unnecessary spending.
+    * You will be prompted to select a subscription, and a location. That location list is based on the [OpenAI model availability table](https://learn.microsoft.com/azure/cognitive-services/openai/concepts/models#model-summary-table-and-region-availability) and may become outdated as availability changes.
+1. After the application has been successfully deployed you will see a URL printed to the console.  Click that URL to interact with the application in your browser.
 
-#### Bicep
+> NOTE: It may take 30 minutes for the application to be fully deployed. If you see a "Python Developer" welcome screen or an error page, then wait a bit and refresh the page.
 
-A [Bicep file](./infra/deployment.bicep) is used to generate the [ARM template](./infra/deployment.json). You can deploy this accelerator by the following command
+**Notes:** the default auth type uses keys, if you want to switch to rbac, please run `azd env set AUTH_TYPE rbac`.
 
-```sh
-RESOURCE_GROUP_NAME=cwyd
-az group create --location uksouth --resource-group $RESOURCE_GROUP_NAME
-az deployment group create --resource-group $RESOURCE_GROUP_NAME --template-file ./infra/deployment.bicep
- ```
 
 #### Testing the deployment
 1. Navigate to the admin site, where you can upload documents. It will be located at:
@@ -194,44 +178,7 @@ az deployment group create --resource-group $RESOURCE_GROUP_NAME --template-file
 
     
     ![A screenshot of the chat app.](./media/web-unstructureddata.png)
-### Running the sample using the Azure Developer CLI (azd)
 
-The Azure Developer CLI (`azd`) is a developer-centric command-line interface (CLI) tool for creating Azure applications.
-
-You need to install it before running and deploying with the Azure Developer CLI. (If you use the devcontainer, everything is already installed)
-
-### Windows
-
-```powershell
-powershell -ex AllSigned -c "Invoke-RestMethod 'https://aka.ms/install-azd.ps1' | Invoke-Expression"
-```
-
-### Linux/MacOS
-
-```
-curl -fsSL https://aka.ms/install-azd.sh | bash
-```
-
-After logging in with the following command, you will be able to use the `azd` cli to quickly provision and deploy the application.
-
-```
-azd auth login
-```
-
-Then, execute the `azd init` command to initialize the environment (You do not need to run this command if you already have the code or have opened this in a Codespace or DevContainer).
-```
-azd init -t chat-with-your-data-solution-accelerator
-```
-Enter an environment name.
-
-**Notes:** the default auth type uses keys, if you want to switch to rbac, please run `azd env set AUTH_TYPE rbac`.
-
-Then, run `azd up` to provision all the resources to Azure and deploy the code to those resources.
-```
-azd up 
-```
-
-Select your desired `subscription` and `location`. Wait a moment for the resource deployment to complete, click the website endpoint and you will see the web app page.
 
 You can also run the sample directly locally (See below).
 
