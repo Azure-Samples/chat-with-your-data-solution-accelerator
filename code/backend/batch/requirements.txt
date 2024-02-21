@@ -1,0 +1,24 @@
+azure-functions==1.18.0
+streamlit==1.30.0
+openai==1.6.1
+scipy==1.12.0
+transformers==4.37.2
+python-dotenv==1.0.1
+azure-ai-formrecognizer==3.3.2
+azure-storage-blob==12.19.0
+azure-identity==1.15.0
+azure-ai-contentsafety==1.0.0
+requests==2.31.0
+tiktoken==0.6.0
+azure-storage-queue==12.9.0
+langchain==0.1.4
+langchain-community==0.0.19
+beautifulsoup4==4.12.3
+fake-useragent==1.4.0
+chardet==5.2.0
+--extra-index-url https://pkgs.dev.azure.com/azure-sdk/public/_packaging/azure-sdk-for-python/pypi/simple/
+azure-search-documents==11.4.0b8
+opencensus-ext-azure==1.1.13
+pandas==2.2.0
+python-docx==1.1.0
+azure-keyvault-secrets==4.4.*

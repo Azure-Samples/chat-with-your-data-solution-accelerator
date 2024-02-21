@@ -29,7 +29,7 @@
 				"TeamsDevApp.ms-teams-vscode-extension"
 			],
 			"settings": {
-				"azureFunctions.projectSubpath": "code/batch",
+				"azureFunctions.projectSubpath": "code/backend/batch",
                 "python.defaultInterpreterPath": "/usr/local/bin/python",
 				"python.pythonPath": "/usr/local/bin/python"
             }

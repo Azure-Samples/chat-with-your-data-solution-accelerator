@@ -2,7 +2,7 @@ FROM node:20-alpine AS frontend
 RUN mkdir -p /home/node/app/node_modules && chown -R node:node /home/node/app
 
 WORKDIR /home/node/app 
-COPY ./code/app/frontend/package*.json ./  
+COPY ./code/frontend/package*.json ./  
 USER node
 RUN npm ci  
 COPY --chown=node:node ./code/app/frontend ./frontend 
@@ -19,12 +19,12 @@ RUN apk add --no-cache --virtual .build-deps \
     libpq \  
     && pip install --no-cache-dir uwsgi  
   
-COPY ./code/app/requirements.txt /usr/src/app/  
+COPY ./code/requirements.txt /usr/src/app/  
 RUN pip install --no-cache-dir -r /usr/src/app/requirements.txt \  
     && rm -rf /root/.cache  
   
-COPY ./code/app/app.py /usr/src/app/
-COPY ./code/utilities /usr/src/app/utilities
+COPY ./code/app.py /usr/src/app/
+COPY ./code/backend/batch/utilities /usr/src/app/utilities
 COPY --from=frontend /home/node/app/static  /usr/src/app/static/
 WORKDIR /usr/src/app  
 EXPOSE 80  

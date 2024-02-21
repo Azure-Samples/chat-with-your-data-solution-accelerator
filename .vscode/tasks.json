@@ -9,7 +9,7 @@
 			"isBackground": true,
 			"dependsOn": "pip install (functions)",
 			"options": {
-				"cwd": "${workspaceFolder}/backend"
+				"cwd": "${workspaceFolder}/code/backend/batch"
 			}
 		},
 		{
@@ -26,7 +26,7 @@
 			},
 			"problemMatcher": [],
 			"options": {
-				"cwd": "${workspaceFolder}/backend"
+				"cwd": "${workspaceFolder}/code/backend"
 			}
 		},
 		{
@@ -44,7 +44,7 @@
 			"command": "npm install",
 			"problemMatcher": [],
 			"options": {
-				"cwd": "${workspaceFolder}/code/app/frontend"
+				"cwd": "${workspaceFolder}/code/frontend"
 			}
 		}
 	]

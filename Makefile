@@ -16,12 +16,20 @@ endif
 help: ## 💬 This help message :)
 	@grep -E '[a-zA-Z_-]+:.*?## .*$$' $(firstword $(MAKEFILE_LIST)) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-23s\033[0m %s\n", $$1, $$2}'
 
-ci: unittest build-frontend ## 🚀 Continuous Integration (called by Github Actions)
+ci: lint unittest build-frontend ## 🚀 Continuous Integration (called by Github Actions)
+
+lint: ## 🧹 Lint the code
+	@echo -e "\e[34m$@\e[0m" || true
+	@flake8 code
 
 unittest: ## 🧪 Run the unit tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@python -m pytest -m "not azure"
+	@cd code/ && python -m pytest -m "not azure"
 
 build-frontend: ## 🏗️ Build the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
-	@cd code/app/frontend && npm install && npm run build
+	@cd code/frontend && npm install && npm run build
+
+azd-login: ## 🔑 Login to Azure with azd and a SPN
+	@echo -e "\e[34m$@\e[0m" || true
+	@azd auth login --client-id ${AZURE_CLIENT_ID} --client-secret ${AZURE_CLIENT_SECRET} --tenant-id ${AZURE_TENANT_ID}

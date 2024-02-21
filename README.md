@@ -194,6 +194,46 @@ az deployment group create --resource-group $RESOURCE_GROUP_NAME --template-file
 
     
     ![A screenshot of the chat app.](./media/web-unstructureddata.png)
+### Running the sample using the Azure Developer CLI (azd)
+
+The Azure Developer CLI (`azd`) is a developer-centric command-line interface (CLI) tool for creating Azure applications.
+
+You need to install it before running and deploying with the Azure Developer CLI. (If you use the devcontainer, everything is already installed)
+
+### Windows
+
+```powershell
+powershell -ex AllSigned -c "Invoke-RestMethod 'https://aka.ms/install-azd.ps1' | Invoke-Expression"
+```
+
+### Linux/MacOS
+
+```
+curl -fsSL https://aka.ms/install-azd.sh | bash
+```
+
+After logging in with the following command, you will be able to use the `azd` cli to quickly provision and deploy the application.
+
+```
+azd auth login
+```
+
+Then, execute the `azd init` command to initialize the environment (You do not need to run this command if you already have the code or have opened this in a Codespace or DevContainer).
+```
+azd init -t chat-with-your-data-solution-accelerator
+```
+Enter an environment name.
+
+**Notes:** the default auth type uses keys, if you want to switch to rbac, please run `azd env set AUTH_TYPE rbac`.
+
+Then, run `azd up` to provision all the resources to Azure and deploy the code to those resources.
+```
+azd up 
+```
+
+Select your desired `subscription` and `location`. Wait a moment for the resource deployment to complete, click the website endpoint and you will see the web app page.
+
+You can also run the sample directly locally (See below).
 
 ### [Local deployment instructions](./docs/LOCAL_DEPLOYMENT.md)
 To customize the accelerator or run it locally, first, copy the .env.sample file to your development environment's .env file, and edit it according to environment variable values table. Learn more about deploying locally [here](./docs/LOCAL_DEPLOYMENT.md).

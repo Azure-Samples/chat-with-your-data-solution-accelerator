@@ -4,7 +4,7 @@
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
 # generated frontend files
-code/app/static/
+code/static/
 
 # User-specific files
 *.rsuser

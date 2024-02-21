@@ -4,7 +4,7 @@
 
 azure-functions
 streamlit==1.30.0
-openai==0.27.8
+openai==1.6.1
 scipy==1.12.0
 transformers==4.37.2
 python-dotenv==1.0.1
