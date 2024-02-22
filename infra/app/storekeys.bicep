@@ -13,7 +13,6 @@ param formRecognizerKeyName string = 'AZURE-FORM-RECOGNIZER-KEY'
 param contentSafetyKeyName string = 'AZURE-CONTENT-SAFETY-KEY'
 param speechKeyName string = 'AZURE-SPEECH-KEY'
 
-
 resource storageAccountKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: keyVault
   name: storageAccountKeyName
