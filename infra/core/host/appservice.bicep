@@ -91,7 +91,7 @@ module configAppSettings 'appservice-appsettings.bicep' = {
         SCM_DO_BUILD_DURING_DEPLOYMENT: string(scmDoBuildDuringDeployment)
         ENABLE_ORYX_BUILD: string(enableOryxBuild)
       },
-      runtimeName == 'python' && appCommandLine == '' ? { PYTHON_ENABLE_GUNICORN_MULTIWORKERS: 'true'} : {},
+      runtimeName == 'python' && appCommandLine == '' ? { PYTHON_ENABLE_GUNICORN_MULTIWORKERS: 'true' } : {},
       !empty(applicationInsightsName) ? { APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString } : {},
       !empty(keyVaultName) ? { AZURE_KEY_VAULT_ENDPOINT: keyVault.properties.vaultUri } : {})
   }
@@ -107,7 +107,7 @@ resource configLogs 'Microsoft.Web/sites/config@2022-03-01' = {
     failedRequestsTracing: { enabled: true }
     httpLogs: { fileSystem: { enabled: true, retentionInDays: 1, retentionInMb: 35 } }
   }
-  dependsOn: [configAppSettings]
+  dependsOn: [ configAppSettings ]
 }
 
 resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = if (!(empty(keyVaultName))) {
