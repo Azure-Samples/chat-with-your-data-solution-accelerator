@@ -11,7 +11,7 @@ class TestConfig:
         response = app.test_client().get("/api/config")
 
         assert response.status_code == 200
-        assert response.json == {"azureSpeechKey": None, "azureSpeechRegion": ""}
+        assert response.json == {"azureSpeechKey": None, "azureSpeechRegion": None}
 
 
 class TestCoversationCustom:
