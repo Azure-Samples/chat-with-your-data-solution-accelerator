@@ -4,9 +4,7 @@ from backend.batch.utilities.helpers.DocumentProcessorHelper import (
 )
 from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
 
-document_url = (
-    "https://csciblob.blob.core.windows.net/rag-sol-acc/cognitive-services.pdf"
-)
+document_url = "https://dagrs.berkeley.edu/sites/default/files/2020-01/sample.pdf"
 url = "https://learn.microsoft.com/en-us/azure/search/search-what-is-azure-search"
 docx_url = "https://csciblob.blob.core.windows.net/rag-sol-acc/What is Azure OpenAI Service.docx"
 

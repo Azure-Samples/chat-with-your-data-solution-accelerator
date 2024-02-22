@@ -3,7 +3,7 @@ from langchain.agents import Tool
 from langchain.memory import ConversationBufferMemory
 from langchain.agents import ZeroShotAgent, AgentExecutor
 from langchain import LLMChain
-from langchain.callbacks import get_openai_callback
+from langchain_community.callbacks import get_openai_callback
 
 from .OrchestratorBase import OrchestratorBase
 from ..helpers.LLMHelper import LLMHelper
