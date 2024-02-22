@@ -100,7 +100,7 @@ param azureOpenAIStopSequence string = '\n'
 param azureOpenAISystemMessage string = 'You are an AI assistant that helps people find information.'
 
 @description('Azure OpenAI Api Version')
-param azureOpenAIApiVersion string = '2023-07-01-preview'
+param azureOpenAIApiVersion string = '2023-10-01-preview'
 
 @description('Whether or not to stream responses from Azure OpenAI')
 param azureOpenAIStream string = 'true'
