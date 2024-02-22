@@ -251,7 +251,7 @@ module openai 'core/ai/cognitiveservices.bicep' = {
 module speechService 'core/ai/cognitiveservices.bicep' = {
   scope: rg
   name: speechServiceName
-  params:{
+  params: {
     name: speechServiceName
     location: location
     sku: {
@@ -279,11 +279,11 @@ module storekeys './app/storekeys.bicep' = if (useKeyVault) {
 module search './core/search/search-services.bicep' = {
   name: azureAISearchName
   scope: rg
-  params:{
+  params: {
     name: azureAISearchName
     location: location
-    tags: { 
-      deployment : searchTag
+    tags: {
+      deployment: searchTag
     }
     sku: {
       name: azureSearchSku
@@ -329,7 +329,7 @@ module web './app/web.bicep' = {
     formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME: ''
+    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
@@ -390,7 +390,7 @@ module adminweb './app/adminweb.bicep' = {
     formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME: ''
+    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
@@ -448,7 +448,7 @@ module monitoring './core/monitor/monitoring.bicep' = {
 module function './app/function.bicep' = {
   name: functionName
   scope: rg
-  params:{
+  params: {
     name: functionName
     location: location
     tags: { 'azd-service-name': 'function' }
@@ -465,7 +465,7 @@ module function './app/function.bicep' = {
     formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME: ''
+    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
@@ -530,10 +530,10 @@ module storage 'core/storage/storage-account.bicep' = {
   params: {
     name: storageAccountName
     location: location
-    sku:{
+    sku: {
       name: 'Standard_GRS'
     }
-    containers:[
+    containers: [
       {
         name: blobContainerName
         publicAccess: 'None'
@@ -541,7 +541,7 @@ module storage 'core/storage/storage-account.bicep' = {
       {
         name: 'config'
         publicAccess: 'None'
-      } 
+      }
     ]
     queues: [
       {
@@ -549,7 +549,7 @@ module storage 'core/storage/storage-account.bicep' = {
       }
       {
         name: 'doc-processing-poison'
-      } 
+      }
     ]
   }
 }
@@ -599,7 +599,7 @@ module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
 }
 
 // SYSTEM IDENTITIES
-module storageRoleBackend 'core/security/role.bicep' = if (authType == 'rbac'){
+module storageRoleBackend 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: rg
   name: 'storage-role-backend'
   params: {
@@ -610,7 +610,7 @@ module storageRoleBackend 'core/security/role.bicep' = if (authType == 'rbac'){
 }
 
 // SYSTEM IDENTITIES
-module openAIRoleBackend 'core/security/role.bicep' = if (authType == 'rbac'){
+module openAIRoleBackend 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: rg
   name: 'openai-role-backend'
   params: {
@@ -621,7 +621,7 @@ module openAIRoleBackend 'core/security/role.bicep' = if (authType == 'rbac'){
 }
 
 // SYSTEM IDENTITIES
-module openAIRoleWeb 'core/security/role.bicep' = if (authType == 'rbac'){
+module openAIRoleWeb 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: rg
   name: 'openai-role-web'
   params: {
@@ -632,7 +632,7 @@ module openAIRoleWeb 'core/security/role.bicep' = if (authType == 'rbac'){
 }
 
 // SYSTEM IDENTITIES
-module openAIRoleFunction 'core/security/role.bicep' = if (authType == 'rbac'){
+module openAIRoleFunction 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: rg
   name: 'openai-role-function'
   params: {
@@ -643,7 +643,7 @@ module openAIRoleFunction 'core/security/role.bicep' = if (authType == 'rbac'){
 }
 
 // SYSTEM IDENTITIES
-module openAIRoleBackendContributor 'core/security/role.bicep' = if (authType == 'rbac'){
+module openAIRoleBackendContributor 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: rg
   name: 'openai-role-backend-contributor'
   params: {
@@ -654,7 +654,7 @@ module openAIRoleBackendContributor 'core/security/role.bicep' = if (authType ==
 }
 
 // SYSTEM IDENTITIES
-module openAIRoleWebContributor 'core/security/role.bicep' = if (authType == 'rbac'){
+module openAIRoleWebContributor 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: rg
   name: 'openai-role-web-contributor'
   params: {
@@ -665,7 +665,7 @@ module openAIRoleWebContributor 'core/security/role.bicep' = if (authType == 'rb
 }
 
 // SYSTEM IDENTITIES
-module openAIRoleFunctionContributor 'core/security/role.bicep' = if (authType == 'rbac'){
+module openAIRoleFunctionContributor 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: rg
   name: 'openai-role-function-contributor'
   params: {
@@ -676,7 +676,7 @@ module openAIRoleFunctionContributor 'core/security/role.bicep' = if (authType =
 }
 
 // SYSTEM IDENTITIES
-module searchRoleBackend 'core/security/role.bicep' = if (authType == 'rbac'){
+module searchRoleBackend 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: rg
   name: 'search-role-backend'
   params: {
@@ -687,7 +687,7 @@ module searchRoleBackend 'core/security/role.bicep' = if (authType == 'rbac'){
 }
 
 // SYSTEM IDENTITIES
-module searchRoleWeb 'core/security/role.bicep' = if (authType == 'rbac'){
+module searchRoleWeb 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: rg
   name: 'search-role-web'
   params: {
@@ -698,7 +698,7 @@ module searchRoleWeb 'core/security/role.bicep' = if (authType == 'rbac'){
 }
 
 // SYSTEM IDENTITIES
-module searchRoleFunction 'core/security/role.bicep' = if (authType == 'rbac'){
+module searchRoleFunction 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: rg
   name: 'search-role-function'
   params: {
