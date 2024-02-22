@@ -5,6 +5,7 @@ set -e
 az bicep version 2>/dev/null || az bicep install
 
 TEMPLATES=()
+FILES=()
 
 for ARG in $@; do
     # If the argument is supplied with "-f", then it is a template file that needs to be built
@@ -12,10 +13,14 @@ for ARG in $@; do
         TEMPLATES+=(${ARG#-f=})
     else
     # Otherwise, it is a file that has been edited
-        az bicep format -f $ARG
-        git add $ARG
+        az bicep format --insert-final-newline -f $ARG &
+        FILES+=($ARG)
     fi
 done
+
+wait
+
+git add ${FILES[@]}
 
 # Build the templates
 for TEMPLATE in ${TEMPLATES[@]}; do
