@@ -1,7 +1,7 @@
 from typing import List
 import re
 from langchain.docstore.document import Document
-from langchain.document_loaders import WebBaseLoader
+from langchain_community.document_loaders import WebBaseLoader
 from .DocumentLoadingBase import DocumentLoadingBase
 from ..common.SourceDocument import SourceDocument
 

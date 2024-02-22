@@ -1,7 +1,7 @@
 from openai import AzureOpenAI
 from typing import List
-from langchain.chat_models import AzureChatOpenAI
-from langchain.embeddings import AzureOpenAIEmbeddings
+from langchain_community.chat_models import AzureChatOpenAI
+from langchain_community.embeddings import AzureOpenAIEmbeddings
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from .EnvHelper import EnvHelper
 
