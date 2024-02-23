@@ -143,5 +143,5 @@ class AzureFormRecognizerClient:
                 offset += len(page_text)
 
             return page_map
-        except Exception:
-            raise ValueError(f"Error: {traceback.format_exc()}")
+        except Exception as e:
+            raise ValueError(f"Error: {traceback.format_exc()}. Error: {e}")

@@ -3,7 +3,7 @@ from .AnsweringToolBase import AnsweringToolBase
 
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
-from langchain.callbacks import get_openai_callback
+from langchain_community.callbacks import get_openai_callback
 
 from ..helpers.AzureSearchHelper import AzureSearchHelper
 from ..helpers.ConfigHelper import ConfigHelper

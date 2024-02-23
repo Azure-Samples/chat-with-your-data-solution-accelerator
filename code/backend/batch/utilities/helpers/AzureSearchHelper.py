@@ -34,7 +34,7 @@ class AzureSearchHelper:
                 vector_search_dimensions=len(
                     llm_helper.get_embedding_model().embed_query("Text")
                 ),
-                vector_search_configuration="default",
+                vector_search_profile_name="myHnswProfile",
             ),
             SearchableField(
                 name="metadata",
@@ -103,7 +103,7 @@ class AzureSearchHelper:
                 vector_search_dimensions=len(
                     llm_helper.get_embedding_model().embed_query("Text")
                 ),
-                vector_search_configuration="default",
+                vector_search_profile_name="myHnswProfile",
             ),
             SearchableField(
                 name="metadata",

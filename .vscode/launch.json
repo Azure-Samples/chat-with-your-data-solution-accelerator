@@ -10,7 +10,7 @@
         },
         {
             "name": "Launch Admin site",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "streamlit",
             "args": [
@@ -22,7 +22,7 @@
         },
         {
             "name": "Launch Frontend (api)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "flask",
             "args": [
@@ -51,16 +51,16 @@
         },
         {
             "name": "Debug tests",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
-            "module": "pytest"
+            "module": "pytest",
+            "cwd": "${workspaceFolder}/code",
         },
         {
             "name": "Python: Current File",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
-            "console": "integratedTerminal",
             "justMyCode": true
         }
     ]
