@@ -146,7 +146,7 @@ The easiest way to run this accelerator is in a VS Code Dev Containers, which wi
 
 1. Start Docker Desktop (install it if not already installed)
 1. Open the project:
-    [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/azure-samples/azure-search-openai-demo)
+    [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/azure-samples/chat-with-your-data-solution-accelerator)
 1. In the VS Code window that opens, once the project files show up (this may take several minutes), open a terminal window
 1. Run `azd auth login`
 1. Run `azd up` - This will provision Azure resources and deploy the accelerator to those resources.
