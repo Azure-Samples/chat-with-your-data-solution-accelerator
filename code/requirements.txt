@@ -1,7 +1,7 @@
 azure-functions==1.18.0
 streamlit==1.30.0
 scipy==1.12.0
-transformers==4.37.2
+transformers==4.38.1
 python-dotenv==1.0.1
 azure-ai-formrecognizer==3.3.2
 azure-storage-blob==12.19.0
@@ -10,8 +10,8 @@ Flask==3.0.2
 openai==1.6.1
 azure-storage-blob==12.19.0
 python-dotenv==1.0.1
-langchain==0.1.8
-langchain-community==0.0.21
+langchain==0.1.9
+langchain-community==0.0.24
 azure-ai-formrecognizer==3.3.2
 requests==2.31.0
 tiktoken==0.6.0
