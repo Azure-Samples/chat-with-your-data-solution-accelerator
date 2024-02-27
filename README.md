@@ -21,7 +21,7 @@ This repository provides a template for setting up the solution accelerator, alo
 
 ### When should you use this repo? 
 
-If you need to customize your scenario beyond what [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data) offers out-of-the-box, use this repository. If you don't require customizations, use [Azure Machine Learning prompt flow](https://learn.microsoft.com/en-us/azure/machine-learning/prompt-flow/overview-what-is-prompt-flow).
+If you need to customize your scenario beyond what [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data) offers out-of-the-box, use this repository.
 
 The accelerator presented here provides several options, for example:
 * The ability to ground a model using both data and public web pages
