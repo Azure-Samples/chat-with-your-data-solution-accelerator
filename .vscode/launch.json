@@ -19,6 +19,7 @@
             ],
             "cwd": "${workspaceFolder}/code/backend",
             "preLaunchTask": "pip install (code)",
+            "envFile": "${input:dotEnvFilePath}",
         },
         {
             "name": "Launch Frontend (api)",
@@ -32,7 +33,8 @@
                 "run"
             ],
             "cwd": "${workspaceFolder}/code",
-            "preLaunchTask": "pip install (code)"
+            "preLaunchTask": "pip install (code)",
+            "envFile": "${input:dotEnvFilePath}",
         },
         {
             "name": "Launch Frontend (UI)",
@@ -48,6 +50,7 @@
             "skipFiles": [
                 "node_modules/**"
             ],
+            "envFile": "${input:dotEnvFilePath}",
         },
         {
             "name": "Debug tests",
@@ -55,13 +58,22 @@
             "request": "launch",
             "module": "pytest",
             "cwd": "${workspaceFolder}/code",
+            "envFile": "${input:dotEnvFilePath}",
         },
         {
             "name": "Python: Current File",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
-            "justMyCode": true
+            "justMyCode": true,
+            "envFile": "${input:dotEnvFilePath}",
+        }
+    ],
+    "inputs": [
+        {
+            "id": "dotEnvFilePath",
+            "type": "command",
+            "command": "azure-dev.commands.getDotEnvFilePath"
         }
     ]
 }
