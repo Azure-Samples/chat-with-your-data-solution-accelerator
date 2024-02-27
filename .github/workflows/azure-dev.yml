@@ -1,6 +1,7 @@
 name: azd-ci
 
 on:
+  pull_request: # remove this once it works
   workflow_dispatch:
   push:
     branches:
