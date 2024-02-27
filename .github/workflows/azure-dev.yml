@@ -34,9 +34,9 @@ jobs:
       - name: Log in with Azure (Client Credentials)
         run: |
           azd auth login `
-            --client-id "$($secrets.AZURE_CLIENT_ID)" `
-            --client-secret "$($secrets.AZURE_CLIENT_SECRET)" `
-            --tenant-id "$($secrets.AZURE_TENANT_ID)"
+            --client-id ${{ secrets.AZURE_CLIENT_ID }} `
+            --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} `
+            --tenant-id ${{ secrets.AZURE_TENANT_ID }}
         shell: pwsh
 
       - name: Provision Infrastructure
