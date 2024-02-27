@@ -38,7 +38,13 @@ jobs:
         with:
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
-          runCmd: make ci && make azd-login && azd up --no-prompt
+          runCmd: |
+            make ci && 
+            make azd-login && 
+            azd provision --no-prompt &&
+            azd deploy web --no-prompt
+            azd deploy function --no-prompt &&
+            azd deploy adminweb --no-prompt
           refFilterForPush: refs/heads/main
           env: |
             AZURE_CLIENT_ID
