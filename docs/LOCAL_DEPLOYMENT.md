@@ -28,7 +28,7 @@ The files for the dev container are located in `/.devcontainer/` folder.
 
 ## Local deployment
 
-To customize the accelerator or run it locally, you must provision the Azure resources by running `azd provision` in a Terminal. This will generate a `.env` for you and you can use the "Run and Debug" (Ctrl + Shift + D) command to chose which part of the accelerator to run.  There is am  [environment variable values table](#environment-variables) below.
+To customize the accelerator or run it locally, you must provision the Azure resources by running `azd provision` in a Terminal. This will generate a `.env` for you and you can use the "Run and Debug" (Ctrl + Shift + D) command to chose which part of the accelerator to run.  There is an [environment variable values table](#environment-variables) below.
 
 
 To run the accelerator in local when the solution is secured by RBAC you need to assign some roles to your principal id. You can do it either manually or programatically.
