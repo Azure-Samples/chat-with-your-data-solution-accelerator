@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.25.53.49325",
-      "templateHash": "15449005561945929215"
+      "templateHash": "11044000718103660256"
     }
   },
   "parameters": {
@@ -4134,7 +4134,8 @@
               "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
-              "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsInstrumentationKey.value]"
+              "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsInstrumentationKey.value]",
+              "APPINSIGHTS_CONNECTION_STRING": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsConnectionString.value]"
             }
           }
         },
