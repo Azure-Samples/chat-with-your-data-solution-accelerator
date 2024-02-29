@@ -76,7 +76,7 @@ class EnvHelper:
         self.AZURE_TOKEN_PROVIDER = get_bearer_token_provider(
             DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
         )
-        self.USE_KEY_VAULT = os.getenv("USE_KEY_VAULT", "true").lower() == "true"
+        self.USE_KEY_VAULT = os.getenv("USE_KEY_VAULT", "").lower() == "true"
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
         # When USE_KEY_VAULT environment variable is set, keys are securely fetched from Azure Key Vault using DefaultAzureCredential.
@@ -167,7 +167,7 @@ class EnvHelper:
             "ORCHESTRATION_STRATEGY", "openai_function"
         )
         # Speech Service
-        self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION", "")
+        self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")
 
     def should_use_data(self) -> bool:
         if (
