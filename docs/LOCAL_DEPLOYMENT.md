@@ -28,10 +28,10 @@ The files for the dev container are located in `/.devcontainer/` folder.
 
 ## Local deployment
 
-To customize the accelerator or run it locally, first, copy the `.env.sample` file to your development environment's `.env` file, and edit it according to [environment variable values table](#environment-variables) below.
+To customize the accelerator or run it locally, you must provision the Azure resources by running `azd provision` in a Terminal. This will generate a `.env` for you and you can use the "Run and Debug" (Ctrl + Shift + D) command to chose which part of the accelerator to run.  There is an [environment variable values table](#environment-variables) below.
 
 
-To run the accelerator in local you need to assign some roles to your principal id. You can do it either manually or programatically.
+To run the accelerator in local when the solution is secured by RBAC you need to assign some roles to your principal id. You can do it either manually or programatically.
 
 ### Manually assign roles
 You need to assign the following roles to your `PRINCIPALID` (you can get your 'principal id' from Microsoft Entra ID):
@@ -63,22 +63,16 @@ have been created.
 7. Set the value of the `AZURE_AUTH_TYPE` setting to `rbac`
 8. Restart the application
 
-### Running the full solution locally with Docker Compose
+### Deploy services manually
 
-You can run the full solution locally with the following commands - this will spin up 3 different Docker containers:
+You can deploy the full solution from local with the following command `azd deploy`. You can also deploy services individually
 
-|Container  |Description  |
+|Service  |Description  |
 |---------|---------|
-|webapp | A container for the chat app, enabling you to chat on top of your data.         |
-|admin webapp     | A container for the "admin" site where you can upload and explore your data.         |
-|batch processing functions     | A container helping with processing requests.          |
+|`azd deploy web` | A python app, enabling you to chat on top of your data.         |
+|`azd deploy adminweb`     | A Streamlit app for the "admin" site where you can upload and explore your data.         |
+|`azd deploy function`     | A python function app processing requests.          |
 
-Run the following `docker compose` command.
-
-```shell
-cd docker
-docker compose up
-```
 
 ### Develop & run the frontend locally
 
@@ -103,30 +97,11 @@ npm run dev
 ```
 The local vite server will return a url that you can use to access the chat interface locally, such as  `http://localhost:5174/`.
 
-#### Building the user app Docker image
-
-```shell
-docker build -f docker\WebApp.Dockerfile -t YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE .
-docker run --env-file .env -p 8080:80 YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
-docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
-```
-
 ### Develop & run the admin app
 
 The admin app can be launched locally from vscode (Ctrl+Shift+D) and selecting "Launch Admin site". You will also be able to place breakpoints in the Python Code should you wish.
 
 This should automatically open `http://localhost:8501/` and render the admin interface.
-
-#### Building the backend Docker image
-
-```shell
-docker build -f docker\AdminWebApp.Dockerfile -t YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE .
-docker run --env-file .env -p 8081:80 YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
-docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
-```
-
-**NOTE**: If you are using Linux, make sure to go to https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/blob/main/docker/docker-compose.yml#L9 and modify the docker-compose.yml to use forward slash /. The backslash version just works with Windows.
-
 
 ### Develop & run the batch processing functions
 
@@ -148,13 +123,6 @@ Rename the file `local.settings.json.sample` in the `batch` folder to `local.set
 
 Execute the above [shell command](#L81) to run the function locally. You may need to stop the deployed function on the portal so that all requests are debugged locally.
 
-#### Building the batch processing Docker image
-
-```shell
-docker build -f docker\Backend.Dockerfile -t YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE .
-docker run --env-file .env -p 7071:80 YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
-docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
-```
 
 ## Environment variables
 
@@ -201,4 +169,4 @@ docker push YOUR_DOCKER_REGISTRY/YOUR_DOCKER_IMAGE
 |AZURE_CONTENT_SAFETY_KEY | | The key of the Azure AI Content Safety service|
 |AZURE_SPEECH_SERVICE_KEY | | The key of the Azure Speech service|
 |AZURE_SPEECH_SERVICE_REGION | | The region (location) of the Azure Speech service|
-|AZURE_AUTH_TYPE | rbac | Change the value to 'keys' to authenticate using AZURE API keys. For more information refer to section [Authenticate using RBAC](#authenticate-using-rbac)
+|AZURE_AUTH_TYPE | keys | The default is to use API keys. Change the value to 'rbac' to authenticate using Role Based Access Control. For more information refer to section [Authenticate using RBAC](#authenticate-using-rbac)

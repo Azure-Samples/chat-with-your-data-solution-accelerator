@@ -6608,23 +6608,23 @@
       "type": "bool",
       "value": "[parameters('useKeyVault')]"
     },
-    "AZURE_OPENAI_KEY_NAME": {
+    "AZURE_OPENAI_KEY": {
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.OPENAI_KEY_NAME.value, '')]"
     },
-    "AZURE_BLOB_ACCOUNT_KEY_NAME": {
+    "AZURE_BLOB_ACCOUNT_KEY": {
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value, '')]"
     },
-    "AZURE_FORM_RECOGNIZER_KEY_NAME": {
+    "AZURE_FORM_RECOGNIZER_KEY": {
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value, '')]"
     },
-    "AZURE_SEARCH_KEY_NAME": {
+    "AZURE_SEARCH_KEY": {
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SEARCH_KEY_NAME.value, '')]"
     },
-    "AZURE_CONTENT_SAFETY_KEY_NAME": {
+    "AZURE_CONTENT_SAFETY_KEY": {
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.CONTENT_SAFETY_KEY_NAME.value, '')]"
     },
@@ -6632,7 +6632,7 @@
       "type": "string",
       "value": "[parameters('location')]"
     },
-    "AZURE_SPEECH_SERVICE_KEY_NAME": {
+    "AZURE_SPEECH_SERVICE_KEY": {
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SPEECH_KEY_NAME.value, '')]"
     }
