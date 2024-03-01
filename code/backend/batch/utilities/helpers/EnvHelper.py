@@ -14,18 +14,18 @@ class EnvHelper:
         # Azure Search
         self.AZURE_SEARCH_SERVICE = os.getenv("AZURE_SEARCH_SERVICE", "")
         self.AZURE_SEARCH_INDEX = os.getenv("AZURE_SEARCH_INDEX", "")
-        self.AZURE_SEARCH_USE_SEMANTIC_SEARCH = os.getenv(
-            "AZURE_SEARCH_USE_SEMANTIC_SEARCH", ""
+        self.AZURE_SEARCH_USE_SEMANTIC_SEARCH = (
+            os.getenv("AZURE_SEARCH_USE_SEMANTIC_SEARCH", "False").lower() == "true"
         )
         self.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = os.getenv(
-            "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG", ""
+            "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG", "default"
         )
         self.AZURE_SEARCH_INDEX_IS_PRECHUNKED = os.getenv(
             "AZURE_SEARCH_INDEX_IS_PRECHUNKED", ""
         )
-        self.AZURE_SEARCH_TOP_K = os.getenv("AZURE_SEARCH_TOP_K", "")
-        self.AZURE_SEARCH_ENABLE_IN_DOMAIN = os.getenv(
-            "AZURE_SEARCH_ENABLE_IN_DOMAIN", ""
+        self.AZURE_SEARCH_TOP_K = os.getenv("AZURE_SEARCH_TOP_K", 5)
+        self.AZURE_SEARCH_ENABLE_IN_DOMAIN = (
+            os.getenv("AZURE_SEARCH_ENABLE_IN_DOMAIN", "true").lower() == "true"
         )
         self.AZURE_SEARCH_FIELDS_ID = os.getenv("AZURE_SEARCH_FIELDS_ID", "id")
         self.AZURE_SEARCH_CONTENT_COLUMNS = os.getenv(
@@ -51,20 +51,32 @@ class EnvHelper:
         # Azure OpenAI
         self.AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE", "")
         self.AZURE_OPENAI_MODEL = os.getenv("AZURE_OPENAI_MODEL", "")
-        self.AZURE_OPENAI_MODEL_NAME = os.getenv("AZURE_OPENAI_MODEL_NAME", "")
-        self.AZURE_OPENAI_TEMPERATURE = os.getenv("AZURE_OPENAI_TEMPERATURE", "")
-        self.AZURE_OPENAI_TOP_P = os.getenv("AZURE_OPENAI_TOP_P", "")
-        self.AZURE_OPENAI_MAX_TOKENS = os.getenv("AZURE_OPENAI_MAX_TOKENS", "")
+        self.AZURE_OPENAI_MODEL_NAME = os.getenv(
+            "AZURE_OPENAI_MODEL_NAME", "gpt-35-turbo"
+        )
+        self.AZURE_OPENAI_TEMPERATURE = os.getenv("AZURE_OPENAI_TEMPERATURE", 0)
+        self.AZURE_OPENAI_TOP_P = os.getenv("AZURE_OPENAI_TOP_P", 1.0)
+        self.AZURE_OPENAI_MAX_TOKENS = os.getenv("AZURE_OPENAI_MAX_TOKENS", 1000)
         self.AZURE_OPENAI_STOP_SEQUENCE = os.getenv("AZURE_OPENAI_STOP_SEQUENCE", "")
-        self.AZURE_OPENAI_SYSTEM_MESSAGE = os.getenv("AZURE_OPENAI_SYSTEM_MESSAGE", "")
-        self.AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION", "")
-        self.AZURE_OPENAI_STREAM = os.getenv("AZURE_OPENAI_STREAM", "")
+        self.AZURE_OPENAI_SYSTEM_MESSAGE = os.getenv(
+            "AZURE_OPENAI_SYSTEM_MESSAGE",
+            "You are an AI assistant that helps people find information.",
+        )
+        self.AZURE_OPENAI_API_VERSION = os.getenv(
+            "AZURE_OPENAI_API_VERSION", "2023-12-01-preview"
+        )
+        self.AZURE_OPENAI_STREAM = os.getenv("AZURE_OPENAI_STREAM", "true")
         self.AZURE_OPENAI_EMBEDDING_MODEL = os.getenv(
             "AZURE_OPENAI_EMBEDDING_MODEL", ""
         )
+        self.SHOULD_STREAM = (
+            True if self.AZURE_OPENAI_STREAM.lower() == "true" else False
+        )
+
         self.AZURE_TOKEN_PROVIDER = get_bearer_token_provider(
             DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
         )
+        self.USE_KEY_VAULT = os.getenv("USE_KEY_VAULT", "").lower() == "true"
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
         # When USE_KEY_VAULT environment variable is set, keys are securely fetched from Azure Key Vault using DefaultAzureCredential.
@@ -73,7 +85,7 @@ class EnvHelper:
             self.AZURE_SEARCH_KEY = None
             self.AZURE_OPENAI_KEY = ""
             self.AZURE_SPEECH_KEY = None
-        elif os.environ.get("USE_KEY_VAULT"):
+        elif self.USE_KEY_VAULT:
             credential = DefaultAzureCredential()
             self.secret_client = SecretClient(
                 os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential
@@ -105,16 +117,17 @@ class EnvHelper:
         os.environ["OPENAI_API_KEY"] = self.OPENAI_API_KEY
         os.environ["OPENAI_API_VERSION"] = self.OPENAI_API_VERSION
         # Azure Functions - Batch processing
-        self.BACKEND_URL = os.getenv("BACKEND_URL", "")
+        self.BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:7071")
+        self.FUNCTION_KEY = os.getenv("FUNCTION_KEY")
         self.AzureWebJobsStorage = os.getenv("AzureWebJobsStorage", "")
         self.DOCUMENT_PROCESSING_QUEUE_NAME = os.getenv(
-            "DOCUMENT_PROCESSING_QUEUE_NAME", ""
+            "DOCUMENT_PROCESSING_QUEUE_NAME", "doc-processing"
         )
         # Azure Blob Storage
         self.AZURE_BLOB_ACCOUNT_NAME = os.getenv("AZURE_BLOB_ACCOUNT_NAME", "")
         self.AZURE_BLOB_ACCOUNT_KEY = (
             self.secret_client.get_secret(os.getenv("AZURE_BLOB_ACCOUNT_KEY", "")).value
-            if os.getenv("USE_KEY_VAULT", "")
+            if self.USE_KEY_VAULT
             else os.getenv("AZURE_BLOB_ACCOUNT_KEY", "")
         )
         self.AZURE_BLOB_CONTAINER_NAME = os.getenv("AZURE_BLOB_CONTAINER_NAME", "")
@@ -126,7 +139,7 @@ class EnvHelper:
             self.secret_client.get_secret(
                 os.getenv("AZURE_FORM_RECOGNIZER_KEY", "")
             ).value
-            if os.getenv("USE_KEY_VAULT", "")
+            if self.USE_KEY_VAULT
             else os.getenv("AZURE_FORM_RECOGNIZER_KEY", "")
         )
         # Azure App Insights
@@ -146,13 +159,29 @@ class EnvHelper:
             self.secret_client.get_secret(
                 os.getenv("AZURE_CONTENT_SAFETY_KEY", "")
             ).value
-            if os.getenv("USE_KEY_VAULT", "")
+            if self.USE_KEY_VAULT
             else os.getenv("AZURE_CONTENT_SAFETY_KEY", "")
         )
         # Orchestration Settings
         self.ORCHESTRATION_STRATEGY = os.getenv(
             "ORCHESTRATION_STRATEGY", "openai_function"
         )
+        # Speech Service
+        self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")
+
+    def should_use_data(self) -> bool:
+        if (
+            self.AZURE_SEARCH_SERVICE
+            and self.AZURE_SEARCH_INDEX
+            and self.AZURE_SEARCH_KEY
+        ):
+            return True
+        return False
+
+    def is_chat_model(self):
+        if "gpt-4" in self.AZURE_OPENAI_MODEL_NAME.lower():
+            return True
+        return False
 
     @staticmethod
     def check_env():

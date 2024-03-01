@@ -1,13 +1,14 @@
 import azure.functions as func
 import logging
 import json
-import os
 import sys
+from utilities.helpers import EnvHelper
 from utilities.helpers.OrchestratorHelper import Orchestrator
 
 sys.path.append("..")
 
 bp_get_conversation_response = func.Blueprint()
+env_helper: EnvHelper = EnvHelper()
 
 
 @bp_get_conversation_response.route(route="GetConversationResponse")
@@ -45,7 +46,7 @@ def get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
 
         response_obj = {
             "id": "response.id",
-            "model": os.getenv("AZURE_OPENAI_MODEL"),
+            "model": env_helper.AZURE_OPENAI_MODEL,
             "created": "response.created",
             "object": "response.object",
             "choices": [{"messages": messages}],

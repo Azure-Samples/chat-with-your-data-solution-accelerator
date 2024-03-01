@@ -14,7 +14,7 @@ class TestConfig:
         assert response.json == {"azureSpeechKey": None, "azureSpeechRegion": None}
 
 
-class TestCoversationCustom:
+class TestConversationCustom:
     def setup_method(self):
         self.orchestrator_config = {"strategy": "langchain"}
         self.messages = [
@@ -37,8 +37,12 @@ class TestCoversationCustom:
 
     @patch("app.get_message_orchestrator")
     @patch("app.get_orchestrator_config")
+    @patch("app.env_helper")
     def test_converstation_custom_returns_correct_response(
-        self, get_orchestrator_config_mock, get_message_orchestrator_mock
+        self,
+        env_helper_mock,
+        get_orchestrator_config_mock,
+        get_message_orchestrator_mock,
     ):
         # given
         get_orchestrator_config_mock.return_value = self.orchestrator_config
@@ -47,7 +51,7 @@ class TestCoversationCustom:
         message_orchestrator_mock.handle_message.return_value = self.messages
         get_message_orchestrator_mock.return_value = message_orchestrator_mock
 
-        os.environ["AZURE_OPENAI_MODEL"] = self.openai_model
+        env_helper_mock.AZURE_OPENAI_MODEL = self.openai_model
 
         # when
         response = app.test_client().post(
