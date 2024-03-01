@@ -10,7 +10,7 @@
     },
     "dependencies": {
         "@babel/traverse": "^7.23.2",
-        "@fluentui/react": "^8.105.3",
+        "@fluentui/react": "^8.115.6",
         "@fluentui/react-icons": "^2.0.195",
         "@fortawesome/fontawesome-svg-core": "^6.5.1",
         "@fortawesome/free-solid-svg-icons": "^6.4.2",
