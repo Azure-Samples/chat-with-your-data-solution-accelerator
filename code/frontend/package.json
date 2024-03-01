@@ -18,7 +18,7 @@
         "lodash": "^4.17.21",
         "lodash-es": "^4.17.21",
         "microsoft-cognitiveservices-speech-sdk": "^1.32.0",
-        "postcss": "^8.4.31",
+        "postcss": "^8.4.35",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "react-markdown": "^7.0.1",
