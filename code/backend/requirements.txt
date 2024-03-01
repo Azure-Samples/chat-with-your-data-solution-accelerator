@@ -2,7 +2,7 @@ azure-functions==1.18.0
 streamlit==1.30.0
 openai==1.6.1
 scipy==1.12.0
-transformers==4.38.1
+transformers==4.38.2
 python-dotenv==1.0.1
 azure-ai-formrecognizer==3.3.2
 azure-storage-blob==12.19.0
