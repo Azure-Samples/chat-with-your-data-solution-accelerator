@@ -1,4 +1,4 @@
-import { ChatResponse, ConversationRequest } from "./models";
+import { ConversationRequest } from "./models";
 
 export async function conversationApi(options: ConversationRequest, abortSignal: AbortSignal): Promise<Response> {
     const response = await fetch("/api/conversation/azure_byod", {
