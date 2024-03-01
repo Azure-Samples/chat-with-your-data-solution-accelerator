@@ -486,6 +486,7 @@ module function './app/function.bicep' = {
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
       APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
+      APPINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
     }
   }
 }

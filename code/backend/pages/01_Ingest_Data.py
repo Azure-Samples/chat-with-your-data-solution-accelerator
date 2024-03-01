@@ -1,5 +1,5 @@
+from os import path
 import streamlit as st
-import os
 from typing import Optional
 import mimetypes
 import traceback
@@ -18,18 +18,17 @@ from azure.storage.blob import (
 import urllib.parse
 import sys
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
-from dotenv import load_dotenv
+from batch.utilities.helpers.EnvHelper import EnvHelper
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
-load_dotenv()
+sys.path.append(path.join(path.dirname(__file__), ".."))
+env_helper: EnvHelper = EnvHelper()
 
 logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
     logging.WARNING
 )
 st.set_page_config(
     page_title="Ingest Data",
-    page_icon=os.path.join("images", "favicon.ico"),
+    page_icon=path.join("images", "favicon.ico"),
     layout="wide",
     menu_items=None,
 )
@@ -60,11 +59,11 @@ def request_user_delegation_key(
 
 def remote_convert_files_and_add_embeddings(process_all=False):
     backend_url = urllib.parse.urljoin(
-        os.getenv("BACKEND_URL", "http://localhost:7071"), "/api/BatchStartProcessing"
+        env_helper.BACKEND_URL, "/api/BatchStartProcessing"
     )
     params = {}
-    if os.getenv("FUNCTION_KEY") is not None:
-        params["code"] = os.getenv("FUNCTION_KEY")
+    if env_helper.FUNCTION_KEY is not None:
+        params["code"] = env_helper.FUNCTION_KEY
         params["clientId"] = "clientKey"
     if process_all:
         params["process_all"] = "true"
@@ -82,14 +81,14 @@ def remote_convert_files_and_add_embeddings(process_all=False):
 
 def add_urls():
     params = {}
-    if os.getenv("FUNCTION_KEY") is not None:
-        params["code"] = os.getenv("FUNCTION_KEY")
+    if env_helper.FUNCTION_KEY is not None:
+        params["code"] = env_helper.FUNCTION_KEY
         params["clientId"] = "clientKey"
     urls = st.session_state["urls"].split("\n")
     for url in urls:
         body = {"url": url}
         backend_url = urllib.parse.urljoin(
-            os.getenv("BACKEND_URL", "http://localhost:7071"), "/api/AddURLEmbeddings"
+            env_helper.BACKEND_URL, "/api/AddURLEmbeddings"
         )
         r = requests.post(url=backend_url, params=params, json=body)
         if not r.ok:
@@ -109,8 +108,8 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
             else ""
         )
         content_type = content_type if content_type is not None else "text/plain"
-    account_name = os.getenv("AZURE_BLOB_ACCOUNT_NAME")
-    if os.environ.get("AUTH_TYPE") == "rbac":
+    account_name = env_helper.AZURE_BLOB_ACCOUNT_NAME
+    if env_helper.AZURE_AUTH_TYPE == "rbac":
         credential = DefaultAzureCredential()
         account_url = f"https://{account_name}.blob.core.windows.net/"
         blob_service_client = BlobServiceClient(
@@ -119,7 +118,7 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
         user_delegation_key = request_user_delegation_key(
             blob_service_client=blob_service_client
         )
-        container_name = os.getenv("AZURE_BLOB_CONTAINER_NAME")
+        container_name = env_helper.AZURE_BLOB_CONTAINER_NAME
         blob_client = blob_service_client.get_blob_client(
             container=container_name, blob=file_name
         )
@@ -141,17 +140,17 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
             )
         )
     else:
-        if os.environ.get("USE_KEY_VAULT"):
+        if env_helper.USE_KEY_VAULT:
             credential = DefaultAzureCredential()
             secret_client = SecretClient(
-                os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential
+                env_helper.AZURE_KEY_VAULT_ENDPOINT, credential
             )
         account_key = (
-            secret_client.get_secret(os.getenv("AZURE_BLOB_ACCOUNT_KEY")).value
-            if os.getenv("USE_KEY_VAULT")
-            else os.getenv("AZURE_BLOB_ACCOUNT_KEY")
+            secret_client.get_secret(env_helper.AZURE_BLOB_ACCOUNT_KEY).value
+            if env_helper.USE_KEY_VAULT
+            else env_helper.AZURE_BLOB_ACCOUNT_KEY
         )
-        container_name = os.getenv("AZURE_BLOB_CONTAINER_NAME")
+        container_name = env_helper.AZURE_BLOB_CONTAINER_NAME
         if account_name is None or account_key is None or container_name is None:
             raise ValueError(
                 "Please provide values for AZURE_BLOB_ACCOUNT_NAME, AZURE_BLOB_ACCOUNT_KEY and AZURE_BLOB_CONTAINER_NAME"
@@ -231,7 +230,7 @@ try:
         with col2:
             st.selectbox(
                 "Embeddings models",
-                [os.getenv("AZURE_OPENAI_EMBEDDING_MODEL")],
+                [env_helper.AZURE_OPENAI_EMBEDDING_MODEL],
                 disabled=True,
             )
             st.button("Process and ingest web pages", on_click=add_urls, key="add_url")

@@ -22,4 +22,3 @@ repos:
         require_serial: true
         args: # Bicep files that we want to generate ARM templates from
           - -f=./infra/main.bicep
-          - -f=./extensions/infrastructure/main.bicep

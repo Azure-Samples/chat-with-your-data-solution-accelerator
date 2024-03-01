@@ -1,12 +1,11 @@
 import json
-import os
 import logging
+from os import path
 import requests
 from openai import AzureOpenAI
 import mimetypes
 from flask import Flask, Response, request, jsonify
 from dotenv import load_dotenv
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 import sys
 from backend.batch.utilities.helpers.EnvHelper import EnvHelper
 
@@ -14,13 +13,14 @@ from backend.batch.utilities.helpers.EnvHelper import EnvHelper
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(path.join(path.dirname(__file__), ".."))
 
 load_dotenv(
-    os.path.join(os.path.dirname(__file__), "..", "..", ".env")
+    path.join(path.dirname(__file__), "..", "..", ".env")
 )  # Load environment variables from .env file
 
 app = Flask(__name__)
+env_helper: EnvHelper = EnvHelper()
 
 
 @app.route("/", defaults={"path": "index.html"})
@@ -29,75 +29,15 @@ def static_file(path):
     return app.send_static_file(path)
 
 
-env_helper: EnvHelper = EnvHelper()
-AZURE_AUTH_TYPE = env_helper.AZURE_AUTH_TYPE
-AZURE_SEARCH_KEY = env_helper.AZURE_SEARCH_KEY
-AZURE_OPENAI_KEY = env_helper.AZURE_OPENAI_KEY
-AZURE_SPEECH_KEY = env_helper.AZURE_SPEECH_KEY
-
-
 @app.route("/api/config", methods=["GET"])
 def get_config():
-    # Retrieve the environment variables or other configuration data
-    azure_speech_region = os.getenv("AZURE_SPEECH_SERVICE_REGION")
-
     # Return the configuration data as JSON
     return jsonify(
-        {"azureSpeechKey": AZURE_SPEECH_KEY, "azureSpeechRegion": azure_speech_region}
+        {
+            "azureSpeechKey": env_helper.AZURE_SPEECH_KEY,
+            "azureSpeechRegion": env_helper.AZURE_SPEECH_SERVICE_REGION,
+        }
     )
-
-
-# ACS Integration Settings
-AZURE_SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")
-AZURE_SEARCH_INDEX = os.environ.get("AZURE_SEARCH_INDEX")
-AZURE_SEARCH_USE_SEMANTIC_SEARCH = os.environ.get(
-    "AZURE_SEARCH_USE_SEMANTIC_SEARCH", "False"
-)
-AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = os.environ.get(
-    "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG", "default"
-)
-AZURE_SEARCH_TOP_K = os.environ.get("AZURE_SEARCH_TOP_K", 5)
-AZURE_SEARCH_ENABLE_IN_DOMAIN = os.environ.get("AZURE_SEARCH_ENABLE_IN_DOMAIN", "true")
-AZURE_SEARCH_CONTENT_COLUMNS = os.environ.get("AZURE_SEARCH_CONTENT_COLUMNS")
-AZURE_SEARCH_FILENAME_COLUMN = os.environ.get("AZURE_SEARCH_FILENAME_COLUMN")
-AZURE_SEARCH_TITLE_COLUMN = os.environ.get("AZURE_SEARCH_TITLE_COLUMN")
-AZURE_SEARCH_URL_COLUMN = os.environ.get("AZURE_SEARCH_URL_COLUMN")
-
-# AOAI Integration Settings
-AZURE_OPENAI_RESOURCE = os.environ.get("AZURE_OPENAI_RESOURCE")
-AZURE_OPENAI_MODEL = os.environ.get("AZURE_OPENAI_MODEL")
-AZURE_OPENAI_TEMPERATURE = os.environ.get("AZURE_OPENAI_TEMPERATURE", 0)
-AZURE_OPENAI_TOP_P = os.environ.get("AZURE_OPENAI_TOP_P", 1.0)
-AZURE_OPENAI_MAX_TOKENS = os.environ.get("AZURE_OPENAI_MAX_TOKENS", 1000)
-AZURE_OPENAI_STOP_SEQUENCE = os.environ.get("AZURE_OPENAI_STOP_SEQUENCE")
-AZURE_OPENAI_SYSTEM_MESSAGE = os.environ.get(
-    "AZURE_OPENAI_SYSTEM_MESSAGE",
-    "You are an AI assistant that helps people find information.",
-)
-AZURE_OPENAI_API_VERSION = os.environ.get(
-    "AZURE_OPENAI_API_VERSION", "2023-12-01-preview"
-)
-AZURE_OPENAI_STREAM = os.environ.get("AZURE_OPENAI_STREAM", "true")
-AZURE_OPENAI_MODEL_NAME = os.environ.get(
-    "AZURE_OPENAI_MODEL_NAME", "gpt-35-turbo"
-)  # Name of the model, e.g. 'gpt-35-turbo' or 'gpt-4'
-AZURE_TOKEN_PROVIDER = get_bearer_token_provider(
-    DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
-)
-
-SHOULD_STREAM = True if AZURE_OPENAI_STREAM.lower() == "true" else False
-
-
-def is_chat_model():
-    if "gpt-4" in AZURE_OPENAI_MODEL_NAME.lower():
-        return True
-    return False
-
-
-def should_use_data():
-    if AZURE_SEARCH_SERVICE and AZURE_SEARCH_INDEX and AZURE_SEARCH_KEY:
-        return True
-    return False
 
 
 def prepare_body_headers_with_data(request):
@@ -105,76 +45,74 @@ def prepare_body_headers_with_data(request):
 
     body = {
         "messages": request_messages,
-        "temperature": AZURE_OPENAI_TEMPERATURE,
-        "max_tokens": AZURE_OPENAI_MAX_TOKENS,
-        "top_p": AZURE_OPENAI_TOP_P,
+        "temperature": env_helper.AZURE_OPENAI_TEMPERATURE,
+        "max_tokens": env_helper.AZURE_OPENAI_MAX_TOKENS,
+        "top_p": env_helper.AZURE_OPENAI_TOP_P,
         "stop": (
-            AZURE_OPENAI_STOP_SEQUENCE.split("|")
-            if AZURE_OPENAI_STOP_SEQUENCE
+            env_helper.AZURE_OPENAI_STOP_SEQUENCE.split("|")
+            if env_helper.AZURE_OPENAI_STOP_SEQUENCE
             else None
         ),
-        "stream": SHOULD_STREAM,
+        "stream": env_helper.SHOULD_STREAM,
         "dataSources": [
             {
                 "type": "AzureCognitiveSearch",
                 "parameters": {
-                    "endpoint": AZURE_SEARCH_SERVICE,
-                    "key": AZURE_SEARCH_KEY,
-                    "indexName": AZURE_SEARCH_INDEX,
+                    "endpoint": env_helper.AZURE_SEARCH_SERVICE,
+                    "key": env_helper.AZURE_SEARCH_KEY,
+                    "indexName": env_helper.AZURE_SEARCH_INDEX,
                     "fieldsMapping": {
                         "contentField": (
-                            AZURE_SEARCH_CONTENT_COLUMNS.split("|")
-                            if AZURE_SEARCH_CONTENT_COLUMNS
+                            env_helper.AZURE_SEARCH_CONTENT_COLUMNS.split("|")
+                            if env_helper.AZURE_SEARCH_CONTENT_COLUMNS
                             else []
                         ),
                         "titleField": (
-                            AZURE_SEARCH_TITLE_COLUMN
-                            if AZURE_SEARCH_TITLE_COLUMN
+                            env_helper.AZURE_SEARCH_TITLE_COLUMN
+                            if env_helper.AZURE_SEARCH_TITLE_COLUMN
                             else None
                         ),
                         "urlField": (
-                            AZURE_SEARCH_URL_COLUMN if AZURE_SEARCH_URL_COLUMN else None
+                            env_helper.AZURE_SEARCH_URL_COLUMN
+                            if env_helper.AZURE_SEARCH_URL_COLUMN
+                            else None
                         ),
                         "filepathField": (
-                            AZURE_SEARCH_FILENAME_COLUMN
-                            if AZURE_SEARCH_FILENAME_COLUMN
+                            env_helper.AZURE_SEARCH_FILENAME_COLUMN
+                            if env_helper.AZURE_SEARCH_FILENAME_COLUMN
                             else None
                         ),
                     },
-                    "inScope": (
-                        True
-                        if AZURE_SEARCH_ENABLE_IN_DOMAIN.lower() == "true"
-                        else False
-                    ),
-                    "topNDocuments": AZURE_SEARCH_TOP_K,
+                    "inScope": env_helper.AZURE_SEARCH_ENABLE_IN_DOMAIN,
+                    "topNDocuments": env_helper.AZURE_SEARCH_TOP_K,
                     "queryType": (
                         "semantic"
-                        if AZURE_SEARCH_USE_SEMANTIC_SEARCH.lower() == "true"
+                        if env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH
                         else "simple"
                     ),
                     "semanticConfiguration": (
-                        AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
-                        if AZURE_SEARCH_USE_SEMANTIC_SEARCH.lower() == "true"
-                        and AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
+                        env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
+                        if env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH
+                        and env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
                         else ""
                     ),
-                    "roleInformation": AZURE_OPENAI_SYSTEM_MESSAGE,
+                    "roleInformation": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE,
                 },
             }
         ],
     }
 
-    chatgpt_url = f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/openai/deployments/{AZURE_OPENAI_MODEL}"
-    if is_chat_model():
+    chatgpt_url = f"https://{env_helper.AZURE_OPENAI_RESOURCE}.openai.azure.com/openai/deployments/{env_helper.AZURE_OPENAI_MODEL}"
+    if env_helper.is_chat_model():
         chatgpt_url += "/chat/completions?api-version=2023-12-01-preview"
     else:
         chatgpt_url += "/completions?api-version=2023-12-01-preview"
 
     headers = {
         "Content-Type": "application/json",
-        "api-key": AZURE_OPENAI_KEY,
+        "api-key": env_helper.AZURE_OPENAI_KEY,
         "chatgpt_url": chatgpt_url,
-        "chatgpt_key": AZURE_OPENAI_KEY,
+        "chatgpt_key": env_helper.AZURE_OPENAI_KEY,
         "x-ms-useragent": "GitHubSampleWebApp/PublicAPI/1.0.0",
     }
 
@@ -227,9 +165,9 @@ def stream_with_data(body, headers, endpoint):
 
 def conversation_with_data(request):
     body, headers = prepare_body_headers_with_data(request)
-    endpoint = f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/openai/deployments/{AZURE_OPENAI_MODEL}/extensions/chat/completions?api-version={AZURE_OPENAI_API_VERSION}"
+    endpoint = f"https://{env_helper.AZURE_OPENAI_RESOURCE}.openai.azure.com/openai/deployments/{env_helper.AZURE_OPENAI_MODEL}/extensions/chat/completions?api-version={env_helper.AZURE_OPENAI_API_VERSION}"
 
-    if not SHOULD_STREAM:
+    if not env_helper.SHOULD_STREAM:
         r = requests.post(endpoint, headers=headers, json=body)
         status_code = r.status_code
         r = r.json()
@@ -263,42 +201,42 @@ def stream_without_data(response):
 
 
 def conversation_without_data(request):
-    azure_endpoint = f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/"
-    if AZURE_AUTH_TYPE == "rbac":
+    azure_endpoint = f"https://{env_helper.AZURE_OPENAI_RESOURCE}.openai.azure.com/"
+    if env_helper.AZURE_AUTH_TYPE == "rbac":
         openai_client = AzureOpenAI(
             azure_endpoint=azure_endpoint,
-            api_version=AZURE_OPENAI_API_VERSION,
-            azure_ad_token_provider=AZURE_TOKEN_PROVIDER,
+            api_version=env_helper.AZURE_OPENAI_API_VERSION,
+            azure_ad_token_provider=env_helper.AZURE_TOKEN_PROVIDER,
         )
     else:
         openai_client = AzureOpenAI(
             azure_endpoint=azure_endpoint,
-            api_version=AZURE_OPENAI_API_VERSION,
-            api_key=AZURE_OPENAI_KEY,
+            api_version=env_helper.AZURE_OPENAI_API_VERSION,
+            api_key=env_helper.AZURE_OPENAI_KEY,
         )
 
     request_messages = request.json["messages"]
-    messages = [{"role": "system", "content": AZURE_OPENAI_SYSTEM_MESSAGE}]
+    messages = [{"role": "system", "content": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE}]
 
     for message in request_messages:
         messages.append({"role": message["role"], "content": message["content"]})
 
     # Azure Open AI takes the deployment name as the model name, "AZURE_OPENAI_MODEL" means deployment name.
     response = openai_client.chat.completions.create(
-        model=AZURE_OPENAI_MODEL,
+        model=env_helper.AZURE_OPENAI_MODEL,
         messages=messages,
-        temperature=float(AZURE_OPENAI_TEMPERATURE),
-        max_tokens=int(AZURE_OPENAI_MAX_TOKENS),
-        top_p=float(AZURE_OPENAI_TOP_P),
+        temperature=float(env_helper.AZURE_OPENAI_TEMPERATURE),
+        max_tokens=int(env_helper.AZURE_OPENAI_MAX_TOKENS),
+        top_p=float(env_helper.AZURE_OPENAI_TOP_P),
         stop=(
-            AZURE_OPENAI_STOP_SEQUENCE.split("|")
-            if AZURE_OPENAI_STOP_SEQUENCE
+            env_helper.AZURE_OPENAI_STOP_SEQUENCE.split("|")
+            if env_helper.AZURE_OPENAI_STOP_SEQUENCE
             else None
         ),
-        stream=SHOULD_STREAM,
+        stream=env_helper.SHOULD_STREAM,
     )
 
-    if not SHOULD_STREAM:
+    if not env_helper.SHOULD_STREAM:
         response_obj = {
             "id": response,
             "model": response.model,
@@ -329,8 +267,7 @@ def conversation_without_data(request):
 @app.route("/api/conversation/azure_byod", methods=["GET", "POST"])
 def conversation_azure_byod():
     try:
-        use_data = should_use_data()
-        if use_data:
+        if env_helper.should_use_data():
             return conversation_with_data(request)
         else:
             return conversation_without_data(request)
@@ -382,7 +319,7 @@ def conversation_custom():
 
         response_obj = {
             "id": "response.id",
-            "model": os.getenv("AZURE_OPENAI_MODEL"),
+            "model": env_helper.AZURE_OPENAI_MODEL,
             "created": "response.created",
             "object": "response.object",
             "choices": [{"messages": messages}],

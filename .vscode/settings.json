@@ -12,6 +12,7 @@
     "python.testing.pytestArgs": [
         "."
     ],
+    "python.testing.cwd": "${workspaceFolder}/code",
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
 }
