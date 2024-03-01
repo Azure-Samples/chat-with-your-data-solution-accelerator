@@ -9,7 +9,7 @@
         "watch": "tsc && vite build --watch"
     },
     "dependencies": {
-        "@babel/traverse": "^7.23.2",
+        "@babel/traverse": "^7.24.0",
         "@fluentui/react": "^8.105.3",
         "@fluentui/react-icons": "^2.0.195",
         "@fortawesome/fontawesome-svg-core": "^6.5.1",
