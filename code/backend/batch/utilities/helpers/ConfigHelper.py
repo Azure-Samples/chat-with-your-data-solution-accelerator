@@ -88,6 +88,7 @@ class ConfigHelper:
 
     @staticmethod
     def get_default_config():
+        env_helper = EnvHelper()
         default_config = {
             "prompts": {
                 "condense_question_prompt": """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question. If the user asks multiple questions at once, break them up into multiple standalone questions, all in one line.
@@ -204,6 +205,6 @@ Answer: {answer}""",
                 },
             ],
             "logging": {"log_user_interactions": True, "log_tokens": True},
-            "orchestrator": {"strategy": "openai_function"},
+            "orchestrator": {"strategy": env_helper.ORCHESTRATION_STRATEGY},
         }
         return Config(default_config)
