@@ -27,7 +27,7 @@ The accelerator presented here provides several options, for example:
 * The ability to ground a model using both data and public web pages
 * Advanced prompt engineering capabilities
 * An admin site for ingesting/inspecting/configuring your dataset on the fly
-* Running a Retrieval Augmented Generation (RAG) solution locally, as a Docker container
+* Running a Retrieval Augmented Generation (RAG) solution locally
 
 *Have you seen [ChatGPT + Enterprise data with Azure OpenAI and AI Search demo](https://github.com/Azure-Samples/azure-search-openai-demo)? If you would like to experiment: Play with prompts, understanding RAG pattern different implementation approaches, see how different features interact with the RAG pattern and choose the best options for your RAG deployments, take a look at that repo. 
 
