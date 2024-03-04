@@ -74,7 +74,7 @@ Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.
 |AZURE_OPENAI_SYSTEM_MESSAGE|You are an AI assistant that helps people find information.|A brief description of the role and tone the model should use|
 |AZURE_OPENAI_API_VERSION|2023-12-01-preview|API version when using Azure OpenAI on your data|
 |AzureWebJobsStorage||The connection string to the Azure Blob Storage for the Azure Functions Batch processing|
-|BACKEND_URL||The URL for the Backend Batch Azure Function. Use http://localhost:7071 for local execution and http://backend for docker compose|
+|BACKEND_URL||The URL for the Backend Batch Azure Function. Use http://localhost:7071 for local execution|
 |DOCUMENT_PROCESSING_QUEUE_NAME|doc-processing|The name of the Azure Queue to handle the Batch processing|
 |AZURE_BLOB_ACCOUNT_NAME||The name of the Azure Blob Storage for storing the original documents to be processed|
 |AZURE_BLOB_ACCOUNT_KEY||The key of the Azure Blob Storage for storing the original documents to be processed|

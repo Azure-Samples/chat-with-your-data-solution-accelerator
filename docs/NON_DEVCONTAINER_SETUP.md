@@ -9,7 +9,6 @@ If you are unable to run this accelerator as a DevContainer or in CodeSpaces, th
         - [Azure Functions](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions)
         - [Azure Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-node-azure-pack)
         - [Bicep](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-bicep)
-        - [Docker](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker)
         - [Pylance](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance)
         - [Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
         - [Teams Toolkit](https://marketplace.visualstudio.com/items?itemName=TeamsDevApp.ms-teams-vscode-extension) (optional: Teams extension only)
