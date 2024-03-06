@@ -60,6 +60,10 @@ resource webApp 'Microsoft.Web/sites@2021-02-01' = {
           name: 'BOT_PASSWORD'
           value: botAadAppClientSecret
         }
+        {
+          name: 'AZURE_FUNCTION_URL'
+          value: azureFunctionURL
+        }
       ]
       ftpsState: 'FtpsOnly'
     }
