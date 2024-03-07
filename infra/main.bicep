@@ -100,7 +100,7 @@ param azureOpenAIStopSequence string = '\n'
 param azureOpenAISystemMessage string = 'You are an AI assistant that helps people find information.'
 
 @description('Azure OpenAI Api Version')
-param azureOpenAIApiVersion string = '2023-07-01-preview'
+param azureOpenAIApiVersion string = '2023-10-01-preview'
 
 @description('Whether or not to stream responses from Azure OpenAI')
 param azureOpenAIStream string = 'true'
@@ -490,6 +490,7 @@ module function './app/function.bicep' = {
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
       APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
+      APPINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
     }
   }
 }
@@ -712,8 +713,11 @@ module searchRoleFunction 'core/security/role.bicep' = if (authType == 'rbac') {
   }
 }
 
+// TODO: Streamline to one key=value pair
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
+output APPINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output APPINSIGHTS_INSTRUMENTATIONKEY string = monitoring.outputs.applicationInsightsInstrumentationKey
+
 output AZURE_KEY_VAULT_ENDPOINT string = useKeyVault ? keyvault.outputs.endpoint : ''
 output AZURE_KEY_VAULT_NAME string = useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
 output AZURE_LOCATION string = location
@@ -746,10 +750,11 @@ output AZURE_OPENAI_RESOURCE string = azureOpenAIResourceName
 output AZURE_OPENAI_EMBEDDING_MODEL string = azureOpenAIEmbeddingModel
 output AZURE_OPENAI_MODEL string = azureOpenAIModel
 output USE_KEY_VAULT bool = useKeyVault
-output AZURE_OPENAI_KEY_NAME string = useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-output AZURE_BLOB_ACCOUNT_KEY_NAME string = useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-output AZURE_FORM_RECOGNIZER_KEY_NAME string = useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-output AZURE_SEARCH_KEY_NAME string = useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
-output AZURE_CONTENT_SAFETY_KEY_NAME string = useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
+output AZURE_OPENAI_KEY string = useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+output AZURE_BLOB_ACCOUNT_KEY string = useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+output AZURE_FORM_RECOGNIZER_KEY string = useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+output AZURE_SEARCH_KEY string = useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+output AZURE_CONTENT_SAFETY_KEY string = useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
 output AZURE_SPEECH_SERVICE_REGION string = location
-output AZURE_SPEECH_SERVICE_KEY_NAME string = useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
+output AZURE_SPEECH_SERVICE_KEY string = useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
+output ORCHESTRATION_STRATEGY string = orchestrationStrategy

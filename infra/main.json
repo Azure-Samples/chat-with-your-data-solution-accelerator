@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.25.53.49325",
-      "templateHash": "2114039040828151123"
+      "templateHash": "10079442882671695803"
     }
   },
   "parameters": {
@@ -212,7 +212,7 @@
     },
     "azureOpenAIApiVersion": {
       "type": "string",
-      "defaultValue": "2023-07-01-preview",
+      "defaultValue": "2023-10-01-preview",
       "metadata": {
         "description": "Azure OpenAI Api Version"
       }
@@ -4136,7 +4136,8 @@
               "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
-              "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsInstrumentationKey.value]"
+              "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsInstrumentationKey.value]",
+              "APPINSIGHTS_CONNECTION_STRING": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsConnectionString.value]"
             }
           }
         },
@@ -6473,6 +6474,10 @@
       "type": "string",
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsConnectionString.value]"
     },
+    "APPINSIGHTS_CONNECTION_STRING": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsConnectionString.value]"
+    },
     "APPINSIGHTS_INSTRUMENTATIONKEY": {
       "type": "string",
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsInstrumentationKey.value]"
@@ -6605,23 +6610,23 @@
       "type": "bool",
       "value": "[parameters('useKeyVault')]"
     },
-    "AZURE_OPENAI_KEY_NAME": {
+    "AZURE_OPENAI_KEY": {
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.OPENAI_KEY_NAME.value, '')]"
     },
-    "AZURE_BLOB_ACCOUNT_KEY_NAME": {
+    "AZURE_BLOB_ACCOUNT_KEY": {
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value, '')]"
     },
-    "AZURE_FORM_RECOGNIZER_KEY_NAME": {
+    "AZURE_FORM_RECOGNIZER_KEY": {
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value, '')]"
     },
-    "AZURE_SEARCH_KEY_NAME": {
+    "AZURE_SEARCH_KEY": {
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SEARCH_KEY_NAME.value, '')]"
     },
-    "AZURE_CONTENT_SAFETY_KEY_NAME": {
+    "AZURE_CONTENT_SAFETY_KEY": {
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.CONTENT_SAFETY_KEY_NAME.value, '')]"
     },
@@ -6629,9 +6634,13 @@
       "type": "string",
       "value": "[parameters('location')]"
     },
-    "AZURE_SPEECH_SERVICE_KEY_NAME": {
+    "AZURE_SPEECH_SERVICE_KEY": {
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SPEECH_KEY_NAME.value, '')]"
+    },
+    "ORCHESTRATION_STRATEGY": {
+      "type": "string",
+      "value": "[parameters('orchestrationStrategy')]"
     }
   }
 }

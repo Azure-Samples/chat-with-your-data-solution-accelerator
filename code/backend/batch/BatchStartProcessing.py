@@ -1,17 +1,14 @@
 import logging
 import json
-import os
 import azure.functions as func
 import sys
 from azure.storage.queue import QueueClient, BinaryBase64EncodePolicy
+from utilities.helpers import EnvHelper
 from utilities.helpers.AzureBlobStorageHelper import AzureBlobStorageClient
 
 sys.path.append("..")
 bp_batch_start_processing = func.Blueprint()
-
-DOCUMENT_PROCESSING_QUEUE_NAME = os.getenv(
-    "DOCUMENT_PROCESSING_QUEUE_NAME", "doc-processing"
-)
+env_helper: EnvHelper = EnvHelper()
 
 
 @bp_batch_start_processing.route(route="BatchStartProcessing")
@@ -31,7 +28,7 @@ def batch_start_processing(req: func.HttpRequest) -> func.HttpResponse:
     # Create the QueueClient object
     queue_client = QueueClient.from_connection_string(
         azure_blob_storage_client.connect_str,
-        DOCUMENT_PROCESSING_QUEUE_NAME,
+        env_helper.DOCUMENT_PROCESSING_QUEUE_NAME,
         message_encode_policy=BinaryBase64EncodePolicy(),
     )
     # Send a message to the queue for each file

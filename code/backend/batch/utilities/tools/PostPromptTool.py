@@ -1,6 +1,6 @@
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
-from langchain.callbacks import get_openai_callback
+from langchain_community.callbacks import get_openai_callback
 from ..common.Answer import Answer
 from ..helpers.LLMHelper import LLMHelper
 from ..helpers.ConfigHelper import ConfigHelper

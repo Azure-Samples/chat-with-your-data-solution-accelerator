@@ -22,3 +22,13 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 50
+  - package-ecosystem: "npm"
+    directory: "/extensions"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 50
+  - package-ecosystem: "npm"
+    directory: "/code/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 50
