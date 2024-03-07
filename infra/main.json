@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.25.53.49325",
-      "templateHash": "1132638810908211135"
+      "templateHash": "2114039040828151123"
     }
   },
   "parameters": {
@@ -36,7 +36,7 @@
     },
     "hostingPlanSku": {
       "type": "string",
-      "defaultValue": "B3",
+      "defaultValue": "B2",
       "allowedValues": [
         "F1",
         "D1",
@@ -247,7 +247,7 @@
     },
     "azureSearchSku": {
       "type": "string",
-      "defaultValue": "standard",
+      "defaultValue": "basic",
       "allowedValues": [
         "free",
         "basic",
@@ -340,7 +340,9 @@
     "clientKey": "[format('{0}{1}', uniqueString(guid(subscription().id, deployment().name)), parameters('newGuidString'))]",
     "eventGridSystemTopicName": "doc-processing",
     "tags": {
-      "azd-env-name": "[parameters('environmentName')]"
+      "azd-env-name": "[parameters('environmentName')]",
+      "department": "TO_UA",
+      "project": "AI_Accel"
     },
     "rgName": "[format('rg-{0}', parameters('environmentName'))]",
     "keyVaultName": "[format('kv-{0}', parameters('resourceToken'))]"
@@ -5246,7 +5248,7 @@
           },
           "sku": {
             "value": {
-              "name": "Standard_GRS"
+              "name": "Standard_LRS"
             }
           },
           "containers": {

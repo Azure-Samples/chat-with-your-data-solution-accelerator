@@ -25,7 +25,7 @@ param HostingPlanName string = '${ResourcePrefix}-hosting-plan'
   'P3'
   'P4'
 ])
-param HostingPlanSku string = 'B3'
+param HostingPlanSku string = 'B2'
 
 @description('Application Insights Connection String - Created during the "Chat with your data" Solution Accelerator')
 @secure()
