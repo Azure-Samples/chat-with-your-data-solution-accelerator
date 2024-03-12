@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 import logging
 import requests
 from azure.identity import DefaultAzureCredential
-from azure.keyvault.secrets import SecretClient
 from azure.storage.blob import (
     BlobServiceClient,
     generate_blob_sas,
@@ -140,16 +139,7 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
             )
         )
     else:
-        if env_helper.USE_KEY_VAULT:
-            credential = DefaultAzureCredential()
-            secret_client = SecretClient(
-                env_helper.AZURE_KEY_VAULT_ENDPOINT, credential
-            )
-        account_key = (
-            secret_client.get_secret(env_helper.AZURE_BLOB_ACCOUNT_KEY).value
-            if env_helper.USE_KEY_VAULT
-            else env_helper.AZURE_BLOB_ACCOUNT_KEY
-        )
+        account_key = env_helper.AZURE_BLOB_ACCOUNT_KEY
         container_name = env_helper.AZURE_BLOB_CONTAINER_NAME
         if account_name is None or account_key is None or container_name is None:
             raise ValueError(
