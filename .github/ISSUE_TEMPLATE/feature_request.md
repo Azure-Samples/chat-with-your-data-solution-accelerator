@@ -9,7 +9,8 @@ assignees: ''
 
 # Motivation
 
-A clear and concise desription of why this feature would be useful and the value it would bring. Explain any alternatives considered and why they are not sufficient.
+A clear and concise description of why this feature would be useful and the value it would bring. 
+Explain any alternatives considered and why they are not sufficient.
 
 # How would you feel if this feature request was implemented?
 
