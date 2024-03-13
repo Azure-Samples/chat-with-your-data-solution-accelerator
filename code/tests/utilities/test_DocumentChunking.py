@@ -1,4 +1,3 @@
-import pytest
 from backend.batch.utilities.common.SourceDocument import SourceDocument
 from backend.batch.utilities.helpers.DocumentChunkingHelper import (
     DocumentChunking,
@@ -23,7 +22,6 @@ documents = [
 ]
 
 
-@pytest.mark.unittest("DocumentChunking")
 def test_document_chunking_layout():
     # Test layout chunking strategy
     chunking = ChunkingSettings(
