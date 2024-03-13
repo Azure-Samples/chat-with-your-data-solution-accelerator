@@ -7,6 +7,9 @@ on:
     branches: [main]
   workflow_call:
 
+permissions:
+  pull-requests: write
+
 jobs:
   test_package:
     name: Unit Tests
