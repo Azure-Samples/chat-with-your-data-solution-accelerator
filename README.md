@@ -97,6 +97,7 @@ Learn more about deploying the Teams extension [here](./docs/TEAMS_EXTENSION.md)
 ## Deploy
 ### Pre-requisites 
 - Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with owner access.
+- Approval to use Azure OpenAI services with your Azure subcription. To apply for approval, see [here](https://learn.microsoft.com/en-us/azure/ai-services/openai/overview#how-do-i-get-access-to-azure-openai).
 - [Enable custom Teams apps and turn on custom app uploading](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/prepare-your-o365-tenant#enable-custom-teams-apps-and-turn-on-custom-app-uploading) (optional: Teams extension only)
 
 ### Products used
