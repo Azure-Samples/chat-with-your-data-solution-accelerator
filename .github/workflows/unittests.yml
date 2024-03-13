@@ -8,6 +8,7 @@ on:
   workflow_call:
 
 permissions:
+  issues: read
   pull-requests: write
 
 jobs:
