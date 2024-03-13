@@ -97,15 +97,7 @@ Learn more about deploying the Teams extension [here](./docs/TEAMS_EXTENSION.md)
 ## Deploy
 ### Pre-requisites 
 - Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with owner access.
-- An [Azure OpenAI resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=web-portal) and a deployment for one of the following Chat model and an embedding model:
-    * Chat Models
-       * GPT-3.5
-       * GPT-4
-  * Embedding Model 
-     * text-embedding-ada-002
-    
-  **Note**: The deployment template defaults to **gpt-35-turbo** and **text-embedding-ada-002**. If your deployment names are different, update them in the deployment process.
-
+- Approval to use Azure OpenAI services with your Azure subcription. To apply for approval, see [here](https://learn.microsoft.com/en-us/azure/ai-services/openai/overview#how-do-i-get-access-to-azure-openai).
 - [Enable custom Teams apps and turn on custom app uploading](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/prepare-your-o365-tenant#enable-custom-teams-apps-and-turn-on-custom-app-uploading) (optional: Teams extension only)
 
 ### Products used
