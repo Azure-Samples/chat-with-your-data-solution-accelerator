@@ -2,7 +2,7 @@
 
 name: chat-with-your-data-solution-accelerator
 metadata:
-  template: chat-with-your-data-solution-accelerator@0.0.1-beta
+  template: chat-with-your-data-solution-accelerator@1.7.0
 
 services:
   web:
