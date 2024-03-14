@@ -42,11 +42,11 @@ provision:
       # will skip the resource group selection prompt.
       resourceGroupName: ${{AZURE_RESOURCE_GROUP_NAME}}
       templates:
-        - path: ./infra/azure.bicep # Relative path to this file
+        - path: ./chat-with-your-data-solution-accelerator/infra/azure.bicep # Relative path to this file
           # Relative path to this yaml file.
           # Placeholders will be replaced with corresponding environment
           # variable before ARM deployment.
-          parameters: ./infra/azure.parameters.json
+          parameters: ./chat-with-your-data-solution-accelerator/infra/azure.parameters.json
           # Required when deploying ARM template
           deploymentName: Create-resources-for-bot
       # Teams Toolkit will download this bicep CLI version from github for you,

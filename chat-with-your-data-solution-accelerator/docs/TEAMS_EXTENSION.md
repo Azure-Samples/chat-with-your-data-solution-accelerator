@@ -1,10 +1,10 @@
-[Back to *Chat with your data* README](../README.md)
+[Back to *Chat with your data* README](../../README.md)
 
 # Teams extension
 [**USER STORY**](#user-story) | [**TEAMS DEPLOY**](#teams-deploy) | [**SUPPORTING DOCUMENTATION**](#supporting-documentation)
 \
 \
-![User Story](/media/userStory.png)
+![User Story](../media/userStory.png)
 ## User story
 This extension enables users to experience Chat with your data within Teams, without having to switch platforms. It allows them to stay within their existing workflow and get the answers they need. Instead of building the Chat with your data solution accelerator from scratch within Teams, the same underlying backend used for the web application is leveraged within Teams.
 
@@ -24,11 +24,11 @@ This extension enables users to experience Chat with your data within Teams, wit
 1. Clone this GitHub repo.
 2. Open the “extensions/teams” folder with Visual Studio Code 
 
-![Teams](/media/teams.png) 
+![Teams](../media/teams.png) 
 
 3. Open the file env\\.env.test
 
-![ENV](/media/teams-1.png) 
+![ENV](../media/teams-1.png) 
 
 4. Locate the environment variable _AZURE_FUNCTION_URL_.
 5. Replace the `<DEPLOYMENT_PREFIX>`  and `<FUNCTION_APP_CLIENT_KEY>` with the name of your Function App resource and its clientKey (created in previous section)
@@ -36,11 +36,11 @@ This extension enables users to experience Chat with your data within Teams, wit
     AZURE_FUNCTION_URL=https://<DEPLOYMENT_PREFIX>-backend.azurewebsites.net/api/GetConversationResponse?code=<FUNCTION_APP_CLIENT_KEY>&clientId=clientKey
 
     ```
-    ![Env](/media/teams-deploy-env.png)
+    ![Env](../media/teams-deploy-env.png)
 6. Save the file.
 7. Select Teams Toolkit from the navigation panel. 
 
-![Teams Toolkit in VS Code](/media/teams-2.png) 
+![Teams Toolkit in VS Code](../media/teams-2.png) 
 
 8. Within the Teams Toolkit panel, login to the following accounts:
 
@@ -48,98 +48,98 @@ This extension enables users to experience Chat with your data within Teams, wit
   
   **Sign in to Azure**: Use your Azure account for deploying your app on Azure. You can [create a free Azure account](https://azure.microsoft.com/free/) before you start.
 
-![Teams Toolkit Accounts](/media/teams-3.png)
+![Teams Toolkit Accounts](../media/teams-3.png)
 
 9. Under **Environment**, select **test**.
 
-![Teams Toolkit Environment](/media/teams-4.png)
+![Teams Toolkit Environment](../media/teams-4.png)
 
 10. Under **Lifecycle**, select **Provision**.
 
-![Teams Toolkit Lifecycle Provision](/media/teams-5.png)
+![Teams Toolkit Lifecycle Provision](../media/teams-5.png)
 
 11. Within the command palette, select **test** for the environment.
 
-![Select an Environment](/media/teams-6.png) 
+![Select an Environment](../media/teams-6.png) 
 
 12. Select the resource group created earlier in the installation
 
-![Select a Resource Group](/media/teams-7.png) 
+![Select a Resource Group](../media/teams-7.png) 
 
 13. When prompted about Azure charges, select **Provision**.
 
-![Azure Charges Prompt](/media/teams-8.png)
+![Azure Charges Prompt](../media/teams-8.png)
 
 14. Verify that the provisioning was successful.
 
-![Provision Successful](/media/teams-9.png)
+![Provision Successful](../media/teams-9.png)
 
 15. Under **Lifecycle**, select **Deploy**.
 
-![Teams Toolkit Lifecycle Deploy](/media/teams-10.png) 
+![Teams Toolkit Lifecycle Deploy](../media/teams-10.png) 
 
 16. Within the command palette, select **test** for the environment.
 
-![Select an Environment](/media/teams-6.png) 
+![Select an Environment](../media/teams-6.png) 
 
 17. When prompted, select **Deploy**.
 
-![VS Code Prompt to Deploy](/media/teams-11.png) 
+![VS Code Prompt to Deploy](../media/teams-11.png) 
 
 18. Verify that the Deployment was successful.
 
-![Deployment successful](/media/teams-12.png)
+![Deployment successful](../media/teams-12.png)
 
 19. Under **Lifecycle**, select **Publish**.
 
-![Teams Toolkit Lifecycle Publish](/media/teams-13.png)
+![Teams Toolkit Lifecycle Publish](../media/teams-13.png)
 
 20. Within the command palette, select **test** for the environment.
 
-![Select an Environment](/media/teams-6.png) 
+![Select an Environment](../media/teams-6.png) 
 
 21. Verify that the Publish was successful.
 
-![Publishing successful](/media/teams-14.png) 
+![Publishing successful](../media/teams-14.png) 
 
 22. Select **Go to admin portal**.
 
-![Go to Admin Portal](/media/teams-15.png) 
+![Go to Admin Portal](../media/teams-15.png) 
 
 23. On the Manage apps page within the Teams Admin portal, you should see one submitted custom app pending approval.
 
-![Pending Approval](/media/teams-16.png) 
+![Pending Approval](../media/teams-16.png) 
 
 24. In the search by name input box, enter: **enterprise chat**
 
-![Filtered app](/media/teams-17.png) 
+![Filtered app](../media/teams-17.png) 
 
 25. Select the app and then select **Allow**.
 
-![Selected app](/media/teams-18.png) 
+![Selected app](../media/teams-18.png) 
 
 26. Select the app name.
 
-![Select app name](/media/teams-19.png) 
+![Select app name](../media/teams-19.png) 
 
 27. Select **Publish**.
 
-![Publish app](/media/teams-20.png)
+![Publish app](../media/teams-20.png)
 
 28. When prompted, select **Publish**.
 
-![Prompt to publish](/media/teams-21.png) 
+![Prompt to publish](../media/teams-21.png) 
 
 29. Depending on your environment, it may take several hours to publish.
 
-![Teams Publish Success](/media/teams-22.png) 
+![Teams Publish Success](../media/teams-22.png) 
 
 
 ### [Local deployment instructions](./TEAMS_LOCAL_DEPLOYMENT.md)
 To customize the accelerator or run it locally, first, copy the .env.sample file to your development environment's .env file, and edit it according to environment variable values table. Learn more about deploying locally [here](./TEAMS_LOCAL_DEPLOYMENT.md).
 \
 \
-![Supporting documentation](/media/supportingDocuments.png)
+![Supporting documentation](../media/supportingDocuments.png)
 
 ## Supporting documentation
 ### Resource links for Teams extension

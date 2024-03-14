@@ -21,4 +21,4 @@ repos:
         files: \.bicep$
         require_serial: true
         args: # Bicep files that we want to generate ARM templates from
-          - -f=./infra/main.bicep
+          - -f=./chat-with-your-data-solution-accelerator/infra/main.bicep

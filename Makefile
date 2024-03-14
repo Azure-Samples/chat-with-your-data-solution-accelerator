@@ -24,11 +24,11 @@ lint: ## 🧹 Lint the code
 
 unittest: ## 🧪 Run the unit tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@cd code/ && python -m pytest -m "not azure"
+	@cd chat-with-your-data-solution-accelerator/code/ && python -m pytest -m "not azure"
 
 build-frontend: ## 🏗️ Build the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
-	@cd code/frontend && npm install && npm run build
+	@cd chat-with-your-data-solution-accelerator/code/frontend && npm install && npm run build
 
 azd-login: ## 🔑 Login to Azure with azd and a SPN
 	@echo -e "\e[34m$@\e[0m" || true

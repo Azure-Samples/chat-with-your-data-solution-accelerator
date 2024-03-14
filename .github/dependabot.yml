@@ -28,7 +28,7 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 50
   - package-ecosystem: "npm"
-    directory: "/code/frontend"
+    directory: "chat-with-your-data-solution-accelerator/code/frontend"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 50

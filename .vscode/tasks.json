@@ -9,25 +9,25 @@
 			"isBackground": true,
 			"dependsOn": "pip install (functions)",
 			"options": {
-				"cwd": "${workspaceFolder}/code/backend/batch"
+				"cwd": "${workspaceFolder}"
 			}
 		},
 		{
 			"label": "pip install (functions)",
 			"type": "shell",
-			"command": "python -m pip install -r requirements.txt",
+			"command": "pip install .",
 			"problemMatcher": [],
 			"options": {
-				"cwd": "${workspaceFolder}/code/backend"
+				"cwd": "${workspaceFolder}"
 			}
 		},
 		{
 			"label": "pip install (code)",
 			"type": "shell",
-			"command": "python -m pip install -r requirements.txt",
+			"command": "pip install .",
 			"problemMatcher": [],
 			"options": {
-				"cwd": "${workspaceFolder}/code"
+				"cwd": "${workspaceFolder}"
 			}
 		},
 		{
@@ -36,7 +36,7 @@
 			"command": "npm install",
 			"problemMatcher": [],
 			"options": {
-				"cwd": "${workspaceFolder}/code/frontend"
+				"cwd": "${workspaceFolder}"
 			}
 		}
 	]

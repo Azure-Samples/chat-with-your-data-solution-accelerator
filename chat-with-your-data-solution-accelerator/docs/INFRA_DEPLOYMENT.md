@@ -1,4 +1,4 @@
-[Back to *Chat with your data* README](../README.md)
+[Back to *Chat with your data* README](../../README.md)
 
 # Azure Deployment
 
@@ -17,10 +17,10 @@ This requires the following fields to be entered:
 
 ## Bicep
 
-A [Bicep file](./infra/main.bicep) is used to generate the [ARM template](./infra/main.json). You can deploy this accelerator by the following command
+A [Bicep file](./chat-with-your-data-solution-accelerator/infra/main.bicep) is used to generate the [ARM template](./chat-with-your-data-solution-accelerator/infra/main.json). You can deploy this accelerator by the following command
 
 ```sh
 RESOURCE_GROUP_NAME=cwyd
 az group create --location uksouth --resource-group $RESOURCE_GROUP_NAME
-az deployment group create --resource-group $RESOURCE_GROUP_NAME --template-file ./infra/main.bicep
+az deployment group create --resource-group $RESOURCE_GROUP_NAME --template-file ./chat-with-your-data-solution-accelerator/infra/main.bicep
  ```

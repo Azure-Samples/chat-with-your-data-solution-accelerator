@@ -6,7 +6,7 @@ metadata:
 
 services:
   web:
-    project: ./code
+    project: ./chat-with-your-data-solution-accelerator/code
     language: py
     host: appservice
     hooks:
@@ -23,11 +23,11 @@ services:
           continueOnError: false
           
   adminweb:
-    project: ./code/backend
+    project: ./chat-with-your-data-solution-accelerator/code/backend
     language: py
     host: appservice
 
   function:
-    project: ./code/backend/batch
+    project: ./chat-with-your-data-solution-accelerator/code/backend/batch
     language: py
     host: function

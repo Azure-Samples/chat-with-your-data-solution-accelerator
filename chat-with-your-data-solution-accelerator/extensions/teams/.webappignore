@@ -24,4 +24,4 @@ teamsapp.*.yml
 /node_modules/ts-node
 /node_modules/typescript
 /appPackage/
-/infra/
+/chat-with-your-data-solution-accelerator/infra/

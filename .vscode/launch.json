@@ -17,7 +17,7 @@
                 "run",
                 "Admin.py"
             ],
-            "cwd": "${workspaceFolder}/code/backend",
+            "cwd": "${workspaceFolder}/chat-with-your-data-solution-accelerator/code/backend",
             "preLaunchTask": "pip install (code)",
             "envFile": "${input:dotEnvFilePath}",
         },
@@ -32,7 +32,7 @@
                 "--debug",
                 "run"
             ],
-            "cwd": "${workspaceFolder}/code",
+            "cwd": "${workspaceFolder}/chat-with-your-data-solution-accelerator/code",
             "preLaunchTask": "pip install (code)",
             "envFile": "${input:dotEnvFilePath}",
         },
@@ -40,7 +40,7 @@
             "name": "Launch Frontend (UI)",
             "type": "node",
             "request": "launch",
-            "cwd": "${workspaceFolder}/code/frontend",
+            "cwd": "${workspaceFolder}/chat-with-your-data-solution-accelerator/code/frontend",
             "preLaunchTask": "npm install (code)",
             "runtimeExecutable": "npm",
             "runtimeArgs": [
@@ -57,7 +57,7 @@
             "type": "debugpy",
             "request": "launch",
             "module": "pytest",
-            "cwd": "${workspaceFolder}/code",
+            "cwd": "${workspaceFolder}/chat-with-your-data-solution-accelerator/code",
             "envFile": "${input:dotEnvFilePath}",
         },
         {

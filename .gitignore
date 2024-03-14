@@ -4,7 +4,7 @@
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
 # generated frontend files
-code/static/
+chat-with-your-data-solution-accelerator/code/static/
 
 # User-specific files
 *.rsuser

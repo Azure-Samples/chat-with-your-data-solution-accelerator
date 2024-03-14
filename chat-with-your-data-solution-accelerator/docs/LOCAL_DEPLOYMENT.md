@@ -1,4 +1,4 @@
-[Back to *Chat with your data* README](../README.md)
+[Back to *Chat with your data* README](../../README.md)
 
 ## Development Container
 
@@ -83,15 +83,14 @@ They can be launched locally from vscode (Ctrl+Shift+D) and selecting "Launch Fr
 #### Starting the Flask app in dev mode from the command line (optional)
 This step is included if you cannot use the Launch configuration in VSCode. Open a terminal and enter the following commands
 ```shell
-cd code
-python -m pip install -r requirements.txt
-python -m flask --app ./app.py --debug run
+cd chat-with-your-data-solution-accelerator/code
+poetry run flask run
 ```
 
 #### Starting the Typescript React app in dev mode (optional)
 This step is included if you cannot use the Launch configuration in VSCode. Open a new separate terminal and enter the following commands:
 ```shell
-cd code\frontend
+cd chat-with-your-data-solution-accelerator\code\frontend
 npm install
 npm run dev
 ```
@@ -112,7 +111,7 @@ If you want to develop and run the batch processing functions container locally,
 First, install [Azure Functions Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=windows%2Cportal%2Cv2%2Cbash&pivots=programming-language-python).
 
 ```shell
-cd code\backend\batch
+cd chat-with-your-data-solution-accelerator\code\backend\batch
 func start
 ```
 
