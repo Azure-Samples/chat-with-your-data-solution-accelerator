@@ -2,7 +2,7 @@
 
 This test suite is designed to run against local instances of the applications that constitute this project.
 
-All tests should treat the applications as close boxes, interacting only through their defined interfaces, without 
+All tests should treat the applications as closed boxes, interacting only through their defined interfaces, without 
 directly invoking any internal methods or functions. Dependencies should be simulated using mock servers.
 
 ## Benefits

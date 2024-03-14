@@ -26,7 +26,7 @@ unittest: ## 🧪 Run the unit tests
 	@echo -e "\e[34m$@\e[0m" || true
 	@cd code/ && python -m pytest -m "not azure and not functional"
 
-functionaltest: ## 🧪 Run the unit tests
+functionaltest: ## 🧪 Run the functional tests
 	@echo -e "\e[34m$@\e[0m" || true
 	@cd code/ && python -m pytest -m "functional"
 
