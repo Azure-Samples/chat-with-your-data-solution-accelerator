@@ -30,7 +30,7 @@ jobs:
           pip install -r code/requirements.txt -r code/dev-requirements.txt -r code/backend/requirements.txt
       - name: Run Unit tests
         working-directory: ./code
-        run: python -m pytest -m "not azure and not functional" --junitxml=coverage-junit.xml --cov --cov-report xml:coverage.xml
+        run: python -m pytest -m "not azure and not functional" --junitxml=coverage-junit.xml --cov=. --cov-report xml:coverage.xml
       - uses: actions/upload-artifact@v4
         with:
           name: coverage
