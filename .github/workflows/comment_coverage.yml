@@ -1,0 +1,29 @@
+name: Comment coverage
+
+on:
+  workflow_run:
+    workflows: [Tests]
+    types:
+      - completed
+
+permissions:
+  pull-requests: write
+
+jobs:
+  comment:
+    name: Comment coverage
+    runs-on: ubuntu-20.04
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: Download artifact
+        uses: actions/github-artifact@v4
+        with:
+          name: coverage
+          run-id: ${{ github.event.workflow_run.id }}
+      - name: Coverage
+        uses: orgoro/coverage@c65003f41276ea33fe3a3a5d53df8b340462e8fa
+        with:
+          coverageFile: coverage.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
