@@ -9,7 +9,7 @@ on:
 
 jobs:
   test_package:
-    name: Unit Tests
+    name: Tests
     runs-on: "ubuntu-20.04"
     steps:
         - uses: actions/checkout@v4
@@ -21,5 +21,9 @@ jobs:
         - name: Install dependencies
           run: |
             pip install -r code/requirements.txt -r code/dev-requirements.txt -r code/backend/requirements.txt
-        - name: Run Python tests
-          run: cd code/; python -m pytest -m "not azure"
+        - name: Run Unit tests
+          working-directory: ./code
+          run: python -m pytest -m "not azure and not functional"
+        - name: Run Functional tests
+          working-directory: ./code
+          run: python -m pytest -m "functional"
