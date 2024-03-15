@@ -24,15 +24,15 @@ lint: ## 🧹 Lint the code
 
 unittest: ## 🧪 Run the unit tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@cd code/ && poetry run pytest -m "not azure and not functional"
+	@poetry run pytest -m "not azure and not functional"
 
 functionaltest: ## 🧪 Run the functional tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@cd code/ && poetry run pytest -m "functional"
+	@ poetry run pytest -m "functional"
 
 build-frontend: ## 🏗️ Build the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
-	@cd code/frontend && npm install && npm run build
+	@cd frontend && npm install && npm run build
 
 azd-login: ## 🔑 Login to Azure with azd and a SPN
 	@echo -e "\e[34m$@\e[0m" || true
