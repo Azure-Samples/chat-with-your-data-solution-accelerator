@@ -8,7 +8,7 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-  # Dependabot will only find requirements.txt files in the directory
+  # Dependabot will only find pyproject.toml file in the directory
   # specified, plus one level of subdirectories, therefore two separate entries
   # are required here. When updating a dependency, ensure that each package is
   # updated to the same version across both directories.
