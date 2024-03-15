@@ -1,6 +1,6 @@
 # Use pytest-httpserver as a mock server for funcitonal testing
 
-* **Status:** proposed
+* **Status:** approved
 * **Proposer:** @adamdougal
 * **Date:** 2024-03-15
 * **Technical Story:** [https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/420](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/420)
