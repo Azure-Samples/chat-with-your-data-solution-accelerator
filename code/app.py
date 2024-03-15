@@ -134,7 +134,7 @@ def stream_with_data(body, headers, endpoint):
                 if line:
                     lineJson = json.loads(line.lstrip(b"data:").decode("utf-8"))
                     if "error" in lineJson:
-                        yield json.dumps(lineJson).replace("\n", "\\n") + "\n"
+                        yield json.dumps(lineJson, ensure_ascii=False) + "\n"
                     response["id"] = lineJson["id"]
                     response["model"] = lineJson["model"]
                     response["created"] = lineJson["created"]
@@ -158,9 +158,9 @@ def stream_with_data(body, headers, endpoint):
                                 "content"
                             ] += deltaText
 
-                    yield json.dumps(response).replace("\n", "\\n") + "\n"
+                    yield json.dumps(response, ensure_ascii=False) + "\n"
     except Exception as e:
-        yield json.dumps({"error": str(e)}).replace("\n", "\\n") + "\n"
+        yield json.dumps({"error": str(e)}, ensure_ascii=False) + "\n"
 
 
 def conversation_with_data(request):
@@ -172,7 +172,7 @@ def conversation_with_data(request):
         status_code = r.status_code
         r = r.json()
 
-        return Response(json.dumps(r).replace("\n", "\\n"), status=status_code)
+        return Response(json.dumps(r, ensure_ascii=False), status=status_code)
     else:
         if request.method == "POST":
             return Response(
