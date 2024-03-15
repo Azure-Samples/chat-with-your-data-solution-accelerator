@@ -1,0 +1,7 @@
+[run]
+omit =
+    tests/*
+
+[report]
+skip_empty = true
+include_namespace_packages = true
