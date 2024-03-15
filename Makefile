@@ -32,7 +32,7 @@ functionaltest: ## 🧪 Run the functional tests
 
 build-frontend: ## 🏗️ Build the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
-	@cd frontend && npm install && npm run build
+	@cd code/frontend && npm install && npm run build
 
 azd-login: ## 🔑 Login to Azure with azd and a SPN
 	@echo -e "\e[34m$@\e[0m" || true
