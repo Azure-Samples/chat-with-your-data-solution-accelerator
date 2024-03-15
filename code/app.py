@@ -36,6 +36,7 @@ def get_config():
         {
             "azureSpeechKey": env_helper.AZURE_SPEECH_KEY,
             "azureSpeechRegion": env_helper.AZURE_SPEECH_SERVICE_REGION,
+            "OPENAI_API_BASE": env_helper.OPENAI_API_BASE,
         }
     )
 

@@ -16,5 +16,6 @@ def test_config_returned(app_url: str, app_config: AppConfig):
     assert json.loads(response.text) == {
         "azureSpeechKey": app_config.get("AZURE_SPEECH_SERVICE_KEY"),
         "azureSpeechRegion": app_config.get("AZURE_SPEECH_SERVICE_REGION"),
+        "OPENAI_API_BASE": app_config.get("OPENAI_API_BASE"),
     }
     assert response.headers["Content-Type"] == "application/json"

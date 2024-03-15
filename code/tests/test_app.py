@@ -11,7 +11,11 @@ class TestConfig:
         response = app.test_client().get("/api/config")
 
         assert response.status_code == 200
-        assert response.json == {"azureSpeechKey": None, "azureSpeechRegion": None}
+        assert response.json == {
+            "azureSpeechKey": None,
+            "azureSpeechRegion": None,
+            "OPENAI_API_BASE": "https://.openai.azure.com/",
+        }
 
 
 class TestConversationCustom:
