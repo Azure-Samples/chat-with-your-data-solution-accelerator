@@ -4,6 +4,6 @@ pip install --upgrade pip
 
 pip install poetry
 
-pip install .
+poetry install --with dev
 
-pre-commit install
+poetry run pre-commit install

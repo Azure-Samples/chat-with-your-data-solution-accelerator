@@ -33,7 +33,7 @@ jobs:
           poetry install
       - name: Run Unit tests
         working-directory: ./code
-        run: python -m pytest -m "not azure and not functional" --junitxml=coverage-junit.xml --cov=. --cov-report xml:coverage.xml
+        run: poetry run pytest -m "not azure and not functional" --junitxml=coverage-junit.xml --cov=. --cov-report xml:coverage.xml
       - uses: actions/upload-artifact@v4
         with:
           name: coverage
@@ -43,4 +43,4 @@ jobs:
           if-no-files-found: error
       - name: Run Functional tests
         working-directory: ./code
-        run: python -m pytest -m "functional"
+        run: poetry run pytest -m "functional"
