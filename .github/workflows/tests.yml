@@ -30,7 +30,7 @@ jobs:
           pip install poetry
       - name: Install dependencies
         run: |
-          pip install .
+          poetry install
       - name: Run Unit tests
         working-directory: ./code
         run: python -m pytest -m "not azure and not functional" --junitxml=coverage-junit.xml --cov=. --cov-report xml:coverage.xml
