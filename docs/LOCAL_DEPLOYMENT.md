@@ -84,8 +84,7 @@ They can be launched locally from vscode (Ctrl+Shift+D) and selecting "Launch Fr
 This step is included if you cannot use the Launch configuration in VSCode. Open a terminal and enter the following commands
 ```shell
 cd code
-python -m pip install -r requirements.txt
-python -m flask --app ./app.py --debug run
+poetry run flask run
 ```
 
 #### Starting the Typescript React app in dev mode (optional)
