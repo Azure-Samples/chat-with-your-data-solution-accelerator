@@ -2,9 +2,9 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "pip install (code)",
+			"label": "install dependencies",
 			"type": "shell",
-			"command": "pip install .",
+			"command": "poetry install",
 			"problemMatcher": [],
 			"options": {
 				"cwd": "${workspaceFolder}"
