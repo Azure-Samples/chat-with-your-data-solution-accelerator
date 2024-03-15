@@ -4,6 +4,7 @@ import time
 import pytest
 import requests
 from app import app
+from tests.functional.backend_api.app_config import AppConfig
 
 
 @pytest.fixture(scope="module")
@@ -17,11 +18,18 @@ def app_url(app_port: int) -> int:
     return f"http://localhost:{app_port}"
 
 
+@pytest.fixture(scope="module")
+def app_config() -> AppConfig:
+    return AppConfig()
+
+
 @pytest.fixture(scope="module", autouse=True)
-def manage_app(app_port: int):
+def manage_app(app_port: int, app_config: AppConfig):
+    app_config.apply_to_environment()
     app_process = start_app(app_port)
     yield
     stop_app(app_process)
+    app_config.remove_from_environment()
 
 
 def start_app(port: int) -> Process:
