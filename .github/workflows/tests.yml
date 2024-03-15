@@ -2,28 +2,42 @@ name: Tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
   workflow_call:
 
 jobs:
   test_package:
     name: Tests
-    runs-on: "ubuntu-20.04"
+    runs-on: ubuntu-latest
     steps:
-        - uses: actions/checkout@v4
-        - name: Setup python
-          uses: actions/setup-python@v5
-          with:
-            python-version: "3.11"
-            architecture: x64
-        - name: Install dependencies
-          run: |
-            pip install -r code/requirements.txt -r code/dev-requirements.txt -r code/backend/requirements.txt
-        - name: Run Unit tests
-          working-directory: ./code
-          run: python -m pytest -m "not azure and not functional"
-        - name: Run Functional tests
-          working-directory: ./code
-          run: python -m pytest -m "functional"
+      - uses: actions/checkout@v4
+      - name: Setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: x64
+          cache: pip
+          cache-dependency-path: "**/*requirements*.txt"
+      - name: Install dependencies
+        run: |
+          pip install -r code/requirements.txt -r code/dev-requirements.txt -r code/backend/requirements.txt
+      - name: Run Unit tests
+        working-directory: ./code
+        run: python -m pytest -m "not azure and not functional" --junitxml=coverage-junit.xml --cov=. --cov-report xml:coverage.xml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            code/coverage-junit.xml
+            code/coverage.xml
+          if-no-files-found: error
+      - name: Run Functional tests
+        working-directory: ./code
+        run: python -m pytest -m "functional"
