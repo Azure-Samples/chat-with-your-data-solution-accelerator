@@ -31,13 +31,19 @@ jobs:
       - name: Run Unit tests
         working-directory: ./code
         run: python -m pytest -m "not azure and not functional" --junitxml=coverage-junit.xml --cov=. --cov-report xml:coverage.xml
-      - uses: actions/upload-artifact@v4
+      # - uses: actions/upload-artifact@v4
+      #   with:
+      #     name: coverage
+      #     path: |
+      #       code/coverage-junit.xml
+      #       code/coverage.xml
+      #     if-no-files-found: error
+      # - name: Run Functional tests
+      #   working-directory: ./code
+      #   run: python -m pytest -m "functional"
+      - name: Generate Coverage Report
+        uses: clearlyip/code-coverage-report-action@v4
+        id: code_coverage_report_action
         with:
-          name: coverage
-          path: |
-            code/coverage-junit.xml
-            code/coverage.xml
-          if-no-files-found: error
-      - name: Run Functional tests
-        working-directory: ./code
-        run: python -m pytest -m "functional"
+          filename: code/coverage.xml
+          fail_on_negative_difference: true
