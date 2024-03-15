@@ -38,7 +38,9 @@ jobs:
               repo: context.repo.repo,
             });
 
-            const workflowId = workflows.data.workflows.find(workflow => workflow.name === "${{ github.workflow }}").id;
+            const workflowId = workflows.data.workflows.find(workflow => workflow.name === "${{ github.workflow }}")?.id;
+
+            if (!workflowId) return "";
 
             const workflowRuns = await github.rest.actions.listWorkflowRuns({
               owner: context.repo.owner,
@@ -49,18 +51,7 @@ jobs:
               status: "success",
             });
 
-            const workflowRunId = workflowRuns.data.workflow_runs[0]?.id;
-
-            if (!workflowRunId) return "";
-
-            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              run_id: workflowRunId,
-              name: "coverage",
-            });
-
-            return artifacts.data.artifacts[0]?.workflow_run.id ?? "";
+            return workflowRuns.data.workflow_runs[0]?.id ?? "";
           result-encoding: string
           retries: 3
       - name: Download main coverage artifact
