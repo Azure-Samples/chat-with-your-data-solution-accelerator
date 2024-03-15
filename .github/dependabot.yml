@@ -13,7 +13,7 @@ updates:
   # are required here. When updating a dependency, ensure that each package is
   # updated to the same version across both directories.
   - package-ecosystem: "pip"
-    directory: "/code"
+    directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 50

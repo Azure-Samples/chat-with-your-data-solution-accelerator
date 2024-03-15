@@ -24,6 +24,10 @@ jobs:
           python-version: "3.11"
           architecture: x64
           cache: pip
+          cache-dependency-path: "**/pyproject.toml"
+      - name: Install Poetry
+        run: |
+          pip install poetry
       - name: Install dependencies
         run: |
           pip install .
