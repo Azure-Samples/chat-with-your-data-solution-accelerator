@@ -12,28 +12,32 @@
             "name": "Launch Admin site",
             "type": "debugpy",
             "request": "launch",
-            "module": "streamlit",
+            "module": "poetry",
             "args": [
+                "run",
+                "streamlit",
                 "run",
                 "Admin.py"
             ],
             "cwd": "${workspaceFolder}/code/backend",
-            "preLaunchTask": "pip install (code)",
+            "preLaunchTask": "poetry install",
             "envFile": "${input:dotEnvFilePath}",
         },
         {
             "name": "Launch Frontend (api)",
             "type": "debugpy",
             "request": "launch",
-            "module": "flask",
+            "module": "poetry",
             "args": [
+                "run",
+                "flask",
                 "--app",
                 "./app.py",
                 "--debug",
                 "run"
             ],
             "cwd": "${workspaceFolder}/code",
-            "preLaunchTask": "pip install (code)",
+            "preLaunchTask": "poetry install",
             "envFile": "${input:dotEnvFilePath}",
         },
         {
@@ -41,7 +45,7 @@
             "type": "node",
             "request": "launch",
             "cwd": "${workspaceFolder}/code/frontend",
-            "preLaunchTask": "npm install (code)",
+            "preLaunchTask": "npm install",
             "runtimeExecutable": "npm",
             "runtimeArgs": [
                 "run",
@@ -56,7 +60,11 @@
             "name": "Debug tests",
             "type": "debugpy",
             "request": "launch",
-            "module": "pytest",
+            "module": "poetry",
+            "args": [
+                "run",
+                "pytest"
+            ],
             "cwd": "${workspaceFolder}/code",
             "envFile": "${input:dotEnvFilePath}",
         },
