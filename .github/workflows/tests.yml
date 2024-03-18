@@ -17,6 +17,7 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     steps:
+      - run: echo '${{ github }}'
       - uses: actions/checkout@v4
       - name: Setup python
         uses: actions/setup-python@v5
