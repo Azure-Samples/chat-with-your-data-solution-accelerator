@@ -1,6 +1,6 @@
 azure-functions==1.18.0
 streamlit==1.32.1
-openai==1.6.1
+openai==1.14.0
 scipy==1.12.0
 transformers==4.38.2
 python-dotenv==1.0.1
@@ -13,6 +13,7 @@ tiktoken==0.6.0
 azure-storage-queue==12.9.0
 langchain==0.1.12
 langchain-community==0.0.28
+langchain-openai==0.0.7
 beautifulsoup4==4.12.3
 fake-useragent==1.5.0
 chardet==5.2.0
