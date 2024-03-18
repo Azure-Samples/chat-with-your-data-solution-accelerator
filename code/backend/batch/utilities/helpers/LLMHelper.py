@@ -1,7 +1,7 @@
 from openai import AzureOpenAI
 from typing import List
 from langchain_openai import AzureChatOpenAI
-from langchain_community.embeddings import AzureOpenAIEmbeddings
+from langchain_openai import AzureOpenAIEmbeddings
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from .EnvHelper import EnvHelper
 
@@ -14,13 +14,11 @@ class LLMHelper:
 
         if self.auth_type == "rbac":
             self.openai_client = AzureOpenAI(
-                azure_endpoint=env_helper.OPENAI_API_BASE,
                 api_version=env_helper.AZURE_OPENAI_API_VERSION,
                 azure_ad_token_provider=self.token_provider,
             )
         else:
             self.openai_client = AzureOpenAI(
-                azure_endpoint=env_helper.OPENAI_API_BASE,
                 api_version=env_helper.AZURE_OPENAI_API_VERSION,
                 api_key=env_helper.OPENAI_API_KEY,
             )
