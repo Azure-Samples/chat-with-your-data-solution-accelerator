@@ -80,7 +80,6 @@ For faster development, you can run the frontend Typescript React UI app and the
 
 They can be launched locally from vscode (Ctrl+Shift+D) and selecting "Launch Frontend (api)" and "Launch Frontend (UI). You will also be able to place breakpoints in the code should you wish. This will automatically install any dependencies for Node and Python.
 
-In case of any module errors, the following command can be executed from the root folder to install all dependencies: `pip install .`
 
 #### Starting the Flask app in dev mode from the command line (optional)
 This step is included if you cannot use the Launch configuration in VSCode. Open a terminal and enter the following commands
@@ -114,7 +113,7 @@ First, install [Azure Functions Core Tools](https://learn.microsoft.com/en-us/az
 
 ```shell
 cd code\backend\batch
-func start
+poetry run func start
 ```
 
 Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions).
