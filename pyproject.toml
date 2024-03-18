@@ -1,0 +1,48 @@
+[tool.poetry]
+name = "chat-with-your-data-solution-accelerator"
+version = "0.1.0"
+description = ""
+authors = []
+readme = "README.md"
+packages = [
+    { include = "code" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+azure-functions = "1.18.0"
+streamlit = "1.32.0"
+scipy = "1.12.0"
+transformers = "4.38.2"
+python-dotenv = "1.0.1"
+azure-ai-formrecognizer = "3.3.2"
+azure-storage-blob = "12.19.1"
+azure-identity = "1.15.0"
+flask = "3.0.2"
+openai = "1.6.1"
+langchain = "0.1.11"
+langchain-community = "0.0.27"
+requests = "2.31.0"
+tiktoken = "0.6.0"
+azure-storage-queue = "12.9.0"
+beautifulsoup4 = "4.12.3"
+fake-useragent = "1.5.0"
+chardet = "5.2.0"
+azure-search-documents = "11.4.0"
+opencensus-ext-azure = "1.1.13"
+azure-ai-contentsafety = "1.0.0"
+python-docx = "1.1.0"
+azure-keyvault-secrets = "4.4.*"
+pandas = "2.2.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.1.1"
+pytest-cov = "4.1.0"
+flake8 = "7.0.0"
+black = "24.2.0"
+pre-commit = "3.6.2"
+pytest_httpserver = "1.0.10"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

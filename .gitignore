@@ -408,3 +408,7 @@ FodyWeavers.xsd
 
 temp/
 .azure
+
+# Poetry build dist folder
+.whl
+.tar.gz

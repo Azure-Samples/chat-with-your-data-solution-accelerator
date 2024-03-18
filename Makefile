@@ -20,15 +20,15 @@ ci: lint unittest functionaltest build-frontend ## 🚀 Continuous Integration (
 
 lint: ## 🧹 Lint the code
 	@echo -e "\e[34m$@\e[0m" || true
-	@flake8 code
+	@poetry run flake8 code
 
 unittest: ## 🧪 Run the unit tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@cd code/ && python -m pytest -m "not azure and not functional"
+	@poetry run pytest -m "not azure and not functional"
 
 functionaltest: ## 🧪 Run the functional tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@cd code/ && python -m pytest -m "functional"
+	@ poetry run pytest -m "functional"
 
 build-frontend: ## 🏗️ Build the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
