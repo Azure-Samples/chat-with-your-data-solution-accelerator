@@ -29,4 +29,5 @@ jobs:
           pytest-xml-coverage-path: coverage.xml
           junitxml-path: coverage-junit.xml
           issue-number: ${{ github.event.workflow_run.pull_requests[0].number }}
+          coverage-path-prefix: code/
           report-only-changed-files: true
