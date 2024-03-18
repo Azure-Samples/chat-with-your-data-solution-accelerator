@@ -846,13 +846,13 @@ test = ["pytest (>=6)"]
 
 [[package]]
 name = "fake-useragent"
-version = "1.5.0"
+version = "1.5.1"
 description = "Up-to-date simple useragent faker with real world database"
 optional = false
 python-versions = "*"
 files = [
-    {file = "fake-useragent-1.5.0.tar.gz", hash = "sha256:c2adf4c536f9b74053e1161374398cdd78d28762062db9b741639b2133da0016"},
-    {file = "fake_useragent-1.5.0-py3-none-any.whl", hash = "sha256:1ee651ebd17fa2442abe4393f00e311769051765cd20de23cc50dc771db89540"},
+    {file = "fake-useragent-1.5.1.tar.gz", hash = "sha256:6387269f5a2196b5ba7ed8935852f75486845a1c95c50e72460e6a8e762f5c49"},
+    {file = "fake_useragent-1.5.1-py3-none-any.whl", hash = "sha256:57415096557c8a4e23b62a375c21c55af5fd4ba30549227f562d2c4f5b60e3b3"},
 ]
 
 [[package]]
@@ -4140,4 +4140,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "4751cd14a0b19356597f115ef43e6c7dcb71baf967b689b88637915d7095dc8f"
+content-hash = "12ab657d0252212e3ddc8898908e58bda4b9c68d8560752cc16cf7624a500e48"
