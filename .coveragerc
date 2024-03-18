@@ -1,6 +1,6 @@
 [run]
 omit =
-    tests/*
+    code/tests/*
 
 [report]
 skip_empty = true
