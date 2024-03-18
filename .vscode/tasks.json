@@ -7,31 +7,22 @@
 			"command": "host start",
 			"problemMatcher": "$func-python-watch",
 			"isBackground": true,
-			"dependsOn": "pip install (functions)",
+			"dependsOn": "poetry install",
 			"options": {
-				"cwd": "${workspaceFolder}/code/backend/batch"
+				"cwd": "${workspaceFolder}"
 			}
 		},
 		{
-			"label": "pip install (functions)",
+			"label": "poetry install",
 			"type": "shell",
-			"command": "python -m pip install -r requirements.txt",
+			"command": "poetry install",
 			"problemMatcher": [],
 			"options": {
-				"cwd": "${workspaceFolder}/code/backend"
+				"cwd": "${workspaceFolder}"
 			}
 		},
 		{
-			"label": "pip install (code)",
-			"type": "shell",
-			"command": "python -m pip install -r requirements.txt",
-			"problemMatcher": [],
-			"options": {
-				"cwd": "${workspaceFolder}/code"
-			}
-		},
-		{
-			"label": "npm install (code)",
+			"label": "npm install",
 			"type": "shell",
 			"command": "npm install",
 			"problemMatcher": [],
