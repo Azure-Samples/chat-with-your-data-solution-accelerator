@@ -2749,6 +2749,20 @@ pytest = ">=4.6"
 testing = ["fields", "hunter", "process-tests", "pytest-xdist", "six", "virtualenv"]
 
 [[package]]
+name = "pytest-httpserver"
+version = "1.0.10"
+description = "pytest-httpserver is a httpserver for pytest"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "pytest_httpserver-1.0.10-py3-none-any.whl", hash = "sha256:d40e0cc3d61ed6e4d80f52a796926d557a7db62b17e43b3e258a78a3c34becb9"},
+    {file = "pytest_httpserver-1.0.10.tar.gz", hash = "sha256:77b9fbc2eb0a129cfbbacc8fe57e8cafe071d506489f31fe31e62f1b332d9905"},
+]
+
+[package.dependencies]
+Werkzeug = ">=2.0.0"
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 description = "Extensions to the standard Python datetime module"
@@ -4109,4 +4123,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "054b158362a41fe3016edf01d73ceecf6517af6804c5ab54194c57e5cd7afb77"
+content-hash = "91175a361407863dd4d6a20eda88358794173c8d5a7dcd463b35bee227ec7537"
