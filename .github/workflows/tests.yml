@@ -28,10 +28,57 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r code/requirements.txt -r code/dev-requirements.txt -r code/backend/requirements.txt
+      - name: Get coverage artifact ID
+        id: coverage-artifact
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const workflows = await github.rest.actions.listRepoWorkflows({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const workflowId = workflows.data.workflows.find(workflow => workflow.name === "${{ github.workflow }}")?.id;
+
+            if (!workflowId) return "";
+
+            const workflowRuns = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: workflowId,
+              branch: "${{ github.base_ref }}",
+              event: "push",
+              status: "success",
+            });
+
+            return workflowRuns.data.workflow_runs[0]?.id ?? "";
+          result-encoding: string
+          retries: 3
+      - name: Download main coverage artifact
+        uses: actions/download-artifact@v4
+        if: steps.coverage-artifact.outputs.result != ''
+        continue-on-error: true # There is a chance that the artifact doesn't exist, or has expired
+        with:
+          name: coverage
+          path: "${{ github.workspace }}/coverage-main"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.coverage-artifact.outputs.result }}
+      - name: Get coverage from main
+        id: coverage-value
+        run: |
+          MIN_COVERAGE=0
+
+          if [[ -f "./coverage-main/coverage.xml" ]]; then
+            MIN_COVERAGE=$(grep -m 1 "<coverage" "./coverage-main/coverage.xml" | sed -E 's/.*line-rate="([^"]*)".*/\1/') # Extract the line rate from the XML
+            MIN_COVERAGE=$(awk "BEGIN {print int($MIN_COVERAGE * 100)}") # Turn into percentage, rounding down to avoid rounding issues
+          fi
+
+          echo "MIN_COVERAGE=$MIN_COVERAGE" >> "$GITHUB_OUTPUT"
       - name: Run Unit tests
         working-directory: ./code
-        run: python -m pytest -m "not azure and not functional" --junitxml=coverage-junit.xml --cov=. --cov-report xml:coverage.xml
+        run: python -m pytest -m "not azure and not functional" --junitxml=coverage-junit.xml --cov=. --cov-report xml:coverage.xml --cov-fail-under ${{ steps.coverage-value.outputs.MIN_COVERAGE }}
       - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
         with:
           name: coverage
           path: |
