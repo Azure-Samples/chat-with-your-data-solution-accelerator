@@ -15,7 +15,7 @@
 		{
 			"label": "poetry install",
 			"type": "shell",
-			"command": "pip install .",
+			"command": "poetry install",
 			"problemMatcher": [],
 			"options": {
 				"cwd": "${workspaceFolder}"

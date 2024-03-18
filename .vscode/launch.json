@@ -12,8 +12,10 @@
             "name": "Launch Admin site",
             "type": "debugpy",
             "request": "launch",
-            "module": "streamlit",
+            "module": "poetry",
             "args": [
+                "run",
+                "streamlit",
                 "run",
                 "Admin.py"
             ],
@@ -25,8 +27,10 @@
             "name": "Launch Frontend (api)",
             "type": "debugpy",
             "request": "launch",
-            "module": "flask",
+            "module": "poetry",
             "args": [
+                "run",
+                "flask",
                 "--app",
                 "./app.py",
                 "--debug",
@@ -56,7 +60,11 @@
             "name": "Debug tests",
             "type": "debugpy",
             "request": "launch",
-            "module": "pytest",
+            "module": "poetry",
+            "args": [
+                "run",
+                "pytest"
+            ],
             "cwd": "${workspaceFolder}/code",
             "envFile": "${input:dotEnvFilePath}",
         },
