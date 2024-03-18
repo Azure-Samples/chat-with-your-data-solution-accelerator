@@ -26,16 +26,6 @@
 
 Chosen option: "[option 1]", because [justification. e.g., only option, which meets k.o. criterion decision driver | which resolves force force | … | comes out best (see below)].
 
-### Positive Consequences
-
-* [e.g., improvement of quality attribute satisfaction, follow-up decisions required, …]
-* …
-
-### Negative Consequence
-
-* [e.g., compromising quality attribute, follow-up decisions required, …]
-* …
-
 ## Pros and Cons of the Options
 
 ### [option 1]
