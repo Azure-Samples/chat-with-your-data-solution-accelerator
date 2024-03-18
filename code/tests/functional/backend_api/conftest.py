@@ -2,6 +2,7 @@ from multiprocessing import Process
 import socket
 import time
 import pytest
+from pytest_httpserver import HTTPServer
 import requests
 from app import app
 from tests.functional.backend_api.app_config import AppConfig
@@ -19,8 +20,20 @@ def app_url(app_port: int) -> int:
 
 
 @pytest.fixture(scope="module")
-def app_config() -> AppConfig:
-    return AppConfig()
+def mock_httpserver(make_httpserver):
+    """
+    This is required as the default pytest httpserver fixture is scoped at the function level
+    """
+    print("Starting HTTP Mock Server")
+    server = make_httpserver
+    yield server
+    print("Stopping HTTP Mock Server")
+    server.clear()
+
+
+@pytest.fixture(scope="module")
+def app_config(mock_httpserver: HTTPServer) -> AppConfig:
+    return AppConfig({"OPENAI_API_BASE": mock_httpserver.url_for("/")})
 
 
 @pytest.fixture(scope="module", autouse=True)
