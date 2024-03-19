@@ -14,7 +14,7 @@ class TestConfig:
         assert response.json == {
             "azureSpeechKey": None,
             "azureSpeechRegion": None,
-            "OPENAI_API_BASE": "https://.openai.azure.com/",
+            "AZURE_OPENAI_ENDPOINT": "https://.openai.azure.com/",
         }
 
 

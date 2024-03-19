@@ -36,7 +36,7 @@ def get_config():
         {
             "azureSpeechKey": env_helper.AZURE_SPEECH_KEY,
             "azureSpeechRegion": env_helper.AZURE_SPEECH_SERVICE_REGION,
-            "OPENAI_API_BASE": env_helper.OPENAI_API_BASE,
+            "AZURE_OPENAI_ENDPOINT": env_helper.AZURE_OPENAI_ENDPOINT,
         }
     )
 
@@ -111,9 +111,9 @@ def prepare_body_headers_with_data(request):
 
     headers = {
         "Content-Type": "application/json",
-        "api-key": env_helper.AZURE_OPENAI_KEY,
+        "api-key": env_helper.AZURE_OPENAI_API_KEY,
         "chatgpt_url": chatgpt_url,
-        "chatgpt_key": env_helper.AZURE_OPENAI_KEY,
+        "chatgpt_key": env_helper.AZURE_OPENAI_API_KEY,
         "x-ms-useragent": "GitHubSampleWebApp/PublicAPI/1.0.0",
     }
 
@@ -213,7 +213,7 @@ def conversation_without_data(request):
         openai_client = AzureOpenAI(
             azure_endpoint=azure_endpoint,
             api_version=env_helper.AZURE_OPENAI_API_VERSION,
-            api_key=env_helper.AZURE_OPENAI_KEY,
+            api_key=env_helper.AZURE_OPENAI_API_KEY,
         )
 
     request_messages = request.json["messages"]

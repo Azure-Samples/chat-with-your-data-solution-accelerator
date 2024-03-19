@@ -147,7 +147,7 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 |AZURE_OPENAI_RESOURCE||the name of your Azure OpenAI resource|
 |AZURE_OPENAI_MODEL||The name of your model deployment|
 |AZURE_OPENAI_MODEL_NAME|gpt-35-turbo|The name of the model|
-|AZURE_OPENAI_KEY||One of the API keys of your Azure OpenAI resource|
+|AZURE_OPENAI_API_KEY||One of the API keys of your Azure OpenAI resource|
 |AZURE_OPENAI_EMBEDDING_MODEL|text-embedding-ada-002|The name of you Azure OpenAI embeddings model deployment|
 |AZURE_OPENAI_TEMPERATURE|0|What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. A value of 0 is recommended when using your data.|
 |AZURE_OPENAI_TOP_P|1.0|An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. We recommend setting this to 1.0 when using your data.|
