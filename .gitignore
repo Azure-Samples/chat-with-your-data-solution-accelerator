@@ -412,3 +412,6 @@ temp/
 # Poetry build dist folder
 .whl
 .tar.gz
+
+# Requirements.txt file
+requirements.txt
