@@ -412,3 +412,6 @@ temp/
 # Poetry build dist folder
 .whl
 .tar.gz
+
+# Requirements.txt file (We use Poetry lock file, but this file is generated for the Azure App Service build (Oryx)
+requirements.txt
