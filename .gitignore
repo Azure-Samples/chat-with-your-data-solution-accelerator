@@ -410,8 +410,8 @@ temp/
 .azure
 
 # Poetry build dist folder
-.whl
-.tar.gz
+*.whl
+*.tar.gz
 
 # We use Poetry for dependency management, but we generate this file in azd
 # so that Azure App Service can install the dependencies
