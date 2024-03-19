@@ -12,10 +12,8 @@
             "name": "Launch Admin site",
             "type": "debugpy",
             "request": "launch",
-            "module": "poetry",
+            "module": "streamlit",
             "args": [
-                "run",
-                "streamlit",
                 "run",
                 "Admin.py"
             ],
