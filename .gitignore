@@ -413,5 +413,5 @@ temp/
 .whl
 .tar.gz
 
-# Requirements.txt file
+# Requirements.txt file (We use Poetry lock file, but this file is generated for the Azure App Service build (Oryx)
 requirements.txt
