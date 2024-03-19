@@ -109,7 +109,6 @@ class EnvHelper:
             "AZURE_OPENAI_ENDPOINT",
             f"https://{self.AZURE_OPENAI_RESOURCE}.openai.azure.com/",
         )
-        # os.environ["AZURE_OPENAI_ENDPOINT"] = self.AZURE_OPENAI_ENDPOINT
 
         # Set env for OpenAI SDK
         self.OPENAI_API_TYPE = "azure" if self.AZURE_AUTH_TYPE == "keys" else "azure_ad"
