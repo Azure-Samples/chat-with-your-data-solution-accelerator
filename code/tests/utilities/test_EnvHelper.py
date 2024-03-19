@@ -7,7 +7,6 @@ def test_openai_base_url_generates_url_based_on_resource_name_if_not_set(
 ):
     # given
     openai_resource_name = "some-openai-resource"
-    monkeypatch.delenv("AZURE_OPENAI_ENDPOINT")
     monkeypatch.setenv("AZURE_OPENAI_RESOURCE", openai_resource_name)
 
     # when
