@@ -40,6 +40,7 @@ class LLMHelper:
                 temperature=0,
                 max_tokens=self.llm_max_tokens,
                 openai_api_version=self.openai_client._api_version,
+                azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
                 azure_ad_token_provider=self.token_provider,
             )
         else:
@@ -48,12 +49,16 @@ class LLMHelper:
                 temperature=0,
                 max_tokens=self.llm_max_tokens,
                 openai_api_version=self.openai_client._api_version,
+                azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
+                api_key=self.env_helper.OPENAI_API_KEY,
             )
 
     # TODO: This needs to have a custom callback to stream back to the UI
     def get_streaming_llm(self):
         if self.auth_type == "rbac":
             return AzureChatOpenAI(
+                azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
+                api_key=self.env_helper.OPENAI_API_KEY,
                 streaming=True,
                 callbacks=[StreamingStdOutCallbackHandler],
                 deployment_name=self.llm_model,
@@ -64,6 +69,8 @@ class LLMHelper:
             )
         else:
             return AzureChatOpenAI(
+                azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
+                api_key=self.env_helper.OPENAI_API_KEY,
                 streaming=True,
                 callbacks=[StreamingStdOutCallbackHandler],
                 deployment_name=self.llm_model,
