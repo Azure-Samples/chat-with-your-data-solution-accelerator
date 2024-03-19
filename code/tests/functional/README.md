@@ -40,5 +40,5 @@ functional test suite when:
 
 There are two ways to run the functional tests:
 - Navigate to the code directory and run the pytest module with the "functional" marker: 
-`cd code && python -m pytest -m "functional"`
+`cd code && poetry run pytest -m "functional"`
 - Use the makefile command: `make functionaltest`

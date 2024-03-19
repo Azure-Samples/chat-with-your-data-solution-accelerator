@@ -13,21 +13,37 @@ services:
       prepackage:
         windows:
           shell: pwsh
-          run:  cd ./frontend;npm install;npm run build;
+          run: poetry export -o requirements.txt;cd ./frontend;npm install;npm run build;
           interactive: true
           continueOnError: false
         posix:
           shell: sh
-          run:  cd ./frontend;npm install;npm run build;
+          run: poetry export -o requirements.txt;cd ./frontend;npm install;npm run build;
           interactive: true
           continueOnError: false
-          
+
   adminweb:
     project: ./code/backend
     language: py
     host: appservice
+    hooks:
+      prepackage:
+        windows:
+          shell: pwsh
+          run: poetry export -o requirements.txt
+        posix:
+          shell: sh
+          run: poetry export -o requirements.txt
 
   function:
     project: ./code/backend/batch
     language: py
     host: function
+    hooks:
+      prepackage:
+        windows:
+          shell: pwsh
+          run: poetry export -o requirements.txt
+        posix:
+          shell: sh
+          run: poetry export -o requirements.txt
