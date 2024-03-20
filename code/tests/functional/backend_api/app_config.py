@@ -6,6 +6,12 @@ class AppConfig:
     config: Dict[str, Any] = {
         "AZURE_SPEECH_SERVICE_KEY": "some-azure-speech-service-key",
         "AZURE_SPEECH_SERVICE_REGION": "some-azure-speech-service-region",
+        "APPINSIGHTS_ENABLED": "False",
+        "AZURE_OPENAI_API_KEY": "some-azure-openai-api-key",
+        "AZURE_SEARCH_KEY": "some-azure-search-key",
+        "AZURE_OPENAI_EMBEDDING_MODEL": "some-embedding-model",
+        "AZURE_OPENAI_MODEL": "some-openai-model",
+        "LOAD_CONFIG_FROM_BLOB_STORAGE": "false",
     }
 
     def __init__(self, config_overrides: Dict[str, Any] = {}) -> None:
