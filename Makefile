@@ -48,3 +48,4 @@ deploy: azd-login ## 🚀 Deploy everything to Azure
 docker-build: ## 🐳 Build the Docker image
 	@echo -e "\e[34m$@\e[0m" || true
 	@docker build . -f docker/AdminWebApp.Dockerfile -t fruoccopublic.azurecr.io/rag-adminwebapp
+	@docker build . -f docker/WebApp.Dockerfile -t fruoccopublic.azurecr.io/rag-webapp
