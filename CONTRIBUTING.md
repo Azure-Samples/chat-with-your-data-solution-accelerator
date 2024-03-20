@@ -31,27 +31,6 @@ Repository. If you would like to *implement* a new feature, please submit an iss
 a proposal for your work first, to be sure that we can use it.
 
 * **Small Features** can be crafted and directly [submitted as a Pull Request](#submit-pr).
-
-* Adding new package to [pyproject.toml](#pyproject.toml) :
-
-  Run the below command to add new package:
-  ```shell
-  poetry add <package-name>
-  ``` 
-  To add a package to specific group:
-  ``` shell
-  poetry add <package-name> --group <group-name>
-  ```
-
-  `poetry add <package-name>` updates the `poetry.lock` file.
-
-  **Note**: In case the pyproject.toml file is manually updated, the following command should be executed to update the `poetry.lock` file.
-
-  ``` shell 
-  poetry lock --no-update
-  ```  
-  `--no-update` Locks the packages without updating the locked versions.
-  
 ## <a name="submit"></a> Submission Guidelines
 
 ### <a name="submit-issue"></a> Submitting an Issue

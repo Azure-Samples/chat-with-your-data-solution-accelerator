@@ -27,7 +27,8 @@
 				"ms-python.black-formatter",
 				"ms-python.vscode-pylance",
 				"ms-vscode.vscode-node-azure-pack",
-				"TeamsDevApp.ms-teams-vscode-extension"
+				"TeamsDevApp.ms-teams-vscode-extension",
+				"zeshuaro.vscode-python-poetry"
 			],
 			"settings": {
 				"azureFunctions.projectSubpath": "code/backend/batch",
