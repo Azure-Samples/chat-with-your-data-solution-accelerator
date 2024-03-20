@@ -4,7 +4,7 @@ from backend.batch.utilities.orchestrator.LangChainAgent import LangChainAgent
 from backend.batch.utilities.common.Answer import Answer
 
 
-class Testing_LangChainAgent(LangChainAgent):
+class LangChainAgentNoInit(LangChainAgent):
     def __init__(self) -> None:
         self.content_safety_checker = MagicMock()
         self.question_answer_tool = MagicMock()
@@ -14,7 +14,7 @@ class Testing_LangChainAgent(LangChainAgent):
 def test_run_tool_returns_answer_json():
     # Given
     user_message = "Hello"
-    agent = Testing_LangChainAgent()
+    agent = LangChainAgentNoInit()
     answer = Answer(
         question=user_message,
         answer="Hello, how can I help you?",
@@ -40,7 +40,7 @@ def test_run_tool_returns_answer_json():
 def test_run_text_processing_tool_returns_answer_json():
     # Given
     user_message = "Hello"
-    agent = Testing_LangChainAgent()
+    agent = LangChainAgentNoInit()
     answer = Answer(
         question=user_message,
         answer="Hello, how can I help you?",

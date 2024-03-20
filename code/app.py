@@ -103,7 +103,7 @@ def prepare_body_headers_with_data(request):
         ],
     }
 
-    chatgpt_url = f"https://{env_helper.AZURE_OPENAI_RESOURCE}.openai.azure.com/openai/deployments/{env_helper.AZURE_OPENAI_MODEL}"
+    chatgpt_url = f"{env_helper.AZURE_OPENAI_ENDPOINT}openai/deployments/{env_helper.AZURE_OPENAI_MODEL}"
     if env_helper.is_chat_model():
         chatgpt_url += "/chat/completions?api-version=2023-12-01-preview"
     else:
@@ -166,7 +166,7 @@ def stream_with_data(body, headers, endpoint):
 
 def conversation_with_data(request):
     body, headers = prepare_body_headers_with_data(request)
-    endpoint = f"https://{env_helper.AZURE_OPENAI_RESOURCE}.openai.azure.com/openai/deployments/{env_helper.AZURE_OPENAI_MODEL}/extensions/chat/completions?api-version={env_helper.AZURE_OPENAI_API_VERSION}"
+    endpoint = f"{env_helper.AZURE_OPENAI_ENDPOINT}openai/deployments/{env_helper.AZURE_OPENAI_MODEL}/extensions/chat/completions?api-version={env_helper.AZURE_OPENAI_API_VERSION}"
 
     if not env_helper.SHOULD_STREAM:
         r = requests.post(endpoint, headers=headers, json=body)
@@ -202,16 +202,15 @@ def stream_without_data(response):
 
 
 def conversation_without_data(request):
-    azure_endpoint = f"https://{env_helper.AZURE_OPENAI_RESOURCE}.openai.azure.com/"
     if env_helper.AZURE_AUTH_TYPE == "rbac":
         openai_client = AzureOpenAI(
-            azure_endpoint=azure_endpoint,
+            azure_endpoint=env_helper.AZURE_OPENAI_ENDPOINT,
             api_version=env_helper.AZURE_OPENAI_API_VERSION,
             azure_ad_token_provider=env_helper.AZURE_TOKEN_PROVIDER,
         )
     else:
         openai_client = AzureOpenAI(
-            azure_endpoint=azure_endpoint,
+            azure_endpoint=env_helper.AZURE_OPENAI_ENDPOINT,
             api_version=env_helper.AZURE_OPENAI_API_VERSION,
             api_key=env_helper.AZURE_OPENAI_API_KEY,
         )

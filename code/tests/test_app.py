@@ -12,7 +12,7 @@ class TestConfig:
 
         assert response.status_code == 200
         assert response.json == {
-            "azureSpeechKey": None,
+            "azureSpeechKey": "",
             "azureSpeechRegion": None,
             "AZURE_OPENAI_ENDPOINT": "https://.openai.azure.com/",
         }
