@@ -33,7 +33,7 @@ def mock_httpserver(make_httpserver):
 
 @pytest.fixture(scope="module")
 def app_config(mock_httpserver: HTTPServer) -> AppConfig:
-    return AppConfig({"OPENAI_API_BASE": mock_httpserver.url_for("/")})
+    return AppConfig({"AZURE_OPENAI_ENDPOINT": mock_httpserver.url_for("/")})
 
 
 @pytest.fixture(scope="module", autouse=True)

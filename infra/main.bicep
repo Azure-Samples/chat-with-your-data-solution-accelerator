@@ -335,6 +335,22 @@ module web './app/web.bicep' = {
     keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     authType: authType
     appSettings: {
+      APPINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
+      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
+      AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+      AZURE_OPENAI_MODEL: azureOpenAIModel
+      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
+      AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
+      AZURE_OPENAI_TOP_P: azureOpenAITopP
+      AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
+      AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
+      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_OPENAI_STREAM: azureOpenAIStream
+      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -347,25 +363,9 @@ module web './app/web.bicep' = {
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-      AZURE_OPENAI_MODEL: azureOpenAIModel
-      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
-      AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
-      AZURE_OPENAI_TOP_P: azureOpenAITopP
-      AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
-      AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
-      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_OPENAI_STREAM: azureOpenAIStream
-      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-      AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      ORCHESTRATION_STRATEGY: orchestrationStrategy
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      APPINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
+      ORCHESTRATION_STRATEGY: orchestrationStrategy
     }
   }
 }
@@ -396,17 +396,11 @@ module adminweb './app/adminweb.bicep' = {
     keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     authType: authType
     appSettings: {
-      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-      AZURE_SEARCH_INDEX: azureSearchIndex
-      AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
-      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
-      AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
-      AZURE_SEARCH_TOP_K: azureSearchTopK
-      AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
-      AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
-      AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
-      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-      AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+      APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
+      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
+      AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -418,15 +412,21 @@ module adminweb './app/adminweb.bicep' = {
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_OPENAI_STREAM: azureOpenAIStream
       AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-      AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+      AZURE_SEARCH_INDEX: azureSearchIndex
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+      AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+      AZURE_SEARCH_TOP_K: azureSearchTopK
+      AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+      AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+      AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       BACKEND_URL: 'https://${functionName}.azurewebsites.net'
+      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
     }
   }
 }
@@ -471,22 +471,22 @@ module function './app/function.bicep' = {
     keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     authType: authType
     appSettings: {
-      FUNCTIONS_EXTENSION_VERSION: '~4'
-      WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
+      APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
+      APPINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
+      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
+      AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-      AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_SEARCH_INDEX: azureSearchIndex
+      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+      FUNCTIONS_EXTENSION_VERSION: '~4'
       ORCHESTRATION_STRATEGY: orchestrationStrategy
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
-      APPINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
+      WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
     }
   }
 }
@@ -714,13 +714,30 @@ output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applica
 output APPINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output APPINSIGHTS_INSTRUMENTATIONKEY string = monitoring.outputs.applicationInsightsInstrumentationKey
 
+output AZURE_BLOB_CONTAINER_NAME string = blobContainerName
+output AZURE_BLOB_ACCOUNT_NAME string = storageAccountName
+output AZURE_BLOB_ACCOUNT_KEY string = useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+output AZURE_CONTENT_SAFETY_ENDPOINT string = contentsafety.outputs.endpoint
+output AZURE_CONTENT_SAFETY_KEY string = useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
+output AZURE_FORM_RECOGNIZER_ENDPOINT string = formrecognizer.outputs.endpoint
+output AZURE_FORM_RECOGNIZER_KEY string = useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
 output AZURE_KEY_VAULT_ENDPOINT string = useKeyVault ? keyvault.outputs.endpoint : ''
 output AZURE_KEY_VAULT_NAME string = useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
 output AZURE_LOCATION string = location
-output AZURE_TENANT_ID string = tenant().tenantId
-output AZURE_CONTENT_SAFETY_ENDPOINT string = contentsafety.outputs.endpoint
+output AZURE_OPENAI_MODEL_NAME string = azureOpenAIModelName
+output AZURE_OPENAI_STREAM string = azureOpenAIStream
+output AZURE_OPENAI_SYSTEM_MESSAGE string = azureOpenAISystemMessage
+output AZURE_OPENAI_STOP_SEQUENCE string = azureOpenAIStopSequence
+output AZURE_OPENAI_MAX_TOKENS string = azureOpenAIMaxTokens
+output AZURE_OPENAI_TOP_P string = azureOpenAITopP
+output AZURE_OPENAI_TEMPERATURE string = azureOpenAITemperature
+output AZURE_OPENAI_API_VERSION string = azureOpenAIApiVersion
+output AZURE_OPENAI_RESOURCE string = azureOpenAIResourceName
+output AZURE_OPENAI_EMBEDDING_MODEL string = azureOpenAIEmbeddingModel
+output AZURE_OPENAI_MODEL string = azureOpenAIModel
+output AZURE_OPENAI_API_KEY string = useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+output AZURE_SEARCH_KEY string = useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
 output AZURE_SEARCH_SERVICE string = search.outputs.endpoint
-output AZURE_FORM_RECOGNIZER_ENDPOINT string = formrecognizer.outputs.endpoint
 output AZURE_SEARCH_USE_SEMANTIC_SEARCH string = azureSearchUseSemanticSearch
 output AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG string = azureSearchSemanticSearchConfig
 output AZURE_SEARCH_INDEX_IS_PRECHUNKED string = azureSearchIndexIsPrechunked
@@ -730,27 +747,10 @@ output AZURE_SEARCH_CONTENT_COLUMNS string = azureSearchContentColumns
 output AZURE_SEARCH_FILENAME_COLUMN string = azureSearchFilenameColumn
 output AZURE_SEARCH_TITLE_COLUMN string = azureSearchTitleColumn
 output AZURE_SEARCH_URL_COLUMN string = azureSearchUrlColumn
-output AZURE_OPENAI_MODEL_NAME string = azureOpenAIModelName
-output AZURE_OPENAI_STREAM string = azureOpenAIStream
-output AZURE_OPENAI_SYSTEM_MESSAGE string = azureOpenAISystemMessage
-output AZURE_OPENAI_STOP_SEQUENCE string = azureOpenAIStopSequence
-output AZURE_OPENAI_MAX_TOKENS string = azureOpenAIMaxTokens
-output AZURE_OPENAI_TOP_P string = azureOpenAITopP
-output AZURE_OPENAI_TEMPERATURE string = azureOpenAITemperature
 output AZURE_SEARCH_INDEX string = azureSearchIndex
-output AZURE_OPENAI_API_VERSION string = azureOpenAIApiVersion
-output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
-output AZURE_BLOB_CONTAINER_NAME string = blobContainerName
-output AZURE_BLOB_ACCOUNT_NAME string = storageAccountName
-output AZURE_OPENAI_RESOURCE string = azureOpenAIResourceName
-output AZURE_OPENAI_EMBEDDING_MODEL string = azureOpenAIEmbeddingModel
-output AZURE_OPENAI_MODEL string = azureOpenAIModel
-output USE_KEY_VAULT bool = useKeyVault
-output AZURE_OPENAI_KEY string = useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-output AZURE_BLOB_ACCOUNT_KEY string = useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-output AZURE_FORM_RECOGNIZER_KEY string = useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-output AZURE_SEARCH_KEY string = useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
-output AZURE_CONTENT_SAFETY_KEY string = useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
 output AZURE_SPEECH_SERVICE_REGION string = location
 output AZURE_SPEECH_SERVICE_KEY string = useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
+output AZURE_TENANT_ID string = tenant().tenantId
+output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
+output USE_KEY_VAULT bool = useKeyVault

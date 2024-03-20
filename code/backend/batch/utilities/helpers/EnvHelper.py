@@ -83,7 +83,7 @@ class EnvHelper:
         # Otherwise, keys are obtained from environment variables.
         if self.AZURE_AUTH_TYPE == "rbac":
             self.AZURE_SEARCH_KEY = None
-            self.AZURE_OPENAI_KEY = ""
+            self.AZURE_OPENAI_API_KEY = ""
             self.AZURE_SPEECH_KEY = None
         elif self.USE_KEY_VAULT:
             credential = DefaultAzureCredential()
@@ -93,25 +93,28 @@ class EnvHelper:
             self.AZURE_SEARCH_KEY = self.secret_client.get_secret(
                 os.environ.get("AZURE_SEARCH_KEY")
             ).value
-            self.AZURE_OPENAI_KEY = self.secret_client.get_secret(
-                os.environ.get("AZURE_OPENAI_KEY", "")
-            ).value
+            self.AZURE_OPENAI_API_KEY = self.secret_client.get_secret(
+                os.environ.get("AZURE_OPENAI_API_KEY", "")
+            ).value  # langchain expects this.
             self.AZURE_SPEECH_KEY = self.secret_client.get_secret(
                 os.environ.get("AZURE_SPEECH_SERVICE_KEY")
             ).value
         else:
             self.AZURE_SEARCH_KEY = os.environ.get("AZURE_SEARCH_KEY")
-            self.AZURE_OPENAI_KEY = os.environ.get("AZURE_OPENAI_KEY", "")
+            self.AZURE_OPENAI_API_KEY = os.environ.get("AZURE_OPENAI_API_KEY", "")
             self.AZURE_SPEECH_KEY = os.environ.get("AZURE_SPEECH_SERVICE_KEY")
-        # Set env for OpenAI SDK
-        self.OPENAI_API_BASE = os.environ.get(
-            "OPENAI_API_BASE", f"https://{self.AZURE_OPENAI_RESOURCE}.openai.azure.com/"
+
+        # Set env for Azure OpenAI
+        self.AZURE_OPENAI_ENDPOINT = os.environ.get(
+            "AZURE_OPENAI_ENDPOINT",
+            f"https://{self.AZURE_OPENAI_RESOURCE}.openai.azure.com/",
         )
+
+        # Set env for OpenAI SDK
         self.OPENAI_API_TYPE = "azure" if self.AZURE_AUTH_TYPE == "keys" else "azure_ad"
-        self.OPENAI_API_KEY = self.AZURE_OPENAI_KEY
+        self.OPENAI_API_KEY = self.AZURE_OPENAI_API_KEY
         self.OPENAI_API_VERSION = self.AZURE_OPENAI_API_VERSION
         os.environ["OPENAI_API_TYPE"] = self.OPENAI_API_TYPE
-        os.environ["OPENAI_API_BASE"] = self.OPENAI_API_BASE
         os.environ["OPENAI_API_KEY"] = self.OPENAI_API_KEY
         os.environ["OPENAI_API_VERSION"] = self.OPENAI_API_VERSION
         # Azure Functions - Batch processing
