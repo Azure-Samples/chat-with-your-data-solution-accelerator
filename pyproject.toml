@@ -44,6 +44,15 @@ black = "24.3.0"
 pre-commit = "3.6.2"
 pytest_httpserver = "1.0.10"
 
+[tool.coverage.run]
+omit = [
+    "code/tests/*",
+]
+
+[tool.coverage.report]
+skip_empty = true
+include_namespace_packages = true
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
