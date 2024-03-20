@@ -50,7 +50,7 @@ a proposal for your work first, to be sure that we can use it.
   ``` shell 
   poetry lock --no-update
   ```  
-  `--no-update` prevents updating any other packages to latest versions.
+  `--no-update` Locks the packages without updating the locked versions.
   
 ## <a name="submit"></a> Submission Guidelines
 
