@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from pytest import MonkeyPatch
 from backend.batch.utilities.helpers.EnvHelper import SecretHelper
 
@@ -17,17 +17,16 @@ def test_get_secret_returns_value_from_environment_variables(monkeypatch: Monkey
     assert actual_value == expected_value
 
 
-def test_get_secret_returns_value_from_secret_client_when_use_key_vault_is_true():
+@patch("backend.batch.utilities.helpers.EnvHelper.SecretClient")
+def test_get_secret_returns_value_from_secret_client_when_use_key_vault_is_true(
+    secret_client: MagicMock, monkeypatch: MonkeyPatch
+):
     # given
     secret_name = "MY_SECRET"
     expected_value = "my_secret_value"
-    # Not using MonkeyPatch here as I would have to mock the AzureCredential too.
-    # I'm creating a SecretHelper with USE_KEY_VAULT false to sidetrack that behaviour,
-    # but then setting it to true befor I test get_secret.
+    monkeypatch.setenv("USE_KEY_VAULT", "true")
+    secret_client.return_value.get_secret.return_value.value = expected_value
     secret_helper = SecretHelper()
-    secret_helper.USE_KEY_VAULT = True
-    secret_helper.secret_client = MagicMock()
-    secret_helper.secret_client.get_secret.return_value.value = expected_value
 
     # when
     actual_value = secret_helper.get_secret(secret_name)
