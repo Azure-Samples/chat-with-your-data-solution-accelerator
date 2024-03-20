@@ -31,6 +31,38 @@ Repository. If you would like to *implement* a new feature, please submit an iss
 a proposal for your work first, to be sure that we can use it.
 
 * **Small Features** can be crafted and directly [submitted as a Pull Request](#submit-pr).
+
+## Managing Dependencies Using Poetry
+
+Poetry is a package manager for Python that allows developers to manage dependencies, create virtual environments, and package their projects for distribution, all using a single command-line tool.
+Following steps can be followed to setup poetry:
+- Poetry can be installed using `pip install poetry`. 
+- Using `poetry init` poetry creates a `pyproject.toml` file with all the main dependencies required to run the application. 
+- Executing `poetry install` from the root folder which has the `pyproject.toml` file, installs all the dependencies and creates a virtual environment which is used to run the application. `poetry install` also generates a `poetry.lock` file which locks the dependency versions so that any user who installs the application get the same package version.
+- Executing `pip install .` from the root folder only installs the main dependencies.
+- Dependencies for different environments (dev, test etc.) can be managed by creating groups in the `pyproject.toml` file.
+- Installing dependencies for different groups can be done using `poetry install --with <group_name>`
+
+* Adding new package to [pyproject.toml](#pyproject.toml) :
+
+  To add a new package execute the below command:
+  ```shell
+  poetry add <package-name>
+  ``` 
+  To add a package to specific group:
+  ``` shell
+  poetry add <package-name> --group <group-name>
+  ```
+
+  `poetry add <package-name>` updates the `poetry.lock` file.
+
+  **Note**: In case the pyproject.toml file is manually updated, the following command should be executed to update the `poetry.lock` file.
+
+  ``` shell 
+  poetry lock --no-update
+  ```  
+  `--no-update` Locks the packages without updating the locked versions.
+
 ## <a name="submit"></a> Submission Guidelines
 
 ### <a name="submit-issue"></a> Submitting an Issue
