@@ -14,7 +14,7 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 50
   - package-ecosystem: "npm"
-    directory: "/extensions"
+    directory: "/extensions/teams"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 50
