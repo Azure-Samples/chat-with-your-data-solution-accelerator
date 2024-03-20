@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "10731851777861825094"
+      "templateHash": "11509720913458398568"
     }
   },
   "parameters": {
@@ -584,6 +584,80 @@
       },
       "dependsOn": [
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin', parameters('websiteName')))]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('useKeyVault')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "adminweb-docker-keyvault-access",
+      "resourceGroup": "[variables('rgName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "keyVaultName": {
+            "value": "[variables('keyVaultName')]"
+          },
+          "principalId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin-docker', parameters('websiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.26.54.24096",
+              "templateHash": "4480412712998156633"
+            },
+            "description": "Assigns an Azure Key Vault access policy."
+          },
+          "parameters": {
+            "name": {
+              "type": "string",
+              "defaultValue": "add"
+            },
+            "keyVaultName": {
+              "type": "string"
+            },
+            "permissions": {
+              "type": "object",
+              "defaultValue": {
+                "secrets": [
+                  "get",
+                  "list"
+                ]
+              }
+            },
+            "principalId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.KeyVault/vaults/accessPolicies",
+              "apiVersion": "2022-07-01",
+              "name": "[format('{0}/{1}', parameters('keyVaultName'), parameters('name'))]",
+              "properties": {
+                "accessPolicies": [
+                  {
+                    "objectId": "[parameters('principalId')]",
+                    "tenantId": "[subscription().tenantId]",
+                    "permissions": "[parameters('permissions')]"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin-docker', parameters('websiteName')))]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]"
       ]
     },
@@ -1524,7 +1598,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.54.24096",
-              "templateHash": "15556952013249097427"
+              "templateHash": "1220449419032156328"
             }
           },
           "parameters": {
@@ -1680,7 +1754,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.26.54.24096",
-                      "templateHash": "18058156682865521987"
+                      "templateHash": "6256523663240154519"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -1721,7 +1795,8 @@
                         "python",
                         "java",
                         "powershell",
-                        "custom"
+                        "custom",
+                        "DOCKER"
                       ]
                     },
                     "runtimeNameAndVersion": {
@@ -2083,7 +2158,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.54.24096",
-              "templateHash": "9533550270368088028"
+              "templateHash": "10245454218415911784"
             }
           },
           "parameters": {
@@ -2182,7 +2257,14 @@
             },
             "authType": {
               "type": "string"
+            },
+            "dockerImage": {
+              "type": "string",
+              "defaultValue": ""
             }
+          },
+          "variables": {
+            "useDocker": "[not(equals(parameters('dockerImage'), ''))]"
           },
           "resources": [
             {
@@ -2207,9 +2289,7 @@
                   "allowedOrigins": {
                     "value": "[parameters('allowedOrigins')]"
                   },
-                  "appCommandLine": {
-                    "value": "[parameters('appCommandLine')]"
-                  },
+                  "appCommandLine": "[if(variables('useDocker'), createObject('value', ''), createObject('value', parameters('appCommandLine')))]",
                   "applicationInsightsName": {
                     "value": "[parameters('applicationInsightsName')]"
                   },
@@ -2222,15 +2302,9 @@
                   "keyVaultName": {
                     "value": "[parameters('keyVaultName')]"
                   },
-                  "runtimeName": {
-                    "value": "python"
-                  },
-                  "runtimeVersion": {
-                    "value": "3.11"
-                  },
-                  "scmDoBuildDuringDeployment": {
-                    "value": true
-                  }
+                  "runtimeName": "[if(variables('useDocker'), createObject('value', 'DOCKER'), createObject('value', 'python'))]",
+                  "runtimeVersion": "[if(variables('useDocker'), createObject('value', parameters('dockerImage')), createObject('value', '3.11'))]",
+                  "scmDoBuildDuringDeployment": "[if(variables('useDocker'), createObject('value', false()), createObject('value', true()))]"
                 },
                 "template": {
                   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -2239,7 +2313,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.26.54.24096",
-                      "templateHash": "18058156682865521987"
+                      "templateHash": "6256523663240154519"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -2280,7 +2354,570 @@
                         "python",
                         "java",
                         "powershell",
-                        "custom"
+                        "custom",
+                        "DOCKER"
+                      ]
+                    },
+                    "runtimeNameAndVersion": {
+                      "type": "string",
+                      "defaultValue": "[format('{0}|{1}', parameters('runtimeName'), parameters('runtimeVersion'))]"
+                    },
+                    "runtimeVersion": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "defaultValue": "app,linux"
+                    },
+                    "allowedOrigins": {
+                      "type": "array",
+                      "defaultValue": []
+                    },
+                    "alwaysOn": {
+                      "type": "bool",
+                      "defaultValue": true
+                    },
+                    "appCommandLine": {
+                      "type": "string",
+                      "defaultValue": ""
+                    },
+                    "appSettings": {
+                      "type": "secureObject",
+                      "defaultValue": {}
+                    },
+                    "clientAffinityEnabled": {
+                      "type": "bool",
+                      "defaultValue": false
+                    },
+                    "enableOryxBuild": {
+                      "type": "bool",
+                      "defaultValue": "[contains(parameters('kind'), 'linux')]"
+                    },
+                    "functionAppScaleLimit": {
+                      "type": "int",
+                      "defaultValue": -1
+                    },
+                    "linuxFxVersion": {
+                      "type": "string",
+                      "defaultValue": "[parameters('runtimeNameAndVersion')]"
+                    },
+                    "minimumElasticInstanceCount": {
+                      "type": "int",
+                      "defaultValue": -1
+                    },
+                    "numberOfWorkers": {
+                      "type": "int",
+                      "defaultValue": -1
+                    },
+                    "scmDoBuildDuringDeployment": {
+                      "type": "bool",
+                      "defaultValue": false
+                    },
+                    "use32BitWorkerProcess": {
+                      "type": "bool",
+                      "defaultValue": false
+                    },
+                    "ftpsState": {
+                      "type": "string",
+                      "defaultValue": "FtpsOnly"
+                    },
+                    "healthCheckPath": {
+                      "type": "string",
+                      "defaultValue": ""
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
+                      "apiVersion": "2022-03-01",
+                      "name": "[format('{0}/{1}', parameters('name'), 'ftp')]",
+                      "properties": {
+                        "allow": false
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Web/sites', parameters('name'))]"
+                      ]
+                    },
+                    {
+                      "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
+                      "apiVersion": "2022-03-01",
+                      "name": "[format('{0}/{1}', parameters('name'), 'scm')]",
+                      "properties": {
+                        "allow": false
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Web/sites', parameters('name'))]"
+                      ]
+                    },
+                    {
+                      "type": "Microsoft.Web/sites",
+                      "apiVersion": "2022-03-01",
+                      "name": "[parameters('name')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "kind": "[parameters('kind')]",
+                      "properties": {
+                        "serverFarmId": "[parameters('appServicePlanId')]",
+                        "siteConfig": {
+                          "linuxFxVersion": "[parameters('linuxFxVersion')]",
+                          "alwaysOn": "[parameters('alwaysOn')]",
+                          "ftpsState": "[parameters('ftpsState')]",
+                          "minTlsVersion": "1.2",
+                          "appCommandLine": "[parameters('appCommandLine')]",
+                          "numberOfWorkers": "[if(not(equals(parameters('numberOfWorkers'), -1)), parameters('numberOfWorkers'), null())]",
+                          "minimumElasticInstanceCount": "[if(not(equals(parameters('minimumElasticInstanceCount'), -1)), parameters('minimumElasticInstanceCount'), null())]",
+                          "use32BitWorkerProcess": "[parameters('use32BitWorkerProcess')]",
+                          "functionAppScaleLimit": "[if(not(equals(parameters('functionAppScaleLimit'), -1)), parameters('functionAppScaleLimit'), null())]",
+                          "healthCheckPath": "[parameters('healthCheckPath')]",
+                          "cors": {
+                            "allowedOrigins": "[union(createArray('https://portal.azure.com', 'https://ms.portal.azure.com'), parameters('allowedOrigins'))]"
+                          }
+                        },
+                        "clientAffinityEnabled": "[parameters('clientAffinityEnabled')]",
+                        "httpsOnly": true
+                      },
+                      "identity": {
+                        "type": "[if(parameters('managedIdentity'), 'SystemAssigned', 'None')]"
+                      }
+                    },
+                    {
+                      "type": "Microsoft.Web/sites/config",
+                      "apiVersion": "2022-03-01",
+                      "name": "[format('{0}/{1}', parameters('name'), 'logs')]",
+                      "properties": {
+                        "applicationLogs": {
+                          "fileSystem": {
+                            "level": "Verbose"
+                          }
+                        },
+                        "detailedErrorMessages": {
+                          "enabled": true
+                        },
+                        "failedRequestsTracing": {
+                          "enabled": true
+                        },
+                        "httpLogs": {
+                          "fileSystem": {
+                            "enabled": true,
+                            "retentionInDays": 1,
+                            "retentionInMb": 35
+                          }
+                        }
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Web/sites', parameters('name'))]",
+                        "[resourceId('Microsoft.Resources/deployments', format('{0}-appSettings', parameters('name')))]"
+                      ]
+                    },
+                    {
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2022-09-01",
+                      "name": "[format('{0}-appSettings', parameters('name'))]",
+                      "properties": {
+                        "expressionEvaluationOptions": {
+                          "scope": "inner"
+                        },
+                        "mode": "Incremental",
+                        "parameters": {
+                          "name": {
+                            "value": "[parameters('name')]"
+                          },
+                          "appSettings": {
+                            "value": "[union(parameters('appSettings'), createObject('SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
+                          }
+                        },
+                        "template": {
+                          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                          "contentVersion": "1.0.0.0",
+                          "metadata": {
+                            "_generator": {
+                              "name": "bicep",
+                              "version": "0.26.54.24096",
+                              "templateHash": "17055000515602849240"
+                            },
+                            "description": "Updates app settings for an Azure App Service."
+                          },
+                          "parameters": {
+                            "name": {
+                              "type": "string",
+                              "metadata": {
+                                "description": "The name of the app service resource within the current resource group scope"
+                              }
+                            },
+                            "appSettings": {
+                              "type": "secureObject",
+                              "metadata": {
+                                "description": "The app settings to be applied to the app service"
+                              }
+                            }
+                          },
+                          "resources": [
+                            {
+                              "type": "Microsoft.Web/sites/config",
+                              "apiVersion": "2022-03-01",
+                              "name": "[format('{0}/{1}', parameters('name'), 'appsettings')]",
+                              "properties": "[parameters('appSettings')]"
+                            }
+                          ]
+                        }
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Web/sites', parameters('name'))]"
+                      ]
+                    }
+                  ],
+                  "outputs": {
+                    "identityPrincipalId": {
+                      "type": "string",
+                      "value": "[if(parameters('managedIdentity'), reference(resourceId('Microsoft.Web/sites', parameters('name')), '2022-03-01', 'full').identity.principalId, '')]"
+                    },
+                    "name": {
+                      "type": "string",
+                      "value": "[parameters('name')]"
+                    },
+                    "uri": {
+                      "type": "string",
+                      "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', parameters('name')), '2022-03-01').defaultHostName)]"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.identityPrincipalId.value]"
+            },
+            "WEBSITE_ADMIN_NAME": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.name.value]"
+            },
+            "WEBSITE_ADMIN_URI": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.uri.value]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('hostingPlanName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'keyvault')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName'))]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureAISearchName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('speechServiceName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('storageAccountName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('{0}-admin-docker', parameters('websiteName'))]",
+      "resourceGroup": "[variables('rgName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[format('{0}-admin-docker', parameters('websiteName'))]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": {
+              "azd-service-name": "adminweb-docker"
+            }
+          },
+          "appServicePlanId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('hostingPlanName')), '2022-09-01').outputs.name.value]"
+          },
+          "applicationInsightsName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsName.value]"
+          },
+          "azureOpenAIName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName')), '2022-09-01').outputs.name.value]"
+          },
+          "azureAISearchName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureAISearchName')), '2022-09-01').outputs.name.value]"
+          },
+          "storageAccountName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('storageAccountName')), '2022-09-01').outputs.name.value]"
+          },
+          "formRecognizerName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.name.value]"
+          },
+          "contentSafetyName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.name.value]"
+          },
+          "speechServiceName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('speechServiceName')), '2022-09-01').outputs.name.value]"
+          },
+          "openAIKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.OPENAI_KEY_NAME.value), createObject('value', ''))]",
+          "storageAccountKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value), createObject('value', ''))]",
+          "formRecognizerKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value), createObject('value', ''))]",
+          "searchKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SEARCH_KEY_NAME.value), createObject('value', ''))]",
+          "contentSafetyKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.CONTENT_SAFETY_KEY_NAME.value), createObject('value', ''))]",
+          "speechKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SPEECH_KEY_NAME.value), createObject('value', ''))]",
+          "useKeyVault": {
+            "value": "[parameters('useKeyVault')]"
+          },
+          "keyVaultName": "[if(or(parameters('useKeyVault'), equals(parameters('authType'), 'rbac')), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'keyvault'), '2022-09-01').outputs.name.value), createObject('value', ''))]",
+          "keyVaultEndpoint": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'keyvault'), '2022-09-01').outputs.endpoint.value), createObject('value', ''))]",
+          "authType": {
+            "value": "[parameters('authType')]"
+          },
+          "dockerImage": {
+            "value": "fruoccopublic.azurecr.io/rag-adminwebapp"
+          },
+          "appSettings": {
+            "value": {
+              "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsInstrumentationKey.value]",
+              "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
+              "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
+              "AZURE_CONTENT_SAFETY_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
+              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
+              "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
+              "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
+              "AZURE_OPENAI_MODEL_NAME": "[parameters('azureOpenAIModelName')]",
+              "AZURE_OPENAI_TEMPERATURE": "[parameters('azureOpenAITemperature')]",
+              "AZURE_OPENAI_TOP_P": "[parameters('azureOpenAITopP')]",
+              "AZURE_OPENAI_MAX_TOKENS": "[parameters('azureOpenAIMaxTokens')]",
+              "AZURE_OPENAI_STOP_SEQUENCE": "[parameters('azureOpenAIStopSequence')]",
+              "AZURE_OPENAI_SYSTEM_MESSAGE": "[parameters('azureOpenAISystemMessage')]",
+              "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
+              "AZURE_OPENAI_STREAM": "[parameters('azureOpenAIStream')]",
+              "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('azureOpenAIEmbeddingModel')]",
+              "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
+              "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
+              "AZURE_SEARCH_USE_SEMANTIC_SEARCH": "[parameters('azureSearchUseSemanticSearch')]",
+              "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG": "[parameters('azureSearchSemanticSearchConfig')]",
+              "AZURE_SEARCH_INDEX_IS_PRECHUNKED": "[parameters('azureSearchIndexIsPrechunked')]",
+              "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
+              "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
+              "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
+              "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
+              "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
+              "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
+              "BACKEND_URL": "[format('https://{0}.azurewebsites.net', parameters('functionName'))]",
+              "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
+              "FUNCTION_KEY": "[variables('clientKey')]",
+              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]"
+            }
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.26.54.24096",
+              "templateHash": "10245454218415911784"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            },
+            "storageAccountName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "formRecognizerName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "contentSafetyName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "allowedOrigins": {
+              "type": "array",
+              "defaultValue": []
+            },
+            "appServicePlanId": {
+              "type": "string"
+            },
+            "appCommandLine": {
+              "type": "string",
+              "defaultValue": "python -m streamlit run Admin.py --server.port 8000 --server.address 0.0.0.0 --server.enableXsrfProtection false"
+            },
+            "applicationInsightsName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "keyVaultName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "azureOpenAIName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "azureAISearchName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "speechServiceName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "appSettings": {
+              "type": "secureObject",
+              "defaultValue": {}
+            },
+            "serviceName": {
+              "type": "string",
+              "defaultValue": "adminweb"
+            },
+            "useKeyVault": {
+              "type": "bool"
+            },
+            "openAIKeyName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "storageAccountKeyName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "formRecognizerKeyName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "searchKeyName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "contentSafetyKeyName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "speechKeyName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "keyVaultEndpoint": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "authType": {
+              "type": "string"
+            },
+            "dockerImage": {
+              "type": "string",
+              "defaultValue": ""
+            }
+          },
+          "variables": {
+            "useDocker": "[not(equals(parameters('dockerImage'), ''))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "[format('{0}-app-module', parameters('name'))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "name": {
+                    "value": "[parameters('name')]"
+                  },
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "tags": {
+                    "value": "[union(parameters('tags'), createObject('azd-service-name', parameters('serviceName')))]"
+                  },
+                  "allowedOrigins": {
+                    "value": "[parameters('allowedOrigins')]"
+                  },
+                  "appCommandLine": "[if(variables('useDocker'), createObject('value', ''), createObject('value', parameters('appCommandLine')))]",
+                  "applicationInsightsName": {
+                    "value": "[parameters('applicationInsightsName')]"
+                  },
+                  "appServicePlanId": {
+                    "value": "[parameters('appServicePlanId')]"
+                  },
+                  "appSettings": {
+                    "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_KEY_VAULT_ENDPOINT', if(parameters('useKeyVault'), parameters('keyVaultEndpoint'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_ACCOUNT_KEY', if(parameters('useKeyVault'), parameters('storageAccountKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value), 'AZURE_FORM_RECOGNIZER_KEY', if(parameters('useKeyVault'), parameters('formRecognizerKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1)))]"
+                  },
+                  "keyVaultName": {
+                    "value": "[parameters('keyVaultName')]"
+                  },
+                  "runtimeName": "[if(variables('useDocker'), createObject('value', 'DOCKER'), createObject('value', 'python'))]",
+                  "runtimeVersion": "[if(variables('useDocker'), createObject('value', parameters('dockerImage')), createObject('value', '3.11'))]",
+                  "scmDoBuildDuringDeployment": "[if(variables('useDocker'), createObject('value', false()), createObject('value', true()))]"
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.26.54.24096",
+                      "templateHash": "6256523663240154519"
+                    },
+                    "description": "Creates an Azure App Service in an existing Azure App Service plan."
+                  },
+                  "parameters": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string",
+                      "defaultValue": "[resourceGroup().location]"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {}
+                    },
+                    "applicationInsightsName": {
+                      "type": "string",
+                      "defaultValue": ""
+                    },
+                    "appServicePlanId": {
+                      "type": "string"
+                    },
+                    "keyVaultName": {
+                      "type": "string",
+                      "defaultValue": ""
+                    },
+                    "managedIdentity": {
+                      "type": "bool",
+                      "defaultValue": "[not(empty(parameters('keyVaultName')))]"
+                    },
+                    "runtimeName": {
+                      "type": "string",
+                      "allowedValues": [
+                        "dotnet",
+                        "dotnetcore",
+                        "dotnet-isolated",
+                        "node",
+                        "python",
+                        "java",
+                        "powershell",
+                        "custom",
+                        "DOCKER"
                       ]
                     },
                     "runtimeNameAndVersion": {
@@ -4146,7 +4783,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.54.24096",
-              "templateHash": "2634254874003107855"
+              "templateHash": "1453996213106582572"
             }
           },
           "parameters": {
@@ -4321,7 +4958,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.26.54.24096",
-                      "templateHash": "6451818408190895858"
+                      "templateHash": "16417922838059688237"
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -4533,7 +5170,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.26.54.24096",
-                              "templateHash": "18058156682865521987"
+                              "templateHash": "6256523663240154519"
                             },
                             "description": "Creates an Azure App Service in an existing Azure App Service plan."
                           },
@@ -4574,7 +5211,8 @@
                                 "python",
                                 "java",
                                 "powershell",
-                                "custom"
+                                "custom",
+                                "DOCKER"
                               ]
                             },
                             "runtimeNameAndVersion": {
@@ -5831,6 +6469,148 @@
       "condition": "[equals(parameters('authType'), 'rbac')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
+      "name": "storage-role-backend_docker",
+      "resourceGroup": "[variables('rgName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "principalId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin-docker', parameters('websiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID.value]"
+          },
+          "roleDefinitionId": {
+            "value": "ba92f5b4-2d11-453d-a403-e96b0029c9fe"
+          },
+          "principalType": {
+            "value": "ServicePrincipal"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.26.54.24096",
+              "templateHash": "5795525499710207356"
+            },
+            "description": "Creates a role assignment for a service principal."
+          },
+          "parameters": {
+            "principalId": {
+              "type": "string"
+            },
+            "principalType": {
+              "type": "string",
+              "defaultValue": "ServicePrincipal",
+              "allowedValues": [
+                "Device",
+                "ForeignGroup",
+                "Group",
+                "ServicePrincipal",
+                "User"
+              ]
+            },
+            "roleDefinitionId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "principalType": "[parameters('principalType')]",
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin-docker', parameters('websiteName')))]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('authType'), 'rbac')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "openai-role-backend_docker",
+      "resourceGroup": "[variables('rgName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "principalId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin-docker', parameters('websiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID.value]"
+          },
+          "roleDefinitionId": {
+            "value": "a97b65f3-24c7-4388-baec-2e87135dc908"
+          },
+          "principalType": {
+            "value": "ServicePrincipal"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.26.54.24096",
+              "templateHash": "5795525499710207356"
+            },
+            "description": "Creates a role assignment for a service principal."
+          },
+          "parameters": {
+            "principalId": {
+              "type": "string"
+            },
+            "principalType": {
+              "type": "string",
+              "defaultValue": "ServicePrincipal",
+              "allowedValues": [
+                "Device",
+                "ForeignGroup",
+                "Group",
+                "ServicePrincipal",
+                "User"
+              ]
+            },
+            "roleDefinitionId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "principalType": "[parameters('principalType')]",
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin-docker', parameters('websiteName')))]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('authType'), 'rbac')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
       "name": "openai-role-backend",
       "resourceGroup": "[variables('rgName')]",
       "properties": {
@@ -6037,6 +6817,77 @@
       },
       "dependsOn": [
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('functionName'))]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('authType'), 'rbac')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "openai-role-backend-contributor_docker",
+      "resourceGroup": "[variables('rgName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "principalId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin-docker', parameters('websiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID.value]"
+          },
+          "roleDefinitionId": {
+            "value": "b24988ac-6180-42a0-ab88-20f7382dd24c"
+          },
+          "principalType": {
+            "value": "ServicePrincipal"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.26.54.24096",
+              "templateHash": "5795525499710207356"
+            },
+            "description": "Creates a role assignment for a service principal."
+          },
+          "parameters": {
+            "principalId": {
+              "type": "string"
+            },
+            "principalType": {
+              "type": "string",
+              "defaultValue": "ServicePrincipal",
+              "allowedValues": [
+                "Device",
+                "ForeignGroup",
+                "Group",
+                "ServicePrincipal",
+                "User"
+              ]
+            },
+            "roleDefinitionId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "principalType": "[parameters('principalType')]",
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin-docker', parameters('websiteName')))]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]"
       ]
     },
@@ -6321,6 +7172,77 @@
       },
       "dependsOn": [
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin', parameters('websiteName')))]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('authType'), 'rbac')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "search-role-backend_docker",
+      "resourceGroup": "[variables('rgName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "principalId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin-docker', parameters('websiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID.value]"
+          },
+          "roleDefinitionId": {
+            "value": "8ebe5a00-799e-43f5-93ac-243d3dce84a7"
+          },
+          "principalType": {
+            "value": "ServicePrincipal"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.26.54.24096",
+              "templateHash": "5795525499710207356"
+            },
+            "description": "Creates a role assignment for a service principal."
+          },
+          "parameters": {
+            "principalId": {
+              "type": "string"
+            },
+            "principalType": {
+              "type": "string",
+              "defaultValue": "ServicePrincipal",
+              "allowedValues": [
+                "Device",
+                "ForeignGroup",
+                "Group",
+                "ServicePrincipal",
+                "User"
+              ]
+            },
+            "roleDefinitionId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "principalType": "[parameters('principalType')]",
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin-docker', parameters('websiteName')))]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]"
       ]
     },

@@ -24,6 +24,9 @@ param contentSafetyKeyName string = ''
 param speechKeyName string = ''
 param keyVaultEndpoint string = ''
 param authType string
+param dockerImage string = ''
+
+var useDocker = dockerImage != ''
 
 module adminweb '../core/host/appservice.bicep' = {
   name: '${name}-app-module'
@@ -32,7 +35,7 @@ module adminweb '../core/host/appservice.bicep' = {
     location: location
     tags: union(tags, { 'azd-service-name': serviceName })
     allowedOrigins: allowedOrigins
-    appCommandLine: appCommandLine
+    appCommandLine: useDocker ? '' : appCommandLine
     applicationInsightsName: applicationInsightsName
     appServicePlanId: appServicePlanId
     appSettings: union(appSettings, {
@@ -47,9 +50,9 @@ module adminweb '../core/host/appservice.bicep' = {
         AZURE_SPEECH_SERVICE_KEY: useKeyVault ? speechKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', speechServiceName), '2023-05-01').key1
       })
     keyVaultName: keyVaultName
-    runtimeName: 'python'
-    runtimeVersion: '3.11'
-    scmDoBuildDuringDeployment: true
+    runtimeName: useDocker ? 'DOCKER' : 'python'
+    runtimeVersion: useDocker ? dockerImage : '3.11' 
+    scmDoBuildDuringDeployment: useDocker ? false : true
   }
 }
 

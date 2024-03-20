@@ -203,6 +203,15 @@ module adminwebaccess './core/security/keyvault-access.bicep' = if (useKeyVault)
   }
 }
 
+module adminwebdockeraccess './core/security/keyvault-access.bicep' = if (useKeyVault) {
+  name: 'adminweb-docker-keyvault-access'
+  scope: rg
+  params: {
+    keyVaultName: keyVaultName
+    principalId: adminweb_docker.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
+  }
+}
+
 module functionaccess './core/security/keyvault-access.bicep' = if (useKeyVault) {
   name: 'function-keyvault-access'
   scope: rg
@@ -431,6 +440,68 @@ module adminweb './app/adminweb.bicep' = {
   }
 }
 
+module adminweb_docker './app/adminweb.bicep' = {
+  name: '${websiteName}-admin-docker'
+  scope: rg
+  params: {
+    name: '${websiteName}-admin-docker'
+    location: location
+    tags: { 'azd-service-name': 'adminweb-docker' }
+    appServicePlanId: hostingplan.outputs.name
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    azureOpenAIName: openai.outputs.name
+    azureAISearchName: search.outputs.name
+    storageAccountName: storage.outputs.name
+    formRecognizerName: formrecognizer.outputs.name
+    contentSafetyName: contentsafety.outputs.name
+    speechServiceName: speechService.outputs.name
+    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
+    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
+    useKeyVault: useKeyVault
+    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
+    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
+    authType: authType
+    dockerImage: 'fruoccopublic.azurecr.io/rag-adminwebapp'
+    appSettings: {
+      APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
+      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
+      AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+      AZURE_OPENAI_MODEL: azureOpenAIModel
+      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
+      AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
+      AZURE_OPENAI_TOP_P: azureOpenAITopP
+      AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
+      AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
+      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_OPENAI_STREAM: azureOpenAIStream
+      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
+      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+      AZURE_SEARCH_INDEX: azureSearchIndex
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+      AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+      AZURE_SEARCH_TOP_K: azureSearchTopK
+      AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+      AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+      AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+      BACKEND_URL: 'https://${functionName}.azurewebsites.net'
+      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+      FUNCTION_KEY: clientKey
+      ORCHESTRATION_STRATEGY: orchestrationStrategy
+    }
+  }
+}
+
 module monitoring './core/monitor/monitoring.bicep' = {
   name: 'monitoring'
   scope: rg
@@ -610,7 +681,27 @@ module storageRoleBackend 'core/security/role.bicep' = if (authType == 'rbac') {
   }
 }
 
+module storageRoleBackend_docker 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'storage-role-backend_docker'
+  params: {
+    principalId: adminweb_docker.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // SYSTEM IDENTITIES
+module openAIRoleBackend_docker 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'openai-role-backend_docker'
+  params: {
+    principalId: adminweb_docker.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+    principalType: 'ServicePrincipal'
+  }
+}
+
 module openAIRoleBackend 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: rg
   name: 'openai-role-backend'
@@ -644,6 +735,16 @@ module openAIRoleFunction 'core/security/role.bicep' = if (authType == 'rbac') {
 }
 
 // SYSTEM IDENTITIES
+module openAIRoleBackendContributor_docker 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'openai-role-backend-contributor_docker'
+  params: {
+    principalId: adminweb_docker.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
+    principalType: 'ServicePrincipal'
+  }
+}
+
 module openAIRoleBackendContributor 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: rg
   name: 'openai-role-backend-contributor'
@@ -682,6 +783,16 @@ module searchRoleBackend 'core/security/role.bicep' = if (authType == 'rbac') {
   name: 'search-role-backend'
   params: {
     principalId: adminweb.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+module searchRoleBackend_docker 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'search-role-backend_docker'
+  params: {
+    principalId: adminweb_docker.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
     roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
     principalType: 'ServicePrincipal'
   }

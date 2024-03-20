@@ -44,3 +44,7 @@ deploy: azd-login ## 🚀 Deploy everything to Azure
 	@azd deploy web --no-prompt
 	@azd deploy function --no-prompt
 	@azd deploy adminweb --no-prompt
+
+docker-build: ## 🐳 Build the Docker image
+	@echo -e "\e[34m$@\e[0m" || true
+	@docker build . -f docker/AdminWebApp.Dockerfile -t fruoccopublic.azurecr.io/rag-adminwebapp
