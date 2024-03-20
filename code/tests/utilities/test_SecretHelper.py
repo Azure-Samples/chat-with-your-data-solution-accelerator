@@ -21,8 +21,10 @@ def test_get_secret_returns_value_from_secret_client_when_use_key_vault_is_true(
     # given
     secret_name = "MY_SECRET"
     expected_value = "my_secret_value"
+    # Not using MonkeyPatch here as I would have to mock the AzureCredential too.
+    # I'm creating a SecretHelper with USE_KEY_VAULT false to sidetrack that behaviour,
+    # but then setting it to true befor I test get_secret.
     secret_helper = SecretHelper()
-    secret_helper.USE_KEY_VAULT = True
     secret_helper.secret_client = MagicMock()
     secret_helper.secret_client.get_secret.return_value.value = expected_value
 
