@@ -5,11 +5,11 @@
 		"ghcr.io/devcontainers/features/azure-cli:1": {},
 		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
 		"ghcr.io/devcontainers/features/node:1": {},
-		"ghcr.io/jlaundry/devcontainer-features/azure-functions-core-tools:1": {},
+		"ghcr.io/jlaundry/devcontainer-features/azure-functions-core-tools:1": {
+			"version": "4.0.5530"
+		},
 		"ghcr.io/azure/azure-dev/azd:latest": {},
-		"rchaganti/vsc-devcontainer-features/azurebicep": {
-			"version": "latest"
-		}
+		"ghcr.io/rchaganti/vsc-devcontainer-features/azurebicep:1.0.5": {}
 	},
 
 	"postCreateCommand": "./.devcontainer/postCreate.sh",
