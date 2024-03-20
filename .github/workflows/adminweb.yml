@@ -1,9 +1,8 @@
 name: Admin Web App Docker Image
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "ross/dockerImages" ]
 
 jobs:
   build:
@@ -19,7 +18,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
     
     - uses: actions/checkout@v4
-    
+
     - name: Build the Docker image
       run:
         docker pull fruoccopublic.azurecr.io/rag-adminwebapp:latest || true;
