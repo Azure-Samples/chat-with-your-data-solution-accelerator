@@ -35,7 +35,13 @@ a proposal for your work first, to be sure that we can use it.
 ## Managing Dependencies Using Poetry
 
 Poetry is a package manager for Python that allows developers to manage dependencies, create virtual environments, and package their projects for distribution, all using a single command-line tool.
-Following steps can be followed to setup poetry:
+
+Poetry is setup for you in the devcontainer, but should you need to set this up manually you can 
+```sh
+sh ./.devcontainer/postCreate.sh
+```
+
+The following manual steps can also be followed to setup poetry:
 - Poetry can be installed using `pip install poetry`. 
 - Using `poetry init` poetry creates a `pyproject.toml` file with all the main dependencies required to run the application. 
 - Executing `poetry install` from the root folder which has the `pyproject.toml` file, installs all the dependencies and creates a virtual environment which is used to run the application. `poetry install` also generates a `poetry.lock` file which locks the dependency versions so that any user who installs the application get the same package version.
