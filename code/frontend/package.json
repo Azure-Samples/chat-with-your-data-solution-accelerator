@@ -10,15 +10,15 @@
     },
     "dependencies": {
         "@babel/traverse": "^7.24.0",
-        "@fluentui/react": "^8.115.6",
+        "@fluentui/react": "^8.116.0",
         "@fluentui/react-icons": "^2.0.232",
         "@fortawesome/fontawesome-svg-core": "^6.5.1",
         "@fortawesome/free-solid-svg-icons": "^6.5.1",
         "@fortawesome/react-fontawesome": "github:fortawesome/react-fontawesome",
         "lodash": "^4.17.21",
         "lodash-es": "^4.17.21",
-        "microsoft-cognitiveservices-speech-sdk": "^1.35.0",
-        "postcss": "^8.4.35",
+        "microsoft-cognitiveservices-speech-sdk": "^1.36.0",
+        "postcss": "^8.4.37",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "react-markdown": "^9.0.1",
@@ -26,17 +26,17 @@
         "rehype-raw": "^7.0.0",
         "remark-gfm": "^4.0.0",
         "remark-supersub": "^1.0.0",
-        "uuid": "^9.0.0"
+        "uuid": "^9.0.1"
     },
     "devDependencies": {
         "@types/lodash-es": "^4.17.12",
-        "@types/node": "^20.11.25",
-        "@types/react": "^18.2.65",
-        "@types/react-dom": "^18.2.21",
-        "@types/uuid": "^9.0.2",
-        "@vitejs/plugin-react": "^3.1.0",
+        "@types/node": "^20.11.30",
+        "@types/react": "^18.2.67",
+        "@types/react-dom": "^18.2.22",
+        "@types/uuid": "^9.0.8",
+        "@vitejs/plugin-react": "^4.2.1",
         "prettier": "^3.2.5",
-        "typescript": "^5.3.3",
-        "vite": "^4.5.2"
+        "typescript": "^5.4.2",
+        "vite": "^5.2.2"
     }
 }
