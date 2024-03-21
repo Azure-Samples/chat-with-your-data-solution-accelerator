@@ -11,14 +11,14 @@ RUN npm run build
 FROM python:3.11.7-bookworm
 RUN apt-get update && apt-get install python3-tk tk-dev -y
 
-COPY pyproject.toml /usr/local/cwyd/pyproject.toml
-COPY poetry.lock /usr/local/cwyd/poetry.lock
-WORKDIR /usr/local/cwyd
+COPY pyproject.toml /usr/src/app/pyproject.toml
+COPY poetry.lock /usr/src/app/poetry.lock
+WORKDIR /usr/src/app
 RUN pip install --upgrade pip && pip install poetry uwsgi && poetry export -o requirements.txt && pip install -r requirements.txt
  
-COPY ./code/app.py /usr/local/cwyd/
-COPY ./code/backend/batch/utilities /usr/local/cwyd/utilities
-COPY --from=frontend /home/node/app/static  /usr/local/cwyd/static/
-WORKDIR /usr/local/cwyd
+COPY ./code/app.py /usr/src/app
+COPY ./code/backend/batch/utilities /usr/src/app/utilities
+COPY --from=frontend /home/node/app/static  /usr/src/app/static/
+WORKDIR /usr/src/app
 EXPOSE 80  
 CMD ["uwsgi", "--http", ":80", "--wsgi-file", "app.py", "--callable", "app", "-b","32768"]  
