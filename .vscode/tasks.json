@@ -9,7 +9,7 @@
 			"isBackground": true,
 			"dependsOn": "poetry install",
 			"options": {
-				"cwd": "${workspaceFolder}"
+				"cwd": "${workspaceFolder}/code/backend/batch"
 			}
 		},
 		{
