@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Any, Dict
 
@@ -29,13 +30,13 @@ class AppConfig:
     def apply_to_environment(self) -> None:
         for key, value in self.config.items():
             if value is not None:
-                print(f"Applying env var: {key}={value}")
+                logging.info(f"Applying env var: {key}={value}")
                 os.environ[key] = value
             else:
-                print(f"Removing env var: {key}")
+                logging.info(f"Removing env var: {key}")
                 os.environ.pop(key, None)
 
     def remove_from_environment(self) -> None:
         for key in self.config.keys():
-            print(f"Removing env var: {key}")
+            logging.info(f"Removing env var: {key}")
             os.environ.pop(key, None)

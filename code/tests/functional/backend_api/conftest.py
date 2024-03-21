@@ -1,3 +1,4 @@
+import logging
 import socket
 import ssl
 import threading
@@ -34,7 +35,7 @@ def httpclient_ssl_context(ca):
 
 @pytest.fixture(scope="session")
 def app_port() -> int:
-    print("Getting free port")
+    logging.info("Getting free port")
     return get_free_port()
 
 
@@ -45,7 +46,7 @@ def app_url(app_port: int) -> int:
 
 @pytest.fixture(scope="session")
 def app_config(make_httpserver, ca):
-    print("Creating APP CONFIG")
+    logging.info("Creating APP CONFIG")
     with ca.cert_pem.tempfile() as ca_temp_path:
         app_config = AppConfig(
             {
@@ -57,7 +58,7 @@ def app_config(make_httpserver, ca):
                 "TIKTOKEN_CACHE_DIR": "code/tests/functional/backend_api/resources",
             }
         )
-        print(f"Created app config: {app_config.get_all()}")
+        logging.info(f"Created app config: {app_config.get_all()}")
         yield app_config
 
 
@@ -152,14 +153,14 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
 
 
 def start_app(app_port: int) -> Thread:
-    print(f"Starting application on port {app_port}")
+    logging.info(f"Starting application on port {app_port}")
     # ensure app is reloaded now that new environment variables are set
     importlib.reload(app)
     app_process = threading.Thread(target=lambda: flask_app.run(port=app_port))
     app_process.daemon = True
     app_process.start()
     wait_for_app(app_port)
-    print("Application started")
+    logging.info("Application started")
     return app_process
 
 
