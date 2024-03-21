@@ -13,6 +13,7 @@ class AppConfig:
         "AZURE_OPENAI_EMBEDDING_MODEL": "some-embedding-model",
         "AZURE_OPENAI_MODEL": "some-openai-model",
         "LOAD_CONFIG_FROM_BLOB_STORAGE": "false",
+        "TIKTOKEN_CACHE_DIR": f"{os.path.dirname(os.path.realpath(__file__))}/resources",
     }
 
     def __init__(self, config_overrides: Dict[str, Any] = {}) -> None:

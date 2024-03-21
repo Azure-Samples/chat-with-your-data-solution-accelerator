@@ -55,7 +55,6 @@ def app_config(make_httpserver, ca):
                 "AZURE_CONTENT_SAFETY_ENDPOINT": f"https://localhost:{make_httpserver.port}",
                 "SSL_CERT_FILE": ca_temp_path,
                 "CURL_CA_BUNDLE": ca_temp_path,
-                "TIKTOKEN_CACHE_DIR": "code/tests/functional/backend_api/resources",
             }
         )
         logging.info(f"Created app config: {app_config.get_all()}")
