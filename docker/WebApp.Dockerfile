@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install python3-tk tk-dev -y
 COPY pyproject.toml /usr/local/cwyd/pyproject.toml
 COPY poetry.lock /usr/local/cwyd/poetry.lock
 WORKDIR /usr/local/cwyd
-RUN pip install --upgrade pip && pip install poetry uwsgi && poetry install --no-root
+RUN pip install --upgrade pip && pip install poetry uwsgi && poetry export -o requirements.txt && pip install -r requirements.txt
  
 COPY ./code/app.py /usr/local/cwyd/
 COPY ./code/backend/batch/utilities /usr/local/cwyd/utilities
