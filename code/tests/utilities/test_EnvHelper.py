@@ -1,4 +1,5 @@
 from pytest import MonkeyPatch
+import pytest
 from backend.batch.utilities.helpers.EnvHelper import EnvHelper
 
 
@@ -28,103 +29,33 @@ def test_openai_base_url_uses_env_var_if_set(monkeypatch: MonkeyPatch):
     assert actual_openai_endpoint == expected_openai_endpoint
 
 
-def test_load_config_from_blob_storage_true_when_unset():
+@pytest.mark.parametrize(
+    "value,expected",
+    [("true", True), ("false", False), ("this is the way", False), (None, True)],
+)
+def test_load_config_from_blob_storage(monkeypatch: MonkeyPatch, value, expected):
     # given
-    expected_load_config_from_blob_storage = True
+    if value is not None:
+        monkeypatch.setenv("LOAD_CONFIG_FROM_BLOB_STORAGE", value)
 
     # when
     actual_load_config_from_blob_storage = EnvHelper().LOAD_CONFIG_FROM_BLOB_STORAGE
 
     # then
-    assert (
-        actual_load_config_from_blob_storage == expected_load_config_from_blob_storage
-    )
+    assert actual_load_config_from_blob_storage == expected
 
 
-def test_load_config_from_blob_storage_true_when_true(monkeypatch: MonkeyPatch):
+@pytest.mark.parametrize(
+    "value,expected",
+    [("true", True), ("false", False), ("this is the way", False), (None, True)],
+)
+def test_app_insights_enabled(monkeypatch: MonkeyPatch, value, expected):
     # given
-    expected_load_config_from_blob_storage = True
-    monkeypatch.setenv("LOAD_CONFIG_FROM_BLOB_STORAGE", "true")
-
-    # when
-    actual_load_config_from_blob_storage = EnvHelper().LOAD_CONFIG_FROM_BLOB_STORAGE
-
-    # then
-    assert (
-        actual_load_config_from_blob_storage == expected_load_config_from_blob_storage
-    )
-
-
-def test_load_config_from_blob_storage_false_when_false(monkeypatch: MonkeyPatch):
-    # given
-    expected_load_config_from_blob_storage = False
-    monkeypatch.setenv("LOAD_CONFIG_FROM_BLOB_STORAGE", "false")
-
-    # when
-    actual_load_config_from_blob_storage = EnvHelper().LOAD_CONFIG_FROM_BLOB_STORAGE
-
-    # then
-    assert (
-        actual_load_config_from_blob_storage == expected_load_config_from_blob_storage
-    )
-
-
-def test_load_config_from_blob_storage_false_when_random(monkeypatch: MonkeyPatch):
-    # given
-    expected_load_config_from_blob_storage = False
-    monkeypatch.setenv("LOAD_CONFIG_FROM_BLOB_STORAGE", "this is the way")
-
-    # when
-    actual_load_config_from_blob_storage = EnvHelper().LOAD_CONFIG_FROM_BLOB_STORAGE
-
-    # then
-    assert (
-        actual_load_config_from_blob_storage == expected_load_config_from_blob_storage
-    )
-
-
-def test_appinsights_enabled_true_when_unset():
-    # given
-    expected_appinsights_enabled = True
+    if value is not None:
+        monkeypatch.setenv("APPINSIGHTS_ENABLED", value)
 
     # when
     actual_appinsights_enabled = EnvHelper().APPINSIGHTS_ENABLED
 
     # then
-    assert actual_appinsights_enabled == expected_appinsights_enabled
-
-
-def test_appinsights_enabled_true_when_true(monkeypatch: MonkeyPatch):
-    # given
-    expected_appinsights_enabled = True
-    monkeypatch.setenv("APPINSIGHTS_ENABLED", "true")
-
-    # when
-    actual_appinsights_enabled = EnvHelper().APPINSIGHTS_ENABLED
-
-    # then
-    assert actual_appinsights_enabled == expected_appinsights_enabled
-
-
-def test_appinsights_enabled_false_when_false(monkeypatch: MonkeyPatch):
-    # given
-    expected_appinsights_enabled = False
-    monkeypatch.setenv("APPINSIGHTS_ENABLED", "false")
-
-    # when
-    actual_appinsights_enabled = EnvHelper().APPINSIGHTS_ENABLED
-
-    # then
-    assert actual_appinsights_enabled == expected_appinsights_enabled
-
-
-def test_appinsights_enabled_false_when_random(monkeypatch: MonkeyPatch):
-    # given
-    expected_appinsights_enabled = False
-    monkeypatch.setenv("APPINSIGHTS_ENABLED", "this is the way")
-
-    # when
-    actual_appinsights_enabled = EnvHelper().APPINSIGHTS_ENABLED
-
-    # then
-    assert actual_appinsights_enabled == expected_appinsights_enabled
+    assert actual_appinsights_enabled == expected
