@@ -1,4 +1,3 @@
-import logging
 from pytest_httpserver import HTTPServer
 from werkzeug.wrappers import Request
 
@@ -64,18 +63,14 @@ def verify_request_made(mock_httpserver: HTTPServer, request_matcher: RequestMat
 
             matching_requests.append(request)
 
+    error_message = f"Matching request found {len(matching_requests)} times but expected {request_matcher.times} times. \n Expected request: {request_matcher}\n Found similar requests:"
     if len(matching_requests) != request_matcher.times:
-        string_requests = ""
         for request in similar_requests:
-            string_requests += "\n--- Similar Request Start"
-            string_requests += f"\nPath: {request.path}, Method: {request.method}, Body: {request.get_data()}, Headers: {request.headers} Query String: {request.query_string.decode('utf-8')}"
-            string_requests += "\n--- Similar Request End"
+            error_message += "\n--- Similar Request Start"
+            error_message += f"\nPath: {request.path}, Method: {request.method}, Body: {request.get_data()}, Headers: {request.headers} Query String: {request.query_string.decode('utf-8')}"
+            error_message += "\n--- Similar Request End"
 
-        logging.info(
-            f"Matching request found {len(matching_requests)} times but expected {request_matcher.times} times. \n Expected request: {request_matcher}\n Found similar requests: {string_requests}"
-        )
-
-    assert len(matching_requests) == request_matcher.times
+    assert len(matching_requests) == request_matcher.times, error_message
 
 
 def contains_all_headers(request_matcher: RequestMatcher, request: Request):
