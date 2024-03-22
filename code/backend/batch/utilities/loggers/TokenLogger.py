@@ -7,9 +7,12 @@ class TokenLogger:
     def __init__(self, name: str = __name__):
         env_helper: EnvHelper = EnvHelper()
         self.logger = logging.getLogger(name)
-        self.logger.addHandler(
-            AzureLogHandler(connection_string=env_helper.APPINSIGHTS_CONNECTION_STRING)
-        )
+        if env_helper.APPINSIGHTS_ENABLED:
+            self.logger.addHandler(
+                AzureLogHandler(
+                    connection_string=env_helper.APPINSIGHTS_CONNECTION_STRING
+                )
+            )
         self.logger.setLevel(logging.INFO)
 
     def get_logger(self):
