@@ -58,6 +58,8 @@ def test_post_makes_correct_call_to_openai_embeddings(
 ):
     # when
     requests.post(f"{app_url}{path}", json=body)
+
+    # then
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
@@ -85,6 +87,8 @@ def test_post_makes_correct_call_to_get_search_index(
 ):
     # when
     requests.post(f"{app_url}{path}", json=body)
+
+    # then
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
@@ -105,6 +109,8 @@ def test_post_makes_correct_call_to_content_safety_analyze(
 ):
     # when
     requests.post(f"{app_url}{path}", json=body)
+
+    # then
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
@@ -127,6 +133,8 @@ def test_post_makes_correct_call_to_openai_chat_completions(
 ):
     # when
     requests.post(f"{app_url}{path}", json=body)
+
+    # then
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
@@ -196,6 +204,8 @@ def test_post_makes_correct_call_to_store_conversation_in_search(
 ):
     # when
     requests.post(f"{app_url}{path}", json=body)
+
+    # then
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
