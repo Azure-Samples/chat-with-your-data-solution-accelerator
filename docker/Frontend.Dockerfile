@@ -20,5 +20,6 @@ COPY ./code/app.py /usr/src/app
 COPY ./code/backend/batch/utilities /usr/src/app/utilities
 COPY --from=frontend /home/node/app/static  /usr/src/app/static/
 WORKDIR /usr/src/app
+ENV PYTHONPATH "${PYTHONPATH}:/usr/src/app"
 EXPOSE 80  
 CMD ["uwsgi", "--http", ":80", "--wsgi-file", "app.py", "--callable", "app", "-b","32768"]  
