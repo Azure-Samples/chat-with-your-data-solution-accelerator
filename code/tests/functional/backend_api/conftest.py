@@ -73,7 +73,6 @@ def manage_app(app_port: int, app_config: AppConfig):
 def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     httpserver.expect_request(
         f"/openai/deployments/{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}/embeddings",
-        query_string="api-version=2023-12-01-preview",
         method="POST",
     ).respond_with_json(
         {
@@ -90,14 +89,12 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     )
 
     httpserver.expect_request(
-        "/indexes('conversations')",
-        query_string="api-version=2023-11-01",
+        f"/indexes('{app_config.get('AZURE_SEARCH_CONVERSATIONS_LOG_INDEX')}')",
         method="GET",
     ).respond_with_json({})
 
     httpserver.expect_request(
         "/contentsafety/text:analyze",
-        query_string="api-version=2023-10-01",
         method="POST",
     ).respond_with_json(
         {
@@ -108,7 +105,6 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
 
     httpserver.expect_request(
         f"/openai/deployments/{app_config.get('AZURE_OPENAI_MODEL')}/chat/completions",
-        query_string="api-version=2023-12-01-preview",
         method="POST",
     ).respond_with_json(
         {
@@ -135,8 +131,7 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     )
 
     httpserver.expect_request(
-        "/indexes('conversations')/docs/search.index",
-        query_string="api-version=2023-11-01",
+        f"/indexes('{app_config.get('AZURE_SEARCH_CONVERSATIONS_LOG_INDEX')}')/docs/search.index",
         method="POST",
     ).respond_with_json(
         {
