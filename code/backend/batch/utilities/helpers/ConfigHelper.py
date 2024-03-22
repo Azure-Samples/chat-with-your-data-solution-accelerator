@@ -70,13 +70,19 @@ class Logging:
 class ConfigHelper:
     @staticmethod
     def get_active_config_or_default():
-        try:
-            blob_client = AzureBlobStorageClient(container_name=CONFIG_CONTAINER_NAME)
-            config = blob_client.download_file("active.json")
-            config = Config(json.loads(config))
-        except Exception:
-            print("Returning default config")
-            config = ConfigHelper.get_default_config()
+        env_helper = EnvHelper()
+        config = ConfigHelper.get_default_config()
+
+        if env_helper.LOAD_CONFIG_FROM_BLOB_STORAGE:
+            try:
+                blob_client = AzureBlobStorageClient(
+                    container_name=CONFIG_CONTAINER_NAME
+                )
+                config_file = blob_client.download_file("active.json")
+                config = Config(json.loads(config_file))
+            except Exception:
+                print("Returning default config")
+
         return config
 
     @staticmethod
