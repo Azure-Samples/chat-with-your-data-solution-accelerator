@@ -2,7 +2,7 @@ name: Backend Docker Image
 
 on:
   push:
-    branches: [ "main", "ross/dockerImages" ]
+    branches: [ "main" ]
 
 jobs:
   docker-build-backend:

@@ -2,7 +2,7 @@ name: WebApp Docker Image
 
 on:
   push:
-    branches: [ "main", "ross/dockerImages" ]
+    branches: [ "main" ]
 
 jobs:
   docker-build-frontend:
