@@ -11,7 +11,7 @@ param resourceToken string = toLower(uniqueString(subscription().id, environment
 param location string
 
 @description('Name of App Service plan')
-param hostingPlanName string = '${environmentName}-hosting-plan-${resourceToken}'
+param hostingPlanName string = 'hosting-plan-${resourceToken}'
 
 @description('The pricing tier for the App Service plan')
 @allowed([
@@ -31,10 +31,10 @@ param hostingPlanName string = '${environmentName}-hosting-plan-${resourceToken}
 param hostingPlanSku string = 'B3'
 
 @description('Name of Web App')
-param websiteName string = '${environmentName}-website-${resourceToken}'
+param websiteName string = 'web-${resourceToken}'
 
 @description('Name of Application Insights')
-param applicationInsightsName string = '${environmentName}-appinsights-${resourceToken}'
+param applicationInsightsName string = 'monitor-${resourceToken}'
 
 @description('Use semantic search')
 param azureSearchUseSemanticSearch string = 'false'
@@ -64,7 +64,7 @@ param azureSearchTitleColumn string = 'title'
 param azureSearchUrlColumn string = 'url'
 
 @description('Name of Azure OpenAI Resource')
-param azureOpenAIResourceName string = '${environmentName}-openai-${resourceToken}'
+param azureOpenAIResourceName string = 'openai-${resourceToken}'
 
 @description('Name of Azure OpenAI Resource SKU')
 param azureOpenAISkuName string = 'S0'
@@ -112,7 +112,7 @@ param azureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
 
 @description('Azure AI Search Resource')
-param azureAISearchName string = '${environmentName}-search-${resourceToken}'
+param azureAISearchName string = 'search-${resourceToken}'
 
 @description('The SKU of the search service you want to create. E.g. free or standard')
 @allowed([
@@ -125,7 +125,7 @@ param azureAISearchName string = '${environmentName}-search-${resourceToken}'
 param azureSearchSku string = 'standard'
 
 @description('Azure AI Search Index')
-param azureSearchIndex string = '${environmentName}-index-${resourceToken}'
+param azureSearchIndex string = 'index-${resourceToken}'
 
 @description('Azure AI Search Conversation Log Index')
 param azureSearchConversationLogIndex string = 'conversations'
@@ -134,16 +134,16 @@ param azureSearchConversationLogIndex string = 'conversations'
 param storageAccountName string = 'str${resourceToken}'
 
 @description('Name of Function App for Batch document processing')
-param functionName string = '${environmentName}-backend-${resourceToken}'
+param functionName string = 'backend-${resourceToken}'
 
 @description('Azure Form Recognizer Name')
-param formRecognizerName string = '${environmentName}-formrecog-${resourceToken}'
+param formRecognizerName string = 'formrecog-${resourceToken}'
 
 @description('Azure Content Safety Name')
-param contentSafetyName string = '${environmentName}-contentsafety-${resourceToken}'
+param contentSafetyName string = 'contentsafety-${resourceToken}'
 
 @description('Azure Speech Service Name')
-param speechServiceName string = '${environmentName}-speechservice-${resourceToken}'
+param speechServiceName string = 'speech-${resourceToken}'
 
 param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'
@@ -313,7 +313,6 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     authType: authType
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
@@ -374,7 +373,6 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     authType: authType
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
@@ -436,7 +434,6 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     authType: authType
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
@@ -497,7 +494,6 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     authType: authType
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
@@ -543,7 +539,7 @@ module monitoring './core/monitor/monitoring.bicep' = {
     tags: {
       'hidden-link:${resourceId('Microsoft.Web/sites', applicationInsightsName)}': 'Resource'
     }
-    logAnalyticsName: '${environmentName}-logAnalytics-${resourceToken}'
+    logAnalyticsName: 'la-${resourceToken}'
     applicationInsightsDashboardName: 'dash-${applicationInsightsName}'
   }
 }
@@ -574,7 +570,6 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     authType: authType
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
@@ -618,7 +613,6 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     authType: authType
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName

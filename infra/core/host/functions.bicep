@@ -54,11 +54,13 @@ module functions 'appservice.bicep' = {
     appCommandLine: useDocker ? '' : appCommandLine
     applicationInsightsName: applicationInsightsName
     appServicePlanId: appServicePlanId
-    appSettings: union(appSettings, {
+    appSettings: union(appSettings,
+      {
         AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
         FUNCTIONS_EXTENSION_VERSION: extensionVersion
-        FUNCTIONS_WORKER_RUNTIME: useDocker ? '' : runtimeName
-      })
+      },
+      !useDocker ? { FUNCTIONS_WORKER_RUNTIME: runtimeName } : {}
+    )
     clientAffinityEnabled: clientAffinityEnabled
     enableOryxBuild: enableOryxBuild
     functionAppScaleLimit: functionAppScaleLimit

@@ -23,7 +23,6 @@ param formRecognizerKeyName string = ''
 param searchKeyName string = ''
 param contentSafetyKeyName string = ''
 param speechKeyName string = ''
-param keyVaultEndpoint string = ''
 param authType string
 param dockerFullImageName string = ''
 param useDocker bool = dockerFullImageName != ''
