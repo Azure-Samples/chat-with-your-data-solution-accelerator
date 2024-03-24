@@ -128,6 +128,8 @@ class EnvHelper:
             "AZURE_FORM_RECOGNIZER_KEY"
         )
         # Azure App Insights
+        self.APPINSIGHTS_ENABLED = self.get_env_var_bool("APPINSIGHTS_ENABLED")
+
         self.APPINSIGHTS_CONNECTION_STRING = os.getenv(
             "APPINSIGHTS_CONNECTION_STRING", ""
         )
@@ -150,6 +152,10 @@ class EnvHelper:
         # Speech Service
         self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")
 
+        self.LOAD_CONFIG_FROM_BLOB_STORAGE = self.get_env_var_bool(
+            "LOAD_CONFIG_FROM_BLOB_STORAGE"
+        )
+
     def should_use_data(self) -> bool:
         if (
             self.AZURE_SEARCH_SERVICE
@@ -163,6 +169,9 @@ class EnvHelper:
         if "gpt-4" in self.AZURE_OPENAI_MODEL_NAME.lower():
             return True
         return False
+
+    def get_env_var_bool(self, var_name: str, default: str = "True") -> bool:
+        return os.getenv(var_name, default).lower() == "true"
 
     @staticmethod
     def check_env():
