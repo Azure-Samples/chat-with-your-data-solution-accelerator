@@ -1,8 +1,11 @@
 name: Admin Web App Docker Image
 
 on:
-  push:
-    branches: [ "main" ]
+  workflow_run:
+    workflows: [Tests]
+    types:
+      - completed
+    branches: [ "main", "ross/dockerImages" ]
 
 jobs:
   docker-build-admin:
