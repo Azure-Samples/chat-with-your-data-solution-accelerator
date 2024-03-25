@@ -3,13 +3,12 @@ name: Admin Web App Docker Image
 on:
   workflow_run:
     workflows: [Tests]
-    types:
-      - completed
-    branches: [ "ross/dockerImages" ]
+    types: [completed]
+    branches: [ross/dockerImages]
 
 jobs:
   docker-build-admin:
-
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
    
