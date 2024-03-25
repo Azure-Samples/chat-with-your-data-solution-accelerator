@@ -355,7 +355,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
   params: {
     name: '${websiteName}-docker'
     location: location
-    tags: union(tags, { 'azd-service-name': 'web_docker' })
+    tags: union(tags, { 'azd-service-name': 'web-docker' })
     dockerFullImageName: 'fruoccopublic.azurecr.io/rag-webapp'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "5271265179520321715"
+      "templateHash": "3729480103232281430"
     }
   },
   "parameters": {
@@ -2081,7 +2081,7 @@
             "value": "[parameters('location')]"
           },
           "tags": {
-            "value": "[union(variables('tags'), createObject('azd-service-name', 'web_docker'))]"
+            "value": "[union(variables('tags'), createObject('azd-service-name', 'web-docker'))]"
           },
           "dockerFullImageName": {
             "value": "fruoccopublic.azurecr.io/rag-webapp"
