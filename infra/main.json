@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "10731851777861825094"
+      "templateHash": "1331498376307134293"
     }
   },
   "parameters": {
@@ -6639,6 +6639,14 @@
     "USE_KEY_VAULT": {
       "type": "bool",
       "value": "[parameters('useKeyVault')]"
+    },
+    "FRONTEND_WEBSITE_NAME": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('websiteName')), '2022-09-01').outputs.FRONTEND_API_URI.value]"
+    },
+    "ADMIN_WEBSITE_NAME": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin', parameters('websiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value]"
     }
   }
 }

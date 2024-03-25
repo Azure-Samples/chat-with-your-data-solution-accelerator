@@ -1,9 +1,7 @@
-Cypress.config('baseUrl', Cypress.env('BASE_URL_USER_WEBSITE'))
+Cypress.config('baseUrl', Cypress.env('FRONTEND_WEBSITE_NAME'))
 
 describe('the cwyd user website', () => {
   before(() => {
-    const myVariable = Cypress.env('BASE_URL_USER_WEBSITE');
-    cy.log('My variable:', myVariable);
     cy.visit('/');
   });
 

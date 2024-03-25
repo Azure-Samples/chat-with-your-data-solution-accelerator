@@ -13,6 +13,10 @@ ifeq ($(filter $(MAKECMDGOALS),config clean),)
 	endif
 endif
 
+AZURE_ENV_FILE := $(shell azd env list --output json | jq -r '.[] | select(.IsDefault == true) | .DotEnvPath')
+
+include $(AZURE_ENV_FILE)
+
 help: ## 💬 This help message :)
 	@grep -E '[a-zA-Z_-]+:.*?## .*$$' $(firstword $(MAKEFILE_LIST)) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-23s\033[0m %s\n", $$1, $$2}'
 
@@ -29,6 +33,10 @@ unittest: ## 🧪 Run the unit tests
 functionaltest: ## 🧪 Run the functional tests
 	@echo -e "\e[34m$@\e[0m" || true
 	@ poetry run pytest -m "functional"
+
+uitest: ## 🧪 Run the ui tests in headless mode
+	@echo -e "\e[34m$@\e[0m" || true
+	@cd code/tests/integration/ui && npm install && npx cypress run --env ADMIN_WEBSITE_NAME=$(ADMIN_WEBSITE_NAME),FRONTEND_WEBSITE_NAME=$(FRONTEND_WEBSITE_NAME)
 
 build-frontend: ## 🏗️ Build the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true

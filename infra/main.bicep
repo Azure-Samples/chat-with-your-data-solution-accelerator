@@ -754,3 +754,5 @@ output AZURE_TENANT_ID string = tenant().tenantId
 output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
 output USE_KEY_VAULT bool = useKeyVault
+output FRONTEND_WEBSITE_NAME string = web.outputs.FRONTEND_API_URI
+output ADMIN_WEBSITE_NAME string = adminweb.outputs.WEBSITE_ADMIN_URI

@@ -418,4 +418,4 @@ temp/
 requirements.txt
 
 # Cypress UI tests screenshots folder
-code/frontend/cypress/screenshots/
+code/tests/integration/ui/cypress/screenshots/
