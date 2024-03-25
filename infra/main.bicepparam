@@ -10,3 +10,5 @@ param principalId = readEnvironmentVariable('AZURE_PRINCIPAL_ID', 'principal_id'
 param useKeyVault = bool(readEnvironmentVariable('USE_KEY_VAULT', 'true'))
 
 param authType = readEnvironmentVariable('AZURE_AUTH_TYPE', 'keys')
+
+param hostingModel = readEnvironmentVariable('AZURE_APP_SERVICE_HOSTING_MODEL', 'container')

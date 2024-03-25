@@ -5,6 +5,8 @@ param allowedOrigins array = []
 param appCommandLine string = ''
 param appServicePlanId string
 param applicationInsightsName string = ''
+param runtimeName string = 'python'
+param runtimeVersion string = ''
 param keyVaultName string = ''
 param azureOpenAIName string = ''
 param azureAISearchName string = ''
@@ -14,7 +16,6 @@ param contentSafetyName string = ''
 param speechServiceName string = ''
 @secure()
 param appSettings object = {}
-param serviceName string = 'web'
 param useKeyVault bool
 param openAIKeyName string = ''
 param storageAccountKeyName string = ''
@@ -22,23 +23,23 @@ param formRecognizerKeyName string = ''
 param searchKeyName string = ''
 param contentSafetyKeyName string = ''
 param speechKeyName string = ''
-param keyVaultEndpoint string = ''
 param authType string
+param dockerFullImageName string = ''
+param useDocker bool = dockerFullImageName != ''
 
 module web '../core/host/appservice.bicep' = {
   name: '${name}-app-module'
   params: {
     name: name
     location: location
-    tags: union(tags, { 'azd-service-name': serviceName })
+    tags: tags
     allowedOrigins: allowedOrigins
-    appCommandLine: appCommandLine
+    appCommandLine: useDocker ? '' : appCommandLine
     applicationInsightsName: applicationInsightsName
     appServicePlanId: appServicePlanId
     appSettings: union(appSettings, {
         AZURE_AUTH_TYPE: authType
         USE_KEY_VAULT: useKeyVault ? useKeyVault : ''
-        AZURE_KEY_VAULT_ENDPOINT: useKeyVault ? keyVaultEndpoint : ''
         AZURE_OPENAI_API_KEY: useKeyVault ? openAIKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', azureOpenAIName), '2023-05-01').key1
         AZURE_SEARCH_KEY: useKeyVault ? searchKeyName : listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', azureAISearchName), '2021-04-01-preview').primaryKey
         AZURE_BLOB_ACCOUNT_KEY: useKeyVault ? storageAccountKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', storageAccountName), '2021-09-01').keys[0].value
@@ -47,9 +48,50 @@ module web '../core/host/appservice.bicep' = {
         AZURE_SPEECH_SERVICE_KEY: useKeyVault ? speechKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', speechServiceName), '2023-05-01').key1
       })
     keyVaultName: keyVaultName
-    runtimeName: 'python'
-    runtimeVersion: '3.11'
-    scmDoBuildDuringDeployment: true
+    runtimeName: runtimeName
+    runtimeVersion: runtimeVersion
+    dockerFullImageName: dockerFullImageName 
+    scmDoBuildDuringDeployment: useDocker ? false : true
+  }
+}
+
+// Cognitive Services User
+module openAIRoleWeb '../core/security/role.bicep' = if (authType == 'rbac') {
+  name: 'openai-role-web'
+  params: {
+    principalId: web.outputs.identityPrincipalId
+    roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Contributor
+// This role is used to grant the service principal contributor access to the resource group
+// See if this is needed in the future.
+module openAIRoleWebContributor '../core/security/role.bicep' = if (authType == 'rbac') {
+  name: 'openai-role-web-contributor'
+  params: {
+    principalId: web.outputs.identityPrincipalId
+    roleDefinitionId: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Search Index Data Contributor
+module searchRoleWeb '../core/security/role.bicep' = if (authType == 'rbac') {
+  name: 'search-role-web'
+  params: {
+    principalId: web.outputs.identityPrincipalId
+    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+module webaccess '../core/security/keyvault-access.bicep' = if (useKeyVault) {
+  name: 'web-keyvault-access'
+  params: {
+    keyVaultName: keyVaultName
+    principalId: web.outputs.identityPrincipalId
   }
 }
 

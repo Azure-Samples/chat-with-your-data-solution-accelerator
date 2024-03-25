@@ -34,14 +34,14 @@ param appCommandLine string = ''
 @secure()
 param appSettings object = {}
 param clientAffinityEnabled bool = false
-param enableOryxBuild bool = contains(kind, 'linux')
 param functionAppScaleLimit int = -1
-param linuxFxVersion string = runtimeNameAndVersion
 param minimumElasticInstanceCount int = -1
 param numberOfWorkers int = -1
-param scmDoBuildDuringDeployment bool = true
 param use32BitWorkerProcess bool = false
 param healthCheckPath string = ''
+param dockerFullImageName string = ''
+param useDocker bool = dockerFullImageName != ''
+param enableOryxBuild bool = useDocker ? false : contains(kind, 'linux')
 
 module functions 'appservice.bicep' = {
   name: '${name}-functions'
@@ -51,29 +51,31 @@ module functions 'appservice.bicep' = {
     tags: tags
     allowedOrigins: allowedOrigins
     alwaysOn: alwaysOn
-    appCommandLine: appCommandLine
+    appCommandLine: useDocker ? '' : appCommandLine
     applicationInsightsName: applicationInsightsName
     appServicePlanId: appServicePlanId
-    appSettings: union(appSettings, {
+    appSettings: union(appSettings,
+      {
         AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
         FUNCTIONS_EXTENSION_VERSION: extensionVersion
-        FUNCTIONS_WORKER_RUNTIME: runtimeName
-      })
+      },
+      !useDocker ? { FUNCTIONS_WORKER_RUNTIME: runtimeName } : {}
+    )
     clientAffinityEnabled: clientAffinityEnabled
     enableOryxBuild: enableOryxBuild
     functionAppScaleLimit: functionAppScaleLimit
     healthCheckPath: healthCheckPath
     keyVaultName: keyVaultName
     kind: kind
-    linuxFxVersion: linuxFxVersion
     managedIdentity: managedIdentity
     minimumElasticInstanceCount: minimumElasticInstanceCount
     numberOfWorkers: numberOfWorkers
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
     runtimeNameAndVersion: runtimeNameAndVersion
-    scmDoBuildDuringDeployment: scmDoBuildDuringDeployment
+    scmDoBuildDuringDeployment:  useDocker ? false : true
     use32BitWorkerProcess: use32BitWorkerProcess
+    dockerFullImageName: dockerFullImageName
   }
 }
 
