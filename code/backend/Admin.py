@@ -13,6 +13,10 @@ logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy").s
 )
 
 
+def untested():
+    print("This function is untested")
+
+
 st.set_page_config(
     page_title="Admin",
     page_icon=os.path.join("images", "favicon.ico"),
