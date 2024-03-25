@@ -11,7 +11,7 @@ param resourceToken string = toLower(uniqueString(subscription().id, environment
 param location string
 
 @description('Name of App Service plan')
-param hostingPlanName string = '${environmentName}-hosting-plan-${resourceToken}'
+param hostingPlanName string = 'hosting-plan-${resourceToken}'
 
 @description('The pricing tier for the App Service plan')
 @allowed([
@@ -34,7 +34,7 @@ param hostingPlanSku string = 'B3'
 param websiteName string = 'web-${resourceToken}'
 
 @description('Name of Application Insights')
-param applicationInsightsName string = '${environmentName}-appinsights-${resourceToken}'
+param applicationInsightsName string = 'appinsights-${resourceToken}'
 
 @description('Use semantic search')
 param azureSearchUseSemanticSearch string = 'false'
@@ -64,7 +64,7 @@ param azureSearchTitleColumn string = 'title'
 param azureSearchUrlColumn string = 'url'
 
 @description('Name of Azure OpenAI Resource')
-param azureOpenAIResourceName string = '${environmentName}-openai-${resourceToken}'
+param azureOpenAIResourceName string = 'openai-${resourceToken}'
 
 @description('Name of Azure OpenAI Resource SKU')
 param azureOpenAISkuName string = 'S0'
@@ -112,7 +112,7 @@ param azureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
 
 @description('Azure AI Search Resource')
-param azureAISearchName string = '${environmentName}-search-${resourceToken}'
+param azureAISearchName string = 'search-${resourceToken}'
 
 @description('The SKU of the search service you want to create. E.g. free or standard')
 @allowed([
@@ -125,7 +125,7 @@ param azureAISearchName string = '${environmentName}-search-${resourceToken}'
 param azureSearchSku string = 'standard'
 
 @description('Azure AI Search Index')
-param azureSearchIndex string = '${environmentName}-index-${resourceToken}'
+param azureSearchIndex string = 'index-${resourceToken}'
 
 @description('Azure AI Search Conversation Log Index')
 param azureSearchConversationLogIndex string = 'conversations'
@@ -137,13 +137,13 @@ param storageAccountName string = 'str${resourceToken}'
 param functionName string = 'backend-${resourceToken}'
 
 @description('Azure Form Recognizer Name')
-param formRecognizerName string = '${environmentName}-formrecog-${resourceToken}'
+param formRecognizerName string = 'formrecog-${resourceToken}'
 
 @description('Azure Content Safety Name')
-param contentSafetyName string = '${environmentName}-contentsafety-${resourceToken}'
+param contentSafetyName string = 'contentsafety-${resourceToken}'
 
 @description('Azure Speech Service Name')
-param speechServiceName string = '${environmentName}-speechservice-${resourceToken}'
+param speechServiceName string = 'speech-${resourceToken}'
 
 param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'
