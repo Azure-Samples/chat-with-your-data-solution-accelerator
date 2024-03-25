@@ -10,9 +10,11 @@ class AppConfig:
         "APPINSIGHTS_ENABLED": "False",
         "AZURE_OPENAI_API_KEY": "some-azure-openai-api-key",
         "AZURE_SEARCH_KEY": "some-azure-search-key",
+        "AZURE_CONTENT_SAFETY_KEY": "some-content_safety-key",
         "AZURE_OPENAI_EMBEDDING_MODEL": "some-embedding-model",
         "AZURE_OPENAI_MODEL": "some-openai-model",
-        "LOAD_CONFIG_FROM_BLOB_STORAGE": "false",
+        "AZURE_SEARCH_CONVERSATIONS_LOG_INDEX": "some-log-index",
+        "LOAD_CONFIG_FROM_BLOB_STORAGE": "False",
         "TIKTOKEN_CACHE_DIR": f"{os.path.dirname(os.path.realpath(__file__))}/resources",
     }
 
