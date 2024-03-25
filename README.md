@@ -129,32 +129,18 @@ The following are links to the pricing details for some of the resources:
 
 ### Deploy instructions
 
+You need to decide if you would like a quick demo like experience where everything is built for you, or whether you would like to debug and explore the code itself. The demo is available by clicking this button:
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fchat-with-your-data-solution-accelerator%2Fmain%2Finfra%2Fmain.json) 
+
 **Note**: The default configuration deploys an OpenAI Model "gpt-35-turbo" with version 0613. However, not all 
 locations support this version. If you're deploying to a location that doesn't support version 0613, you'll need to 
 switch to a lower version. To find out which versions are supported in different regions, visit the 
 [GPT-35 Turbo Model Availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#gpt-35-turbo-model-availability) page.
 
-The easiest way to run this accelerator is in a VS Code Dev Containers, which will open the project in your local VS Code using the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers):
+If you would like a developer experience, follow the [Local deployment instructions](./docs/LOCAL_DEPLOYMENT.md).
 
-1. Start Docker Desktop (install it if not already installed)
-1. Open the project:
-    [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/azure-samples/chat-with-your-data-solution-accelerator)
-1. In the VS Code window that opens, once the project files show up (this may take several minutes), open a terminal window
-1. Run `azd auth login`
-1. Run `azd env set AZURE_APP_SERVICE_HOSTING_MODEL code` - This sets your environment to depoloy code rather than rely on public containers.
-1. Run `azd up` - This will provision Azure resources and deploy the accelerator to those resources.
-
-    * **Important**: Beware that the resources created by this command will incur immediate costs, primarily from the AI Search resource. These resources may accrue costs even if you interrupt the command before it is fully executed. You can run `azd down` or delete the resources manually to avoid unnecessary spending.
-    * You will be prompted to select a subscription, and a location. That location list is based on the [OpenAI model availability table](https://learn.microsoft.com/azure/cognitive-services/openai/concepts/models#model-summary-table-and-region-availability) and may become outdated as availability changes.
-    * If you do, accidentally, chose the wrong location; you will have to ensure that you use `azd down` or delete the Resource Group as the deployment bases the location from this Resource Group. 
-1. After the application has been successfully deployed you will see a URL printed to the console.  Click that URL to interact with the application in your browser.
-
-> NOTE: It may take 30 minutes for the application to be fully deployed. If you see a "Python Developer" welcome screen or an error page, then wait a bit and refresh the page.
-
-**Notes:** the default auth type uses keys, if you want to switch to rbac, please run `azd env set AUTH_TYPE rbac`.
-
-
-#### Testing the deployment
+### Testing the deployment
 1. Navigate to the admin site, where you can upload documents. It will be located at:
     
     `https://{MY_RESOURCE_PREFIX}-website-admin.azurewebsites.net/`
@@ -173,11 +159,6 @@ The easiest way to run this accelerator is in a VS Code Dev Containers, which wi
     
     ![A screenshot of the chat app.](./media/web-unstructureddata.png)
 
-
-You can also run the sample directly locally (See below).
-
-### [Local deployment instructions](./docs/LOCAL_DEPLOYMENT.md)
-To customize the accelerator or run it locally, first, copy the .env.sample file to your development environment's .env file, and edit it according to environment variable values table. Learn more about deploying locally [here](./docs/LOCAL_DEPLOYMENT.md).
 \
 \
 ![Supporting documentation](/media/supportingDocuments.png)
