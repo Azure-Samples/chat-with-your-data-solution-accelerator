@@ -44,3 +44,7 @@ deploy: azd-login ## 🚀 Deploy everything to Azure
 	@azd deploy web --no-prompt
 	@azd deploy function --no-prompt
 	@azd deploy adminweb --no-prompt
+
+destroy: azd-login ## 🧨 Destroy everything in Azure
+	@echo -e "\e[34m$@\e[0m" || true
+	@azd down --force --purge --no-prompt

@@ -40,7 +40,7 @@ jobs:
         with:
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
-          runCmd: make ci && make deploy
+          runCmd: make ci && make deploy && make destroy
           refFilterForPush: refs/heads/main
           env: |
             AZURE_CLIENT_ID
