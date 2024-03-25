@@ -4,7 +4,7 @@ on:
   workflow_run:
     workflows: [Tests]
     types: [completed]
-    branches: [ross/dockerImages]
+    branches: [main]
 
 jobs:
   docker-build-admin:

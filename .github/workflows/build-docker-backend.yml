@@ -1,12 +1,14 @@
 name: Backend Docker Image
 
 on:
-  push:
-    branches: [ "main" ]
+  workflow_run:
+    workflows: [Tests]
+    types: [completed]
+    branches: [main]
 
 jobs:
   docker-build-backend:
-
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
    
