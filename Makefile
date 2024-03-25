@@ -40,6 +40,7 @@ azd-login: ## 🔑 Login to Azure with azd and a SPN
 
 deploy: azd-login ## 🚀 Deploy everything to Azure
 	@echo -e "\e[34m$@\e[0m" || true
+	@azd env set AZURE_APP_SERVICE_HOSTING_MODEL code
 	@azd provision --no-prompt
 	@azd deploy web --no-prompt
 	@azd deploy function --no-prompt
