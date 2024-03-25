@@ -34,7 +34,7 @@ param hostingPlanSku string = 'B3'
 param websiteName string = 'web-${resourceToken}'
 
 @description('Name of Application Insights')
-param applicationInsightsName string = '${environmentName}-monitor-${resourceToken}'
+param applicationInsightsName string = '${environmentName}-appinsights-${resourceToken}'
 
 @description('Use semantic search')
 param azureSearchUseSemanticSearch string = 'false'
@@ -112,7 +112,7 @@ param azureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
 
 @description('Azure AI Search Resource')
-param azureAISearchName string = 'search-${resourceToken}'
+param azureAISearchName string = '${environmentName}-search-${resourceToken}'
 
 @description('The SKU of the search service you want to create. E.g. free or standard')
 @allowed([
@@ -143,7 +143,7 @@ param formRecognizerName string = '${environmentName}-formrecog-${resourceToken}
 param contentSafetyName string = '${environmentName}-contentsafety-${resourceToken}'
 
 @description('Azure Speech Service Name')
-param speechServiceName string = '${environmentName}-speech-${resourceToken}'
+param speechServiceName string = '${environmentName}-speechservice-${resourceToken}'
 
 param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'

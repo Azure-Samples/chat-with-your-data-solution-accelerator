@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "15102685406711974975"
+      "templateHash": "5271265179520321715"
     }
   },
   "parameters": {
@@ -64,7 +64,7 @@
     },
     "applicationInsightsName": {
       "type": "string",
-      "defaultValue": "[format('{0}-monitor-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('{0}-appinsights-{1}', parameters('environmentName'), parameters('resourceToken'))]",
       "metadata": {
         "description": "Name of Application Insights"
       }
@@ -240,7 +240,7 @@
     },
     "azureAISearchName": {
       "type": "string",
-      "defaultValue": "[format('search-{0}', parameters('resourceToken'))]",
+      "defaultValue": "[format('{0}-search-{1}', parameters('environmentName'), parameters('resourceToken'))]",
       "metadata": {
         "description": "Azure AI Search Resource"
       }
@@ -303,7 +303,7 @@
     },
     "speechServiceName": {
       "type": "string",
-      "defaultValue": "[format('{0}-speech-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('{0}-speechservice-{1}', parameters('environmentName'), parameters('resourceToken'))]",
       "metadata": {
         "description": "Azure Speech Service Name"
       }
