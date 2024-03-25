@@ -16,11 +16,19 @@ import app
 
 @pytest.fixture(scope="session")
 def ca():
+    """
+    This fixture is required to run the http mock server with SSL.
+    https://pytest-httpserver.readthedocs.io/en/latest/howto.html#running-an-https-server
+    """
     return trustme.CA()
 
 
 @pytest.fixture(scope="session")
 def httpserver_ssl_context(ca):
+    """
+    This fixture is required to run the http mock server with SSL.
+    https://pytest-httpserver.readthedocs.io/en/latest/howto.html#running-an-https-server
+    """
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     localhost_cert = ca.issue_cert("localhost")
     localhost_cert.configure_cert(context)
@@ -29,6 +37,10 @@ def httpserver_ssl_context(ca):
 
 @pytest.fixture(scope="session")
 def httpclient_ssl_context(ca):
+    """
+    This fixture is required to run the http mock server with SSL.
+    https://pytest-httpserver.readthedocs.io/en/latest/howto.html#running-an-https-server
+    """
     with ca.cert_pem.tempfile() as ca_temp_path:
         return ssl.create_default_context(cafile=ca_temp_path)
 
@@ -73,7 +85,6 @@ def manage_app(app_port: int, app_config: AppConfig):
 def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     httpserver.expect_request(
         f"/openai/deployments/{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}/embeddings",
-        query_string="api-version=2023-12-01-preview",
         method="POST",
     ).respond_with_json(
         {
@@ -90,14 +101,12 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     )
 
     httpserver.expect_request(
-        "/indexes('conversations')",
-        query_string="api-version=2023-11-01",
+        f"/indexes('{app_config.get('AZURE_SEARCH_CONVERSATIONS_LOG_INDEX')}')",
         method="GET",
     ).respond_with_json({})
 
     httpserver.expect_request(
         "/contentsafety/text:analyze",
-        query_string="api-version=2023-10-01",
         method="POST",
     ).respond_with_json(
         {
@@ -108,7 +117,6 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
 
     httpserver.expect_request(
         f"/openai/deployments/{app_config.get('AZURE_OPENAI_MODEL')}/chat/completions",
-        query_string="api-version=2023-12-01-preview",
         method="POST",
     ).respond_with_json(
         {
@@ -135,8 +143,7 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     )
 
     httpserver.expect_request(
-        "/indexes('conversations')/docs/search.index",
-        query_string="api-version=2023-11-01",
+        f"/indexes('{app_config.get('AZURE_SEARCH_CONVERSATIONS_LOG_INDEX')}')/docs/search.index",
         method="POST",
     ).respond_with_json(
         {
