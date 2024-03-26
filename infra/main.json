@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 {
   "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
@@ -9535,4 +9533,3 @@
     }
   }
 }
->>>>>>> 7a3cbb0 (Move ui tests to tests folder and create uitest target on makefile.)
