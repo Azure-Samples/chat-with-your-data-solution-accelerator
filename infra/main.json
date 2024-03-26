@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "3729480103232281430"
+      "templateHash": "13425064420748264745"
     }
   },
   "parameters": {
@@ -9522,6 +9522,14 @@
     "AZURE_APP_SERVICE_HOSTING_MODEL": {
       "type": "string",
       "value": "[parameters('hostingModel')]"
+    },
+    "FRONTEND_WEBSITE_NAME": {
+      "type": "string",
+      "value": "[if(equals(parameters('hostingModel'), 'code'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('websiteName')), '2022-09-01').outputs.FRONTEND_API_URI.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('websiteName'))), '2022-09-01').outputs.FRONTEND_API_URI.value)]"
+    },
+    "ADMIN_WEBSITE_NAME": {
+      "type": "string",
+      "value": "[if(equals(parameters('hostingModel'), 'code'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin', parameters('websiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin-docker', parameters('websiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value)]"
     }
   }
 }

@@ -416,3 +416,6 @@ temp/
 # We use Poetry for dependency management, but we generate this file in azd
 # so that Azure App Service can install the dependencies
 requirements.txt
+
+# Cypress UI tests screenshots folder
+tests/integration/ui/cypress/screenshots/
