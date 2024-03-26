@@ -15,8 +15,16 @@ param hostingModel = readEnvironmentVariable('AZURE_APP_SERVICE_HOSTING_MODEL', 
 
 // The following are being renamed to align with the new naming convention
 // we manipulate existing resources here to maintain backwards compatibility
+
+// We need the resourceToken to be unique for each deployment (copied from the main.bicep)
+var subscriptionId = readEnvironmentVariable('AZURE_SUBSCRIPTION_ID', 'subscription_id')
+param resourceToken = toLower(uniqueString(subscriptionId, environmentName, location))
+
+// Retrieve the Search Name from the Search Endpoint (if it exists)
 var azureAISearcEndpoint = readEnvironmentVariable('AZURE_SEARCH_SERVICE', 'https://./')
-var endpointLength = length(azureAISearcEndpoint)
-param azureAISearchName = split(substring(azureAISearcEndpoint, 8, endpointLength - 9), '.')[0]
-param azureSearchIndex = readEnvironmentVariable('AZURE_SEARCH_INDEX', '')
-param azureOpenAIResourceName = readEnvironmentVariable('AZURE_OPENAI_RESOURCE', '')
+var searchSerivceName = split(substring(azureAISearcEndpoint, 8, length(azureAISearcEndpoint) - 9), '.')[0]
+param azureAISearchName = searchSerivceName == '' ? 'search-${resourceToken}' : searchSerivceName
+
+param azureSearchIndex = readEnvironmentVariable('AZURE_SEARCH_INDEX', 'index-${resourceToken}')
+param azureOpenAIResourceName = readEnvironmentVariable('AZURE_OPENAI_RESOURCE', 'openai-${resourceToken}')
+
