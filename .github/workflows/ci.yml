@@ -35,7 +35,7 @@ jobs:
       - name: Pre-build image and run make in dev container
         uses: devcontainers/ci@v0.3
         env:
-          AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+          AZURE_ENV_NAME: testenv
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
         with:
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
