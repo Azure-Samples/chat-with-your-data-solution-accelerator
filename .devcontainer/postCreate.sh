@@ -9,4 +9,5 @@ poetry install --with dev
 poetry run pre-commit install
 
 npm install ./code/frontend
-npm install ./code/tests/integration/ui/
+
+npm install ./tests/integration/ui/
