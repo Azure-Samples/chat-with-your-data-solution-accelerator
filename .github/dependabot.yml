@@ -24,7 +24,7 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 50
   - package-ecosystem: "npm"
-    directory: "/code/tests/integration/ui"
+    directory: "/tests/integration/ui"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 50   
