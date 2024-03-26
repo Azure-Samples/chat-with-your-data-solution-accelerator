@@ -15,10 +15,7 @@
     "moduleResolution": "Node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
-    "types": [
-      "vite/client"
-    ]
+    "noEmit": true
   },
   "include": [
     "cypress"
