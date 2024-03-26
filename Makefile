@@ -3,6 +3,8 @@ SHELL := /bin/bash
 .PHONY: help
 .DEFAULT_GOAL := help
 
+AZURE_ENV_FILE := $(shell azd env list --output json | jq -r '.[] | select(.IsDefault == true) | .DotEnvPath')
+
 ENV_FILE := .env
 ifeq ($(filter $(MAKECMDGOALS),config clean),)
 	ifneq ($(strip $(wildcard $(ENV_FILE))),)
@@ -12,8 +14,6 @@ ifeq ($(filter $(MAKECMDGOALS),config clean),)
 		endif
 	endif
 endif
-
-AZURE_ENV_FILE := $(shell azd env list --output json | jq -r '.[] | select(.IsDefault == true) | .DotEnvPath')
 
 include $(AZURE_ENV_FILE)
 
