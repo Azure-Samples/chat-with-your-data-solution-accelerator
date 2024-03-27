@@ -1,6 +1,27 @@
 [Back to *Chat with your data* README](../README.md)
 
-## Development Container
+# Local setup
+
+The easiest way to run this accelerator is in a VS Code Dev Containers, which will open the project in your local VS Code using the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers):
+
+1. Start Docker Desktop (install it if not already installed)
+1. Open the project:
+    [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/azure-samples/chat-with-your-data-solution-accelerator)
+1. In the VS Code window that opens, once the project files show up (this may take several minutes), open a terminal window
+1. Run `azd auth login`
+1. Run `azd env set AZURE_APP_SERVICE_HOSTING_MODEL code` - This sets your environment to deploy code rather than rely on public containers, like the "Deploy to Azure" button.
+1. Run `azd up` - This will provision Azure resources and deploy the accelerator to those resources.
+
+    * **Important**: Beware that the resources created by this command will incur immediate costs, primarily from the AI Search resource. These resources may accrue costs even if you interrupt the command before it is fully executed. You can run `azd down` or delete the resources manually to avoid unnecessary spending.
+    * You will be prompted to select a subscription, and a location. That location list is based on the [OpenAI model availability table](https://learn.microsoft.com/azure/cognitive-services/openai/concepts/models#model-summary-table-and-region-availability) and may become outdated as availability changes.
+    * If you do, accidentally, chose the wrong location; you will have to ensure that you use `azd down` or delete the Resource Group as the deployment bases the location from this Resource Group. 
+1. After the application has been successfully deployed you will see a URL printed to the console.  Click that URL to interact with the application in your browser.
+
+> NOTE: It may take up to an hour for the application to be fully deployed. If you see a "Python Developer" welcome screen or an error page, then wait a bit and refresh the page.
+
+**Notes:** the default auth type uses keys, if you want to switch to rbac, please run `azd env set AUTH_TYPE rbac`.
+
+## Detailed Development Container setup instructions
 
 The solution contains a [development container](https://code.visualstudio.com/docs/remote/containers) with all the required tooling to develop and deploy the accelerator. To deploy the Chat With Your Data accelerator using the provided development container you will also need:
 
@@ -26,7 +47,7 @@ When you start the development container for the first time, the container will 
 
 The files for the dev container are located in `/.devcontainer/` folder.
 
-## Local deployment
+## Local debugging
 
 To customize the accelerator or run it locally, you must provision the Azure resources by running `azd provision` in a Terminal. This will generate a `.env` for you and you can use the "Run and Debug" (Ctrl + Shift + D) command to chose which part of the accelerator to run.  There is an [environment variable values table](#environment-variables) below.
 
@@ -170,3 +191,13 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 |AZURE_SPEECH_SERVICE_KEY | | The key of the Azure Speech service|
 |AZURE_SPEECH_SERVICE_REGION | | The region (location) of the Azure Speech service|
 |AZURE_AUTH_TYPE | keys | The default is to use API keys. Change the value to 'rbac' to authenticate using Role Based Access Control. For more information refer to section [Authenticate using RBAC](#authenticate-using-rbac)
+
+## Bicep
+
+A [Bicep file](./infra/main.bicep) is used to generate the [ARM template](./infra/main.json). You can deploy this accelerator by the following command
+
+```sh
+RESOURCE_GROUP_NAME=cwyd
+az group create --location uksouth --resource-group $RESOURCE_GROUP_NAME
+az deployment group create --resource-group $RESOURCE_GROUP_NAME --template-file ./infra/main.bicep
+ ```

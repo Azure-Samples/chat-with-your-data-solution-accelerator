@@ -1,7 +1,7 @@
 targetScope = 'subscription'
 
 @minLength(1)
-@maxLength(64)
+@maxLength(20)
 @description('Name of the the environment which is used to generate a short unique hash used in all resources.')
 param environmentName string
 
@@ -11,7 +11,7 @@ param resourceToken string = toLower(uniqueString(subscription().id, environment
 param location string
 
 @description('Name of App Service plan')
-param hostingPlanName string = '${environmentName}-hosting-plan-${resourceToken}'
+param hostingPlanName string = 'hosting-plan-${resourceToken}'
 
 @description('The pricing tier for the App Service plan')
 @allowed([
@@ -34,7 +34,7 @@ param hostingPlanSku string = 'B3'
 param websiteName string = 'web-${resourceToken}'
 
 @description('Name of Application Insights')
-param applicationInsightsName string = '${environmentName}-appinsights-${resourceToken}'
+param applicationInsightsName string = 'appinsights-${resourceToken}'
 
 @description('Use semantic search')
 param azureSearchUseSemanticSearch string = 'false'
@@ -64,7 +64,7 @@ param azureSearchTitleColumn string = 'title'
 param azureSearchUrlColumn string = 'url'
 
 @description('Name of Azure OpenAI Resource')
-param azureOpenAIResourceName string = '${environmentName}-openai-${resourceToken}'
+param azureOpenAIResourceName string = 'openai-${resourceToken}'
 
 @description('Name of Azure OpenAI Resource SKU')
 param azureOpenAISkuName string = 'S0'
@@ -82,7 +82,7 @@ param azureOpenAIModelVersion string = '0613'
   'openai_function'
   'langchain'
 ])
-param orchestrationStrategy string = 'langchain'
+param orchestrationStrategy string = 'openai_function'
 
 @description('Azure OpenAI Temperature')
 param azureOpenAITemperature string = '0'
@@ -112,7 +112,7 @@ param azureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
 
 @description('Azure AI Search Resource')
-param azureAISearchName string = '${environmentName}-search-${resourceToken}'
+param azureAISearchName string = 'search-${resourceToken}'
 
 @description('The SKU of the search service you want to create. E.g. free or standard')
 @allowed([
@@ -125,7 +125,7 @@ param azureAISearchName string = '${environmentName}-search-${resourceToken}'
 param azureSearchSku string = 'standard'
 
 @description('Azure AI Search Index')
-param azureSearchIndex string = '${environmentName}-index-${resourceToken}'
+param azureSearchIndex string = 'index-${resourceToken}'
 
 @description('Azure AI Search Conversation Log Index')
 param azureSearchConversationLogIndex string = 'conversations'
@@ -137,32 +137,36 @@ param storageAccountName string = 'str${resourceToken}'
 param functionName string = 'backend-${resourceToken}'
 
 @description('Azure Form Recognizer Name')
-param formRecognizerName string = '${environmentName}-formrecog-${resourceToken}'
+param formRecognizerName string = 'formrecog-${resourceToken}'
 
 @description('Azure Content Safety Name')
-param contentSafetyName string = '${environmentName}-contentsafety-${resourceToken}'
+param contentSafetyName string = 'contentsafety-${resourceToken}'
 
 @description('Azure Speech Service Name')
-param speechServiceName string = '${environmentName}-speechservice-${resourceToken}'
+param speechServiceName string = 'speech-${resourceToken}'
 
 param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'
-param useKeyVault bool
+
+@description('Whether to use Key Vault to store secrets (best when using keys). If using RBAC, then please set this to false.')
+param useKeyVault bool = authType == 'rbac' ? false : true
 
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 
+@description('Whether the Azure services communicate with each other using RBAC or keys. RBAC is recommended, however some users may not have sufficient permissions to assign roles.')
 @allowed([
   'rbac'
   'keys'
 ])
-param authType string
+param authType string = 'keys'
 
+@description('Hosting model for the web apps. Containers are prebuilt and can be deployed faster, but code allows for more customization.')
 @allowed([
   'code'
   'container'
 ])
-param hostingModel string
+param hostingModel string = 'container'
 
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
