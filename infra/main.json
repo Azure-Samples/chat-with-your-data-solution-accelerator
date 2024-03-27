@@ -5,14 +5,14 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "15896839495287086142"
+      "templateHash": "14128916852168327812"
     }
   },
   "parameters": {
     "environmentName": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 64,
+      "maxLength": 20,
       "metadata": {
         "description": "Name of the the environment which is used to generate a short unique hash used in all resources."
       }
@@ -166,7 +166,7 @@
     },
     "orchestrationStrategy": {
       "type": "string",
-      "defaultValue": "langchain",
+      "defaultValue": "openai_function",
       "allowedValues": [
         "openai_function",
         "langchain"
@@ -317,7 +317,11 @@
       "defaultValue": "chatwithyourdata-sa"
     },
     "useKeyVault": {
-      "type": "bool"
+      "type": "bool",
+      "defaultValue": "[if(equals(parameters('authType'), 'rbac'), false(), true())]",
+      "metadata": {
+        "description": "Whether to use Key Vault to store secrets (best when using keys). If using RBAC, then please set this to false."
+      }
     },
     "principalId": {
       "type": "string",
@@ -328,17 +332,25 @@
     },
     "authType": {
       "type": "string",
+      "defaultValue": "keys",
       "allowedValues": [
         "rbac",
         "keys"
-      ]
+      ],
+      "metadata": {
+        "description": "Whether the Azure services communicate with each other using RBAC or keys. RBAC is recommended, however some users may not have sufficient permissions to assign roles."
+      }
     },
     "hostingModel": {
       "type": "string",
+      "defaultValue": "container",
       "allowedValues": [
         "code",
         "container"
-      ]
+      ],
+      "metadata": {
+        "description": "Hosting model for the web apps. Containers are prebuilt and can be deployed faster, but code allows for more customization."
+      }
     }
   },
   "variables": {

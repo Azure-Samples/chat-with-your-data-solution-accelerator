@@ -32,4 +32,3 @@ param azureAISearchName = searchServiceName == '' ? 'search-${resourceToken}' : 
 
 param azureSearchIndex = readEnvironmentVariable('AZURE_SEARCH_INDEX', 'index-${resourceToken}')
 param azureOpenAIResourceName = readEnvironmentVariable('AZURE_OPENAI_RESOURCE', 'openai-${resourceToken}')
-
