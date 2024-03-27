@@ -3,6 +3,9 @@ from AddURLEmbeddings import bp_add_url_embeddings
 from BatchPushResults import bp_batch_push_results
 from BatchStartProcessing import bp_batch_start_processing
 from GetConversationResponse import bp_get_conversation_response
+from azure.monitor.opentelemetry import configure_azure_monitor
+
+configure_azure_monitor()
 
 app = func.FunctionApp(
     http_auth_level=func.AuthLevel.FUNCTION

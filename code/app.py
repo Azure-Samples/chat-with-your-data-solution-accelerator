@@ -8,6 +8,7 @@ from flask import Flask, Response, request, jsonify
 from dotenv import load_dotenv
 import sys
 from backend.batch.utilities.helpers.EnvHelper import EnvHelper
+from azure.monitor.opentelemetry import configure_azure_monitor
 
 # Fixing MIME types for static files under Windows
 mimetypes.add_type("application/javascript", ".js")
@@ -342,3 +343,4 @@ def conversation_custom():
 
 if __name__ == "__main__":
     app.run()
+    configure_azure_monitor()
