@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "13425064420748264745"
+      "templateHash": "15896839495287086142"
     }
   },
   "parameters": {
@@ -29,7 +29,7 @@
     },
     "hostingPlanName": {
       "type": "string",
-      "defaultValue": "[format('{0}-hosting-plan-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('hosting-plan-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Name of App Service plan"
       }
@@ -64,7 +64,7 @@
     },
     "applicationInsightsName": {
       "type": "string",
-      "defaultValue": "[format('{0}-appinsights-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('appinsights-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Name of Application Insights"
       }
@@ -134,7 +134,7 @@
     },
     "azureOpenAIResourceName": {
       "type": "string",
-      "defaultValue": "[format('{0}-openai-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('openai-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Name of Azure OpenAI Resource"
       }
@@ -240,7 +240,7 @@
     },
     "azureAISearchName": {
       "type": "string",
-      "defaultValue": "[format('{0}-search-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('search-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Azure AI Search Resource"
       }
@@ -261,7 +261,7 @@
     },
     "azureSearchIndex": {
       "type": "string",
-      "defaultValue": "[format('{0}-index-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('index-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Azure AI Search Index"
       }
@@ -289,21 +289,21 @@
     },
     "formRecognizerName": {
       "type": "string",
-      "defaultValue": "[format('{0}-formrecog-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('formrecog-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Azure Form Recognizer Name"
       }
     },
     "contentSafetyName": {
       "type": "string",
-      "defaultValue": "[format('{0}-contentsafety-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('contentsafety-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Azure Content Safety Name"
       }
     },
     "speechServiceName": {
       "type": "string",
-      "defaultValue": "[format('{0}-speechservice-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('speech-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Azure Speech Service Name"
       }
