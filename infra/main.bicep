@@ -149,7 +149,7 @@ param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'
 
 @description('Whether to use Key Vault to store secrets (best when using keys). If using RBAC, then please set this to false.')
-param useKeyVault bool = true
+param useKeyVault bool = authType == 'rbac' ? false : true
 
 @description('Id of the user or app to assign application roles')
 param principalId string = ''

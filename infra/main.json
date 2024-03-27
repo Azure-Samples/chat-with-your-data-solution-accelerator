@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "4379371553458152689"
+      "templateHash": "14128916852168327812"
     }
   },
   "parameters": {
@@ -318,7 +318,7 @@
     },
     "useKeyVault": {
       "type": "bool",
-      "defaultValue": true,
+      "defaultValue": "[if(equals(parameters('authType'), 'rbac'), false(), true())]",
       "metadata": {
         "description": "Whether to use Key Vault to store secrets (best when using keys). If using RBAC, then please set this to false."
       }
