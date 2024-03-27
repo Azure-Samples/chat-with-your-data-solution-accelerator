@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - ross/buildNumber
 
 permissions:
   contents: read
@@ -41,7 +40,7 @@ jobs:
         with:
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
-          runCmd: make ci && make deploy && make destroy
+          runCmd: make ci && make deploy
           refFilterForPush: refs/heads/main
           env: |
             AZURE_CLIENT_ID
