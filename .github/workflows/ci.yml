@@ -51,8 +51,14 @@ jobs:
             AZURE_LOCATION
       
       - name: Run UI Tests
-        run: make uitest
+        uses: devcontainers/ci@v0.3
+        with:
+          cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+          runCmd: make uitest
         continue-on-error: true
         
       - name: Take down the environment
-        run: make destroy  
+        uses: devcontainers/ci@v0.3
+        with:
+          cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+          runCmd: make destroy  
