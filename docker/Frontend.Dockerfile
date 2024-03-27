@@ -16,7 +16,8 @@ COPY poetry.lock /usr/src/app/poetry.lock
 WORKDIR /usr/src/app
 RUN pip install --upgrade pip && pip install poetry uwsgi && poetry export -o requirements.txt && pip install -r requirements.txt
  
-COPY ./code/ /usr/src/app
+COPY ./code/app.py /usr/src/app/app.py
+COPY ./code/backend /usr/src/app/backend
 COPY --from=frontend /home/node/app/static /usr/src/app/static/
 ENV PYTHONPATH "${PYTHONPATH}:/usr/src/app"
 EXPOSE 80  
