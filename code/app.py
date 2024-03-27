@@ -8,6 +8,7 @@ from flask import Flask, Response, request, jsonify
 from dotenv import load_dotenv
 import sys
 from backend.batch.utilities.helpers.EnvHelper import EnvHelper
+from azure.monitor.opentelemetry import configure_azure_monitor
 
 # Fixing MIME types for static files under Windows
 mimetypes.add_type("application/javascript", ".js")
@@ -21,6 +22,7 @@ load_dotenv(
 
 app = Flask(__name__)
 env_helper: EnvHelper = EnvHelper()
+configure_azure_monitor()
 
 
 @app.route("/", defaults={"path": "index.html"})
