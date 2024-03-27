@@ -129,7 +129,9 @@ The following are links to the pricing details for some of the resources:
 
 ### Deploy instructions
 
-You need to decide if you would like a quick demo like experience where everything is built for you, or whether you would like to debug and explore the code itself. The demo is available by clicking this button:
+There are two choices; the "Deploy to Azure" offers a one click deployment where you don't have to clone the code, alternatively if you would like a developer experience, follow the [Local deployment instructions](./docs/LOCAL_DEPLOYMENT.md).
+
+The demo, which uses containers pre-built from the main branch is available by clicking this button:
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fchat-with-your-data-solution-accelerator%2Fmain%2Finfra%2Fmain.json) 
 
@@ -138,25 +140,21 @@ locations support this version. If you're deploying to a location that doesn't s
 switch to a lower version. To find out which versions are supported in different regions, visit the 
 [GPT-35 Turbo Model Availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#gpt-35-turbo-model-availability) page.
 
-If you would like a developer experience, follow the [Local deployment instructions](./docs/LOCAL_DEPLOYMENT.md).
-
 ### Testing the deployment
 1. Navigate to the admin site, where you can upload documents. It will be located at:
     
-    `https://{MY_RESOURCE_PREFIX}-website-admin.azurewebsites.net/`
+    `https://web-{RESOURCE_TOKEN}-admin.azurewebsites.net/`
 
-    Where `{MY_RESOURCE_PREFIX}` is replaced with the resource prefix you used during deployment. Then select **Ingest Data** and add your data. You can find sample data in the `/data` directory.
+    Where `{RESOURCE_TOKEN}` is uniquely generated during deployment. This is a combination of your subscription and the name of the resource group. Then select **Ingest Data** and add your data. You can find sample data in the `/data` directory.
     
     ![A screenshot of the admin site.](./media/admin-site.png)
 
 
 2. Navigate to the web app to start chatting on top of your data. The web app can be found at:
 
-    `https://{MY_RESOURCE_PREFIX}-website.azurewebsites.net/`
+    `https://web-{RESOURCE_TOKEN}.azurewebsites.net/`
 
-    Where `{MY_RESOURCE_PREFIX}` is replaced with the resource prefix you used during deployment. 
-
-    
+   
     ![A screenshot of the chat app.](./media/web-unstructureddata.png)
 
 \
