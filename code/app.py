@@ -22,7 +22,6 @@ load_dotenv(
 
 app = Flask(__name__)
 env_helper: EnvHelper = EnvHelper()
-configure_azure_monitor()
 
 
 @app.route("/", defaults={"path": "index.html"})
@@ -344,3 +343,4 @@ def conversation_custom():
 
 if __name__ == "__main__":
     app.run()
+    configure_azure_monitor()
