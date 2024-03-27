@@ -57,6 +57,7 @@ jobs:
           AZURE_ENV_NAME: ${{ github.run_id }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
         with:
+          push: never
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           runCmd: make destroy
           env: |
