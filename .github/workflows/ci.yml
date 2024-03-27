@@ -49,3 +49,10 @@ jobs:
             AZURE_SUBSCRIPTION_ID
             AZURE_ENV_NAME
             AZURE_LOCATION
+      
+      - name: Run UI Tests
+        run: make uitest
+        continue-on-error: true
+        
+      - name: Take down the environment
+        run: make destroy  
