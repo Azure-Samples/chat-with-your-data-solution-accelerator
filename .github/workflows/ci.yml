@@ -13,7 +13,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  build:
+  ci:
     runs-on: ubuntu-latest
     env:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -35,13 +35,31 @@ jobs:
       - name: Pre-build image and run make in dev container
         uses: devcontainers/ci@v0.3
         env:
-          AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+          AZURE_ENV_NAME: ${{ github.run_id }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
         with:
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
-          runCmd: make ci && make deploy && make destroy
+          runCmd: make ci && make deploy
           refFilterForPush: refs/heads/main
+          env: |
+            AZURE_CLIENT_ID
+            AZURE_CLIENT_SECRET
+            AZURE_TENANT_ID
+            AZURE_SUBSCRIPTION_ID
+            AZURE_ENV_NAME
+            AZURE_LOCATION
+
+      - name: Tidy up
+        uses: devcontainers/ci@v0.3
+        if: always()
+        env:
+          AZURE_ENV_NAME: ${{ github.run_id }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+        with:
+          push: never
+          imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+          runCmd: make destroy
           env: |
             AZURE_CLIENT_ID
             AZURE_CLIENT_SECRET
