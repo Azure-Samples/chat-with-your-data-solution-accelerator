@@ -1,9 +1,11 @@
 import { Outlet, Link } from "react-router-dom";
 import styles from "./Layout.module.css";
-import Azure from "../../assets/Azure.svg";
+import CapgeminiShortLogo from "../../assets/cap_short_logo.png";
 import { CopyRegular, ShareRegular } from "@fluentui/react-icons";
 import { Dialog, Stack, TextField } from "@fluentui/react";
 import { useEffect, useState } from "react";
+import { AuthenticatedTemplate, UnauthenticatedTemplate } from "@azure/msal-react";
+import { SignInButton, SignOutButton } from "../../components/Auth";
 
 const Layout = () => {
     const [isSharePanelOpen, setIsSharePanelOpen] = useState<boolean>(false);
@@ -35,22 +37,36 @@ const Layout = () => {
         <div className={styles.layout}>
             <header className={styles.header} role={"banner"}>
                 <div className={styles.headerContainer}>
-                    <Stack horizontal verticalAlign="center">
+                    <Stack horizontal verticalAlign="center" className={styles.stack}  >
                         <img
-                            src={Azure}
+                            src={CapgeminiShortLogo}
                             className={styles.headerIcon}
                             aria-hidden="true"
                         />
                         <Link to="/" className={styles.headerTitleContainer}>
-                            <h3 className={styles.headerTitle}>Azure AI</h3>
+                            <h3 className={styles.headerTitle}>Capgemini Engineering AI Assistant</h3>
                         </Link>
-                        <div className={styles.shareButtonContainer} role="button" tabIndex={0} aria-label="Share" onClick={handleShareClick} onKeyDown={e => e.key === "Enter" || e.key === " " ? handleShareClick() : null}>
+                        <AuthenticatedTemplate>
+                            <SignOutButton />
+                        </AuthenticatedTemplate>
+                        <div 
+                            className={styles.shareButtonContainer}
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Share"
+                            onClick={handleShareClick}
+                            onKeyDown={e => e.key === "Enter" || e.key === " " ? handleShareClick() : null}
+                        >
                             <ShareRegular className={styles.shareButton} />
                             <span className={styles.shareButtonText}>Share</span>
                         </div>
                     </Stack>
                 </div>
             </header>
+            <UnauthenticatedTemplate>
+                <SignInButton />
+            </UnauthenticatedTemplate>
+            <AuthenticatedTemplate>
             <Outlet />
             <Dialog 
                 onDismiss={handleSharePanelDismiss}
@@ -90,6 +106,7 @@ const Layout = () => {
                     </div>
                 </Stack>
             </Dialog>
+            </AuthenticatedTemplate>
         </div>
     );
 };

@@ -1,31 +1,42 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { HashRouter, Routes, Route } from "react-router-dom";
+import App from "./App";
 import { initializeIcons } from "@fluentui/react";
 
 import "./index.css";
 
-import Layout from "./pages/layout/Layout";
-import NoPage from "./pages/NoPage";
-import Chat from "./pages/chat/Chat";
+import {
+    PublicClientApplication,
+    EventType,
+    EventMessage,
+    AuthenticationResult,
+} from "@azure/msal-browser";
+import { msalConfig } from "./authConfig";
 
 initializeIcons();
 
-export default function App() {
-    return (
-        <HashRouter>
-            <Routes>
-                <Route path="/" element={<Layout />}>
-                    <Route index element={<Chat />} />
-                    <Route path="*" element={<NoPage />} />
-                </Route>
-            </Routes>
-        </HashRouter>
-    );
-}
+export const msalInstance = new PublicClientApplication(msalConfig);
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-    <React.StrictMode>
-        <App />
-    </React.StrictMode>
-);
+msalInstance.initialize().then(() => {
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0) {
+        msalInstance.setActiveAccount(accounts[0]);
+    }
+
+    msalInstance.addEventCallback((event: EventMessage) => {
+        if (event.eventType === EventType.LOGIN_SUCCESS && event.payload) {
+            const payload = event.payload as AuthenticationResult;
+            const account = payload.account;
+            msalInstance.setActiveAccount(account);
+        }
+    });
+
+    const root = ReactDOM.createRoot(
+        document.getElementById("root") as HTMLElement
+    );
+    root.render(
+        <React.StrictMode>
+            <App pca={msalInstance} />
+        </React.StrictMode>
+    );
+});

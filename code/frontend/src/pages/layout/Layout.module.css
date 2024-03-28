@@ -12,6 +12,11 @@
     display: flex;
     justify-content: left;
     align-items: center;
+    width: 100%;
+}
+
+.stack {
+    width: 100%;
 }
 
 .headerTitleContainer {
@@ -34,7 +39,6 @@
 
 .headerIcon {
     height: 32px;
-    width: 32px;
     margin-left: 36px;
 }
 
