@@ -52,7 +52,7 @@ def app_port() -> int:
 
 
 @pytest.fixture(scope="session")
-def app_url(app_port: int) -> int:
+def app_url(app_port: int) -> str:
     return f"http://localhost:{app_port}"
 
 

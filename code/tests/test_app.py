@@ -1,3 +1,4 @@
+import json
 import os
 
 from unittest.mock import Mock
@@ -180,19 +181,70 @@ class MockResponse:
     def __exit__(self, *args):
         return True
 
+    # Return a mock streamed response
     def iter_lines(self, chunk_size=512):
-        message = b'[{"delta": {"content": "A question\\n?", "end_turn": false, "role": "tool"}}]'
-        line = (
-            b'{"choices": [{"messages":'
-            + message
-            + b'}],"created": "response.created","id": "response.id","model": "some-model","object": "response.object"'
-        )
+        assistant = {
+            "id": "response.id",
+            "model": "some-model",
+            "created": 0,
+            "object": "response.object",
+            "choices": [
+                {
+                    "index": 0,
+                    "delta": {
+                        "role": "assistant",
+                        "context": {
+                            "citations": [
+                                {
+                                    "content": "content",
+                                    "title": "title",
+                                }
+                            ],
+                            "intent": "intent",
+                        },
+                    },
+                    "end_turn": False,
+                    "finish_reason": None,
+                }
+            ],
+        }
+
+        message = {
+            "id": "response.id",
+            "model": "some-model",
+            "created": 0,
+            "object": "response.object",
+            "choices": [
+                {
+                    "delta": {"content": "A question\n?"},
+                    "end_turn": False,
+                    "finish_reason": None,
+                }
+            ],
+        }
+
+        end = {
+            "id": "response.id",
+            "model": "some-model",
+            "created": 0,
+            "object": "response.object",
+            "choices": [{"delta": {}, "end_turn": True, "finish_reason": "stop"}],
+        }
 
         if self.include_error:
-            line += b',"error": "An error occurred\\n"'
+            assistant["error"] = "An error occurred\n"
 
-        line += b"}"
-        return [b"data:" + line]
+        response = [
+            bytes(f"data: {json.dumps(res)}", "utf-8")
+            for res in (assistant, message, end)
+        ]
+
+        # The streamed response has empty lines between each response, and a final message of "[DONE]"
+        response.insert(1, b"")
+        response.insert(3, b"")
+        response += [b"data: [DONE]"]
+
+        return response
 
 
 class TestConversationAzureByod:
@@ -226,10 +278,15 @@ class TestConversationAzureByod:
 
         # then
         assert response.status_code == 200
+
+        # The response is JSON lines
+        data = str(response.data, "utf-8")
         assert (
-            response.data
-            == b'{"id": "response.id", "model": "some-model", "created": "response.created",'
-            + b' "object": "response.object", "choices": [{"messages": [{"content": "A question\\n?", "end_turn": false, "role": "tool"}]}]}\n'
+            data
+            == """{"id": "response.id", "model": "some-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\\"citations\\": [{\\"content\\": \\"content\\", \\"title\\": \\"title\\"}], \\"intent\\": \\"intent\\"}", "end_turn": false, "role": "tool"}, {"content": "", "end_turn": false, "role": "assistant"}]}]}
+{"id": "response.id", "model": "some-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\\"citations\\": [{\\"content\\": \\"content\\", \\"title\\": \\"title\\"}], \\"intent\\": \\"intent\\"}", "end_turn": false, "role": "tool"}, {"content": "A question\\n?", "end_turn": false, "role": "assistant"}]}]}
+{"id": "response.id", "model": "some-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\\"citations\\": [{\\"content\\": \\"content\\", \\"title\\": \\"title\\"}], \\"intent\\": \\"intent\\"}", "end_turn": false, "role": "tool"}, {"content": "A question\\n?", "end_turn": true, "role": "assistant"}]}]}
+"""
         )
 
     @patch("app.requests.Session")

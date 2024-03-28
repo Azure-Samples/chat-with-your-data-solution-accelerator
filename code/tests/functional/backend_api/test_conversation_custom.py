@@ -76,7 +76,7 @@ def test_post_makes_correct_call_to_openai_embeddings(
                 "Authorization": f"Bearer {app_config.get('AZURE_OPENAI_API_KEY')}",
                 "Api-Key": app_config.get("AZURE_OPENAI_API_KEY"),
             },
-            query_string="api-version=2023-12-01-preview",
+            query_string="api-version=2024-02-01",
             times=2,
         ),
     )
@@ -193,7 +193,7 @@ def test_post_makes_correct_call_to_openai_chat_completions(
                 "Authorization": f"Bearer {app_config.get('AZURE_OPENAI_API_KEY')}",
                 "Api-Key": app_config.get("AZURE_OPENAI_API_KEY"),
             },
-            query_string="api-version=2023-12-01-preview",
+            query_string="api-version=2024-02-01",
             times=1,
         ),
     )
