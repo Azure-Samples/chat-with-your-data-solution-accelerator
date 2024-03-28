@@ -14,12 +14,12 @@ services:
       prepackage:
         windows:
           shell: pwsh
-          run: cd frontend;npm install;npm run build;cd ..;poetry export -o dist\requirements.txt;cp app.py dist;cp -r backend dist
+          run: ../scripts/package_frontend.ps1
           interactive: true
           continueOnError: false
         posix:
           shell: sh
-          run: cd frontend;npm install;npm run build;cd ..;poetry export -o dist/requirements.txt;cp app.py dist;cp -r backend dist
+          run: ../scripts/package_frontend.sh
           interactive: true
           continueOnError: false
 
