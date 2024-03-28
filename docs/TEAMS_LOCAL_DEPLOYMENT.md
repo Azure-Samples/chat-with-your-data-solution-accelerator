@@ -22,11 +22,11 @@ Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.
 
 
 ### Develop & run the Teams Frontend
-1. Open the “extensions/teams” folder with Visual Studio Code 
+1. Open the “extensions/teams” folder with Visual Studio Code
 
-![Teams](/media/teams.png) 
+![Teams](/media/teams.png)
 
-2. Open the file env\\.env.local 
+2. Open the file env\\.env.local
 3. Locate the environment variable _AZURE_FUNCTION_URL_.
 
 4. Replace the `<AZURE_FUNCTION_URL>` with your local Teams Backend URL (i.e., http://localhost:7071/api/GetConversationResponse)
@@ -36,7 +36,7 @@ Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.
     ![Env](/media/teams-local-3.png)
 
 5. Save the file.
-6. Select Teams Toolkit from the navigation panel. 
+6. Select Teams Toolkit from the navigation panel.
 7. Verify your signed into O365 and Azure with sideloading enabled.
 8. Select the "play" button next to Local.
 
@@ -72,7 +72,7 @@ Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.
 |AZURE_OPENAI_MAX_TOKENS|1000|The maximum number of tokens allowed for the generated answer.|
 |AZURE_OPENAI_STOP_SEQUENCE||Up to 4 sequences where the API will stop generating further tokens. Represent these as a string joined with "|", e.g. `"stop1|stop2|stop3"`|
 |AZURE_OPENAI_SYSTEM_MESSAGE|You are an AI assistant that helps people find information.|A brief description of the role and tone the model should use|
-|AZURE_OPENAI_API_VERSION|2023-12-01-preview|API version when using Azure OpenAI on your data|
+|AZURE_OPENAI_API_VERSION|2024-02-01|API version when using Azure OpenAI on your data|
 |AzureWebJobsStorage||The connection string to the Azure Blob Storage for the Azure Functions Batch processing|
 |BACKEND_URL||The URL for the Backend Batch Azure Function. Use http://localhost:7071 for local execution|
 |DOCUMENT_PROCESSING_QUEUE_NAME|doc-processing|The name of the Azure Queue to handle the Batch processing|
@@ -82,7 +82,7 @@ Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.
 |AZURE_FORM_RECOGNIZER_ENDPOINT||The name of the Azure Form Recognizer for extracting the text from the documents|
 |AZURE_FORM_RECOGNIZER_KEY||The key of the Azure Form Recognizer for extracting the text from the documents|
 |APPINSIGHTS_CONNECTION_STRING||The Application Insights connection string to store the application logs|
-|ORCHESTRATION_STRATEGY | openai_functions | Orchestration strategy. Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain" |
+|ORCHESTRATION_STRATEGY | openai_function | Orchestration strategy. Use Azure OpenAI Functions (openai_function) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_function" (or "langchain"), if you are using a 0314 model version select "langchain" |
 |AZURE_CONTENT_SAFETY_ENDPOINT | | The endpoint of the Azure AI Content Safety service |
 |AZURE_CONTENT_SAFETY_KEY | | The key of the Azure AI Content Safety service|
 |AZURE_SPEECH_SERVICE_KEY | | The key of the Azure Speech service|

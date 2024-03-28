@@ -100,7 +100,7 @@ param azureOpenAIStopSequence string = '\n'
 param azureOpenAISystemMessage string = 'You are an AI assistant that helps people find information.'
 
 @description('Azure OpenAI Api Version')
-param azureOpenAIApiVersion string = '2023-10-01-preview'
+param azureOpenAIApiVersion string = '2024-02-01'
 
 @description('Whether or not to stream responses from Azure OpenAI')
 param azureOpenAIStream string = 'true'
@@ -205,6 +205,7 @@ module openai 'core/ai/cognitiveservices.bicep' = {
     sku: {
       name: azureOpenAISkuName
     }
+    managedIdentity: authType == 'rbac'
     deployments: [
       {
         name: azureOpenAIModel
@@ -228,6 +229,28 @@ module openai 'core/ai/cognitiveservices.bicep' = {
         capacity: 30
       }
     ]
+  }
+}
+
+// Search Index Data Reader
+module searchIndexRoleOpenai 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'search-index-role-openai'
+  params: {
+    principalId: openai.outputs.identityPrincipalId
+    roleDefinitionId: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Search Service Contributor
+module searchServiceRoleOpenai 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'search-service-role-openai'
+  params: {
+    principalId: openai.outputs.identityPrincipalId
+    roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+    principalType: 'ServicePrincipal'
   }
 }
 
@@ -321,8 +344,8 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -381,8 +404,8 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -442,8 +465,8 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -502,8 +525,8 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -578,8 +601,8 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
@@ -621,8 +644,8 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
