@@ -9,11 +9,15 @@ endef
 
 AZURE_ENV_FILE := $(shell azd env list --output json | jq -r '.[] | select(.IsDefault == true) | .DotEnvPath')
 
-# $(foreach var,$(sort $(.VARIABLES)), \
-#     $(if $(filter-out environment% default automatic,$(origin $(var))), \
-#         $(eval $(var) := $(call strip_quotes,$($(var)))) \
-#     ) \
-# )
+include $(AZURE_ENV_FILE)
+
+$(foreach var,$(sort $(.VARIABLES)), \
+    $(if $(filter-out environment% default automatic,$(origin $(var))), \
+	    $(info $(var) is $($(var))) \
+        $(eval $(var) := $(call strip_quotes,$($(var)))) \
+        $(info $(var) is $($(var))) \
+    ) \
+)
 
 ENV_FILE := .env
 ifeq ($(filter $(MAKECMDGOALS),config clean),)
@@ -24,8 +28,6 @@ ifeq ($(filter $(MAKECMDGOALS),config clean),)
 		endif
 	endif
 endif
-
-include $(AZURE_ENV_FILE)
 
 help: ## 💬 This help message :)
 	@grep -E '[a-zA-Z_-]+:.*?## .*$$' $(firstword $(MAKEFILE_LIST)) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-23s\033[0m %s\n", $$1, $$2}'
