@@ -3,7 +3,17 @@ SHELL := /bin/bash
 .PHONY: help
 .DEFAULT_GOAL := help
 
+define strip_quotes
+$(strip $(subst ",,$(1)))
+endef
+
 AZURE_ENV_FILE := $(shell azd env list --output json | jq -r '.[] | select(.IsDefault == true) | .DotEnvPath')
+
+$(foreach var,$(sort $(.VARIABLES)), \
+    $(if $(filter-out environment% default automatic,$(origin $(var))), \
+        $(eval $(var) := $(call strip_quotes,$($(var)))) \
+    ) \
+)
 
 ENV_FILE := .env
 ifeq ($(filter $(MAKECMDGOALS),config clean),)
