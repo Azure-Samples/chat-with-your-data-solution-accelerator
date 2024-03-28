@@ -9,11 +9,11 @@ endef
 
 AZURE_ENV_FILE := $(shell azd env list --output json | jq -r '.[] | select(.IsDefault == true) | .DotEnvPath')
 
-$(foreach var,$(sort $(.VARIABLES)), \
-    $(if $(filter-out environment% default automatic,$(origin $(var))), \
-        $(eval $(var) := $(call strip_quotes,$($(var)))) \
-    ) \
-)
+# $(foreach var,$(sort $(.VARIABLES)), \
+#     $(if $(filter-out environment% default automatic,$(origin $(var))), \
+#         $(eval $(var) := $(call strip_quotes,$($(var)))) \
+#     ) \
+# )
 
 ENV_FILE := .env
 ifeq ($(filter $(MAKECMDGOALS),config clean),)
