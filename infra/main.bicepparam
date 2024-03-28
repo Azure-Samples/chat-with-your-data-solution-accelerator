@@ -13,6 +13,8 @@ param authType = readEnvironmentVariable('AZURE_AUTH_TYPE', 'keys')
 
 param hostingModel = readEnvironmentVariable('AZURE_APP_SERVICE_HOSTING_MODEL', 'code')
 
+param azureOpenAIModelVersion = readEnvironmentVariable('AZURE_OPENAI_MODEL_VERSION', '0613')
+
 // The following are being renamed to align with the new naming convention
 // we manipulate existing resources here to maintain backwards compatibility
 
@@ -20,9 +22,9 @@ param hostingModel = readEnvironmentVariable('AZURE_APP_SERVICE_HOSTING_MODEL', 
 var subscriptionId = readEnvironmentVariable('AZURE_SUBSCRIPTION_ID', 'subscription_id')
 param resourceToken = toLower(uniqueString(subscriptionId, environmentName, location))
 
-// Retrieve the Search Name from the Search Endpoint which will be in the format 
+// Retrieve the Search Name from the Search Endpoint which will be in the format
 // "https://uniquename.search.windows.net/" It will end in a slash. Bicep forces us to have a default, so we use
-// a default that we can manipulate in the same way to reduce another condition.  
+// a default that we can manipulate in the same way to reduce another condition.
 // length(azureAISearchEndpoint) - 9) cuts the https:// and the trailing slash. We then take the first "part" of
 // the split which will be '' if there is no value set. If its null we assume the user is creating a new search
 // service.

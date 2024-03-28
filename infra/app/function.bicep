@@ -112,6 +112,16 @@ module searchRoleFunction '../core/security/role.bicep' = if (authType == 'rbac'
   }
 }
 
+// Storage Blob Data Contributor
+module storageRoleFunction '../core/security/role.bicep' = if (authType == 'rbac') {
+  name: 'storage-role-function'
+  params: {
+    principalId: function.outputs.identityPrincipalId
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    principalType: 'ServicePrincipal'
+  }
+}
+
 module functionaccess '../core/security/keyvault-access.bicep' = if (useKeyVault) {
   name: 'function-keyvault-access'
   params: {

@@ -14,7 +14,7 @@ The easiest way to run this accelerator is in a VS Code Dev Containers, which wi
 
     * **Important**: Beware that the resources created by this command will incur immediate costs, primarily from the AI Search resource. These resources may accrue costs even if you interrupt the command before it is fully executed. You can run `azd down` or delete the resources manually to avoid unnecessary spending.
     * You will be prompted to select a subscription, and a location. That location list is based on the [OpenAI model availability table](https://learn.microsoft.com/azure/cognitive-services/openai/concepts/models#model-summary-table-and-region-availability) and may become outdated as availability changes.
-    * If you do, accidentally, chose the wrong location; you will have to ensure that you use `azd down` or delete the Resource Group as the deployment bases the location from this Resource Group. 
+    * If you do, accidentally, chose the wrong location; you will have to ensure that you use `azd down` or delete the Resource Group as the deployment bases the location from this Resource Group.
 1. After the application has been successfully deployed you will see a URL printed to the console.  Click that URL to interact with the application in your browser.
 
 > NOTE: It may take up to an hour for the application to be fully deployed. If you see a "Python Developer" welcome screen or an error page, then wait a bit and refresh the page.
@@ -74,7 +74,7 @@ az deployment group create --resource-group {your_resource_group} --template-fil
 
 ### Authenticate using RBAC
 To authenticate using API Keys, update the value of `AZURE_AUTH_TYPE` to keys. For accessing using 'rbac', manually make changes by following the below steps:
-1. Ensure role assignments listed on [this page](https://techcommunity.microsoft.com/t5/ai-azure-ai-services-blog/eliminate-dependency-on-key-based-authentication-in-azure/ba-p/3821880) 
+1. Ensure role assignments listed on [this page](https://techcommunity.microsoft.com/t5/ai-azure-ai-services-blog/eliminate-dependency-on-key-based-authentication-in-azure/ba-p/3821880)
 have been created.
 2. Navigate to your Search service in the Azure Portal
 3. Under Settings, select `Keys`
@@ -175,7 +175,7 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 |AZURE_OPENAI_MAX_TOKENS|1000|The maximum number of tokens allowed for the generated answer.|
 |AZURE_OPENAI_STOP_SEQUENCE||Up to 4 sequences where the API will stop generating further tokens. Represent these as a string joined with "|", e.g. `"stop1|stop2|stop3"`|
 |AZURE_OPENAI_SYSTEM_MESSAGE|You are an AI assistant that helps people find information.|A brief description of the role and tone the model should use|
-|AZURE_OPENAI_API_VERSION|2023-12-01-preview|API version when using Azure OpenAI on your data|
+|AZURE_OPENAI_API_VERSION|2024-02-01|API version when using Azure OpenAI on your data|
 |AzureWebJobsStorage||The connection string to the Azure Blob Storage for the Azure Functions Batch processing|
 |BACKEND_URL||The URL for the Backend Batch Azure Function. Use http://localhost:7071 for local execution|
 |DOCUMENT_PROCESSING_QUEUE_NAME|doc-processing|The name of the Azure Queue to handle the Batch processing|
@@ -185,7 +185,7 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 |AZURE_FORM_RECOGNIZER_ENDPOINT||The name of the Azure Form Recognizer for extracting the text from the documents|
 |AZURE_FORM_RECOGNIZER_KEY||The key of the Azure Form Recognizer for extracting the text from the documents|
 |APPINSIGHTS_CONNECTION_STRING||The Application Insights connection string to store the application logs|
-|ORCHESTRATION_STRATEGY | openai_functions | Orchestration strategy. Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain" |
+|ORCHESTRATION_STRATEGY | openai_function | Orchestration strategy. Use Azure OpenAI Functions (openai_function) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_function" (or "langchain"), if you are using a 0314 model version select "langchain" |
 |AZURE_CONTENT_SAFETY_ENDPOINT | | The endpoint of the Azure AI Content Safety service |
 |AZURE_CONTENT_SAFETY_KEY | | The key of the Azure AI Content Safety service|
 |AZURE_SPEECH_SERVICE_KEY | | The key of the Azure Speech service|

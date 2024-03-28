@@ -47,76 +47,69 @@ def prepare_body_headers_with_data(request):
 
     body = {
         "messages": request_messages,
-        "temperature": env_helper.AZURE_OPENAI_TEMPERATURE,
-        "max_tokens": env_helper.AZURE_OPENAI_MAX_TOKENS,
-        "top_p": env_helper.AZURE_OPENAI_TOP_P,
+        "temperature": float(env_helper.AZURE_OPENAI_TEMPERATURE),
+        "max_tokens": int(env_helper.AZURE_OPENAI_MAX_TOKENS),
+        "top_p": float(env_helper.AZURE_OPENAI_TOP_P),
         "stop": (
             env_helper.AZURE_OPENAI_STOP_SEQUENCE.split("|")
             if env_helper.AZURE_OPENAI_STOP_SEQUENCE
             else None
         ),
         "stream": env_helper.SHOULD_STREAM,
-        "dataSources": [
+        "data_sources": [
             {
-                "type": "AzureCognitiveSearch",
+                "type": "azure_search",
                 "parameters": {
+                    # authentication is set below
                     "endpoint": env_helper.AZURE_SEARCH_SERVICE,
-                    "key": env_helper.AZURE_SEARCH_KEY,
-                    "indexName": env_helper.AZURE_SEARCH_INDEX,
-                    "fieldsMapping": {
-                        "contentField": (
+                    "index_name": env_helper.AZURE_SEARCH_INDEX,
+                    "fields_mapping": {
+                        "content_fields": (
                             env_helper.AZURE_SEARCH_CONTENT_COLUMNS.split("|")
                             if env_helper.AZURE_SEARCH_CONTENT_COLUMNS
                             else []
                         ),
-                        "titleField": (
-                            env_helper.AZURE_SEARCH_TITLE_COLUMN
-                            if env_helper.AZURE_SEARCH_TITLE_COLUMN
-                            else None
-                        ),
-                        "urlField": (
-                            env_helper.AZURE_SEARCH_URL_COLUMN
-                            if env_helper.AZURE_SEARCH_URL_COLUMN
-                            else None
-                        ),
-                        "filepathField": (
-                            env_helper.AZURE_SEARCH_FILENAME_COLUMN
-                            if env_helper.AZURE_SEARCH_FILENAME_COLUMN
-                            else None
+                        "title_field": env_helper.AZURE_SEARCH_TITLE_COLUMN or None,
+                        "url_field": env_helper.AZURE_SEARCH_URL_COLUMN or None,
+                        "filepath_field": (
+                            env_helper.AZURE_SEARCH_FILENAME_COLUMN or None
                         ),
                     },
-                    "inScope": env_helper.AZURE_SEARCH_ENABLE_IN_DOMAIN,
-                    "topNDocuments": env_helper.AZURE_SEARCH_TOP_K,
-                    "queryType": (
+                    "in_scope": env_helper.AZURE_SEARCH_ENABLE_IN_DOMAIN,
+                    "top_n_documents": env_helper.AZURE_SEARCH_TOP_K,
+                    "query_type": (
                         "semantic"
                         if env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH
                         else "simple"
                     ),
-                    "semanticConfiguration": (
+                    "semantic_configuration": (
                         env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
                         if env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH
                         and env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
                         else ""
                     ),
-                    "roleInformation": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE,
+                    "role_information": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE,
                 },
             }
         ],
     }
 
-    chatgpt_url = f"{env_helper.AZURE_OPENAI_ENDPOINT}openai/deployments/{env_helper.AZURE_OPENAI_MODEL}"
-    if env_helper.is_chat_model():
-        chatgpt_url += "/chat/completions?api-version=2023-12-01-preview"
-    else:
-        chatgpt_url += "/completions?api-version=2023-12-01-preview"
-
     headers = {
         "Content-Type": "application/json",
-        "api-key": env_helper.AZURE_OPENAI_API_KEY,
-        "chatgpt_url": chatgpt_url,
-        "chatgpt_key": env_helper.AZURE_OPENAI_API_KEY,
         "x-ms-useragent": "GitHubSampleWebApp/PublicAPI/1.0.0",
     }
+
+    if env_helper.AZURE_AUTH_TYPE == "rbac":
+        body["data_sources"][0]["parameters"]["authentication"] = {
+            "type": "system_assigned_managed_identity"
+        }
+        headers["Authorization"] = f"Bearer {env_helper.AZURE_TOKEN_PROVIDER()}"
+    else:
+        body["data_sources"][0]["parameters"]["authentication"] = {
+            "type": "api_key",
+            "key": env_helper.AZURE_SEARCH_KEY,
+        }
+        headers["api-key"] = env_helper.AZURE_OPENAI_API_KEY
 
     return body, headers
 
@@ -128,37 +121,54 @@ def stream_with_data(body, headers, endpoint):
         "model": "",
         "created": 0,
         "object": "",
-        "choices": [{"messages": []}],
+        "choices": [
+            {
+                "messages": [
+                    {
+                        "content": "",
+                        "end_turn": False,
+                        "role": "tool",
+                    },
+                    {
+                        "content": "",
+                        "end_turn": False,
+                        "role": "assistant",
+                    },
+                ]
+            }
+        ],
     }
     try:
         with s.post(endpoint, json=body, headers=headers, stream=True) as r:
             for line in r.iter_lines(chunk_size=10):
                 if line:
-                    lineJson = json.loads(line.lstrip(b"data:").decode("utf-8"))
+                    lineJson = json.loads(line.lstrip(b"data: ").decode("utf-8"))
                     if "error" in lineJson:
                         yield json.dumps(lineJson, ensure_ascii=False) + "\n"
+                        return
+
+                    if lineJson["choices"][0]["end_turn"]:
+                        response["choices"][0]["messages"][1]["end_turn"] = True
+                        yield json.dumps(response, ensure_ascii=False) + "\n"
+                        return
+
                     response["id"] = lineJson["id"]
                     response["model"] = lineJson["model"]
                     response["created"] = lineJson["created"]
                     response["object"] = lineJson["object"]
 
-                    role = lineJson["choices"][0]["messages"][0]["delta"].get("role")
-                    if role == "tool":
-                        response["choices"][0]["messages"].append(
-                            lineJson["choices"][0]["messages"][0]["delta"]
-                        )
-                    elif role == "assistant":
-                        response["choices"][0]["messages"].append(
-                            {"role": "assistant", "content": ""}
+                    delta = lineJson["choices"][0]["delta"]
+                    role = delta.get("role")
+
+                    if role == "assistant":
+                        response["choices"][0]["messages"][0]["content"] = json.dumps(
+                            delta["context"],
+                            ensure_ascii=False,
                         )
                     else:
-                        deltaText = lineJson["choices"][0]["messages"][0]["delta"][
+                        response["choices"][0]["messages"][1]["content"] += delta[
                             "content"
                         ]
-                        if deltaText != "[DONE]":
-                            response["choices"][0]["messages"][1][
-                                "content"
-                            ] += deltaText
 
                     yield json.dumps(response, ensure_ascii=False) + "\n"
     except Exception as e:
@@ -167,39 +177,68 @@ def stream_with_data(body, headers, endpoint):
 
 def conversation_with_data(request):
     body, headers = prepare_body_headers_with_data(request)
-    endpoint = f"{env_helper.AZURE_OPENAI_ENDPOINT}openai/deployments/{env_helper.AZURE_OPENAI_MODEL}/extensions/chat/completions?api-version={env_helper.AZURE_OPENAI_API_VERSION}"
+    endpoint = f"{env_helper.AZURE_OPENAI_ENDPOINT}openai/deployments/{env_helper.AZURE_OPENAI_MODEL}/chat/completions?api-version={env_helper.AZURE_OPENAI_API_VERSION}"
 
     if not env_helper.SHOULD_STREAM:
         r = requests.post(endpoint, headers=headers, json=body)
         status_code = r.status_code
         r = r.json()
 
-        return Response(json.dumps(r, ensure_ascii=False), status=status_code)
+        response = {
+            "id": r["id"],
+            "model": r["model"],
+            "created": r["created"],
+            "object": r["object"],
+            "choices": [
+                {
+                    "messages": [
+                        {
+                            "content": json.dumps(
+                                r["choices"][0]["message"]["context"],
+                                ensure_ascii=False,
+                            ),
+                            "end_turn": False,
+                            "role": "tool",
+                        },
+                        {
+                            "content": r["choices"][0]["message"]["content"],
+                            "end_turn": True,
+                            "role": "assistant",
+                        },
+                    ]
+                }
+            ],
+        }
+
+        return Response(json.dumps(response, ensure_ascii=False), status=status_code)
     else:
-        if request.method == "POST":
-            return Response(
-                stream_with_data(body, headers, endpoint),
-                mimetype="application/json-lines",
-            )
-        else:
-            return Response(None, mimetype="application/json-lines")
+        return Response(
+            stream_with_data(body, headers, endpoint),
+            mimetype="application/json-lines",
+        )
 
 
 def stream_without_data(response):
     responseText = ""
     for line in response:
-        deltaText = line["choices"][0]["delta"].get("content")
-        if deltaText and deltaText != "[DONE]":
-            responseText += deltaText
+        if not line.choices:
+            continue
+
+        deltaText = line.choices[0].delta.content
+
+        if deltaText is None:
+            return
+
+        responseText += deltaText
 
         response_obj = {
-            "id": line["id"],
-            "model": line["model"],
-            "created": line["created"],
-            "object": line["object"],
+            "id": line.id,
+            "model": line.model,
+            "created": line.created,
+            "object": line.object,
             "choices": [{"messages": [{"role": "assistant", "content": responseText}]}],
         }
-        yield json.dumps(response_obj).replace("\n", "\\n") + "\n"
+        yield json.dumps(response_obj, ensure_ascii=False) + "\n"
 
 
 def conversation_without_data(request):
@@ -239,7 +278,7 @@ def conversation_without_data(request):
 
     if not env_helper.SHOULD_STREAM:
         response_obj = {
-            "id": response,
+            "id": response.id,
             "model": response.model,
             "created": response.created,
             "object": response.object,
@@ -257,15 +296,12 @@ def conversation_without_data(request):
 
         return jsonify(response_obj), 200
     else:
-        if request.method == "POST":
-            return Response(
-                stream_without_data(response), mimetype="application/json-lines"
-            )
-        else:
-            return Response(None, mimetype="application/json-lines")
+        return Response(
+            stream_without_data(response), mimetype="application/json-lines"
+        )
 
 
-@app.route("/api/conversation/azure_byod", methods=["GET", "POST"])
+@app.route("/api/conversation/azure_byod", methods=["POST"])
 def conversation_azure_byod():
     try:
         if env_helper.should_use_data():
@@ -297,7 +333,7 @@ def get_orchestrator_config():
     return ConfigHelper.get_active_config_or_default().orchestrator
 
 
-@app.route("/api/conversation/custom", methods=["GET", "POST"])
+@app.route("/api/conversation/custom", methods=["POST"])
 def conversation_custom():
     message_orchestrator = get_message_orchestrator()
 

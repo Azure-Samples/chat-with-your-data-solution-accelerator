@@ -57,16 +57,16 @@ class EnvHelper:
         self.AZURE_OPENAI_MODEL_NAME = os.getenv(
             "AZURE_OPENAI_MODEL_NAME", "gpt-35-turbo"
         )
-        self.AZURE_OPENAI_TEMPERATURE = os.getenv("AZURE_OPENAI_TEMPERATURE", 0)
-        self.AZURE_OPENAI_TOP_P = os.getenv("AZURE_OPENAI_TOP_P", 1.0)
-        self.AZURE_OPENAI_MAX_TOKENS = os.getenv("AZURE_OPENAI_MAX_TOKENS", 1000)
+        self.AZURE_OPENAI_TEMPERATURE = os.getenv("AZURE_OPENAI_TEMPERATURE", "0")
+        self.AZURE_OPENAI_TOP_P = os.getenv("AZURE_OPENAI_TOP_P", "1.0")
+        self.AZURE_OPENAI_MAX_TOKENS = os.getenv("AZURE_OPENAI_MAX_TOKENS", "1000")
         self.AZURE_OPENAI_STOP_SEQUENCE = os.getenv("AZURE_OPENAI_STOP_SEQUENCE", "")
         self.AZURE_OPENAI_SYSTEM_MESSAGE = os.getenv(
             "AZURE_OPENAI_SYSTEM_MESSAGE",
             "You are an AI assistant that helps people find information.",
         )
         self.AZURE_OPENAI_API_VERSION = os.getenv(
-            "AZURE_OPENAI_API_VERSION", "2023-12-01-preview"
+            "AZURE_OPENAI_API_VERSION", "2024-02-01"
         )
         self.AZURE_OPENAI_STREAM = os.getenv("AZURE_OPENAI_STREAM", "true")
         self.AZURE_OPENAI_EMBEDDING_MODEL = os.getenv(
@@ -160,7 +160,7 @@ class EnvHelper:
         if (
             self.AZURE_SEARCH_SERVICE
             and self.AZURE_SEARCH_INDEX
-            and self.AZURE_SEARCH_KEY
+            and (self.AZURE_SEARCH_KEY or self.AZURE_AUTH_TYPE == "rbac")
         ):
             return True
         return False
