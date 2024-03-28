@@ -40,7 +40,7 @@ jobs:
         with:
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
-          runCmd: make ci && make deploy
+          runCmd: make ci && make testvars
           refFilterForPush: refs/heads/main
           env: |
             AZURE_CLIENT_ID
@@ -49,26 +49,4 @@ jobs:
             AZURE_SUBSCRIPTION_ID
             AZURE_ENV_NAME
             AZURE_LOCATION
-      
-      - name: Run UI Tests
-        uses: devcontainers/ci@v0.3
-        with:
-          cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
-          runCmd: make uitest
-        continue-on-error: true
-        
-      - name: Take down the environment
-        uses: devcontainers/ci@v0.3
-        env:
-          AZURE_ENV_NAME: testenv
-          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
-        with:
-          cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
-          runCmd: make destroy
-          env: |
-            AZURE_CLIENT_ID
-            AZURE_CLIENT_SECRET
-            AZURE_TENANT_ID
-            AZURE_SUBSCRIPTION_ID
-            AZURE_ENV_NAME
-            AZURE_LOCATION  
+            

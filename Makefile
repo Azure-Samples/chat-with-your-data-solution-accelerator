@@ -44,6 +44,10 @@ functionaltest: ## 🧪 Run the functional tests
 	@echo -e "\e[34m$@\e[0m" || true
 	@ poetry run pytest -m "functional"
 
+testvars: ## Test whether quotes are stripped
+	@echo -e "\e[34m$@\e[0m" || true
+	@echo ${AZURE_ENV_NAME}
+
 uitest: ## 🧪 Run the ui tests in headless mode
 	@echo -e "\e[34m$@\e[0m" || true
 	@cd tests/integration/ui && npm install && npx cypress run --env ADMIN_WEBSITE_NAME=$(ADMIN_WEBSITE_NAME),FRONTEND_WEBSITE_NAME=$(FRONTEND_WEBSITE_NAME)
