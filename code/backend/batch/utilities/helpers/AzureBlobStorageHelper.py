@@ -25,20 +25,19 @@ class AzureBlobStorageClient:
             self.account_name = (
                 account_name if account_name else env_helper.AZURE_BLOB_ACCOUNT_NAME
             )
+            self.account_key = None
             self.container_name: str = (
                 container_name
                 if container_name
                 else env_helper.AZURE_BLOB_CONTAINER_NAME
             )
-            credential = DefaultAzureCredential()
-            account_url = f"https://{self.account_name}.blob.core.windows.net/"
             self.blob_service_client = BlobServiceClient(
-                account_url=account_url, credential=credential
+                account_url=f"https://{self.account_name}.blob.core.windows.net/",
+                credential=DefaultAzureCredential(),
             )
             self.user_delegation_key = self.request_user_delegation_key(
                 blob_service_client=self.blob_service_client
             )
-            self.account_key = None
         else:
             self.account_name = (
                 account_name if account_name else env_helper.AZURE_BLOB_ACCOUNT_NAME
@@ -46,7 +45,6 @@ class AzureBlobStorageClient:
             self.account_key = (
                 account_key if account_key else env_helper.AZURE_BLOB_ACCOUNT_KEY
             )
-            self.user_delegation_key = None
             self.connect_str = f"DefaultEndpointsProtocol=https;AccountName={self.account_name};AccountKey={self.account_key};EndpointSuffix=core.windows.net"
             self.container_name: str = (
                 container_name
@@ -56,6 +54,7 @@ class AzureBlobStorageClient:
             self.blob_service_client: BlobServiceClient = (
                 BlobServiceClient.from_connection_string(self.connect_str)
             )
+            self.user_delegation_key = None
 
     def request_user_delegation_key(
         self, blob_service_client: BlobServiceClient
