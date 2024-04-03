@@ -14,7 +14,9 @@ def client():
 def env_helper_mock(autouse=True):
     patcher = patch("create_app.EnvHelper")
 
-    yield patcher.start()
+    EnvHelperMock = patcher.start()
+    mock = EnvHelperMock.return_value
+    yield mock
 
     patcher.stop()
 
@@ -72,7 +74,7 @@ class TestConversationCustom:
         message_orchestrator_mock.handle_message.return_value = self.messages
         get_message_orchestrator_mock.return_value = message_orchestrator_mock
 
-        env_helper_mock.return_value.AZURE_OPENAI_MODEL = self.openai_model
+        env_helper_mock.AZURE_OPENAI_MODEL = self.openai_model
 
         # when
         response = client.post(
@@ -292,20 +294,20 @@ class TestConversationAzureByod:
     def setup_env_helper_mock(self, env_helper_mock):
         # These are the default values for the env_helper
         # They can be overridden within each test
-        env_helper_mock.return_value.AZURE_OPENAI_SYSTEM_MESSAGE = self.system_message
-        env_helper_mock.return_value.AZURE_OPENAI_MODEL = self.openai_model
-        env_helper_mock.return_value.AZURE_OPENAI_ENDPOINT = self.openai_endpoint
-        env_helper_mock.return_value.AZURE_OPENAI_API_VERSION = self.openai_api_version
-        env_helper_mock.return_value.AZURE_OPENAI_API_KEY = self.openai_api_key
-        env_helper_mock.return_value.AZURE_SEARCH_KEY = self.search_key
-        env_helper_mock.return_value.AZURE_TOKEN_PROVIDER.return_value = self.token
-        env_helper_mock.return_value.AZURE_OPENAI_TEMPERATURE = self.temperature
-        env_helper_mock.return_value.AZURE_OPENAI_MAX_TOKENS = self.max_tokens
-        env_helper_mock.return_value.AZURE_OPENAI_TOP_P = self.top_p
-        env_helper_mock.return_value.AZURE_OPENAI_STOP_SEQUENCE = self.stop_sequence
-        env_helper_mock.return_value.SHOULD_STREAM = True
-        env_helper_mock.return_value.AZURE_AUTH_TYPE = "keys"
-        env_helper_mock.return_value.should_use_data.return_value = True
+        env_helper_mock.AZURE_OPENAI_SYSTEM_MESSAGE = self.system_message
+        env_helper_mock.AZURE_OPENAI_MODEL = self.openai_model
+        env_helper_mock.AZURE_OPENAI_ENDPOINT = self.openai_endpoint
+        env_helper_mock.AZURE_OPENAI_API_VERSION = self.openai_api_version
+        env_helper_mock.AZURE_OPENAI_API_KEY = self.openai_api_key
+        env_helper_mock.AZURE_SEARCH_KEY = self.search_key
+        env_helper_mock.AZURE_TOKEN_PROVIDER.return_value = self.token
+        env_helper_mock.AZURE_OPENAI_TEMPERATURE = self.temperature
+        env_helper_mock.AZURE_OPENAI_MAX_TOKENS = self.max_tokens
+        env_helper_mock.AZURE_OPENAI_TOP_P = self.top_p
+        env_helper_mock.AZURE_OPENAI_STOP_SEQUENCE = self.stop_sequence
+        env_helper_mock.SHOULD_STREAM = True
+        env_helper_mock.AZURE_AUTH_TYPE = "keys"
+        env_helper_mock.should_use_data.return_value = True
 
     @patch("create_app.requests.Session")
     def test_converstation_azure_byod_returns_correct_response_when_streaming_with_data_keys(
@@ -353,7 +355,7 @@ class TestConversationAzureByod:
         mock_session = get_requests_session_mock.return_value
         response_mock = MockResponse()
         mock_session.post = Mock(return_value=response_mock)
-        env_helper_mock.return_value.AZURE_AUTH_TYPE = "rbac"
+        env_helper_mock.AZURE_AUTH_TYPE = "rbac"
 
         # when
         response = client.post(
@@ -388,7 +390,7 @@ class TestConversationAzureByod:
         self, post_mock, env_helper_mock, client
     ):
         # given
-        env_helper_mock.return_value.SHOULD_STREAM = False
+        env_helper_mock.SHOULD_STREAM = False
 
         post_mock.return_value.status_code = 200
         post_mock.return_value.json.return_value = {
@@ -502,8 +504,8 @@ class TestConversationAzureByod:
         self, azure_openai_mock, env_helper_mock, client
     ):
         # given
-        env_helper_mock.return_value.should_use_data.return_value = False
-        env_helper_mock.return_value.SHOULD_STREAM = False
+        env_helper_mock.should_use_data.return_value = False
+        env_helper_mock.SHOULD_STREAM = False
 
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
@@ -565,10 +567,10 @@ class TestConversationAzureByod:
         self, azure_openai_mock, env_helper_mock, client
     ):
         # given
-        env_helper_mock.return_value.should_use_data.return_value = False
-        env_helper_mock.return_value.SHOULD_STREAM = False
-        env_helper_mock.return_value.AZURE_AUTH_TYPE = "rbac"
-        env_helper_mock.return_value.AZURE_OPENAI_STOP_SEQUENCE = ""
+        env_helper_mock.should_use_data.return_value = False
+        env_helper_mock.SHOULD_STREAM = False
+        env_helper_mock.AZURE_AUTH_TYPE = "rbac"
+        env_helper_mock.AZURE_OPENAI_STOP_SEQUENCE = ""
 
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
@@ -611,7 +613,7 @@ class TestConversationAzureByod:
         azure_openai_mock.assert_called_once_with(
             azure_endpoint=self.openai_endpoint,
             api_version=self.openai_api_version,
-            azure_ad_token_provider=env_helper_mock.return_value.AZURE_TOKEN_PROVIDER,
+            azure_ad_token_provider=env_helper_mock.AZURE_TOKEN_PROVIDER,
         )
 
         openai_client_mock.chat.completions.create.assert_called_once_with(
@@ -630,7 +632,7 @@ class TestConversationAzureByod:
         self, azure_openai_mock, env_helper_mock, client
     ):
         # given
-        env_helper_mock.return_value.should_use_data.return_value = False
+        env_helper_mock.should_use_data.return_value = False
 
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
