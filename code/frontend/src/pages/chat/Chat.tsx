@@ -22,7 +22,6 @@ import CapgeminiLogo from "../../assets/capgemini_engineering_logo.png";
 import {
   ChatMessage,
   ConversationRequest,
-  conversationApi,
   customConversationApi,
   Citation,
   ToolMessageContent,

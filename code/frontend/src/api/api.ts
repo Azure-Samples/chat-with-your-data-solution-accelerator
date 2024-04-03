@@ -1,26 +1,24 @@
+import { msalInstance } from "..";
+import { loginRequest } from "../authConfig";
 import { ConversationRequest } from "./models";
-
-export async function conversationApi(options: ConversationRequest, abortSignal: AbortSignal): Promise<Response> {
-    const response = await fetch("/api/conversation/azure_byod", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            messages: options.messages
-        }),
-        signal: abortSignal
-    });
-
-    return response;
-}
 
 
 export async function customConversationApi(options: ConversationRequest, abortSignal: AbortSignal): Promise<Response> {
+    const account = msalInstance.getActiveAccount();
+    if (!account) {
+        throw Error("No active account! Verify a user has been signed in and setActiveAccount has been called.");
+    }
+
+    const responseToken = await msalInstance.acquireTokenSilent({
+        ...loginRequest,
+        account: account
+    });
+
     const response = await fetch("/api/conversation/custom", {
         method: "POST",
         headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${responseToken.accessToken}`
         },
         body: JSON.stringify({
             messages: options.messages,
