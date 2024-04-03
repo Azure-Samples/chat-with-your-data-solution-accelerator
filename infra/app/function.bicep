@@ -123,7 +123,7 @@ module storageBlobRoleFunction '../core/security/role.bicep' = if (authType == '
 }
 
 // Storage Queue Data Contributor
-module storageQueueRoleFunction '../core/security/role.bicep' = {
+module storageQueueRoleFunction '../core/security/role.bicep' = if (authType == 'rbac') {
   name: 'storage-queue-role-function'
   params: {
     principalId: function.outputs.identityPrincipalId
