@@ -9,7 +9,7 @@ import requests
 from tests.functional.backend_api.app_config import AppConfig
 from threading import Thread
 import trustme
-from app import create_app
+from create_app import create_app
 
 
 @pytest.fixture(scope="session")

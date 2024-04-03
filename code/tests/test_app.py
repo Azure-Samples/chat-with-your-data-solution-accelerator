@@ -2,7 +2,7 @@ import json
 import os
 import pytest
 from unittest.mock import MagicMock, Mock, patch
-from app import create_app
+from create_app import create_app
 
 
 @pytest.fixture
@@ -12,7 +12,7 @@ def client():
 
 @pytest.fixture
 def env_helper_mock(autouse=True):
-    patcher = patch("app.EnvHelper")
+    patcher = patch("create_app.EnvHelper")
 
     yield patcher.start()
 
@@ -52,7 +52,7 @@ class TestConversationCustom:
             ],
         }
 
-    @patch("app.get_message_orchestrator")
+    @patch("create_app.get_message_orchestrator")
     @patch(
         "backend.batch.utilities.helpers.ConfigHelper.ConfigHelper.get_active_config_or_default"
     )
@@ -91,8 +91,8 @@ class TestConversationCustom:
             "object": "response.object",
         }
 
-    @patch("app.get_message_orchestrator")
-    @patch("app.get_orchestrator_config")
+    @patch("create_app.get_message_orchestrator")
+    @patch("create_app.get_orchestrator_config")
     def test_converstation_custom_calls_message_orchestrator_correctly(
         self,
         get_orchestrator_config_mock,
@@ -123,7 +123,7 @@ class TestConversationCustom:
             orchestrator=self.orchestrator_config,
         )
 
-    @patch("app.get_orchestrator_config")
+    @patch("create_app.get_orchestrator_config")
     def test_converstation_custom_returns_error_resonse_on_exception(
         self, get_orchestrator_config_mock, client
     ):
@@ -143,8 +143,8 @@ class TestConversationCustom:
             "error": "Exception in /api/conversation/custom. See log for more details."
         }
 
-    @patch("app.get_message_orchestrator")
-    @patch("app.get_orchestrator_config")
+    @patch("create_app.get_message_orchestrator")
+    @patch("create_app.get_orchestrator_config")
     def test_converstation_custom_allows_multiple_messages_from_user(
         self, get_orchestrator_config_mock, get_message_orchestrator_mock, client
     ):
@@ -307,7 +307,7 @@ class TestConversationAzureByod:
         env_helper_mock.return_value.AZURE_AUTH_TYPE = "keys"
         env_helper_mock.return_value.should_use_data.return_value = True
 
-    @patch("app.requests.Session")
+    @patch("create_app.requests.Session")
     def test_converstation_azure_byod_returns_correct_response_when_streaming_with_data_keys(
         self, get_requests_session_mock, client
     ):
@@ -345,7 +345,7 @@ class TestConversationAzureByod:
         }
         assert request_headers["api-key"] == self.openai_api_key
 
-    @patch("app.requests.Session")
+    @patch("create_app.requests.Session")
     def test_converstation_azure_byod_returns_correct_response_when_streaming_with_data_rbac(
         self, get_requests_session_mock, env_helper_mock, client
     ):
@@ -383,7 +383,7 @@ class TestConversationAzureByod:
         }
         assert request_headers["Authorization"] == f"Bearer {self.token}"
 
-    @patch("app.requests.post")
+    @patch("create_app.requests.post")
     def test_converstation_azure_byod_returns_correct_response_when_not_streaming_with_data(
         self, post_mock, env_helper_mock, client
     ):
@@ -438,7 +438,7 @@ class TestConversationAzureByod:
             ],
         }
 
-    @patch("app.requests.Session")
+    @patch("create_app.requests.Session")
     def test_converstation_azure_byod_receives_error_from_search_when_streaming_with_data(
         self, get_requests_session_mock, client
     ):
@@ -458,7 +458,7 @@ class TestConversationAzureByod:
         assert response.status_code == 200
         assert b'"error": "An error occurred\\n"' in response.data
 
-    @patch("app.requests.Session")
+    @patch("create_app.requests.Session")
     def test_converstation_azure_byod_throws_exception_when_streaming_with_data(
         self, get_requests_session_mock, client
     ):
@@ -477,7 +477,7 @@ class TestConversationAzureByod:
         assert response.status_code == 200
         assert b'{"error": "Test exception"}\n' in response.data
 
-    @patch("app.conversation_with_data")
+    @patch("create_app.conversation_with_data")
     def test_converstation_azure_byod_returns_500_when_exception_occurs(
         self, conversation_with_data_mock, client
     ):
@@ -497,7 +497,7 @@ class TestConversationAzureByod:
             "error": "Exception in /api/conversation/azure_byod. See log for more details."
         }
 
-    @patch("app.AzureOpenAI")
+    @patch("create_app.AzureOpenAI")
     def test_converstation_azure_byod_returns_correct_response_when_not_streaming_without_data_keys(
         self, azure_openai_mock, env_helper_mock, client
     ):
@@ -560,7 +560,7 @@ class TestConversationAzureByod:
             stream=False,
         )
 
-    @patch("app.AzureOpenAI")
+    @patch("create_app.AzureOpenAI")
     def test_converstation_azure_byod_returns_correct_response_when_not_streaming_without_data_rbac(
         self, azure_openai_mock, env_helper_mock, client
     ):
@@ -625,7 +625,7 @@ class TestConversationAzureByod:
             stream=False,
         )
 
-    @patch("app.AzureOpenAI")
+    @patch("create_app.AzureOpenAI")
     def test_converstation_azure_byod_returns_correct_response_when_streaming_without_data(
         self, azure_openai_mock, env_helper_mock, client
     ):
