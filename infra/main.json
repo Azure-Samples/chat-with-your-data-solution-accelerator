@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "4295550392354123736"
+      "templateHash": "16664155418767856780"
     }
   },
   "parameters": {
@@ -6551,7 +6551,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.54.24096",
-              "templateHash": "17960689149478457729"
+              "templateHash": "1284439119819629713"
             }
           },
           "parameters": {
@@ -7512,7 +7512,6 @@
               ]
             },
             {
-              "condition": "[equals(parameters('authType'), 'rbac')]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2022-09-01",
               "name": "storage-queue-role-function",
@@ -7763,7 +7762,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.54.24096",
-              "templateHash": "17960689149478457729"
+              "templateHash": "1284439119819629713"
             }
           },
           "parameters": {
@@ -8724,7 +8723,6 @@
               ]
             },
             {
-              "condition": "[equals(parameters('authType'), 'rbac')]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2022-09-01",
               "name": "storage-queue-role-function",
