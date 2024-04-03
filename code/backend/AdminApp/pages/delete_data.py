@@ -5,10 +5,10 @@ import logging
 import sys
 from batch.utilities.helpers.AzureSearchHelper import AzureSearchHelper
 from dotenv import load_dotenv
+from components.login import isLoggedIn
+from components.menu import menu
 
-from Admin import auth_required
-
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 load_dotenv()
 
@@ -16,7 +16,6 @@ logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy").s
     logging.WARNING
 )
 
-@auth_required
 def main():
     st.set_page_config(
         page_title="Delete Data",
@@ -24,6 +23,7 @@ def main():
         layout="wide",
         menu_items=None,
     )
+    menu()
     mod_page_style = """
                 <style>
                 #MainMenu {visibility: hidden;}
@@ -101,4 +101,8 @@ def main():
     except Exception:
         st.error(traceback.format_exc())
         
-main()
+if not isLoggedIn():
+    parent_dir_path = os.path.join(os.path.dirname(__file__), "..")
+    st.switch_page(os.path.join(parent_dir_path, "app.py"))
+else:
+    main()

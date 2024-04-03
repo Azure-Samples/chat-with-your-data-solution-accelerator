@@ -1,4 +1,5 @@
 from os import path
+import os
 import streamlit as st
 from typing import Optional
 import mimetypes
@@ -18,16 +19,16 @@ import urllib.parse
 import sys
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
 from batch.utilities.helpers.EnvHelper import EnvHelper
-from Admin import auth_required
+from components.login import isLoggedIn
+from components.menu import menu
 
-sys.path.append(path.join(path.dirname(__file__), ".."))
+sys.path.append(path.join(path.dirname(__file__), "..", ".."))
 env_helper: EnvHelper = EnvHelper()
 
 logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
     logging.WARNING
 )
 
-@auth_required
 def main():
     st.set_page_config(
         page_title="Ingest Data",
@@ -35,6 +36,7 @@ def main():
         layout="wide",
         menu_items=None,
     )
+    menu()
     mod_page_style = """
                 <style>
                 #MainMenu {visibility: hidden;}
@@ -232,4 +234,8 @@ def main():
     except Exception:
         st.error(traceback.format_exc())
 
-main()
+if not isLoggedIn():
+    parent_dir_path = os.path.join(os.path.dirname(__file__), "..")
+    st.switch_page(os.path.join(parent_dir_path, "app.py"))
+else:
+    main()
