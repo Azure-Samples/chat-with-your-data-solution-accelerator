@@ -210,7 +210,7 @@ def conversation_with_data(request):
             ],
         }
 
-        return Response(json.dumps(response, ensure_ascii=False), status=status_code)
+        return jsonify(response), status_code
     else:
         return Response(
             stream_with_data(body, headers, endpoint),
