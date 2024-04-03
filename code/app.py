@@ -10,39 +10,8 @@ import sys
 from backend.batch.utilities.helpers.EnvHelper import EnvHelper
 from azure.monitor.opentelemetry import configure_azure_monitor
 
-# Fixing MIME types for static files under Windows
-mimetypes.add_type("application/javascript", ".js")
-mimetypes.add_type("text/css", ".css")
 
-sys.path.append(path.join(path.dirname(__file__), ".."))
-
-load_dotenv(
-    path.join(path.dirname(__file__), "..", "..", ".env")
-)  # Load environment variables from .env file
-
-app = Flask(__name__)
-env_helper: EnvHelper = EnvHelper()
-
-
-@app.route("/", defaults={"path": "index.html"})
-@app.route("/<path:path>")
-def static_file(path):
-    return app.send_static_file(path)
-
-
-@app.route("/api/config", methods=["GET"])
-def get_config():
-    # Return the configuration data as JSON
-    return jsonify(
-        {
-            "azureSpeechKey": env_helper.AZURE_SPEECH_KEY,
-            "azureSpeechRegion": env_helper.AZURE_SPEECH_SERVICE_REGION,
-            "AZURE_OPENAI_ENDPOINT": env_helper.AZURE_OPENAI_ENDPOINT,
-        }
-    )
-
-
-def prepare_body_headers_with_data(request):
+def prepare_body_headers_with_data(request, env_helper: EnvHelper):
     request_messages = request.json["messages"]
 
     body = {
@@ -175,8 +144,8 @@ def stream_with_data(body, headers, endpoint):
         yield json.dumps({"error": str(e)}, ensure_ascii=False) + "\n"
 
 
-def conversation_with_data(request):
-    body, headers = prepare_body_headers_with_data(request)
+def conversation_with_data(request, env_helper: EnvHelper):
+    body, headers = prepare_body_headers_with_data(request, env_helper)
     endpoint = f"{env_helper.AZURE_OPENAI_ENDPOINT}openai/deployments/{env_helper.AZURE_OPENAI_MODEL}/chat/completions?api-version={env_helper.AZURE_OPENAI_API_VERSION}"
 
     if not env_helper.SHOULD_STREAM:
@@ -241,7 +210,19 @@ def stream_without_data(response):
         yield json.dumps(response_obj, ensure_ascii=False) + "\n"
 
 
-def conversation_without_data(request):
+def get_message_orchestrator():
+    from backend.batch.utilities.helpers.OrchestratorHelper import Orchestrator
+
+    return Orchestrator()
+
+
+def get_orchestrator_config():
+    from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
+
+    return ConfigHelper.get_active_config_or_default().orchestrator
+
+
+def conversation_without_data(request, env_helper):
     if env_helper.AZURE_AUTH_TYPE == "rbac":
         openai_client = AzureOpenAI(
             azure_endpoint=env_helper.AZURE_OPENAI_ENDPOINT,
@@ -301,82 +282,104 @@ def conversation_without_data(request):
         )
 
 
-@app.route("/api/conversation/azure_byod", methods=["POST"])
-def conversation_azure_byod():
-    try:
-        if env_helper.should_use_data():
-            return conversation_with_data(request)
-        else:
-            return conversation_without_data(request)
-    except Exception as e:
-        errorMessage = str(e)
-        logging.exception(f"Exception in /api/conversation/azure_byod | {errorMessage}")
-        return (
-            jsonify(
-                {
-                    "error": "Exception in /api/conversation/azure_byod. See log for more details."
-                }
-            ),
-            500,
+def create_app():
+    # Fixing MIME types for static files under Windows
+    mimetypes.add_type("application/javascript", ".js")
+    mimetypes.add_type("text/css", ".css")
+
+    sys.path.append(path.join(path.dirname(__file__), ".."))
+
+    load_dotenv(
+        path.join(path.dirname(__file__), "..", "..", ".env")
+    )  # Load environment variables from .env file
+
+    app = Flask(__name__)
+    env_helper: EnvHelper = EnvHelper()
+
+    @app.route("/", defaults={"path": "index.html"})
+    @app.route("/<path:path>")
+    def static_file(path):
+        return app.send_static_file(path)
+
+    @app.route("/api/config", methods=["GET"])
+    def get_config():
+        # Return the configuration data as JSON
+        return jsonify(
+            {
+                "azureSpeechKey": env_helper.AZURE_SPEECH_KEY,
+                "azureSpeechRegion": env_helper.AZURE_SPEECH_SERVICE_REGION,
+                "AZURE_OPENAI_ENDPOINT": env_helper.AZURE_OPENAI_ENDPOINT,
+            }
         )
 
-
-def get_message_orchestrator():
-    from backend.batch.utilities.helpers.OrchestratorHelper import Orchestrator
-
-    return Orchestrator()
-
-
-def get_orchestrator_config():
-    from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
-
-    return ConfigHelper.get_active_config_or_default().orchestrator
-
-
-@app.route("/api/conversation/custom", methods=["POST"])
-def conversation_custom():
-    message_orchestrator = get_message_orchestrator()
-
-    try:
-        user_message = request.json["messages"][-1]["content"]
-        conversation_id = request.json["conversation_id"]
-        user_assistant_messages = list(
-            filter(
-                lambda x: x["role"] in ("user", "assistant"),
-                request.json["messages"][0:-1],
+    @app.route("/api/conversation/azure_byod", methods=["POST"])
+    def conversation_azure_byod():
+        try:
+            if env_helper.should_use_data():
+                return conversation_with_data(request, env_helper)
+            else:
+                return conversation_without_data(request, env_helper)
+        except Exception as e:
+            errorMessage = str(e)
+            logging.exception(
+                f"Exception in /api/conversation/azure_byod | {errorMessage}"
             )
-        )
+            return (
+                jsonify(
+                    {
+                        "error": "Exception in /api/conversation/azure_byod. See log for more details."
+                    }
+                ),
+                500,
+            )
 
-        messages = message_orchestrator.handle_message(
-            user_message=user_message,
-            chat_history=user_assistant_messages,
-            conversation_id=conversation_id,
-            orchestrator=get_orchestrator_config(),
-        )
+    @app.route("/api/conversation/custom", methods=["POST"])
+    def conversation_custom():
+        message_orchestrator = get_message_orchestrator()
 
-        response_obj = {
-            "id": "response.id",
-            "model": env_helper.AZURE_OPENAI_MODEL,
-            "created": "response.created",
-            "object": "response.object",
-            "choices": [{"messages": messages}],
-        }
+        try:
+            user_message = request.json["messages"][-1]["content"]
+            conversation_id = request.json["conversation_id"]
+            user_assistant_messages = list(
+                filter(
+                    lambda x: x["role"] in ("user", "assistant"),
+                    request.json["messages"][0:-1],
+                )
+            )
 
-        return jsonify(response_obj), 200
+            messages = message_orchestrator.handle_message(
+                user_message=user_message,
+                chat_history=user_assistant_messages,
+                conversation_id=conversation_id,
+                orchestrator=get_orchestrator_config(),
+            )
 
-    except Exception as e:
-        errorMessage = str(e)
-        logging.exception(f"Exception in /api/conversation/custom | {errorMessage}")
-        return (
-            jsonify(
-                {
-                    "error": "Exception in /api/conversation/custom. See log for more details."
-                }
-            ),
-            500,
-        )
+            response_obj = {
+                "id": "response.id",
+                "model": env_helper.AZURE_OPENAI_MODEL,
+                "created": "response.created",
+                "object": "response.object",
+                "choices": [{"messages": messages}],
+            }
+
+            return jsonify(response_obj), 200
+
+        except Exception as e:
+            errorMessage = str(e)
+            logging.exception(f"Exception in /api/conversation/custom | {errorMessage}")
+            return (
+                jsonify(
+                    {
+                        "error": "Exception in /api/conversation/custom. See log for more details."
+                    }
+                ),
+                500,
+            )
+
+    return app
 
 
 if __name__ == "__main__":
+    app = create_app()
     app.run()
     configure_azure_monitor()

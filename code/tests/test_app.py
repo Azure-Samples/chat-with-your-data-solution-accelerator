@@ -2,13 +2,26 @@ import json
 import os
 import pytest
 from unittest.mock import MagicMock, Mock, patch
+from app import create_app
 
-from app import app
+
+@pytest.fixture
+def client():
+    return create_app().test_client()
+
+
+@pytest.fixture
+def env_helper_mock(autouse=True):
+    patcher = patch("app.EnvHelper")
+
+    yield patcher.start()
+
+    patcher.stop()
 
 
 class TestConfig:
-    def test_returns_correct_config(self):
-        response = app.test_client().get("/api/config")
+    def test_returns_correct_config(self, client):
+        response = client.get("/api/config")
 
         assert response.status_code == 200
         assert response.json == {
@@ -43,12 +56,12 @@ class TestConversationCustom:
     @patch(
         "backend.batch.utilities.helpers.ConfigHelper.ConfigHelper.get_active_config_or_default"
     )
-    @patch("app.env_helper")
     def test_converstation_custom_returns_correct_response(
         self,
-        env_helper_mock,
         get_active_config_or_default_mock,
         get_message_orchestrator_mock,
+        env_helper_mock,
+        client,
     ):
         # given
         get_active_config_or_default_mock.return_value.orchestrator.return_value = (
@@ -59,10 +72,10 @@ class TestConversationCustom:
         message_orchestrator_mock.handle_message.return_value = self.messages
         get_message_orchestrator_mock.return_value = message_orchestrator_mock
 
-        env_helper_mock.AZURE_OPENAI_MODEL = self.openai_model
+        env_helper_mock.return_value.AZURE_OPENAI_MODEL = self.openai_model
 
         # when
-        response = app.test_client().post(
+        response = client.post(
             "/api/conversation/custom",
             headers={"content-type": "application/json"},
             json=self.body,
@@ -81,7 +94,10 @@ class TestConversationCustom:
     @patch("app.get_message_orchestrator")
     @patch("app.get_orchestrator_config")
     def test_converstation_custom_calls_message_orchestrator_correctly(
-        self, get_orchestrator_config_mock, get_message_orchestrator_mock
+        self,
+        get_orchestrator_config_mock,
+        get_message_orchestrator_mock,
+        client,
     ):
         # given
         get_orchestrator_config_mock.return_value = self.orchestrator_config
@@ -93,7 +109,7 @@ class TestConversationCustom:
         os.environ["AZURE_OPENAI_MODEL"] = self.openai_model
 
         # when
-        app.test_client().post(
+        client.post(
             "/api/conversation/custom",
             headers={"content-type": "application/json"},
             json=self.body,
@@ -109,13 +125,13 @@ class TestConversationCustom:
 
     @patch("app.get_orchestrator_config")
     def test_converstation_custom_returns_error_resonse_on_exception(
-        self, get_orchestrator_config_mock
+        self, get_orchestrator_config_mock, client
     ):
         # given
         get_orchestrator_config_mock.side_effect = Exception("An error occurred")
 
         # when
-        response = app.test_client().post(
+        response = client.post(
             "/api/conversation/custom",
             headers={"content-type": "application/json"},
             json=self.body,
@@ -130,7 +146,7 @@ class TestConversationCustom:
     @patch("app.get_message_orchestrator")
     @patch("app.get_orchestrator_config")
     def test_converstation_custom_allows_multiple_messages_from_user(
-        self, get_orchestrator_config_mock, get_message_orchestrator_mock
+        self, get_orchestrator_config_mock, get_message_orchestrator_mock, client
     ):
         """This can happen if there was an error getting a response from the assistant for the previous user message."""
 
@@ -140,8 +156,6 @@ class TestConversationCustom:
         message_orchestrator_mock = Mock()
         message_orchestrator_mock.handle_message.return_value = self.messages
         get_message_orchestrator_mock.return_value = message_orchestrator_mock
-
-        os.environ["AZURE_OPENAI_MODEL"] = self.openai_model
 
         body = {
             "conversation_id": "123",
@@ -157,7 +171,7 @@ class TestConversationCustom:
         }
 
         # when
-        response = app.test_client().post(
+        response = client.post(
             "/api/conversation/custom",
             headers={"content-type": "application/json"},
             json=body,
@@ -275,34 +289,27 @@ class TestConversationAzureByod:
         self.stop_sequence = "\n|STOP"
 
     @pytest.fixture(autouse=True)
-    def env_helper_mock(self):
-        patcher = patch("app.env_helper")
-        mock = patcher.start()
-
+    def setup_env_helper_mock(self, env_helper_mock):
         # These are the default values for the env_helper
         # They can be overridden within each test
-        mock.AZURE_OPENAI_SYSTEM_MESSAGE = self.system_message
-        mock.AZURE_OPENAI_MODEL = self.openai_model
-        mock.AZURE_OPENAI_ENDPOINT = self.openai_endpoint
-        mock.AZURE_OPENAI_API_VERSION = self.openai_api_version
-        mock.AZURE_OPENAI_API_KEY = self.openai_api_key
-        mock.AZURE_SEARCH_KEY = self.search_key
-        mock.AZURE_TOKEN_PROVIDER.return_value = self.token
-        mock.AZURE_OPENAI_TEMPERATURE = self.temperature
-        mock.AZURE_OPENAI_MAX_TOKENS = self.max_tokens
-        mock.AZURE_OPENAI_TOP_P = self.top_p
-        mock.AZURE_OPENAI_STOP_SEQUENCE = self.stop_sequence
-        mock.SHOULD_STREAM = True
-        mock.AZURE_AUTH_TYPE = "keys"
-        mock.should_use_data.return_value = True
-
-        yield mock
-
-        patcher.stop()
+        env_helper_mock.return_value.AZURE_OPENAI_SYSTEM_MESSAGE = self.system_message
+        env_helper_mock.return_value.AZURE_OPENAI_MODEL = self.openai_model
+        env_helper_mock.return_value.AZURE_OPENAI_ENDPOINT = self.openai_endpoint
+        env_helper_mock.return_value.AZURE_OPENAI_API_VERSION = self.openai_api_version
+        env_helper_mock.return_value.AZURE_OPENAI_API_KEY = self.openai_api_key
+        env_helper_mock.return_value.AZURE_SEARCH_KEY = self.search_key
+        env_helper_mock.return_value.AZURE_TOKEN_PROVIDER.return_value = self.token
+        env_helper_mock.return_value.AZURE_OPENAI_TEMPERATURE = self.temperature
+        env_helper_mock.return_value.AZURE_OPENAI_MAX_TOKENS = self.max_tokens
+        env_helper_mock.return_value.AZURE_OPENAI_TOP_P = self.top_p
+        env_helper_mock.return_value.AZURE_OPENAI_STOP_SEQUENCE = self.stop_sequence
+        env_helper_mock.return_value.SHOULD_STREAM = True
+        env_helper_mock.return_value.AZURE_AUTH_TYPE = "keys"
+        env_helper_mock.return_value.should_use_data.return_value = True
 
     @patch("app.requests.Session")
     def test_converstation_azure_byod_returns_correct_response_when_streaming_with_data_keys(
-        self, get_requests_session_mock
+        self, get_requests_session_mock, client
     ):
         # given
         mock_session = get_requests_session_mock.return_value
@@ -310,7 +317,7 @@ class TestConversationAzureByod:
         mock_session.post = Mock(return_value=response_mock)
 
         # when
-        response = app.test_client().post(
+        response = client.post(
             "/api/conversation/azure_byod",
             headers={"content-type": "application/json"},
             json=self.body,
@@ -340,16 +347,16 @@ class TestConversationAzureByod:
 
     @patch("app.requests.Session")
     def test_converstation_azure_byod_returns_correct_response_when_streaming_with_data_rbac(
-        self, get_requests_session_mock, env_helper_mock
+        self, get_requests_session_mock, env_helper_mock, client
     ):
         # given
         mock_session = get_requests_session_mock.return_value
         response_mock = MockResponse()
         mock_session.post = Mock(return_value=response_mock)
-        env_helper_mock.AZURE_AUTH_TYPE = "rbac"
+        env_helper_mock.return_value.AZURE_AUTH_TYPE = "rbac"
 
         # when
-        response = app.test_client().post(
+        response = client.post(
             "/api/conversation/azure_byod",
             headers={"content-type": "application/json"},
             json=self.body,
@@ -378,10 +385,10 @@ class TestConversationAzureByod:
 
     @patch("app.requests.post")
     def test_converstation_azure_byod_returns_correct_response_when_not_streaming_with_data(
-        self, post_mock, env_helper_mock
+        self, post_mock, env_helper_mock, client
     ):
         # given
-        env_helper_mock.SHOULD_STREAM = False
+        env_helper_mock.return_value.SHOULD_STREAM = False
 
         post_mock.return_value.status_code = 200
         post_mock.return_value.json.return_value = {
@@ -400,7 +407,7 @@ class TestConversationAzureByod:
         }
 
         # when
-        response = app.test_client().post(
+        response = client.post(
             "/api/conversation/azure_byod",
             headers={"content-type": "application/json"},
             json=self.body,
@@ -433,7 +440,7 @@ class TestConversationAzureByod:
 
     @patch("app.requests.Session")
     def test_converstation_azure_byod_receives_error_from_search_when_streaming_with_data(
-        self, get_requests_session_mock
+        self, get_requests_session_mock, client
     ):
         # given
         mock_session = get_requests_session_mock.return_value
@@ -441,7 +448,7 @@ class TestConversationAzureByod:
         mock_session.post = Mock(return_value=response_mock)
 
         # when
-        response = app.test_client().post(
+        response = client.post(
             "/api/conversation/azure_byod",
             headers={"content-type": "application/json"},
             json=self.body,
@@ -453,14 +460,14 @@ class TestConversationAzureByod:
 
     @patch("app.requests.Session")
     def test_converstation_azure_byod_throws_exception_when_streaming_with_data(
-        self, get_requests_session_mock
+        self, get_requests_session_mock, client
     ):
         # given
         mock_session = get_requests_session_mock.return_value
         mock_session.post.side_effect = ValueError("Test exception")
 
         # when
-        response = app.test_client().post(
+        response = client.post(
             "/api/conversation/azure_byod",
             headers={"content-type": "application/json"},
             json=self.body,
@@ -472,13 +479,13 @@ class TestConversationAzureByod:
 
     @patch("app.conversation_with_data")
     def test_converstation_azure_byod_returns_500_when_exception_occurs(
-        self, conversation_with_data_mock
+        self, conversation_with_data_mock, client
     ):
         # given
         conversation_with_data_mock.side_effect = Exception("Test exception")
 
         # when
-        response = app.test_client().post(
+        response = client.post(
             "/api/conversation/azure_byod",
             headers={"content-type": "application/json"},
             json=self.body,
@@ -492,11 +499,11 @@ class TestConversationAzureByod:
 
     @patch("app.AzureOpenAI")
     def test_converstation_azure_byod_returns_correct_response_when_not_streaming_without_data_keys(
-        self, azure_openai_mock, env_helper_mock
+        self, azure_openai_mock, env_helper_mock, client
     ):
         # given
-        env_helper_mock.should_use_data.return_value = False
-        env_helper_mock.SHOULD_STREAM = False
+        env_helper_mock.return_value.should_use_data.return_value = False
+        env_helper_mock.return_value.SHOULD_STREAM = False
 
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
@@ -511,7 +518,7 @@ class TestConversationAzureByod:
         openai_client_mock.chat.completions.create.return_value = openai_create_mock
 
         # when
-        response = app.test_client().post(
+        response = client.post(
             "/api/conversation/azure_byod",
             headers={"content-type": "application/json"},
             json=self.body,
@@ -555,13 +562,13 @@ class TestConversationAzureByod:
 
     @patch("app.AzureOpenAI")
     def test_converstation_azure_byod_returns_correct_response_when_not_streaming_without_data_rbac(
-        self, azure_openai_mock, env_helper_mock
+        self, azure_openai_mock, env_helper_mock, client
     ):
         # given
-        env_helper_mock.should_use_data.return_value = False
-        env_helper_mock.SHOULD_STREAM = False
-        env_helper_mock.AZURE_AUTH_TYPE = "rbac"
-        env_helper_mock.AZURE_OPENAI_STOP_SEQUENCE = ""
+        env_helper_mock.return_value.should_use_data.return_value = False
+        env_helper_mock.return_value.SHOULD_STREAM = False
+        env_helper_mock.return_value.AZURE_AUTH_TYPE = "rbac"
+        env_helper_mock.return_value.AZURE_OPENAI_STOP_SEQUENCE = ""
 
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
@@ -576,7 +583,7 @@ class TestConversationAzureByod:
         openai_client_mock.chat.completions.create.return_value = openai_create_mock
 
         # when
-        response = app.test_client().post(
+        response = client.post(
             "/api/conversation/azure_byod",
             headers={"content-type": "application/json"},
             json=self.body,
@@ -604,7 +611,7 @@ class TestConversationAzureByod:
         azure_openai_mock.assert_called_once_with(
             azure_endpoint=self.openai_endpoint,
             api_version=self.openai_api_version,
-            azure_ad_token_provider=env_helper_mock.AZURE_TOKEN_PROVIDER,
+            azure_ad_token_provider=env_helper_mock.return_value.AZURE_TOKEN_PROVIDER,
         )
 
         openai_client_mock.chat.completions.create.assert_called_once_with(
@@ -620,10 +627,10 @@ class TestConversationAzureByod:
 
     @patch("app.AzureOpenAI")
     def test_converstation_azure_byod_returns_correct_response_when_streaming_without_data(
-        self, azure_openai_mock, env_helper_mock
+        self, azure_openai_mock, env_helper_mock, client
     ):
         # given
-        env_helper_mock.should_use_data.return_value = False
+        env_helper_mock.return_value.should_use_data.return_value = False
 
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
@@ -639,7 +646,7 @@ class TestConversationAzureByod:
         openai_client_mock.chat.completions.create.return_value = [mock_response]
 
         # when
-        response = app.test_client().post(
+        response = client.post(
             "/api/conversation/azure_byod",
             headers={"content-type": "application/json"},
             json=self.body,
