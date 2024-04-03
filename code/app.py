@@ -1,6 +1,8 @@
+from functools import wraps
 import json
 import logging
 from os import path
+import jwt
 import requests
 from openai import AzureOpenAI
 import mimetypes
@@ -8,6 +10,7 @@ from flask import Flask, Response, request, jsonify
 from dotenv import load_dotenv
 import sys
 from backend.batch.utilities.helpers.EnvHelper import EnvHelper
+from backend.auth.token_validator import TokenValidator
 
 # Fixing MIME types for static files under Windows
 mimetypes.add_type("application/javascript", ".js")
@@ -21,15 +24,36 @@ load_dotenv(
 
 app = Flask(__name__)
 env_helper: EnvHelper = EnvHelper()
-
+token_validator = TokenValidator(env_helper.TENANT_ID, env_helper.CLIENT_ID)
 
 @app.route("/", defaults={"path": "index.html"})
 @app.route("/<path:path>")
 def static_file(path):
     return app.send_static_file(path)
 
+def auth_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token:
+            return Response("Forbidden", status=401)
+        
+        try:
+            token_validator.validate(token)
+        except jwt.ExpiredSignatureError:
+            return Response("Token expired", status=401)
+        except jwt.InvalidTokenError:
+            return Response("Forbidden", status=401)
+        except Exception as e:
+            errorMessage = str(e)
+            logging.exception(f"Exception occured while access token validation | {errorMessage}")
+            return Response("Internal service errror", status=500)
+        return f(*args, **kwargs)
+
+    return decorated_function
 
 @app.route("/api/config", methods=["GET"])
+@auth_required
 def get_config():
     # Return the configuration data as JSON
     return jsonify(
@@ -39,7 +63,6 @@ def get_config():
             "AZURE_OPENAI_ENDPOINT": env_helper.AZURE_OPENAI_ENDPOINT,
         }
     )
-
 
 def prepare_body_headers_with_data(request):
     request_messages = request.json["messages"]
@@ -265,6 +288,7 @@ def conversation_without_data(request):
 
 
 @app.route("/api/conversation/azure_byod", methods=["GET", "POST"])
+@auth_required
 def conversation_azure_byod():
     try:
         if env_helper.should_use_data():
@@ -297,6 +321,7 @@ def get_orchestrator_config():
 
 
 @app.route("/api/conversation/custom", methods=["GET", "POST"])
+@auth_required
 def conversation_custom():
     message_orchestrator = get_message_orchestrator()
 
