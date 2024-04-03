@@ -7,8 +7,32 @@ from azure.storage.blob import (
     ContentSettings,
     UserDelegationKey,
 )
+from azure.storage.queue import QueueClient, BinaryBase64EncodePolicy
 from .EnvHelper import EnvHelper
 from azure.identity import DefaultAzureCredential
+
+
+def connection_string(account_name: str = None, account_key: str = None):
+    return f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+
+
+def create_queue_client():
+    env_helper: EnvHelper = EnvHelper()
+    if env_helper.AZURE_AUTH_TYPE == "rbac":
+        return QueueClient(
+            account_url=f"https://{env_helper.AZURE_BLOB_ACCOUNT_NAME}.queue.core.windows.net/",
+            queue_name=env_helper.DOCUMENT_PROCESSING_QUEUE_NAME,
+            credential=DefaultAzureCredential(),
+            message_encode_policy=BinaryBase64EncodePolicy(),
+        )
+
+    else:
+        return QueueClient.from_connection_string(
+            conn_str=connection_string(
+                env_helper.AZURE_BLOB_ACCOUNT_NAME, env_helper.AZURE_BLOB_ACCOUNT_KEY
+            ),
+            queue_name=env_helper.DOCUMENT_PROCESSING_QUEUE_NAME,
+        )
 
 
 class AzureBlobStorageClient:
@@ -45,7 +69,7 @@ class AzureBlobStorageClient:
             self.account_key = (
                 account_key if account_key else env_helper.AZURE_BLOB_ACCOUNT_KEY
             )
-            self.connect_str = f"DefaultEndpointsProtocol=https;AccountName={self.account_name};AccountKey={self.account_key};EndpointSuffix=core.windows.net"
+            self.connect_str = connection_string(self.account_name, self.account_key)
             self.container_name: str = (
                 container_name
                 if container_name
