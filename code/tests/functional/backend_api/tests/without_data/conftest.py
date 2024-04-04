@@ -1,7 +1,7 @@
 import logging
 import pytest
-from tests.functional.app_config import AppConfig
-from tests.functional.common import get_free_port, start_app
+from tests.functional.backend_api.app_config import AppConfig
+from tests.functional.backend_api.common import get_free_port, start_app
 
 
 @pytest.fixture(scope="package")
