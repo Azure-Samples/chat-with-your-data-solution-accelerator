@@ -12,7 +12,7 @@ from .EnvHelper import EnvHelper
 from azure.identity import DefaultAzureCredential
 
 
-def connection_string(account_name: str = None, account_key: str = None):
+def connection_string(account_name: str, account_key: str):
     return f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
 
 
@@ -32,6 +32,7 @@ def create_queue_client():
                 env_helper.AZURE_BLOB_ACCOUNT_NAME, env_helper.AZURE_BLOB_ACCOUNT_KEY
             ),
             queue_name=env_helper.DOCUMENT_PROCESSING_QUEUE_NAME,
+            message_encode_policy=BinaryBase64EncodePolicy(),
         )
 
 
