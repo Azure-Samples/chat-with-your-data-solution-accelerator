@@ -23,12 +23,8 @@ body = {
 }
 
 
-def test_azure_byod_responds_successfully_when_streaming(
-    app_url: str, app_config: AppConfig, httpserver: HTTPServer
-):
-    # given
-    httpserver.clear_all_handlers()  # Clear default successful responses
-
+@pytest.fixture(scope="function", autouse=True)
+def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     httpserver.expect_request(
         f"/openai/deployments/{app_config.get('AZURE_OPENAI_MODEL')}/chat/completions",
         method="POST",
@@ -45,11 +41,20 @@ data: [DONE]
         ).substitute(model=app_config.get("AZURE_OPENAI_MODEL"))
     )
 
+    yield
+
+    httpserver.check()
+
+
+def test_azure_byod_responds_successfully_when_streaming(
+    app_url: str, app_config: AppConfig, httpserver: HTTPServer
+):
     # when
     response = requests.post(f"{app_url}{path}", json=body)
 
     # then
     assert response.status_code == 200
+    assert response.headers["Content-Type"] == "application/json-lines"
 
     response_lines = response.text.splitlines()
     assert len(response_lines) == 3
@@ -78,8 +83,14 @@ data: [DONE]
         ],
     }
 
-    assert response.headers["Content-Type"] == "application/json-lines"
 
+def test_post_makes_correct_call_to_azure_openai(
+    app_url: str, app_config: AppConfig, httpserver: HTTPServer
+):
+    # when
+    requests.post(f"{app_url}{path}", json=body)
+
+    # then
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
