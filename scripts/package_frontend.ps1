@@ -3,7 +3,7 @@ rm dist/* -r -Force
 
 # Python
 poetry export -o dist/requirements.txt
-cp app.py dist -Force
+cp *.py dist -Force
 cp backend dist -r -Force
 
 # Node

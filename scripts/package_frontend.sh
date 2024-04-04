@@ -4,7 +4,7 @@ set -eou pipefail
 mkdir -p dist
 rm -rf dist/*
 poetry export -o dist/requirements.txt
-cp app.py dist
+cp *.py dist
 cp -r backend dist
 
 cd frontend

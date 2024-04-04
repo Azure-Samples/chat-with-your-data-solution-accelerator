@@ -9,9 +9,7 @@ import requests
 from tests.functional.backend_api.app_config import AppConfig
 from threading import Thread
 import trustme
-import importlib
-from app import app as flask_app
-import app
+from create_app import create_app
 
 
 @pytest.fixture(scope="session")
@@ -160,9 +158,8 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
 
 def start_app(app_port: int) -> Thread:
     logging.info(f"Starting application on port {app_port}")
-    # ensure app is reloaded now that new environment variables are set
-    importlib.reload(app)
-    app_process = threading.Thread(target=lambda: flask_app.run(port=app_port))
+    app = create_app()
+    app_process = threading.Thread(target=lambda: app.run(port=app_port))
     app_process.daemon = True
     app_process.start()
     wait_for_app(app_port)
