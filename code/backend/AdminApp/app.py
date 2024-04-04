@@ -1,7 +1,6 @@
 import logging
 import os
 import streamlit as st
-import msal
 from dotenv import load_dotenv
 from batch.utilities.helpers.EnvHelper import EnvHelper
 from components.login import isLoggedIn
