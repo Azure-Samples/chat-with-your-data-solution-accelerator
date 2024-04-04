@@ -1,0 +1,30 @@
+name: Admin Web App Docker Image
+
+on:
+  workflow_run:
+    workflows: [Tests]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  docker-build-admin:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+   
+    - name: Docker Login
+      uses: docker/login-action@v3
+      with:
+        registry: fruoccopublic.azurecr.io
+        username: fruoccopublic
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    - uses: actions/checkout@v4
+
+    - name: Build the Admin Docker image
+      run:
+        docker pull fruoccopublic.azurecr.io/rag-adminwebapp:latest || true;
+        docker build . --file docker/Admin.Dockerfile --cache-from fruoccopublic.azurecr.io/rag-adminwebapp:latest --tag fruoccopublic.azurecr.io/rag-adminwebapp:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
+        docker tag fruoccopublic.azurecr.io/rag-adminwebapp:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER fruoccopublic.azurecr.io/rag-adminwebapp:latest;
+        docker push fruoccopublic.azurecr.io/rag-adminwebapp:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER;
+        docker push fruoccopublic.azurecr.io/rag-adminwebapp:latest;
