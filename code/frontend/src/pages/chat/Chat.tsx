@@ -6,10 +6,9 @@ import {
   SquareRegular,
 } from "@fluentui/react-icons";
 import {
-  SpeechConfig,
-  AudioConfig,
   SpeechRecognizer,
   ResultReason,
+  AutoDetectSourceLanguageResult,
 } from "microsoft-cognitiveservices-speech-sdk";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -18,12 +17,12 @@ import { v4 as uuidv4 } from "uuid";
 
 import styles from "./Chat.module.css";
 import Azure from "../../assets/Azure.svg";
+import { multiLingualSpeechRecognizer } from "../../util/SpeechToText";
 
 import {
   ChatMessage,
   ConversationRequest,
-  conversationApi,
-  customConversationApi,
+customConversationApi,
   Citation,
   ToolMessageContent,
   ChatResponse,
@@ -168,12 +167,12 @@ const Chat = () => {
           "Azure Speech subscription key or region is not defined."
         );
       } else {
-        const speechConfig = SpeechConfig.fromSubscription(
-          subscriptionKey,
-          serviceRegion
-        );
-        const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
-        const recognizer = new SpeechRecognizer(speechConfig, audioConfig);
+        const recognizer = multiLingualSpeechRecognizer(subscriptionKey, serviceRegion, [
+          "en-US",
+          "fr-FR",
+          "de-DE",
+          "it-IT"
+        ]);
         recognizerRef.current = recognizer; // Store the recognizer in the ref
 
         recognizerRef.current.recognized = (s, e) => {
