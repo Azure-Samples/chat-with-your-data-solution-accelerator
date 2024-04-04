@@ -38,6 +38,10 @@ uitest: ## 🧪 Run the ui tests in headless mode
 	@echo -e "\e[34m$@\e[0m" || true
 	@cd tests/integration/ui && npm install && npx cypress run --env ADMIN_WEBSITE_NAME=$(ADMIN_WEBSITE_NAME),FRONTEND_WEBSITE_NAME=$(FRONTEND_WEBSITE_NAME)
 
+build-frontend: ## 🏗️ Build the Frontend webapp
+	@echo -e "\e[34m$@\e[0m" || true
+	@cd code/frontend && npm install && npm run build
+
 unittest-frontend: ## 🏗️ Unit test the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
 	@cd code/frontend && npm install && npm run build && npm run test
