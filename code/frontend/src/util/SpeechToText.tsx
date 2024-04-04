@@ -16,7 +16,6 @@ export const multiLingualSpeechRecognizer = (
           serviceRegion
         );
         const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
-        var autoDetectSourceLanguageConfig = AutoDetectSourceLanguageConfig.fromLanguages(languages)
-        const recognizer = SpeechRecognizer.FromConfig(speechConfig, autoDetectSourceLanguageConfig, audioConfig);
-        return recognizer;
+        const autoDetectSourceLanguageConfig = AutoDetectSourceLanguageConfig.fromLanguages(languages)
+        return SpeechRecognizer.FromConfig(speechConfig, autoDetectSourceLanguageConfig, audioConfig);
     };
