@@ -2,7 +2,6 @@ import os
 
 from unittest.mock import Mock
 from unittest.mock import patch
-from requests.auth import _basic_auth_str
 from app import app
 from backend.auth.token_validator import TokenValidator
 

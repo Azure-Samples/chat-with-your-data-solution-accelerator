@@ -1,4 +1,6 @@
 import json
+from unittest.mock import patch
+from backend.auth.token_validator import TokenValidator
 import pytest
 import requests
 
@@ -9,7 +11,8 @@ pytestmark = pytest.mark.functional
 
 def test_config_returned(app_url: str, app_config: AppConfig):
     # when
-    response = requests.get(f"{app_url}/api/config")
+    with patch.object(TokenValidator, 'validate', return_value=None):
+        response = requests.get(f"{app_url}/api/config", headers={"Authorization": "Bearer valid_token"})
 
     # then
     assert response.status_code == 200
