@@ -88,4 +88,4 @@ jobs:
             coverage.xml
           if-no-files-found: error
       - name: Run Functional tests
-        run: poetry run pytest -c pytest.functional.ini -m "functional"
+        run: poetry run pytest -m "functional"

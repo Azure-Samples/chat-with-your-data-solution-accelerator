@@ -28,7 +28,7 @@ unittest: ## 🧪 Run the unit tests
 
 functionaltest: ## 🧪 Run the functional tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@ poetry run pytest -c pytest.functional.ini -m "functional"
+	@ poetry run pytest -m "functional"
 
 build-frontend: ## 🏗️ Build the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
