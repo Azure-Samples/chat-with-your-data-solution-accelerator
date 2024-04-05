@@ -1,6 +1,7 @@
 from multiprocessing import Process
 import socket
 import time
+from backend.auth.token_validator import TokenValidator
 import pytest
 from pytest_httpserver import HTTPServer
 import requests
@@ -66,7 +67,8 @@ def wait_for_app(port: int):
 
     while attempts < 10:
         try:
-            response = requests.get(f"http://localhost:{port}/api/config")
+            with patch.object(TokenValidator, 'validate', return_value=None):
+                response = requests.get(f"http://localhost:{port}/api/config", headers={"Authorization": "Bearer valid_token"},)
             if response.status_code == 200:
                 return
         except Exception:
