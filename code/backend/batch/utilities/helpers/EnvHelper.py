@@ -152,6 +152,7 @@ class EnvHelper:
         # Azure AD
         self.TENANT_ID = os.getenv("TENANT_ID")
         self.CLIENT_ID = os.getenv("CLIENT_ID")
+        self.ADMIN_GROUP_ID = os.getenv("ADMIN_GROUP_ID")
 
     def should_use_data(self) -> bool:
         if (
