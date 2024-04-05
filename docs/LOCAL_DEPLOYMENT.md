@@ -19,7 +19,14 @@ The easiest way to run this accelerator is in a VS Code Dev Containers, which wi
 
 > NOTE: It may take up to an hour for the application to be fully deployed. If you see a "Python Developer" welcome screen or an error page, then wait a bit and refresh the page.
 
-**Notes:** the default auth type uses keys, if you want to switch to rbac, please run `azd env set AUTH_TYPE rbac`.
+> NOTE: The default auth type uses keys that are stored in the Azure Keyvault. If you want to use RBAC-based auth (more secure), please run before deploying:
+
+```bash
+azd env set AZURE_AUTH_TYPE rbac
+azd env set USE_KEY_VAULT false
+```
+
+Also please refer to the section on [setting up RBAC auth](#authenticate-using-rbac).
 
 ## Detailed Development Container setup instructions
 
@@ -142,8 +149,9 @@ Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.
 #### Debugging the batch processing functions locally
 Rename the file `local.settings.json.sample` in the `batch` folder to `local.settings.json` and update the `AzureWebJobsStorage` value with the storage account connection string.
 
-Execute the above [shell command](#L81) to run the function locally. You may need to stop the deployed function on the portal so that all requests are debugged locally.
+Copy the .env file from [previous section](#local-debugging) to the `batch` folder.
 
+Execute the above [shell command](#L81) to run the function locally. You may need to stop the deployed function on the portal so that all requests are debugged locally. To trigger the function, you can click on the corresponding URL that will be printed to the terminal.
 
 ## Environment variables
 
