@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "14235243275465943137"
+      "templateHash": "4295550392354123736"
     }
   },
   "parameters": {
@@ -6551,7 +6551,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.54.24096",
-              "templateHash": "12912745910813883723"
+              "templateHash": "17960689149478457729"
             }
           },
           "parameters": {
@@ -7446,7 +7446,7 @@
               "condition": "[equals(parameters('authType'), 'rbac')]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2022-09-01",
-              "name": "storage-role-function",
+              "name": "storage-blob-role-function",
               "properties": {
                 "expressionEvaluationOptions": {
                   "scope": "inner"
@@ -7458,6 +7458,75 @@
                   },
                   "roleDefinitionId": {
                     "value": "ba92f5b4-2d11-453d-a403-e96b0029c9fe"
+                  },
+                  "principalType": {
+                    "value": "ServicePrincipal"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.26.54.24096",
+                      "templateHash": "5795525499710207356"
+                    },
+                    "description": "Creates a role assignment for a service principal."
+                  },
+                  "parameters": {
+                    "principalId": {
+                      "type": "string"
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "defaultValue": "ServicePrincipal",
+                      "allowedValues": [
+                        "Device",
+                        "ForeignGroup",
+                        "Group",
+                        "ServicePrincipal",
+                        "User"
+                      ]
+                    },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+                      "properties": {
+                        "principalId": "[parameters('principalId')]",
+                        "principalType": "[parameters('principalType')]",
+                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+                      }
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name')))]"
+              ]
+            },
+            {
+              "condition": "[equals(parameters('authType'), 'rbac')]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "storage-queue-role-function",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "principalId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.identityPrincipalId.value]"
+                  },
+                  "roleDefinitionId": {
+                    "value": "974c5e8b-45b9-4653-ba55-5f855dd0fb88"
                   },
                   "principalType": {
                     "value": "ServicePrincipal"
@@ -7694,7 +7763,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.54.24096",
-              "templateHash": "12912745910813883723"
+              "templateHash": "17960689149478457729"
             }
           },
           "parameters": {
@@ -8589,7 +8658,7 @@
               "condition": "[equals(parameters('authType'), 'rbac')]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2022-09-01",
-              "name": "storage-role-function",
+              "name": "storage-blob-role-function",
               "properties": {
                 "expressionEvaluationOptions": {
                   "scope": "inner"
@@ -8601,6 +8670,75 @@
                   },
                   "roleDefinitionId": {
                     "value": "ba92f5b4-2d11-453d-a403-e96b0029c9fe"
+                  },
+                  "principalType": {
+                    "value": "ServicePrincipal"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.26.54.24096",
+                      "templateHash": "5795525499710207356"
+                    },
+                    "description": "Creates a role assignment for a service principal."
+                  },
+                  "parameters": {
+                    "principalId": {
+                      "type": "string"
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "defaultValue": "ServicePrincipal",
+                      "allowedValues": [
+                        "Device",
+                        "ForeignGroup",
+                        "Group",
+                        "ServicePrincipal",
+                        "User"
+                      ]
+                    },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+                      "properties": {
+                        "principalId": "[parameters('principalId')]",
+                        "principalType": "[parameters('principalType')]",
+                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+                      }
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name')))]"
+              ]
+            },
+            {
+              "condition": "[equals(parameters('authType'), 'rbac')]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "storage-queue-role-function",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "principalId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.identityPrincipalId.value]"
+                  },
+                  "roleDefinitionId": {
+                    "value": "974c5e8b-45b9-4653-ba55-5f855dd0fb88"
                   },
                   "principalType": {
                     "value": "ServicePrincipal"
