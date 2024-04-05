@@ -24,11 +24,11 @@ lint: ## 🧹 Lint the code
 
 unittest: ## 🧪 Run the unit tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@poetry run pytest -m "not azure and not functional"
+	@poetry run pytest --no-cov -m "not azure and not functional"
 
 functionaltest: ## 🧪 Run the functional tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@ poetry run pytest -m "functional"
+	@ poetry run pytest --no-cov -m "functional"
 
 build-frontend: ## 🏗️ Build the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
