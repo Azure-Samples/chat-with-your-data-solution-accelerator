@@ -52,6 +52,10 @@ def auth_required(f):
 
     return decorated_function
 
+@app.route("/api/health", methods=["GET"])
+def get_health():
+    return "ok"
+    
 @app.route("/api/config", methods=["GET"])
 @auth_required
 def get_config():

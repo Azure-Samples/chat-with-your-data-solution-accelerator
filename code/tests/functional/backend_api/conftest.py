@@ -68,8 +68,7 @@ def wait_for_app(port: int):
 
     while attempts < 10:
         try:
-            with patch.object(TokenValidator, 'validate', return_value=None):
-                response = requests.get(f"http://localhost:{port}/api/config", headers={"Authorization": "Bearer valid_token"},)
+            response = requests.get(f"http://localhost:{port}/api/health")
             if response.status_code == 200:
                 return
         except Exception:
