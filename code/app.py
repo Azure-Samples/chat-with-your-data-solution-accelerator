@@ -2,6 +2,7 @@ from functools import wraps
 import json
 import logging
 from os import path
+import os
 import jwt
 import requests
 from openai import AzureOpenAI
@@ -34,16 +35,19 @@ def static_file(path):
 def auth_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        if os.environ.get("DISABLE_AUTH"):
+            return f(*args, **kwargs)
+        
         token = request.headers.get('Authorization')
         if not token:
-            return Response("Forbidden", status=401)
+            return Response("Unauthorized", status=401)
         
         try:
             token_validator.validate(token)
         except jwt.ExpiredSignatureError:
             return Response("Token expired", status=401)
         except jwt.InvalidTokenError:
-            return Response("Forbidden", status=401)
+            return Response("Unauthorized", status=401)
         except Exception as e:
             errorMessage = str(e)
             logging.exception(f"Exception occured while access token validation | {errorMessage}")
