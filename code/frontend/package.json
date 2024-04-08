@@ -11,10 +11,10 @@
     },
     "dependencies": {
         "@babel/traverse": "^7.24.0",
-        "@fluentui/react": "^8.117.1",
-        "@fluentui/react-icons": "^2.0.233",
-        "@fortawesome/fontawesome-svg-core": "^6.5.1",
-        "@fortawesome/free-solid-svg-icons": "^6.5.1",
+        "@fluentui/react": "^8.117.2",
+        "@fluentui/react-icons": "^2.0.234",
+        "@fortawesome/fontawesome-svg-core": "^6.5.2",
+        "@fortawesome/free-solid-svg-icons": "^6.5.2",
         "@fortawesome/react-fontawesome": "github:fortawesome/react-fontawesome",
         "lodash": "^4.17.21",
         "lodash-es": "^4.17.21",
@@ -35,14 +35,14 @@
         "@types/mocha": "^10.0.6",
         "@types/node": "^20.12.5",
         "@types/react": "^18.2.74",
-        "@types/react-dom": "^18.2.23",
+        "@types/react-dom": "^18.2.24",
         "@types/uuid": "^9.0.8",
         "@vitejs/plugin-react": "^4.2.1",
         "chai": "^5.1.0",
         "mocha": "^10.4.0",
         "prettier": "^3.2.5",
         "ts-node": "^10.9.2",
-        "typescript": "^5.4.3",
-        "vite": "^5.2.7"
+        "typescript": "^5.4.4",
+        "vite": "^5.2.8"
     }
 }
