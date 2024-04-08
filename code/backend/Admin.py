@@ -10,7 +10,8 @@ load_dotenv()
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-configure_azure_monitor()
+if os.getenv("APPLICATIONINSIGHTS_ENABLED", "false").lower() == "true":
+    configure_azure_monitor()
 
 logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
     logging.WARNING
