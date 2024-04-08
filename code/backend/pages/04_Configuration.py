@@ -30,6 +30,12 @@ config = ConfigHelper.get_active_config_or_default()
 # Populate all fields from Config values
 # # # if 'condense_question_prompt' not in st.session_state:
 # # #     st.session_state['condense_question_prompt'] = config.prompts.condense_question_prompt
+if "answering_system_prompt" not in st.session_state:
+    st.session_state["answering_system_prompt"] = config.prompts.answering_system_prompt
+if "include_few_shot_example" not in st.session_state:
+    st.session_state["include_few_shot_example"] = (
+        config.prompts.include_few_shot_example
+    )
 if "answering_prompt" not in st.session_state:
     st.session_state["answering_prompt"] = config.prompts.answering_prompt
 if "post_answering_prompt" not in st.session_state:
@@ -97,12 +103,22 @@ try:
             )
 
     # # # condense_question_prompt_help = "This prompt is used to convert the user's input to a standalone question, using the context of the chat history."
-    answering_prompt_help = "This prompt is used to answer the user's question, using the sources that were retrieved from the knowledge base."
+    answering_system_prompt_help = "The system prompt used to answer the user's question, using the sources that were retrieved from the knowledge base."
+    answering_prompt_help = "Deprecated in favour of answering_system_prompt. This prompt is used to answer the user's question, using the sources that were retrieved from the knowledge base."
     post_answering_prompt_help = "You can configure a post prompt that allows to fact-check or process the answer, given the sources, question and answer. This prompt needs to return `True` or `False`."
     post_answering_filter_help = "The message that is returned to the user, when the post-answering prompt returns."
 
     with st.expander("Prompt configuration", expanded=True):
         # # # st.text_area("Condense question prompt", key='condense_question_prompt', on_change=validate_question_prompt, help=condense_question_prompt_help, height=200)
+        st.text_area(
+            "Answering system prompt",
+            key="answering_system_prompt",
+            help=answering_system_prompt_help,
+            height=400,
+        )
+
+        st.checkbox("Include few-shot example", key="include_few_shot_example")
+
         st.text_area(
             "Answering prompt",
             key="answering_prompt",
@@ -185,6 +201,10 @@ try:
         current_config = {
             "prompts": {
                 "condense_question_prompt": "",  # st.session_state['condense_question_prompt'],
+                "answering_system_prompt": st.session_state["answering_system_prompt"],
+                "include_few_shot_example": st.session_state[
+                    "include_few_shot_example"
+                ],
                 "answering_prompt": st.session_state["answering_prompt"],
                 "post_answering_prompt": st.session_state["post_answering_prompt"],
                 "enable_post_answering_prompt": st.session_state[
