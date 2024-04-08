@@ -33,6 +33,9 @@ param hostingPlanSku string = 'B3'
 @description('Name of Web App')
 param websiteName string = 'web-${resourceToken}'
 
+@description('Name of Admin Web App')
+param adminWebsiteName string = '${websiteName}-admin'
+
 @description('Name of Application Insights')
 param applicationInsightsName string = 'appinsights-${resourceToken}'
 
@@ -147,6 +150,9 @@ param contentSafetyName string = 'contentsafety-${resourceToken}'
 
 @description('Azure Speech Service Name')
 param speechServiceName string = 'speech-${resourceToken}'
+
+@description('Log Analytics Name')
+param logAnalyticsName string = 'la-${resourceToken}'
 
 param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'
@@ -440,10 +446,10 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
 }
 
 module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
-  name: '${websiteName}-admin'
+  name: adminWebsiteName
   scope: rg
   params: {
-    name: '${websiteName}-admin'
+    name: adminWebsiteName
     location: location
     tags: union(tags, { 'azd-service-name': 'adminweb' })
     runtimeName: 'python'
@@ -501,10 +507,10 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
 }
 
 module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container') {
-  name: '${websiteName}-admin-docker'
+  name: '${adminWebsiteName}-docker'
   scope: rg
   params: {
-    name: '${websiteName}-admin-docker'
+    name: '${adminWebsiteName}-docker'
     location: location
     tags: union(tags, { 'azd-service-name': 'adminweb-docker' })
     dockerFullImageName: 'fruoccopublic.azurecr.io/rag-adminwebapp'
@@ -569,10 +575,23 @@ module monitoring './core/monitor/monitoring.bicep' = {
     tags: {
       'hidden-link:${resourceId('Microsoft.Web/sites', applicationInsightsName)}': 'Resource'
     }
-    logAnalyticsName: 'la-${resourceToken}'
+    logAnalyticsName: logAnalyticsName
     applicationInsightsDashboardName: 'dash-${applicationInsightsName}'
   }
 }
+
+var wookbookContents = loadTextContent('workbooks/workbook.json')
+var wookbookContentsSubReplaced = replace(wookbookContents, '{subscription-id}', subscription().id)
+var wookbookContentsRGReplaced = replace(wookbookContentsSubReplaced, '{resource-group}', rgName)
+var wookbookContentsAppServicePlanReplaced = replace(wookbookContentsRGReplaced, '{app-service-plan}', hostingPlanName)
+var wookbookContentsBackendAppServiceReplaced = hostingModel == 'container' ? replace(wookbookContentsAppServicePlanReplaced, '{backend-app-service}', '${functionName}-docker') : replace(wookbookContentsAppServicePlanReplaced, '{backend-app-service}', functionName)
+var wookbookContentsWebAppServiceReplaced = hostingModel == 'container' ? replace(wookbookContentsBackendAppServiceReplaced, '{web-app-service}', '${websiteName}-docker') : replace(wookbookContentsBackendAppServiceReplaced, '{web-app-service}', websiteName)
+var wookbookContentsAdminAppServiceReplaced = hostingModel == 'container' ? replace(wookbookContentsWebAppServiceReplaced, '{admin-app-service}', '${adminWebsiteName}-docker') : replace(wookbookContentsWebAppServiceReplaced, '{admin-app-service}', adminWebsiteName)
+var wookbookContentsEventGridReplaced = replace(wookbookContentsAdminAppServiceReplaced, '{event-grid}', eventGridSystemTopicName)
+var wookbookContentsLogAnalyticsReplaced = replace(wookbookContentsEventGridReplaced, '{log-analytics}', logAnalyticsName)
+var wookbookContentsOpenAIReplaced = replace(wookbookContentsLogAnalyticsReplaced, '{open-ai}', azureOpenAIResourceName)
+var wookbookContentsAISearchReplaced = replace(wookbookContentsOpenAIReplaced, '{ai-search}', azureAISearchName)
+var wookbookContentsStorageAccountReplaced = replace(wookbookContentsAISearchReplaced, '{storage-account}', storageAccountName)
 
 module workbook './core/monitor/workbook.bicep' = {
   name: workbookDisplayName
@@ -581,7 +600,7 @@ module workbook './core/monitor/workbook.bicep' = {
     workbookId: 'd9bd03af-7ef0-4bac-b91b-b14ee4c7002b'
     workbookDisplayName: workbookDisplayName
     location: location
-    workbookContents: loadTextContent('workbooks/workbook.json')
+    workbookContents: wookbookContentsStorageAccountReplaced
   }
 }
 
