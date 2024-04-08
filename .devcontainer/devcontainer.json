@@ -33,12 +33,10 @@
 				"zeshuaro.vscode-python-poetry"
 			],
 			"settings": {
-				"azureFunctions.projectSubpath": "code/backend/batch",
                 "python.defaultInterpreterPath": "/usr/local/bin/python",
 				"python.pythonPath": "/usr/local/bin/python",
-				"files.insertFinalNewline": true,
-				"files.trimFinalNewlines": true,
-				"files.trimTrailingWhitespace": true
+				"remote.autoForwardPortsFallback": 0,
+				"remote.autoForwardPortsSource": "process"
             }
 		}
 	}
