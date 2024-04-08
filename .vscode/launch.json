@@ -73,6 +73,13 @@
             "envFile": "${input:dotEnvFilePath}",
         }
     ],
+    "compounds": [
+        {
+            "name": "Launch Frontend",
+            "configurations": [ "Launch Frontend (UI)", "Launch Frontend (api)" ],
+            "stopAll": true
+        }
+    ],
     "inputs": [
         {
             "id": "dotEnvFilePath",
