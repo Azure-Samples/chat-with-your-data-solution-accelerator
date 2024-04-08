@@ -13,3 +13,14 @@
 .signOutButton {
   margin-right: 126px;
 }
+
+.authorizedBlock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.authorizedBlock .signOutButton {
+  margin: 20px 60px;
+}

@@ -2,7 +2,6 @@ import { msalInstance } from "..";
 import { loginRequest } from "../authConfig";
 import { ConversationRequest } from "./models";
 
-
 export async function customConversationApi(options: ConversationRequest, abortSignal: AbortSignal): Promise<Response> {
     const account = msalInstance.getActiveAccount();
     if (!account) {

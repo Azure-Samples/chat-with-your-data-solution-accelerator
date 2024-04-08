@@ -20,3 +20,9 @@ export const loginRequest: PopupRequest = {
 export const graphConfig = {
     graphMeEndpoint: "https://graph.microsoft.com/v1.0/me"
 };
+
+export const appRoles = ['TaskUser', 'TaskAdmin']; // '*' - all user have access
+
+// export const groupIds = ["1aef6fd4-0eff-4d0d-a2be-6da05f080467"]; // '*' - all user have access
+export const groupIds = ["7829d37c-55f9-43ea-8f68-7458e3875f81"];
+// export const groupIds = ["*"]
