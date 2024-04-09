@@ -2,8 +2,10 @@ import azure.functions as func
 import logging
 import json
 import sys
-from utilities.helpers.EnvHelper import EnvHelper
-from utilities.helpers.OrchestratorHelper import Orchestrator
+from backend.batch.utilities.helpers.EnvHelper import EnvHelper
+from backend.batch.utilities.helpers.OrchestratorHelper import Orchestrator
+from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
+
 
 sys.path.append("..")
 
@@ -13,6 +15,10 @@ env_helper: EnvHelper = EnvHelper()
 
 @bp_get_conversation_response.route(route="GetConversationResponse")
 def get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
+    do_get_conversation_response(req)
+
+
+def do_get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Python HTTP trigger function processed a request.")
 
     message_orchestrator = Orchestrator()
@@ -35,7 +41,6 @@ def get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
                         user_assistant_messages[i + 1]["content"],
                     )
                 )
-        from utilities.helpers.ConfigHelper import ConfigHelper
 
         messages = message_orchestrator.handle_message(
             user_message=user_message,

@@ -2,13 +2,14 @@ import logging
 import json
 import azure.functions as func
 from urllib.parse import urlparse
-import sys
 
-from utilities.helpers.AzureBlobStorageHelper import AzureBlobStorageClient
-from utilities.helpers.DocumentProcessorHelper import DocumentProcessor
-from utilities.helpers.ConfigHelper import ConfigHelper
+from backend.batch.utilities.helpers.AzureBlobStorageHelper import (
+    AzureBlobStorageClient,
+)
+from backend.batch.utilities.helpers.DocumentProcessorHelper import DocumentProcessor
+from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
 
-sys.path.append("..")
+# sys.path.append("..")
 
 bp_batch_push_results = func.Blueprint()
 
@@ -27,6 +28,10 @@ def _get_file_name_from_message(msg: func.QueueMessage) -> str:
     arg_name="msg", queue_name="doc-processing", connection="AzureWebJobsStorage"
 )
 def batch_push_results(msg: func.QueueMessage) -> None:
+    do_batch_push_results(msg)
+
+
+def do_batch_push_results(msg: func.QueueMessage) -> None:
     logging.info(
         "Python queue trigger function processed a queue item: %s",
         msg.get_body().decode("utf-8"),
@@ -39,6 +44,7 @@ def batch_push_results(msg: func.QueueMessage) -> None:
     file_sas = blob_client.get_blob_sas(file_name)
     # Get file extension's processors
     file_extension = file_name.split(".")[-1]
+
     processors = list(
         filter(
             lambda x: x.document_type.lower() == file_extension.lower(),

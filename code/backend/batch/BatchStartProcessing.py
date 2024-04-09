@@ -2,8 +2,8 @@ import logging
 import json
 import azure.functions as func
 import sys
-from utilities.helpers.EnvHelper import EnvHelper
-from utilities.helpers.AzureBlobStorageHelper import (
+from backend.batch.utilities.helpers.EnvHelper import EnvHelper
+from backend.batch.utilities.helpers.AzureBlobStorageHelper import (
     AzureBlobStorageClient,
     create_queue_client,
 )
@@ -15,6 +15,10 @@ env_helper: EnvHelper = EnvHelper()
 
 @bp_batch_start_processing.route(route="BatchStartProcessing")
 def batch_start_processing(req: func.HttpRequest) -> func.HttpResponse:
+    return do_batch_start_processing(req)
+
+
+def do_batch_start_processing(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Requested to start processing all documents received")
     # Set up Blob Storage Client
     azure_blob_storage_client = AzureBlobStorageClient()
