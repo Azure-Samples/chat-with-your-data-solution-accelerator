@@ -16,7 +16,7 @@ from langchain_core.documents import Document
 from langchain_core.messages import SystemMessage
 
 from ..helpers.AzureSearchHelper import AzureSearchHelper
-from ..helpers.ConfigHelper import Config, ConfigHelper
+from ..helpers.ConfigHelper import ConfigHelper
 from ..helpers.EnvHelper import EnvHelper
 from ..helpers.LLMHelper import LLMHelper
 from ..common.Answer import Answer
@@ -31,6 +31,7 @@ class QuestionAnswerTool(AnsweringToolBase):
         self.vector_store = AzureSearchHelper().get_vector_store()
         self.verbose = True
         self.env_helper = EnvHelper()
+        self.config = ConfigHelper.get_active_config_or_default()
 
         self._user_prompt = """## Retrieved Documents
 {documents}
@@ -69,11 +70,9 @@ class QuestionAnswerTool(AnsweringToolBase):
             "answer": "The Dual Transformer Encoder (DTE) is a framework for sentence representation learning that can be used to train, infer, and evaluate sentence similarity models[doc1][doc2]. It builds upon existing transformer-based text representations and applies smoothness inducing technology and Noise Contrastive Estimation for improved robustness and faster training[doc1]. DTE also offers pretrained models for in-context learning, which can be used to find semantically similar natural language utterances[doc2]. These models can be further finetuned for specific tasks, such as prompt crafting, to enhance the performance of downstream inference models like GPT-3[doc2][doc3][doc4]. However, this finetuning may require a significant amount of data[doc3][doc4].",
         }
 
-    def legacy_generate_llm_chain(
-        self, config: Config, question: str, sources: list[Document]
-    ):
+    def legacy_generate_llm_chain(self, question: str, sources: list[Document]):
         answering_prompt = PromptTemplate(
-            template=config.prompts.answering_prompt,
+            template=self.config.prompts.answering_prompt,
             input_variables=["question", "sources"],
         )
 
@@ -89,13 +88,14 @@ class QuestionAnswerTool(AnsweringToolBase):
 
     def generate_llm_chain(
         self,
-        config: Config,
         question: str,
         chat_history: list[dict],
         sources: list[Document],
     ):
         examples = (
-            [self._few_shot_example] if config.prompts.include_few_shot_example else []
+            [self._few_shot_example]
+            if self.config.prompts.include_few_shot_example
+            else []
         )
 
         example_prompt = ChatPromptTemplate.from_messages(
@@ -112,7 +112,7 @@ class QuestionAnswerTool(AnsweringToolBase):
 
         answering_prompt = ChatPromptTemplate.from_messages(
             [
-                SystemMessage(content=config.prompts.answering_system_prompt),
+                SystemMessage(content=self.config.prompts.answering_system_prompt),
                 few_shot_prompt,
                 SystemMessage(content=self.env_helper.AZURE_OPENAI_SYSTEM_MESSAGE),
                 MessagesPlaceholder("chat_history"),
@@ -137,21 +137,17 @@ class QuestionAnswerTool(AnsweringToolBase):
         }
 
     def answer_question(self, question: str, chat_history: list[dict], **kwargs: dict):
-        config = ConfigHelper.get_active_config_or_default()
-
         # Retrieve documents as sources
         sources = self.vector_store.similarity_search(
             query=question, k=4, search_type="hybrid"
         )
 
         # If answering_prompt has been set, then use legacy_generate_llm_chain for backwards compatibility
-        if config.prompts.answering_prompt:
-            answering_prompt, input = self.legacy_generate_llm_chain(
-                config, question, sources
-            )
+        if self.config.prompts.answering_prompt:
+            answering_prompt, input = self.legacy_generate_llm_chain(question, sources)
         else:
             answering_prompt, input = self.generate_llm_chain(
-                config, question, chat_history, sources
+                question, chat_history, sources
             )
 
         llm_helper = LLMHelper()
