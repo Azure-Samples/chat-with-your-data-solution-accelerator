@@ -1,14 +1,12 @@
 import logging
 import json
 import azure.functions as func
-import sys
 from backend.batch.utilities.helpers.EnvHelper import EnvHelper
 from backend.batch.utilities.helpers.AzureBlobStorageHelper import (
     AzureBlobStorageClient,
     create_queue_client,
 )
 
-sys.path.append("..")
 bp_batch_start_processing = func.Blueprint()
 env_helper: EnvHelper = EnvHelper()
 

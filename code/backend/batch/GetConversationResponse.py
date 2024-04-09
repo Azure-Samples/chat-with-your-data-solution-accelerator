@@ -1,13 +1,10 @@
 import azure.functions as func
 import logging
 import json
-import sys
 from backend.batch.utilities.helpers.EnvHelper import EnvHelper
 from backend.batch.utilities.helpers.OrchestratorHelper import Orchestrator
 from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
 
-
-sys.path.append("..")
 
 bp_get_conversation_response = func.Blueprint()
 env_helper: EnvHelper = EnvHelper()

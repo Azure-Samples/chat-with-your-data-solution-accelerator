@@ -9,7 +9,6 @@ from backend.batch.utilities.helpers.AzureBlobStorageHelper import (
 from backend.batch.utilities.helpers.DocumentProcessorHelper import DocumentProcessor
 from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
 
-# sys.path.append("..")
 
 bp_batch_push_results = func.Blueprint()
 

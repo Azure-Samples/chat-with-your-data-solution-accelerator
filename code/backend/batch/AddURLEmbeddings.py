@@ -1,12 +1,10 @@
 import logging
 import traceback
 import azure.functions as func
-import sys
 
 from backend.batch.utilities.helpers.DocumentProcessorHelper import DocumentProcessor
 from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
 
-sys.path.append("..")
 
 bp_add_url_embeddings = func.Blueprint()
 
