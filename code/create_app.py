@@ -10,6 +10,9 @@ import sys
 from backend.batch.utilities.helpers.EnvHelper import EnvHelper
 
 
+logger = logging.getLogger(__name__)
+
+
 def prepare_body_headers_with_data(request, env_helper: EnvHelper):
     request_messages = request.json["messages"]
 
@@ -320,7 +323,7 @@ def create_app():
                 return conversation_without_data(request, env_helper)
         except Exception as e:
             errorMessage = str(e)
-            logging.exception(
+            logger.exception(
                 f"Exception in /api/conversation/azure_byod | {errorMessage}"
             )
             return (
@@ -365,7 +368,7 @@ def create_app():
 
         except Exception as e:
             errorMessage = str(e)
-            logging.exception(f"Exception in /api/conversation/custom | {errorMessage}")
+            logger.exception(f"Exception in /api/conversation/custom | {errorMessage}")
             return (
                 jsonify(
                     {

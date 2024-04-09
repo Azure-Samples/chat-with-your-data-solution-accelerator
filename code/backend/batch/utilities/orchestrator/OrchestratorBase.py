@@ -1,10 +1,12 @@
-# Create an abstract class for orchestrator
+import logging
 from uuid import uuid4
 from typing import List, Optional
 from abc import ABC, abstractmethod
 from ..loggers.TokenLogger import TokenLogger
 from ..loggers.ConversationLogger import ConversationLogger
 from ..helpers.ConfigHelper import ConfigHelper
+
+logger = logging.getLogger(__name__)
 
 
 class OrchestratorBase(ABC):
@@ -13,7 +15,7 @@ class OrchestratorBase(ABC):
         self.config = ConfigHelper.get_active_config_or_default()
         self.message_id = str(uuid4())
         self.tokens = {"prompt": 0, "completion": 0, "total": 0}
-        print(f"New message id: {self.message_id} with tokens {self.tokens}")
+        logger.debug(f"New message id: {self.message_id} with tokens {self.tokens}")
         self.token_logger: TokenLogger = TokenLogger()
         self.conversation_logger: ConversationLogger = ConversationLogger()
 

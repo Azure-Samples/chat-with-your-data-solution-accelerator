@@ -12,6 +12,8 @@ sys.path.append("..")
 
 bp_batch_push_results = func.Blueprint()
 
+logger = logging.getLogger(__name__)
+
 
 def _get_file_name_from_message(msg: func.QueueMessage) -> str:
     message_body = json.loads(msg.get_body().decode("utf-8"))
@@ -27,7 +29,7 @@ def _get_file_name_from_message(msg: func.QueueMessage) -> str:
     arg_name="msg", queue_name="doc-processing", connection="AzureWebJobsStorage"
 )
 def batch_push_results(msg: func.QueueMessage) -> None:
-    logging.info(
+    logger.info(
         "Python queue trigger function processed a queue item: %s",
         msg.get_body().decode("utf-8"),
     )

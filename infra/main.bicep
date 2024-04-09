@@ -33,6 +33,9 @@ param hostingPlanSku string = 'B3'
 @description('Name of Web App')
 param websiteName string = 'web-${resourceToken}'
 
+@description('Name of Admin Web App')
+param adminWebsiteName string = '${websiteName}-admin'
+
 @description('Name of Application Insights')
 param applicationInsightsName string = 'appinsights-${resourceToken}'
 
@@ -147,6 +150,9 @@ param contentSafetyName string = 'contentsafety-${resourceToken}'
 
 @description('Azure Speech Service Name')
 param speechServiceName string = 'speech-${resourceToken}'
+
+@description('Log Analytics Name')
+param logAnalyticsName string = 'la-${resourceToken}'
 
 param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'
@@ -440,10 +446,10 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
 }
 
 module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
-  name: '${websiteName}-admin'
+  name: adminWebsiteName
   scope: rg
   params: {
-    name: '${websiteName}-admin'
+    name: adminWebsiteName
     location: location
     tags: union(tags, { 'azd-service-name': 'adminweb' })
     runtimeName: 'python'
@@ -501,10 +507,10 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
 }
 
 module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container') {
-  name: '${websiteName}-admin-docker'
+  name: '${adminWebsiteName}-docker'
   scope: rg
   params: {
-    name: '${websiteName}-admin-docker'
+    name: '${adminWebsiteName}-docker'
     location: location
     tags: union(tags, { 'azd-service-name': 'adminweb-docker' })
     dockerFullImageName: 'fruoccopublic.azurecr.io/rag-adminwebapp'
@@ -569,19 +575,26 @@ module monitoring './core/monitor/monitoring.bicep' = {
     tags: {
       'hidden-link:${resourceId('Microsoft.Web/sites', applicationInsightsName)}': 'Resource'
     }
-    logAnalyticsName: 'la-${resourceToken}'
+    logAnalyticsName: logAnalyticsName
     applicationInsightsDashboardName: 'dash-${applicationInsightsName}'
   }
 }
 
-module workbook './core/monitor/workbook.bicep' = {
-  name: workbookDisplayName
+module workbook './app/workbook.bicep' = {
+  name: 'workbook'
   scope: rg
   params: {
-    workbookId: 'd9bd03af-7ef0-4bac-b91b-b14ee4c7002b'
     workbookDisplayName: workbookDisplayName
     location: location
-    workbookContents: loadTextContent('workbooks/workbook.json')
+    hostingPlanName: hostingplan.outputs.name
+    functionName: hostingModel == 'container' ? function_docker.outputs.functionName : function.outputs.functionName
+    websiteName: hostingModel == 'container' ? web_docker.outputs.FRONTEND_API_NAME : web.outputs.FRONTEND_API_NAME
+    adminWebsiteName: hostingModel == 'container' ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME : adminweb.outputs.WEBSITE_ADMIN_NAME
+    eventGridSystemTopicName: eventgrid.outputs.name
+    logAnalyticsName: monitoring.outputs.logAnalyticsWorkspaceName
+    azureOpenAIResourceName: openai.outputs.name
+    azureAISearchName: search.outputs.name
+    storageAccountName: storage.outputs.name
   }
 }
 
