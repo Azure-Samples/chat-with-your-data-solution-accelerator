@@ -13,6 +13,8 @@ from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
 
 bp_batch_push_results = func.Blueprint()
 
+logger = logging.getLogger(__name__)
+
 
 def _get_file_name_from_message(msg: func.QueueMessage) -> str:
     message_body = json.loads(msg.get_body().decode("utf-8"))
@@ -32,7 +34,7 @@ def batch_push_results(msg: func.QueueMessage) -> None:
 
 
 def do_batch_push_results(msg: func.QueueMessage) -> None:
-    logging.info(
+    logger.info(
         "Python queue trigger function processed a queue item: %s",
         msg.get_body().decode("utf-8"),
     )

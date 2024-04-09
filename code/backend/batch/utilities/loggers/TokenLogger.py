@@ -1,18 +1,10 @@
 import logging
-from opencensus.ext.azure.log_exporter import AzureLogHandler
-from ..helpers.EnvHelper import EnvHelper
 
 
+# TODO: We probably don't need a separate class for this
 class TokenLogger:
     def __init__(self, name: str = __name__):
-        env_helper: EnvHelper = EnvHelper()
         self.logger = logging.getLogger(name)
-        if env_helper.APPINSIGHTS_ENABLED:
-            self.logger.addHandler(
-                AzureLogHandler(
-                    connection_string=env_helper.APPINSIGHTS_CONNECTION_STRING
-                )
-            )
         self.logger.setLevel(logging.INFO)
 
     def get_logger(self):
@@ -20,5 +12,4 @@ class TokenLogger:
 
     def log(self, message: str, custom_dimensions: dict):
         # Setting log properties
-        log_properties = {"custom_dimensions": custom_dimensions}
-        self.logger.info(message, extra=log_properties)
+        self.logger.info(message, extra=custom_dimensions)

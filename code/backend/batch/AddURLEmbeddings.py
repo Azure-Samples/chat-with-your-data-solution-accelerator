@@ -10,6 +10,8 @@ sys.path.append("..")
 
 bp_add_url_embeddings = func.Blueprint()
 
+logger = logging.getLogger(__name__)
+
 
 @bp_add_url_embeddings.route(route="AddURLEmbeddings")
 def add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
@@ -17,7 +19,7 @@ def add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
 
 
 def do_add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info("Python HTTP trigger function processed a request.")
+    logger.info("Python HTTP trigger function processed a request.")
     # Get Url from request
     url = req.params.get("url")
     if not url:

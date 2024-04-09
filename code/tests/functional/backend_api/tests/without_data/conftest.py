@@ -3,10 +3,12 @@ import pytest
 from tests.functional.backend_api.app_config import AppConfig
 from tests.functional.backend_api.common import get_free_port, start_app
 
+logger = logging.getLogger(__name__)
+
 
 @pytest.fixture(scope="package")
 def app_port() -> int:
-    logging.info("Getting free port")
+    logger.info("Getting free port")
     return get_free_port()
 
 
@@ -17,7 +19,7 @@ def app_url(app_port: int) -> str:
 
 @pytest.fixture(scope="package")
 def app_config(make_httpserver, ca):
-    logging.info("Creating APP CONFIG")
+    logger.info("Creating APP CONFIG")
     with ca.cert_pem.tempfile() as ca_temp_path:
         app_config = AppConfig(
             {
@@ -27,7 +29,7 @@ def app_config(make_httpserver, ca):
                 "CURL_CA_BUNDLE": ca_temp_path,
             }
         )
-        logging.info(f"Created app config: {app_config.get_all()}")
+        logger.info(f"Created app config: {app_config.get_all()}")
         yield app_config
 
 
