@@ -90,7 +90,7 @@ module configAppSettings 'appservice-appsettings.bicep' = {
     name: appService.name
     appSettings: union(appSettings,
       {
-        APPLICATIONINSIGHTS_ENABLED: string(!empty(applicationInsightsName))
+        APPINSIGHTS_ENABLED: string(!empty(applicationInsightsName))
         SCM_DO_BUILD_DURING_DEPLOYMENT: string(scmDoBuildDuringDeployment)
         ENABLE_ORYX_BUILD: string(enableOryxBuild)
       },

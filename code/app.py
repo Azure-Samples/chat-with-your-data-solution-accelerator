@@ -2,7 +2,9 @@ import os
 from azure.monitor.opentelemetry import configure_azure_monitor
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 
-if os.getenv("APPLICATIONINSIGHTS_ENABLED", "false").lower() == "true":
+# We cannot use EnvHelper here as Application Insights should be configured first
+# for instrumentation to work correctly
+if os.getenv("APPINSIGHTS_ENABLED", "false").lower() == "true":
     configure_azure_monitor()
     HTTPXClientInstrumentor().instrument()  # httpx is used by openai
 
