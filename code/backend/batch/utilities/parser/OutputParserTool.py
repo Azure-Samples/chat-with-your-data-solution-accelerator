@@ -5,6 +5,8 @@ import json
 from .ParserBase import ParserBase
 from ..common.SourceDocument import SourceDocument
 
+logger = logging.getLogger(__name__)
+
 
 class OutputParserTool(ParserBase):
     def __init__(self) -> None:
@@ -59,7 +61,7 @@ class OutputParserTool(ParserBase):
                 continue
 
             doc = source_documents[idx]
-            print(f"doc{idx}", doc)
+            logger.debug(f"doc{idx}", doc)
 
             # Then update the citation object in the response, it needs to have filepath and chunk_id to render in the UI as a file
             messages[0]["content"]["citations"].append(
