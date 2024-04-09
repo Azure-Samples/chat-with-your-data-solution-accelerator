@@ -36,6 +36,9 @@ param websiteName string = 'web-${resourceToken}'
 @description('Name of Application Insights')
 param applicationInsightsName string = 'appinsights-${resourceToken}'
 
+@description('Name of the Workbook')
+param workbookDisplayName string = 'workbook-${resourceToken}'
+
 @description('Use semantic search')
 param azureSearchUseSemanticSearch string = 'false'
 
@@ -568,6 +571,17 @@ module monitoring './core/monitor/monitoring.bicep' = {
     }
     logAnalyticsName: 'la-${resourceToken}'
     applicationInsightsDashboardName: 'dash-${applicationInsightsName}'
+  }
+}
+
+module workbook './core/monitor/workbook.bicep' = {
+  name: workbookDisplayName
+  scope: rg
+  params: {
+    workbookId: 'd9bd03af-7ef0-4bac-b91b-b14ee4c7002b'
+    workbookDisplayName: workbookDisplayName
+    location: location
+    workbookContents: loadTextContent('workbooks/workbook.json')
   }
 }
 
