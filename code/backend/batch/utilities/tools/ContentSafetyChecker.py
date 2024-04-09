@@ -1,3 +1,4 @@
+import logging
 from azure.ai.contentsafety import ContentSafetyClient
 from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential
@@ -6,6 +7,8 @@ from azure.ai.contentsafety.models import AnalyzeTextOptions
 from ..helpers.EnvHelper import EnvHelper
 from .AnswerProcessingBase import AnswerProcessingBase
 from ..common.Answer import Answer
+
+logger = logging.getLogger(__name__)
 
 
 class ContentSafetyChecker(AnswerProcessingBase):
@@ -47,12 +50,12 @@ class ContentSafetyChecker(AnswerProcessingBase):
         try:
             response = self.content_safety_client.analyze_text(request)
         except HttpResponseError as e:
-            print("Analyze text failed.")
             if e.error:
-                print(f"Error code: {e.error.code}")
-                print(f"Error message: {e.error.message}")
+                logger.error(
+                    f"Analyze text failed. Error code: {e.error.code}. Error message: {e.error.message}."
+                )
                 raise
-            print(e)
+            logger.exception("Analyze text failed.")
             raise
 
         filtered_text = text
