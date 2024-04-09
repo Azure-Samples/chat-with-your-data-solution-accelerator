@@ -14,6 +14,8 @@ class EnvHelper:
         # Wrapper for Azure Key Vault
         self.secretHelper = SecretHelper()
 
+        self.LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
+
         # Azure Search
         self.AZURE_SEARCH_SERVICE = os.getenv("AZURE_SEARCH_SERVICE", "")
         self.AZURE_SEARCH_INDEX = os.getenv("AZURE_SEARCH_INDEX", "")
