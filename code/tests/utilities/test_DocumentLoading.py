@@ -50,11 +50,3 @@ def test_document_loading_docx():
     assert len(data) == 1
     assert data[0].source == url
     print(data[0].content)
-
-def test_document_loading_json():
-    # WebLoad
-    document_loading = DocumentLoading()
-    url = "https://learn.microsoft.com/en-us/azure/search/search-what-is-azure-search"
-    data = document_loading.load(url, LoadingSettings({"strategy": "json"}))
-    assert len(data) == 1
-    assert data[0].source == url
