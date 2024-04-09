@@ -5,19 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-      "templateHash": "2485188713331054834"
-=======
-      "templateHash": "14788276992060927460"
->>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
-=======
-      "templateHash": "14572838616972799523"
->>>>>>> e4c5477 (Extract workbook logic into a separate module)
-=======
-      "templateHash": "4923480286833654318"
->>>>>>> 00f398f (Use resources directly to retrieve names)
+      "templateHash": "1458329649110009885"
     }
   },
   "parameters": {
@@ -387,10 +375,6 @@
     }
   },
   "variables": {
-<<<<<<< HEAD
-    "$fxv#0": "{\n  \"version\": \"Notebook/1.0\",\n  \"items\": [\n    {\n      \"type\": 1,\n      \"content\": {\n        \"json\": \"# Chat With Your Data Monitoring\"\n      },\n      \"name\": \"heading\"\n    }\n  ],\n  \"fallbackResourceIds\": [\n    \"azure monitor\"\n  ],\n  \"$schema\": \"https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json\"\n}",
-=======
->>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
     "blobContainerName": "documents",
     "queueName": "doc-processing",
     "clientKey": "[format('{0}{1}', uniqueString(guid(subscription().id, deployment().name)), parameters('newGuidString'))]",
@@ -1528,11 +1512,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.54.24096",
-<<<<<<< HEAD
               "templateHash": "6440307526170828052"
-=======
-              "templateHash": "16400940872113422292"
->>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
             }
           },
           "parameters": {
@@ -1695,11 +1675,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.26.54.24096",
-<<<<<<< HEAD
                       "templateHash": "7503212004842481388"
-=======
-                      "templateHash": "6079168851919639043"
->>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -2389,11 +2365,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.54.24096",
-<<<<<<< HEAD
               "templateHash": "6440307526170828052"
-=======
-              "templateHash": "16400940872113422292"
->>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
             }
           },
           "parameters": {
@@ -2556,11 +2528,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.26.54.24096",
-<<<<<<< HEAD
                       "templateHash": "7503212004842481388"
-=======
-                      "templateHash": "6079168851919639043"
->>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -3253,11 +3221,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.54.24096",
-<<<<<<< HEAD
               "templateHash": "16467193950465231540"
-=======
-              "templateHash": "10001043558660797454"
->>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
             }
           },
           "parameters": {
@@ -3420,11 +3384,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.26.54.24096",
-<<<<<<< HEAD
                       "templateHash": "7503212004842481388"
-=======
-                      "templateHash": "6079168851919639043"
->>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -4183,11 +4143,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.54.24096",
-<<<<<<< HEAD
               "templateHash": "16467193950465231540"
-=======
-              "templateHash": "10001043558660797454"
->>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
             }
           },
           "parameters": {
@@ -4350,11 +4306,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.26.54.24096",
-<<<<<<< HEAD
                       "templateHash": "7503212004842481388"
-=======
-                      "templateHash": "6079168851919639043"
->>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -6834,15 +6786,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.54.24096",
-<<<<<<< HEAD
-<<<<<<< HEAD
-              "templateHash": "3553658922515273549"
-=======
-              "templateHash": "17960689149478457729"
->>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
-=======
-              "templateHash": "3406391956605934518"
->>>>>>> 00f398f (Use resources directly to retrieve names)
+              "templateHash": "17849181092347628825"
             }
           },
           "parameters": {
@@ -7023,11 +6967,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.26.54.24096",
-<<<<<<< HEAD
                       "templateHash": "9397247865758471910"
-=======
-                      "templateHash": "8413740452423398093"
->>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -7235,11 +7175,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.26.54.24096",
-<<<<<<< HEAD
                               "templateHash": "7503212004842481388"
-=======
-                              "templateHash": "6079168851919639043"
->>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
                             },
                             "description": "Creates an Azure App Service in an existing Azure App Service plan."
                           },
@@ -8066,15 +8002,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.54.24096",
-<<<<<<< HEAD
-<<<<<<< HEAD
-              "templateHash": "3553658922515273549"
-=======
-              "templateHash": "17960689149478457729"
->>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
-=======
-              "templateHash": "3406391956605934518"
->>>>>>> 00f398f (Use resources directly to retrieve names)
+              "templateHash": "17849181092347628825"
             }
           },
           "parameters": {
@@ -8255,11 +8183,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.26.54.24096",
-<<<<<<< HEAD
                       "templateHash": "9397247865758471910"
-=======
-                      "templateHash": "8413740452423398093"
->>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -8467,11 +8391,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.26.54.24096",
-<<<<<<< HEAD
                               "templateHash": "7503212004842481388"
-=======
-                              "templateHash": "6079168851919639043"
->>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
                             },
                             "description": "Creates an Azure App Service in an existing Azure App Service plan."
                           },
