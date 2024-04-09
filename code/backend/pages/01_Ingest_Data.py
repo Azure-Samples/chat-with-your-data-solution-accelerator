@@ -79,21 +79,31 @@ def remote_convert_files_and_add_embeddings(process_all=False):
 
 
 def add_urls():
-    params = {}
-    if env_helper.FUNCTION_KEY is not None:
-        params["code"] = env_helper.FUNCTION_KEY
-        params["clientId"] = "clientKey"
-    urls = st.session_state["urls"].split("\n")
-    for url in urls:
-        body = {"url": url}
-        backend_url = urllib.parse.urljoin(
-            env_helper.BACKEND_URL, "/api/AddURLEmbeddings"
-        )
-        r = requests.post(url=backend_url, params=params, json=body)
-        if not r.ok:
-            raise ValueError(f"Error {r.status_code}: {r.text}")
-        else:
-            st.success(f"Embeddings added successfully for {url}")
+
+    if env_helper.USE_INTEGRATED_VECTORIZATION:
+        urls = st.session_state["urls"].split("\n")
+        for url in urls:
+            response = requests.get(url)
+            content = response.content
+            open(f"{url}", "wb").write(content)
+            upload_file(content, f"{url}")
+
+    else:
+        params = {}
+        if env_helper.FUNCTION_KEY is not None:
+            params["code"] = env_helper.FUNCTION_KEY
+            params["clientId"] = "clientKey"
+        urls = st.session_state["urls"].split("\n")
+        for url in urls:
+            body = {"url": url}
+            backend_url = urllib.parse.urljoin(
+                env_helper.BACKEND_URL, "/api/AddURLEmbeddings"
+            )
+            r = requests.post(url=backend_url, params=params, json=body)
+            if not r.ok:
+                raise ValueError(f"Error {r.status_code}: {r.text}")
+            else:
+                st.success(f"Embeddings added successfully for {url}")
 
 
 def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] = None):

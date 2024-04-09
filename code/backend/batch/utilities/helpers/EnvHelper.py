@@ -156,6 +156,10 @@ class EnvHelper:
         self.LOAD_CONFIG_FROM_BLOB_STORAGE = self.get_env_var_bool(
             "LOAD_CONFIG_FROM_BLOB_STORAGE"
         )
+        # Integrated Vectorization
+        self.USE_INTEGRATED_VECTORIZATION = (
+            os.getenv("USE_INTEGRATED_VECTORIZATION", "False").lower() == "true"
+        )
 
     def should_use_data(self) -> bool:
         if (

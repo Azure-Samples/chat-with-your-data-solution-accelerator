@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "2485188713331054834"
+      "templateHash": "6119171520391951935"
     }
   },
   "parameters": {
@@ -357,6 +357,13 @@
       ],
       "metadata": {
         "description": "Hosting model for the web apps. Containers are prebuilt and can be deployed faster, but code allows for more customization."
+      }
+    },
+    "use_int_vectorization": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Use Integrated Vectorization"
       }
     }
   },
@@ -10115,6 +10122,10 @@
     "ADMIN_WEBSITE_NAME": {
       "type": "string",
       "value": "[if(equals(parameters('hostingModel'), 'code'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin', parameters('websiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin-docker', parameters('websiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value)]"
+    },
+    "USE_INTEGRATED_VECTORIZATION": {
+      "type": "bool",
+      "value": "[parameters('use_int_vectorization')]"
     }
   }
 }
