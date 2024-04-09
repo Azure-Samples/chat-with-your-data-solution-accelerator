@@ -10,10 +10,12 @@ sys.path.append("..")
 bp_get_conversation_response = func.Blueprint()
 env_helper: EnvHelper = EnvHelper()
 
+logger = logging.getLogger(__name__)
+
 
 @bp_get_conversation_response.route(route="GetConversationResponse")
 def get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info("Python HTTP trigger function processed a request.")
+    logger.info("Python HTTP trigger function processed a request.")
 
     message_orchestrator = Orchestrator()
 
@@ -55,5 +57,5 @@ def get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse(json.dumps(response_obj), status_code=200)
 
     except Exception as e:
-        logging.exception("Exception in /api/GetConversationResponse")
+        logger.exception("Exception in /api/GetConversationResponse")
         return func.HttpResponse(json.dumps({"error": str(e)}), status_code=500)
