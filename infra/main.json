@@ -7,6 +7,7 @@
       "version": "0.26.54.24096",
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
       "templateHash": "2485188713331054834"
 =======
       "templateHash": "14788276992060927460"
@@ -14,6 +15,9 @@
 =======
       "templateHash": "14572838616972799523"
 >>>>>>> e4c5477 (Extract workbook logic into a separate module)
+=======
+      "templateHash": "4923480286833654318"
+>>>>>>> 00f398f (Use resources directly to retrieve names)
     }
   },
   "parameters": {
@@ -6542,35 +6546,26 @@
           "location": {
             "value": "[parameters('location')]"
           },
-          "hostingModel": {
-            "value": "[parameters('hostingModel')]"
-          },
           "hostingPlanName": {
-            "value": "[parameters('hostingPlanName')]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('hostingPlanName')), '2022-09-01').outputs.name.value]"
           },
-          "functionName": {
-            "value": "[parameters('functionName')]"
-          },
-          "websiteName": {
-            "value": "[parameters('websiteName')]"
-          },
-          "adminWebsiteName": {
-            "value": "[parameters('adminWebsiteName')]"
-          },
+          "functionName": "[if(equals(parameters('hostingModel'), 'container'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('functionName'))), '2022-09-01').outputs.functionName.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('functionName')), '2022-09-01').outputs.functionName.value))]",
+          "websiteName": "[if(equals(parameters('hostingModel'), 'container'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('websiteName'))), '2022-09-01').outputs.FRONTEND_API_NAME.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('websiteName')), '2022-09-01').outputs.FRONTEND_API_NAME.value))]",
+          "adminWebsiteName": "[if(equals(parameters('hostingModel'), 'container'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_NAME.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('adminWebsiteName')), '2022-09-01').outputs.WEBSITE_ADMIN_NAME.value))]",
           "eventGridSystemTopicName": {
-            "value": "[variables('eventGridSystemTopicName')]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', variables('eventGridSystemTopicName')), '2022-09-01').outputs.name.value]"
           },
           "logAnalyticsName": {
-            "value": "[parameters('logAnalyticsName')]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.logAnalyticsWorkspaceName.value]"
           },
           "azureOpenAIResourceName": {
-            "value": "[parameters('azureOpenAIResourceName')]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName')), '2022-09-01').outputs.name.value]"
           },
           "azureAISearchName": {
-            "value": "[parameters('azureAISearchName')]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureAISearchName')), '2022-09-01').outputs.name.value]"
           },
           "storageAccountName": {
-            "value": "[parameters('storageAccountName')]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('storageAccountName')), '2022-09-01').outputs.name.value]"
           }
         },
         "template": {
@@ -6580,7 +6575,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.54.24096",
-              "templateHash": "12641506901461712296"
+              "templateHash": "13808750971846892864"
             }
           },
           "parameters": {
@@ -6588,9 +6583,6 @@
               "type": "string"
             },
             "location": {
-              "type": "string"
-            },
-            "hostingModel": {
               "type": "string"
             },
             "hostingPlanName": {
@@ -6626,9 +6618,9 @@
             "wookbookContentsSubReplaced": "[replace(variables('wookbookContents'), '{subscription-id}', subscription().id)]",
             "wookbookContentsRGReplaced": "[replace(variables('wookbookContentsSubReplaced'), '{resource-group}', resourceGroup().name)]",
             "wookbookContentsAppServicePlanReplaced": "[replace(variables('wookbookContentsRGReplaced'), '{app-service-plan}', parameters('hostingPlanName'))]",
-            "wookbookContentsBackendAppServiceReplaced": "[if(equals(parameters('hostingModel'), 'container'), replace(variables('wookbookContentsAppServicePlanReplaced'), '{backend-app-service}', format('{0}-docker', parameters('functionName'))), replace(variables('wookbookContentsAppServicePlanReplaced'), '{backend-app-service}', parameters('functionName')))]",
-            "wookbookContentsWebAppServiceReplaced": "[if(equals(parameters('hostingModel'), 'container'), replace(variables('wookbookContentsBackendAppServiceReplaced'), '{web-app-service}', format('{0}-docker', parameters('websiteName'))), replace(variables('wookbookContentsBackendAppServiceReplaced'), '{web-app-service}', parameters('websiteName')))]",
-            "wookbookContentsAdminAppServiceReplaced": "[if(equals(parameters('hostingModel'), 'container'), replace(variables('wookbookContentsWebAppServiceReplaced'), '{admin-app-service}', format('{0}-docker', parameters('adminWebsiteName'))), replace(variables('wookbookContentsWebAppServiceReplaced'), '{admin-app-service}', parameters('adminWebsiteName')))]",
+            "wookbookContentsBackendAppServiceReplaced": "[replace(variables('wookbookContentsAppServicePlanReplaced'), '{backend-app-service}', parameters('functionName'))]",
+            "wookbookContentsWebAppServiceReplaced": "[replace(variables('wookbookContentsBackendAppServiceReplaced'), '{web-app-service}', parameters('websiteName'))]",
+            "wookbookContentsAdminAppServiceReplaced": "[replace(variables('wookbookContentsWebAppServiceReplaced'), '{admin-app-service}', parameters('adminWebsiteName'))]",
             "wookbookContentsEventGridReplaced": "[replace(variables('wookbookContentsAdminAppServiceReplaced'), '{event-grid}', parameters('eventGridSystemTopicName'))]",
             "wookbookContentsLogAnalyticsReplaced": "[replace(variables('wookbookContentsEventGridReplaced'), '{log-analytics}', parameters('logAnalyticsName'))]",
             "wookbookContentsOpenAIReplaced": "[replace(variables('wookbookContentsLogAnalyticsReplaced'), '{open-ai}', parameters('azureOpenAIResourceName'))]",
@@ -6736,7 +6728,19 @@
         }
       },
       "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('adminWebsiteName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', variables('eventGridSystemTopicName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('functionName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('functionName')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('hostingPlanName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName'))]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureAISearchName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('storageAccountName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('websiteName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('websiteName')))]"
       ]
     },
     {
@@ -6831,10 +6835,14 @@
               "name": "bicep",
               "version": "0.26.54.24096",
 <<<<<<< HEAD
+<<<<<<< HEAD
               "templateHash": "3553658922515273549"
 =======
               "templateHash": "17960689149478457729"
 >>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
+=======
+              "templateHash": "3406391956605934518"
+>>>>>>> 00f398f (Use resources directly to retrieve names)
             }
           },
           "parameters": {
@@ -7948,6 +7956,10 @@
             "FUNCTION_IDENTITY_PRINCIPAL_ID": {
               "type": "string",
               "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.identityPrincipalId.value]"
+            },
+            "functionName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.name.value]"
             }
           }
         }
@@ -8055,10 +8067,14 @@
               "name": "bicep",
               "version": "0.26.54.24096",
 <<<<<<< HEAD
+<<<<<<< HEAD
               "templateHash": "3553658922515273549"
 =======
               "templateHash": "17960689149478457729"
 >>>>>>> 0ea8ebf (Add more metrics and logs to workbook)
+=======
+              "templateHash": "3406391956605934518"
+>>>>>>> 00f398f (Use resources directly to retrieve names)
             }
           },
           "parameters": {
@@ -9172,6 +9188,10 @@
             "FUNCTION_IDENTITY_PRINCIPAL_ID": {
               "type": "string",
               "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.identityPrincipalId.value]"
+            },
+            "functionName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.name.value]"
             }
           }
         }
@@ -9526,7 +9546,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.54.24096",
-              "templateHash": "7555343965634606135"
+              "templateHash": "16481205192586151834"
             }
           },
           "parameters": {
@@ -9589,7 +9609,13 @@
                 "[resourceId('Microsoft.EventGrid/systemTopics', parameters('name'))]"
               ]
             }
-          ]
+          ],
+          "outputs": {
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            }
+          }
         }
       },
       "dependsOn": [

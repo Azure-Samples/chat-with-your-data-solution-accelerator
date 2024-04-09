@@ -1,6 +1,5 @@
 param workbookDisplayName string
 param location string
-param hostingModel string
 param hostingPlanName string
 param functionName string
 param websiteName string
@@ -15,9 +14,9 @@ var wookbookContents = loadTextContent('../workbooks/workbook.json')
 var wookbookContentsSubReplaced = replace(wookbookContents, '{subscription-id}', subscription().id)
 var wookbookContentsRGReplaced = replace(wookbookContentsSubReplaced, '{resource-group}', resourceGroup().name)
 var wookbookContentsAppServicePlanReplaced = replace(wookbookContentsRGReplaced, '{app-service-plan}', hostingPlanName)
-var wookbookContentsBackendAppServiceReplaced = hostingModel == 'container' ? replace(wookbookContentsAppServicePlanReplaced, '{backend-app-service}', '${functionName}-docker') : replace(wookbookContentsAppServicePlanReplaced, '{backend-app-service}', functionName)
-var wookbookContentsWebAppServiceReplaced = hostingModel == 'container' ? replace(wookbookContentsBackendAppServiceReplaced, '{web-app-service}', '${websiteName}-docker') : replace(wookbookContentsBackendAppServiceReplaced, '{web-app-service}', websiteName)
-var wookbookContentsAdminAppServiceReplaced = hostingModel == 'container' ? replace(wookbookContentsWebAppServiceReplaced, '{admin-app-service}', '${adminWebsiteName}-docker') : replace(wookbookContentsWebAppServiceReplaced, '{admin-app-service}', adminWebsiteName)
+var wookbookContentsBackendAppServiceReplaced = replace(wookbookContentsAppServicePlanReplaced, '{backend-app-service}', functionName)
+var wookbookContentsWebAppServiceReplaced = replace(wookbookContentsBackendAppServiceReplaced, '{web-app-service}', websiteName)
+var wookbookContentsAdminAppServiceReplaced = replace(wookbookContentsWebAppServiceReplaced, '{admin-app-service}', adminWebsiteName)
 var wookbookContentsEventGridReplaced = replace(wookbookContentsAdminAppServiceReplaced, '{event-grid}', eventGridSystemTopicName)
 var wookbookContentsLogAnalyticsReplaced = replace(wookbookContentsEventGridReplaced, '{log-analytics}', logAnalyticsName)
 var wookbookContentsOpenAIReplaced = replace(wookbookContentsLogAnalyticsReplaced, '{open-ai}', azureOpenAIResourceName)

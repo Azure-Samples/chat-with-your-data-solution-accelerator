@@ -586,16 +586,15 @@ module workbook './app/workbook.bicep' = {
   params: {
     workbookDisplayName: workbookDisplayName
     location: location
-    hostingModel: hostingModel
-    hostingPlanName: hostingPlanName
-    functionName: functionName
-    websiteName: websiteName
-    adminWebsiteName: adminWebsiteName
-    eventGridSystemTopicName: eventGridSystemTopicName
-    logAnalyticsName: logAnalyticsName
-    azureOpenAIResourceName: azureOpenAIResourceName
-    azureAISearchName: azureAISearchName
-    storageAccountName: storageAccountName
+    hostingPlanName: hostingplan.outputs.name
+    functionName: hostingModel == 'container' ? function_docker.outputs.functionName : function.outputs.functionName
+    websiteName: hostingModel == 'container' ? web_docker.outputs.FRONTEND_API_NAME : web.outputs.FRONTEND_API_NAME
+    adminWebsiteName: hostingModel == 'container' ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME : adminweb.outputs.WEBSITE_ADMIN_NAME
+    eventGridSystemTopicName: eventgrid.outputs.name
+    logAnalyticsName: monitoring.outputs.logAnalyticsWorkspaceName
+    azureOpenAIResourceName: openai.outputs.name
+    azureAISearchName: search.outputs.name
+    storageAccountName: storage.outputs.name
   }
 }
 
