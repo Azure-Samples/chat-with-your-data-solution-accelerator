@@ -1,4 +1,4 @@
-  # Workbook
+# Workbook
 
 This project leverages [Azure Workbooks](https://learn.microsoft.com/en-us/azure/azure-monitor/visualize/workbooks-overview)
 to aggregate monitoring data from various Azure resources.
