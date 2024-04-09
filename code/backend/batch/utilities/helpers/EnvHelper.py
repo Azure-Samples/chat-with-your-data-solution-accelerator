@@ -128,7 +128,7 @@ class EnvHelper:
             "AZURE_FORM_RECOGNIZER_KEY"
         )
         # Azure App Insights
-        self.APPINSIGHTS_ENABLED = self.get_env_var_bool("APPINSIGHTS_ENABLED")
+        self.APPINSIGHTS_ENABLED = self.get_env_var_bool("APPINSIGHTS_ENABLED", "False")
 
         self.APPINSIGHTS_CONNECTION_STRING = os.getenv(
             "APPINSIGHTS_CONNECTION_STRING", ""

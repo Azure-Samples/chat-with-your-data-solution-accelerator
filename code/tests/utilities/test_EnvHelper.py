@@ -47,7 +47,7 @@ def test_load_config_from_blob_storage(monkeypatch: MonkeyPatch, value, expected
 
 @pytest.mark.parametrize(
     "value,expected",
-    [("true", True), ("false", False), ("this is the way", False), (None, True)],
+    [("true", True), ("false", False), ("this is the way", False), (None, False)],
 )
 def test_app_insights_enabled(monkeypatch: MonkeyPatch, value, expected):
     # given
