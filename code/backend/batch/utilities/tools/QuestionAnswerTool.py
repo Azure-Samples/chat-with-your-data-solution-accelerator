@@ -76,7 +76,6 @@ class QuestionAnswerTool(AnsweringToolBase):
             input_variables=["question", "sources"],
         )
 
-        # Generate answer from sources
         sources_text = "\n\n".join(
             [f"[doc{i+1}]: {source.page_content}" for i, source in enumerate(sources)]
         )
@@ -120,7 +119,6 @@ class QuestionAnswerTool(AnsweringToolBase):
             ]
         )
 
-        # Generate answer from sources
         documents = json.dumps(
             {
                 "retrieved_documents": [
