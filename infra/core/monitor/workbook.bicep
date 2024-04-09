@@ -15,7 +15,7 @@ param workbookContents string
 
 param location string = resourceGroup().location
 
-resource workbookId_resource 'microsoft.insights/workbooks@2023-06-01' = {
+resource workbook_resource 'microsoft.insights/workbooks@2023-06-01' = {
   name: workbookId
   location: location
   kind: 'shared'
@@ -26,7 +26,6 @@ resource workbookId_resource 'microsoft.insights/workbooks@2023-06-01' = {
     sourceId: workbookSourceId
     category: workbookType
   }
-  dependsOn: []
 }
 
-output workbookId string = workbookId_resource.id
+output workbookId string = workbook_resource.id
