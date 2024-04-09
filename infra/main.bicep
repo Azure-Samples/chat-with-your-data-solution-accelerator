@@ -580,27 +580,22 @@ module monitoring './core/monitor/monitoring.bicep' = {
   }
 }
 
-var wookbookContents = loadTextContent('workbooks/workbook.json')
-var wookbookContentsSubReplaced = replace(wookbookContents, '{subscription-id}', subscription().id)
-var wookbookContentsRGReplaced = replace(wookbookContentsSubReplaced, '{resource-group}', rgName)
-var wookbookContentsAppServicePlanReplaced = replace(wookbookContentsRGReplaced, '{app-service-plan}', hostingPlanName)
-var wookbookContentsBackendAppServiceReplaced = hostingModel == 'container' ? replace(wookbookContentsAppServicePlanReplaced, '{backend-app-service}', '${functionName}-docker') : replace(wookbookContentsAppServicePlanReplaced, '{backend-app-service}', functionName)
-var wookbookContentsWebAppServiceReplaced = hostingModel == 'container' ? replace(wookbookContentsBackendAppServiceReplaced, '{web-app-service}', '${websiteName}-docker') : replace(wookbookContentsBackendAppServiceReplaced, '{web-app-service}', websiteName)
-var wookbookContentsAdminAppServiceReplaced = hostingModel == 'container' ? replace(wookbookContentsWebAppServiceReplaced, '{admin-app-service}', '${adminWebsiteName}-docker') : replace(wookbookContentsWebAppServiceReplaced, '{admin-app-service}', adminWebsiteName)
-var wookbookContentsEventGridReplaced = replace(wookbookContentsAdminAppServiceReplaced, '{event-grid}', eventGridSystemTopicName)
-var wookbookContentsLogAnalyticsReplaced = replace(wookbookContentsEventGridReplaced, '{log-analytics}', logAnalyticsName)
-var wookbookContentsOpenAIReplaced = replace(wookbookContentsLogAnalyticsReplaced, '{open-ai}', azureOpenAIResourceName)
-var wookbookContentsAISearchReplaced = replace(wookbookContentsOpenAIReplaced, '{ai-search}', azureAISearchName)
-var wookbookContentsStorageAccountReplaced = replace(wookbookContentsAISearchReplaced, '{storage-account}', storageAccountName)
-
-module workbook './core/monitor/workbook.bicep' = {
-  name: workbookDisplayName
+module workbook './app/workbook.bicep' = {
+  name: 'workbook'
   scope: rg
   params: {
-    workbookId: 'd9bd03af-7ef0-4bac-b91b-b14ee4c7002b'
     workbookDisplayName: workbookDisplayName
     location: location
-    workbookContents: wookbookContentsStorageAccountReplaced
+    hostingModel: hostingModel
+    hostingPlanName: hostingPlanName
+    functionName: functionName
+    websiteName: websiteName
+    adminWebsiteName: adminWebsiteName
+    eventGridSystemTopicName: eventGridSystemTopicName
+    logAnalyticsName: logAnalyticsName
+    azureOpenAIResourceName: azureOpenAIResourceName
+    azureAISearchName: azureAISearchName
+    storageAccountName: storageAccountName
   }
 }
 
