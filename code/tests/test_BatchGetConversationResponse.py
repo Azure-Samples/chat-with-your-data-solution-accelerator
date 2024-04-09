@@ -1,7 +1,12 @@
+import sys
 from unittest.mock import patch, Mock, ANY
 import json
 
-from backend.batch.GetConversationResponse import do_get_conversation_response
+sys.path.append("backend/batch/")
+
+from backend.batch.GetConversationResponse import (  # noqa: E402
+    do_get_conversation_response,
+)
 
 
 @patch("backend.batch.GetConversationResponse.Orchestrator")

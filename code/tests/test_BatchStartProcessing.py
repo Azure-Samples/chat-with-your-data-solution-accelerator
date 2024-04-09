@@ -1,6 +1,8 @@
+import sys
 from unittest.mock import patch, Mock
 
-from backend.batch.BatchStartProcessing import do_batch_start_processing
+sys.path.append("backend/batch")
+from backend.batch.BatchStartProcessing import do_batch_start_processing  # noqa: E402
 
 
 @patch("backend.batch.BatchStartProcessing.create_queue_client")

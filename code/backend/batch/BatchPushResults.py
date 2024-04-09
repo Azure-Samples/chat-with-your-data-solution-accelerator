@@ -2,16 +2,17 @@ import logging
 import json
 import azure.functions as func
 from urllib.parse import urlparse
+import sys
 
-from backend.batch.utilities.helpers.AzureBlobStorageHelper import (
+from utilities.helpers.AzureBlobStorageHelper import (
     AzureBlobStorageClient,
 )
-from backend.batch.utilities.helpers.DocumentProcessorHelper import DocumentProcessor
-from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
+from utilities.helpers.DocumentProcessorHelper import DocumentProcessor
+from utilities.helpers.ConfigHelper import ConfigHelper
 
 
+sys.path.append("..")
 bp_batch_push_results = func.Blueprint()
-
 logger = logging.getLogger(__name__)
 
 

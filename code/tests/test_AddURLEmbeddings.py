@@ -1,6 +1,10 @@
+import sys
 from unittest import mock
 import azure.functions as func
-from backend.batch.AddURLEmbeddings import do_add_url_embeddings
+
+sys.path.append("backend/batch")
+
+from backend.batch.AddURLEmbeddings import do_add_url_embeddings  # noqa: E402
 
 
 @mock.patch("backend.batch.AddURLEmbeddings.DocumentProcessor")
