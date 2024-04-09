@@ -1,3 +1,4 @@
+import logging
 from typing import List
 from langchain.agents import Tool
 from langchain.memory import ConversationBufferMemory
@@ -13,6 +14,8 @@ from ..tools.TextProcessingTool import TextProcessingTool
 from ..tools.ContentSafetyChecker import ContentSafetyChecker
 from ..parser.OutputParserTool import OutputParserTool
 from ..common.Answer import Answer
+
+logger = logging.getLogger(__name__)
 
 
 class LangChainAgent(OrchestratorBase):
@@ -57,12 +60,14 @@ class LangChainAgent(OrchestratorBase):
 
         # Call Content Safety tool
         if self.config.prompts.enable_content_safety:
+            logger.debug("Calling content safety with question")
             filtered_user_message = (
                 self.content_safety_checker.validate_input_and_replace_if_harmful(
                     user_message
                 )
             )
             if user_message != filtered_user_message:
+                logger.warning("Content safety detected harmful content in question")
                 messages = output_formatter.parse(
                     question=user_message,
                     answer=filtered_user_message,
@@ -115,6 +120,7 @@ class LangChainAgent(OrchestratorBase):
             answer = Answer(question=user_message, answer=answer)
 
         if self.config.prompts.enable_post_answering_prompt:
+            logger.debug("Running post answering prompt")
             post_prompt_tool = PostPromptTool()
             answer = post_prompt_tool.validate_answer(answer)
             self.log_tokens(
@@ -124,12 +130,14 @@ class LangChainAgent(OrchestratorBase):
 
         # Call Content Safety tool
         if self.config.prompts.enable_content_safety:
+            logger.debug("Calling content safety with answer")
             filtered_answer = (
                 self.content_safety_checker.validate_output_and_replace_if_harmful(
                     answer.answer
                 )
             )
             if answer.answer != filtered_answer:
+                logger.warning("Content safety detected harmful content in answer")
                 messages = output_formatter.parse(
                     question=user_message, answer=filtered_answer, source_documents=[]
                 )

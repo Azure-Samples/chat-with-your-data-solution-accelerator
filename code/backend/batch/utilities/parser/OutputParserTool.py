@@ -5,6 +5,8 @@ import json
 from .ParserBase import ParserBase
 from ..common.SourceDocument import SourceDocument
 
+logger = logging.getLogger(__name__)
+
 
 class OutputParserTool(ParserBase):
     def __init__(self) -> None:
@@ -55,7 +57,7 @@ class OutputParserTool(ParserBase):
             idx = i - 1
 
             if idx >= len(source_documents):
-                logging.warning(f"Source document {i} not provided, skipping doc")
+                logger.warning(f"Source document {i} not provided, skipping doc")
                 continue
 
             doc = source_documents[idx]

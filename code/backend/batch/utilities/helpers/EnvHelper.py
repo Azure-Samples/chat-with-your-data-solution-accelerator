@@ -178,7 +178,7 @@ class EnvHelper:
     def check_env():
         for attr, value in EnvHelper().__dict__.items():
             if value == "":
-                logging.warning(f"{attr} is not set in the environment variables.")
+                logger.warning(f"{attr} is not set in the environment variables.")
 
 
 class SecretHelper:

@@ -6,14 +6,16 @@ import requests
 from threading import Thread
 from create_app import create_app
 
+logger = logging.getLogger(__name__)
+
 
 def start_app(app_port: int) -> Thread:
-    logging.info(f"Starting application on port {app_port}")
+    logger.info(f"Starting application on port {app_port}")
     app = create_app()
     app_process = threading.Thread(target=lambda: app.run(port=app_port), daemon=True)
     app_process.start()
     wait_for_app(app_port)
-    logging.info("Application started")
+    logger.info("Application started")
     return app_process
 
 
