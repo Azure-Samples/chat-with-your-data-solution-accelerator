@@ -321,6 +321,7 @@ module hostingplan './core/host/appserviceplan.bicep' = {
       name: hostingPlanSku
     }
     reserved: true
+    tags: { Automation: 'Ignore' }
   }
 }
 
