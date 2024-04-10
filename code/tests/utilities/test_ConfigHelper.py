@@ -10,13 +10,18 @@ config_dict = {
         "condense_question_prompt": "mock_condense_question_prompt",
         "answering_prompt": "mock_answering_prompt",
         "answering_system_prompt": "mock_answering_system_prompt",
-        "include_few_shot_example": True,
+        "answering_user_prompt": "mock_answering_user_prompt",
         "post_answering_prompt": "mock_post_answering_prompt",
         "enable_post_answering_prompt": False,
         "enable_content_safety": True,
     },
     "messages": {
         "post_answering_filter": "mock_post_answering_filter",
+    },
+    "example": {
+        "documents": "mock_documents",
+        "user_question": "mock_user_question",
+        "answer": "mock_answer",
     },
     "document_processors": [
         {

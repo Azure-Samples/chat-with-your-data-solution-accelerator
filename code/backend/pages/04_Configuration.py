@@ -134,6 +134,9 @@ def validate_documents():
 
     documents_string = st.session_state.example_documents
 
+    if not documents_string:
+        return
+
     try:
         documents = json.loads(documents_string)
     except json.JSONDecodeError:

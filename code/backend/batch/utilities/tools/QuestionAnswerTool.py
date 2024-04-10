@@ -57,10 +57,16 @@ class QuestionAnswerTool(AnsweringToolBase):
         examples = []
 
         few_shot_example = {
-            "documents": json.dumps(json.loads(self.config.example.documents)),
+            "documents": self.config.example.documents.strip(),
             "user_question": self.config.example.user_question.strip(),
             "answer": self.config.example.answer.strip(),
         }
+
+        # Remove whitespace
+        if few_shot_example["documents"]:
+            few_shot_example["documents"] = json.dumps(
+                json.loads(few_shot_example["documents"])
+            )
 
         if any(few_shot_example.values()):
             if all((few_shot_example.values())):
