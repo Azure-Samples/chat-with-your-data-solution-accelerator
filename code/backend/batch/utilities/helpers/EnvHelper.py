@@ -149,6 +149,10 @@ class EnvHelper:
         )
         # Speech Service
         self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")
+        # Azure AD
+        self.TENANT_ID = self.secretHelper.get_secret("AZURE_TENANT_ID")
+        self.CLIENT_ID = self.secretHelper.get_secret("AZURE_CLIENT_ID")
+        self.ADMIN_GROUP_ID = self.secretHelper.get_secret("AZURE_ADMIN_GROUP_ID")
 
     def should_use_data(self) -> bool:
         if (

@@ -1,6 +1,9 @@
 from multiprocessing import Process
+import os
 import socket
 import time
+from unittest.mock import patch
+from backend.auth.token_validator import TokenValidator
 import pytest
 from pytest_httpserver import HTTPServer
 import requests
@@ -33,6 +36,7 @@ def mock_httpserver(make_httpserver):
 
 @pytest.fixture(scope="module")
 def app_config(mock_httpserver: HTTPServer) -> AppConfig:
+    os.environ["DISABLE_AUTH"] = "1"
     return AppConfig({"AZURE_OPENAI_ENDPOINT": mock_httpserver.url_for("/")})
 
 
@@ -66,7 +70,7 @@ def wait_for_app(port: int):
 
     while attempts < 10:
         try:
-            response = requests.get(f"http://localhost:{port}/api/config")
+            response = requests.get(f"http://localhost:{port}/api/health")
             if response.status_code == 200:
                 return
         except Exception:
