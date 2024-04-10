@@ -1,7 +1,12 @@
 import sys
+import os
 from unittest.mock import patch, Mock
 
-sys.path.append("backend/batch")
+function_app_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "../backend/batch")
+)
+sys.path.append(function_app_path)
+
 from backend.batch.BatchStartProcessing import do_batch_start_processing  # noqa: E402
 
 

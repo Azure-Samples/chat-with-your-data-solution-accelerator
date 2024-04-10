@@ -1,8 +1,14 @@
 import sys
+import os
 from unittest.mock import patch, Mock
 from azure.functions import QueueMessage
 
-sys.path.append("backend/batch/")
+
+function_app_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "../backend/batch")
+)
+sys.path.append(function_app_path)
+
 from backend.batch.BatchPushResults import do_batch_push_results  # noqa: E402
 from backend.batch.BatchPushResults import _get_file_name_from_message  # noqa: E402
 
