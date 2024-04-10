@@ -12,10 +12,12 @@ sys.path.append("..")
 bp_batch_start_processing = func.Blueprint()
 env_helper: EnvHelper = EnvHelper()
 
+logger = logging.getLogger(__name__)
+
 
 @bp_batch_start_processing.route(route="BatchStartProcessing")
 def batch_start_processing(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info("Requested to start processing all documents received")
+    logger.info("Requested to start processing all documents received")
     # Set up Blob Storage Client
     azure_blob_storage_client = AzureBlobStorageClient()
     # Get all files from Blob Storage

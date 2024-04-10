@@ -1,3 +1,4 @@
+import logging
 from typing import List
 from .AnsweringToolBase import AnsweringToolBase
 
@@ -10,6 +11,8 @@ from ..helpers.ConfigHelper import ConfigHelper
 from ..helpers.LLMHelper import LLMHelper
 from ..common.Answer import Answer
 from ..common.SourceDocument import SourceDocument
+
+logger = logging.getLogger(__name__)
 
 
 class QuestionAnswerTool(AnsweringToolBase):
@@ -44,7 +47,7 @@ class QuestionAnswerTool(AnsweringToolBase):
             result = answer_generator({"question": question, "sources": sources_text})
 
         answer = result["text"]
-        print(f"Answer: {answer}")
+        logger.debug(f"Answer: {answer}")
 
         # Generate Answer Object
         source_documents = []

@@ -6,11 +6,1710 @@
       "content": {
         "json": "# Chat With Your Data Monitoring"
       },
-      "name": "heading"
+      "name": "Heading"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "crossComponentResources": [
+          "{subscription-id}"
+        ],
+        "parameters": [
+          {
+            "id": "b958a893-1fec-49c0-9487-5404949fa49d",
+            "version": "KqlParameterItem/1.0",
+            "name": "appserviceplan",
+            "type": 5,
+            "isRequired": true,
+            "isGlobal": true,
+            "query": "resources\r\n| where type =~ 'Microsoft.Web/serverfarms'\r\n| summarize by id",
+            "crossComponentResources": [
+              "{subscription-id}"
+            ],
+            "isHiddenWhenLocked": true,
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": "{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.Web/serverFarms/{app-service-plan}"
+          },
+          {
+            "id": "be0e9b6d-0022-413e-8f51-27c30d71f1a2",
+            "version": "KqlParameterItem/1.0",
+            "name": "backendappservice",
+            "type": 5,
+            "isRequired": true,
+            "isGlobal": true,
+            "query": "resources\r\n| where type =~ 'Microsoft.Web/sites'\r\n| summarize by id",
+            "crossComponentResources": [
+              "{subscription-id}"
+            ],
+            "isHiddenWhenLocked": true,
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": "{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.Web/sites/{backend-app-service}"
+          },
+          {
+            "id": "ed4452bd-c9f7-4662-816d-5be5a1f7ac3e",
+            "version": "KqlParameterItem/1.0",
+            "name": "webappservice",
+            "type": 5,
+            "isRequired": true,
+            "isGlobal": true,
+            "query": "resources\r\n| where type =~ 'Microsoft.Web/sites'\r\n| summarize by id",
+            "crossComponentResources": [
+              "{subscription-id}"
+            ],
+            "isHiddenWhenLocked": true,
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": "{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.Web/sites/{web-app-service}"
+          },
+          {
+            "id": "f2597276-1732-41e2-a8e7-3250adc62843",
+            "version": "KqlParameterItem/1.0",
+            "name": "adminappservice",
+            "type": 5,
+            "isRequired": true,
+            "isGlobal": true,
+            "query": "resources\r\n| where type =~ 'Microsoft.Web/sites'\r\n| summarize by id",
+            "crossComponentResources": [
+              "{subscription-id}"
+            ],
+            "isHiddenWhenLocked": true,
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": "{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.Web/sites/{admin-app-service}"
+          },
+          {
+            "id": "d2b7cfb5-2b5e-40e2-996c-471d76431957",
+            "version": "KqlParameterItem/1.0",
+            "name": "eventgrid",
+            "type": 5,
+            "isRequired": true,
+            "isGlobal": true,
+            "query": "resources\r\n| where type =~ 'microsoft.eventgrid/systemtopics'\r\n| summarize by id\r\n",
+            "crossComponentResources": [
+              "{subscription-id}"
+            ],
+            "isHiddenWhenLocked": true,
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": "{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.EventGrid/systemTopics/{event-grid}"
+          },
+          {
+            "id": "45dd012e-d365-40aa-8bbe-645fcc397f9f",
+            "version": "KqlParameterItem/1.0",
+            "name": "loganalytics",
+            "type": 5,
+            "isRequired": true,
+            "isGlobal": true,
+            "query": "resources\r\n| where type =~ 'Microsoft.OperationalInsights/workspaces'\r\n| summarize by id\r\n",
+            "crossComponentResources": [
+              "{subscription-id}"
+            ],
+            "isHiddenWhenLocked": true,
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": "{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.OperationalInsights/workspaces/{log-analytics}"
+          },
+          {
+            "id": "2c947381-754c-4edb-8e9c-d600b0f6a9bb",
+            "version": "KqlParameterItem/1.0",
+            "name": "openai",
+            "type": 5,
+            "isRequired": true,
+            "isGlobal": true,
+            "query": "resources\r\n| where type =~ 'Microsoft.CognitiveServices/accounts'\r\n| where kind == 'OpenAI'\r\n| summarize by id\r\n",
+            "crossComponentResources": [
+              "{subscription-id}"
+            ],
+            "isHiddenWhenLocked": true,
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": "{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.CognitiveServices/accounts/{open-ai}"
+          },
+          {
+            "id": "543a5643-4fae-417b-afa8-4fb441045021",
+            "version": "KqlParameterItem/1.0",
+            "name": "aisearch",
+            "type": 5,
+            "isRequired": true,
+            "isGlobal": true,
+            "query": "resources\r\n| where type =~ 'Microsoft.Search/searchServices'\r\n| summarize by id\r\n",
+            "crossComponentResources": [
+              "{subscription-id}"
+            ],
+            "isHiddenWhenLocked": true,
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": "{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.Search/searchServices/{ai-search}"
+          },
+          {
+            "id": "de9a1a63-4e15-404d-b056-f2f125fb6a7e",
+            "version": "KqlParameterItem/1.0",
+            "name": "storageaccount",
+            "type": 5,
+            "isRequired": true,
+            "isGlobal": true,
+            "query": "resources\r\n| where type =~ 'Microsoft.Storage/storageAccounts'\r\n| summarize by id\r\n",
+            "crossComponentResources": [
+              "{subscription-id}"
+            ],
+            "isHiddenWhenLocked": true,
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": "{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.Storage/storageAccounts/{storage-account}"
+          }
+        ],
+        "style": "pills",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources"
+      },
+      "conditionalVisibility": {
+        "parameterName": "never",
+        "comparison": "isEqualTo",
+        "value": "show"
+      },
+      "name": "Resource Parameters"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "crossComponentResources": [
+          "{subscription-id}"
+        ],
+        "parameters": [
+          {
+            "id": "c612fd9e-e4be-4739-855e-a545344709a4",
+            "version": "KqlParameterItem/1.0",
+            "name": "timerange",
+            "label": "Time Range",
+            "type": 4,
+            "isRequired": true,
+            "isGlobal": true,
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 300000
+                },
+                {
+                  "durationMs": 900000
+                },
+                {
+                  "durationMs": 1800000
+                },
+                {
+                  "durationMs": 3600000
+                },
+                {
+                  "durationMs": 14400000
+                },
+                {
+                  "durationMs": 43200000
+                },
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 172800000
+                },
+                {
+                  "durationMs": 259200000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 1209600000
+                },
+                {
+                  "durationMs": 2419200000
+                },
+                {
+                  "durationMs": 2592000000
+                },
+                {
+                  "durationMs": 5184000000
+                },
+                {
+                  "durationMs": 7776000000
+                }
+              ],
+              "allowCustom": true
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": {
+              "durationMs": 3600000
+            }
+          }
+        ],
+        "style": "pills",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources"
+      },
+      "name": "Time Picker"
+    },
+    {
+      "type": 11,
+      "content": {
+        "version": "LinkItem/1.0",
+        "style": "tabs",
+        "links": [
+          {
+            "id": "60be91b1-8788-4b49-a8cd-34af2b0eb618",
+            "cellValue": "selTab",
+            "linkTarget": "parameter",
+            "linkLabel": "App Operations",
+            "subTarget": "Operations",
+            "style": "link"
+          },
+          {
+            "id": "c73d4e39-d3d4-4f60-89b7-1a05ed84ebbd",
+            "cellValue": "selTab",
+            "linkTarget": "parameter",
+            "linkLabel": "App Resources",
+            "subTarget": "Resources",
+            "style": "link"
+          },
+          {
+            "id": "cbfcb8a9-d229-4b10-a38a-d6826ac29e27",
+            "cellValue": "selTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Open AI",
+            "subTarget": "Open AI",
+            "style": "link"
+          },
+          {
+            "id": "8c2e5ee1-49c8-4dbd-81cf-2baca35cbc61",
+            "cellValue": "selTab",
+            "linkTarget": "parameter",
+            "linkLabel": "AI Search",
+            "subTarget": "AI Search",
+            "style": "link"
+          },
+          {
+            "id": "e770e864-ada2-4af5-a5ed-28cca4b137eb",
+            "cellValue": "selTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Storage",
+            "subTarget": "Storage",
+            "style": "link"
+          }
+        ]
+      },
+      "name": "links - 4"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbook6b31a3ff-2833-43dc-bf82-1782baa17863",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.web/sites",
+              "metricScope": 0,
+              "resourceParameter": "webappservice",
+              "resourceIds": [
+                "{webappservice}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 3600000
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--Http2xx",
+                  "aggregation": 1
+                },
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--Http3xx",
+                  "aggregation": 1
+                },
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--Http4xx",
+                  "aggregation": 1
+                },
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--Http5xx",
+                  "aggregation": 1
+                }
+              ],
+              "title": "Web App Responses",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Web App Responses",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbook6b31a3ff-2833-43dc-bf82-1782baa17863",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.web/sites",
+              "metricScope": 0,
+              "resourceParameter": "webappservice",
+              "resourceIds": [
+                "{webappservice}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 3600000
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--HttpResponseTime",
+                  "aggregation": 4
+                },
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--HttpResponseTime",
+                  "aggregation": 3
+                }
+              ],
+              "title": "Web App Response Times",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Web App Response Times",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbook6b31a3ff-2833-43dc-bf82-1782baa17863",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.web/sites",
+              "metricScope": 0,
+              "resourceParameter": "adminappservice",
+              "resourceIds": [
+                "{adminappservice}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 3600000
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--Http2xx",
+                  "aggregation": 1
+                },
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--Http3xx",
+                  "aggregation": 1
+                },
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--Http4xx",
+                  "aggregation": 1
+                },
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--Http5xx",
+                  "aggregation": 1
+                }
+              ],
+              "title": "Admin App Responses",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Admin App Responses",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbook6b31a3ff-2833-43dc-bf82-1782baa17863",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.web/sites",
+              "metricScope": 0,
+              "resourceParameter": "adminappservice",
+              "resourceIds": [
+                "{adminappservice}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 3600000
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--HttpResponseTime",
+                  "aggregation": 4
+                },
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--HttpResponseTime",
+                  "aggregation": 3
+                }
+              ],
+              "title": "Admin App Response Times",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Admin App Response Times",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbook6b31a3ff-2833-43dc-bf82-1782baa17863",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.web/sites",
+              "metricScope": 0,
+              "resourceParameter": "backendappservice",
+              "resourceIds": [
+                "{backendappservice}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 3600000
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--Http2xx",
+                  "aggregation": 1
+                },
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--Http3xx",
+                  "aggregation": 1
+                },
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--Http4xx",
+                  "aggregation": 1
+                },
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--Http5xx",
+                  "aggregation": 1
+                }
+              ],
+              "title": "Backend Responses",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Backend Responses",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbook6b31a3ff-2833-43dc-bf82-1782baa17863",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.web/sites",
+              "metricScope": 0,
+              "resourceParameter": "backendappservice",
+              "resourceIds": [
+                "{backendappservice}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 3600000
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--HttpResponseTime",
+                  "aggregation": 4
+                },
+                {
+                  "namespace": "microsoft.web/sites",
+                  "metric": "microsoft.web/sites--HttpResponseTime",
+                  "aggregation": 3
+                }
+              ],
+              "title": "Backend Response Times",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Backend Response Times",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbook9a7f88c8-6e80-41a3-9837-09d29d05a802",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.eventgrid/systemtopics",
+              "metricScope": 0,
+              "resourceParameter": "eventgrid",
+              "resourceIds": [
+                "{eventgrid}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 3600000
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.eventgrid/systemtopics",
+                  "metric": "microsoft.eventgrid/systemtopics--PublishSuccessCount",
+                  "aggregation": 1
+                },
+                {
+                  "namespace": "microsoft.eventgrid/systemtopics",
+                  "metric": "microsoft.eventgrid/systemtopics--PublishFailCount",
+                  "aggregation": 1
+                },
+                {
+                  "namespace": "microsoft.eventgrid/systemtopics",
+                  "metric": "microsoft.eventgrid/systemtopics--MatchedEventCount",
+                  "aggregation": 1
+                },
+                {
+                  "namespace": "microsoft.eventgrid/systemtopics",
+                  "metric": "microsoft.eventgrid/systemtopics--DeliverySuccessCount",
+                  "aggregation": 1
+                },
+                {
+                  "namespace": "microsoft.eventgrid/systemtopics",
+                  "metric": "microsoft.eventgrid/systemtopics--DeadLetteredCount",
+                  "aggregation": 1
+                },
+                {
+                  "namespace": "microsoft.eventgrid/systemtopics",
+                  "metric": "microsoft.eventgrid/systemtopics--DeliveryAttemptFailCount",
+                  "aggregation": 1
+                },
+                {
+                  "namespace": "microsoft.eventgrid/systemtopics",
+                  "metric": "microsoft.eventgrid/systemtopics--DroppedEventCount",
+                  "aggregation": 1
+                },
+                {
+                  "namespace": "microsoft.eventgrid/systemtopics",
+                  "metric": "microsoft.eventgrid/systemtopics--AdvancedFilterEvaluationCount",
+                  "aggregation": 1
+                }
+              ],
+              "title": "Event Grid Events",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Event Grid Events",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbook14a73dd8-6d4d-43ba-8bea-f7c159ffd85d",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.eventgrid/systemtopics",
+              "metricScope": 0,
+              "resourceParameter": "eventgrid",
+              "resourceIds": [
+                "{eventgrid}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 3600000
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.eventgrid/systemtopics",
+                  "metric": "microsoft.eventgrid/systemtopics--PublishSuccessLatencyInMs",
+                  "aggregation": 4
+                },
+                {
+                  "namespace": "microsoft.eventgrid/systemtopics",
+                  "metric": "microsoft.eventgrid/systemtopics--PublishSuccessLatencyInMs",
+                  "aggregation": 3
+                },
+                {
+                  "namespace": "microsoft.eventgrid/systemtopics",
+                  "metric": "microsoft.eventgrid/systemtopics--DestinationProcessingDurationInMs",
+                  "aggregation": 4
+                },
+                {
+                  "namespace": "microsoft.eventgrid/systemtopics",
+                  "metric": "microsoft.eventgrid/systemtopics--DestinationProcessingDurationInMs",
+                  "aggregation": 3
+                }
+              ],
+              "title": "Event Grid Latency",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Event Grid Latency",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AppExceptions\r\n | project TimeGenerated, AppRoleName, ExceptionType, OuterMessage\r\n",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "App Exceptions",
+              "timeContextFromParameter": "timerange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{loganalytics}"
+              ],
+              "gridSettings": {
+                "sortBy": [
+                  {
+                    "itemKey": "TimeGenerated",
+                    "sortOrder": 2
+                  }
+                ]
+              },
+              "sortBy": [
+                {
+                  "itemKey": "TimeGenerated",
+                  "sortOrder": 2
+                }
+              ]
+            },
+            "name": "App Exceptions",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AppRequests\r\n | project TimeGenerated, AppRoleName, Name, Success, Url, PerformanceBucket",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "App Requests",
+              "timeContextFromParameter": "timerange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{loganalytics}"
+              ]
+            },
+            "name": "App Requests",
+            "styleSettings": {
+              "showBorder": true
+            }
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selTab",
+        "comparison": "isEqualTo",
+        "value": "Operations"
+      },
+      "name": "Operations Group"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbookdf438966-1e39-4357-b905-15a0d9de5cf8",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.web/serverfarms",
+              "metricScope": 0,
+              "resourceParameter": "appserviceplan",
+              "resourceIds": [
+                "{appserviceplan}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.web/serverfarms",
+                  "metric": "microsoft.web/serverfarms--CpuPercentage",
+                  "aggregation": 4,
+                  "splitBy": null
+                },
+                {
+                  "namespace": "microsoft.web/serverfarms",
+                  "metric": "microsoft.web/serverfarms--CpuPercentage",
+                  "aggregation": 3
+                }
+              ],
+              "title": "CPU Usage",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "CPU Usage",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbook4188b464-c50d-4c92-ae63-4f129284888c",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.web/serverfarms",
+              "metricScope": 0,
+              "resourceParameter": "appserviceplan",
+              "resourceIds": [
+                "{appserviceplan}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.web/serverfarms",
+                  "metric": "microsoft.web/serverfarms--MemoryPercentage",
+                  "aggregation": 4,
+                  "splitBy": null
+                },
+                {
+                  "namespace": "microsoft.web/serverfarms",
+                  "metric": "microsoft.web/serverfarms--MemoryPercentage",
+                  "aggregation": 3
+                }
+              ],
+              "title": "Memory Usage",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Memory Usage",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbookd7cc149c-bd48-432d-8343-6c6eebdee5d9",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.web/serverfarms",
+              "metricScope": 0,
+              "resourceParameter": "appserviceplan",
+              "resourceIds": [
+                "{appserviceplan}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.web/serverfarms",
+                  "metric": "microsoft.web/serverfarms--BytesReceived",
+                  "aggregation": 1,
+                  "splitBy": null
+                }
+              ],
+              "title": "Data In",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Data In",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbook54212fe0-54bb-4b55-9be0-efbd987d461b",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.web/serverfarms",
+              "metricScope": 0,
+              "resourceParameter": "appserviceplan",
+              "resourceIds": [
+                "{appserviceplan}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.web/serverfarms",
+                  "metric": "microsoft.web/serverfarms--BytesSent",
+                  "aggregation": 1,
+                  "splitBy": null,
+                  "columnName": ""
+                }
+              ],
+              "title": "Data Out",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Data Out",
+            "styleSettings": {
+              "showBorder": true
+            }
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selTab",
+        "comparison": "isEqualTo",
+        "value": "Resources"
+      },
+      "name": "Resources Group"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbooka838a7f8-a1e2-42c2-b8eb-2601e4486462",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.cognitiveservices/accounts",
+              "metricScope": 0,
+              "resourceParameter": "openai",
+              "resourceIds": [
+                "{openai}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.cognitiveservices/accounts",
+                  "metric": "microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests",
+                  "aggregation": 1,
+                  "splitBy": null
+                }
+              ],
+              "title": "Open AI Requests by Deployment",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Subscription",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "Name",
+                    "formatter": 13,
+                    "formatOptions": {
+                      "linkTarget": "Resource"
+                    }
+                  },
+                  {
+                    "columnMatch": "microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests Timeline",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests",
+                    "formatter": 1,
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": null
+                    }
+                  }
+                ],
+                "rowLimit": 10000,
+                "labelSettings": [
+                  {
+                    "columnId": "microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests",
+                    "label": "Azure OpenAI Requests (Sum)"
+                  },
+                  {
+                    "columnId": "microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests Timeline",
+                    "label": "Azure OpenAI Requests Timeline"
+                  }
+                ]
+              }
+            },
+            "customWidth": "50",
+            "name": "Open AI Requests by Deployment",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbooka838a7f8-a1e2-42c2-b8eb-2601e4486462",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.cognitiveservices/accounts",
+              "metricScope": 0,
+              "resourceParameter": "openai",
+              "resourceIds": [
+                "{openai}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.cognitiveservices/accounts",
+                  "metric": "microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests",
+                  "aggregation": 1,
+                  "splitBy": "ModelVersion"
+                }
+              ],
+              "title": "Open AI Requests by Model Version",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Subscription",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "Name",
+                    "formatter": 13,
+                    "formatOptions": {
+                      "linkTarget": "Resource"
+                    }
+                  },
+                  {
+                    "columnMatch": "microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests Timeline",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests",
+                    "formatter": 1,
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": null
+                    }
+                  }
+                ],
+                "rowLimit": 10000,
+                "labelSettings": [
+                  {
+                    "columnId": "microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests",
+                    "label": "Azure OpenAI Requests (Sum)"
+                  },
+                  {
+                    "columnId": "microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests Timeline",
+                    "label": "Azure OpenAI Requests Timeline"
+                  }
+                ]
+              }
+            },
+            "customWidth": "50",
+            "name": "Open AI Requests by Model Version",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbook5c797794-acb4-47a5-b92f-36abf913ab8e",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.cognitiveservices/accounts",
+              "metricScope": 0,
+              "resourceParameter": "openai",
+              "resourceIds": [
+                "{openai}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.cognitiveservices/accounts",
+                  "metric": "microsoft.cognitiveservices/accounts-Azure OpenAI  Usage-GeneratedTokens",
+                  "aggregation": 7,
+                  "splitBy": null
+                }
+              ],
+              "title": "Generated Completions Tokens",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Generated Completions Tokens",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbook5c797794-acb4-47a5-b92f-36abf913ab8e",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.cognitiveservices/accounts",
+              "metricScope": 0,
+              "resourceParameter": "openai",
+              "resourceIds": [
+                "{openai}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.cognitiveservices/accounts",
+                  "metric": "microsoft.cognitiveservices/accounts-Azure OpenAI  Usage-TokenTransaction",
+                  "aggregation": 7,
+                  "splitBy": null
+                }
+              ],
+              "title": "Processed Inference Tokens",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Processed Inference Tokens",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbook5c797794-acb4-47a5-b92f-36abf913ab8e",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.cognitiveservices/accounts",
+              "metricScope": 0,
+              "resourceParameter": "openai",
+              "resourceIds": [
+                "{openai}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.cognitiveservices/accounts",
+                  "metric": "microsoft.cognitiveservices/accounts-Azure OpenAI  Usage-ProcessedPromptTokens",
+                  "aggregation": 7,
+                  "splitBy": null
+                }
+              ],
+              "title": "Processed Prompt Tokens",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Processed Prompt Tokens",
+            "styleSettings": {
+              "showBorder": true
+            }
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selTab",
+        "comparison": "isEqualTo",
+        "value": "Open AI"
+      },
+      "name": "Open AI Group"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbookacb9885c-d72e-468f-a567-655708cfec44",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.search/searchservices",
+              "metricScope": 0,
+              "resourceParameter": "aisearch",
+              "resourceIds": [
+                "{aisearch}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.search/searchservices",
+                  "metric": "microsoft.search/searchservices--SearchLatency",
+                  "aggregation": 4,
+                  "splitBy": null
+                },
+                {
+                  "namespace": "microsoft.search/searchservices",
+                  "metric": "microsoft.search/searchservices--SearchLatency",
+                  "aggregation": 3
+                }
+              ],
+              "title": "Search Latency",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Search Latency",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbookc3418582-4b58-4016-8180-d3ecff43c408",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.search/searchservices",
+              "metricScope": 0,
+              "resourceParameter": "aisearch",
+              "resourceIds": [
+                "{aisearch}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.search/searchservices",
+                  "metric": "microsoft.search/searchservices--SearchQueriesPerSecond",
+                  "aggregation": 4,
+                  "splitBy": null
+                },
+                {
+                  "namespace": "microsoft.search/searchservices",
+                  "metric": "microsoft.search/searchservices--SearchQueriesPerSecond",
+                  "aggregation": 3
+                }
+              ],
+              "title": "Search Queries per second",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Search Queries per second",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbook9e9aa03e-6125-4347-b768-ca7151d413e3",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.search/searchservices",
+              "metricScope": 0,
+              "resourceParameter": "aisearch",
+              "resourceIds": [
+                "{aisearch}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.search/searchservices",
+                  "metric": "microsoft.search/searchservices--ThrottledSearchQueriesPercentage",
+                  "aggregation": 4,
+                  "splitBy": null
+                }
+              ],
+              "title": "Throttled Search Queries Percentage",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "showPin": false,
+            "name": "Throttled Search Queries Percentage",
+            "styleSettings": {
+              "showBorder": true
+            }
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selTab",
+        "comparison": "isEqualTo",
+        "value": "AI Search"
+      },
+      "name": "Search Group"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbookd5a8891d-2021-47cb-a5aa-d92dd112aab0",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.storage/storageaccounts",
+              "metricScope": 0,
+              "resourceParameter": "storageaccount",
+              "resourceIds": [
+                "{storageaccount}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.storage/storageaccounts",
+                  "metric": "microsoft.storage/storageaccounts-Capacity-UsedCapacity",
+                  "aggregation": 4,
+                  "splitBy": null
+                },
+                {
+                  "namespace": "microsoft.storage/storageaccounts/blobservices",
+                  "metric": "microsoft.storage/storageaccounts/blobservices-Capacity-BlobCapacity",
+                  "aggregation": 4
+                },
+                {
+                  "namespace": "microsoft.storage/storageaccounts/queueservices",
+                  "metric": "microsoft.storage/storageaccounts/queueservices-Capacity-QueueCapacity",
+                  "aggregation": 4
+                },
+                {
+                  "namespace": "microsoft.storage/storageaccounts/tableservices",
+                  "metric": "microsoft.storage/storageaccounts/tableservices-Capacity-TableCapacity",
+                  "aggregation": 4
+                }
+              ],
+              "title": "Capacity",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Storage Capacity",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbookd5a8891d-2021-47cb-a5aa-d92dd112aab0",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.storage/storageaccounts",
+              "metricScope": 0,
+              "resourceParameter": "storageaccount",
+              "resourceIds": [
+                "{storageaccount}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.storage/storageaccounts/blobservices",
+                  "metric": "microsoft.storage/storageaccounts/blobservices-Capacity-ContainerCount",
+                  "aggregation": 4,
+                  "splitBy": null
+                },
+                {
+                  "namespace": "microsoft.storage/storageaccounts/blobservices",
+                  "metric": "microsoft.storage/storageaccounts/blobservices-Capacity-BlobCount",
+                  "aggregation": 4
+                },
+                {
+                  "namespace": "microsoft.storage/storageaccounts/queueservices",
+                  "metric": "microsoft.storage/storageaccounts/queueservices-Capacity-QueueCount",
+                  "aggregation": 4
+                },
+                {
+                  "namespace": "microsoft.storage/storageaccounts/queueservices",
+                  "metric": "microsoft.storage/storageaccounts/queueservices-Capacity-QueueMessageCount",
+                  "aggregation": 4
+                },
+                {
+                  "namespace": "microsoft.storage/storageaccounts/tableservices",
+                  "metric": "microsoft.storage/storageaccounts/tableservices-Capacity-TableCount",
+                  "aggregation": 4
+                },
+                {
+                  "namespace": "microsoft.storage/storageaccounts/tableservices",
+                  "metric": "microsoft.storage/storageaccounts/tableservices-Capacity-TableEntityCount",
+                  "aggregation": 4
+                }
+              ],
+              "title": "Counts",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Storage Counts",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbook14f8930f-94fe-4c30-b21b-97e802e48f53",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.storage/storageaccounts",
+              "metricScope": 0,
+              "resourceParameter": "storageaccount",
+              "resourceIds": [
+                "{storageaccount}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.storage/storageaccounts",
+                  "metric": "microsoft.storage/storageaccounts-Transaction-Ingress",
+                  "aggregation": 1,
+                  "splitBy": null
+                }
+              ],
+              "title": "Ingress",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Storage Ingress",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbook14f8930f-94fe-4c30-b21b-97e802e48f53",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.storage/storageaccounts",
+              "metricScope": 0,
+              "resourceParameter": "storageaccount",
+              "resourceIds": [
+                "{storageaccount}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.storage/storageaccounts",
+                  "metric": "microsoft.storage/storageaccounts-Transaction-Egress",
+                  "aggregation": 1,
+                  "splitBy": null
+                }
+              ],
+              "title": "Egress",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Storage Egress",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbookdc8d463d-4a35-49c4-a9ad-1a4b23f8cadd",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.storage/storageaccounts",
+              "metricScope": 0,
+              "resourceParameter": "storageaccount",
+              "resourceIds": [
+                "{storageaccount}"
+              ],
+              "timeContextFromParameter": "timerange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.storage/storageaccounts",
+                  "metric": "microsoft.storage/storageaccounts-Transaction-SuccessE2ELatency",
+                  "aggregation": 4,
+                  "splitBy": null
+                }
+              ],
+              "title": "Storage Latency",
+              "showOpenInMe": true,
+              "timeBrushParameterName": "timerange",
+              "timeBrushExportOnlyWhenBrushed": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Storage Latency",
+            "styleSettings": {
+              "showBorder": true
+            }
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selTab",
+        "comparison": "isEqualTo",
+        "value": "Storage"
+      },
+      "name": "Storage Group"
     }
   ],
   "fallbackResourceIds": [
     "azure monitor"
   ],
+  "styleSettings": {
+    "paddingStyle": "narrow",
+    "spacingStyle": "narrow"
+  },
   "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
 }
