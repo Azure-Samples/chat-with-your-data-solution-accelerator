@@ -13,6 +13,7 @@ bp_batch_start_processing = func.Blueprint()
 env_helper: EnvHelper = EnvHelper()
 
 logger = logging.getLogger(__name__)
+logger.setLevel(env_helper.LOGLEVEL)
 
 
 @bp_batch_start_processing.route(route="BatchStartProcessing")
