@@ -1,7 +1,6 @@
 import logging
 import json
 import azure.functions as func
-import sys
 
 from utilities.helpers.EnvHelper import EnvHelper
 from utilities.helpers.AzureBlobStorageHelper import (
@@ -12,7 +11,6 @@ from utilities.helpers.AzureBlobStorageHelper import (
 bp_batch_start_processing = func.Blueprint()
 env_helper: EnvHelper = EnvHelper()
 logger = logging.getLogger(__name__)
-sys.path.append("..")
 
 
 @bp_batch_start_processing.route(route="BatchStartProcessing")
