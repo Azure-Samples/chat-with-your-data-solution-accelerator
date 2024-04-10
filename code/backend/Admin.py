@@ -10,7 +10,10 @@ load_dotenv()
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-configure_azure_monitor()
+# We cannot use EnvHelper here as Application Insights needs to be configured first
+# for instrumentation to work correctly
+if os.getenv("APPINSIGHTS_ENABLED", "false").lower() == "true":
+    configure_azure_monitor()
 
 logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
     logging.WARNING
