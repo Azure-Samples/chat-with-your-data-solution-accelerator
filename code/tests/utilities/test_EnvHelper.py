@@ -47,7 +47,7 @@ def test_load_config_from_blob_storage(monkeypatch: MonkeyPatch, value, expected
 
 @pytest.mark.parametrize(
     "value,expected",
-    [("true", True), ("false", False), ("this is the way", False), (None, True)],
+    [("true", True), ("false", False), ("this is the way", False), (None, False)],
 )
 def test_app_insights_enabled(monkeypatch: MonkeyPatch, value, expected):
     # given
@@ -59,3 +59,16 @@ def test_app_insights_enabled(monkeypatch: MonkeyPatch, value, expected):
 
     # then
     assert actual_appinsights_enabled == expected
+
+
+def test_keys_are_unset_when_auth_type_rbac(monkeypatch: MonkeyPatch):
+    # given
+    monkeypatch.setenv("AZURE_AUTH_TYPE", "rbac")
+
+    # when
+    env_helper = EnvHelper()
+
+    # then
+    assert env_helper.AZURE_SEARCH_KEY is None
+    assert env_helper.AZURE_OPENAI_API_KEY == ""
+    assert env_helper.AZURE_SPEECH_KEY is None

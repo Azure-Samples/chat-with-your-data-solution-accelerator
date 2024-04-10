@@ -1,4 +1,5 @@
 import json
+import logging
 from .AzureBlobStorageHelper import AzureBlobStorageClient
 from ..document_chunking.Strategies import ChunkingSettings, ChunkingStrategy
 from ..document_loading import LoadingSettings, LoadingStrategy
@@ -10,6 +11,7 @@ from .OrchestratorHelper import (
 from .EnvHelper import EnvHelper
 
 CONFIG_CONTAINER_NAME = "config"
+logger = logging.getLogger(__name__)
 
 
 class Config:
@@ -81,7 +83,7 @@ class ConfigHelper:
                 config_file = blob_client.download_file("active.json")
                 config = Config(json.loads(config_file))
             except Exception:
-                print("Returning default config")
+                logger.info("Returning default config")
 
         return config
 

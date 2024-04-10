@@ -1,6 +1,8 @@
 import logging
 import os
 
+logger = logging.getLogger(__name__)
+
 
 class AppConfig:
     config: dict[str, str | None] = {
@@ -40,13 +42,13 @@ class AppConfig:
     def apply_to_environment(self) -> None:
         for key, value in self.config.items():
             if value is not None:
-                logging.info(f"Applying env var: {key}={value}")
+                logger.info(f"Applying env var: {key}={value}")
                 os.environ[key] = value
             else:
-                logging.info(f"Removing env var: {key}")
+                logger.info(f"Removing env var: {key}")
                 os.environ.pop(key, None)
 
     def remove_from_environment(self) -> None:
         for key in self.config.keys():
-            logging.info(f"Removing env var: {key}")
+            logger.info(f"Removing env var: {key}")
             os.environ.pop(key, None)

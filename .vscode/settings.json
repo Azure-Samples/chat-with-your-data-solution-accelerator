@@ -1,10 +1,14 @@
 {
-    "azureFunctions.deploySubpath": "code\\backend\\batch",
+    "azureFunctions.deploySubpath": "code/backend/batch",
+    "azureFunctions.projectSubpath": "code/backend/batch",
     "azureFunctions.scmDoBuildDuringDeployment": true,
     "azureFunctions.projectLanguage": "Python",
     "azureFunctions.projectRuntime": "~4",
     "debug.internalConsoleOptions": "neverOpen",
     "azureFunctions.projectLanguageModel": 2,
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
+    "files.trimTrailingWhitespace": true,
     "githubPullRequests.ignoredPullRequestBranches": [
         "main"
     ],
