@@ -265,7 +265,13 @@ def test_legacy_correct_prompt(config_mock: MagicMock, LLMChainMock: MagicMock):
     # then
     expected_input = {
         "question": "mock question",
-        "sources": "[doc1]: mock content 0\n\n[doc2]: mock content 1\n\n[doc3]: mock content 2\n\n[doc4]: mock content 3",
+        "sources": """[doc1]: mock content 0
+
+[doc2]: mock content 1
+
+[doc3]: mock content 2
+
+[doc4]: mock content 3""",
     }
 
     answer_generator.assert_called_once_with(expected_input)
