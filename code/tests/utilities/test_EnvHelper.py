@@ -94,7 +94,6 @@ def test_uses_and_uppercases_log_level_when_set(monkeypatch: MonkeyPatch):
     assert env_helper.LOGLEVEL == "DEBUG"
 
 
-
 def test_keys_are_unset_when_auth_type_rbac(monkeypatch: MonkeyPatch):
     # given
     monkeypatch.setenv("AZURE_AUTH_TYPE", "rbac")
