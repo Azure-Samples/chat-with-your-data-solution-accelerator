@@ -1,3 +1,4 @@
+import io
 from os import path
 import streamlit as st
 from typing import Optional
@@ -15,7 +16,10 @@ from azure.storage.blob import (
     UserDelegationKey,
 )
 import urllib.parse
+import urllib.request
 import sys
+import re
+from bs4 import BeautifulSoup
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
 from batch.utilities.helpers.EnvHelper import EnvHelper
 
@@ -81,13 +85,18 @@ def remote_convert_files_and_add_embeddings(process_all=False):
 def add_urls():
 
     if env_helper.USE_INTEGRATED_VECTORIZATION:
-        urls = st.session_state["urls"].split("\n")
-        for url in urls:
-            response = requests.get(url)
-            content = response.content
-            open(f"{url}", "wb").write(content)
-            upload_file(content, f"{url}")
-
+        try:
+            urls = st.session_state["urls"].split("\n")
+            for url in urls:
+                response = urllib.request.urlopen(url)
+                soup = BeautifulSoup(response.read(), "html.parser")
+                for script in soup(["script", "style"]):
+                    script.decompose()
+                with io.BytesIO(soup.get_text().encode("utf-8")) as stream:
+                    upload_file(stream, re.search(r"\.(.*?)\.", url).group(1) + ".html")
+                st.success(f"Embeddings added successfully for {url}")
+        except Exception:
+            st.error(traceback.format_exc())
     else:
         params = {}
         if env_helper.FUNCTION_KEY is not None:
