@@ -77,7 +77,7 @@ def test_post_makes_correct_call_to_openai_embeddings(
                 "Api-Key": app_config.get("AZURE_OPENAI_API_KEY"),
             },
             query_string="api-version=2024-02-01",
-            times=2,
+            times=1,
         ),
     )
 

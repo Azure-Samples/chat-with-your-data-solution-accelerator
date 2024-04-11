@@ -31,10 +31,10 @@ services:
       prepackage:
         windows:
           shell: pwsh
-          run: poetry export -o requirements.txt
+          run: poetry install; poetry export -o requirements.txt
         posix:
           shell: sh
-          run: poetry export -o requirements.txt
+          run: poetry install; poetry export -o requirements.txt
 
   function:
     project: ./code/backend/batch
@@ -44,7 +44,7 @@ services:
       prepackage:
         windows:
           shell: pwsh
-          run: poetry export -o requirements.txt
+          run: poetry install; poetry export -o requirements.txt
         posix:
           shell: sh
-          run: poetry export -o requirements.txt
+          run: poetry install; poetry export -o requirements.txt

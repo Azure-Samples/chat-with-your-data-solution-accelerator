@@ -31,9 +31,7 @@ class AzureSearchHelper:
                 name="content_vector",
                 type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
                 searchable=True,
-                vector_search_dimensions=len(
-                    llm_helper.get_embedding_model().embed_query("Text")
-                ),
+                vector_search_dimensions=int(env_helper.AZURE_SEARCH_DIMENSIONS),
                 vector_search_profile_name="myHnswProfile",
             ),
             SearchableField(
@@ -73,6 +71,12 @@ class AzureSearchHelper:
             index_name=env_helper.AZURE_SEARCH_INDEX,
             embedding_function=llm_helper.get_embedding_model().embed_query,
             fields=fields,
+            search_type=(
+                "semantic_hybrid"
+                if env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH
+                else "hybrid"
+            ),
+            semantic_configuration_name=env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
             user_agent="langchain chatwithyourdata-sa",
         )
 
@@ -100,9 +104,7 @@ class AzureSearchHelper:
                 name="content_vector",
                 type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
                 searchable=True,
-                vector_search_dimensions=len(
-                    llm_helper.get_embedding_model().embed_query("Text")
-                ),
+                vector_search_dimensions=int(env_helper.AZURE_SEARCH_DIMENSIONS),
                 vector_search_profile_name="myHnswProfile",
             ),
             SearchableField(
