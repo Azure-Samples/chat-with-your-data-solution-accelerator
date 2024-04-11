@@ -14,6 +14,8 @@ class EnvHelper:
         # Wrapper for Azure Key Vault
         self.secretHelper = SecretHelper()
 
+        self.LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
+
         # Azure Search
         self.AZURE_SEARCH_SERVICE = os.getenv("AZURE_SEARCH_SERVICE", "")
         self.AZURE_SEARCH_INDEX = os.getenv("AZURE_SEARCH_INDEX", "")
@@ -182,7 +184,7 @@ class EnvHelper:
     def check_env():
         for attr, value in EnvHelper().__dict__.items():
             if value == "":
-                logging.warning(f"{attr} is not set in the environment variables.")
+                logger.warning(f"{attr} is not set in the environment variables.")
 
 
 class SecretHelper:

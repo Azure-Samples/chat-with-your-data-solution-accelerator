@@ -3,17 +3,22 @@ import traceback
 import azure.functions as func
 import sys
 
+from utilities.helpers.EnvHelper import EnvHelper
 from utilities.helpers.DocumentProcessorHelper import DocumentProcessor
 from utilities.helpers.ConfigHelper import ConfigHelper
 
 sys.path.append("..")
 
 bp_add_url_embeddings = func.Blueprint()
+env_helper: EnvHelper = EnvHelper()
+
+logger = logging.getLogger(__name__)
+logger.setLevel(env_helper.LOGLEVEL)
 
 
 @bp_add_url_embeddings.route(route="AddURLEmbeddings")
 def add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info("Python HTTP trigger function processed a request.")
+    logger.info("Python HTTP trigger function processed a request.")
     # Get Url from request
     url = req.params.get("url")
     if not url:
