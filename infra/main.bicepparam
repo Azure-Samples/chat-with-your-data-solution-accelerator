@@ -13,6 +13,8 @@ param authType = readEnvironmentVariable('AZURE_AUTH_TYPE', 'keys')
 
 param hostingModel = readEnvironmentVariable('AZURE_APP_SERVICE_HOSTING_MODEL', 'code')
 
+param azureOpenAIModel = readEnvironmentVariable('AZURE_OPENAI_MODEL', 'gpt-4')
+param azureOpenAIModelName = readEnvironmentVariable('AZURE_OPENAI_MODEL_NAME', 'gpt-4')
 param azureOpenAIModelVersion = readEnvironmentVariable('AZURE_OPENAI_MODEL_VERSION', '0613')
 
 // The following are being renamed to align with the new naming convention
