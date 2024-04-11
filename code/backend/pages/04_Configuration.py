@@ -73,6 +73,9 @@ if "orchestrator_strategy" not in st.session_state:
 
 
 def validate_answering_prompt():
+    if not st.session_state.answering_prompt:
+        return
+
     if "{sources}" not in st.session_state.answering_prompt:
         st.warning("Your answering prompt doesn't contain the variable `{sources}`")
     if "{question}" not in st.session_state.answering_prompt:

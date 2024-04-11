@@ -37,7 +37,9 @@ def config_mock():
     with patch("backend.batch.utilities.tools.QuestionAnswerTool.ConfigHelper") as mock:
         config = mock.get_active_config_or_default.return_value
         config.prompts.answering_system_prompt = "mock answering system prompt"
-        config.prompts.answering_user_prompt = "mock answering user prompt"
+        config.prompts.answering_user_prompt = (
+            "Documents: {documents}, User Question: {user_question}"
+        )
         config.prompts.answering_prompt = ""
         config.example.documents = json.dumps(
             {
@@ -163,7 +165,7 @@ def test_correct_prompt_with_few_shot_example(
     # then
     expected_input = {
         "user_question": "mock question",
-        "documents": '{"retrieved_documents": [{"[doc1]": {"content": "mock content 0"}}, {"[doc2]": {"content": "mock content 1"}}, {"[doc3]": {"content": "mock content 2"}}, {"[doc4]": {"content": "mock content 3"}}]}',
+        "documents": '{"retrieved_documents":[{"[doc1]":{"content":"mock content 0"}},{"[doc2]":{"content":"mock content 1"}},{"[doc3]":{"content":"mock content 2"}},{"[doc4]":{"content":"mock content 3"}}]}',
         "chat_history": [],
     }
 
@@ -178,10 +180,10 @@ def test_correct_prompt_with_few_shot_example(
     assert (
         prompt_test
         == """System: mock answering system prompt
-Human: mock answering user prompt
+Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock example content 0"}},{"[doc2]":{"content":"mock example content 1"}},{"[doc3]":{"content":"mock example content 2"}},{"[doc4]":{"content":"mock example content 3"}}]}, User Question: mock example user question
 AI: mock example answer
 System: mock azure openai system message
-Human: mock answering user prompt"""
+Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock content 0"}},{"[doc2]":{"content":"mock content 1"}},{"[doc3]":{"content":"mock content 2"}},{"[doc4]":{"content":"mock content 3"}}]}, User Question: mock question"""
     )
 
 
@@ -200,7 +202,7 @@ def test_correct_prompt_without_few_shot_example(
     # then
     expected_input = {
         "user_question": "mock question",
-        "documents": '{"retrieved_documents": [{"[doc1]": {"content": "mock content 0"}}, {"[doc2]": {"content": "mock content 1"}}, {"[doc3]": {"content": "mock content 2"}}, {"[doc4]": {"content": "mock content 3"}}]}',
+        "documents": '{"retrieved_documents":[{"[doc1]":{"content":"mock content 0"}},{"[doc2]":{"content":"mock content 1"}},{"[doc3]":{"content":"mock content 2"}},{"[doc4]":{"content":"mock content 3"}}]}',
         "chat_history": [],
     }
 
@@ -213,7 +215,7 @@ def test_correct_prompt_without_few_shot_example(
         prompt_test
         == """System: mock answering system prompt
 System: mock azure openai system message
-Human: mock answering user prompt"""
+Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock content 0"}},{"[doc2]":{"content":"mock content 1"}},{"[doc3]":{"content":"mock content 2"}},{"[doc4]":{"content":"mock content 3"}}]}, User Question: mock question"""
     )
 
 
@@ -232,7 +234,7 @@ def test_correct_prompt_with_few_shot_example_and_chat_history(LLMChainMock: Mag
     # then
     expected_input = {
         "user_question": "mock question",
-        "documents": '{"retrieved_documents": [{"[doc1]": {"content": "mock content 0"}}, {"[doc2]": {"content": "mock content 1"}}, {"[doc3]": {"content": "mock content 2"}}, {"[doc4]": {"content": "mock content 3"}}]}',
+        "documents": '{"retrieved_documents":[{"[doc1]":{"content":"mock content 0"}},{"[doc2]":{"content":"mock content 1"}},{"[doc3]":{"content":"mock content 2"}},{"[doc4]":{"content":"mock content 3"}}]}',
         "chat_history": chat_history,
     }
 
@@ -244,12 +246,12 @@ def test_correct_prompt_with_few_shot_example_and_chat_history(LLMChainMock: Mag
     assert (
         prompt_test
         == """System: mock answering system prompt
-Human: mock answering user prompt
+Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock example content 0"}},{"[doc2]":{"content":"mock example content 1"}},{"[doc3]":{"content":"mock example content 2"}},{"[doc4]":{"content":"mock example content 3"}}]}, User Question: mock example user question
 AI: mock example answer
 System: mock azure openai system message
 Human: Hello
 AI: Hi, how can I help?
-Human: mock answering user prompt"""
+Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock content 0"}},{"[doc2]":{"content":"mock content 1"}},{"[doc3]":{"content":"mock content 2"}},{"[doc4]":{"content":"mock content 3"}}]}, User Question: mock question"""
     )
 
 

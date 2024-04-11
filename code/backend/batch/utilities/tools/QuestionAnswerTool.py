@@ -1,5 +1,6 @@
 import json
 import logging
+import warnings
 from .AnsweringToolBase import AnsweringToolBase
 
 from langchain.chains.llm import LLMChain
@@ -33,6 +34,13 @@ class QuestionAnswerTool(AnsweringToolBase):
         self.env_helper = EnvHelper()
         self.config = ConfigHelper.get_active_config_or_default()
 
+    @staticmethod
+    def json_remove_whitespace(obj: str) -> str:
+        """
+        Remove whitespace from a JSON string.
+        """
+        return json.dumps(json.loads(obj), separators=(",", ":"))
+
     def legacy_generate_llm_chain(self, question: str, sources: list[Document]):
         answering_prompt = PromptTemplate(
             template=self.config.prompts.answering_prompt,
@@ -62,17 +70,16 @@ class QuestionAnswerTool(AnsweringToolBase):
             "answer": self.config.example.answer.strip(),
         }
 
-        # Remove whitespace
         if few_shot_example["documents"]:
-            few_shot_example["documents"] = json.dumps(
-                json.loads(few_shot_example["documents"])
+            few_shot_example["documents"] = QuestionAnswerTool.json_remove_whitespace(
+                few_shot_example["documents"]
             )
 
         if any(few_shot_example.values()):
             if all((few_shot_example.values())):
                 examples.append(few_shot_example)
             else:
-                logger.warning(
+                warnings.warn(
                     "Not all example fields are set in the config. Skipping few-shot example."
                 )
 
@@ -108,7 +115,8 @@ class QuestionAnswerTool(AnsweringToolBase):
                     {f"[doc{i+1}]": {"content": source.page_content}}
                     for i, source in enumerate(sources)
                 ],
-            }
+            },
+            separators=(",", ":"),
         )
 
         return answering_prompt, {
@@ -125,6 +133,9 @@ class QuestionAnswerTool(AnsweringToolBase):
 
         # If answering_prompt has been set, then use legacy_generate_llm_chain for backwards compatibility
         if self.config.prompts.answering_prompt:
+            warnings.warn(
+                "'Answering prompt' is deprecated. Use 'Answering system prompt' and 'Answering user prompt' instead.",
+            )
             answering_prompt, input = self.legacy_generate_llm_chain(question, sources)
         else:
             answering_prompt, input = self.generate_llm_chain(

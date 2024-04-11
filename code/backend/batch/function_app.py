@@ -7,6 +7,7 @@ from BatchStartProcessing import bp_batch_start_processing
 from GetConversationResponse import bp_get_conversation_response
 from azure.monitor.opentelemetry import configure_azure_monitor
 
+logging.captureWarnings(True)
 # Raising the azure log level to WARN as it is too verbose - https://github.com/Azure/azure-sdk-for-python/issues/9422
 logging.getLogger("azure").setLevel(os.environ.get("LOGLEVEL_AZURE", "WARN").upper())
 configure_azure_monitor()
