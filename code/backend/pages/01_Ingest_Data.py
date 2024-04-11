@@ -17,7 +17,6 @@ from azure.storage.blob import (
 import urllib.parse
 import urllib.request
 import sys
-import re
 from bs4 import BeautifulSoup
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
 from batch.utilities.helpers.EnvHelper import EnvHelper
@@ -89,7 +88,7 @@ def add_urls():
                 for script in soup(["script", "style"]):
                     script.decompose()
                 with io.BytesIO(soup.get_text().encode("utf-8")) as stream:
-                    upload_file(stream, re.search(r"\.(.*?)\.", url).group(1) + ".html")
+                    upload_file(stream, url)
                 st.success(f"Embeddings added successfully for {url}")
         except Exception:
             st.error(traceback.format_exc())
@@ -141,6 +140,7 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
             overwrite=True,
             content_settings=ContentSettings(content_type=content_type + charset),
         )
+        blob_client.set_blob_metadata({"source_url": file_name})
         st.session_state["file_url"] = (
             blob_client.url
             + "?"
@@ -174,6 +174,7 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
             overwrite=True,
             content_settings=ContentSettings(content_type=content_type + charset),
         )
+        blob_client.set_blob_metadata({"source_url": file_name})
         # Generate a SAS URL to the blob and return it
         st.session_state["file_url"] = (
             blob_client.url
