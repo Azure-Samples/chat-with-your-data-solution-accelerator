@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 @bp_add_url_embeddings.route(route="AddURLEmbeddings")
 def add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
-    do_add_url_embeddings(req)
+    return do_add_url_embeddings(req)
 
 
 def do_add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:

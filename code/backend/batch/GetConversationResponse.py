@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 @bp_get_conversation_response.route(route="GetConversationResponse")
 def get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
-    do_get_conversation_response(req)
+    return do_get_conversation_response(req)
 
 
 def do_get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
