@@ -29,7 +29,7 @@ provision:
   - uses: botFramework/create
     with:
       botId: ${{BOT_ID}}
-      name: TBT
+      name: teams-bot-toolkit
       messagingEndpoint: ${{BOT_ENDPOINT}}/api/messages
       description: ""
       channels:
