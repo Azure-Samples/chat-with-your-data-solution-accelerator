@@ -14,7 +14,6 @@ from azure.storage.blob import (
     UserDelegationKey,
 )
 import urllib.parse
-import urllib.request
 import sys
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
 from batch.utilities.helpers.EnvHelper import EnvHelper
@@ -123,7 +122,6 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
             overwrite=True,
             content_settings=ContentSettings(content_type=content_type + charset),
         )
-        blob_client.set_blob_metadata({"source_url": file_name})
         st.session_state["file_url"] = (
             blob_client.url
             + "?"
@@ -157,7 +155,6 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
             overwrite=True,
             content_settings=ContentSettings(content_type=content_type + charset),
         )
-        blob_client.set_blob_metadata({"source_url": file_name})
         # Generate a SAS URL to the blob and return it
         st.session_state["file_url"] = (
             blob_client.url
