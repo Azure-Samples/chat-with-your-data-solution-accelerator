@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "3966234774612967712"
+      "templateHash": "5618157703532311466"
     }
   },
   "parameters": {
@@ -150,7 +150,7 @@
       "type": "bool",
       "defaultValue": false,
       "metadata": {
-        "description": "Use Integrated Vectorization"
+        "description": "Use Azure Search Integrated Vectorization"
       }
     },
     "azureOpenAIResourceName": {
