@@ -1,6 +1,6 @@
 import sys
 import os
-from unittest import mock
+from unittest.mock import patch
 import azure.functions as func
 
 
@@ -12,8 +12,9 @@ sys.path.append(function_app_path)
 from backend.batch.AddURLEmbeddings import do_add_url_embeddings  # noqa: E402
 
 
-@mock.patch("backend.batch.AddURLEmbeddings.DocumentProcessor")
-def test_add_url_embeddings_when_url_set_in_body(_):
+@patch("backend.batch.BatchPushResults.ConfigHelper")
+@patch("backend.batch.AddURLEmbeddings.DocumentProcessor")
+def test_add_url_embeddings_when_url_set_in_body(_, __):
     fake_request = func.HttpRequest(
         method="POST",
         url="",
@@ -26,8 +27,9 @@ def test_add_url_embeddings_when_url_set_in_body(_):
     assert response.status_code == 200
 
 
-@mock.patch("backend.batch.AddURLEmbeddings.DocumentProcessor")
-def test_add_url_embeddings_when_url_set_in_param(_):
+@patch("backend.batch.BatchPushResults.ConfigHelper")
+@patch("backend.batch.AddURLEmbeddings.DocumentProcessor")
+def test_add_url_embeddings_when_url_set_in_param(_, __):
     fake_request = func.HttpRequest(
         method="POST",
         url="",
@@ -41,8 +43,9 @@ def test_add_url_embeddings_when_url_set_in_param(_):
     assert response.status_code == 200
 
 
-@mock.patch("backend.batch.AddURLEmbeddings.DocumentProcessor")
-def test_add_url_embeddings_returns_400_when_url_not_set(_):
+@patch("backend.batch.BatchPushResults.ConfigHelper")
+@patch("backend.batch.AddURLEmbeddings.DocumentProcessor")
+def test_add_url_embeddings_returns_400_when_url_not_set(_, __):
     fake_request = func.HttpRequest(
         method="POST",
         url="",
