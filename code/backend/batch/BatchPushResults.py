@@ -4,6 +4,7 @@ import azure.functions as func
 from urllib.parse import urlparse
 import sys
 
+from utilities.helpers.EnvHelper import EnvHelper
 from utilities.helpers.AzureBlobStorageHelper import AzureBlobStorageClient
 from utilities.helpers.DocumentProcessorHelper import DocumentProcessor
 from utilities.helpers.ConfigHelper import ConfigHelper
@@ -11,8 +12,10 @@ from utilities.helpers.ConfigHelper import ConfigHelper
 sys.path.append("..")
 
 bp_batch_push_results = func.Blueprint()
+env_helper: EnvHelper = EnvHelper()
 
 logger = logging.getLogger(__name__)
+logger.setLevel(env_helper.LOGLEVEL)
 
 
 def _get_file_name_from_message(msg: func.QueueMessage) -> str:
