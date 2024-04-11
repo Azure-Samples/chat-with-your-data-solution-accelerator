@@ -24,6 +24,8 @@ class LangChainAgent(OrchestratorBase):
         self.content_safety_checker = ContentSafetyChecker()
         self.question_answer_tool = QuestionAnswerTool()
         self.text_processing_tool = TextProcessingTool()
+        self.output_parser = OutputParserTool()
+
         self.tools = [
             Tool(
                 name="Question Answering",
@@ -56,7 +58,6 @@ class LangChainAgent(OrchestratorBase):
     def orchestrate(
         self, user_message: str, chat_history: List[dict], **kwargs: dict
     ) -> dict:
-        output_formatter = OutputParserTool()
 
         # Call Content Safety tool
         if self.config.prompts.enable_content_safety:
@@ -68,7 +69,7 @@ class LangChainAgent(OrchestratorBase):
             )
             if user_message != filtered_user_message:
                 logger.warning("Content safety detected harmful content in question")
-                messages = output_formatter.parse(
+                messages = self.output_parser.parse(
                     question=user_message,
                     answer=filtered_user_message,
                     source_documents=[],
@@ -106,14 +107,12 @@ class LangChainAgent(OrchestratorBase):
         )
         # Run Agent Chain
         with get_openai_callback() as cb:
-            try:
-                answer = agent_chain.run(user_message)
-                self.log_tokens(
-                    prompt_tokens=cb.prompt_tokens,
-                    completion_tokens=cb.completion_tokens,
-                )
-            except Exception as e:
-                answer = str(e)
+            answer = agent_chain.run(user_message)
+            self.log_tokens(
+                prompt_tokens=cb.prompt_tokens,
+                completion_tokens=cb.completion_tokens,
+            )
+
         try:
             answer = Answer.from_json(answer)
         except Exception:
@@ -138,13 +137,13 @@ class LangChainAgent(OrchestratorBase):
             )
             if answer.answer != filtered_answer:
                 logger.warning("Content safety detected harmful content in answer")
-                messages = output_formatter.parse(
+                messages = self.output_parser.parse(
                     question=user_message, answer=filtered_answer, source_documents=[]
                 )
                 return messages
 
         # Format the output for the UI
-        messages = output_formatter.parse(
+        messages = self.output_parser.parse(
             question=answer.question,
             answer=answer.answer,
             source_documents=answer.source_documents,
