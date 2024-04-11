@@ -13,6 +13,7 @@ class LangChainAgentNoInit(LangChainAgent):
         self.config = MagicMock()
         self.output_parser = MagicMock()
         self.tools = MagicMock()
+        self.llm_helper = MagicMock()
         self.tokens = {"prompt": 0, "completion": 0, "total": 0}
 
 
@@ -68,8 +69,12 @@ def test_run_text_processing_tool_returns_answer_json():
     )
 
 
+@patch("backend.batch.utilities.orchestrator.LangChainAgent.ZeroShotAgent")
+@patch("backend.batch.utilities.orchestrator.LangChainAgent.LLMChain")
 @patch("langchain.agents.AgentExecutor.from_agent_and_tools")
-def test_orchestrate_langchain_to_orchestrate_chat(agent_executor_mock):
+def test_orchestrate_langchain_to_orchestrate_chat(
+    agent_executor_mock, llm_chain_mock, zero_shot_agent_mock
+):
     # Given
     agent = LangChainAgentNoInit()
 
@@ -94,8 +99,12 @@ def test_orchestrate_langchain_to_orchestrate_chat(agent_executor_mock):
     )
 
 
+@patch("backend.batch.utilities.orchestrator.LangChainAgent.ZeroShotAgent")
+@patch("backend.batch.utilities.orchestrator.LangChainAgent.LLMChain")
 @patch("langchain.agents.AgentExecutor.from_agent_and_tools")
-def test_orchestrate_returns_error_message_on_Exception(agent_executor_mock):
+def test_orchestrate_returns_error_message_on_Exception(
+    agent_executor_mock, llm_chain_mock, zero_shot_agent_mock
+):
     # Given
     agent = LangChainAgentNoInit()
 

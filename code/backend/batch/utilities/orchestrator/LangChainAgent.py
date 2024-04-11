@@ -25,6 +25,7 @@ class LangChainAgent(OrchestratorBase):
         self.question_answer_tool = QuestionAnswerTool()
         self.text_processing_tool = TextProcessingTool()
         self.output_parser = OutputParserTool()
+        self.llm_helper = LLMHelper()
 
         self.tools = [
             Tool(
@@ -77,7 +78,6 @@ class LangChainAgent(OrchestratorBase):
                 return messages
 
         # Call function to determine route
-        llm_helper = LLMHelper()
         prefix = """Have a conversation with a human, answering the following questions as best you can. You have access to the following tools:"""
         suffix = """Begin!"
 
@@ -100,7 +100,7 @@ class LangChainAgent(OrchestratorBase):
             elif message["role"] == "assistant":
                 memory.chat_memory.add_ai_message(message["content"])
         # Define Agent and Agent Chain
-        llm_chain = LLMChain(llm=llm_helper.get_llm(), prompt=prompt)
+        llm_chain = LLMChain(llm=self.llm_helper.get_llm(), prompt=prompt)
         agent = ZeroShotAgent(llm_chain=llm_chain, tools=self.tools, verbose=True)
         agent_chain = AgentExecutor.from_agent_and_tools(
             agent=agent, tools=self.tools, verbose=True, memory=memory
