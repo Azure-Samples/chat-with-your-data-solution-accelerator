@@ -21,7 +21,7 @@ provision:
   - uses: botAadApp/create
     with:
       # The Microsoft Entra application's display name
-      name: TBT${{APP_NAME_SUFFIX}}
+      name: teams-bot-toolkit${{APP_NAME_SUFFIX}}
     writeToEnvironmentFile:
       # The Microsoft Entra application's client id created for bot.
       botId: BOT_ID
