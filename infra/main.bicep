@@ -69,6 +69,9 @@ param azureSearchTitleColumn string = 'title'
 @description('Url column')
 param azureSearchUrlColumn string = 'url'
 
+@description('Use Integrated Vectorization')
+param azureSearchUseIntegratedVectorization bool = false
+
 @description('Name of Azure OpenAI Resource')
 param azureOpenAIResourceName string = 'openai-${resourceToken}'
 
@@ -177,8 +180,6 @@ param authType string = 'keys'
 ])
 param hostingModel string = 'container'
 
-@description('Use Integrated Vectorization')
-param use_int_vectorization bool = false
 @allowed([
   'CRITICAL'
   'ERROR'
@@ -850,6 +851,7 @@ output AZURE_SEARCH_CONTENT_COLUMNS string = azureSearchContentColumns
 output AZURE_SEARCH_FILENAME_COLUMN string = azureSearchFilenameColumn
 output AZURE_SEARCH_TITLE_COLUMN string = azureSearchTitleColumn
 output AZURE_SEARCH_URL_COLUMN string = azureSearchUrlColumn
+output AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION bool = azureSearchUseIntegratedVectorization
 output AZURE_SEARCH_INDEX string = azureSearchIndex
 output AZURE_SPEECH_SERVICE_REGION string = location
 output AZURE_SPEECH_SERVICE_KEY string = useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
@@ -860,5 +862,4 @@ output USE_KEY_VAULT bool = useKeyVault
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code' ? web.outputs.FRONTEND_API_URI : web_docker.outputs.FRONTEND_API_URI
 output ADMIN_WEBSITE_NAME string = hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_URI : adminweb_docker.outputs.WEBSITE_ADMIN_URI
-output USE_INTEGRATED_VECTORIZATION bool = use_int_vectorization
 output LOGLEVEL string = logLevel

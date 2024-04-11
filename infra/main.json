@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "7323207033767576594"
+      "templateHash": "3966234774612967712"
     }
   },
   "parameters": {
@@ -144,6 +144,13 @@
       "defaultValue": "url",
       "metadata": {
         "description": "Url column"
+      }
+    },
+    "azureSearchUseIntegratedVectorization": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Use Integrated Vectorization"
       }
     },
     "azureOpenAIResourceName": {
@@ -371,13 +378,6 @@
       ],
       "metadata": {
         "description": "Hosting model for the web apps. Containers are prebuilt and can be deployed faster, but code allows for more customization."
-      }
-    },
-    "use_int_vectorization": {
-      "type": "bool",
-      "defaultValue": false,
-      "metadata": {
-        "description": "Use Integrated Vectorization"
       }
     },
     "logLevel": {
@@ -10246,6 +10246,10 @@
       "type": "string",
       "value": "[parameters('azureSearchUrlColumn')]"
     },
+    "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": {
+      "type": "bool",
+      "value": "[parameters('azureSearchUseIntegratedVectorization')]"
+    },
     "AZURE_SEARCH_INDEX": {
       "type": "string",
       "value": "[parameters('azureSearchIndex')]"
@@ -10285,10 +10289,6 @@
     "ADMIN_WEBSITE_NAME": {
       "type": "string",
       "value": "[if(equals(parameters('hostingModel'), 'code'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('adminWebsiteName')), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value)]"
-    },
-    "USE_INTEGRATED_VECTORIZATION": {
-      "type": "bool",
-      "value": "[parameters('use_int_vectorization')]"
     },
     "LOGLEVEL": {
       "type": "string",
