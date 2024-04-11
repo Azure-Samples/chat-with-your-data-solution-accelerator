@@ -10,9 +10,9 @@ load_dotenv()
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-loglevel = os.getenv("LOGLEVEL", "INFO").upper()
-logging.basicConfig(level=loglevel)
-
+logging.basicConfig(level=os.getenv("LOGLEVEL", "INFO").upper())
+# Raising the azure log level to WARN as it is too verbose - https://github.com/Azure/azure-sdk-for-python/issues/9422
+logging.getLogger("azure").setLevel(os.environ.get("LOGLEVEL_AZURE", "WARN").upper())
 # We cannot use EnvHelper here as Application Insights needs to be configured first
 # for instrumentation to work correctly
 if os.getenv("APPINSIGHTS_ENABLED", "false").lower() == "true":
@@ -20,10 +20,6 @@ if os.getenv("APPINSIGHTS_ENABLED", "false").lower() == "true":
 
 logger = logging.getLogger(__name__)
 logger.debug("Starting admin app")
-
-logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
-    logging.WARNING
-)
 
 
 st.set_page_config(
