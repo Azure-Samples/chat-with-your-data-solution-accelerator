@@ -13,7 +13,7 @@ from backend.batch.AddURLEmbeddings import do_add_url_embeddings  # noqa: E402
 
 
 @mock.patch("backend.batch.AddURLEmbeddings.DocumentProcessor")
-def test_add_url_embeddings_when_url_set_in_body(mock_doc_processor):
+def test_add_url_embeddings_when_url_set_in_body(_):
     fake_request = func.HttpRequest(
         method="POST",
         url="",
@@ -27,7 +27,7 @@ def test_add_url_embeddings_when_url_set_in_body(mock_doc_processor):
 
 
 @mock.patch("backend.batch.AddURLEmbeddings.DocumentProcessor")
-def test_add_url_embeddings_when_url_set_in_param(mock_doc_processor):
+def test_add_url_embeddings_when_url_set_in_param(_):
     fake_request = func.HttpRequest(
         method="POST",
         url="",
@@ -39,3 +39,17 @@ def test_add_url_embeddings_when_url_set_in_param(mock_doc_processor):
     response = do_add_url_embeddings(fake_request)
 
     assert response.status_code == 200
+
+
+@mock.patch("backend.batch.AddURLEmbeddings.DocumentProcessor")
+def test_add_url_embeddings_returns_400_when_url_not_set(_):
+    fake_request = func.HttpRequest(
+        method="POST",
+        url="",
+        body=b"",
+        params={},
+    )
+
+    response = do_add_url_embeddings(fake_request)
+
+    assert response.status_code == 400
