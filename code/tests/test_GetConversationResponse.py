@@ -13,7 +13,7 @@ from backend.batch.GetConversationResponse import (  # noqa: E402
 )
 
 
-@patch("backend.batch.BatchPushResults.ConfigHelper")
+@patch("backend.batch.GetConversationResponse.ConfigHelper")
 @patch("backend.batch.GetConversationResponse.Orchestrator")
 def test_get_conversation_response(mock_create_message_orchestrator, _):
     mock_http_request = Mock()
