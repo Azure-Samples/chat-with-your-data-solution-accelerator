@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "7715045314239280418"
+      "templateHash": "15295378206128435887"
     }
   },
   "parameters": {
@@ -372,6 +372,17 @@
       "metadata": {
         "description": "Hosting model for the web apps. Containers are prebuilt and can be deployed faster, but code allows for more customization."
       }
+    },
+    "logLevel": {
+      "type": "string",
+      "defaultValue": "INFO",
+      "allowedValues": [
+        "CRITICAL",
+        "ERROR",
+        "WARN",
+        "INFO",
+        "DEBUG"
+      ]
     }
   },
   "variables": {
@@ -1506,7 +1517,8 @@
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
               "AZURE_SPEECH_SERVICE_NAME": "[parameters('speechServiceName')]",
               "AZURE_SPEECH_SERVICE_REGION": "[parameters('location')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]"
+              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
+              "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
         },
@@ -2359,7 +2371,8 @@
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
               "AZURE_SPEECH_SERVICE_NAME": "[parameters('speechServiceName')]",
               "AZURE_SPEECH_SERVICE_REGION": "[parameters('location')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]"
+              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
+              "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
         },
@@ -3215,7 +3228,8 @@
               "BACKEND_URL": "[format('https://{0}.azurewebsites.net', parameters('functionName'))]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "FUNCTION_KEY": "[variables('clientKey')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]"
+              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
+              "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
         },
@@ -4137,7 +4151,8 @@
               "BACKEND_URL": "[format('https://{0}-docker.azurewebsites.net', parameters('functionName'))]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "FUNCTION_KEY": "[variables('clientKey')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]"
+              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
+              "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
         },
@@ -6780,7 +6795,8 @@
               "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
               "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]"
+              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
+              "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
         },
@@ -7996,7 +8012,8 @@
               "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
               "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]"
+              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
+              "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
         },
@@ -10261,6 +10278,10 @@
     "ADMIN_WEBSITE_NAME": {
       "type": "string",
       "value": "[if(equals(parameters('hostingModel'), 'code'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('adminWebsiteName')), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value)]"
+    },
+    "LOGLEVEL": {
+      "type": "string",
+      "value": "[parameters('logLevel')]"
     }
   }
 }

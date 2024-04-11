@@ -177,6 +177,15 @@ param authType string = 'keys'
 ])
 param hostingModel string = 'container'
 
+@allowed([
+  'CRITICAL'
+  'ERROR'
+  'WARN'
+  'INFO'
+  'DEBUG'
+])
+param logLevel string = 'INFO'
+
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
@@ -382,6 +391,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -442,6 +452,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -503,6 +514,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -563,6 +575,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -639,6 +652,7 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -682,6 +696,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -843,3 +858,4 @@ output USE_KEY_VAULT bool = useKeyVault
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code' ? web.outputs.FRONTEND_API_URI : web_docker.outputs.FRONTEND_API_URI
 output ADMIN_WEBSITE_NAME string = hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_URI : adminweb_docker.outputs.WEBSITE_ADMIN_URI
+output LOGLEVEL string = logLevel
