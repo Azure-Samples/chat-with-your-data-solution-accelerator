@@ -8,10 +8,6 @@ from dotenv import load_dotenv
 from components.login import isLoggedIn
 from components.menu import menu
 
-#from ..auth.token_validator import TokenValidator
-#from streamlit.web.server.websocket_headers import _get_websocket_headers
-
-
 load_dotenv()
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -19,33 +15,8 @@ logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy").s
     logging.WARNING
 )
 
-#token_validator = TokenValidator(env_helper.TENANT_ID, env_helper.CLIENT_ID)
-
-#def auth_required(f):
-#    @wraps(f)
-#    def decorated_function(*args, **kwargs):
-#        headers = _get_websocket_headers()
-#        if not headers or "Authorization" not in headers:
-#            return login_page()
-#        token = headers["Authorization"]
-#        if not token:
-#             return login_page()
-#        
-#        try:
-#            token_validator.validate(token)
-#        except jwt.ExpiredSignatureError:
-#            st.error("Token expired")
-#        except jwt.InvalidTokenError:
-#            st.error("Forbidden")
-#        except Exception as e:
-#            errorMessage = str(e)
-#            logging.exception(f"Exception occured while access token validation | {errorMessage}")
-#            st.error("An error occured")
-#        return f(*args, **kwargs)
-#
-#    return decorated_function
-
 def main():
+    
     st.set_page_config(
         page_title="Admin",
         page_icon=os.path.join("images", "favicon.ico"),
