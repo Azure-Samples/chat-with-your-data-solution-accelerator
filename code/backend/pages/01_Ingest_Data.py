@@ -1,4 +1,6 @@
+import io
 from os import path
+from bs4 import BeautifulSoup
 import streamlit as st
 from typing import Optional
 import mimetypes
@@ -14,6 +16,7 @@ from azure.storage.blob import (
     UserDelegationKey,
 )
 import urllib.parse
+import urllib.request
 import sys
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
 from batch.utilities.helpers.EnvHelper import EnvHelper
@@ -75,21 +78,33 @@ def remote_convert_files_and_add_embeddings(process_all=False):
 
 
 def add_urls():
-    params = {}
-    if env_helper.FUNCTION_KEY is not None:
-        params["code"] = env_helper.FUNCTION_KEY
-        params["clientId"] = "clientKey"
-    urls = st.session_state["urls"].split("\n")
-    for url in urls:
-        body = {"url": url}
-        backend_url = urllib.parse.urljoin(
-            env_helper.BACKEND_URL, "/api/AddURLEmbeddings"
-        )
-        r = requests.post(url=backend_url, params=params, json=body)
-        if not r.ok:
-            raise ValueError(f"Error {r.status_code}: {r.text}")
-        else:
-            st.success(f"Embeddings added successfully for {url}")
+    if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+        try:
+            urls = st.session_state["urls"].split("\n")
+            for url in urls:
+                response = urllib.request.urlopen(url)
+                parsed_data = BeautifulSoup(response.read(), "html.parser")
+                with io.BytesIO(parsed_data.get_text().encode("utf-8")) as stream:
+                    upload_file(stream, url)
+                st.success(f"Embeddings added successfully for {url}")
+        except Exception:
+            st.error(traceback.format_exc())
+    else:
+        params = {}
+        if env_helper.FUNCTION_KEY is not None:
+            params["code"] = env_helper.FUNCTION_KEY
+            params["clientId"] = "clientKey"
+        urls = st.session_state["urls"].split("\n")
+        for url in urls:
+            body = {"url": url}
+            backend_url = urllib.parse.urljoin(
+                env_helper.BACKEND_URL, "/api/AddURLEmbeddings"
+            )
+            r = requests.post(url=backend_url, params=params, json=body)
+            if not r.ok:
+                raise ValueError(f"Error {r.status_code}: {r.text}")
+            else:
+                st.success(f"Embeddings added successfully for {url}")
 
 
 def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] = None):
@@ -121,6 +136,7 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
             bytes_data,
             overwrite=True,
             content_settings=ContentSettings(content_type=content_type + charset),
+            metadata={"source_url": file_name},
         )
         st.session_state["file_url"] = (
             blob_client.url
@@ -154,6 +170,7 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
             bytes_data,
             overwrite=True,
             content_settings=ContentSettings(content_type=content_type + charset),
+            metadata={"source_url": file_name},
         )
         # Generate a SAS URL to the blob and return it
         st.session_state["file_url"] = (
