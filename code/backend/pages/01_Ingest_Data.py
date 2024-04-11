@@ -1,4 +1,3 @@
-import io
 from os import path
 import streamlit as st
 from typing import Optional
@@ -17,7 +16,6 @@ from azure.storage.blob import (
 import urllib.parse
 import urllib.request
 import sys
-from bs4 import BeautifulSoup
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
 from batch.utilities.helpers.EnvHelper import EnvHelper
 
@@ -78,36 +76,21 @@ def remote_convert_files_and_add_embeddings(process_all=False):
 
 
 def add_urls():
-
-    if env_helper.USE_INTEGRATED_VECTORIZATION:
-        try:
-            urls = st.session_state["urls"].split("\n")
-            for url in urls:
-                response = urllib.request.urlopen(url)
-                soup = BeautifulSoup(response.read(), "html.parser")
-                for script in soup(["script", "style"]):
-                    script.decompose()
-                with io.BytesIO(soup.get_text().encode("utf-8")) as stream:
-                    upload_file(stream, url)
-                st.success(f"Embeddings added successfully for {url}")
-        except Exception:
-            st.error(traceback.format_exc())
-    else:
-        params = {}
-        if env_helper.FUNCTION_KEY is not None:
-            params["code"] = env_helper.FUNCTION_KEY
-            params["clientId"] = "clientKey"
-        urls = st.session_state["urls"].split("\n")
-        for url in urls:
-            body = {"url": url}
-            backend_url = urllib.parse.urljoin(
-                env_helper.BACKEND_URL, "/api/AddURLEmbeddings"
-            )
-            r = requests.post(url=backend_url, params=params, json=body)
-            if not r.ok:
-                raise ValueError(f"Error {r.status_code}: {r.text}")
-            else:
-                st.success(f"Embeddings added successfully for {url}")
+    params = {}
+    if env_helper.FUNCTION_KEY is not None:
+        params["code"] = env_helper.FUNCTION_KEY
+        params["clientId"] = "clientKey"
+    urls = st.session_state["urls"].split("\n")
+    for url in urls:
+        body = {"url": url}
+        backend_url = urllib.parse.urljoin(
+            env_helper.BACKEND_URL, "/api/AddURLEmbeddings"
+        )
+        r = requests.post(url=backend_url, params=params, json=body)
+        if not r.ok:
+            raise ValueError(f"Error {r.status_code}: {r.text}")
+        else:
+            st.success(f"Embeddings added successfully for {url}")
 
 
 def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] = None):
