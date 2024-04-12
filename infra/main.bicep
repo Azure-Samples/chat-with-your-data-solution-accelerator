@@ -63,6 +63,9 @@ param azureSearchContentColumns string = 'content'
 @description('Filename column')
 param azureSearchFilenameColumn string = 'filename'
 
+@description('Search filter')
+param azureSearchFilter string = ''
+
 @description('Title column')
 param azureSearchTitleColumn string = 'title'
 
@@ -176,6 +179,15 @@ param authType string = 'keys'
   'container'
 ])
 param hostingModel string = 'container'
+
+@allowed([
+  'CRITICAL'
+  'ERROR'
+  'WARN'
+  'INFO'
+  'DEBUG'
+])
+param logLevel string = 'INFO'
 
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
@@ -377,11 +389,13 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -437,11 +451,13 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -497,12 +513,14 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       BACKEND_URL: 'https://${functionName}.azurewebsites.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -557,12 +575,14 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -639,6 +659,7 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -682,6 +703,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -831,6 +853,7 @@ output AZURE_SEARCH_TOP_K string = azureSearchTopK
 output AZURE_SEARCH_ENABLE_IN_DOMAIN string = azureSearchEnableInDomain
 output AZURE_SEARCH_CONTENT_COLUMNS string = azureSearchContentColumns
 output AZURE_SEARCH_FILENAME_COLUMN string = azureSearchFilenameColumn
+output AZURE_SEARCH_FILTER string = azureSearchFilter
 output AZURE_SEARCH_TITLE_COLUMN string = azureSearchTitleColumn
 output AZURE_SEARCH_URL_COLUMN string = azureSearchUrlColumn
 output AZURE_SEARCH_INDEX string = azureSearchIndex
@@ -843,3 +866,4 @@ output USE_KEY_VAULT bool = useKeyVault
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code' ? web.outputs.FRONTEND_API_URI : web_docker.outputs.FRONTEND_API_URI
 output ADMIN_WEBSITE_NAME string = hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_URI : adminweb_docker.outputs.WEBSITE_ADMIN_URI
+output LOGLEVEL string = logLevel

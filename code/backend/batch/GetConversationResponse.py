@@ -10,6 +10,7 @@ from utilities.helpers.ConfigHelper import ConfigHelper
 bp_get_conversation_response = func.Blueprint()
 env_helper: EnvHelper = EnvHelper()
 logger = logging.getLogger(__name__)
+logger.setLevel(env_helper.LOGLEVEL)
 
 
 @bp_get_conversation_response.route(route="GetConversationResponse")

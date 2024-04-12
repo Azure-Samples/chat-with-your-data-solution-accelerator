@@ -2,12 +2,16 @@ import logging
 import traceback
 import azure.functions as func
 
+from utilities.helpers.EnvHelper import EnvHelper
 from utilities.helpers.DocumentProcessorHelper import DocumentProcessor
 from utilities.helpers.ConfigHelper import ConfigHelper
 
 
 bp_add_url_embeddings = func.Blueprint()
+env_helper: EnvHelper = EnvHelper()
+
 logger = logging.getLogger(__name__)
+logger.setLevel(env_helper.LOGLEVEL)
 
 
 @bp_add_url_embeddings.route(route="AddURLEmbeddings")

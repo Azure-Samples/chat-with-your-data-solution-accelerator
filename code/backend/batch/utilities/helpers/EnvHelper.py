@@ -14,6 +14,8 @@ class EnvHelper:
         # Wrapper for Azure Key Vault
         self.secretHelper = SecretHelper()
 
+        self.LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
+
         # Azure Search
         self.AZURE_SEARCH_SERVICE = os.getenv("AZURE_SEARCH_SERVICE", "")
         self.AZURE_SEARCH_INDEX = os.getenv("AZURE_SEARCH_INDEX", "")
@@ -26,6 +28,7 @@ class EnvHelper:
         self.AZURE_SEARCH_INDEX_IS_PRECHUNKED = os.getenv(
             "AZURE_SEARCH_INDEX_IS_PRECHUNKED", ""
         )
+        self.AZURE_SEARCH_FILTER = os.getenv("AZURE_SEARCH_FILTER", "")
         self.AZURE_SEARCH_TOP_K = os.getenv("AZURE_SEARCH_TOP_K", 5)
         self.AZURE_SEARCH_ENABLE_IN_DOMAIN = (
             os.getenv("AZURE_SEARCH_ENABLE_IN_DOMAIN", "true").lower() == "true"
