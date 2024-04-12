@@ -11,6 +11,6 @@ describe("SpeechToText", () => {
 
     expect(recognizer.authorizationToken).to.equal(token);
     expect(recognizer.properties.getProperty("SpeechServiceConnection_Region")).to.equal(region);
-    expect(recognizer.properties.getProperty("SpeechServiceConnection_AutoDetectSourceLanguages")).to.equal(languages.join(","));
+    expect(recognizer.properties.getProperty("SpeechServiceConnection_AutoDetectSourceLanguages")).to.equal("en-US");
   });
 });

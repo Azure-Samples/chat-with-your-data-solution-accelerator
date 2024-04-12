@@ -406,16 +406,12 @@
         "description": "Hosting model for the web apps. Containers are prebuilt and can be deployed faster, but code allows for more customization."
       }
     },
-    "logLevel": {
+    "recognizedLanguages": {
       "type": "string",
-      "defaultValue": "INFO",
-      "allowedValues": [
-        "CRITICAL",
-        "ERROR",
-        "WARN",
-        "INFO",
-        "DEBUG"
-      ]
+      "defaultValue": "en-US,fr-FR,de-DE,it-IT",
+      "metadata": {
+        "description": "List of comma-separated languages to recognize from the speech input (e.g. en-US,es-ES)."
+      }
     }
   },
   "variables": {
@@ -10331,11 +10327,11 @@
     },
     "ADMIN_WEBSITE_NAME": {
       "type": "string",
-      "value": "[if(equals(parameters('hostingModel'), 'code'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('adminWebsiteName')), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value)]"
+      "value": "[if(equals(parameters('hostingModel'), 'code'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin', parameters('websiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin-docker', parameters('websiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value)]"
     },
-    "LOGLEVEL": {
+    "VITE_SPEECH_RECOGNIZER_LANGUAGES": {
       "type": "string",
-      "value": "[parameters('logLevel')]"
+      "value": "[parameters('recognizedLanguages')]"
     }
   }
 }

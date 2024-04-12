@@ -4,6 +4,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 AZURE_ENV_FILE := $(shell azd env list --output json | jq -r '.[] | select(.IsDefault == true) | .DotEnvPath')
+AZURE_ENV_DIR := $(shell dirname $(AZURE_ENV_FILE))
 
 ENV_FILE := .env
 ifeq ($(filter $(MAKECMDGOALS),config clean),)
@@ -40,11 +41,11 @@ uitest: ## 🧪 Run the ui tests in headless mode
 
 build-frontend: ## 🏗️ Build the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
-	@cd code/frontend && npm install && npm run build
+	@cd code/frontend && npm install && VITE_ENV_DIR=$(AZURE_ENV_DIR) npm run build
 
-unittest-frontend: ## 🏗️ Unit test the Frontend webapp
+unittest-frontend: build-frontend ## 🏗️ Unit test the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
-	@cd code/frontend && npm install && npm run build && npm run test
+	@cd code/frontend && npm run test
 
 unittest-frontend: ## 🏗️ Unit test the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
