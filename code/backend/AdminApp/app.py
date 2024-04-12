@@ -4,36 +4,39 @@ import streamlit as st
 from dotenv import load_dotenv
 from batch.utilities.helpers.EnvHelper import EnvHelper
 from components.login import isAdmin, isLoggedIn, logout
-import streamlit as st
 from streamlit_msal import Msal
+
 load_dotenv()
 
 st.set_page_config(
-        page_title="Sign In",
-        page_icon=os.path.join("images", "favicon.ico"),
-        layout="wide",
-        menu_items=None,
-    )
+    page_title="Sign In",
+    page_icon=os.path.join("images", "favicon.ico"),
+    layout="wide",
+    menu_items=None,
+)
 
 logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
     logging.WARNING
 )
 
+
 def login():
     Msal.sign_in()
-    
+
+
 def refresh():
     Msal.revalidate()
-    
+
+
 env_helper: EnvHelper = EnvHelper()
-scopes= ["User.Read"]
+scopes = ["User.Read"]
 
 auth_data = Msal.initialize(
-        client_id=env_helper.CLIENT_ID,
-        authority=f"https://login.microsoftonline.com/{env_helper.TENANT_ID}",
-        scopes=scopes,
-    )
-    
+    client_id=env_helper.CLIENT_ID,
+    authority=f"https://login.microsoftonline.com/{env_helper.TENANT_ID}",
+    scopes=scopes,
+)
+
 
 st.session_state.access_data = auth_data
 

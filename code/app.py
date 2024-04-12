@@ -27,21 +27,23 @@ app = Flask(__name__)
 env_helper: EnvHelper = EnvHelper()
 token_validator = TokenValidator(env_helper.TENANT_ID, env_helper.CLIENT_ID)
 
+
 @app.route("/", defaults={"path": "index.html"})
 @app.route("/<path:path>")
 def static_file(path):
     return app.send_static_file(path)
+
 
 def auth_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if os.environ.get("DISABLE_AUTH"):
             return f(*args, **kwargs)
-        
-        token = request.headers.get('Authorization')
+
+        token = request.headers.get("Authorization")
         if not token:
             return Response("Unauthorized", status=401)
-        
+
         try:
             token_validator.validate(token)
         except jwt.ExpiredSignatureError:
@@ -50,16 +52,20 @@ def auth_required(f):
             return Response("Unauthorized", status=401)
         except Exception as e:
             errorMessage = str(e)
-            logging.exception(f"Exception occured while access token validation | {errorMessage}")
+            logging.exception(
+                f"Exception occured while access token validation | {errorMessage}"
+            )
             return Response("Internal service errror", status=500)
         return f(*args, **kwargs)
 
     return decorated_function
 
+
 @app.route("/api/health", methods=["GET"])
 def get_health():
     return "ok"
-    
+
+
 @app.route("/api/config", methods=["GET"])
 @auth_required
 def get_config():
@@ -71,6 +77,7 @@ def get_config():
             "AZURE_OPENAI_ENDPOINT": env_helper.AZURE_OPENAI_ENDPOINT,
         }
     )
+
 
 def prepare_body_headers_with_data(request):
     request_messages = request.json["messages"]

@@ -2,8 +2,6 @@ from multiprocessing import Process
 import os
 import socket
 import time
-from unittest.mock import patch
-from backend.auth.token_validator import TokenValidator
 import pytest
 from pytest_httpserver import HTTPServer
 import requests

@@ -16,6 +16,7 @@ logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy").s
     logging.WARNING
 )
 
+
 def main():
     st.set_page_config(
         page_title="Configure Prompts",
@@ -62,20 +63,19 @@ def main():
     if "orchestrator_strategy" not in st.session_state:
         st.session_state["orchestrator_strategy"] = config.orchestrator.strategy.value
 
-
     # # # def validate_question_prompt():
     # # #     if "{chat_history}" not in st.session_state.condense_question_prompt:
     # # #         st.warning("Your condense question prompt doesn't contain the variable `{chat_history}`")
     # # #     if "{question}" not in st.session_state.condense_question_prompt:
     # # #         st.warning("Your condense question prompt doesn't contain the variable `{question}`")
 
-
     def validate_answering_prompt():
         if "{sources}" not in st.session_state.answering_prompt:
             st.warning("Your answering prompt doesn't contain the variable `{sources}`")
         if "{question}" not in st.session_state.answering_prompt:
-            st.warning("Your answering prompt doesn't contain the variable `{question}`")
-
+            st.warning(
+                "Your answering prompt doesn't contain the variable `{question}`"
+            )
 
     def validate_post_answering_prompt():
         if (
@@ -92,8 +92,9 @@ def main():
                 "Your post answering prompt doesn't contain the variable `{question}`"
             )
         if "{answer}" not in st.session_state.post_answering_prompt:
-            st.warning("Your post answering prompt doesn't contain the variable `{answer}`")
-
+            st.warning(
+                "Your post answering prompt doesn't contain the variable `{answer}`"
+            )
 
     try:
         with st.expander("Orchestrator configuration", expanded=True):
@@ -127,7 +128,9 @@ def main():
                 help=post_answering_prompt_help,
                 height=200,
             )
-            st.checkbox("Enable post-answering prompt", key="enable_post_answering_prompt")
+            st.checkbox(
+                "Enable post-answering prompt", key="enable_post_answering_prompt"
+            )
             st.text_area(
                 "Post-answering filter message",
                 key="post_answering_filter_message",
@@ -159,7 +162,9 @@ def main():
                         options=config.get_available_document_types()
                     ),
                     "chunking_strategy": st.column_config.SelectboxColumn(
-                        options=[cs for cs in config.get_available_chunking_strategies()]
+                        options=[
+                            cs for cs in config.get_available_chunking_strategies()
+                        ]
                     ),
                     "loading_strategy": st.column_config.SelectboxColumn(
                         options=[ls for ls in config.get_available_loading_strategies()]
@@ -218,7 +223,8 @@ def main():
 
     except Exception:
         st.error(traceback.format_exc())
-        
+
+
 if not isLoggedIn():
     parent_dir_path = os.path.join(os.path.dirname(__file__), "..")
     st.switch_page(os.path.join(parent_dir_path, "app.py"))
