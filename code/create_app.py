@@ -46,6 +46,7 @@ def prepare_body_headers_with_data(request, env_helper: EnvHelper):
                             env_helper.AZURE_SEARCH_FILENAME_COLUMN or None
                         ),
                     },
+                    "filter": env_helper.AZURE_SEARCH_FILTER,
                     "in_scope": env_helper.AZURE_SEARCH_ENABLE_IN_DOMAIN,
                     "top_n_documents": env_helper.AZURE_SEARCH_TOP_K,
                     "query_type": (

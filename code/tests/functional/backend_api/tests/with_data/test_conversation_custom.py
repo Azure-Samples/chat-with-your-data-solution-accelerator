@@ -66,7 +66,9 @@ def test_post_makes_correct_call_to_openai_embeddings(
             path=f"/openai/deployments/{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}/embeddings",
             method="POST",
             json={
-                "input": [[1199]],
+                "input": [
+                    [3923, 374, 279, 7438, 315, 2324, 30]
+                ],  # Embedding of "What is the meaning of life?"
                 "model": "text-embedding-ada-002",
                 "encoding_format": "base64",
             },
@@ -77,7 +79,7 @@ def test_post_makes_correct_call_to_openai_embeddings(
                 "Api-Key": app_config.get("AZURE_OPENAI_API_KEY"),
             },
             query_string="api-version=2024-02-01",
-            times=2,
+            times=1,
         ),
     )
 
