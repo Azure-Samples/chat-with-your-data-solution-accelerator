@@ -15,3 +15,11 @@ deploy:
   - uses: cli/runNpmCommand
     with:
       args: install --no-audit
+
+  # Generate runtime environment variables
+  - uses: file/createOrUpdateEnvironmentFile
+    with:
+      target: ./.localConfigs.testTool
+      envs:
+        TEAMSFX_NOTIFICATION_STORE_FILENAME: ${{TEAMSFX_NOTIFICATION_STORE_FILENAME}}
+        AZURE_FUNCTION_URL: ${{AZURE_FUNCTION_URL}}

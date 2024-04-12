@@ -1,13 +1,13 @@
 {
     "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
     "manifestVersion": "1.16",
-    "version": "1.1.4",
+    "version": "3.0.1",
     "id": "${{TEAMS_APP_ID}}",
     "packageName": "com.microsoft.teams.extension",
     "developer": {
         "name": "James Hunter",
         "websiteUrl": "https://www.microsoft.com",
-        "privacyUrl": "https://privacy.microsoft.com/en-us/privacystatement",
+        "privacyUrl": "https://www.microsoft.com/en-us/privacystatement",
         "termsOfUseUrl": "https://www.microsoft.com/en-us/servicesagreement"
     },
     "icons": {
@@ -15,11 +15,11 @@
         "outline": "CogSearchOutline.png"
     },
     "name": {
-        "short": "Enterprise Chat with your Data",
-        "full": "Enterprise Chat with your own Data"
+        "short": "Chat with Data",
+        "full": "Chat with your own Data"
     },
     "description": {
-        "short": "A tool that combines the capabilities of Azure Cognitive Search and LLMs.",
+        "short": "A tool that combines the capabilities of Azure AI Search and LLMs.",
         "full": "The 'Chat with your data' Solution Accelerator is a powerful tool that combines the capabilities of Azure Cognitive Search and Large Language Models (LLMs) to create a conversational search experience. This solution accelerator uses an Azure OpenAI GPT model and an Azure Cognitive Search index generated from your data, which is integrated into a web application to provide a natural language interface for search queries."
     },
     "accentColor": "#FFFFFF",
