@@ -4,10 +4,7 @@ from unittest.mock import patch
 import azure.functions as func
 
 
-function_app_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../backend/batch")
-)
-sys.path.append(function_app_path)
+sys.path.append(os.path.join(os.path.dirname(sys.path[0]), "backend", "batch"))
 
 from backend.batch.AddURLEmbeddings import do_add_url_embeddings  # noqa: E402
 
