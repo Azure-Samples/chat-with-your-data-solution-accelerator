@@ -26,7 +26,9 @@ def refresh():
     Msal.revalidate()
     
 env_helper: EnvHelper = EnvHelper()
-scopes= ["User.Read"]
+#the scope "Sites.Read.All" is unnecessary, remove it after SharePoint scraping refactoring
+#app itself has this permission
+scopes= ["User.Read", "Sites.Read.All"] 
 
 auth_data = Msal.initialize(
         client_id=env_helper.CLIENT_ID,
