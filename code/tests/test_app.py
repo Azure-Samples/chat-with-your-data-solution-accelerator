@@ -662,3 +662,33 @@ class TestConversationAzureByod:
             data
             == '{"id": "response.id", "model": "some-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"role": "assistant", "content": "some content"}]}]}\n'
         )
+
+    @patch("create_app.requests.Session")
+    def test_converstation_azure_byod_uses_semantic_config(
+        self, get_requests_session_mock, env_helper_mock, client
+    ):
+        # given
+        mock_session = get_requests_session_mock.return_value
+        response_mock = MockResponse()
+        mock_session.post = Mock(return_value=response_mock)
+        env_helper_mock.SHOULD_STREAM = True
+        env_helper_mock.AZURE_SEARCH_USE_SEMANTIC_SEARCH = True
+        env_helper_mock.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = "test-config"
+
+        # when
+        response = client.post(
+            "/api/conversation/azure_byod",
+            headers={"content-type": "application/json"},
+            json=self.body,
+        )
+
+        # then
+        assert response.status_code == 200
+
+        request_body = mock_session.post.call_args[1]["json"]
+
+        assert request_body["data_sources"][0]["parameters"]["query_type"] == "semantic"
+        assert (
+            request_body["data_sources"][0]["parameters"]["semantic_configuration"]
+            == "test-config"
+        )
