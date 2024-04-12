@@ -232,18 +232,18 @@ isodate = ">=0.6.1,<1.0.0"
 
 [[package]]
 name = "azure-ai-formrecognizer"
-version = "3.3.2"
+version = "3.3.3"
 description = "Microsoft Azure Form Recognizer Client Library for Python"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "azure-ai-formrecognizer-3.3.2.tar.gz", hash = "sha256:064803e0885bbe0429d1d282fc400123a5fc7f3baebb7f6ce30456450c08085e"},
-    {file = "azure_ai_formrecognizer-3.3.2-py3-none-any.whl", hash = "sha256:3ea6ab27536e05f7a52953c8884f9488b4015bfe8904c87a4b5a8961b0a73792"},
+    {file = "azure-ai-formrecognizer-3.3.3.tar.gz", hash = "sha256:9fc09788bbb65866630fa870cca1933bfd7298b8055236530bcc0e40d81fcccf"},
+    {file = "azure_ai_formrecognizer-3.3.3-py3-none-any.whl", hash = "sha256:81fc1abda8bd898426ee3bbc1b9c6bd164514201ce282129a31d4664f9d1f3bc"},
 ]
 
 [package.dependencies]
-azure-common = ">=1.1,<2.0"
-azure-core = ">=1.23.0,<2.0.0"
+azure-common = ">=1.1"
+azure-core = ">=1.23.0"
 msrest = ">=0.6.21"
 typing-extensions = ">=4.0.1"
 
@@ -4605,4 +4605,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "fdf0be9270294cd6d8028736406f613b52793d203064c0a6946a93fe591a89c4"
+content-hash = "8558e630897ea250f5c574b43ad733f7d7b960ac45bfa8c223a29b162dce833d"
