@@ -10,10 +10,6 @@ from utilities.helpers.ConfigHelper import ConfigHelper
 
 
 bp_batch_push_results = func.Blueprint()
-env_helper: EnvHelper = EnvHelper()
-
-logger = logging.getLogger(__name__)
-logger.setLevel(env_helper.LOGLEVEL)
 
 
 def _get_file_name_from_message(msg: func.QueueMessage) -> str:
@@ -34,10 +30,14 @@ def batch_push_results(msg: func.QueueMessage) -> None:
 
 
 def do_batch_push_results(msg: func.QueueMessage) -> None:
+    env_helper: EnvHelper = EnvHelper()
+    logger = logging.getLogger(__name__)
+    logger.setLevel(env_helper.LOGLEVEL)
     logger.info(
         "Python queue trigger function processed a queue item: %s",
         msg.get_body().decode("utf-8"),
     )
+
     document_processor = DocumentProcessor()
     blob_client = AzureBlobStorageClient()
     # Get the file name from the message

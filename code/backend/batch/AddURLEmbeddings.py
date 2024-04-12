@@ -8,10 +8,6 @@ from utilities.helpers.ConfigHelper import ConfigHelper
 
 
 bp_add_url_embeddings = func.Blueprint()
-env_helper: EnvHelper = EnvHelper()
-
-logger = logging.getLogger(__name__)
-logger.setLevel(env_helper.LOGLEVEL)
 
 
 @bp_add_url_embeddings.route(route="AddURLEmbeddings")
@@ -20,7 +16,11 @@ def add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
 
 
 def do_add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
+    logger = logging.getLogger(__name__)
+    env_helper: EnvHelper = EnvHelper()
+    logger.setLevel(env_helper.LOGLEVEL)
     logger.info("Python HTTP trigger function processed a request.")
+
     # Get Url from request
     url = req.params.get("url")
     if not url:
