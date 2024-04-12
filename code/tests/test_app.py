@@ -5,15 +5,18 @@ from unittest.mock import patch
 from app import app
 from backend.auth.token_validator import TokenValidator
 
+
 class TestConfig:
     def test_returns_unauthorized(self):
         response = app.test_client().get("/api/config")
 
         assert response.status_code == 401
-        
+
     def test_returns_correct_config(self):
-        with patch.object(TokenValidator, 'validate', return_value=None):
-            response = app.test_client().get("/api/config", headers={"Authorization": "Bearer valid_token"})
+        with patch.object(TokenValidator, "validate", return_value=None):
+            response = app.test_client().get(
+                "/api/config", headers={"Authorization": "Bearer valid_token"}
+            )
 
         assert response.status_code == 200
         assert response.json == {
@@ -63,13 +66,13 @@ class TestConversationCustom:
         env_helper_mock.AZURE_OPENAI_MODEL = self.openai_model
 
         # when
-        with patch.object(TokenValidator, 'validate', return_value=None):
+        with patch.object(TokenValidator, "validate", return_value=None):
             response = app.test_client().post(
                 "/api/conversation/custom",
                 headers={
                     "content-type": "application/json",
-                    "Authorization": "Bearer valid_token"
-                    },
+                    "Authorization": "Bearer valid_token",
+                },
                 json=self.body,
             )
 
@@ -82,7 +85,7 @@ class TestConversationCustom:
             "model": self.openai_model,
             "object": "response.object",
         }
-        
+
     @patch("app.get_message_orchestrator")
     @patch("app.get_orchestrator_config")
     @patch("app.env_helper")
@@ -103,12 +106,10 @@ class TestConversationCustom:
 
         # when
         response = app.test_client().post(
-                "/api/conversation/custom",
-                headers={
-                    "content-type": "application/json"
-                    },
-                json=self.body,
-            )
+            "/api/conversation/custom",
+            headers={"content-type": "application/json"},
+            json=self.body,
+        )
 
         # then
         assert response.status_code == 401
@@ -128,13 +129,13 @@ class TestConversationCustom:
         os.environ["AZURE_OPENAI_MODEL"] = self.openai_model
 
         # when
-        with patch.object(TokenValidator, 'validate', return_value=None):
+        with patch.object(TokenValidator, "validate", return_value=None):
             app.test_client().post(
                 "/api/conversation/custom",
                 headers={
                     "content-type": "application/json",
-                    "Authorization": "Bearer valid_token"
-                    },
+                    "Authorization": "Bearer valid_token",
+                },
                 json=self.body,
             )
 
@@ -154,13 +155,13 @@ class TestConversationCustom:
         get_orchestrator_config_mock.side_effect = Exception("An error occurred")
 
         # when
-        with patch.object(TokenValidator, 'validate', return_value=None):
+        with patch.object(TokenValidator, "validate", return_value=None):
             response = app.test_client().post(
                 "/api/conversation/custom",
                 headers={
                     "content-type": "application/json",
-                    "Authorization": "Bearer valid_token"
-                    },
+                    "Authorization": "Bearer valid_token",
+                },
                 json=self.body,
             )
 
@@ -200,13 +201,13 @@ class TestConversationCustom:
         }
 
         # when
-        with patch.object(TokenValidator, 'validate', return_value=None):
+        with patch.object(TokenValidator, "validate", return_value=None):
             response = app.test_client().post(
                 "/api/conversation/custom",
                 headers={
                     "content-type": "application/json",
-                    "Authorization": "Bearer valid_token"
-                    },
+                    "Authorization": "Bearer valid_token",
+                },
                 json=body,
             )
 
@@ -269,12 +270,12 @@ class TestConversationAzureByod:
         env_helper_mock.should_use_data.return_value = True
 
         # when
-        with patch.object(TokenValidator, 'validate', return_value=None):
+        with patch.object(TokenValidator, "validate", return_value=None):
             response = app.test_client().post(
                 "/api/conversation/azure_byod",
                 headers={
                     "content-type": "application/json",
-                    "Authorization": "Bearer valid_token"
+                    "Authorization": "Bearer valid_token",
                 },
                 json=self.body,
             )
@@ -286,7 +287,7 @@ class TestConversationAzureByod:
             == b'{"id": "response.id", "model": "some-model", "created": "response.created",'
             + b' "object": "response.object", "choices": [{"messages": [{"content": "A question\\n?", "end_turn": false, "role": "tool"}]}]}\n'
         )
-        
+
     @patch("app.requests.Session")
     @patch("app.env_helper")
     def test_converstation_azure_byod_returns_unauthorized(
@@ -320,12 +321,12 @@ class TestConversationAzureByod:
         env_helper_mock.should_use_data.return_value = True
 
         # when
-        with patch.object(TokenValidator, 'validate', return_value=None):
+        with patch.object(TokenValidator, "validate", return_value=None):
             response = app.test_client().post(
                 "/api/conversation/azure_byod",
                 headers={
                     "content-type": "application/json",
-                    "Authorization": "Bearer valid_token"
+                    "Authorization": "Bearer valid_token",
                 },
                 json=self.body,
             )
@@ -345,12 +346,12 @@ class TestConversationAzureByod:
         env_helper_mock.should_use_data.return_value = True
 
         # when
-        with patch.object(TokenValidator, 'validate', return_value=None):
+        with patch.object(TokenValidator, "validate", return_value=None):
             response = app.test_client().post(
                 "/api/conversation/azure_byod",
                 headers={
                     "content-type": "application/json",
-                    "Authorization": "Bearer valid_token"
+                    "Authorization": "Bearer valid_token",
                 },
                 json=self.body,
             )

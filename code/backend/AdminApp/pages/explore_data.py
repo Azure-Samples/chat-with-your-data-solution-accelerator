@@ -18,6 +18,7 @@ logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy").s
     logging.WARNING
 )
 
+
 def main():
     st.set_page_config(
         page_title="Explore Data",
@@ -46,7 +47,6 @@ def main():
     # Inject CSS with Markdown
     st.markdown(hide_table_row_index, unsafe_allow_html=True)
 
-
     try:
         vector_store_helper: AzureSearchHelper = AzureSearchHelper()
         search_client = vector_store_helper.get_vector_store().client
@@ -67,9 +67,9 @@ def main():
         df = pd.DataFrame(data, columns=("Chunk", "Content")).sort_values(by=["Chunk"])
         st.table(df)
 
-
     except Exception:
         st.error(traceback.format_exc())
+
 
 if not isLoggedIn():
     parent_dir_path = os.path.join(os.path.dirname(__file__), "..")

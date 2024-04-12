@@ -153,7 +153,7 @@ class EnvHelper:
         self.TENANT_ID = self.secretHelper.get_secret("AZURE_TENANT_ID")
         self.CLIENT_ID = self.secretHelper.get_secret("AZURE_CLIENT_ID")
         self.ADMIN_GROUP_ID = self.secretHelper.get_secret("AZURE_ADMIN_GROUP_ID")
-        self.SHAREPOINT_FILES_TO_SKIP = os.getenv("SHAREPOINT_FILES_TO_SKIP").split(',')
+        self.SHAREPOINT_FILES_TO_SKIP = os.getenv("SHAREPOINT_FILES_TO_SKIP").split(",")
         self.SHAREPOINT_SITE_HOSTNAME = os.getenv("SHAREPOINT_SITE_HOSTNAME")
         
     def should_use_data(self) -> bool:

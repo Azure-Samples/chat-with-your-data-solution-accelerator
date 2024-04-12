@@ -1,10 +1,9 @@
-from functools import wraps
-import jwt
 import streamlit as st
 import os
 import logging
 import sys
 from dotenv import load_dotenv
+from components.sharepoint import scrap_sharepoint_data
 from components.login import isLoggedIn
 from components.menu import menu
 
@@ -15,8 +14,9 @@ logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy").s
     logging.WARNING
 )
 
+
 def main():
-    
+
     st.set_page_config(
         page_title="Admin",
         page_icon=os.path.join("images", "favicon.ico"),
@@ -43,7 +43,10 @@ def main():
              * If you want to adapt the underlying prompts, logging settings and others, use the `Configuration` tab
              """
     )
-    
+
+    scrap_sharepoint_data()
+
+
 if not isLoggedIn():
     parent_dir_path = os.path.join(os.path.dirname(__file__), "..")
     st.switch_page(os.path.join(parent_dir_path, "app.py"))

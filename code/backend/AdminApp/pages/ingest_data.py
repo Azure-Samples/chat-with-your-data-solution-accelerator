@@ -29,6 +29,7 @@ logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy").s
     logging.WARNING
 )
 
+
 def main():
     st.set_page_config(
         page_title="Ingest Data",
@@ -46,7 +47,6 @@ def main():
                 """
     st.markdown(mod_page_style, unsafe_allow_html=True)
 
-
     def request_user_delegation_key(
         blob_service_client: BlobServiceClient,
     ) -> UserDelegationKey:
@@ -60,7 +60,6 @@ def main():
         )
 
         return user_delegation_key
-
 
     def remote_convert_files_and_add_embeddings(process_all=False):
         backend_url = urllib.parse.urljoin(
@@ -83,7 +82,6 @@ def main():
         except Exception:
             st.error(traceback.format_exc())
 
-
     def add_urls():
         params = {}
         if env_helper.FUNCTION_KEY is not None:
@@ -101,8 +99,9 @@ def main():
             else:
                 st.success(f"Embeddings added successfully for {url}")
 
-
-    def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] = None):
+    def upload_file(
+        bytes_data: bytes, file_name: str, content_type: Optional[str] = None
+    ):
         # Upload a new file
         st.session_state["filename"] = file_name
         if content_type is None:
@@ -179,7 +178,6 @@ def main():
                 )
             )
 
-
     try:
         with st.expander("Add documents in Batch", expanded=True):
             config = ConfigHelper.get_active_config_or_default()
@@ -229,10 +227,13 @@ def main():
                     [env_helper.AZURE_OPENAI_EMBEDDING_MODEL],
                     disabled=True,
                 )
-                st.button("Process and ingest web pages", on_click=add_urls, key="add_url")
+                st.button(
+                    "Process and ingest web pages", on_click=add_urls, key="add_url"
+                )
 
     except Exception:
         st.error(traceback.format_exc())
+
 
 if not isLoggedIn():
     parent_dir_path = os.path.join(os.path.dirname(__file__), "..")
