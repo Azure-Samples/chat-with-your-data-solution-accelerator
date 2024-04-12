@@ -11,8 +11,8 @@
     },
     "dependencies": {
         "@babel/traverse": "^7.24.0",
-        "@fluentui/react": "^8.117.2",
-        "@fluentui/react-icons": "^2.0.234",
+        "@fluentui/react": "^8.117.5",
+        "@fluentui/react-icons": "^2.0.235",
         "@fortawesome/fontawesome-svg-core": "^6.5.2",
         "@fortawesome/free-solid-svg-icons": "^6.5.2",
         "@fortawesome/react-fontawesome": "github:fortawesome/react-fontawesome",
@@ -42,7 +42,7 @@
         "mocha": "^10.4.0",
         "prettier": "^3.2.5",
         "ts-node": "^10.9.2",
-        "typescript": "^5.4.4",
+        "typescript": "^5.4.5",
         "vite": "^5.2.8"
     }
 }
