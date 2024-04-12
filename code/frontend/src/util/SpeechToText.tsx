@@ -18,8 +18,6 @@ export const multiLingualSpeechRecognizer = (
         ? import.meta.env.VITE_SPEECH_RECOGNIZER_LANGUAGES.split(",")
         : "en-US";
 
-        console.log('languagesToRecognize', languagesToRecognize);
-
         const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
         const autoDetectSourceLanguageConfig = AutoDetectSourceLanguageConfig.fromLanguages(languagesToRecognize)
         return SpeechRecognizer.FromConfig(speechConfig, autoDetectSourceLanguageConfig, audioConfig);
