@@ -32,6 +32,8 @@ param hostingPlanSku string = 'B3'
 
 @description('The sku tier for the App Service plan')
 @allowed([
+  'Free'
+  'Shared'
   'Basic'
   'Standard'
   'Premium'
