@@ -12,10 +12,6 @@ bp_add_url_embeddings = func.Blueprint()
 
 @bp_add_url_embeddings.route(route="AddURLEmbeddings")
 def add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
-    return do_add_url_embeddings(req)
-
-
-def do_add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
     logger = logging.getLogger(__name__)
     env_helper: EnvHelper = EnvHelper()
     logger.setLevel(env_helper.LOGLEVEL)

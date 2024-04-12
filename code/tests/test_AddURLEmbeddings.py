@@ -6,7 +6,7 @@ import azure.functions as func
 
 sys.path.append(os.path.join(os.path.dirname(sys.path[0]), "backend", "batch"))
 
-from backend.batch.AddURLEmbeddings import do_add_url_embeddings  # noqa: E402
+from backend.batch.AddURLEmbeddings import add_url_embeddings  # noqa: E402
 
 
 @patch("backend.batch.AddURLEmbeddings.ConfigHelper")
@@ -22,7 +22,7 @@ def test_add_url_embeddings_when_url_set_in_body(mock_env_helper, _, __):
         headers={"Content-Type": "application/json"},
     )
 
-    response = do_add_url_embeddings(fake_request)
+    response = add_url_embeddings.build().get_user_function()(fake_request)
 
     assert response.status_code == 200
 
@@ -41,7 +41,7 @@ def test_add_url_embeddings_when_url_set_in_param(mock_env_helper, _, __):
         params={"url": "https://example.com"},
     )
 
-    response = do_add_url_embeddings(fake_request)
+    response = add_url_embeddings.build().get_user_function()(fake_request)
 
     assert response.status_code == 200
 
@@ -59,6 +59,6 @@ def test_add_url_embeddings_returns_400_when_url_not_set(mock_env_helper, _, __)
         params={},
     )
 
-    response = do_add_url_embeddings(fake_request)
+    response = add_url_embeddings.build().get_user_function()(fake_request)
 
     assert response.status_code == 400

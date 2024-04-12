@@ -6,7 +6,7 @@ import json
 sys.path.append(os.path.join(os.path.dirname(sys.path[0]), "backend", "batch"))
 
 from backend.batch.GetConversationResponse import (  # noqa: E402
-    do_get_conversation_response,
+    get_conversation_response,
 )
 
 
@@ -31,7 +31,7 @@ def test_get_conversation_response(mock_create_message_orchestrator, _):
 
     mock_create_message_orchestrator.return_value = mock_message_orchestrator
 
-    response = do_get_conversation_response(mock_http_request)
+    response = get_conversation_response.build().get_user_function()(mock_http_request)
 
     assert response.status_code == 200
 
