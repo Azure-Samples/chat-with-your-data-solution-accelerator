@@ -14,18 +14,16 @@ def vector_store_mock():
     ) as mock:
         vector_store = mock.return_value.get_vector_store.return_value
 
-        documents = []
-        for i in range(4):
-            document = Document(f"mock content {i}")
-            document.metadata = {
-                "id": f"mock id {i}",
-                "title": f"mock title {i}",
-                "source": f"mock source {i}",
-                "chunk": f"mock chunk {i}",
-                "offset": f"mock offset {i}",
-                "page_number": f"mock page number {i}",
-            }
-            documents.append(document)
+        document = Document("mock content")
+        document.metadata = {
+            "id": "mock id",
+            "title": "mock title",
+            "source": "mock source",
+            "chunk": "mock chunk",
+            "offset": "mock offset",
+            "page_number": "mock page number",
+        }
+        documents = [document]
 
         vector_store.similarity_search.return_value = documents
 
@@ -44,10 +42,7 @@ def config_mock():
         config.example.documents = json.dumps(
             {
                 "retrieved_documents": [
-                    {"[doc1]": {"content": "mock example content 0"}},
-                    {"[doc2]": {"content": "mock example content 1"}},
-                    {"[doc3]": {"content": "mock example content 2"}},
-                    {"[doc4]": {"content": "mock example content 3"}},
+                    {"[doc1]": {"content": "mock example content"}},
                 ]
             }
         )
@@ -62,6 +57,8 @@ def env_helper_mock():
     with patch("backend.batch.utilities.tools.QuestionAnswerTool.EnvHelper") as mock:
         env_helper = mock.return_value
         env_helper.AZURE_OPENAI_SYSTEM_MESSAGE = "mock azure openai system message"
+        env_helper.AZURE_SEARCH_TOP_K = "1"
+        env_helper.AZURE_SEARCH_FILTER = "mock filter"
 
         yield env_helper
 
@@ -97,7 +94,7 @@ def test_similarity_search_is_called(vector_store_mock: MagicMock):
 
     # then
     vector_store_mock.similarity_search.assert_called_once_with(
-        query="mock question", k=4, search_type="hybrid"
+        query="mock question", k=1, filters="mock filter"
     )
 
 
@@ -111,15 +108,14 @@ def test_answer_question_returns_source_documents():
     # then
     source_documents = answer.source_documents
 
-    assert len(source_documents) == 4
+    assert len(source_documents) == 1
 
-    for i, source_document in enumerate(source_documents):
-        assert source_document.id == f"mock id {i}"
-        assert source_document.title == f"mock title {i}"
-        assert source_document.source == f"mock source {i}"
-        assert source_document.chunk == f"mock chunk {i}"
-        assert source_document.offset == f"mock offset {i}"
-        assert source_document.page_number == f"mock page number {i}"
+    assert source_documents[0].id == "mock id"
+    assert source_documents[0].title == "mock title"
+    assert source_documents[0].source == "mock source"
+    assert source_documents[0].chunk == "mock chunk"
+    assert source_documents[0].offset == "mock offset"
+    assert source_documents[0].page_number == "mock page number"
 
 
 def test_answer_question_returns_answer():
@@ -165,7 +161,7 @@ def test_correct_prompt_with_few_shot_example(
     # then
     expected_input = {
         "user_question": "mock question",
-        "documents": '{"retrieved_documents":[{"[doc1]":{"content":"mock content 0"}},{"[doc2]":{"content":"mock content 1"}},{"[doc3]":{"content":"mock content 2"}},{"[doc4]":{"content":"mock content 3"}}]}',
+        "documents": '{"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}',
         "chat_history": [],
     }
 
@@ -180,10 +176,10 @@ def test_correct_prompt_with_few_shot_example(
     assert (
         prompt_test
         == """System: mock answering system prompt
-Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock example content 0"}},{"[doc2]":{"content":"mock example content 1"}},{"[doc3]":{"content":"mock example content 2"}},{"[doc4]":{"content":"mock example content 3"}}]}, User Question: mock example user question
+Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock example content"}}]}, User Question: mock example user question
 AI: mock example answer
 System: mock azure openai system message
-Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock content 0"}},{"[doc2]":{"content":"mock content 1"}},{"[doc3]":{"content":"mock content 2"}},{"[doc4]":{"content":"mock content 3"}}]}, User Question: mock question"""
+Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}, User Question: mock question"""
     )
 
 
@@ -202,7 +198,7 @@ def test_correct_prompt_without_few_shot_example(
     # then
     expected_input = {
         "user_question": "mock question",
-        "documents": '{"retrieved_documents":[{"[doc1]":{"content":"mock content 0"}},{"[doc2]":{"content":"mock content 1"}},{"[doc3]":{"content":"mock content 2"}},{"[doc4]":{"content":"mock content 3"}}]}',
+        "documents": '{"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}',
         "chat_history": [],
     }
 
@@ -215,7 +211,7 @@ def test_correct_prompt_without_few_shot_example(
         prompt_test
         == """System: mock answering system prompt
 System: mock azure openai system message
-Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock content 0"}},{"[doc2]":{"content":"mock content 1"}},{"[doc3]":{"content":"mock content 2"}},{"[doc4]":{"content":"mock content 3"}}]}, User Question: mock question"""
+Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}, User Question: mock question"""
     )
 
 
@@ -234,7 +230,7 @@ def test_correct_prompt_with_few_shot_example_and_chat_history(LLMChainMock: Mag
     # then
     expected_input = {
         "user_question": "mock question",
-        "documents": '{"retrieved_documents":[{"[doc1]":{"content":"mock content 0"}},{"[doc2]":{"content":"mock content 1"}},{"[doc3]":{"content":"mock content 2"}},{"[doc4]":{"content":"mock content 3"}}]}',
+        "documents": '{"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}',
         "chat_history": chat_history,
     }
 
@@ -246,12 +242,12 @@ def test_correct_prompt_with_few_shot_example_and_chat_history(LLMChainMock: Mag
     assert (
         prompt_test
         == """System: mock answering system prompt
-Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock example content 0"}},{"[doc2]":{"content":"mock example content 1"}},{"[doc3]":{"content":"mock example content 2"}},{"[doc4]":{"content":"mock example content 3"}}]}, User Question: mock example user question
+Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock example content"}}]}, User Question: mock example user question
 AI: mock example answer
 System: mock azure openai system message
 Human: Hello
 AI: Hi, how can I help?
-Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock content 0"}},{"[doc2]":{"content":"mock content 1"}},{"[doc3]":{"content":"mock content 2"}},{"[doc4]":{"content":"mock content 3"}}]}, User Question: mock question"""
+Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}, User Question: mock question"""
     )
 
 
@@ -267,13 +263,7 @@ def test_legacy_correct_prompt(config_mock: MagicMock, LLMChainMock: MagicMock):
     # then
     expected_input = {
         "question": "mock question",
-        "sources": """[doc1]: mock content 0
-
-[doc2]: mock content 1
-
-[doc3]: mock content 2
-
-[doc4]: mock content 3""",
+        "sources": """[doc1]: mock content""",
     }
 
     answer_generator.assert_called_once_with(expected_input)
@@ -281,13 +271,4 @@ def test_legacy_correct_prompt(config_mock: MagicMock, LLMChainMock: MagicMock):
     prompt = LLMChainMock.call_args[1]["prompt"]
     prompt_test = prompt.format(**expected_input)
 
-    assert (
-        prompt_test
-        == """Sources: [doc1]: mock content 0
-
-[doc2]: mock content 1
-
-[doc3]: mock content 2
-
-[doc4]: mock content 3, Question: mock question"""
-    )
+    assert prompt_test == """Sources: [doc1]: mock content, Question: mock question"""

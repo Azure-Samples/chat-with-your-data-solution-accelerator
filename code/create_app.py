@@ -48,7 +48,7 @@ def prepare_body_headers_with_data(request, env_helper: EnvHelper):
                     },
                     "filter": env_helper.AZURE_SEARCH_FILTER,
                     "in_scope": env_helper.AZURE_SEARCH_ENABLE_IN_DOMAIN,
-                    "top_n_documents": env_helper.AZURE_SEARCH_TOP_K,
+                    "top_n_documents": int(env_helper.AZURE_SEARCH_TOP_K),
                     "query_type": (
                         "semantic"
                         if env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH
