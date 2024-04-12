@@ -16,6 +16,7 @@ logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy").s
     logging.WARNING
 )
 
+
 def main():
     st.set_page_config(
         page_title="Delete Data",
@@ -44,10 +45,8 @@ def main():
     # Inject CSS with Markdown
     st.markdown(hide_table_row_index, unsafe_allow_html=True)
 
-
     def get_files():
         return search_client.search("*", select="id, title", include_total_count=True)
-
 
     def output_results(results):
         files = {}
@@ -68,7 +67,6 @@ def main():
 
         return files
 
-
     def delete_files(files):
         ids_to_delete = []
         files_to_delete = []
@@ -86,7 +84,6 @@ def main():
 
         st.success("Deleted files: " + str(files_to_delete))
 
-
     try:
         vector_store_helper: AzureSearchHelper = AzureSearchHelper()
         search_client = vector_store_helper.get_vector_store().client
@@ -100,7 +97,8 @@ def main():
 
     except Exception:
         st.error(traceback.format_exc())
-        
+
+
 if not isLoggedIn():
     parent_dir_path = os.path.join(os.path.dirname(__file__), "..")
     st.switch_page(os.path.join(parent_dir_path, "app.py"))
