@@ -18,8 +18,8 @@ from langchain_core.messages import SystemMessage
 
 from ..helpers.AzureSearchHelper import AzureSearchHelper
 from ..helpers.ConfigHelper import ConfigHelper
-from ..helpers.EnvHelper import EnvHelper
 from ..helpers.LLMHelper import LLMHelper
+from ..helpers.EnvHelper import EnvHelper
 from ..common.Answer import Answer
 from ..common.SourceDocument import SourceDocument
 
@@ -128,7 +128,9 @@ class QuestionAnswerTool(AnsweringToolBase):
     def answer_question(self, question: str, chat_history: list[dict], **kwargs: dict):
         # Retrieve documents as sources
         sources = self.vector_store.similarity_search(
-            query=question, k=4, search_type="hybrid"
+            query=question,
+            k=int(self.env_helper.AZURE_SEARCH_TOP_K),
+            filters=self.env_helper.AZURE_SEARCH_FILTER,
         )
 
         # If answering_prompt has been set, then use legacy_generate_llm_chain for backwards compatibility
