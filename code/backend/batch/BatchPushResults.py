@@ -1,15 +1,17 @@
+import os
 import logging
 import json
 import azure.functions as func
 from urllib.parse import urlparse
 
-from utilities.helpers.EnvHelper import EnvHelper
 from utilities.helpers.AzureBlobStorageHelper import AzureBlobStorageClient
 from utilities.helpers.DocumentProcessorHelper import DocumentProcessor
 from utilities.helpers.ConfigHelper import ConfigHelper
 
 
 bp_batch_push_results = func.Blueprint()
+logger = logging.getLogger(__name__)
+logger.setLevel(level=os.environ.get("LOGLEVEL", "INFO").upper())
 
 
 def _get_file_name_from_message(msg: func.QueueMessage) -> str:
@@ -30,9 +32,6 @@ def batch_push_results(msg: func.QueueMessage) -> None:
 
 
 def do_batch_push_results(msg: func.QueueMessage) -> None:
-    env_helper: EnvHelper = EnvHelper()
-    logger = logging.getLogger(__name__)
-    logger.setLevel(env_helper.LOGLEVEL)
     logger.info(
         "Python queue trigger function processed a queue item: %s",
         msg.get_body().decode("utf-8"),

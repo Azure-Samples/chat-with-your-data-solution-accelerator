@@ -11,10 +11,7 @@ from backend.batch.AddURLEmbeddings import add_url_embeddings  # noqa: E402
 
 @patch("backend.batch.AddURLEmbeddings.ConfigHelper")
 @patch("backend.batch.AddURLEmbeddings.DocumentProcessor")
-@patch("backend.batch.AddURLEmbeddings.EnvHelper")
-def test_add_url_embeddings_when_url_set_in_body(mock_env_helper, _, __):
-    mock_env_helper.return_value.LOGLEVEL = "INFO"
-
+def test_add_url_embeddings_when_url_set_in_body(_, __):
     fake_request = func.HttpRequest(
         method="POST",
         url="",
@@ -29,10 +26,7 @@ def test_add_url_embeddings_when_url_set_in_body(mock_env_helper, _, __):
 
 @patch("backend.batch.AddURLEmbeddings.ConfigHelper")
 @patch("backend.batch.AddURLEmbeddings.DocumentProcessor")
-@patch("backend.batch.AddURLEmbeddings.EnvHelper")
-def test_add_url_embeddings_when_url_set_in_param(mock_env_helper, _, __):
-    mock_env_helper.return_value.LOGLEVEL = "INFO"
-
+def test_add_url_embeddings_when_url_set_in_param(_, __):
     fake_request = func.HttpRequest(
         method="POST",
         url="",
@@ -48,10 +42,7 @@ def test_add_url_embeddings_when_url_set_in_param(mock_env_helper, _, __):
 
 @patch("backend.batch.AddURLEmbeddings.ConfigHelper")
 @patch("backend.batch.AddURLEmbeddings.DocumentProcessor")
-@patch("backend.batch.AddURLEmbeddings.EnvHelper")
-def test_add_url_embeddings_returns_400_when_url_not_set(mock_env_helper, _, __):
-    mock_env_helper.return_value.LOGLEVEL = "INFO"
-
+def test_add_url_embeddings_returns_400_when_url_not_set(_, __):
     fake_request = func.HttpRequest(
         method="POST",
         url="",

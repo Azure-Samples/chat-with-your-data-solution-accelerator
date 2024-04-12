@@ -32,7 +32,6 @@ def test_get_file_name_from_message_no_filename():
     assert file_name == "test_filename.md"
 
 
-@patch("backend.batch.BatchPushResults.EnvHelper")
 @patch("backend.batch.BatchPushResults.ConfigHelper")
 @patch("backend.batch.BatchPushResults.AzureBlobStorageClient")
 @patch("backend.batch.BatchPushResults.DocumentProcessor")
@@ -40,9 +39,7 @@ def test_batch_push_results(
     mock_document_processor,
     mock_azure_blob_storage_client,
     mock_config_helper,
-    mock_env_helper,
 ):
-    mock_env_helper.return_value.LOGLEVEL = "INFO"
     mock_queue_message = QueueMessage(
         body='{"message": "test message", "filename": "test/test/test_filename.md"}'
     )

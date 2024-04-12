@@ -1,3 +1,4 @@
+import os
 import azure.functions as func
 import logging
 import json
@@ -8,9 +9,8 @@ from utilities.helpers.ConfigHelper import ConfigHelper
 
 
 bp_get_conversation_response = func.Blueprint()
-env_helper: EnvHelper = EnvHelper()
 logger = logging.getLogger(__name__)
-logger.setLevel(env_helper.LOGLEVEL)
+logger.setLevel(level=os.environ.get("LOGLEVEL", "INFO").upper())
 
 
 @bp_get_conversation_response.route(route="GetConversationResponse")
@@ -22,6 +22,7 @@ def do_get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
     logger.info("Python HTTP trigger function processed a request.")
 
     message_orchestrator = Orchestrator()
+    env_helper: EnvHelper = EnvHelper()
 
     try:
         req_body = req.get_json()
