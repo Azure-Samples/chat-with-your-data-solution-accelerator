@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "13675994107639803339"
+      "templateHash": "6096104994933528197"
     }
   },
   "parameters": {
@@ -151,6 +151,16 @@
       "defaultValue": "url",
       "metadata": {
         "description": "Url column"
+      }
+    },
+    "azureSearchUseIntegratedVectorization": {
+      "type": "bool",
+      "defaultValue": false,
+      "allowedValues": [
+        false
+      ],
+      "metadata": {
+        "description": "Use Azure Search Integrated Vectorization (Not yet implemented)"
       }
     },
     "azureOpenAIResourceName": {
@@ -10253,6 +10263,10 @@
     "AZURE_SEARCH_URL_COLUMN": {
       "type": "string",
       "value": "[parameters('azureSearchUrlColumn')]"
+    },
+    "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": {
+      "type": "bool",
+      "value": "[parameters('azureSearchUseIntegratedVectorization')]"
     },
     "AZURE_SEARCH_INDEX": {
       "type": "string",
