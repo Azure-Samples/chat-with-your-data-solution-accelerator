@@ -13,6 +13,7 @@ class AppConfig:
         "AZURE_OPENAI_API_VERSION": "2024-02-01",
         "AZURE_SEARCH_INDEX": "some-azure-search-index",
         "AZURE_SEARCH_KEY": "some-azure-search-key",
+        "AZURE_SEARCH_FILTER": "some-search-filter",
         "AZURE_CONTENT_SAFETY_KEY": "some-content_safety-key",
         "AZURE_OPENAI_EMBEDDING_MODEL": "some-embedding-model",
         "AZURE_OPENAI_MODEL": "some-openai-model",

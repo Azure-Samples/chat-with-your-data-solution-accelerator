@@ -9,6 +9,7 @@ from langchain_community.callbacks import get_openai_callback
 from ..helpers.AzureSearchHelper import AzureSearchHelper
 from ..helpers.ConfigHelper import ConfigHelper
 from ..helpers.LLMHelper import LLMHelper
+from ..helpers.EnvHelper import EnvHelper
 from ..common.Answer import Answer
 from ..common.SourceDocument import SourceDocument
 
@@ -20,6 +21,7 @@ class QuestionAnswerTool(AnsweringToolBase):
         self.name = "QuestionAnswer"
         self.vector_store = AzureSearchHelper().get_vector_store()
         self.verbose = True
+        self.env_helper = EnvHelper()
 
     def answer_question(self, question: str, chat_history: List[dict], **kwargs: dict):
         config = ConfigHelper.get_active_config_or_default()
@@ -32,7 +34,9 @@ class QuestionAnswerTool(AnsweringToolBase):
 
         # Retrieve documents as sources
         sources = self.vector_store.similarity_search(
-            query=question, k=4, search_type="hybrid"
+            query=question,
+            k=int(self.env_helper.AZURE_SEARCH_TOP_K),
+            filters=self.env_helper.AZURE_SEARCH_FILTER,
         )
 
         # Generate answer from sources
