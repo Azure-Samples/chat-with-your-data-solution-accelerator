@@ -298,6 +298,8 @@ def create_app():
     app = Flask(__name__)
     env_helper: EnvHelper = EnvHelper()
 
+    logger.debug("Starting web app")
+
     @app.route("/", defaults={"path": "index.html"})
     @app.route("/<path:path>")
     def static_file(path):

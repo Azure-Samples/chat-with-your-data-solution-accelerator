@@ -72,3 +72,22 @@ def test_keys_are_unset_when_auth_type_rbac(monkeypatch: MonkeyPatch):
     assert env_helper.AZURE_SEARCH_KEY is None
     assert env_helper.AZURE_OPENAI_API_KEY == ""
     assert env_helper.AZURE_SPEECH_KEY is None
+
+
+def test_sets_default_log_level_when_unset():
+    # when
+    env_helper = EnvHelper()
+
+    # then
+    assert env_helper.LOGLEVEL == "INFO"
+
+
+def test_uses_and_uppercases_log_level_when_set(monkeypatch: MonkeyPatch):
+    # given
+    monkeypatch.setenv("LOGLEVEL", "deBug")
+
+    # when
+    env_helper = EnvHelper()
+
+    # then
+    assert env_helper.LOGLEVEL == "DEBUG"
