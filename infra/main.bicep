@@ -30,6 +30,18 @@ param hostingPlanName string = 'hosting-plan-${resourceToken}'
 ])
 param hostingPlanSku string = 'B3'
 
+@description('The sku tier for the App Service plan')
+@allowed([
+  'Free'
+  'Shared'
+  'Basic'
+  'Standard'
+  'Premium'
+  'PremiumV2'
+  'PremiumV3'
+])
+param skuTier string = 'Basic'
+
 @description('Name of Web App')
 param websiteName string = 'web-${resourceToken}'
 
@@ -337,6 +349,7 @@ module hostingplan './core/host/appserviceplan.bicep' = {
     location: location
     sku: {
       name: hostingPlanSku
+      tier: skuTier
     }
     reserved: true
     tags: { Automation: 'Ignore' }
