@@ -6,7 +6,7 @@ from azure.functions import QueueMessage
 
 sys.path.append(os.path.join(os.path.dirname(sys.path[0]), "backend", "batch"))
 
-from backend.batch.BatchPushResults import do_batch_push_results  # noqa: E402
+from backend.batch.BatchPushResults import batch_push_results  # noqa: E402
 from backend.batch.BatchPushResults import _get_file_name_from_message  # noqa: E402
 
 
@@ -59,7 +59,8 @@ def test_batch_push_results(
         mock_processors
     )
 
-    do_batch_push_results(mock_queue_message)
+    func_call = batch_push_results.build().get_user_function()
+    func_call(mock_queue_message)
 
     mock_document_processor_instance.process.assert_called_once_with(
         source_url="test_blob_sas", processors=[md_processor]

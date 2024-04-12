@@ -15,10 +15,6 @@ logger.setLevel(env_helper.LOGLEVEL)
 
 @bp_get_conversation_response.route(route="GetConversationResponse")
 def get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
-    return do_get_conversation_response(req)
-
-
-def do_get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
     logger.info("Python HTTP trigger function processed a request.")
 
     message_orchestrator = Orchestrator()

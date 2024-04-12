@@ -26,10 +26,6 @@ def _get_file_name_from_message(msg: func.QueueMessage) -> str:
     arg_name="msg", queue_name="doc-processing", connection="AzureWebJobsStorage"
 )
 def batch_push_results(msg: func.QueueMessage) -> None:
-    do_batch_push_results(msg)
-
-
-def do_batch_push_results(msg: func.QueueMessage) -> None:
     env_helper: EnvHelper = EnvHelper()
     logger = logging.getLogger(__name__)
     logger.setLevel(env_helper.LOGLEVEL)

@@ -4,7 +4,7 @@ from unittest.mock import patch, Mock
 
 sys.path.append(os.path.join(os.path.dirname(sys.path[0]), "backend", "batch"))
 
-from backend.batch.BatchStartProcessing import do_batch_start_processing  # noqa: E402
+from backend.batch.BatchStartProcessing import batch_start_processing  # noqa: E402
 
 
 @patch("backend.batch.BatchStartProcessing.create_queue_client")
@@ -23,7 +23,8 @@ def test_batch_start_processing_processes_all(
         {"filename": "file_name_one", "embeddings_added": False}
     ]
 
-    response = do_batch_start_processing(mock_http_request)
+    func_call = batch_start_processing.build().get_user_function()
+    response = func_call(mock_http_request)
 
     assert response.status_code == 200
 
@@ -51,7 +52,9 @@ def test_batch_start_processing_filters_filter_no_embeddings(
         },
         {"filename": "file_name_two", "embeddings_added": False},
     ]
-    response = do_batch_start_processing(mock_http_request)
+
+    func_call = batch_start_processing.build().get_user_function()
+    response = func_call(mock_http_request)
 
     assert response.status_code == 200
 

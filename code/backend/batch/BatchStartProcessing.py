@@ -16,10 +16,6 @@ logger.setLevel(env_helper.LOGLEVEL)
 
 @bp_batch_start_processing.route(route="BatchStartProcessing")
 def batch_start_processing(req: func.HttpRequest) -> func.HttpResponse:
-    return do_batch_start_processing(req)
-
-
-def do_batch_start_processing(req: func.HttpRequest) -> func.HttpResponse:
     logger.info("Requested to start processing all documents received")
     # Set up Blob Storage Client
     azure_blob_storage_client = AzureBlobStorageClient()
