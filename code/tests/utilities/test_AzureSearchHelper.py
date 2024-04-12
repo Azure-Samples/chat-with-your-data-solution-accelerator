@@ -6,7 +6,6 @@ AZURE_AUTH_TYPE = "keys"
 AZURE_SEARCH_KEY = "mock-key"
 AZURE_SEARCH_SERVICE = "mock-service"
 AZURE_SEARCH_INDEX = "mock-index"
-AZURE_SEARCH_DIMENSIONS = "1536"
 AZURE_SEARCH_USE_SEMANTIC_SEARCH = False
 AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = "default"
 AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = "mock-log-index"
@@ -22,6 +21,9 @@ def AzureSearchMock():
 def llm_helper_mock():
     with patch("backend.batch.utilities.helpers.AzureSearchHelper.LLMHelper") as mock:
         llm_helper = mock.return_value
+        llm_helper.get_embedding_model.return_value.embed_query.return_value = [
+            0
+        ] * 1536
 
         yield llm_helper
 
@@ -34,7 +36,6 @@ def env_helper_mock():
         env_helper.AZURE_SEARCH_KEY = AZURE_SEARCH_KEY
         env_helper.AZURE_SEARCH_SERVICE = AZURE_SEARCH_SERVICE
         env_helper.AZURE_SEARCH_INDEX = AZURE_SEARCH_INDEX
-        env_helper.AZURE_SEARCH_DIMENSIONS = AZURE_SEARCH_DIMENSIONS
         env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH = AZURE_SEARCH_USE_SEMANTIC_SEARCH
         env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = (
             AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
