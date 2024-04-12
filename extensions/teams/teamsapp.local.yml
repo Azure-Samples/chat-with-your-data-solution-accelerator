@@ -8,7 +8,7 @@ provision:
   - uses: teamsApp/create
     with:
       # Teams app name
-      name: cwyod_ts${{APP_NAME_SUFFIX}}
+      name: teams-bot-toolkit${{APP_NAME_SUFFIX}}
     # Write the information of created resources into environment file for
     # the specified environment variable(s).
     writeToEnvironmentFile:
@@ -18,7 +18,7 @@ provision:
   - uses: botAadApp/create
     with:
       # The Microsoft Entra application's display name
-      name: cwyod_ts${{APP_NAME_SUFFIX}}
+      name: teams-bot-toolkit${{APP_NAME_SUFFIX}}
     writeToEnvironmentFile:
       # The Microsoft Entra application's client id created for bot.
       botId: BOT_ID
@@ -29,7 +29,7 @@ provision:
   - uses: botFramework/create
     with:
       botId: ${{BOT_ID}}
-      name: cwyod_ts
+      name: teams-bot-toolkit
       messagingEndpoint: ${{BOT_ENDPOINT}}/api/messages
       description: ""
       channels:
