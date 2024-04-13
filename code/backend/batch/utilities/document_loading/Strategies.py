@@ -6,6 +6,7 @@ class LoadingStrategy(Enum):
     READ = "read"
     WEB = "web"
     DOCX = "docx"
+    SHAREPOINT = "sharepoint"
 
 
 def get_document_loader(loader_strategy: str):
@@ -25,5 +26,9 @@ def get_document_loader(loader_strategy: str):
         from .WordDocument import WordDocumentLoading
 
         return WordDocumentLoading()
+    elif loader_strategy == LoadingStrategy.SHAREPOINT.value:
+        from .SharePoint import SharePointLoading
+
+        return SharePointLoading()
     else:
         raise Exception(f"Unknown loader strategy: {loader_strategy}")

@@ -1,7 +1,11 @@
 import os
 import logging
 from dotenv import load_dotenv
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from azure.identity import (
+    DefaultAzureCredential,
+    ClientSecretCredential,
+    get_bearer_token_provider,
+)
 from azure.keyvault.secrets import SecretClient
 
 logger = logging.getLogger(__name__)
@@ -79,6 +83,24 @@ class EnvHelper:
         self.AZURE_TOKEN_PROVIDER = get_bearer_token_provider(
             DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
         )
+
+        # Azure AD
+        # TODO: MOVE THIS TO ENV
+        tenant_id = "abdf0bc1-a86f-4288-85a1-0183f205e81f"
+        client_id = "a940f5ca-6e24-4b7c-89be-e4621cd553bb"
+        client_secret = os.getenv("AZURE_CLIENT_SECRET", "")
+
+        self.TENANT_ID = tenant_id
+        self.CLIENT_ID = client_id
+        self.CLIENT_SECRET = client_secret
+        self.ADMIN_GROUP_ID = self.secretHelper.get_secret("AZURE_ADMIN_GROUP_ID")
+
+        self.AZURE_MS_GRAPH_TOKEN_PROVIDER = get_bearer_token_provider(
+            ClientSecretCredential(
+                client_id=client_id, client_secret=client_secret, tenant_id=tenant_id
+            ),
+            "https://graph.microsoft.com/.default",
+        )
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
         if self.AZURE_AUTH_TYPE == "rbac":
@@ -86,10 +108,9 @@ class EnvHelper:
             self.AZURE_OPENAI_API_KEY = ""
             self.AZURE_SPEECH_KEY = None
         else:
-            self.AZURE_SEARCH_KEY = self.secretHelper.get_secret("AZURE_SEARCH_KEY")
-            self.AZURE_OPENAI_API_KEY = self.secretHelper.get_secret(
-                "AZURE_OPENAI_API_KEY"
-            )
+            self.AZURE_SEARCH_KEY = os.getenv("AZURE_SEARCH_KEY", "")
+            self.AZURE_OPENAI_API_KEY = "93223501177c4ab5b444143e617ed7cc"
+
             self.AZURE_SPEECH_KEY = self.secretHelper.get_secret(
                 "AZURE_SPEECH_SERVICE_KEY"
             )
@@ -149,13 +170,7 @@ class EnvHelper:
         )
         # Speech Service
         self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")
-        # Azure AD
-        self.TENANT_ID = self.secretHelper.get_secret("AZURE_TENANT_ID")
-        self.CLIENT_ID = self.secretHelper.get_secret("AZURE_CLIENT_ID")
-        self.ADMIN_GROUP_ID = self.secretHelper.get_secret("AZURE_ADMIN_GROUP_ID")
-        self.SHAREPOINT_FILES_TO_SKIP = os.getenv("SHAREPOINT_FILES_TO_SKIP").split(",")
-        self.SHAREPOINT_SITE_HOSTNAME = os.getenv("SHAREPOINT_SITE_HOSTNAME")
-        
+
     def should_use_data(self) -> bool:
         if (
             self.AZURE_SEARCH_SERVICE

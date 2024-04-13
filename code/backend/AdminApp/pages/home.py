@@ -3,7 +3,6 @@ import os
 import logging
 import sys
 from dotenv import load_dotenv
-from components.sharepoint import scrap_sharepoint_data
 from components.login import isLoggedIn
 from components.menu import menu
 
@@ -43,8 +42,6 @@ def main():
              * If you want to adapt the underlying prompts, logging settings and others, use the `Configuration` tab
              """
     )
-
-    scrap_sharepoint_data()
 
 
 if not isLoggedIn():
