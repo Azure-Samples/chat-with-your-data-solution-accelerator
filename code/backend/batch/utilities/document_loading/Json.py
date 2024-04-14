@@ -1,32 +1,73 @@
+import jq
+import json
 import requests
-import tempfile
 
-from typing import List
 from langchain.docstore.document import Document
-from langchain_community.document_loaders.json_loader import JSONLoader
 from .DocumentLoadingBase import DocumentLoadingBase
 from ..common.SourceDocument import SourceDocument
 
 
 class JsonDocumentLoading(DocumentLoadingBase):
-    def __init__(self) -> None:
+    def __init__(self, keywords_resolver_func=None, jschema=None):
         super().__init__()
+        self.jschema = '.pages[]' if jschema is None else jschema
+        self.keywords_resolver_func = self._keywords_resolver_func if \
+            keywords_resolver_func is None else keywords_resolver_func
 
-    def load(self, document_url: str) -> List[SourceDocument]:
-        response = requests.get(document_url)
-        temp = tempfile.NamedTemporaryFile()
-        with open(temp.name, 'w') as file:
-            file.write(response.text)
+    def load(self, document_url: str):
+        documents = list(self._load_from_json(
+            jschema=self.jschema,
+            url=document_url, keywords_resolver=self.keywords_resolver_func))
 
-        documents: List[Document] = JSONLoader(file_path=temp.name, jq_schema=".pages[]", text_content=False).load()
         for document in documents:
             if document.page_content == "":
                 documents.remove(document)
-        source_documents: List[SourceDocument] = [
+        source_documents = [
             SourceDocument(
                 content=document.page_content,
-                source=document.metadata["source"],
+                source=document.metadata['source'],
+                keywords=document.metadata['keywords']
             )
             for document in documents
         ]
         return source_documents
+
+    def _keywords_resolver_func(self, record: dict):
+        tags = record.get('tags')
+        if tags and getattr(tags, '__iter__'):
+            return ','.join([str(tag) for tag in tags])
+        else:
+            return ''
+
+    def _load_from_json(self, jschema, url, keywords_resolver):
+        content = ''
+        if url.startswith('http') or url.startswith('https'):
+            response = requests.get(url)
+            content = response.text
+        else:
+            with open(url, 'r') as file:
+                content = file.read()
+                
+        jq_schema = jq.compile(jschema)
+
+        index = 0
+        for doc in self._parse(url, jq_schema, content, keywords_resolver, index):
+            yield doc
+            index += 1
+
+    def _parse(self, url, jq_schema, content, keywords_resolver, index):
+        data = jq_schema.input(json.loads(content))
+
+        for i, sample in enumerate(data, index + 1):
+            text = self._get_text(content=sample)
+            metadata = {'source': str(url), 'seq_num': i,
+                        'keywords': keywords_resolver(sample)}
+            yield Document(page_content=text, metadata=metadata)
+
+    def _get_text(self, content):
+        if isinstance(content, str):
+            return content
+        elif isinstance(content, dict):
+            return json.dumps(content) if content else ''
+        else:
+            return str(content) if content is not None else ''
