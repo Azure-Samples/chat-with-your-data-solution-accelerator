@@ -206,7 +206,7 @@ Answer: {answer}""",
                 {
                     "document_type": "json",
                     "chunking": {
-                        "strategy": ChunkingStrategy.LAYOUT,
+                        "strategy": ChunkingStrategy.MOCK,
                         "size": 500,
                         "overlap": 100,
                     },

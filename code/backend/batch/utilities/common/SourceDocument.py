@@ -45,6 +45,7 @@ class SourceDocument:
             dict_obj["title"],
             dict_obj["chunk"],
             dict_obj["offset"],
+            dict_obj["keywords"],
             dict_obj["page_number"],
         )
 
