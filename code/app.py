@@ -39,8 +39,11 @@ def auth_required(f):
     def decorated_function(*args, **kwargs):
         if os.environ.get("DISABLE_AUTH"):
             return f(*args, **kwargs)
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            return Response("Unauthorized", status=401)
 
-        token = request.headers.get("Authorization")
+        token = auth_header.split(" ")[1]
         if not token:
             return Response("Unauthorized", status=401)
 
