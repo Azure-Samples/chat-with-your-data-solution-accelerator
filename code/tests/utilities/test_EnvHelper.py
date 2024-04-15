@@ -5,6 +5,7 @@ from backend.batch.utilities.helpers.EnvHelper import EnvHelper
 
 @pytest.fixture(autouse=True)
 def cleanup():
+    EnvHelper.clear_instance()
     yield
     EnvHelper.clear_instance()
 
