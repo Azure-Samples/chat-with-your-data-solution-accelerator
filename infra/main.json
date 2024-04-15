@@ -406,11 +406,22 @@
         "description": "Hosting model for the web apps. Containers are prebuilt and can be deployed faster, but code allows for more customization."
       }
     },
+    "logLevel": {
+      "type": "string",
+      "defaultValue": "INFO",
+      "allowedValues": [
+        "CRITICAL",
+        "ERROR",
+        "WARN",
+        "INFO",
+        "DEBUG"
+      ]
+    },
     "recognizedLanguages": {
       "type": "string",
       "defaultValue": "en-US,fr-FR,de-DE,it-IT",
       "metadata": {
-        "description": "List of comma-separated languages to recognize from the speech input (e.g. en-US,es-ES)."
+        "description": "List of comma-separated languages to recognize from the speech input. Supported languages are listed here: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=stt#supported-languages"
       }
     }
   },
@@ -10327,11 +10338,15 @@
     },
     "ADMIN_WEBSITE_NAME": {
       "type": "string",
-      "value": "[if(equals(parameters('hostingModel'), 'code'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin', parameters('websiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin-docker', parameters('websiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value)]"
+      "value": "[if(equals(parameters('hostingModel'), 'code'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('adminWebsiteName')), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value)]"
     },
     "VITE_SPEECH_RECOGNIZER_LANGUAGES": {
       "type": "string",
       "value": "[parameters('recognizedLanguages')]"
+    },
+    "LOGLEVEL": {
+      "type": "string",
+      "value": "[parameters('logLevel')]"
     }
   }
 }

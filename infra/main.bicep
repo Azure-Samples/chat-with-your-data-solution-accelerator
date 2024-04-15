@@ -207,7 +207,7 @@ param hostingModel string = 'container'
 ])
 param logLevel string = 'INFO'
 
-@description('List of comma-separated languages to recognize from the speech input (e.g. en-US,es-ES).')
+@description('List of comma-separated languages to recognize from the speech input. Supported languages are listed here: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=stt#supported-languages')
 param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
 
 var blobContainerName = 'documents'

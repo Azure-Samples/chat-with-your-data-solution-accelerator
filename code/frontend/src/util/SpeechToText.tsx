@@ -6,6 +6,8 @@ import {
   } from "microsoft-cognitiveservices-speech-sdk";
 
 
+export const defaultLanguage = "en-US";
+
 export const multiLingualSpeechRecognizer = (
     token: string,
     serviceRegion: string
@@ -16,7 +18,7 @@ export const multiLingualSpeechRecognizer = (
         );
         const languagesToRecognize = import.meta.env.VITE_SPEECH_RECOGNIZER_LANGUAGES
         ? import.meta.env.VITE_SPEECH_RECOGNIZER_LANGUAGES.split(",")
-        : "en-US";
+        : [defaultLanguage];
 
         const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
         const autoDetectSourceLanguageConfig = AutoDetectSourceLanguageConfig.fromLanguages(languagesToRecognize)
