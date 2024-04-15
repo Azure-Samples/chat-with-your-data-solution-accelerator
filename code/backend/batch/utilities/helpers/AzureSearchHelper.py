@@ -10,12 +10,21 @@ from .EnvHelper import EnvHelper
 
 
 class AzureSearchHelper:
+    _search_dimension: int | None = None
+
     def __init__(self):
-        pass
+        self.llm_helper = LLMHelper()
+        self.env_helper = EnvHelper()
+
+    @property
+    def search_dimensions(self) -> int:
+        if AzureSearchHelper._search_dimension is None:
+            AzureSearchHelper._search_dimension = len(
+                self.llm_helper.get_embedding_model().embed_query("Text")
+            )
+        return AzureSearchHelper._search_dimension
 
     def get_vector_store(self):
-        llm_helper = LLMHelper()
-        env_helper = EnvHelper()
         fields = [
             SimpleField(
                 name="id",
@@ -31,9 +40,7 @@ class AzureSearchHelper:
                 name="content_vector",
                 type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
                 searchable=True,
-                vector_search_dimensions=len(
-                    llm_helper.get_embedding_model().embed_query("Text")
-                ),
+                vector_search_dimensions=self.search_dimensions,
                 vector_search_profile_name="myHnswProfile",
             ),
             SearchableField(
@@ -64,21 +71,25 @@ class AzureSearchHelper:
         ]
 
         return AzureSearch(
-            azure_search_endpoint=env_helper.AZURE_SEARCH_SERVICE,
+            azure_search_endpoint=self.env_helper.AZURE_SEARCH_SERVICE,
             azure_search_key=(
-                env_helper.AZURE_SEARCH_KEY
-                if env_helper.AZURE_AUTH_TYPE == "keys"
+                self.env_helper.AZURE_SEARCH_KEY
+                if self.env_helper.AZURE_AUTH_TYPE == "keys"
                 else None
             ),
-            index_name=env_helper.AZURE_SEARCH_INDEX,
-            embedding_function=llm_helper.get_embedding_model().embed_query,
+            index_name=self.env_helper.AZURE_SEARCH_INDEX,
+            embedding_function=self.llm_helper.get_embedding_model().embed_query,
             fields=fields,
+            search_type=(
+                "semantic_hybrid"
+                if self.env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH
+                else "hybrid"
+            ),
+            semantic_configuration_name=self.env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
             user_agent="langchain chatwithyourdata-sa",
         )
 
     def get_conversation_logger(self):
-        llm_helper = LLMHelper()
-        env_helper = EnvHelper()
         fields = [
             SimpleField(
                 name="id",
@@ -100,9 +111,7 @@ class AzureSearchHelper:
                 name="content_vector",
                 type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
                 searchable=True,
-                vector_search_dimensions=len(
-                    llm_helper.get_embedding_model().embed_query("Text")
-                ),
+                vector_search_dimensions=self.search_dimensions,
                 vector_search_profile_name="myHnswProfile",
             ),
             SearchableField(
@@ -140,14 +149,14 @@ class AzureSearchHelper:
         ]
 
         return AzureSearch(
-            azure_search_endpoint=env_helper.AZURE_SEARCH_SERVICE,
+            azure_search_endpoint=self.env_helper.AZURE_SEARCH_SERVICE,
             azure_search_key=(
-                env_helper.AZURE_SEARCH_KEY
-                if env_helper.AZURE_AUTH_TYPE == "keys"
+                self.env_helper.AZURE_SEARCH_KEY
+                if self.env_helper.AZURE_AUTH_TYPE == "keys"
                 else None
             ),
-            index_name=env_helper.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX,
-            embedding_function=llm_helper.get_embedding_model().embed_query,
+            index_name=self.env_helper.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX,
+            embedding_function=self.llm_helper.get_embedding_model().embed_query,
             fields=fields,
             user_agent="langchain chatwithyourdata-sa",
         )

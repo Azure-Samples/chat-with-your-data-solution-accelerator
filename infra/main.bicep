@@ -30,6 +30,18 @@ param hostingPlanName string = 'hosting-plan-${resourceToken}'
 ])
 param hostingPlanSku string = 'B3'
 
+@description('The sku tier for the App Service plan')
+@allowed([
+  'Free'
+  'Shared'
+  'Basic'
+  'Standard'
+  'Premium'
+  'PremiumV2'
+  'PremiumV3'
+])
+param skuTier string = 'Basic'
+
 @description('Name of Web App')
 param websiteName string = 'web-${resourceToken}'
 
@@ -63,13 +75,19 @@ param azureSearchContentColumns string = 'content'
 @description('Filename column')
 param azureSearchFilenameColumn string = 'filename'
 
+@description('Search filter')
+param azureSearchFilter string = ''
+
 @description('Title column')
 param azureSearchTitleColumn string = 'title'
 
 @description('Url column')
 param azureSearchUrlColumn string = 'url'
 
-@description('Use Azure Search Integrated Vectorization')
+@description('Use Azure Search Integrated Vectorization (Not yet implemented)')
+@allowed([
+  false
+])
 param azureSearchUseIntegratedVectorization bool = false
 
 @description('Name of Azure OpenAI Resource')
@@ -331,6 +349,7 @@ module hostingplan './core/host/appserviceplan.bicep' = {
     location: location
     sku: {
       name: hostingPlanSku
+      tier: skuTier
     }
     reserved: true
     tags: { Automation: 'Ignore' }
@@ -389,6 +408,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
@@ -450,6 +470,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
@@ -511,6 +532,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       BACKEND_URL: 'https://${functionName}.azurewebsites.net'
@@ -572,6 +594,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
@@ -849,6 +872,7 @@ output AZURE_SEARCH_TOP_K string = azureSearchTopK
 output AZURE_SEARCH_ENABLE_IN_DOMAIN string = azureSearchEnableInDomain
 output AZURE_SEARCH_CONTENT_COLUMNS string = azureSearchContentColumns
 output AZURE_SEARCH_FILENAME_COLUMN string = azureSearchFilenameColumn
+output AZURE_SEARCH_FILTER string = azureSearchFilter
 output AZURE_SEARCH_TITLE_COLUMN string = azureSearchTitleColumn
 output AZURE_SEARCH_URL_COLUMN string = azureSearchUrlColumn
 output AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION bool = azureSearchUseIntegratedVectorization

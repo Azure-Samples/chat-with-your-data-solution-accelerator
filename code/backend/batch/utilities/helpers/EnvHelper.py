@@ -28,6 +28,7 @@ class EnvHelper:
         self.AZURE_SEARCH_INDEX_IS_PRECHUNKED = os.getenv(
             "AZURE_SEARCH_INDEX_IS_PRECHUNKED", ""
         )
+        self.AZURE_SEARCH_FILTER = os.getenv("AZURE_SEARCH_FILTER", "")
         self.AZURE_SEARCH_TOP_K = os.getenv("AZURE_SEARCH_TOP_K", 5)
         self.AZURE_SEARCH_ENABLE_IN_DOMAIN = (
             os.getenv("AZURE_SEARCH_ENABLE_IN_DOMAIN", "true").lower() == "true"
@@ -53,10 +54,10 @@ class EnvHelper:
             "AZURE_SEARCH_CONVERSATIONS_LOG_INDEX", "conversations"
         )
         # Integrated Vectorization
-        self.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = (
-            os.getenv("AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION", "False").lower()
-            == "true"
+        self.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = self.get_env_var_bool(
+            "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION", "False"
         )
+
         self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "keys")
         # Azure OpenAI
         self.AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE", "")

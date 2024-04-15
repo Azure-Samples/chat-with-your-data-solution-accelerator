@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "5618157703532311466"
+      "templateHash": "4065184625671112994"
     }
   },
   "parameters": {
@@ -53,6 +53,22 @@
       ],
       "metadata": {
         "description": "The pricing tier for the App Service plan"
+      }
+    },
+    "skuTier": {
+      "type": "string",
+      "defaultValue": "Basic",
+      "allowedValues": [
+        "Free",
+        "Shared",
+        "Basic",
+        "Standard",
+        "Premium",
+        "PremiumV2",
+        "PremiumV3"
+      ],
+      "metadata": {
+        "description": "The sku tier for the App Service plan"
       }
     },
     "websiteName": {
@@ -132,6 +148,13 @@
         "description": "Filename column"
       }
     },
+    "azureSearchFilter": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Search filter"
+      }
+    },
     "azureSearchTitleColumn": {
       "type": "string",
       "defaultValue": "title",
@@ -149,8 +172,11 @@
     "azureSearchUseIntegratedVectorization": {
       "type": "bool",
       "defaultValue": false,
+      "allowedValues": [
+        false
+      ],
       "metadata": {
-        "description": "Use Azure Search Integrated Vectorization"
+        "description": "Use Azure Search Integrated Vectorization (Not yet implemented)"
       }
     },
     "azureOpenAIResourceName": {
@@ -1352,7 +1378,8 @@
           },
           "sku": {
             "value": {
-              "name": "[parameters('hostingPlanSku')]"
+              "name": "[parameters('hostingPlanSku')]",
+              "tier": "[parameters('skuTier')]"
             }
           },
           "reserved": {
@@ -1520,6 +1547,7 @@
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
               "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
+              "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
               "AZURE_SPEECH_SERVICE_NAME": "[parameters('speechServiceName')]",
@@ -2374,6 +2402,7 @@
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
               "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
+              "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
               "AZURE_SPEECH_SERVICE_NAME": "[parameters('speechServiceName')]",
@@ -3230,6 +3259,7 @@
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
               "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
+              "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
               "BACKEND_URL": "[format('https://{0}.azurewebsites.net', parameters('functionName'))]",
@@ -4153,6 +4183,7 @@
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
               "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
+              "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
               "BACKEND_URL": "[format('https://{0}-docker.azurewebsites.net', parameters('functionName'))]",
@@ -10237,6 +10268,10 @@
     "AZURE_SEARCH_FILENAME_COLUMN": {
       "type": "string",
       "value": "[parameters('azureSearchFilenameColumn')]"
+    },
+    "AZURE_SEARCH_FILTER": {
+      "type": "string",
+      "value": "[parameters('azureSearchFilter')]"
     },
     "AZURE_SEARCH_TITLE_COLUMN": {
       "type": "string",
