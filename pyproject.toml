@@ -10,7 +10,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-azure-functions = "1.18.0"
+azure-functions = "1.19.0"
 streamlit = "1.33.0"
 scipy = "1.13.0"
 transformers = "4.39.3"
