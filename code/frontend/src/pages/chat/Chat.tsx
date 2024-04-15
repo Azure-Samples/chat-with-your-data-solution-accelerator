@@ -6,8 +6,6 @@ import {
   SquareRegular,
 } from "@fluentui/react-icons";
 import {
-  SpeechConfig,
-  AudioConfig,
   SpeechRecognizer,
   ResultReason,
 } from "microsoft-cognitiveservices-speech-sdk";
@@ -18,11 +16,11 @@ import { v4 as uuidv4 } from "uuid";
 
 import styles from "./Chat.module.css";
 import Azure from "../../assets/Azure.svg";
+import { multiLingualSpeechRecognizer } from "../../util/SpeechToText";
 
 import {
   ChatMessage,
   ConversationRequest,
-  conversationApi,
   customConversationApi,
   Citation,
   ToolMessageContent,
@@ -57,8 +55,6 @@ const Chat = () => {
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognizerRef = useRef<SpeechRecognizer | null>(null);
-  const [subscriptionKey, setSubscriptionKey] = useState<string>("");
-  const [serviceRegion, setServiceRegion] = useState<string>("");
   const makeApiRequest = async (question: string) => {
     lastQuestionRef.current = question;
 
@@ -111,7 +107,7 @@ const Chat = () => {
                 ]);
               }
               runningText = "";
-            } catch {}
+            } catch { }
           });
         }
         setAnswers([...answers, userMessage, ...result.choices[0].messages]);
@@ -135,62 +131,48 @@ const Chat = () => {
     return abortController.abort();
   };
 
-  useEffect(() => {
-    async function fetchServerConfig() {
-      try {
-        const response = await fetch("/api/config");
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        const data = await response.json();
-        const fetchedSubscriptionKey = data.azureSpeechKey;
-        const fetchedServiceRegion = data.azureSpeechRegion;
-
-        setSubscriptionKey(fetchedSubscriptionKey);
-        setServiceRegion(fetchedServiceRegion);
-      } catch (error) {
-        console.error("Error fetching server configuration:", error);
+  const fetchSpeechToken = async (): Promise<{ token: string, region: string; }> => {
+    try {
+      const response = await fetch("/api/speech");
+      if (!response.ok) {
+        console.error("Error fetching speech token:", response);
+        throw new Error("Network response was not ok");
       }
+      return response.json();
+    } catch (error) {
+      console.error("Error fetching server configuration:", error);
+      throw error;
     }
+  };
 
-    fetchServerConfig();
-  }, []);
-
-  const startSpeechRecognition = (
-    subscriptionKey: string,
-    serviceRegion: string
-  ) => {
+  const startSpeechRecognition = async () => {
     if (!isRecognizing) {
       setIsRecognizing(true);
 
-      if (!subscriptionKey || !serviceRegion) {
-        console.error(
-          "Azure Speech subscription key or region is not defined."
-        );
-      } else {
-        const speechConfig = SpeechConfig.fromSubscription(
-          subscriptionKey,
-          serviceRegion
-        );
-        const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
-        const recognizer = new SpeechRecognizer(speechConfig, audioConfig);
-        recognizerRef.current = recognizer; // Store the recognizer in the ref
+      const { token, region } = await fetchSpeechToken();
 
-        recognizerRef.current.recognized = (s, e) => {
-          if (e.result.reason === ResultReason.RecognizedSpeech) {
-            const recognized = e.result.text;
-            // console.log("Recognized:", recognized);
-            setUserMessage(recognized);
-            setRecognizedText(recognized);
-          }
-        };
+      const recognizer = multiLingualSpeechRecognizer(token, region, [
+        "en-US",
+        "fr-FR",
+        "de-DE",
+        "it-IT"
+      ]);
+      recognizerRef.current = recognizer; // Store the recognizer in the ref
 
-        recognizerRef.current.startContinuousRecognitionAsync(() => {
-          setIsRecognizing(true);
-          // console.log("Speech recognition started.");
-          setIsListening(true);
-        });
-      }
+      recognizerRef.current.recognized = (s, e) => {
+        if (e.result.reason === ResultReason.RecognizedSpeech) {
+          const recognized = e.result.text;
+          // console.log("Recognized:", recognized);
+          setUserMessage(recognized);
+          setRecognizedText(recognized);
+        }
+      };
+
+      recognizerRef.current.startContinuousRecognitionAsync(() => {
+        setIsRecognizing(true);
+        // console.log("Speech recognition started.");
+        setIsListening(true);
+      });
     }
   };
 
@@ -209,10 +191,10 @@ const Chat = () => {
     }
   };
 
-  const onMicrophoneClick = () => {
+  const onMicrophoneClick = async () => {
     if (!isRecognizing) {
       // console.log("Starting speech recognition...");
-      startSpeechRecognition(subscriptionKey, serviceRegion);
+      await startSpeechRecognition();
     } else {
       // console.log("Stopping speech recognition...");
       stopSpeechRecognition();
@@ -295,7 +277,7 @@ const Chat = () => {
                             answer.role === "assistant"
                               ? answer.content
                               : "Sorry, an error occurred. Try refreshing the conversation or waiting a few minutes. If the issue persists, contact your system administrator. Error: " +
-                                answer.content,
+                              answer.content,
                           citations:
                             answer.role === "assistant"
                               ? parseCitationFromMessage(answers[index - 1])

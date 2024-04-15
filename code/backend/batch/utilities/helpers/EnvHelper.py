@@ -8,11 +8,27 @@ logger = logging.getLogger(__name__)
 
 
 class EnvHelper:
-    def __init__(self, **kwargs) -> None:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(EnvHelper, cls).__new__(cls)
+            cls._instance.__load_config()
+        return cls._instance
+
+    def __load_config(self, **kwargs) -> None:
         load_dotenv()
+
+        logger.info("Initializing EnvHelper")
 
         # Wrapper for Azure Key Vault
         self.secretHelper = SecretHelper()
+
+        self.LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
+
+        # Azure
+        self.AZURE_SUBSCRIPTION_ID = os.getenv("AZURE_SUBSCRIPTION_ID", "")
+        self.AZURE_RESOURCE_GROUP = os.getenv("AZURE_RESOURCE_GROUP", "")
 
         # Azure Search
         self.AZURE_SEARCH_SERVICE = os.getenv("AZURE_SEARCH_SERVICE", "")
@@ -26,6 +42,7 @@ class EnvHelper:
         self.AZURE_SEARCH_INDEX_IS_PRECHUNKED = os.getenv(
             "AZURE_SEARCH_INDEX_IS_PRECHUNKED", ""
         )
+        self.AZURE_SEARCH_FILTER = os.getenv("AZURE_SEARCH_FILTER", "")
         self.AZURE_SEARCH_TOP_K = os.getenv("AZURE_SEARCH_TOP_K", 5)
         self.AZURE_SEARCH_ENABLE_IN_DOMAIN = (
             os.getenv("AZURE_SEARCH_ENABLE_IN_DOMAIN", "true").lower() == "true"
@@ -50,6 +67,11 @@ class EnvHelper:
         self.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = os.getenv(
             "AZURE_SEARCH_CONVERSATIONS_LOG_INDEX", "conversations"
         )
+        # Integrated Vectorization
+        self.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = self.get_env_var_bool(
+            "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION", "False"
+        )
+
         self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "keys")
         # Azure OpenAI
         self.AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE", "")
@@ -57,16 +79,16 @@ class EnvHelper:
         self.AZURE_OPENAI_MODEL_NAME = os.getenv(
             "AZURE_OPENAI_MODEL_NAME", "gpt-35-turbo"
         )
-        self.AZURE_OPENAI_TEMPERATURE = os.getenv("AZURE_OPENAI_TEMPERATURE", 0)
-        self.AZURE_OPENAI_TOP_P = os.getenv("AZURE_OPENAI_TOP_P", 1.0)
-        self.AZURE_OPENAI_MAX_TOKENS = os.getenv("AZURE_OPENAI_MAX_TOKENS", 1000)
+        self.AZURE_OPENAI_TEMPERATURE = os.getenv("AZURE_OPENAI_TEMPERATURE", "0")
+        self.AZURE_OPENAI_TOP_P = os.getenv("AZURE_OPENAI_TOP_P", "1.0")
+        self.AZURE_OPENAI_MAX_TOKENS = os.getenv("AZURE_OPENAI_MAX_TOKENS", "1000")
         self.AZURE_OPENAI_STOP_SEQUENCE = os.getenv("AZURE_OPENAI_STOP_SEQUENCE", "")
         self.AZURE_OPENAI_SYSTEM_MESSAGE = os.getenv(
             "AZURE_OPENAI_SYSTEM_MESSAGE",
             "You are an AI assistant that helps people find information.",
         )
         self.AZURE_OPENAI_API_VERSION = os.getenv(
-            "AZURE_OPENAI_API_VERSION", "2023-12-01-preview"
+            "AZURE_OPENAI_API_VERSION", "2024-02-01"
         )
         self.AZURE_OPENAI_STREAM = os.getenv("AZURE_OPENAI_STREAM", "true")
         self.AZURE_OPENAI_EMBEDDING_MODEL = os.getenv(
@@ -128,7 +150,8 @@ class EnvHelper:
             "AZURE_FORM_RECOGNIZER_KEY"
         )
         # Azure App Insights
-        self.APPINSIGHTS_ENABLED = self.get_env_var_bool("APPINSIGHTS_ENABLED")
+        # APPINSIGHTS_ENABLED will be True when the application runs in App Service
+        self.APPINSIGHTS_ENABLED = self.get_env_var_bool("APPINSIGHTS_ENABLED", "False")
 
         self.APPINSIGHTS_CONNECTION_STRING = os.getenv(
             "APPINSIGHTS_CONNECTION_STRING", ""
@@ -150,7 +173,12 @@ class EnvHelper:
             "ORCHESTRATION_STRATEGY", "openai_function"
         )
         # Speech Service
+        self.AZURE_SPEECH_SERVICE_NAME = os.getenv("AZURE_SPEECH_SERVICE_NAME", "")
         self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")
+        self.AZURE_SPEECH_REGION_ENDPOINT = os.environ.get(
+            "AZURE_SPEECH_REGION_ENDPOINT",
+            f"https://{self.AZURE_SPEECH_SERVICE_REGION}.api.cognitive.microsoft.com/",
+        )
 
         self.LOAD_CONFIG_FROM_BLOB_STORAGE = self.get_env_var_bool(
             "LOAD_CONFIG_FROM_BLOB_STORAGE"
@@ -160,7 +188,7 @@ class EnvHelper:
         if (
             self.AZURE_SEARCH_SERVICE
             and self.AZURE_SEARCH_INDEX
-            and self.AZURE_SEARCH_KEY
+            and (self.AZURE_SEARCH_KEY or self.AZURE_AUTH_TYPE == "rbac")
         ):
             return True
         return False
@@ -177,7 +205,12 @@ class EnvHelper:
     def check_env():
         for attr, value in EnvHelper().__dict__.items():
             if value == "":
-                logging.warning(f"{attr} is not set in the environment variables.")
+                logger.warning(f"{attr} is not set in the environment variables.")
+
+    @classmethod
+    def clear_instance(cls):
+        if cls._instance is not None:
+            cls._instance = None
 
 
 class SecretHelper:

@@ -1,3 +1,4 @@
+import logging
 from typing import List
 import json
 
@@ -9,6 +10,8 @@ from ..tools.TextProcessingTool import TextProcessingTool
 from ..tools.ContentSafetyChecker import ContentSafetyChecker
 from ..parser.OutputParserTool import OutputParserTool
 from ..common.Answer import Answer
+
+logger = logging.getLogger(__name__)
 
 
 class OpenAIFunctionsOrchestrator(OrchestratorBase):
@@ -57,12 +60,14 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
 
         # Call Content Safety tool
         if self.config.prompts.enable_content_safety:
+            logger.debug("Calling content safety with question")
             filtered_user_message = (
                 self.content_safety_checker.validate_input_and_replace_if_harmful(
                     user_message
                 )
             )
             if user_message != filtered_user_message:
+                logger.warning("Content safety detected harmful content in question")
                 messages = output_formatter.parse(
                     question=user_message,
                     answer=filtered_user_message,
@@ -95,7 +100,9 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
         # TODO: call content safety if needed
 
         if result.choices[0].finish_reason == "function_call":
+            logger.info("Function call detected")
             if result.choices[0].message.function_call.name == "search_documents":
+                logger.info("search_documents function detected")
                 question = json.loads(
                     result.choices[0].message.function_call.arguments
                 )["question"]
@@ -110,6 +117,7 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
 
                 # Run post prompt if needed
                 if self.config.prompts.enable_post_answering_prompt:
+                    logger.debug("Running post answering prompt")
                     post_prompt_tool = PostPromptTool()
                     answer = post_prompt_tool.validate_answer(answer)
                     self.log_tokens(
@@ -117,6 +125,7 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
                         completion_tokens=answer.completion_tokens,
                     )
             elif result.choices[0].message.function_call.name == "text_processing":
+                logger.info("text_processing function detected")
                 text = json.loads(result.choices[0].message.function_call.arguments)[
                     "text"
                 ]
@@ -132,17 +141,20 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
                     completion_tokens=answer.completion_tokens,
                 )
         else:
+            logger.info("No function call detected")
             text = result.choices[0].message.content
             answer = Answer(question=user_message, answer=text)
 
         # Call Content Safety tool
         if self.config.prompts.enable_content_safety:
+            logger.debug("Calling content safety with answer")
             filtered_answer = (
                 self.content_safety_checker.validate_output_and_replace_if_harmful(
                     answer.answer
                 )
             )
             if answer.answer != filtered_answer:
+                logger.warning("Content safety detected harmful content in answer")
                 messages = output_formatter.parse(
                     question=user_message, answer=filtered_answer, source_documents=[]
                 )

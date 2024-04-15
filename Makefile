@@ -20,7 +20,7 @@ include $(AZURE_ENV_FILE)
 help: ## 💬 This help message :)
 	@grep -E '[a-zA-Z_-]+:.*?## .*$$' $(firstword $(MAKEFILE_LIST)) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-23s\033[0m %s\n", $$1, $$2}'
 
-ci: lint unittest functionaltest build-frontend ## 🚀 Continuous Integration (called by Github Actions)
+ci: lint unittest functionaltest build-frontend unittest-frontend ## 🚀 Continuous Integration (called by Github Actions)
 
 lint: ## 🧹 Lint the code
 	@echo -e "\e[34m$@\e[0m" || true
@@ -41,6 +41,10 @@ uitest: ## 🧪 Run the ui tests in headless mode
 build-frontend: ## 🏗️ Build the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
 	@cd code/frontend && npm install && npm run build
+
+unittest-frontend: ## 🏗️ Unit test the Frontend webapp
+	@echo -e "\e[34m$@\e[0m" || true
+	@cd code/frontend && npm install && npm run build && npm run test
 
 azd-login: ## 🔑 Login to Azure with azd and a SPN
 	@echo -e "\e[34m$@\e[0m" || true

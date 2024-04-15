@@ -1,4 +1,5 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+import pytest
 
 from backend.batch.utilities.orchestrator.LangChainAgent import LangChainAgent
 from backend.batch.utilities.common.Answer import Answer
@@ -9,6 +10,11 @@ class LangChainAgentNoInit(LangChainAgent):
         self.content_safety_checker = MagicMock()
         self.question_answer_tool = MagicMock()
         self.text_processing_tool = MagicMock()
+        self.config = MagicMock()
+        self.output_parser = MagicMock()
+        self.tools = MagicMock()
+        self.llm_helper = MagicMock()
+        self.tokens = {"prompt": 0, "completion": 0, "total": 0}
 
 
 def test_run_tool_returns_answer_json():
@@ -61,3 +67,56 @@ def test_run_text_processing_tool_returns_answer_json():
     agent.text_processing_tool.answer_question.assert_called_once_with(
         user_message, chat_history=[]
     )
+
+
+@patch("backend.batch.utilities.orchestrator.LangChainAgent.ZeroShotAgent")
+@patch("backend.batch.utilities.orchestrator.LangChainAgent.LLMChain")
+@patch("langchain.agents.AgentExecutor.from_agent_and_tools")
+def test_orchestrate_langchain_to_orchestrate_chat(
+    agent_executor_mock, llm_chain_mock, zero_shot_agent_mock
+):
+    # Given
+    agent = LangChainAgentNoInit()
+
+    agent.config.prompts.enable_post_answering_prompt = False
+    agent.config.prompts.enable_content_safety = False
+
+    agent_chain_mock = MagicMock()
+    agent_executor_mock.return_value = agent_chain_mock
+    agent_chain_mock.run.return_value = '{"question": "Hello", "answer": "Hello, how can I help you?", "source_documents": [], "prompt_tokens": null, "completion_tokens": null}'
+
+    expected_messages = [{"some", "message"}, {"another", "message"}]
+    agent.output_parser.parse.return_value = expected_messages
+
+    # When
+    actual_messages = agent.orchestrate(user_message="Hello", chat_history=[])
+
+    # Then
+    assert actual_messages == expected_messages
+    agent_chain_mock.run.assert_called_once_with("Hello")
+    agent.output_parser.parse.assert_called_once_with(
+        question="Hello", answer="Hello, how can I help you?", source_documents=[]
+    )
+
+
+@patch("backend.batch.utilities.orchestrator.LangChainAgent.ZeroShotAgent")
+@patch("backend.batch.utilities.orchestrator.LangChainAgent.LLMChain")
+@patch("langchain.agents.AgentExecutor.from_agent_and_tools")
+def test_orchestrate_returns_error_message_on_Exception(
+    agent_executor_mock, llm_chain_mock, zero_shot_agent_mock
+):
+    # Given
+    agent = LangChainAgentNoInit()
+
+    agent.config.prompts.enable_post_answering_prompt = False
+    agent.config.prompts.enable_content_safety = False
+
+    agent_chain_mock = MagicMock()
+    agent_executor_mock.return_value = agent_chain_mock
+    agent_chain_mock.run.side_effect = Exception("Some error")
+
+    agent.output_parser.parse.return_value = [{"some", "message"}]
+
+    # When + Then
+    with pytest.raises(Exception):
+        agent.orchestrate(user_message="Hello", chat_history=[])

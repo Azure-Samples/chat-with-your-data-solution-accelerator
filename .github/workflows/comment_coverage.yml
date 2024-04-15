@@ -31,9 +31,9 @@ jobs:
           script: |
             const response = await github.rest.pulls.list({
               owner: "${{ github.repository_owner }}",
-              repo: "${{ github.event.workflow_run.repository.name }}",
+              repo: context.payload.workflow_run.repository.name,
               state: "open",
-              head: "${{ github.event.workflow_run.head_repository.owner.login }}:${{ github.event.workflow_run.head_branch }}",
+              head: `${context.payload.workflow_run.head_repository.owner.login}:${context.payload.workflow_run.head_branch}`,
             });
 
             return response.data[0]?.number ?? "";

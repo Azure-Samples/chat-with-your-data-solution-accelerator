@@ -41,3 +41,5 @@ resource eventGridSystemTopicNameBlobEvents 'Microsoft.EventGrid/systemTopics/ev
     }
   }
 }
+
+output name string = eventGridSystemTopic.name

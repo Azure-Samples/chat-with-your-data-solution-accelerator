@@ -6,14 +6,15 @@
     "scripts": {
         "dev": "tsc && vite",
         "build": "tsc && vite build",
-        "watch": "tsc && vite build --watch"
+        "watch": "tsc && vite build --watch",
+        "test": "mocha"
     },
     "dependencies": {
         "@babel/traverse": "^7.24.0",
-        "@fluentui/react": "^8.117.0",
-        "@fluentui/react-icons": "^2.0.233",
-        "@fortawesome/fontawesome-svg-core": "^6.5.1",
-        "@fortawesome/free-solid-svg-icons": "^6.5.1",
+        "@fluentui/react": "^8.117.5",
+        "@fluentui/react-icons": "^2.0.235",
+        "@fortawesome/fontawesome-svg-core": "^6.5.2",
+        "@fortawesome/free-solid-svg-icons": "^6.5.2",
         "@fortawesome/react-fontawesome": "github:fortawesome/react-fontawesome",
         "lodash": "^4.17.21",
         "lodash-es": "^4.17.21",
@@ -29,14 +30,19 @@
         "uuid": "^9.0.1"
     },
     "devDependencies": {
+        "@types/chai": "^4.3.14",
         "@types/lodash-es": "^4.17.12",
-        "@types/node": "^20.11.30",
-        "@types/react": "^18.2.70",
-        "@types/react-dom": "^18.2.22",
+        "@types/mocha": "^10.0.6",
+        "@types/node": "^20.12.7",
+        "@types/react": "^18.2.78",
+        "@types/react-dom": "^18.2.25",
         "@types/uuid": "^9.0.8",
         "@vitejs/plugin-react": "^4.2.1",
+        "chai": "^5.1.0",
+        "mocha": "^10.4.0",
         "prettier": "^3.2.5",
-        "typescript": "^5.4.3",
-        "vite": "^5.2.6"
+        "ts-node": "^10.9.2",
+        "typescript": "^5.4.5",
+        "vite": "^5.2.8"
     }
 }

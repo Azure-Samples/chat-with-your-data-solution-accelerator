@@ -5,7 +5,6 @@ import mimetypes
 import traceback
 import chardet
 from datetime import datetime, timedelta
-import logging
 import requests
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import (
@@ -22,9 +21,6 @@ from batch.utilities.helpers.EnvHelper import EnvHelper
 sys.path.append(path.join(path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
 
-logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
-    logging.WARNING
-)
 st.set_page_config(
     page_title="Ingest Data",
     page_icon=path.join("images", "favicon.ico"),

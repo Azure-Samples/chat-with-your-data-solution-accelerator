@@ -112,6 +112,26 @@ module searchRoleFunction '../core/security/role.bicep' = if (authType == 'rbac'
   }
 }
 
+// Storage Blob Data Contributor
+module storageBlobRoleFunction '../core/security/role.bicep' = if (authType == 'rbac') {
+  name: 'storage-blob-role-function'
+  params: {
+    principalId: function.outputs.identityPrincipalId
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Storage Queue Data Contributor
+module storageQueueRoleFunction '../core/security/role.bicep' = if (authType == 'rbac') {
+  name: 'storage-queue-role-function'
+  params: {
+    principalId: function.outputs.identityPrincipalId
+    roleDefinitionId: '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
+    principalType: 'ServicePrincipal'
+  }
+}
+
 module functionaccess '../core/security/keyvault-access.bicep' = if (useKeyVault) {
   name: 'function-keyvault-access'
   params: {
@@ -121,3 +141,4 @@ module functionaccess '../core/security/keyvault-access.bicep' = if (useKeyVault
 }
 
 output FUNCTION_IDENTITY_PRINCIPAL_ID string = function.outputs.identityPrincipalId
+output functionName string = function.outputs.name

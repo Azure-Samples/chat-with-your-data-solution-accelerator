@@ -1,7 +1,7 @@
 targetScope = 'subscription'
 
 @minLength(1)
-@maxLength(64)
+@maxLength(20)
 @description('Name of the the environment which is used to generate a short unique hash used in all resources.')
 param environmentName string
 
@@ -11,7 +11,7 @@ param resourceToken string = toLower(uniqueString(subscription().id, environment
 param location string
 
 @description('Name of App Service plan')
-param hostingPlanName string = '${environmentName}-hosting-plan-${resourceToken}'
+param hostingPlanName string = 'hosting-plan-${resourceToken}'
 
 @description('The pricing tier for the App Service plan')
 @allowed([
@@ -30,11 +30,29 @@ param hostingPlanName string = '${environmentName}-hosting-plan-${resourceToken}
 ])
 param hostingPlanSku string = 'B3'
 
+@description('The sku tier for the App Service plan')
+@allowed([
+  'Free'
+  'Shared'
+  'Basic'
+  'Standard'
+  'Premium'
+  'PremiumV2'
+  'PremiumV3'
+])
+param skuTier string = 'Basic'
+
 @description('Name of Web App')
 param websiteName string = 'web-${resourceToken}'
 
+@description('Name of Admin Web App')
+param adminWebsiteName string = '${websiteName}-admin'
+
 @description('Name of Application Insights')
-param applicationInsightsName string = '${environmentName}-appinsights-${resourceToken}'
+param applicationInsightsName string = 'appinsights-${resourceToken}'
+
+@description('Name of the Workbook')
+param workbookDisplayName string = 'workbook-${resourceToken}'
 
 @description('Use semantic search')
 param azureSearchUseSemanticSearch string = 'false'
@@ -57,14 +75,23 @@ param azureSearchContentColumns string = 'content'
 @description('Filename column')
 param azureSearchFilenameColumn string = 'filename'
 
+@description('Search filter')
+param azureSearchFilter string = ''
+
 @description('Title column')
 param azureSearchTitleColumn string = 'title'
 
 @description('Url column')
 param azureSearchUrlColumn string = 'url'
 
+@description('Use Azure Search Integrated Vectorization (Not yet implemented)')
+@allowed([
+  false
+])
+param azureSearchUseIntegratedVectorization bool = false
+
 @description('Name of Azure OpenAI Resource')
-param azureOpenAIResourceName string = '${environmentName}-openai-${resourceToken}'
+param azureOpenAIResourceName string = 'openai-${resourceToken}'
 
 @description('Name of Azure OpenAI Resource SKU')
 param azureOpenAISkuName string = 'S0'
@@ -82,7 +109,7 @@ param azureOpenAIModelVersion string = '0613'
   'openai_function'
   'langchain'
 ])
-param orchestrationStrategy string = 'langchain'
+param orchestrationStrategy string = 'openai_function'
 
 @description('Azure OpenAI Temperature')
 param azureOpenAITemperature string = '0'
@@ -100,7 +127,7 @@ param azureOpenAIStopSequence string = '\n'
 param azureOpenAISystemMessage string = 'You are an AI assistant that helps people find information.'
 
 @description('Azure OpenAI Api Version')
-param azureOpenAIApiVersion string = '2023-10-01-preview'
+param azureOpenAIApiVersion string = '2024-02-01'
 
 @description('Whether or not to stream responses from Azure OpenAI')
 param azureOpenAIStream string = 'true'
@@ -112,7 +139,7 @@ param azureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
 
 @description('Azure AI Search Resource')
-param azureAISearchName string = '${environmentName}-search-${resourceToken}'
+param azureAISearchName string = 'search-${resourceToken}'
 
 @description('The SKU of the search service you want to create. E.g. free or standard')
 @allowed([
@@ -125,7 +152,7 @@ param azureAISearchName string = '${environmentName}-search-${resourceToken}'
 param azureSearchSku string = 'standard'
 
 @description('Azure AI Search Index')
-param azureSearchIndex string = '${environmentName}-index-${resourceToken}'
+param azureSearchIndex string = 'index-${resourceToken}'
 
 @description('Azure AI Search Conversation Log Index')
 param azureSearchConversationLogIndex string = 'conversations'
@@ -137,32 +164,48 @@ param storageAccountName string = 'str${resourceToken}'
 param functionName string = 'backend-${resourceToken}'
 
 @description('Azure Form Recognizer Name')
-param formRecognizerName string = '${environmentName}-formrecog-${resourceToken}'
+param formRecognizerName string = 'formrecog-${resourceToken}'
 
 @description('Azure Content Safety Name')
-param contentSafetyName string = '${environmentName}-contentsafety-${resourceToken}'
+param contentSafetyName string = 'contentsafety-${resourceToken}'
 
 @description('Azure Speech Service Name')
-param speechServiceName string = '${environmentName}-speechservice-${resourceToken}'
+param speechServiceName string = 'speech-${resourceToken}'
+
+@description('Log Analytics Name')
+param logAnalyticsName string = 'la-${resourceToken}'
 
 param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'
-param useKeyVault bool
+
+@description('Whether to use Key Vault to store secrets (best when using keys). If using RBAC, then please set this to false.')
+param useKeyVault bool = authType == 'rbac' ? false : true
 
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 
+@description('Whether the Azure services communicate with each other using RBAC or keys. RBAC is recommended, however some users may not have sufficient permissions to assign roles.')
 @allowed([
   'rbac'
   'keys'
 ])
-param authType string
+param authType string = 'keys'
 
+@description('Hosting model for the web apps. Containers are prebuilt and can be deployed faster, but code allows for more customization.')
 @allowed([
   'code'
   'container'
 ])
-param hostingModel string
+param hostingModel string = 'container'
+
+@allowed([
+  'CRITICAL'
+  'ERROR'
+  'WARN'
+  'INFO'
+  'DEBUG'
+])
+param logLevel string = 'INFO'
 
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
@@ -201,6 +244,7 @@ module openai 'core/ai/cognitiveservices.bicep' = {
     sku: {
       name: azureOpenAISkuName
     }
+    managedIdentity: authType == 'rbac'
     deployments: [
       {
         name: azureOpenAIModel
@@ -224,6 +268,28 @@ module openai 'core/ai/cognitiveservices.bicep' = {
         capacity: 30
       }
     ]
+  }
+}
+
+// Search Index Data Reader
+module searchIndexRoleOpenai 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'search-index-role-openai'
+  params: {
+    principalId: openai.outputs.identityPrincipalId
+    roleDefinitionId: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Search Service Contributor
+module searchServiceRoleOpenai 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'search-service-role-openai'
+  params: {
+    principalId: openai.outputs.identityPrincipalId
+    roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+    principalType: 'ServicePrincipal'
   }
 }
 
@@ -283,8 +349,10 @@ module hostingplan './core/host/appserviceplan.bicep' = {
     location: location
     sku: {
       name: hostingPlanSku
+      tier: skuTier
     }
     reserved: true
+    tags: { Automation: 'Ignore' }
   }
 }
 
@@ -317,8 +385,8 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -340,11 +408,13 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -377,8 +447,8 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -400,20 +470,22 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
 
 module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
-  name: '${websiteName}-admin'
+  name: adminWebsiteName
   scope: rg
   params: {
-    name: '${websiteName}-admin'
+    name: adminWebsiteName
     location: location
     tags: union(tags, { 'azd-service-name': 'adminweb' })
     runtimeName: 'python'
@@ -438,8 +510,8 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -460,21 +532,23 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       BACKEND_URL: 'https://${functionName}.azurewebsites.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
 
 module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container') {
-  name: '${websiteName}-admin-docker'
+  name: '${adminWebsiteName}-docker'
   scope: rg
   params: {
-    name: '${websiteName}-admin-docker'
+    name: '${adminWebsiteName}-docker'
     location: location
     tags: union(tags, { 'azd-service-name': 'adminweb-docker' })
     dockerFullImageName: 'fruoccopublic.azurecr.io/rag-adminwebapp'
@@ -498,8 +572,8 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -520,12 +594,14 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -539,8 +615,26 @@ module monitoring './core/monitor/monitoring.bicep' = {
     tags: {
       'hidden-link:${resourceId('Microsoft.Web/sites', applicationInsightsName)}': 'Resource'
     }
-    logAnalyticsName: 'la-${resourceToken}'
+    logAnalyticsName: logAnalyticsName
     applicationInsightsDashboardName: 'dash-${applicationInsightsName}'
+  }
+}
+
+module workbook './app/workbook.bicep' = {
+  name: 'workbook'
+  scope: rg
+  params: {
+    workbookDisplayName: workbookDisplayName
+    location: location
+    hostingPlanName: hostingplan.outputs.name
+    functionName: hostingModel == 'container' ? function_docker.outputs.functionName : function.outputs.functionName
+    websiteName: hostingModel == 'container' ? web_docker.outputs.FRONTEND_API_NAME : web.outputs.FRONTEND_API_NAME
+    adminWebsiteName: hostingModel == 'container' ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME : adminweb.outputs.WEBSITE_ADMIN_NAME
+    eventGridSystemTopicName: eventgrid.outputs.name
+    logAnalyticsName: monitoring.outputs.logAnalyticsWorkspaceName
+    azureOpenAIResourceName: openai.outputs.name
+    azureAISearchName: search.outputs.name
+    storageAccountName: storage.outputs.name
   }
 }
 
@@ -574,8 +668,8 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
@@ -584,6 +678,7 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -617,8 +712,8 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
@@ -627,6 +722,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -767,6 +863,7 @@ output AZURE_OPENAI_RESOURCE string = azureOpenAIResourceName
 output AZURE_OPENAI_EMBEDDING_MODEL string = azureOpenAIEmbeddingModel
 output AZURE_OPENAI_MODEL string = azureOpenAIModel
 output AZURE_OPENAI_API_KEY string = useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+output AZURE_RESOURCE_GROUP string = rgName
 output AZURE_SEARCH_KEY string = useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
 output AZURE_SEARCH_SERVICE string = search.outputs.endpoint
 output AZURE_SEARCH_USE_SEMANTIC_SEARCH string = azureSearchUseSemanticSearch
@@ -776,9 +873,12 @@ output AZURE_SEARCH_TOP_K string = azureSearchTopK
 output AZURE_SEARCH_ENABLE_IN_DOMAIN string = azureSearchEnableInDomain
 output AZURE_SEARCH_CONTENT_COLUMNS string = azureSearchContentColumns
 output AZURE_SEARCH_FILENAME_COLUMN string = azureSearchFilenameColumn
+output AZURE_SEARCH_FILTER string = azureSearchFilter
 output AZURE_SEARCH_TITLE_COLUMN string = azureSearchTitleColumn
 output AZURE_SEARCH_URL_COLUMN string = azureSearchUrlColumn
+output AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION bool = azureSearchUseIntegratedVectorization
 output AZURE_SEARCH_INDEX string = azureSearchIndex
+output AZURE_SPEECH_SERVICE_NAME string = speechServiceName
 output AZURE_SPEECH_SERVICE_REGION string = location
 output AZURE_SPEECH_SERVICE_KEY string = useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
 output AZURE_TENANT_ID string = tenant().tenantId
@@ -788,3 +888,4 @@ output USE_KEY_VAULT bool = useKeyVault
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code' ? web.outputs.FRONTEND_API_URI : web_docker.outputs.FRONTEND_API_URI
 output ADMIN_WEBSITE_NAME string = hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_URI : adminweb_docker.outputs.WEBSITE_ADMIN_URI
+output LOGLEVEL string = logLevel

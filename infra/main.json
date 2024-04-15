@@ -4,15 +4,15 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.26.54.24096",
-      "templateHash": "13425064420748264745"
+      "version": "0.26.170.59819",
+      "templateHash": "15582996695665041620"
     }
   },
   "parameters": {
     "environmentName": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 64,
+      "maxLength": 20,
       "metadata": {
         "description": "Name of the the environment which is used to generate a short unique hash used in all resources."
       }
@@ -29,7 +29,7 @@
     },
     "hostingPlanName": {
       "type": "string",
-      "defaultValue": "[format('{0}-hosting-plan-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('hosting-plan-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Name of App Service plan"
       }
@@ -55,6 +55,22 @@
         "description": "The pricing tier for the App Service plan"
       }
     },
+    "skuTier": {
+      "type": "string",
+      "defaultValue": "Basic",
+      "allowedValues": [
+        "Free",
+        "Shared",
+        "Basic",
+        "Standard",
+        "Premium",
+        "PremiumV2",
+        "PremiumV3"
+      ],
+      "metadata": {
+        "description": "The sku tier for the App Service plan"
+      }
+    },
     "websiteName": {
       "type": "string",
       "defaultValue": "[format('web-{0}', parameters('resourceToken'))]",
@@ -62,11 +78,25 @@
         "description": "Name of Web App"
       }
     },
+    "adminWebsiteName": {
+      "type": "string",
+      "defaultValue": "[format('{0}-admin', parameters('websiteName'))]",
+      "metadata": {
+        "description": "Name of Admin Web App"
+      }
+    },
     "applicationInsightsName": {
       "type": "string",
-      "defaultValue": "[format('{0}-appinsights-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('appinsights-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Name of Application Insights"
+      }
+    },
+    "workbookDisplayName": {
+      "type": "string",
+      "defaultValue": "[format('workbook-{0}', parameters('resourceToken'))]",
+      "metadata": {
+        "description": "Name of the Workbook"
       }
     },
     "azureSearchUseSemanticSearch": {
@@ -118,6 +148,13 @@
         "description": "Filename column"
       }
     },
+    "azureSearchFilter": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Search filter"
+      }
+    },
     "azureSearchTitleColumn": {
       "type": "string",
       "defaultValue": "title",
@@ -132,9 +169,19 @@
         "description": "Url column"
       }
     },
+    "azureSearchUseIntegratedVectorization": {
+      "type": "bool",
+      "defaultValue": false,
+      "allowedValues": [
+        false
+      ],
+      "metadata": {
+        "description": "Use Azure Search Integrated Vectorization (Not yet implemented)"
+      }
+    },
     "azureOpenAIResourceName": {
       "type": "string",
-      "defaultValue": "[format('{0}-openai-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('openai-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Name of Azure OpenAI Resource"
       }
@@ -166,7 +213,7 @@
     },
     "orchestrationStrategy": {
       "type": "string",
-      "defaultValue": "langchain",
+      "defaultValue": "openai_function",
       "allowedValues": [
         "openai_function",
         "langchain"
@@ -212,7 +259,7 @@
     },
     "azureOpenAIApiVersion": {
       "type": "string",
-      "defaultValue": "2023-10-01-preview",
+      "defaultValue": "2024-02-01",
       "metadata": {
         "description": "Azure OpenAI Api Version"
       }
@@ -240,7 +287,7 @@
     },
     "azureAISearchName": {
       "type": "string",
-      "defaultValue": "[format('{0}-search-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('search-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Azure AI Search Resource"
       }
@@ -261,7 +308,7 @@
     },
     "azureSearchIndex": {
       "type": "string",
-      "defaultValue": "[format('{0}-index-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('index-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Azure AI Search Index"
       }
@@ -289,23 +336,30 @@
     },
     "formRecognizerName": {
       "type": "string",
-      "defaultValue": "[format('{0}-formrecog-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('formrecog-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Azure Form Recognizer Name"
       }
     },
     "contentSafetyName": {
       "type": "string",
-      "defaultValue": "[format('{0}-contentsafety-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('contentsafety-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Azure Content Safety Name"
       }
     },
     "speechServiceName": {
       "type": "string",
-      "defaultValue": "[format('{0}-speechservice-{1}', parameters('environmentName'), parameters('resourceToken'))]",
+      "defaultValue": "[format('speech-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Azure Speech Service Name"
+      }
+    },
+    "logAnalyticsName": {
+      "type": "string",
+      "defaultValue": "[format('la-{0}', parameters('resourceToken'))]",
+      "metadata": {
+        "description": "Log Analytics Name"
       }
     },
     "newGuidString": {
@@ -317,7 +371,11 @@
       "defaultValue": "chatwithyourdata-sa"
     },
     "useKeyVault": {
-      "type": "bool"
+      "type": "bool",
+      "defaultValue": "[if(equals(parameters('authType'), 'rbac'), false(), true())]",
+      "metadata": {
+        "description": "Whether to use Key Vault to store secrets (best when using keys). If using RBAC, then please set this to false."
+      }
     },
     "principalId": {
       "type": "string",
@@ -328,16 +386,35 @@
     },
     "authType": {
       "type": "string",
+      "defaultValue": "keys",
       "allowedValues": [
         "rbac",
         "keys"
-      ]
+      ],
+      "metadata": {
+        "description": "Whether the Azure services communicate with each other using RBAC or keys. RBAC is recommended, however some users may not have sufficient permissions to assign roles."
+      }
     },
     "hostingModel": {
       "type": "string",
+      "defaultValue": "container",
       "allowedValues": [
         "code",
         "container"
+      ],
+      "metadata": {
+        "description": "Hosting model for the web apps. Containers are prebuilt and can be deployed faster, but code allows for more customization."
+      }
+    },
+    "logLevel": {
+      "type": "string",
+      "defaultValue": "INFO",
+      "allowedValues": [
+        "CRITICAL",
+        "ERROR",
+        "WARN",
+        "INFO",
+        "DEBUG"
       ]
     }
   },
@@ -391,8 +468,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "4552321833419182500"
+              "version": "0.26.170.59819",
+              "templateHash": "18407114162280426775"
             },
             "description": "Creates an Azure Key Vault."
           },
@@ -471,6 +548,9 @@
               "name": "[parameters('azureOpenAISkuName')]"
             }
           },
+          "managedIdentity": {
+            "value": "[equals(parameters('authType'), 'rbac')]"
+          },
           "deployments": {
             "value": [
               {
@@ -503,8 +583,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "15117202545295723007"
+              "version": "0.26.170.59819",
+              "templateHash": "10580067567296932781"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -534,6 +614,10 @@
             "kind": {
               "type": "string",
               "defaultValue": "OpenAI"
+            },
+            "managedIdentity": {
+              "type": "bool",
+              "defaultValue": false
             },
             "publicNetworkAccess": {
               "type": "string",
@@ -571,7 +655,10 @@
                 "publicNetworkAccess": "[parameters('publicNetworkAccess')]",
                 "networkAcls": "[parameters('networkAcls')]"
               },
-              "sku": "[parameters('sku')]"
+              "sku": "[parameters('sku')]",
+              "identity": {
+                "type": "[if(parameters('managedIdentity'), 'SystemAssigned', 'None')]"
+              }
             },
             {
               "copy": {
@@ -598,6 +685,10 @@
               "type": "string",
               "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2023-05-01').endpoint]"
             },
+            "identityPrincipalId": {
+              "type": "string",
+              "value": "[if(parameters('managedIdentity'), reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2023-05-01', 'full').identity.principalId, '')]"
+            },
             "id": {
               "type": "string",
               "value": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]"
@@ -610,6 +701,148 @@
         }
       },
       "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('authType'), 'rbac')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "search-index-role-openai",
+      "resourceGroup": "[variables('rgName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "principalId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName')), '2022-09-01').outputs.identityPrincipalId.value]"
+          },
+          "roleDefinitionId": {
+            "value": "1407120a-92aa-4202-b7e9-c0e197c71c8f"
+          },
+          "principalType": {
+            "value": "ServicePrincipal"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
+            },
+            "description": "Creates a role assignment for a service principal."
+          },
+          "parameters": {
+            "principalId": {
+              "type": "string"
+            },
+            "principalType": {
+              "type": "string",
+              "defaultValue": "ServicePrincipal",
+              "allowedValues": [
+                "Device",
+                "ForeignGroup",
+                "Group",
+                "ServicePrincipal",
+                "User"
+              ]
+            },
+            "roleDefinitionId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "principalType": "[parameters('principalType')]",
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName'))]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('authType'), 'rbac')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "search-service-role-openai",
+      "resourceGroup": "[variables('rgName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "principalId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName')), '2022-09-01').outputs.identityPrincipalId.value]"
+          },
+          "roleDefinitionId": {
+            "value": "7ca78c08-252a-4471-8644-bb5ff32d4ba0"
+          },
+          "principalType": {
+            "value": "ServicePrincipal"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
+            },
+            "description": "Creates a role assignment for a service principal."
+          },
+          "parameters": {
+            "principalId": {
+              "type": "string"
+            },
+            "principalType": {
+              "type": "string",
+              "defaultValue": "ServicePrincipal",
+              "allowedValues": [
+                "Device",
+                "ForeignGroup",
+                "Group",
+                "ServicePrincipal",
+                "User"
+              ]
+            },
+            "roleDefinitionId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "principalType": "[parameters('principalType')]",
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName'))]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]"
       ]
     },
@@ -645,8 +878,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "15117202545295723007"
+              "version": "0.26.170.59819",
+              "templateHash": "10580067567296932781"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -676,6 +909,10 @@
             "kind": {
               "type": "string",
               "defaultValue": "OpenAI"
+            },
+            "managedIdentity": {
+              "type": "bool",
+              "defaultValue": false
             },
             "publicNetworkAccess": {
               "type": "string",
@@ -713,7 +950,10 @@
                 "publicNetworkAccess": "[parameters('publicNetworkAccess')]",
                 "networkAcls": "[parameters('networkAcls')]"
               },
-              "sku": "[parameters('sku')]"
+              "sku": "[parameters('sku')]",
+              "identity": {
+                "type": "[if(parameters('managedIdentity'), 'SystemAssigned', 'None')]"
+              }
             },
             {
               "copy": {
@@ -739,6 +979,10 @@
             "endpoint": {
               "type": "string",
               "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2023-05-01').endpoint]"
+            },
+            "identityPrincipalId": {
+              "type": "string",
+              "value": "[if(parameters('managedIdentity'), reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2023-05-01', 'full').identity.principalId, '')]"
             },
             "id": {
               "type": "string",
@@ -798,8 +1042,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "5524474597014904513"
+              "version": "0.26.170.59819",
+              "templateHash": "12714039581294574286"
             }
           },
           "parameters": {
@@ -988,8 +1232,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "15608951755656851490"
+              "version": "0.26.170.59819",
+              "templateHash": "15593973660167090308"
             },
             "description": "Creates an Azure AI Search instance."
           },
@@ -1134,11 +1378,17 @@
           },
           "sku": {
             "value": {
-              "name": "[parameters('hostingPlanSku')]"
+              "name": "[parameters('hostingPlanSku')]",
+              "tier": "[parameters('skuTier')]"
             }
           },
           "reserved": {
             "value": true
+          },
+          "tags": {
+            "value": {
+              "Automation": "Ignore"
+            }
           }
         },
         "template": {
@@ -1147,8 +1397,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "6383905216384960764"
+              "version": "0.26.170.59819",
+              "templateHash": "6728315099548749563"
             },
             "description": "Creates an Azure App Service plan."
           },
@@ -1274,8 +1524,8 @@
             "value": {
               "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
               "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
-              "AZURE_CONTENT_SAFETY_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
-              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
+              "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
+              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
               "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
               "AZURE_OPENAI_MODEL_NAME": "[parameters('azureOpenAIModelName')]",
@@ -1297,11 +1547,13 @@
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
               "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
+              "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
               "AZURE_SPEECH_SERVICE_NAME": "[parameters('speechServiceName')]",
               "AZURE_SPEECH_SERVICE_REGION": "[parameters('location')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]"
+              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
+              "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
         },
@@ -1311,8 +1563,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "16400940872113422292"
+              "version": "0.26.170.59819",
+              "templateHash": "10585834917983878287"
             }
           },
           "parameters": {
@@ -1474,8 +1726,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "6079168851919639043"
+                      "version": "0.26.170.59819",
+                      "templateHash": "16814947130506798779"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -1692,7 +1944,7 @@
                             "value": "[parameters('name')]"
                           },
                           "appSettings": {
-                            "value": "[union(parameters('appSettings'), createObject('SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
+                            "value": "[union(parameters('appSettings'), createObject('APPINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                           }
                         },
                         "template": {
@@ -1701,8 +1953,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.26.54.24096",
-                              "templateHash": "17055000515602849240"
+                              "version": "0.26.170.59819",
+                              "templateHash": "15901877046756643519"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -1779,8 +2031,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -1848,8 +2100,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -1917,8 +2169,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -1983,8 +2235,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "4480412712998156633"
+                      "version": "0.26.170.59819",
+                      "templateHash": "7922086847377910894"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -2127,8 +2379,8 @@
             "value": {
               "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
               "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
-              "AZURE_CONTENT_SAFETY_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
-              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
+              "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
+              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
               "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
               "AZURE_OPENAI_MODEL_NAME": "[parameters('azureOpenAIModelName')]",
@@ -2150,11 +2402,13 @@
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
               "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
+              "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
               "AZURE_SPEECH_SERVICE_NAME": "[parameters('speechServiceName')]",
               "AZURE_SPEECH_SERVICE_REGION": "[parameters('location')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]"
+              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
+              "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
         },
@@ -2164,8 +2418,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "16400940872113422292"
+              "version": "0.26.170.59819",
+              "templateHash": "10585834917983878287"
             }
           },
           "parameters": {
@@ -2327,8 +2581,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "6079168851919639043"
+                      "version": "0.26.170.59819",
+                      "templateHash": "16814947130506798779"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -2545,7 +2799,7 @@
                             "value": "[parameters('name')]"
                           },
                           "appSettings": {
-                            "value": "[union(parameters('appSettings'), createObject('SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
+                            "value": "[union(parameters('appSettings'), createObject('APPINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                           }
                         },
                         "template": {
@@ -2554,8 +2808,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.26.54.24096",
-                              "templateHash": "17055000515602849240"
+                              "version": "0.26.170.59819",
+                              "templateHash": "15901877046756643519"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -2632,8 +2886,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -2701,8 +2955,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -2770,8 +3024,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -2836,8 +3090,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "4480412712998156633"
+                      "version": "0.26.170.59819",
+                      "templateHash": "7922086847377910894"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -2919,7 +3173,7 @@
       "condition": "[equals(parameters('hostingModel'), 'code')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
-      "name": "[format('{0}-admin', parameters('websiteName'))]",
+      "name": "[parameters('adminWebsiteName')]",
       "resourceGroup": "[variables('rgName')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -2928,7 +3182,7 @@
         "mode": "Incremental",
         "parameters": {
           "name": {
-            "value": "[format('{0}-admin', parameters('websiteName'))]"
+            "value": "[parameters('adminWebsiteName')]"
           },
           "location": {
             "value": "[parameters('location')]"
@@ -2983,8 +3237,8 @@
             "value": {
               "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
               "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
-              "AZURE_CONTENT_SAFETY_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
-              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
+              "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
+              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
               "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
               "AZURE_OPENAI_MODEL_NAME": "[parameters('azureOpenAIModelName')]",
@@ -3005,12 +3259,14 @@
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
               "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
+              "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
               "BACKEND_URL": "[format('https://{0}.azurewebsites.net', parameters('functionName'))]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "FUNCTION_KEY": "[variables('clientKey')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]"
+              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
+              "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
         },
@@ -3020,8 +3276,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "10001043558660797454"
+              "version": "0.26.170.59819",
+              "templateHash": "6350062594275183017"
             }
           },
           "parameters": {
@@ -3183,8 +3439,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "6079168851919639043"
+                      "version": "0.26.170.59819",
+                      "templateHash": "16814947130506798779"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -3401,7 +3657,7 @@
                             "value": "[parameters('name')]"
                           },
                           "appSettings": {
-                            "value": "[union(parameters('appSettings'), createObject('SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
+                            "value": "[union(parameters('appSettings'), createObject('APPINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                           }
                         },
                         "template": {
@@ -3410,8 +3666,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.26.54.24096",
-                              "templateHash": "17055000515602849240"
+                              "version": "0.26.170.59819",
+                              "templateHash": "15901877046756643519"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -3488,8 +3744,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -3557,8 +3813,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -3626,8 +3882,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -3695,8 +3951,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -3761,8 +4017,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "4480412712998156633"
+                      "version": "0.26.170.59819",
+                      "templateHash": "7922086847377910894"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -3844,7 +4100,7 @@
       "condition": "[equals(parameters('hostingModel'), 'container')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
-      "name": "[format('{0}-admin-docker', parameters('websiteName'))]",
+      "name": "[format('{0}-docker', parameters('adminWebsiteName'))]",
       "resourceGroup": "[variables('rgName')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -3853,7 +4109,7 @@
         "mode": "Incremental",
         "parameters": {
           "name": {
-            "value": "[format('{0}-admin-docker', parameters('websiteName'))]"
+            "value": "[format('{0}-docker', parameters('adminWebsiteName'))]"
           },
           "location": {
             "value": "[parameters('location')]"
@@ -3905,8 +4161,8 @@
             "value": {
               "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
               "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
-              "AZURE_CONTENT_SAFETY_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
-              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
+              "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
+              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
               "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
               "AZURE_OPENAI_MODEL_NAME": "[parameters('azureOpenAIModelName')]",
@@ -3927,12 +4183,14 @@
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
               "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
+              "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
               "BACKEND_URL": "[format('https://{0}-docker.azurewebsites.net', parameters('functionName'))]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "FUNCTION_KEY": "[variables('clientKey')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]"
+              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
+              "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
         },
@@ -3942,8 +4200,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "10001043558660797454"
+              "version": "0.26.170.59819",
+              "templateHash": "6350062594275183017"
             }
           },
           "parameters": {
@@ -4105,8 +4363,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "6079168851919639043"
+                      "version": "0.26.170.59819",
+                      "templateHash": "16814947130506798779"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -4323,7 +4581,7 @@
                             "value": "[parameters('name')]"
                           },
                           "appSettings": {
-                            "value": "[union(parameters('appSettings'), createObject('SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
+                            "value": "[union(parameters('appSettings'), createObject('APPINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                           }
                         },
                         "template": {
@@ -4332,8 +4590,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.26.54.24096",
-                              "templateHash": "17055000515602849240"
+                              "version": "0.26.170.59819",
+                              "templateHash": "15901877046756643519"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -4410,8 +4668,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -4479,8 +4737,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -4548,8 +4806,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -4617,8 +4875,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -4683,8 +4941,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "4480412712998156633"
+                      "version": "0.26.170.59819",
+                      "templateHash": "7922086847377910894"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -4785,7 +5043,7 @@
             }
           },
           "logAnalyticsName": {
-            "value": "[format('la-{0}', parameters('resourceToken'))]"
+            "value": "[parameters('logAnalyticsName')]"
           },
           "applicationInsightsDashboardName": {
             "value": "[format('dash-{0}', parameters('applicationInsightsName'))]"
@@ -4797,8 +5055,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "54270050405814058"
+              "version": "0.26.170.59819",
+              "templateHash": "10048108379044846923"
             },
             "description": "Creates an Application Insights instance and a Log Analytics workspace."
           },
@@ -4849,8 +5107,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5766449277789384912"
+                      "version": "0.26.170.59819",
+                      "templateHash": "17101038721523251751"
                     },
                     "description": "Creates a Log Analytics workspace."
                   },
@@ -4930,8 +5188,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "1697740909761260680"
+                      "version": "0.26.170.59819",
+                      "templateHash": "5016503703443937813"
                     },
                     "description": "Creates an Application Insights instance based on an existing Log Analytics workspace."
                   },
@@ -4995,8 +5253,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.26.54.24096",
-                              "templateHash": "623850250427461329"
+                              "version": "0.26.170.59819",
+                              "templateHash": "4596399009213720452"
                             },
                             "description": "Creates a dashboard for an Application Insights instance."
                           },
@@ -6282,6 +6540,220 @@
       ]
     },
     {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "workbook",
+      "resourceGroup": "[variables('rgName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "workbookDisplayName": {
+            "value": "[parameters('workbookDisplayName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "hostingPlanName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('hostingPlanName')), '2022-09-01').outputs.name.value]"
+          },
+          "functionName": "[if(equals(parameters('hostingModel'), 'container'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('functionName'))), '2022-09-01').outputs.functionName.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('functionName')), '2022-09-01').outputs.functionName.value))]",
+          "websiteName": "[if(equals(parameters('hostingModel'), 'container'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('websiteName'))), '2022-09-01').outputs.FRONTEND_API_NAME.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('websiteName')), '2022-09-01').outputs.FRONTEND_API_NAME.value))]",
+          "adminWebsiteName": "[if(equals(parameters('hostingModel'), 'container'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_NAME.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('adminWebsiteName')), '2022-09-01').outputs.WEBSITE_ADMIN_NAME.value))]",
+          "eventGridSystemTopicName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', variables('eventGridSystemTopicName')), '2022-09-01').outputs.name.value]"
+          },
+          "logAnalyticsName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.logAnalyticsWorkspaceName.value]"
+          },
+          "azureOpenAIResourceName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName')), '2022-09-01').outputs.name.value]"
+          },
+          "azureAISearchName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureAISearchName')), '2022-09-01').outputs.name.value]"
+          },
+          "storageAccountName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('storageAccountName')), '2022-09-01').outputs.name.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.26.170.59819",
+              "templateHash": "2156600869334188821"
+            }
+          },
+          "parameters": {
+            "workbookDisplayName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "hostingPlanName": {
+              "type": "string"
+            },
+            "functionName": {
+              "type": "string"
+            },
+            "websiteName": {
+              "type": "string"
+            },
+            "adminWebsiteName": {
+              "type": "string"
+            },
+            "eventGridSystemTopicName": {
+              "type": "string"
+            },
+            "logAnalyticsName": {
+              "type": "string"
+            },
+            "azureOpenAIResourceName": {
+              "type": "string"
+            },
+            "azureAISearchName": {
+              "type": "string"
+            },
+            "storageAccountName": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "wookbookContents": "{\n  \"version\": \"Notebook/1.0\",\n  \"items\": [\n    {\n      \"type\": 1,\n      \"content\": {\n        \"json\": \"# Chat With Your Data Monitoring\"\n      },\n      \"name\": \"Heading\"\n    },\n    {\n      \"type\": 9,\n      \"content\": {\n        \"version\": \"KqlParameterItem/1.0\",\n        \"crossComponentResources\": [\n          \"{subscription-id}\"\n        ],\n        \"parameters\": [\n          {\n            \"id\": \"b958a893-1fec-49c0-9487-5404949fa49d\",\n            \"version\": \"KqlParameterItem/1.0\",\n            \"name\": \"appserviceplan\",\n            \"type\": 5,\n            \"isRequired\": true,\n            \"isGlobal\": true,\n            \"query\": \"resources\\r\\n| where type =~ 'Microsoft.Web/serverfarms'\\r\\n| summarize by id\",\n            \"crossComponentResources\": [\n              \"{subscription-id}\"\n            ],\n            \"isHiddenWhenLocked\": true,\n            \"typeSettings\": {\n              \"additionalResourceOptions\": [],\n              \"showDefault\": false\n            },\n            \"timeContext\": {\n              \"durationMs\": 86400000\n            },\n            \"queryType\": 1,\n            \"resourceType\": \"microsoft.resourcegraph/resources\",\n            \"value\": \"{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.Web/serverFarms/{app-service-plan}\"\n          },\n          {\n            \"id\": \"be0e9b6d-0022-413e-8f51-27c30d71f1a2\",\n            \"version\": \"KqlParameterItem/1.0\",\n            \"name\": \"backendappservice\",\n            \"type\": 5,\n            \"isRequired\": true,\n            \"isGlobal\": true,\n            \"query\": \"resources\\r\\n| where type =~ 'Microsoft.Web/sites'\\r\\n| summarize by id\",\n            \"crossComponentResources\": [\n              \"{subscription-id}\"\n            ],\n            \"isHiddenWhenLocked\": true,\n            \"typeSettings\": {\n              \"additionalResourceOptions\": [],\n              \"showDefault\": false\n            },\n            \"timeContext\": {\n              \"durationMs\": 86400000\n            },\n            \"queryType\": 1,\n            \"resourceType\": \"microsoft.resourcegraph/resources\",\n            \"value\": \"{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.Web/sites/{backend-app-service}\"\n          },\n          {\n            \"id\": \"ed4452bd-c9f7-4662-816d-5be5a1f7ac3e\",\n            \"version\": \"KqlParameterItem/1.0\",\n            \"name\": \"webappservice\",\n            \"type\": 5,\n            \"isRequired\": true,\n            \"isGlobal\": true,\n            \"query\": \"resources\\r\\n| where type =~ 'Microsoft.Web/sites'\\r\\n| summarize by id\",\n            \"crossComponentResources\": [\n              \"{subscription-id}\"\n            ],\n            \"isHiddenWhenLocked\": true,\n            \"typeSettings\": {\n              \"additionalResourceOptions\": [],\n              \"showDefault\": false\n            },\n            \"timeContext\": {\n              \"durationMs\": 86400000\n            },\n            \"queryType\": 1,\n            \"resourceType\": \"microsoft.resourcegraph/resources\",\n            \"value\": \"{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.Web/sites/{web-app-service}\"\n          },\n          {\n            \"id\": \"f2597276-1732-41e2-a8e7-3250adc62843\",\n            \"version\": \"KqlParameterItem/1.0\",\n            \"name\": \"adminappservice\",\n            \"type\": 5,\n            \"isRequired\": true,\n            \"isGlobal\": true,\n            \"query\": \"resources\\r\\n| where type =~ 'Microsoft.Web/sites'\\r\\n| summarize by id\",\n            \"crossComponentResources\": [\n              \"{subscription-id}\"\n            ],\n            \"isHiddenWhenLocked\": true,\n            \"typeSettings\": {\n              \"additionalResourceOptions\": [],\n              \"showDefault\": false\n            },\n            \"timeContext\": {\n              \"durationMs\": 86400000\n            },\n            \"queryType\": 1,\n            \"resourceType\": \"microsoft.resourcegraph/resources\",\n            \"value\": \"{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.Web/sites/{admin-app-service}\"\n          },\n          {\n            \"id\": \"d2b7cfb5-2b5e-40e2-996c-471d76431957\",\n            \"version\": \"KqlParameterItem/1.0\",\n            \"name\": \"eventgrid\",\n            \"type\": 5,\n            \"isRequired\": true,\n            \"isGlobal\": true,\n            \"query\": \"resources\\r\\n| where type =~ 'microsoft.eventgrid/systemtopics'\\r\\n| summarize by id\\r\\n\",\n            \"crossComponentResources\": [\n              \"{subscription-id}\"\n            ],\n            \"isHiddenWhenLocked\": true,\n            \"typeSettings\": {\n              \"additionalResourceOptions\": [],\n              \"showDefault\": false\n            },\n            \"timeContext\": {\n              \"durationMs\": 86400000\n            },\n            \"queryType\": 1,\n            \"resourceType\": \"microsoft.resourcegraph/resources\",\n            \"value\": \"{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.EventGrid/systemTopics/{event-grid}\"\n          },\n          {\n            \"id\": \"45dd012e-d365-40aa-8bbe-645fcc397f9f\",\n            \"version\": \"KqlParameterItem/1.0\",\n            \"name\": \"loganalytics\",\n            \"type\": 5,\n            \"isRequired\": true,\n            \"isGlobal\": true,\n            \"query\": \"resources\\r\\n| where type =~ 'Microsoft.OperationalInsights/workspaces'\\r\\n| summarize by id\\r\\n\",\n            \"crossComponentResources\": [\n              \"{subscription-id}\"\n            ],\n            \"isHiddenWhenLocked\": true,\n            \"typeSettings\": {\n              \"additionalResourceOptions\": [],\n              \"showDefault\": false\n            },\n            \"timeContext\": {\n              \"durationMs\": 86400000\n            },\n            \"queryType\": 1,\n            \"resourceType\": \"microsoft.resourcegraph/resources\",\n            \"value\": \"{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.OperationalInsights/workspaces/{log-analytics}\"\n          },\n          {\n            \"id\": \"2c947381-754c-4edb-8e9c-d600b0f6a9bb\",\n            \"version\": \"KqlParameterItem/1.0\",\n            \"name\": \"openai\",\n            \"type\": 5,\n            \"isRequired\": true,\n            \"isGlobal\": true,\n            \"query\": \"resources\\r\\n| where type =~ 'Microsoft.CognitiveServices/accounts'\\r\\n| where kind == 'OpenAI'\\r\\n| summarize by id\\r\\n\",\n            \"crossComponentResources\": [\n              \"{subscription-id}\"\n            ],\n            \"isHiddenWhenLocked\": true,\n            \"typeSettings\": {\n              \"additionalResourceOptions\": [],\n              \"showDefault\": false\n            },\n            \"timeContext\": {\n              \"durationMs\": 86400000\n            },\n            \"queryType\": 1,\n            \"resourceType\": \"microsoft.resourcegraph/resources\",\n            \"value\": \"{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.CognitiveServices/accounts/{open-ai}\"\n          },\n          {\n            \"id\": \"543a5643-4fae-417b-afa8-4fb441045021\",\n            \"version\": \"KqlParameterItem/1.0\",\n            \"name\": \"aisearch\",\n            \"type\": 5,\n            \"isRequired\": true,\n            \"isGlobal\": true,\n            \"query\": \"resources\\r\\n| where type =~ 'Microsoft.Search/searchServices'\\r\\n| summarize by id\\r\\n\",\n            \"crossComponentResources\": [\n              \"{subscription-id}\"\n            ],\n            \"isHiddenWhenLocked\": true,\n            \"typeSettings\": {\n              \"additionalResourceOptions\": [],\n              \"showDefault\": false\n            },\n            \"timeContext\": {\n              \"durationMs\": 86400000\n            },\n            \"queryType\": 1,\n            \"resourceType\": \"microsoft.resourcegraph/resources\",\n            \"value\": \"{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.Search/searchServices/{ai-search}\"\n          },\n          {\n            \"id\": \"de9a1a63-4e15-404d-b056-f2f125fb6a7e\",\n            \"version\": \"KqlParameterItem/1.0\",\n            \"name\": \"storageaccount\",\n            \"type\": 5,\n            \"isRequired\": true,\n            \"isGlobal\": true,\n            \"query\": \"resources\\r\\n| where type =~ 'Microsoft.Storage/storageAccounts'\\r\\n| summarize by id\\r\\n\",\n            \"crossComponentResources\": [\n              \"{subscription-id}\"\n            ],\n            \"isHiddenWhenLocked\": true,\n            \"typeSettings\": {\n              \"additionalResourceOptions\": [],\n              \"showDefault\": false\n            },\n            \"timeContext\": {\n              \"durationMs\": 86400000\n            },\n            \"queryType\": 1,\n            \"resourceType\": \"microsoft.resourcegraph/resources\",\n            \"value\": \"{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.Storage/storageAccounts/{storage-account}\"\n          }\n        ],\n        \"style\": \"pills\",\n        \"queryType\": 1,\n        \"resourceType\": \"microsoft.resourcegraph/resources\"\n      },\n      \"conditionalVisibility\": {\n        \"parameterName\": \"never\",\n        \"comparison\": \"isEqualTo\",\n        \"value\": \"show\"\n      },\n      \"name\": \"Resource Parameters\"\n    },\n    {\n      \"type\": 9,\n      \"content\": {\n        \"version\": \"KqlParameterItem/1.0\",\n        \"crossComponentResources\": [\n          \"{subscription-id}\"\n        ],\n        \"parameters\": [\n          {\n            \"id\": \"c612fd9e-e4be-4739-855e-a545344709a4\",\n            \"version\": \"KqlParameterItem/1.0\",\n            \"name\": \"timerange\",\n            \"label\": \"Time Range\",\n            \"type\": 4,\n            \"isRequired\": true,\n            \"isGlobal\": true,\n            \"typeSettings\": {\n              \"selectableValues\": [\n                {\n                  \"durationMs\": 300000\n                },\n                {\n                  \"durationMs\": 900000\n                },\n                {\n                  \"durationMs\": 1800000\n                },\n                {\n                  \"durationMs\": 3600000\n                },\n                {\n                  \"durationMs\": 14400000\n                },\n                {\n                  \"durationMs\": 43200000\n                },\n                {\n                  \"durationMs\": 86400000\n                },\n                {\n                  \"durationMs\": 172800000\n                },\n                {\n                  \"durationMs\": 259200000\n                },\n                {\n                  \"durationMs\": 604800000\n                },\n                {\n                  \"durationMs\": 1209600000\n                },\n                {\n                  \"durationMs\": 2419200000\n                },\n                {\n                  \"durationMs\": 2592000000\n                },\n                {\n                  \"durationMs\": 5184000000\n                },\n                {\n                  \"durationMs\": 7776000000\n                }\n              ],\n              \"allowCustom\": true\n            },\n            \"timeContext\": {\n              \"durationMs\": 86400000\n            },\n            \"value\": {\n              \"durationMs\": 3600000\n            }\n          }\n        ],\n        \"style\": \"pills\",\n        \"queryType\": 1,\n        \"resourceType\": \"microsoft.resourcegraph/resources\"\n      },\n      \"name\": \"Time Picker\"\n    },\n    {\n      \"type\": 11,\n      \"content\": {\n        \"version\": \"LinkItem/1.0\",\n        \"style\": \"tabs\",\n        \"links\": [\n          {\n            \"id\": \"60be91b1-8788-4b49-a8cd-34af2b0eb618\",\n            \"cellValue\": \"selTab\",\n            \"linkTarget\": \"parameter\",\n            \"linkLabel\": \"App Operations\",\n            \"subTarget\": \"Operations\",\n            \"style\": \"link\"\n          },\n          {\n            \"id\": \"c73d4e39-d3d4-4f60-89b7-1a05ed84ebbd\",\n            \"cellValue\": \"selTab\",\n            \"linkTarget\": \"parameter\",\n            \"linkLabel\": \"App Resources\",\n            \"subTarget\": \"Resources\",\n            \"style\": \"link\"\n          },\n          {\n            \"id\": \"cbfcb8a9-d229-4b10-a38a-d6826ac29e27\",\n            \"cellValue\": \"selTab\",\n            \"linkTarget\": \"parameter\",\n            \"linkLabel\": \"Open AI\",\n            \"subTarget\": \"Open AI\",\n            \"style\": \"link\"\n          },\n          {\n            \"id\": \"8c2e5ee1-49c8-4dbd-81cf-2baca35cbc61\",\n            \"cellValue\": \"selTab\",\n            \"linkTarget\": \"parameter\",\n            \"linkLabel\": \"AI Search\",\n            \"subTarget\": \"AI Search\",\n            \"style\": \"link\"\n          },\n          {\n            \"id\": \"e770e864-ada2-4af5-a5ed-28cca4b137eb\",\n            \"cellValue\": \"selTab\",\n            \"linkTarget\": \"parameter\",\n            \"linkLabel\": \"Storage\",\n            \"subTarget\": \"Storage\",\n            \"style\": \"link\"\n          }\n        ]\n      },\n      \"name\": \"links - 4\"\n    },\n    {\n      \"type\": 12,\n      \"content\": {\n        \"version\": \"NotebookGroup/1.0\",\n        \"groupType\": \"editable\",\n        \"items\": [\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbook6b31a3ff-2833-43dc-bf82-1782baa17863\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.web/sites\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"webappservice\",\n              \"resourceIds\": [\n                \"{webappservice}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 3600000\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--Http2xx\",\n                  \"aggregation\": 1\n                },\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--Http3xx\",\n                  \"aggregation\": 1\n                },\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--Http4xx\",\n                  \"aggregation\": 1\n                },\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--Http5xx\",\n                  \"aggregation\": 1\n                }\n              ],\n              \"title\": \"Web App Responses\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Web App Responses\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbook6b31a3ff-2833-43dc-bf82-1782baa17863\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.web/sites\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"webappservice\",\n              \"resourceIds\": [\n                \"{webappservice}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 3600000\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--HttpResponseTime\",\n                  \"aggregation\": 4\n                },\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--HttpResponseTime\",\n                  \"aggregation\": 3\n                }\n              ],\n              \"title\": \"Web App Response Times\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Web App Response Times\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbook6b31a3ff-2833-43dc-bf82-1782baa17863\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.web/sites\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"adminappservice\",\n              \"resourceIds\": [\n                \"{adminappservice}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 3600000\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--Http2xx\",\n                  \"aggregation\": 1\n                },\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--Http3xx\",\n                  \"aggregation\": 1\n                },\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--Http4xx\",\n                  \"aggregation\": 1\n                },\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--Http5xx\",\n                  \"aggregation\": 1\n                }\n              ],\n              \"title\": \"Admin App Responses\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Admin App Responses\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbook6b31a3ff-2833-43dc-bf82-1782baa17863\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.web/sites\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"adminappservice\",\n              \"resourceIds\": [\n                \"{adminappservice}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 3600000\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--HttpResponseTime\",\n                  \"aggregation\": 4\n                },\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--HttpResponseTime\",\n                  \"aggregation\": 3\n                }\n              ],\n              \"title\": \"Admin App Response Times\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Admin App Response Times\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbook6b31a3ff-2833-43dc-bf82-1782baa17863\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.web/sites\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"backendappservice\",\n              \"resourceIds\": [\n                \"{backendappservice}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 3600000\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--Http2xx\",\n                  \"aggregation\": 1\n                },\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--Http3xx\",\n                  \"aggregation\": 1\n                },\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--Http4xx\",\n                  \"aggregation\": 1\n                },\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--Http5xx\",\n                  \"aggregation\": 1\n                }\n              ],\n              \"title\": \"Backend Responses\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Backend Responses\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbook6b31a3ff-2833-43dc-bf82-1782baa17863\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.web/sites\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"backendappservice\",\n              \"resourceIds\": [\n                \"{backendappservice}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 3600000\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--HttpResponseTime\",\n                  \"aggregation\": 4\n                },\n                {\n                  \"namespace\": \"microsoft.web/sites\",\n                  \"metric\": \"microsoft.web/sites--HttpResponseTime\",\n                  \"aggregation\": 3\n                }\n              ],\n              \"title\": \"Backend Response Times\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Backend Response Times\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbook9a7f88c8-6e80-41a3-9837-09d29d05a802\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.eventgrid/systemtopics\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"eventgrid\",\n              \"resourceIds\": [\n                \"{eventgrid}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 3600000\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.eventgrid/systemtopics\",\n                  \"metric\": \"microsoft.eventgrid/systemtopics--PublishSuccessCount\",\n                  \"aggregation\": 1\n                },\n                {\n                  \"namespace\": \"microsoft.eventgrid/systemtopics\",\n                  \"metric\": \"microsoft.eventgrid/systemtopics--PublishFailCount\",\n                  \"aggregation\": 1\n                },\n                {\n                  \"namespace\": \"microsoft.eventgrid/systemtopics\",\n                  \"metric\": \"microsoft.eventgrid/systemtopics--MatchedEventCount\",\n                  \"aggregation\": 1\n                },\n                {\n                  \"namespace\": \"microsoft.eventgrid/systemtopics\",\n                  \"metric\": \"microsoft.eventgrid/systemtopics--DeliverySuccessCount\",\n                  \"aggregation\": 1\n                },\n                {\n                  \"namespace\": \"microsoft.eventgrid/systemtopics\",\n                  \"metric\": \"microsoft.eventgrid/systemtopics--DeadLetteredCount\",\n                  \"aggregation\": 1\n                },\n                {\n                  \"namespace\": \"microsoft.eventgrid/systemtopics\",\n                  \"metric\": \"microsoft.eventgrid/systemtopics--DeliveryAttemptFailCount\",\n                  \"aggregation\": 1\n                },\n                {\n                  \"namespace\": \"microsoft.eventgrid/systemtopics\",\n                  \"metric\": \"microsoft.eventgrid/systemtopics--DroppedEventCount\",\n                  \"aggregation\": 1\n                },\n                {\n                  \"namespace\": \"microsoft.eventgrid/systemtopics\",\n                  \"metric\": \"microsoft.eventgrid/systemtopics--AdvancedFilterEvaluationCount\",\n                  \"aggregation\": 1\n                }\n              ],\n              \"title\": \"Event Grid Events\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Event Grid Events\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbook14a73dd8-6d4d-43ba-8bea-f7c159ffd85d\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.eventgrid/systemtopics\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"eventgrid\",\n              \"resourceIds\": [\n                \"{eventgrid}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 3600000\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.eventgrid/systemtopics\",\n                  \"metric\": \"microsoft.eventgrid/systemtopics--PublishSuccessLatencyInMs\",\n                  \"aggregation\": 4\n                },\n                {\n                  \"namespace\": \"microsoft.eventgrid/systemtopics\",\n                  \"metric\": \"microsoft.eventgrid/systemtopics--PublishSuccessLatencyInMs\",\n                  \"aggregation\": 3\n                },\n                {\n                  \"namespace\": \"microsoft.eventgrid/systemtopics\",\n                  \"metric\": \"microsoft.eventgrid/systemtopics--DestinationProcessingDurationInMs\",\n                  \"aggregation\": 4\n                },\n                {\n                  \"namespace\": \"microsoft.eventgrid/systemtopics\",\n                  \"metric\": \"microsoft.eventgrid/systemtopics--DestinationProcessingDurationInMs\",\n                  \"aggregation\": 3\n                }\n              ],\n              \"title\": \"Event Grid Latency\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Event Grid Latency\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 3,\n            \"content\": {\n              \"version\": \"KqlItem/1.0\",\n              \"query\": \"AppExceptions\\r\\n | project TimeGenerated, AppRoleName, ExceptionType, OuterMessage\\r\\n\",\n              \"size\": 0,\n              \"showAnalytics\": true,\n              \"title\": \"App Exceptions\",\n              \"timeContextFromParameter\": \"timerange\",\n              \"queryType\": 0,\n              \"resourceType\": \"microsoft.operationalinsights/workspaces\",\n              \"crossComponentResources\": [\n                \"{loganalytics}\"\n              ],\n              \"gridSettings\": {\n                \"sortBy\": [\n                  {\n                    \"itemKey\": \"TimeGenerated\",\n                    \"sortOrder\": 2\n                  }\n                ]\n              },\n              \"sortBy\": [\n                {\n                  \"itemKey\": \"TimeGenerated\",\n                  \"sortOrder\": 2\n                }\n              ]\n            },\n            \"name\": \"App Exceptions\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 3,\n            \"content\": {\n              \"version\": \"KqlItem/1.0\",\n              \"query\": \"AppRequests\\r\\n | project TimeGenerated, AppRoleName, Name, Success, Url, PerformanceBucket\",\n              \"size\": 0,\n              \"showAnalytics\": true,\n              \"title\": \"App Requests\",\n              \"timeContextFromParameter\": \"timerange\",\n              \"queryType\": 0,\n              \"resourceType\": \"microsoft.operationalinsights/workspaces\",\n              \"crossComponentResources\": [\n                \"{loganalytics}\"\n              ]\n            },\n            \"name\": \"App Requests\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          }\n        ]\n      },\n      \"conditionalVisibility\": {\n        \"parameterName\": \"selTab\",\n        \"comparison\": \"isEqualTo\",\n        \"value\": \"Operations\"\n      },\n      \"name\": \"Operations Group\"\n    },\n    {\n      \"type\": 12,\n      \"content\": {\n        \"version\": \"NotebookGroup/1.0\",\n        \"groupType\": \"editable\",\n        \"items\": [\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbookdf438966-1e39-4357-b905-15a0d9de5cf8\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.web/serverfarms\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"appserviceplan\",\n              \"resourceIds\": [\n                \"{appserviceplan}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 0\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.web/serverfarms\",\n                  \"metric\": \"microsoft.web/serverfarms--CpuPercentage\",\n                  \"aggregation\": 4,\n                  \"splitBy\": null\n                },\n                {\n                  \"namespace\": \"microsoft.web/serverfarms\",\n                  \"metric\": \"microsoft.web/serverfarms--CpuPercentage\",\n                  \"aggregation\": 3\n                }\n              ],\n              \"title\": \"CPU Usage\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"CPU Usage\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbook4188b464-c50d-4c92-ae63-4f129284888c\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.web/serverfarms\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"appserviceplan\",\n              \"resourceIds\": [\n                \"{appserviceplan}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 0\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.web/serverfarms\",\n                  \"metric\": \"microsoft.web/serverfarms--MemoryPercentage\",\n                  \"aggregation\": 4,\n                  \"splitBy\": null\n                },\n                {\n                  \"namespace\": \"microsoft.web/serverfarms\",\n                  \"metric\": \"microsoft.web/serverfarms--MemoryPercentage\",\n                  \"aggregation\": 3\n                }\n              ],\n              \"title\": \"Memory Usage\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Memory Usage\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbookd7cc149c-bd48-432d-8343-6c6eebdee5d9\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.web/serverfarms\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"appserviceplan\",\n              \"resourceIds\": [\n                \"{appserviceplan}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 0\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.web/serverfarms\",\n                  \"metric\": \"microsoft.web/serverfarms--BytesReceived\",\n                  \"aggregation\": 1,\n                  \"splitBy\": null\n                }\n              ],\n              \"title\": \"Data In\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Data In\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbook54212fe0-54bb-4b55-9be0-efbd987d461b\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.web/serverfarms\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"appserviceplan\",\n              \"resourceIds\": [\n                \"{appserviceplan}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 0\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.web/serverfarms\",\n                  \"metric\": \"microsoft.web/serverfarms--BytesSent\",\n                  \"aggregation\": 1,\n                  \"splitBy\": null,\n                  \"columnName\": \"\"\n                }\n              ],\n              \"title\": \"Data Out\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Data Out\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          }\n        ]\n      },\n      \"conditionalVisibility\": {\n        \"parameterName\": \"selTab\",\n        \"comparison\": \"isEqualTo\",\n        \"value\": \"Resources\"\n      },\n      \"name\": \"Resources Group\"\n    },\n    {\n      \"type\": 12,\n      \"content\": {\n        \"version\": \"NotebookGroup/1.0\",\n        \"groupType\": \"editable\",\n        \"items\": [\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbooka838a7f8-a1e2-42c2-b8eb-2601e4486462\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.cognitiveservices/accounts\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"openai\",\n              \"resourceIds\": [\n                \"{openai}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 0\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.cognitiveservices/accounts\",\n                  \"metric\": \"microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests\",\n                  \"aggregation\": 1,\n                  \"splitBy\": null\n                }\n              ],\n              \"title\": \"Open AI Requests by Deployment\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"formatters\": [\n                  {\n                    \"columnMatch\": \"Subscription\",\n                    \"formatter\": 5\n                  },\n                  {\n                    \"columnMatch\": \"Name\",\n                    \"formatter\": 13,\n                    \"formatOptions\": {\n                      \"linkTarget\": \"Resource\"\n                    }\n                  },\n                  {\n                    \"columnMatch\": \"microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests Timeline\",\n                    \"formatter\": 5\n                  },\n                  {\n                    \"columnMatch\": \"microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests\",\n                    \"formatter\": 1,\n                    \"numberFormat\": {\n                      \"unit\": 0,\n                      \"options\": null\n                    }\n                  }\n                ],\n                \"rowLimit\": 10000,\n                \"labelSettings\": [\n                  {\n                    \"columnId\": \"microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests\",\n                    \"label\": \"Azure OpenAI Requests (Sum)\"\n                  },\n                  {\n                    \"columnId\": \"microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests Timeline\",\n                    \"label\": \"Azure OpenAI Requests Timeline\"\n                  }\n                ]\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Open AI Requests by Deployment\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbooka838a7f8-a1e2-42c2-b8eb-2601e4486462\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.cognitiveservices/accounts\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"openai\",\n              \"resourceIds\": [\n                \"{openai}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 0\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.cognitiveservices/accounts\",\n                  \"metric\": \"microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests\",\n                  \"aggregation\": 1,\n                  \"splitBy\": \"ModelVersion\"\n                }\n              ],\n              \"title\": \"Open AI Requests by Model Version\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"formatters\": [\n                  {\n                    \"columnMatch\": \"Subscription\",\n                    \"formatter\": 5\n                  },\n                  {\n                    \"columnMatch\": \"Name\",\n                    \"formatter\": 13,\n                    \"formatOptions\": {\n                      \"linkTarget\": \"Resource\"\n                    }\n                  },\n                  {\n                    \"columnMatch\": \"microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests Timeline\",\n                    \"formatter\": 5\n                  },\n                  {\n                    \"columnMatch\": \"microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests\",\n                    \"formatter\": 1,\n                    \"numberFormat\": {\n                      \"unit\": 0,\n                      \"options\": null\n                    }\n                  }\n                ],\n                \"rowLimit\": 10000,\n                \"labelSettings\": [\n                  {\n                    \"columnId\": \"microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests\",\n                    \"label\": \"Azure OpenAI Requests (Sum)\"\n                  },\n                  {\n                    \"columnId\": \"microsoft.cognitiveservices/accounts-Azure OpenAI  HTTP Requests-AzureOpenAIRequests Timeline\",\n                    \"label\": \"Azure OpenAI Requests Timeline\"\n                  }\n                ]\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Open AI Requests by Model Version\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbook5c797794-acb4-47a5-b92f-36abf913ab8e\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.cognitiveservices/accounts\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"openai\",\n              \"resourceIds\": [\n                \"{openai}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 0\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.cognitiveservices/accounts\",\n                  \"metric\": \"microsoft.cognitiveservices/accounts-Azure OpenAI  Usage-GeneratedTokens\",\n                  \"aggregation\": 7,\n                  \"splitBy\": null\n                }\n              ],\n              \"title\": \"Generated Completions Tokens\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Generated Completions Tokens\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbook5c797794-acb4-47a5-b92f-36abf913ab8e\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.cognitiveservices/accounts\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"openai\",\n              \"resourceIds\": [\n                \"{openai}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 0\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.cognitiveservices/accounts\",\n                  \"metric\": \"microsoft.cognitiveservices/accounts-Azure OpenAI  Usage-TokenTransaction\",\n                  \"aggregation\": 7,\n                  \"splitBy\": null\n                }\n              ],\n              \"title\": \"Processed Inference Tokens\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Processed Inference Tokens\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbook5c797794-acb4-47a5-b92f-36abf913ab8e\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.cognitiveservices/accounts\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"openai\",\n              \"resourceIds\": [\n                \"{openai}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 0\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.cognitiveservices/accounts\",\n                  \"metric\": \"microsoft.cognitiveservices/accounts-Azure OpenAI  Usage-ProcessedPromptTokens\",\n                  \"aggregation\": 7,\n                  \"splitBy\": null\n                }\n              ],\n              \"title\": \"Processed Prompt Tokens\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Processed Prompt Tokens\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          }\n        ]\n      },\n      \"conditionalVisibility\": {\n        \"parameterName\": \"selTab\",\n        \"comparison\": \"isEqualTo\",\n        \"value\": \"Open AI\"\n      },\n      \"name\": \"Open AI Group\"\n    },\n    {\n      \"type\": 12,\n      \"content\": {\n        \"version\": \"NotebookGroup/1.0\",\n        \"groupType\": \"editable\",\n        \"items\": [\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbookacb9885c-d72e-468f-a567-655708cfec44\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.search/searchservices\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"aisearch\",\n              \"resourceIds\": [\n                \"{aisearch}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 0\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.search/searchservices\",\n                  \"metric\": \"microsoft.search/searchservices--SearchLatency\",\n                  \"aggregation\": 4,\n                  \"splitBy\": null\n                },\n                {\n                  \"namespace\": \"microsoft.search/searchservices\",\n                  \"metric\": \"microsoft.search/searchservices--SearchLatency\",\n                  \"aggregation\": 3\n                }\n              ],\n              \"title\": \"Search Latency\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Search Latency\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbookc3418582-4b58-4016-8180-d3ecff43c408\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.search/searchservices\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"aisearch\",\n              \"resourceIds\": [\n                \"{aisearch}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 0\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.search/searchservices\",\n                  \"metric\": \"microsoft.search/searchservices--SearchQueriesPerSecond\",\n                  \"aggregation\": 4,\n                  \"splitBy\": null\n                },\n                {\n                  \"namespace\": \"microsoft.search/searchservices\",\n                  \"metric\": \"microsoft.search/searchservices--SearchQueriesPerSecond\",\n                  \"aggregation\": 3\n                }\n              ],\n              \"title\": \"Search Queries per second\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Search Queries per second\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbook9e9aa03e-6125-4347-b768-ca7151d413e3\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.search/searchservices\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"aisearch\",\n              \"resourceIds\": [\n                \"{aisearch}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 0\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.search/searchservices\",\n                  \"metric\": \"microsoft.search/searchservices--ThrottledSearchQueriesPercentage\",\n                  \"aggregation\": 4,\n                  \"splitBy\": null\n                }\n              ],\n              \"title\": \"Throttled Search Queries Percentage\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"showPin\": false,\n            \"name\": \"Throttled Search Queries Percentage\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          }\n        ]\n      },\n      \"conditionalVisibility\": {\n        \"parameterName\": \"selTab\",\n        \"comparison\": \"isEqualTo\",\n        \"value\": \"AI Search\"\n      },\n      \"name\": \"Search Group\"\n    },\n    {\n      \"type\": 12,\n      \"content\": {\n        \"version\": \"NotebookGroup/1.0\",\n        \"groupType\": \"editable\",\n        \"items\": [\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbookd5a8891d-2021-47cb-a5aa-d92dd112aab0\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.storage/storageaccounts\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"storageaccount\",\n              \"resourceIds\": [\n                \"{storageaccount}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 0\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.storage/storageaccounts\",\n                  \"metric\": \"microsoft.storage/storageaccounts-Capacity-UsedCapacity\",\n                  \"aggregation\": 4,\n                  \"splitBy\": null\n                },\n                {\n                  \"namespace\": \"microsoft.storage/storageaccounts/blobservices\",\n                  \"metric\": \"microsoft.storage/storageaccounts/blobservices-Capacity-BlobCapacity\",\n                  \"aggregation\": 4\n                },\n                {\n                  \"namespace\": \"microsoft.storage/storageaccounts/queueservices\",\n                  \"metric\": \"microsoft.storage/storageaccounts/queueservices-Capacity-QueueCapacity\",\n                  \"aggregation\": 4\n                },\n                {\n                  \"namespace\": \"microsoft.storage/storageaccounts/tableservices\",\n                  \"metric\": \"microsoft.storage/storageaccounts/tableservices-Capacity-TableCapacity\",\n                  \"aggregation\": 4\n                }\n              ],\n              \"title\": \"Capacity\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Storage Capacity\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbookd5a8891d-2021-47cb-a5aa-d92dd112aab0\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.storage/storageaccounts\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"storageaccount\",\n              \"resourceIds\": [\n                \"{storageaccount}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 0\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.storage/storageaccounts/blobservices\",\n                  \"metric\": \"microsoft.storage/storageaccounts/blobservices-Capacity-ContainerCount\",\n                  \"aggregation\": 4,\n                  \"splitBy\": null\n                },\n                {\n                  \"namespace\": \"microsoft.storage/storageaccounts/blobservices\",\n                  \"metric\": \"microsoft.storage/storageaccounts/blobservices-Capacity-BlobCount\",\n                  \"aggregation\": 4\n                },\n                {\n                  \"namespace\": \"microsoft.storage/storageaccounts/queueservices\",\n                  \"metric\": \"microsoft.storage/storageaccounts/queueservices-Capacity-QueueCount\",\n                  \"aggregation\": 4\n                },\n                {\n                  \"namespace\": \"microsoft.storage/storageaccounts/queueservices\",\n                  \"metric\": \"microsoft.storage/storageaccounts/queueservices-Capacity-QueueMessageCount\",\n                  \"aggregation\": 4\n                },\n                {\n                  \"namespace\": \"microsoft.storage/storageaccounts/tableservices\",\n                  \"metric\": \"microsoft.storage/storageaccounts/tableservices-Capacity-TableCount\",\n                  \"aggregation\": 4\n                },\n                {\n                  \"namespace\": \"microsoft.storage/storageaccounts/tableservices\",\n                  \"metric\": \"microsoft.storage/storageaccounts/tableservices-Capacity-TableEntityCount\",\n                  \"aggregation\": 4\n                }\n              ],\n              \"title\": \"Counts\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Storage Counts\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbook14f8930f-94fe-4c30-b21b-97e802e48f53\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.storage/storageaccounts\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"storageaccount\",\n              \"resourceIds\": [\n                \"{storageaccount}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 0\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.storage/storageaccounts\",\n                  \"metric\": \"microsoft.storage/storageaccounts-Transaction-Ingress\",\n                  \"aggregation\": 1,\n                  \"splitBy\": null\n                }\n              ],\n              \"title\": \"Ingress\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Storage Ingress\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbook14f8930f-94fe-4c30-b21b-97e802e48f53\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.storage/storageaccounts\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"storageaccount\",\n              \"resourceIds\": [\n                \"{storageaccount}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 0\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.storage/storageaccounts\",\n                  \"metric\": \"microsoft.storage/storageaccounts-Transaction-Egress\",\n                  \"aggregation\": 1,\n                  \"splitBy\": null\n                }\n              ],\n              \"title\": \"Egress\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Storage Egress\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          },\n          {\n            \"type\": 10,\n            \"content\": {\n              \"chartId\": \"workbookdc8d463d-4a35-49c4-a9ad-1a4b23f8cadd\",\n              \"version\": \"MetricsItem/2.0\",\n              \"size\": 0,\n              \"chartType\": 2,\n              \"resourceType\": \"microsoft.storage/storageaccounts\",\n              \"metricScope\": 0,\n              \"resourceParameter\": \"storageaccount\",\n              \"resourceIds\": [\n                \"{storageaccount}\"\n              ],\n              \"timeContextFromParameter\": \"timerange\",\n              \"timeContext\": {\n                \"durationMs\": 0\n              },\n              \"metrics\": [\n                {\n                  \"namespace\": \"microsoft.storage/storageaccounts\",\n                  \"metric\": \"microsoft.storage/storageaccounts-Transaction-SuccessE2ELatency\",\n                  \"aggregation\": 4,\n                  \"splitBy\": null\n                }\n              ],\n              \"title\": \"Storage Latency\",\n              \"showOpenInMe\": true,\n              \"timeBrushParameterName\": \"timerange\",\n              \"timeBrushExportOnlyWhenBrushed\": true,\n              \"gridSettings\": {\n                \"rowLimit\": 10000\n              }\n            },\n            \"customWidth\": \"50\",\n            \"name\": \"Storage Latency\",\n            \"styleSettings\": {\n              \"showBorder\": true\n            }\n          }\n        ]\n      },\n      \"conditionalVisibility\": {\n        \"parameterName\": \"selTab\",\n        \"comparison\": \"isEqualTo\",\n        \"value\": \"Storage\"\n      },\n      \"name\": \"Storage Group\"\n    }\n  ],\n  \"fallbackResourceIds\": [\n    \"azure monitor\"\n  ],\n  \"styleSettings\": {\n    \"paddingStyle\": \"narrow\",\n    \"spacingStyle\": \"narrow\"\n  },\n  \"$schema\": \"https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json\"\n}",
+            "wookbookContentsSubReplaced": "[replace(variables('wookbookContents'), '{subscription-id}', subscription().id)]",
+            "wookbookContentsRGReplaced": "[replace(variables('wookbookContentsSubReplaced'), '{resource-group}', resourceGroup().name)]",
+            "wookbookContentsAppServicePlanReplaced": "[replace(variables('wookbookContentsRGReplaced'), '{app-service-plan}', parameters('hostingPlanName'))]",
+            "wookbookContentsBackendAppServiceReplaced": "[replace(variables('wookbookContentsAppServicePlanReplaced'), '{backend-app-service}', parameters('functionName'))]",
+            "wookbookContentsWebAppServiceReplaced": "[replace(variables('wookbookContentsBackendAppServiceReplaced'), '{web-app-service}', parameters('websiteName'))]",
+            "wookbookContentsAdminAppServiceReplaced": "[replace(variables('wookbookContentsWebAppServiceReplaced'), '{admin-app-service}', parameters('adminWebsiteName'))]",
+            "wookbookContentsEventGridReplaced": "[replace(variables('wookbookContentsAdminAppServiceReplaced'), '{event-grid}', parameters('eventGridSystemTopicName'))]",
+            "wookbookContentsLogAnalyticsReplaced": "[replace(variables('wookbookContentsEventGridReplaced'), '{log-analytics}', parameters('logAnalyticsName'))]",
+            "wookbookContentsOpenAIReplaced": "[replace(variables('wookbookContentsLogAnalyticsReplaced'), '{open-ai}', parameters('azureOpenAIResourceName'))]",
+            "wookbookContentsAISearchReplaced": "[replace(variables('wookbookContentsOpenAIReplaced'), '{ai-search}', parameters('azureAISearchName'))]",
+            "wookbookContentsStorageAccountReplaced": "[replace(variables('wookbookContentsAISearchReplaced'), '{storage-account}', parameters('storageAccountName'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "[parameters('workbookDisplayName')]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "workbookId": {
+                    "value": "d9bd03af-7ef0-4bac-b91b-b14ee4c7002b"
+                  },
+                  "workbookDisplayName": {
+                    "value": "[parameters('workbookDisplayName')]"
+                  },
+                  "location": {
+                    "value": "[parameters('location')]"
+                  },
+                  "workbookContents": {
+                    "value": "[variables('wookbookContentsStorageAccountReplaced')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.26.170.59819",
+                      "templateHash": "10520241319603231084"
+                    }
+                  },
+                  "parameters": {
+                    "workbookDisplayName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The friendly name for the workbook.  This name must be unique within a resource group."
+                      }
+                    },
+                    "workbookType": {
+                      "type": "string",
+                      "defaultValue": "workbook",
+                      "metadata": {
+                        "description": "The gallery that the workbook will been shown under. Supported values include workbook, tsg, etc. Usually, this is 'workbook'"
+                      }
+                    },
+                    "workbookSourceId": {
+                      "type": "string",
+                      "defaultValue": "azure monitor",
+                      "metadata": {
+                        "description": "The id of resource instance to which the workbook will be associated"
+                      }
+                    },
+                    "workbookId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The unique guid for this workbook instance"
+                      }
+                    },
+                    "workbookContents": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The json content of the workbook"
+                      }
+                    },
+                    "location": {
+                      "type": "string",
+                      "defaultValue": "[resourceGroup().location]"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Insights/workbooks",
+                      "apiVersion": "2023-06-01",
+                      "name": "[parameters('workbookId')]",
+                      "location": "[parameters('location')]",
+                      "kind": "shared",
+                      "properties": {
+                        "displayName": "[parameters('workbookDisplayName')]",
+                        "serializedData": "[parameters('workbookContents')]",
+                        "version": "1.0",
+                        "sourceId": "[parameters('workbookSourceId')]",
+                        "category": "[parameters('workbookType')]"
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "workbookId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Insights/workbooks', parameters('workbookId'))]"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('adminWebsiteName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', variables('eventGridSystemTopicName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('functionName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('functionName')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('hostingPlanName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName'))]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureAISearchName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('storageAccountName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('websiteName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('websiteName')))]"
+      ]
+    },
+    {
       "condition": "[equals(parameters('hostingModel'), 'code')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
@@ -6352,8 +6824,8 @@
             "value": {
               "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
               "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
-              "AZURE_CONTENT_SAFETY_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
-              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
+              "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
+              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
               "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('azureOpenAIEmbeddingModel')]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
@@ -6361,7 +6833,8 @@
               "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
               "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]"
+              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
+              "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
         },
@@ -6371,8 +6844,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "7551167170906774193"
+              "version": "0.26.170.59819",
+              "templateHash": "8686020307539198595"
             }
           },
           "parameters": {
@@ -6552,8 +7025,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "8413740452423398093"
+                      "version": "0.26.170.59819",
+                      "templateHash": "17970804602146615398"
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -6760,8 +7233,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.26.54.24096",
-                              "templateHash": "6079168851919639043"
+                              "version": "0.26.170.59819",
+                              "templateHash": "16814947130506798779"
                             },
                             "description": "Creates an Azure App Service in an existing Azure App Service plan."
                           },
@@ -6978,7 +7451,7 @@
                                     "value": "[parameters('name')]"
                                   },
                                   "appSettings": {
-                                    "value": "[union(parameters('appSettings'), createObject('SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
+                                    "value": "[union(parameters('appSettings'), createObject('APPINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                                   }
                                 },
                                 "template": {
@@ -6987,8 +7460,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.26.54.24096",
-                                      "templateHash": "17055000515602849240"
+                                      "version": "0.26.170.59819",
+                                      "templateHash": "15901877046756643519"
                                     },
                                     "description": "Updates app settings for an Azure App Service."
                                   },
@@ -7083,8 +7556,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -7152,8 +7625,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -7221,8 +7694,146 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
+                    },
+                    "description": "Creates a role assignment for a service principal."
+                  },
+                  "parameters": {
+                    "principalId": {
+                      "type": "string"
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "defaultValue": "ServicePrincipal",
+                      "allowedValues": [
+                        "Device",
+                        "ForeignGroup",
+                        "Group",
+                        "ServicePrincipal",
+                        "User"
+                      ]
+                    },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+                      "properties": {
+                        "principalId": "[parameters('principalId')]",
+                        "principalType": "[parameters('principalType')]",
+                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+                      }
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name')))]"
+              ]
+            },
+            {
+              "condition": "[equals(parameters('authType'), 'rbac')]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "storage-blob-role-function",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "principalId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.identityPrincipalId.value]"
+                  },
+                  "roleDefinitionId": {
+                    "value": "ba92f5b4-2d11-453d-a403-e96b0029c9fe"
+                  },
+                  "principalType": {
+                    "value": "ServicePrincipal"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
+                    },
+                    "description": "Creates a role assignment for a service principal."
+                  },
+                  "parameters": {
+                    "principalId": {
+                      "type": "string"
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "defaultValue": "ServicePrincipal",
+                      "allowedValues": [
+                        "Device",
+                        "ForeignGroup",
+                        "Group",
+                        "ServicePrincipal",
+                        "User"
+                      ]
+                    },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+                      "properties": {
+                        "principalId": "[parameters('principalId')]",
+                        "principalType": "[parameters('principalType')]",
+                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+                      }
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name')))]"
+              ]
+            },
+            {
+              "condition": "[equals(parameters('authType'), 'rbac')]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "storage-queue-role-function",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "principalId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.identityPrincipalId.value]"
+                  },
+                  "roleDefinitionId": {
+                    "value": "974c5e8b-45b9-4653-ba55-5f855dd0fb88"
+                  },
+                  "principalType": {
+                    "value": "ServicePrincipal"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -7287,8 +7898,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "4480412712998156633"
+                      "version": "0.26.170.59819",
+                      "templateHash": "7922086847377910894"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -7340,6 +7951,10 @@
             "FUNCTION_IDENTITY_PRINCIPAL_ID": {
               "type": "string",
               "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.identityPrincipalId.value]"
+            },
+            "functionName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.name.value]"
             }
           }
         }
@@ -7426,8 +8041,8 @@
             "value": {
               "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
               "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
-              "AZURE_CONTENT_SAFETY_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
-              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
+              "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
+              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
               "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('azureOpenAIEmbeddingModel')]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
@@ -7435,7 +8050,8 @@
               "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
               "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]"
+              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
+              "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
         },
@@ -7445,8 +8061,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "7551167170906774193"
+              "version": "0.26.170.59819",
+              "templateHash": "8686020307539198595"
             }
           },
           "parameters": {
@@ -7626,8 +8242,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "8413740452423398093"
+                      "version": "0.26.170.59819",
+                      "templateHash": "17970804602146615398"
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -7834,8 +8450,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.26.54.24096",
-                              "templateHash": "6079168851919639043"
+                              "version": "0.26.170.59819",
+                              "templateHash": "16814947130506798779"
                             },
                             "description": "Creates an Azure App Service in an existing Azure App Service plan."
                           },
@@ -8052,7 +8668,7 @@
                                     "value": "[parameters('name')]"
                                   },
                                   "appSettings": {
-                                    "value": "[union(parameters('appSettings'), createObject('SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
+                                    "value": "[union(parameters('appSettings'), createObject('APPINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                                   }
                                 },
                                 "template": {
@@ -8061,8 +8677,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.26.54.24096",
-                                      "templateHash": "17055000515602849240"
+                                      "version": "0.26.170.59819",
+                                      "templateHash": "15901877046756643519"
                                     },
                                     "description": "Updates app settings for an Azure App Service."
                                   },
@@ -8157,8 +8773,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8226,8 +8842,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8295,8 +8911,146 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "5795525499710207356"
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
+                    },
+                    "description": "Creates a role assignment for a service principal."
+                  },
+                  "parameters": {
+                    "principalId": {
+                      "type": "string"
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "defaultValue": "ServicePrincipal",
+                      "allowedValues": [
+                        "Device",
+                        "ForeignGroup",
+                        "Group",
+                        "ServicePrincipal",
+                        "User"
+                      ]
+                    },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+                      "properties": {
+                        "principalId": "[parameters('principalId')]",
+                        "principalType": "[parameters('principalType')]",
+                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+                      }
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name')))]"
+              ]
+            },
+            {
+              "condition": "[equals(parameters('authType'), 'rbac')]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "storage-blob-role-function",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "principalId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.identityPrincipalId.value]"
+                  },
+                  "roleDefinitionId": {
+                    "value": "ba92f5b4-2d11-453d-a403-e96b0029c9fe"
+                  },
+                  "principalType": {
+                    "value": "ServicePrincipal"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
+                    },
+                    "description": "Creates a role assignment for a service principal."
+                  },
+                  "parameters": {
+                    "principalId": {
+                      "type": "string"
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "defaultValue": "ServicePrincipal",
+                      "allowedValues": [
+                        "Device",
+                        "ForeignGroup",
+                        "Group",
+                        "ServicePrincipal",
+                        "User"
+                      ]
+                    },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
+                      "properties": {
+                        "principalId": "[parameters('principalId')]",
+                        "principalType": "[parameters('principalType')]",
+                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+                      }
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name')))]"
+              ]
+            },
+            {
+              "condition": "[equals(parameters('authType'), 'rbac')]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "storage-queue-role-function",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "principalId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.identityPrincipalId.value]"
+                  },
+                  "roleDefinitionId": {
+                    "value": "974c5e8b-45b9-4653-ba55-5f855dd0fb88"
+                  },
+                  "principalType": {
+                    "value": "ServicePrincipal"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.26.170.59819",
+                      "templateHash": "2390256577307700589"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8361,8 +9115,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.54.24096",
-                      "templateHash": "4480412712998156633"
+                      "version": "0.26.170.59819",
+                      "templateHash": "7922086847377910894"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -8414,6 +9168,10 @@
             "FUNCTION_IDENTITY_PRINCIPAL_ID": {
               "type": "string",
               "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.identityPrincipalId.value]"
+            },
+            "functionName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.name.value]"
             }
           }
         }
@@ -8462,8 +9220,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "15117202545295723007"
+              "version": "0.26.170.59819",
+              "templateHash": "10580067567296932781"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -8493,6 +9251,10 @@
             "kind": {
               "type": "string",
               "defaultValue": "OpenAI"
+            },
+            "managedIdentity": {
+              "type": "bool",
+              "defaultValue": false
             },
             "publicNetworkAccess": {
               "type": "string",
@@ -8530,7 +9292,10 @@
                 "publicNetworkAccess": "[parameters('publicNetworkAccess')]",
                 "networkAcls": "[parameters('networkAcls')]"
               },
-              "sku": "[parameters('sku')]"
+              "sku": "[parameters('sku')]",
+              "identity": {
+                "type": "[if(parameters('managedIdentity'), 'SystemAssigned', 'None')]"
+              }
             },
             {
               "copy": {
@@ -8556,6 +9321,10 @@
             "endpoint": {
               "type": "string",
               "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2023-05-01').endpoint]"
+            },
+            "identityPrincipalId": {
+              "type": "string",
+              "value": "[if(parameters('managedIdentity'), reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2023-05-01', 'full').identity.principalId, '')]"
             },
             "id": {
               "type": "string",
@@ -8602,8 +9371,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "15117202545295723007"
+              "version": "0.26.170.59819",
+              "templateHash": "10580067567296932781"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -8633,6 +9402,10 @@
             "kind": {
               "type": "string",
               "defaultValue": "OpenAI"
+            },
+            "managedIdentity": {
+              "type": "bool",
+              "defaultValue": false
             },
             "publicNetworkAccess": {
               "type": "string",
@@ -8670,7 +9443,10 @@
                 "publicNetworkAccess": "[parameters('publicNetworkAccess')]",
                 "networkAcls": "[parameters('networkAcls')]"
               },
-              "sku": "[parameters('sku')]"
+              "sku": "[parameters('sku')]",
+              "identity": {
+                "type": "[if(parameters('managedIdentity'), 'SystemAssigned', 'None')]"
+              }
             },
             {
               "copy": {
@@ -8696,6 +9472,10 @@
             "endpoint": {
               "type": "string",
               "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2023-05-01').endpoint]"
+            },
+            "identityPrincipalId": {
+              "type": "string",
+              "value": "[if(parameters('managedIdentity'), reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2023-05-01', 'full').identity.principalId, '')]"
             },
             "id": {
               "type": "string",
@@ -8745,8 +9525,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "7555343965634606135"
+              "version": "0.26.170.59819",
+              "templateHash": "17903656266919316099"
             }
           },
           "parameters": {
@@ -8809,7 +9589,13 @@
                 "[resourceId('Microsoft.EventGrid/systemTopics', parameters('name'))]"
               ]
             }
-          ]
+          ],
+          "outputs": {
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            }
+          }
         }
       },
       "dependsOn": [
@@ -8868,8 +9654,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "425644292909061969"
+              "version": "0.26.170.59819",
+              "templateHash": "246951497570111474"
             },
             "description": "Creates an Azure storage account."
           },
@@ -9093,8 +9879,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "5795525499710207356"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -9163,8 +9949,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "5795525499710207356"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -9233,8 +10019,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "5795525499710207356"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -9303,8 +10089,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.54.24096",
-              "templateHash": "5795525499710207356"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -9447,6 +10233,10 @@
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.OPENAI_KEY_NAME.value, '')]"
     },
+    "AZURE_RESOURCE_GROUP": {
+      "type": "string",
+      "value": "[variables('rgName')]"
+    },
     "AZURE_SEARCH_KEY": {
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SEARCH_KEY_NAME.value, '')]"
@@ -9483,6 +10273,10 @@
       "type": "string",
       "value": "[parameters('azureSearchFilenameColumn')]"
     },
+    "AZURE_SEARCH_FILTER": {
+      "type": "string",
+      "value": "[parameters('azureSearchFilter')]"
+    },
     "AZURE_SEARCH_TITLE_COLUMN": {
       "type": "string",
       "value": "[parameters('azureSearchTitleColumn')]"
@@ -9491,9 +10285,17 @@
       "type": "string",
       "value": "[parameters('azureSearchUrlColumn')]"
     },
+    "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": {
+      "type": "bool",
+      "value": "[parameters('azureSearchUseIntegratedVectorization')]"
+    },
     "AZURE_SEARCH_INDEX": {
       "type": "string",
       "value": "[parameters('azureSearchIndex')]"
+    },
+    "AZURE_SPEECH_SERVICE_NAME": {
+      "type": "string",
+      "value": "[parameters('speechServiceName')]"
     },
     "AZURE_SPEECH_SERVICE_REGION": {
       "type": "string",
@@ -9529,7 +10331,11 @@
     },
     "ADMIN_WEBSITE_NAME": {
       "type": "string",
-      "value": "[if(equals(parameters('hostingModel'), 'code'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin', parameters('websiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-admin-docker', parameters('websiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value)]"
+      "value": "[if(equals(parameters('hostingModel'), 'code'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('adminWebsiteName')), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value)]"
+    },
+    "LOGLEVEL": {
+      "type": "string",
+      "value": "[parameters('logLevel')]"
     }
   }
 }
