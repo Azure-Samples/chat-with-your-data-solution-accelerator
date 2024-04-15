@@ -10,6 +10,10 @@ def cleanup():
     EnvHelper.clear_instance()
 
 
+def test_env_helper_is_singleton():
+    assert EnvHelper() is EnvHelper()
+
+
 def test_openai_base_url_generates_url_based_on_resource_name_if_not_set(
     monkeypatch: MonkeyPatch,
 ):
