@@ -115,6 +115,7 @@ def test_post_makes_correct_call_to_azure_openai(
                                 "url_field": "url",
                                 "filepath_field": "filepath",
                             },
+                            "filter": app_config.get("AZURE_SEARCH_FILTER"),
                             "in_scope": True,
                             "top_n_documents": 5,
                             "query_type": "simple",
