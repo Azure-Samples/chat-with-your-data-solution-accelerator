@@ -30,6 +30,7 @@ import {
 } from "../../api";
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
+import { Sidebar } from "../../components/Sidebar";
 
 const Chat = () => {
   const lastQuestionRef = useRef<string>("");
@@ -268,11 +269,11 @@ const Chat = () => {
         <div className={`${styles.chatContainer} ${styles.MobileChatContainer}`}>
           {!lastQuestionRef.current ? (
             <Stack className={styles.chatEmptyState}>
-              <img src={Azure} className={styles.chatIcon} aria-hidden="true" />
-              <h1 className={styles.chatEmptyStateTitle}>Start chatting</h1>
+              <img src="../../src/assets/logo_blue.webp" className={styles.chatIcon} aria-hidden="true" />
               <h2 className={styles.chatEmptyStateSubtitle}>
-                This chatbot is configured to answer your questions
+                Let's explore together
               </h2>
+              <h1 className={styles.chatEmptyStateTitle}>Let's explore together</h1>
             </Stack>
           ) : (
             <div
@@ -412,6 +413,7 @@ const Chat = () => {
           </Stack.Item>
         )}
       </Stack>
+      {/* <Sidebar /> */}
     </div>
   );
 };
