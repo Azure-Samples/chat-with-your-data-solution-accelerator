@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "5618157703532311466"
+      "templateHash": "16687140776366784204"
     }
   },
   "parameters": {
@@ -285,6 +285,20 @@
       "defaultValue": "[format('index-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Azure AI Search Index"
+      }
+    },
+    "azureSearchIndexer": {
+      "type": "string",
+      "defaultValue": "[format('indexer-{0}', parameters('resourceToken'))]",
+      "metadata": {
+        "description": "Azure AI Search Indexer"
+      }
+    },
+    "azureSearchDatasource": {
+      "type": "string",
+      "defaultValue": "[format('datasource-{0}', parameters('resourceToken'))]",
+      "metadata": {
+        "description": "Azure AI Search Datasource"
       }
     },
     "azureSearchConversationLogIndex": {
@@ -10253,6 +10267,14 @@
     "AZURE_SEARCH_INDEX": {
       "type": "string",
       "value": "[parameters('azureSearchIndex')]"
+    },
+    "AZURE_SEARCH_INDEXER_NAME": {
+      "type": "string",
+      "value": "[parameters('azureSearchIndexer')]"
+    },
+    "AZURE_SEARCH_DATASOURCE_NAME": {
+      "type": "string",
+      "value": "[parameters('azureSearchDatasource')]"
     },
     "AZURE_SPEECH_SERVICE_REGION": {
       "type": "string",

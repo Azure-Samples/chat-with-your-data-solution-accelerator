@@ -136,6 +136,12 @@ param azureSearchSku string = 'standard'
 @description('Azure AI Search Index')
 param azureSearchIndex string = 'index-${resourceToken}'
 
+@description('Azure AI Search Indexer')
+param azureSearchIndexer string = 'indexer-${resourceToken}'
+
+@description('Azure AI Search Datasource')
+param azureSearchDatasource string = 'datasource-${resourceToken}'
+
 @description('Azure AI Search Conversation Log Index')
 param azureSearchConversationLogIndex string = 'conversations'
 
@@ -322,6 +328,22 @@ module search './core/search/search-services.bicep' = {
     }
   }
 }
+
+// module setupSearchService './core/search/search-service-iv.bicep' = if (azureSearchUseIntegratedVectorization) {
+//   name: azureAISearchName
+//   scope: rg
+//   params: {
+//     name: azureAISearchName
+//     location: location
+//     tags: tags
+//     dataSourceType: 'azureblob'
+//     azureSearchIndex: azureSearchIndex
+//     azureSearchIndexer: azureSearchIndexer
+//     azureSearchDataSource: azureSearchDatasource
+//     dataSourceConnectionString: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};AccountKey=${useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''};EndpointSuffix=core.windows.net'
+//     dataSourceContainerName: blobContainerName
+//   }
+// }
 
 module hostingplan './core/host/appserviceplan.bicep' = {
   name: hostingPlanName
@@ -853,6 +875,10 @@ output AZURE_SEARCH_TITLE_COLUMN string = azureSearchTitleColumn
 output AZURE_SEARCH_URL_COLUMN string = azureSearchUrlColumn
 output AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION bool = azureSearchUseIntegratedVectorization
 output AZURE_SEARCH_INDEX string = azureSearchIndex
+output AZURE_SEARCH_INDEXER_NAME string = azureSearchIndexer
+output AZURE_SEARCH_DATASOURCE_NAME string = azureSearchDatasource
+//output AZURE_SEARCH_INDEXER_NAME string = azureSearchUseIntegratedVectorization ? setupSearchService.outputs.searchIndexerName : ''
+//output AZURE_SEARCH_DATASOURCE_NAME string = azureSearchUseIntegratedVectorization ? setupSearchService.outputs.searchdataSourceName : ''
 output AZURE_SPEECH_SERVICE_REGION string = location
 output AZURE_SPEECH_SERVICE_KEY string = useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
 output AZURE_TENANT_ID string = tenant().tenantId

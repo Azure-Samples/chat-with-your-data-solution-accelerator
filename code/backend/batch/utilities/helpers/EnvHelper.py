@@ -57,6 +57,11 @@ class EnvHelper:
             os.getenv("AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION", "False").lower()
             == "true"
         )
+        self.AZURE_SEARCH_DATASOURCE_NAME = os.getenv(
+            "AZURE_SEARCH_DATASOURCE_NAME", ""
+        )
+        self.AZURE_SEARCH_INDEXER_NAME = os.getenv("AZURE_SEARCH_INDEXER_NAME", "")
+
         self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "keys")
         # Azure OpenAI
         self.AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE", "")
