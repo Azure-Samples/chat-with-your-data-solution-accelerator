@@ -63,7 +63,7 @@ class TestSpeechToken:
         mock_response.status_code = 200
 
         # when
-        response = client.get("/api/speech/token")
+        response = client.get("/api/speech")
 
         # then
         assert response.status_code == 200
@@ -103,7 +103,7 @@ class TestSpeechToken:
         mock_response.status_code = 200
 
         # when
-        response = client.get("/api/speech/token")
+        response = client.get("/api/speech")
 
         # then
         assert response.status_code == 200
@@ -129,7 +129,7 @@ class TestSpeechToken:
         mock_response.status_code = 400
 
         # when
-        response = client.get("/api/speech/token")
+        response = client.get("/api/speech")
 
         # then
         assert response.status_code == 400
@@ -143,7 +143,7 @@ class TestSpeechToken:
         requests.post.side_effect = Exception("An error occurred")
 
         # when
-        response = client.get("/api/speech/token")
+        response = client.get("/api/speech")
 
         assert response.status_code == 500
         assert response.json == {"error": "Failed to get speech token"}

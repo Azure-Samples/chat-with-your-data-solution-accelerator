@@ -131,25 +131,9 @@ const Chat = () => {
     return abortController.abort();
   };
 
-  useEffect(() => {
-    async function fetchServerConfig() {
-      try {
-        const response = await fetch("/api/config");
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        const data = await response.json();
-      } catch (error) {
-        console.error("Error fetching server configuration:", error);
-      }
-    }
-
-    fetchServerConfig();
-  }, []);
-
   const fetchSpeechToken = async (): Promise<{ token: string, region: string; }> => {
     try {
-      const response = await fetch("/api/speech/token");
+      const response = await fetch("/api/speech");
       if (!response.ok) {
         console.error("Error fetching speech token:", response);
         throw new Error("Network response was not ok");

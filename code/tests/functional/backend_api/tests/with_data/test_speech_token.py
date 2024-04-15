@@ -12,7 +12,7 @@ pytestmark = pytest.mark.functional
 
 def test_speech_token_returned(app_url: str, app_config: AppConfig):
     # when
-    response = requests.get(f"{app_url}/api/speech/token")
+    response = requests.get(f"{app_url}/api/speech")
 
     # then
     assert response.status_code == 200
@@ -27,7 +27,7 @@ def test_speech_service_called_correctly(
     app_url: str, app_config: AppConfig, httpserver: HTTPServer
 ):
     # when
-    requests.get(f"{app_url}/api/speech/token")
+    requests.get(f"{app_url}/api/speech")
 
     # then
     verify_request_made(
@@ -53,7 +53,7 @@ def test_failure_fetching_speech_token(app_url: str, httpserver: HTTPServer):
     ).respond_with_json({"error": "Bad request"}, status=400)
 
     # when
-    response = requests.get(f"{app_url}/api/speech/token")
+    response = requests.get(f"{app_url}/api/speech")
 
     # then
     assert response.status_code == 400
