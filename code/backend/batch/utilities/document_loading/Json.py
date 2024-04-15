@@ -34,8 +34,11 @@ class JsonDocumentLoading(DocumentLoadingBase):
 
     def _keywords_resolver_func(self, record: dict):
         tags = record.get('tags')
-        if tags and getattr(tags, '__iter__'):
-            return ','.join([str(tag) for tag in tags])
+        if tags:
+            if isinstance(tags, list):
+                return ' '.join([str(tag) for tag in tags])
+            elif isinstance(tags, str):
+                return tags
         else:
             return ''
 
@@ -47,7 +50,7 @@ class JsonDocumentLoading(DocumentLoadingBase):
         else:
             with open(url, 'r') as file:
                 content = file.read()
-                
+
         jq_schema = jq.compile(jschema)
 
         index = 0
