@@ -1,5 +1,5 @@
 {
-    "name": "cwyodts",
+    "name": "teams-bot-toolkit",
     "version": "1.0.0",
     "description": "Microsoft Teams Toolkit hello world Bot sample",
     "engines": {
@@ -24,15 +24,15 @@
     },
     "dependencies": {
         "botbuilder": "^4.22.1",
-        "restify": "^11.1.0"
+        "restify": "^10.0.0"
     },
     "devDependencies": {
-        "@types/node": "^18.19.26",
-        "@types/restify": "^8.5.12",
+        "@types/node": "^18.20.1",
+        "@types/restify": "^8.5.5",
         "env-cmd": "^10.1.0",
-        "nodemon": "^3.1.0",
+        "nodemon": "^2.0.7",
         "shx": "^0.3.3",
-        "ts-node": "^10.9.2",
-        "typescript": "^5.4.3"
+        "ts-node": "^10.4.0",
+        "typescript": "^4.4.4"
     }
 }

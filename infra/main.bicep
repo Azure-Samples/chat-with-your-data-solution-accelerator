@@ -30,6 +30,18 @@ param hostingPlanName string = 'hosting-plan-${resourceToken}'
 ])
 param hostingPlanSku string = 'B3'
 
+@description('The sku tier for the App Service plan')
+@allowed([
+  'Free'
+  'Shared'
+  'Basic'
+  'Standard'
+  'Premium'
+  'PremiumV2'
+  'PremiumV3'
+])
+param skuTier string = 'Basic'
+
 @description('Name of Web App')
 param websiteName string = 'web-${resourceToken}'
 
@@ -71,6 +83,12 @@ param azureSearchTitleColumn string = 'title'
 
 @description('Url column')
 param azureSearchUrlColumn string = 'url'
+
+@description('Use Azure Search Integrated Vectorization (Not yet implemented)')
+@allowed([
+  false
+])
+param azureSearchUseIntegratedVectorization bool = false
 
 @description('Name of Azure OpenAI Resource')
 param azureOpenAIResourceName string = 'openai-${resourceToken}'
@@ -331,6 +349,7 @@ module hostingplan './core/host/appserviceplan.bicep' = {
     location: location
     sku: {
       name: hostingPlanSku
+      tier: skuTier
     }
     reserved: true
     tags: { Automation: 'Ignore' }
@@ -856,6 +875,7 @@ output AZURE_SEARCH_FILENAME_COLUMN string = azureSearchFilenameColumn
 output AZURE_SEARCH_FILTER string = azureSearchFilter
 output AZURE_SEARCH_TITLE_COLUMN string = azureSearchTitleColumn
 output AZURE_SEARCH_URL_COLUMN string = azureSearchUrlColumn
+output AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION bool = azureSearchUseIntegratedVectorization
 output AZURE_SEARCH_INDEX string = azureSearchIndex
 output AZURE_SPEECH_SERVICE_REGION string = location
 output AZURE_SPEECH_SERVICE_KEY string = useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
