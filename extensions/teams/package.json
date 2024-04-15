@@ -27,7 +27,7 @@
         "restify": "^10.0.0"
     },
     "devDependencies": {
-        "@types/node": "^18.20.1",
+        "@types/node": "^18.19.31",
         "@types/restify": "^8.5.5",
         "env-cmd": "^10.1.0",
         "nodemon": "^3.1.0",
