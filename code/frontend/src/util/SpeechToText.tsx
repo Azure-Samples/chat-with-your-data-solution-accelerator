@@ -7,12 +7,12 @@ import {
 
 
 export const multiLingualSpeechRecognizer = (
-    subscriptionKey: string,
+    token: string,
     serviceRegion: string,
     languages: string[]
   ) => {
-        const speechConfig = SpeechConfig.fromSubscription(
-          subscriptionKey,
+        const speechConfig = SpeechConfig.fromAuthorizationToken(
+          token,
           serviceRegion
         );
         const audioConfig = AudioConfig.fromDefaultMicrophoneInput();

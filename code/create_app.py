@@ -7,8 +7,10 @@ import mimetypes
 from flask import Flask, Response, request, jsonify
 from dotenv import load_dotenv
 import sys
+import functools
 from backend.batch.utilities.helpers.EnvHelper import EnvHelper
-
+from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
+from azure.identity import DefaultAzureCredential
 
 logger = logging.getLogger(__name__)
 
@@ -285,6 +287,24 @@ def conversation_without_data(request, env_helper):
         )
 
 
+@functools.cache
+def get_speech_key(env_helper: EnvHelper):
+    """
+    Get the Azure Speech key directly from Azure.
+    This is required to generate short-lived tokens when using RBAC.
+    """
+    client = CognitiveServicesManagementClient(
+        credential=DefaultAzureCredential(),
+        subscription_id=env_helper.AZURE_SUBSCRIPTION_ID,
+    )
+    keys = client.accounts.list_keys(
+        resource_group_name=env_helper.AZURE_RESOURCE_GROUP,
+        account_name=env_helper.AZURE_SPEECH_SERVICE_NAME,
+    )
+
+    return keys.key1
+
+
 def create_app():
     # Fixing MIME types for static files under Windows
     mimetypes.add_type("application/javascript", ".js")
@@ -380,5 +400,30 @@ def create_app():
                 ),
                 500,
             )
+
+    @app.route("/api/speech", methods=["GET"])
+    def speech_token():
+        try:
+            speech_key = env_helper.AZURE_SPEECH_KEY or get_speech_key(env_helper)
+
+            response = requests.post(
+                f"{env_helper.AZURE_SPEECH_REGION_ENDPOINT}sts/v1.0/issueToken",
+                headers={
+                    "Ocp-Apim-Subscription-Key": speech_key,
+                },
+            )
+
+            if response.status_code == 200:
+                return {
+                    "token": response.text,
+                    "region": env_helper.AZURE_SPEECH_SERVICE_REGION,
+                }
+
+            logger.error(f"Failed to get speech token: {response.text}")
+            return {"error": "Failed to get speech token"}, response.status_code
+        except Exception as e:
+            logger.exception(f"Exception in /api/speech | {str(e)}")
+
+            return {"error": "Failed to get speech token"}, 500
 
     return app

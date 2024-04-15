@@ -26,6 +26,10 @@ class EnvHelper:
 
         self.LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
 
+        # Azure
+        self.AZURE_SUBSCRIPTION_ID = os.getenv("AZURE_SUBSCRIPTION_ID", "")
+        self.AZURE_RESOURCE_GROUP = os.getenv("AZURE_RESOURCE_GROUP", "")
+
         # Azure Search
         self.AZURE_SEARCH_SERVICE = os.getenv("AZURE_SEARCH_SERVICE", "")
         self.AZURE_SEARCH_INDEX = os.getenv("AZURE_SEARCH_INDEX", "")
@@ -169,7 +173,12 @@ class EnvHelper:
             "ORCHESTRATION_STRATEGY", "openai_function"
         )
         # Speech Service
+        self.AZURE_SPEECH_SERVICE_NAME = os.getenv("AZURE_SPEECH_SERVICE_NAME", "")
         self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")
+        self.AZURE_SPEECH_REGION_ENDPOINT = os.environ.get(
+            "AZURE_SPEECH_REGION_ENDPOINT",
+            f"https://{self.AZURE_SPEECH_SERVICE_REGION}.api.cognitive.microsoft.com/",
+        )
 
         self.LOAD_CONFIG_FROM_BLOB_STORAGE = self.get_env_var_bool(
             "LOAD_CONFIG_FROM_BLOB_STORAGE"
