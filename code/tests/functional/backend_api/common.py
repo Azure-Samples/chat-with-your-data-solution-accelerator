@@ -5,12 +5,14 @@ import time
 import requests
 from threading import Thread
 from create_app import create_app
+from backend.batch.utilities.helpers.EnvHelper import EnvHelper
 
 logger = logging.getLogger(__name__)
 
 
 def start_app(app_port: int) -> Thread:
     logger.info(f"Starting application on port {app_port}")
+    EnvHelper.clear_instance()
     app = create_app()
     app_process = threading.Thread(target=lambda: app.run(port=app_port), daemon=True)
     app_process.start()

@@ -8,8 +8,18 @@ logger = logging.getLogger(__name__)
 
 
 class EnvHelper:
-    def __init__(self, **kwargs) -> None:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(EnvHelper, cls).__new__(cls)
+            cls._instance.__load_config()
+        return cls._instance
+
+    def __load_config(self, **kwargs) -> None:
         load_dotenv()
+
+        logger.info("Initializing EnvHelper")
 
         # Wrapper for Azure Key Vault
         self.secretHelper = SecretHelper()
@@ -187,6 +197,11 @@ class EnvHelper:
         for attr, value in EnvHelper().__dict__.items():
             if value == "":
                 logger.warning(f"{attr} is not set in the environment variables.")
+
+    @classmethod
+    def clear_instance(cls):
+        if cls._instance is not None:
+            cls._instance = None
 
 
 class SecretHelper:

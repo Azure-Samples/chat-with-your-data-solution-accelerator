@@ -3,6 +3,12 @@ import pytest
 from backend.batch.utilities.helpers.EnvHelper import EnvHelper
 
 
+@pytest.fixture(autouse=True)
+def cleanup():
+    yield
+    EnvHelper.clear_instance()
+
+
 def test_openai_base_url_generates_url_based_on_resource_name_if_not_set(
     monkeypatch: MonkeyPatch,
 ):
