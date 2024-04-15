@@ -151,6 +151,7 @@ const Chat = () => {
     try {
       const response = await fetch("/api/speech/token");
       if (!response.ok) {
+        console.error("Error fetching speech token:", response);
         throw new Error("Network response was not ok");
       }
       return response.json();
