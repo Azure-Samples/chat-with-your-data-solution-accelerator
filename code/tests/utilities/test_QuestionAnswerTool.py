@@ -255,6 +255,7 @@ def test_legacy_correct_prompt(config_mock: MagicMock, LLMChainMock: MagicMock):
     # given
     tool = QuestionAnswerTool()
     answer_generator = LLMChainMock.return_value
+    config_mock.prompts.use_answering_system_prompt = False
     config_mock.prompts.answering_prompt = "Sources: {sources}, Question: {question}"
 
     # when

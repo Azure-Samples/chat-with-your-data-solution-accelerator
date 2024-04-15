@@ -36,6 +36,10 @@ if "answering_system_prompt" not in st.session_state:
     st.session_state["answering_system_prompt"] = config.prompts.answering_system_prompt
 if "answering_user_prompt" not in st.session_state:
     st.session_state["answering_user_prompt"] = config.prompts.answering_user_prompt
+if "use_answering_system_prompt" not in st.session_state:
+    st.session_state["use_answering_system_prompt"] = (
+        config.prompts.use_answering_system_prompt
+    )
 if "answering_prompt" not in st.session_state:
     st.session_state["answering_prompt"] = config.prompts.answering_prompt
 if "post_answering_prompt" not in st.session_state:
@@ -167,8 +171,9 @@ try:
     answering_user_prompt_help = (
         "The user prompt containing the retrieved documents and user question."
     )
-    answering_prompt_help = "Deprecated in favour of answering_system_prompt and answering_user_prompt.  \nThis prompt is used to answer the user's question, using the sources that were retrieved from the knowledge base."
+    answering_prompt_help = "Deprecated in favour of 'Answering system prompt' and 'Answering user prompt'.  \nThis prompt is used to answer the user's question, using the sources that were retrieved from the knowledge base."
     post_answering_prompt_help = "You can configure a post prompt that allows to fact-check or process the answer, given the sources, question and answer. This prompt needs to return `True` or `False`."
+    use_answering_system_prompt_help = "Use 'Answering System Prompt' and 'Answering User Prompt' instead of 'Answering Prompt'. This is recommended."
     post_answering_filter_help = "The message that is returned to the user, when the post-answering prompt returns."
 
     example_documents_help = (
@@ -196,6 +201,12 @@ try:
 
     with st.expander("Prompt configuration", expanded=True):
         # # # st.text_area("Condense question prompt", key='condense_question_prompt', on_change=validate_question_prompt, help=condense_question_prompt_help, height=200)
+        st.checkbox(
+            "Use answering system prompt",
+            key="use_answering_system_prompt",
+            help=use_answering_system_prompt_help,
+        )
+
         st.text_area(
             "Answering system prompt",
             key="answering_system_prompt",
@@ -318,6 +329,9 @@ try:
                 "answering_system_prompt": st.session_state["answering_system_prompt"],
                 "answering_user_prompt": st.session_state["answering_user_prompt"],
                 "answering_prompt": st.session_state["answering_prompt"],
+                "use_answering_system_prompt": st.session_state[
+                    "use_answering_system_prompt"
+                ],
                 "post_answering_prompt": st.session_state["post_answering_prompt"],
                 "enable_post_answering_prompt": st.session_state[
                     "enable_post_answering_prompt"

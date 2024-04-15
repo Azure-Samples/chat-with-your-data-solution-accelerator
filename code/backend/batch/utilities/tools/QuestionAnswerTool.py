@@ -133,16 +133,15 @@ class QuestionAnswerTool(AnsweringToolBase):
             filters=self.env_helper.AZURE_SEARCH_FILTER,
         )
 
-        # If answering_prompt has been set, then use legacy_generate_llm_chain for backwards compatibility
-        if self.config.prompts.answering_prompt:
-            warnings.warn(
-                "'Answering prompt' is deprecated. Use 'Answering system prompt' and 'Answering user prompt' instead.",
-            )
-            answering_prompt, input = self.legacy_generate_llm_chain(question, sources)
-        else:
+        if self.config.prompts.use_answering_system_prompt:
             answering_prompt, input = self.generate_llm_chain(
                 question, chat_history, sources
             )
+        else:
+            warnings.warn(
+                "'Answering prompt' is deprecated. Enable 'Use answering system prompt' instead.",
+            )
+            answering_prompt, input = self.legacy_generate_llm_chain(question, sources)
 
         llm_helper = LLMHelper()
 
