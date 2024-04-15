@@ -10,4 +10,4 @@ cp backend dist -r -Force
 # Node
 cd frontend
 npm install
-VITE_ENV_DIR=$(dirname $(azd env list --output json | jq -r '.[] | select(.IsDefault == true) | .DotEnvPath')) npm run build
+npm run build

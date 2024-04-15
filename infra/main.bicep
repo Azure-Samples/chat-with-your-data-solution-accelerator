@@ -891,5 +891,5 @@ output USE_KEY_VAULT bool = useKeyVault
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code' ? web.outputs.FRONTEND_API_URI : web_docker.outputs.FRONTEND_API_URI
 output ADMIN_WEBSITE_NAME string = hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_URI : adminweb_docker.outputs.WEBSITE_ADMIN_URI
-output VITE_SPEECH_RECOGNIZER_LANGUAGES string = recognizedLanguages
+output SPEECH_RECOGNIZER_LANGUAGES string = recognizedLanguages
 output LOGLEVEL string = logLevel

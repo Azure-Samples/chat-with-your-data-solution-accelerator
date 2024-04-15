@@ -1,11 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-const envDir = process.env.VITE_ENV_DIR;
-
 // https://vitejs.dev/config/
 export default defineConfig({
-    envDir: envDir,
     plugins: [react()],
     build: {
         outDir: "../dist/static",
