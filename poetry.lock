@@ -294,13 +294,13 @@ opentelemetry-api = ">=1.12.0,<2.0.0"
 
 [[package]]
 name = "azure-functions"
-version = "1.18.0"
+version = "1.19.0"
 description = "Azure Functions for Python"
 optional = false
 python-versions = "*"
 files = [
-    {file = "azure-functions-1.18.0.tar.gz", hash = "sha256:4dc9f80d5550a1f7c874e1d4f64ace7f484406273246d4f90ff63c2a1b7f4950"},
-    {file = "azure_functions-1.18.0-py3-none-any.whl", hash = "sha256:10b392f7c3b325623869d58b38112d624534645a54f1c753dc04199abbcf7b4d"},
+    {file = "azure-functions-1.19.0.tar.gz", hash = "sha256:f3494913d137af9fd735e2b2497aa54fc308b64f4902aa286c19b328fa3ae278"},
+    {file = "azure_functions-1.19.0-py3-none-any.whl", hash = "sha256:1184cef20a587f4f63c9d4fbe20d6682163192b36bd1e16cc6e8261b2ba3fb61"},
 ]
 
 [package.extras]
@@ -4607,4 +4607,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "dc359a54d5a99433ef8eeb61d01186b8036ea4f959ac7594fd5ed6af384bd213"
+content-hash = "5347630e5e90089b0734da007dd5de39fc27eb982779447856539b550497d457"
