@@ -2,6 +2,7 @@ import logging
 import pytest
 from tests.functional.backend_api.app_config import AppConfig
 from tests.functional.backend_api.common import get_free_port, start_app
+from backend.batch.utilities.helpers.EnvHelper import EnvHelper
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,8 @@ def app_config(make_httpserver, ca):
 @pytest.fixture(scope="package", autouse=True)
 def manage_app(app_port: int, app_config: AppConfig):
     app_config.apply_to_environment()
+    EnvHelper.clear_instance()
     start_app(app_port)
     yield
     app_config.remove_from_environment()
+    EnvHelper.clear_instance()
