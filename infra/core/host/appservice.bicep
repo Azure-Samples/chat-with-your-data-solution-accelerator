@@ -91,6 +91,8 @@ module configAppSettings 'appservice-appsettings.bicep' = {
     appSettings: union(appSettings,
       {
         APPINSIGHTS_ENABLED: string(!empty(applicationInsightsName))
+        AZURE_RESOURCE_GROUP: resourceGroup().name
+        AZURE_SUBSCRIPTION_ID: subscription().subscriptionId
         SCM_DO_BUILD_DURING_DEPLOYMENT: string(scmDoBuildDuringDeployment)
         ENABLE_ORYX_BUILD: string(enableOryxBuild)
       },
