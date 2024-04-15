@@ -11,6 +11,7 @@ config_dict = {
         "answering_prompt": "mock_answering_prompt",
         "answering_system_prompt": "mock_answering_system_prompt",
         "answering_user_prompt": "mock_answering_user_prompt",
+        "use_answering_system_prompt": "mock_use_answering_system_prompt",
         "post_answering_prompt": "mock_post_answering_prompt",
         "enable_post_answering_prompt": False,
         "enable_content_safety": True,
@@ -92,15 +93,15 @@ def test_get_default_config_when_not_in_azure(
     get_default_config_mock: MagicMock, blob_client_mock: MagicMock
 ):
     # given
-    get_default_config_mock.return_value = Config(config_dict)
+    get_default_config_mock.return_value = config_dict
     blob_client_mock.download_file.side_effect = ResourceNotFoundError()
 
     # when
-    default_config = ConfigHelper.get_default_config()
     config = ConfigHelper.get_active_config_or_default()
 
     # then
-    assert config is default_config
+    assert isinstance(config, Config)
+    assert config.prompts.condense_question_prompt == "mock_condense_question_prompt"
 
 
 def test_save_config_as_active(
