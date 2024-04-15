@@ -50,3 +50,11 @@ def test_document_loading_docx():
     assert len(data) == 1
     assert data[0].source == url
     print(data[0].content)
+
+def test_document_loading_json():
+    document_loading = DocumentLoading()
+    url = "./code/tests/utilities/resources/get_test_json_data.json"
+    data = document_loading.load(url, LoadingSettings({"strategy": "json"}))
+    assert len(data) == 2
+    assert data[0].source == url
+    print(data[0].content)

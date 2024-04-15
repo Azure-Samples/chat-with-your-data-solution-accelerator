@@ -6,6 +6,7 @@ class ChunkingStrategy(Enum):
     PAGE = "page"
     FIXED_SIZE_OVERLAP = "fixed_size_overlap"
     PARAGRAPH = "paragraph"
+    MOCK = "mock"
 
 
 def get_document_chunker(chunking_strategy: str):
@@ -25,6 +26,10 @@ def get_document_chunker(chunking_strategy: str):
         from .Paragraph import ParagraphDocumentChunking
 
         return ParagraphDocumentChunking()
+    elif chunking_strategy == ChunkingStrategy.MOCK.value:
+        from .Empty import MockedDocumentChunking
+
+        return MockedDocumentChunking()
     else:
         raise Exception(f"Unknown chunking strategy: {chunking_strategy}")
 
