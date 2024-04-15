@@ -13,7 +13,10 @@
         "main"
     ],
     "python.testing.pytestArgs": [
-        "."
+        ".",
+        // Until we reconfigure these tests
+        "-m",
+        "not azure",
     ],
     "python.testing.cwd": "${workspaceFolder}/code",
     "python.testing.unittestEnabled": false,

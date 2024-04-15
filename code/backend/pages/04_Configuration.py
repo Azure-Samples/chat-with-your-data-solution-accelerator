@@ -1,7 +1,6 @@
 import streamlit as st
 import os
 import traceback
-import logging
 from dotenv import load_dotenv
 import sys
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
@@ -10,9 +9,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 load_dotenv()
 
-logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
-    logging.WARNING
-)
 st.set_page_config(
     page_title="Configure Prompts",
     page_icon=os.path.join("images", "favicon.ico"),

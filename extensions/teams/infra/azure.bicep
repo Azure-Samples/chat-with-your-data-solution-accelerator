@@ -16,7 +16,7 @@ param azureFunctionURL string
 
 param webAppSKU string
 
-@maxLength(42) 
+@maxLength(42)
 param botDisplayName string
 
 param serverfarmsName string = resourceBaseName
