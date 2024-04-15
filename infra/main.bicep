@@ -347,22 +347,6 @@ module search './core/search/search-services.bicep' = {
   }
 }
 
-// module setupSearchService './core/search/search-service-iv.bicep' = if (azureSearchUseIntegratedVectorization) {
-//   name: azureAISearchName
-//   scope: rg
-//   params: {
-//     name: azureAISearchName
-//     location: location
-//     tags: tags
-//     dataSourceType: 'azureblob'
-//     azureSearchIndex: azureSearchIndex
-//     azureSearchIndexer: azureSearchIndexer
-//     azureSearchDataSource: azureSearchDatasource
-//     dataSourceConnectionString: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};AccountKey=${useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''};EndpointSuffix=core.windows.net'
-//     dataSourceContainerName: blobContainerName
-//   }
-// }
-
 module hostingplan './core/host/appserviceplan.bicep' = {
   name: hostingPlanName
   scope: rg
@@ -796,6 +780,10 @@ module storage 'core/storage/storage-account.bicep' = {
       {
         name: blobContainerName
         publicAccess: 'None'
+        deleteRetentionPolicy: azureSearchUseIntegratedVectorization ? {
+          enabled: true
+          days: 7
+        } : {}
       }
       {
         name: 'config'

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "9902413343227594080"
+      "templateHash": "6465137312987074217"
     }
   },
   "parameters": {
@@ -9643,7 +9643,8 @@
             "value": [
               {
                 "name": "[variables('blobContainerName')]",
-                "publicAccess": "None"
+                "publicAccess": "None",
+                "deleteRetentionPolicy": "[if(parameters('azureSearchUseIntegratedVectorization'), createObject('enabled', true(), 'days', 7), createObject())]"
               },
               {
                 "name": "config",
