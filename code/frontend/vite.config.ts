@@ -5,14 +5,14 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
     plugins: [react()],
     build: {
-        outDir: "../static",
+        outDir: "../dist/static",
         emptyOutDir: true,
         sourcemap: true
     },
     server: {
         proxy: {
             "/api": {
-                target: "http://127.0.0.1:5000",
+                target: "https://rsta4xey-test-website-6eg6fe2yksguu.azurewebsites.net",
                 changeOrigin: true,
                 secure: false
             }

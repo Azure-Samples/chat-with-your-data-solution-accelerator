@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { initializeIcons } from "@fluentui/react";
+import { FluentProvider, webLightTheme } from '@fluentui/react-components';
 
 import "./index.css";
 
@@ -26,6 +27,8 @@ export default function App() {
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>
-        <App />
+        <FluentProvider theme={webLightTheme}>
+            <App />
+        </FluentProvider>,
     </React.StrictMode>
 );

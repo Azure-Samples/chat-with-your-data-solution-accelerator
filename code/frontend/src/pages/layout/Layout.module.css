@@ -5,7 +5,8 @@
 }
 
 .header {
-    background-color: #f2f2f2;
+    height: 56px;
+    background-color: rgb(0, 32, 91);
 }
 
 .headerContainer {
@@ -17,25 +18,27 @@
 .headerTitleContainer {
     display: flex;
     align-items: center;
-    margin-left: 14px;
+    margin-left: 30px;
+    margin-top: -5px;
     text-decoration: none;
 }
 
 .headerTitle {
     font-family: "Segoe UI";
     font-style: normal;
-    font-weight: 600;
+    font-weight: 100;
     font-size: 20px;
     line-height: 28px;
     display: flex;
     align-items: flex-end;
-    color: #242424;
+    color: white;
+    margin-left: 35px;
 }
 
 .headerIcon {
-    height: 32px;
-    width: 32px;
-    margin-left: 36px;
+    /* height: 57px;
+    width: 100px; */
+    /* margin-left: 36px; */
 }
 
 .shareButtonContainer {
