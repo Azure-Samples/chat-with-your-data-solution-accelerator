@@ -881,7 +881,6 @@ output AZURE_SEARCH_INDEX string = azureSearchIndex
 output AZURE_SPEECH_SERVICE_NAME string = speechServiceName
 output AZURE_SPEECH_SERVICE_REGION string = location
 output AZURE_SPEECH_SERVICE_KEY string = useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-output AZURE_SUBSCRIPTION_ID string = subscription().subscriptionId
 output AZURE_TENANT_ID string = tenant().tenantId
 output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
