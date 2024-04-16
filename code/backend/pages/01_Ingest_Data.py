@@ -17,11 +17,13 @@ from azure.storage.blob import (
 )
 import urllib.parse
 import sys
+import logging
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
 from batch.utilities.helpers.EnvHelper import EnvHelper
 
 sys.path.append(path.join(path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
+logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="Ingest Data",
@@ -79,30 +81,39 @@ def remote_convert_files_and_add_embeddings(process_all=False):
 def add_urls():
     urls = st.session_state["urls"].split("\n")
     if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
-        try:
-            for url in urls:
-                response = requests.get(url)
-                parsed_data = BeautifulSoup(response.content, "html.parser")
-                with io.BytesIO(parsed_data.get_text().encode("utf-8")) as stream:
-                    upload_file(stream, url)
-                st.success(f"Url {url} added to knowledge base")
-        except Exception:
-            st.error(traceback.format_exc())
+        download_url_and_upload_to_blob(urls)
     else:
-        params = {}
-        if env_helper.FUNCTION_KEY is not None:
-            params["code"] = env_helper.FUNCTION_KEY
-            params["clientId"] = "clientKey"
+        add_url_embeddings(urls)
+
+
+def download_url_and_upload_to_blob(urls: list[str]):
+    try:
         for url in urls:
-            body = {"url": url}
-            backend_url = urllib.parse.urljoin(
-                env_helper.BACKEND_URL, "/api/AddURLEmbeddings"
-            )
-            r = requests.post(url=backend_url, params=params, json=body)
-            if not r.ok:
-                raise ValueError(f"Error {r.status_code}: {r.text}")
-            else:
-                st.success(f"Embeddings added successfully for {url}")
+            response = requests.get(url)
+            parsed_data = BeautifulSoup(response.content, "html.parser")
+            with io.BytesIO(parsed_data.get_text().encode("utf-8")) as stream:
+                upload_file(stream, url)
+            st.success(f"Url {url} added to knowledge base")
+    except Exception:
+        logger.error(traceback.format_exc())
+        st.error("Exception occurred while adding URLs to the knowledge base.")
+
+
+def add_url_embeddings(urls: list[str]):
+    params = {}
+    if env_helper.FUNCTION_KEY is not None:
+        params["code"] = env_helper.FUNCTION_KEY
+        params["clientId"] = "clientKey"
+    for url in urls:
+        body = {"url": url}
+        backend_url = urllib.parse.urljoin(
+            env_helper.BACKEND_URL, "/api/AddURLEmbeddings"
+        )
+        r = requests.post(url=backend_url, params=params, json=body)
+        if not r.ok:
+            raise ValueError(f"Error {r.status_code}: {r.text}")
+        else:
+            st.success(f"Embeddings added successfully for {url}")
 
 
 def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] = None):
