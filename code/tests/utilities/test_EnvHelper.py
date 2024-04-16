@@ -113,3 +113,13 @@ def test_get_env_var_array(monkeypatch: MonkeyPatch):
 
     # then
     assert env_helper.SPEECH_RECOGNIZER_LANGUAGES == ["en-US", "es-ES"]
+
+
+def test_speech_recognizer_languages_default(monkeypatch: MonkeyPatch):
+    # given - no env var set
+
+    # when
+    env_helper = EnvHelper()
+
+    # then
+    assert env_helper.SPEECH_RECOGNIZER_LANGUAGES == ["en-US"]

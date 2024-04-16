@@ -28,6 +28,25 @@ describe("SpeechToText", () => {
     expect(recognizer.properties.getProperty("SpeechServiceConnection_AutoDetectSourceLanguages")).to.equal(languages.join(","));
   });
 
+  it("creates a speech recognizer without configured languages if language config empty array", async () => {
+    const token = "token";
+    const region = "region";
+
+    const response = {
+      token: token,
+      region: region,
+      languages: [""]
+    };
+
+    fetch.mockResolvedValue(createFetchResponse(true, response));
+
+    const recognizer = await multiLingualSpeechRecognizer();
+
+    expect(recognizer.authorizationToken).to.equal(token);
+    expect(recognizer.properties.getProperty("SpeechServiceConnection_Region")).to.equal(region);
+    expect(recognizer.properties.getProperty("SpeechServiceConnection_AutoDetectSourceLanguages")).to.be.undefined;
+  });
+
   it("throws an error if speech config response not ok", async () => {
     fetch.mockResolvedValue(createFetchResponse(false, {}));
 

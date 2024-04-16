@@ -29,6 +29,12 @@ export const multiLingualSpeechRecognizer = async () => {
         );
 
         const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
-        const autoDetectSourceLanguageConfig = AutoDetectSourceLanguageConfig.fromLanguages(languages)
-        return SpeechRecognizer.FromConfig(speechConfig, autoDetectSourceLanguageConfig, audioConfig);
+
+        try {
+          const autoDetectSourceLanguageConfig = AutoDetectSourceLanguageConfig.fromLanguages(languages);
+          return SpeechRecognizer.FromConfig(speechConfig, autoDetectSourceLanguageConfig, audioConfig);
+        } catch (error) {
+          console.error("Using default language settings as error detected while reading language config:", error);
+          return new SpeechRecognizer(speechConfig, audioConfig);
+        }
     };
