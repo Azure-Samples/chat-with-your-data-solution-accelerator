@@ -96,12 +96,15 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
 
         if result.choices[0].finish_reason == "function_call":
             if result.choices[0].message.function_call.name == "search_documents":
-                question = json.loads(
+                func_arguments = json.loads(
                     result.choices[0].message.function_call.arguments
-                )["question"]
+                )
+                question = func_arguments["question"]
+                keywords = func_arguments.get("keywords")
+
                 # run answering chain
                 answering_tool = QuestionAnswerTool()
-                answer = answering_tool.answer_question(question, chat_history)
+                answer = answering_tool.answer_question(question, chat_history, keywords=keywords)
 
                 self.log_tokens(
                     prompt_tokens=answer.prompt_tokens,
