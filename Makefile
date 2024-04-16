@@ -42,9 +42,9 @@ build-frontend: ## 🏗️ Build the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
 	@cd code/frontend && npm install && npm run build
 
-unittest-frontend: ## 🏗️ Unit test the Frontend webapp
+unittest-frontend: build-frontend ## 🏗️ Unit test the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
-	@cd code/frontend && npm install && npm run build && npm run test
+	@cd code/frontend && npm run test
 
 azd-login: ## 🔑 Login to Azure with azd and a SPN
 	@echo -e "\e[34m$@\e[0m" || true
