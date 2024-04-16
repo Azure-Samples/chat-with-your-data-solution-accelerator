@@ -75,10 +75,10 @@ jobs:
 
           echo "MIN_COVERAGE=$MIN_COVERAGE" >> "$GITHUB_OUTPUT"
 
-      - name: Pre-build image and run make in dev container
+      - name: Pre-build image and run unit tests with coverage in dev container
         uses: devcontainers/ci@v0.3
         with:
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
-          runCmd: make ci
+          runCmd: make unittest optional_args="--junitxml=coverage-junit.xml --cov=. --cov-report xml:coverage.xml --cov-fail-under 40"
           refFilterForPush: refs/heads/main
