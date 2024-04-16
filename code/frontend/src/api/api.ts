@@ -28,3 +28,29 @@ export async function customConversationApi(options: ConversationRequest, abortS
 
     return response;
 }
+
+export async function fetchServerConfigApi(): Promise<Response> {
+    const account = msalInstance.getActiveAccount();
+    if (!account) {
+        throw Error("No active account! Verify a user has been signed in and setActiveAccount has been called.");
+    }
+
+    const responseToken = await msalInstance.acquireTokenSilent({
+        ...loginRequest,
+        account: account
+    });
+
+    const response = await fetch("/api/config", {
+        method: "get",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${responseToken.accessToken}`
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+    return response;
+}
