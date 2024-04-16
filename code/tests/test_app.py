@@ -155,7 +155,7 @@ class TestSpeechToken:
 
 class TestConfig:
     def test_health(self, client):
-        response = client.get("/health")
+        response = client.get("/api/health")
 
         assert response.status_code == 200
         assert response.text == "OK"
