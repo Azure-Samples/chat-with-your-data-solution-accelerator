@@ -207,7 +207,8 @@ Examine the provided JSON documents diligently, extracting information relevant 
 - **The citation mark [doc+index] must put the end of the corresponding sentence which cited the document.**
 - **The citation mark [doc+index] must not be part of the response sentence.**
 - **You cannot list the citation at the end of response.
-- Every claim statement you generated must have at least one citation.**""",
+- Every claim statement you generated must have at least one citation.**
+- When directly replying to the user, always reply in the language the user is speaking.""",
                 "answering_user_prompt": """## Retrieved Documents
 {documents}
 
