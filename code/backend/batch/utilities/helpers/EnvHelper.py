@@ -85,11 +85,9 @@ class EnvHelper:
         )
 
         # Azure AD
-        # TODO: MOVE THIS TO ENV
-        tenant_id = "abdf0bc1-a86f-4288-85a1-0183f205e81f"
-        client_id = "a940f5ca-6e24-4b7c-89be-e4621cd553bb"
-        client_secret = os.getenv("AZURE_CLIENT_SECRET", "")
-
+        tenant_id = os.getenv("TENANT_ID", "")
+        client_id = os.getenv("CLIENT_ID", "")
+        client_secret = self.secretHelper.get_secret("CLIENT_SECRET")
         self.TENANT_ID = tenant_id
         self.CLIENT_ID = client_id
         self.CLIENT_SECRET = client_secret
