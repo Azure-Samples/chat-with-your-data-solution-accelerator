@@ -16,7 +16,6 @@ from azure.storage.blob import (
     UserDelegationKey,
 )
 import urllib.parse
-import urllib.request
 import sys
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
 from batch.utilities.helpers.EnvHelper import EnvHelper
@@ -78,12 +77,12 @@ def remote_convert_files_and_add_embeddings(process_all=False):
 
 
 def add_urls():
+    urls = st.session_state["urls"].split("\n")
     if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
         try:
-            urls = st.session_state["urls"].split("\n")
             for url in urls:
-                response = urllib.request.urlopen(url)
-                parsed_data = BeautifulSoup(response.read(), "html.parser")
+                response = requests.get(url)
+                parsed_data = BeautifulSoup(response.content, "html.parser")
                 with io.BytesIO(parsed_data.get_text().encode("utf-8")) as stream:
                     upload_file(stream, url)
                 st.success(f"Embeddings added successfully for {url}")
@@ -94,7 +93,6 @@ def add_urls():
         if env_helper.FUNCTION_KEY is not None:
             params["code"] = env_helper.FUNCTION_KEY
             params["clientId"] = "clientKey"
-        urls = st.session_state["urls"].split("\n")
         for url in urls:
             body = {"url": url}
             backend_url = urllib.parse.urljoin(
