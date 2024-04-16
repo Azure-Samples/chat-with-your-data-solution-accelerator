@@ -217,7 +217,7 @@ Answer: {answer}""",
                 {
                     "document_type": "sharepoint page",
                     "chunking": {
-                        "strategy": ChunkingStrategy.LAYOUT,
+                        "strategy": ChunkingStrategy.SHAREPOINT_PAGE,
                         "size": 500,
                         "overlap": 100,
                     },

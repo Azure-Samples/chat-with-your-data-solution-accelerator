@@ -1,3 +1,5 @@
+import json
+import re
 from urllib.parse import urlparse
 from typing import List
 from bs4 import BeautifulSoup
@@ -89,6 +91,30 @@ class SharePointLoading(DocumentLoadingBase):
                 "Failed to retrieve pages information from Microsoft Graph API"
             )
 
+    def extract_project_description(self, html_content):
+        soup = BeautifulSoup(html_content, "html.parser")
+        headers = soup.find_all("span", class_="fontColorThemePrimary")
+        text = ""
+
+        for i, header in enumerate(headers):
+            if i > 0:
+                text += "\n\n"
+            header_text = header.get_text(" ", strip=True)
+            text += f"{header_text}\n"
+
+            paragraph = header.find_parent("p")
+
+            next_sibling = paragraph.find_next_sibling()
+            while next_sibling:
+                if next_sibling.find("span", class_="fontColorThemePrimary"):
+                    break
+                sibling_text = next_sibling.get_text(" ", strip=True)
+                if sibling_text:
+                    text += f"{sibling_text} "
+                next_sibling = next_sibling.find_next_sibling()
+
+        return text.strip()
+
     def extract_text(self, html_content):
         soup = BeautifulSoup(html_content, "html.parser")
         return soup.get_text(" ", strip=True)
@@ -105,6 +131,8 @@ class SharePointLoading(DocumentLoadingBase):
         if response.status_code == 200:
             page_data = response.json()["value"]
             site_page = SitePage(header=page_header)
+            project_description_marker = "Project Overview"
+            tags_marker = "Tags"
             for index, item in reversed(list(enumerate(page_data))):
                 if (
                     "@odata.type" not in item
@@ -114,15 +142,22 @@ class SharePointLoading(DocumentLoadingBase):
                     continue
 
                 inner_html = item["innerHtml"]
-                if "Project Overview" in inner_html:
+                if project_description_marker in inner_html:
                     del page_data[index]
-                    text_content = self.extract_text(html_content=inner_html)
+                    inner_html = self.remove_substring(
+                        inner_html, project_description_marker
+                    )
+                    text_content = self.extract_project_description(
+                        html_content=inner_html
+                    )
                     site_page.set_text_content(text_content)
 
-                elif "Tags" in inner_html:
+                elif tags_marker in inner_html:
                     del page_data[index]
+                    inner_html = self.remove_substring(inner_html, tags_marker)
                     text_content = self.extract_text(html_content=inner_html)
-                    site_page.set_tags(tags=text_content)
+                    tags = self.extract_tags(html_content=inner_html)
+                    site_page.set_tags(tags)
 
             return site_page
 
@@ -131,23 +166,56 @@ class SharePointLoading(DocumentLoadingBase):
                 "Failed to retrieve pages information from Microsoft Graph API"
             )
 
+    def extract_tags(self, html_content):
+        soup = BeautifulSoup(html_content, "html.parser")
+        headings = soup.find_all("h3")
+        tags = {}
+        current_category = None
+
+        for heading in headings:
+            category_name = heading.text.strip()
+            if category_name:
+                category_name = category_name.strip(":")
+                current_category = category_name
+                tags[current_category] = []
+                items_paragraph = heading.find_next_sibling()
+                items = items_paragraph.text.split(",")
+                for item in items:
+                    tags[current_category].append(self.peel_text(text=item.strip()))
+
+        return tags
+
+    def peel_text(self, text):
+        return re.sub(r"[^\w\s,]", "", text)
+
+    def remove_substring(self, original_string, substring):
+        return original_string.replace(substring, "")
+
     def load(self, document_url: str) -> List[SourceDocument]:
 
         access_token = env_helper.AZURE_MS_GRAPH_TOKEN_PROVIDER()
         site_id = self.get_site_id(document_url, access_token)
         site_page_headers = self.get_page_headers(site_id, access_token)
 
-        pages = []
+        pages: List[SourceDocument] = []
         for site_page in [
             self.get_site_page(site_id, page_header, access_token)
             for page_header in site_page_headers
         ]:
-            pages.append(
-                {
-                    "title": site_page.header.title,
-                    "content": site_page.text_content,
-                    "keys": site_page.tags,
-                }
-            )
+            if site_page.text_content and site_page.tags:
+                json_str = json.dumps(
+                    {
+                        "title": site_page.header.title,
+                        "text": site_page.text_content,
+                        "tags": site_page.tags,
+                    }
+                )
+                pages.append(
+                    SourceDocument(
+                        content=json_str,
+                        source=site_page.header.source_url,
+                        project_name=site_page.header.title,
+                    )
+                )
 
-        return SourceDocument(content={"pages": pages}, source=document_url)
+        return pages

@@ -108,8 +108,10 @@ class EnvHelper:
             self.AZURE_OPENAI_API_KEY = ""
             self.AZURE_SPEECH_KEY = None
         else:
-            self.AZURE_SEARCH_KEY = os.getenv("AZURE_SEARCH_KEY", "")
-            self.AZURE_OPENAI_API_KEY = "93223501177c4ab5b444143e617ed7cc"
+            self.AZURE_SEARCH_KEY = self.secretHelper.get_secret("AZURE_SEARCH_KEY")
+            self.AZURE_OPENAI_API_KEY = self.secretHelper.get_secret(
+                "AZURE_OPENAI_API_KEY"
+            )
 
             self.AZURE_SPEECH_KEY = self.secretHelper.get_secret(
                 "AZURE_SPEECH_SERVICE_KEY"
