@@ -1,11 +1,8 @@
-import json
 import re
-from urllib.parse import urlparse
-from typing import List
-from bs4 import BeautifulSoup
 import requests
-from .DocumentLoadingBase import DocumentLoadingBase
-from ..common.SourceDocument import SourceDocument
+
+from urllib.parse import urlparse
+from bs4 import BeautifulSoup
 from batch.utilities.helpers.EnvHelper import EnvHelper
 
 env_helper: EnvHelper = EnvHelper()
@@ -32,10 +29,7 @@ class SitePage:
         self.tags = tags
 
 
-class SharePointLoading:  # (DocumentLoadingBase):
-    def __init__(self) -> None:
-        pass
-        # super().__init__()
+class SharePointHelper:
 
     def get_site_id(self, site_url, access_token):
         if not site_url:
@@ -145,7 +139,7 @@ class SharePointLoading:  # (DocumentLoadingBase):
                 inner_html = item["innerHtml"]
                 if project_description_marker in inner_html:
                     del page_data[index]
-                    inner_html = self.remove_substring(
+                    inner_html = self._remove_substring(
                         inner_html, project_description_marker
                     )
                     text_content = self.extract_project_description(
@@ -155,7 +149,8 @@ class SharePointLoading:  # (DocumentLoadingBase):
 
                 elif tags_marker in inner_html:
                     del page_data[index]
-                    inner_html = self.remove_substring(inner_html, tags_marker)
+                    inner_html = self._remove_substring(
+                        inner_html, tags_marker)
                     text_content = self.extract_text(html_content=inner_html)
                     tags = self.extract_tags(html_content=inner_html)
                     site_page.set_tags(tags)
@@ -182,18 +177,18 @@ class SharePointLoading:  # (DocumentLoadingBase):
                 items_paragraph = heading.find_next_sibling()
                 items = items_paragraph.text.split(",")
                 for item in items:
-                    tags[current_category].append(self.peel_text(text=item.strip()))
+                    tags[current_category].append(
+                        self._peel_text(text=item.strip()))
 
         return tags
 
-    def peel_text(self, text):
+    def _peel_text(self, text):
         return re.sub(r"[^\w\s,]", "", text)
 
-    def remove_substring(self, original_string, substring):
+    def _remove_substring(self, original_string, substring):
         return original_string.replace(substring, "")
 
-    def load(self, document_url: str):
-
+    def get_site_pages_as_json(self, document_url: str):
         access_token = env_helper.AZURE_MS_GRAPH_TOKEN_PROVIDER
         site_id = self.get_site_id(document_url, access_token)
         site_page_headers = self.get_page_headers(site_id, access_token)

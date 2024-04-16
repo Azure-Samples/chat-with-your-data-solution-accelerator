@@ -21,7 +21,7 @@ import urllib.parse
 import sys
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
 from batch.utilities.helpers.EnvHelper import EnvHelper
-from batch.utilities.document_loading.SharePoint import SharePointLoading
+from batch.utilities.helpers.SharePoint import SharePointHelper
 from components.login import isLoggedIn
 from components.menu import menu
 
@@ -85,7 +85,7 @@ def main():
         except Exception:
             st.error(traceback.format_exc())
 
-    def is_sharepoint_url(url):
+    def _is_sharepoint_url(url):
         sharepoint_pattern = r"https?://[a-zA-Z0-9.-]*sharepoint\.com"
         return bool(re.match(sharepoint_pattern, url))
 
@@ -97,9 +97,9 @@ def main():
         urls = st.session_state["urls"].split("\n")
         for url in urls:
 
-            if is_sharepoint_url(url):
-                sharepoint_loader = SharePointLoading()
-                pages = sharepoint_loader.load(url)
+            if _is_sharepoint_url(url):
+                sharepoint_loader = SharePointHelper()
+                pages = sharepoint_loader.get_site_pages_as_json(url)
                 if pages is not None:
                     for page in pages:
                         file_name = f'{page["title"]}.json'
