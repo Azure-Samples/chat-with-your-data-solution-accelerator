@@ -479,6 +479,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
+      SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
     }
