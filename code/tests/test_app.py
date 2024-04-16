@@ -18,6 +18,7 @@ AZURE_OPENAI_TEMPERATURE = "0.5"
 AZURE_OPENAI_MAX_TOKENS = "500"
 AZURE_OPENAI_TOP_P = "0.8"
 AZURE_OPENAI_STOP_SEQUENCE = "\n|STOP"
+SPEECH_RECOGNIZER_LANGUAGES = ["en-US", "en-GB"]
 TOKEN = "mock-token"
 
 
@@ -33,6 +34,7 @@ def env_helper_mock():
 
         env_helper.AZURE_SPEECH_KEY = AZURE_SPEECH_KEY
         env_helper.AZURE_SPEECH_SERVICE_REGION = AZURE_SPEECH_SERVICE_REGION
+        env_helper.SPEECH_RECOGNIZER_LANGUAGES = SPEECH_RECOGNIZER_LANGUAGES
         env_helper.AZURE_SPEECH_REGION_ENDPOINT = AZURE_SPEECH_REGION_ENDPOINT
         env_helper.AZURE_OPENAI_ENDPOINT = AZURE_OPENAI_ENDPOINT
         env_helper.AZURE_OPENAI_MODEL = AZURE_OPENAI_MODEL
@@ -70,6 +72,7 @@ class TestSpeechToken:
         assert response.json == {
             "token": "speech-token",
             "region": AZURE_SPEECH_SERVICE_REGION,
+            "languages": SPEECH_RECOGNIZER_LANGUAGES,
         }
 
         requests.post.assert_called_once_with(
@@ -110,6 +113,7 @@ class TestSpeechToken:
         assert response.json == {
             "token": "speech-token",
             "region": AZURE_SPEECH_SERVICE_REGION,
+            "languages": SPEECH_RECOGNIZER_LANGUAGES,
         }
 
         requests.post.assert_called_once_with(
@@ -133,7 +137,7 @@ class TestSpeechToken:
 
         # then
         assert response.status_code == 400
-        assert response.json == {"error": "Failed to get speech token"}
+        assert response.json == {"error": "Failed to get speech config"}
 
     @patch("create_app.requests")
     def test_error_when_unexpected_error_occurs(
@@ -146,7 +150,7 @@ class TestSpeechToken:
         response = client.get("/api/speech")
 
         assert response.status_code == 500
-        assert response.json == {"error": "Failed to get speech token"}
+        assert response.json == {"error": "Failed to get speech config"}
 
 
 class TestConfig:
