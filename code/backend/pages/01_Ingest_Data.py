@@ -85,7 +85,7 @@ def add_urls():
                 parsed_data = BeautifulSoup(response.content, "html.parser")
                 with io.BytesIO(parsed_data.get_text().encode("utf-8")) as stream:
                     upload_file(stream, url)
-                st.success(f"Embeddings added successfully for {url}")
+                st.success(f"Url {url} added to knowledge base")
         except Exception:
             st.error(traceback.format_exc())
     else:
