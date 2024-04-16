@@ -67,7 +67,7 @@ def test_document_processor_docx():
 
 @pytest.mark.azure("This test requires Azure")
 def test_document_processor_json():
-    url = "./code/tests/utilities/resources/get_test_json_data.json"
+    url = "./code/tests/utilities/resources/Marco Polo (TradeIX).json"
     document_processor = DocumentProcessor()
     processors = list(
         filter(
