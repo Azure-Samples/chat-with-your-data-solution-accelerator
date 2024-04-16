@@ -12,8 +12,8 @@ from azure.core.credentials import AzureKeyCredential
 
 
 class AzureSearchIVDatasourceHelper:
-    def __init__(self):
-        self.env_helper = EnvHelper()
+    def __init__(self, env_helper: EnvHelper):
+        self.env_helper = env_helper
         self.indexer_client = SearchIndexerClient(
             self.env_helper.AZURE_SEARCH_SERVICE,
             (

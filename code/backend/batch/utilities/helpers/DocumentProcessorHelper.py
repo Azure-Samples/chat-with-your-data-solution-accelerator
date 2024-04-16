@@ -31,13 +31,13 @@ class DocumentProcessor:
         env_helper: EnvHelper = EnvHelper()
         if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
             try:
-                search_datasource_helper = AzureSearchIVDatasourceHelper()
+                search_datasource_helper = AzureSearchIVDatasourceHelper(env_helper)
                 search_datasource_helper.create_or_update_datasource()
-                search_index_helper = AzureSearchIVIndexHelper()
-                search_index_helper.get_iv_search_store()
-                search_skillset_helper = AzureSearchIVSkillsetHelper()
+                search_index_helper = AzureSearchIVIndexHelper(env_helper)
+                search_index_helper.create_or_update_index()
+                search_skillset_helper = AzureSearchIVSkillsetHelper(env_helper)
                 search_skillset = search_skillset_helper.create_skillset()
-                search_indexer_helper = AzureSearchIVIndexerHelper()
+                search_indexer_helper = AzureSearchIVIndexerHelper(env_helper)
                 search_indexer_helper.create_or_update_indexer(
                     env_helper.AZURE_SEARCH_INDEXER_NAME, skillset_name=search_skillset
                 )

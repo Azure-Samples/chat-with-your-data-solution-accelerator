@@ -1,3 +1,4 @@
+import logging
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.indexes.models import (
     SearchField,
@@ -23,22 +24,23 @@ from .EnvHelper import EnvHelper
 from azure.identity import DefaultAzureCredential
 from azure.core.credentials import AzureKeyCredential
 
+logger = logging.getLogger(__name__)
+
 
 class AzureSearchIVIndexHelper:
-    def __init__(self):
-        pass
-
-    def get_iv_search_store(self):
-        env_helper: EnvHelper = EnvHelper()
-        # Create a search index
-        index_client = SearchIndexClient(
-            env_helper.AZURE_SEARCH_SERVICE,
+    def __init__(self, env_helper: EnvHelper):
+        self.env_helper = env_helper
+        self.index_client = SearchIndexClient(
+            self.env_helper.AZURE_SEARCH_SERVICE,
             (
-                AzureKeyCredential(env_helper.AZURE_SEARCH_KEY)
-                if env_helper.AZURE_AUTH_TYPE == "keys"
+                AzureKeyCredential(self.env_helper.AZURE_SEARCH_KEY)
+                if self.env_helper.AZURE_AUTH_TYPE == "keys"
                 else DefaultAzureCredential()
             ),
         )
+
+    def create_or_update_index(self):
+        # Create a search index
         fields = [
             SearchField(
                 name="parent_id",
@@ -79,7 +81,38 @@ class AzureSearchIVIndexHelper:
         ]
 
         # Configure the vector search configuration
-        vector_search = VectorSearch(
+        vector_search = self.get_vector_search_config()
+
+        # Configure the semantic search configuration
+        semantic_search = self.get_semantic_search_config()
+
+        # Create the search index
+        index = SearchIndex(
+            name=self.env_helper.AZURE_SEARCH_INDEX,
+            fields=fields,
+            vector_search=vector_search,
+            semantic_search=semantic_search,
+        )
+        result = self.index_client.create_or_update_index(index)
+        logger.info(f"{result.name} index created successfully.")
+        return result
+
+    def get_vector_search_config(self):
+        if self.env_helper.AZURE_AUTH_TYPE == "keys":
+            azure_open_ai_parameters = AzureOpenAIParameters(
+                resource_uri=self.env_helper.AZURE_OPENAI_ENDPOINT,
+                deployment_id=self.env_helper.AZURE_OPENAI_EMBEDDING_MODEL,
+                api_key=self.env_helper.OPENAI_API_KEY,
+            )
+        else:
+            azure_open_ai_parameters = AzureOpenAIParameters(
+                resource_uri=self.env_helper.AZURE_OPENAI_ENDPOINT,
+                deployment_id=self.env_helper.AZURE_OPENAI_EMBEDDING_MODEL,
+            )
+            # azure_ad_token_provider=self.env_helper.AZURE_TOKEN_PROVIDER)
+
+        # Configure the vector search configuration
+        return VectorSearch(
             algorithms=[
                 HnswAlgorithmConfiguration(
                     name="myHnsw",
@@ -113,15 +146,12 @@ class AzureSearchIVIndexHelper:
                 AzureOpenAIVectorizer(
                     name="myOpenAI",
                     kind="azureOpenAI",
-                    azure_open_ai_parameters=AzureOpenAIParameters(
-                        resource_uri=env_helper.AZURE_OPENAI_ENDPOINT,
-                        deployment_id=env_helper.AZURE_OPENAI_EMBEDDING_MODEL,
-                        api_key=env_helper.OPENAI_API_KEY,
-                    ),
+                    azure_open_ai_parameters=azure_open_ai_parameters,
                 ),
             ],
         )
 
+    def get_semantic_search_config(self):
         semantic_config = SemanticConfiguration(
             name="my-semantic-config",
             prioritized_fields=SemanticPrioritizedFields(
@@ -130,15 +160,4 @@ class AzureSearchIVIndexHelper:
         )
 
         # Create the semantic search with the configuration
-        semantic_search = SemanticSearch(configurations=[semantic_config])
-
-        # Create the search index
-        index = SearchIndex(
-            name=env_helper.AZURE_SEARCH_INDEX,
-            fields=fields,
-            vector_search=vector_search,
-            semantic_search=semantic_search,
-        )
-        result = index_client.create_or_update_index(index)
-        print(f"{result.name} created")
-        return result
+        return SemanticSearch(configurations=[semantic_config])
