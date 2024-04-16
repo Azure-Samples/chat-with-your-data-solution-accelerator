@@ -2,7 +2,7 @@ name: Tests
 
 on:
   push:
-    branches: [add-frontend-unit-tests-to-github]
+    branches: [main]
   pull_request:
     branches: [main]
     types:
