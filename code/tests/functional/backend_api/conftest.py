@@ -108,6 +108,11 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
         }
     )
 
+    httpserver.expect_request(
+        "/sts/v1.0/issueToken",
+        method="POST",
+    ).respond_with_data("speech-token")
+
     yield
 
     httpserver.check()
