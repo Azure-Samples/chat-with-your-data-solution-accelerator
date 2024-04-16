@@ -23,7 +23,7 @@ from typing import Optional
 
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
 from batch.utilities.helpers.EnvHelper import EnvHelper
-from utilities.helpers.SharePointHelper import SharePointHelper
+from batch.utilities.helpers.SharePointHelper import SharePointHelper
 from components.login import isLoggedIn
 from components.menu import menu
 

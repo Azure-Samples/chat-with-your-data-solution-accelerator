@@ -1,15 +1,17 @@
-from functools import wraps
 import json
-import logging
-from os import path
-import os
 import jwt
-import requests
-from openai import AzureOpenAI
+import logging
 import mimetypes
-from flask import Flask, Response, request, jsonify
-from dotenv import load_dotenv
+import requests
+import os
 import sys
+
+from dotenv import load_dotenv
+from flask import Flask, Response, request, jsonify
+from functools import wraps
+from openai import AzureOpenAI
+from os import path
+
 from backend.batch.utilities.helpers.EnvHelper import EnvHelper
 from backend.auth.token_validator import TokenValidator
 
@@ -171,7 +173,8 @@ def stream_with_data(body, headers, endpoint):
         with s.post(endpoint, json=body, headers=headers, stream=True) as r:
             for line in r.iter_lines(chunk_size=10):
                 if line:
-                    lineJson = json.loads(line.lstrip(b"data:").decode("utf-8"))
+                    lineJson = json.loads(
+                        line.lstrip(b"data:").decode("utf-8"))
                     if "error" in lineJson:
                         yield json.dumps(lineJson, ensure_ascii=False) + "\n"
                     response["id"] = lineJson["id"]
@@ -179,7 +182,8 @@ def stream_with_data(body, headers, endpoint):
                     response["created"] = lineJson["created"]
                     response["object"] = lineJson["object"]
 
-                    role = lineJson["choices"][0]["messages"][0]["delta"].get("role")
+                    role = lineJson["choices"][0]["messages"][0]["delta"].get(
+                        "role")
                     if role == "tool":
                         response["choices"][0]["messages"].append(
                             lineJson["choices"][0]["messages"][0]["delta"]
@@ -254,10 +258,12 @@ def conversation_without_data(request):
         )
 
     request_messages = request.json["messages"]
-    messages = [{"role": "system", "content": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE}]
+    messages = [
+        {"role": "system", "content": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE}]
 
     for message in request_messages:
-        messages.append({"role": message["role"], "content": message["content"]})
+        messages.append(
+            {"role": message["role"], "content": message["content"]})
 
     # Azure Open AI takes the deployment name as the model name, "AZURE_OPENAI_MODEL" means deployment name.
     response = openai_client.chat.completions.create(
@@ -312,7 +318,8 @@ def conversation_azure_byod():
             return conversation_without_data(request)
     except Exception as e:
         errorMessage = str(e)
-        logging.exception(f"Exception in /api/conversation/azure_byod | {errorMessage}")
+        logging.exception(
+            f"Exception in /api/conversation/azure_byod | {errorMessage}")
         return (
             jsonify(
                 {
@@ -369,7 +376,8 @@ def conversation_custom():
 
     except Exception as e:
         errorMessage = str(e)
-        logging.exception(f"Exception in /api/conversation/custom | {errorMessage}")
+        logging.exception(
+            f"Exception in /api/conversation/custom | {errorMessage}")
         return (
             jsonify(
                 {
