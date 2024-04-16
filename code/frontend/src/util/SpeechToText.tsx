@@ -5,20 +5,15 @@ import {
     AutoDetectSourceLanguageConfig,
   } from "microsoft-cognitiveservices-speech-sdk";
 
-
-export const defaultLanguage = "en-US";
-
 export const multiLingualSpeechRecognizer = (
     token: string,
-    serviceRegion: string
+    serviceRegion: string,
+    languagesToRecognize: string[]
   ) => {
         const speechConfig = SpeechConfig.fromAuthorizationToken(
           token,
           serviceRegion
         );
-        const languagesToRecognize = import.meta.env.VITE_SPEECH_RECOGNIZER_LANGUAGES
-        ? import.meta.env.VITE_SPEECH_RECOGNIZER_LANGUAGES.split(",")
-        : [defaultLanguage];
 
         const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
         const autoDetectSourceLanguageConfig = AutoDetectSourceLanguageConfig.fromLanguages(languagesToRecognize)
