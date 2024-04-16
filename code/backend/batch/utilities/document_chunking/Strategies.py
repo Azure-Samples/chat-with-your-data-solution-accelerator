@@ -7,6 +7,7 @@ class ChunkingStrategy(Enum):
     FIXED_SIZE_OVERLAP = "fixed_size_overlap"
     PARAGRAPH = "paragraph"
     MOCK = "mock"
+    SHAREPOINT_PAGE = "sharepoint_page"
 
 
 def get_document_chunker(chunking_strategy: str):
@@ -30,6 +31,10 @@ def get_document_chunker(chunking_strategy: str):
         from .Empty import MockedDocumentChunking
 
         return MockedDocumentChunking()
+    elif chunking_strategy == ChunkingStrategy.SHAREPOINT_PAGE.value:
+        from .SharepointPageDocumentChunking import SharepointPageDocumentChunking
+
+        return SharepointPageDocumentChunking()
     else:
         raise Exception(f"Unknown chunking strategy: {chunking_strategy}")
 

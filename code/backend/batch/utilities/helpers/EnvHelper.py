@@ -1,7 +1,11 @@
 import os
 import logging
 from dotenv import load_dotenv
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from azure.identity import (
+    DefaultAzureCredential,
+    ClientSecretCredential,
+    get_bearer_token_provider,
+)
 from azure.keyvault.secrets import SecretClient
 
 logger = logging.getLogger(__name__)
@@ -79,6 +83,16 @@ class EnvHelper:
         self.AZURE_TOKEN_PROVIDER = get_bearer_token_provider(
             DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
         )
+
+        # Azure AD
+        tenant_id = os.getenv("TENANT_ID", "")
+        client_id = os.getenv("CLIENT_ID", "")
+        client_secret = self.secretHelper.get_secret("CLIENT_SECRET")
+        self.TENANT_ID = tenant_id
+        self.CLIENT_ID = client_id
+        self.CLIENT_SECRET = client_secret
+        self.ADMIN_GROUP_ID = self.secretHelper.get_secret("AZURE_ADMIN_GROUP_ID")
+
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
         if self.AZURE_AUTH_TYPE == "rbac":
@@ -90,6 +104,7 @@ class EnvHelper:
             self.AZURE_OPENAI_API_KEY = self.secretHelper.get_secret(
                 "AZURE_OPENAI_API_KEY"
             )
+
             self.AZURE_SPEECH_KEY = self.secretHelper.get_secret(
                 "AZURE_SPEECH_SERVICE_KEY"
             )
@@ -149,10 +164,6 @@ class EnvHelper:
         )
         # Speech Service
         self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")
-        # Azure AD
-        self.TENANT_ID = self.secretHelper.get_secret("AZURE_TENANT_ID")
-        self.CLIENT_ID = self.secretHelper.get_secret("AZURE_CLIENT_ID")
-        self.ADMIN_GROUP_ID = self.secretHelper.get_secret("AZURE_ADMIN_GROUP_ID")
 
     def should_use_data(self) -> bool:
         if (
@@ -167,6 +178,15 @@ class EnvHelper:
         if "gpt-4" in self.AZURE_OPENAI_MODEL_NAME.lower():
             return True
         return False
+
+    @property
+    def AZURE_MS_GRAPH_TOKEN_PROVIDER(self):
+        get_bearer_token_provider(
+            ClientSecretCredential(
+                client_id=self.CLIENT_ID, client_secret=self.CLIENT_SECRET, tenant_id=self.TENANT_ID
+            ),
+            "https://graph.microsoft.com/.default",
+        )
 
     @staticmethod
     def check_env():

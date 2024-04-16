@@ -6,6 +6,7 @@ class LoadingStrategy(Enum):
     READ = "read"
     WEB = "web"
     DOCX = "docx"
+    SHAREPOINT = "sharepoint"
     JSON = "json"
 
 
@@ -26,6 +27,10 @@ def get_document_loader(loader_strategy: str):
         from .WordDocument import WordDocumentLoading
 
         return WordDocumentLoading()
+    elif loader_strategy == LoadingStrategy.SHAREPOINT.value:
+        from .SharePoint import SharePointLoading
+
+        return SharePointLoading()
     elif loader_strategy == LoadingStrategy.JSON.value:
         from .Json import JsonDocumentLoading
 

@@ -51,6 +51,7 @@ def test_document_loading_docx():
     assert data[0].source == url
     print(data[0].content)
 
+
 def test_document_loading_json():
     document_loading = DocumentLoading()
     url = "./code/tests/utilities/resources/Marco Polo (TradeIX).json"
