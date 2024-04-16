@@ -8,7 +8,6 @@ poetry export -o dist/requirements.txt
 cp *.py dist
 cp -r backend dist
 
-
 cd frontend
 npm install
 npm run build
