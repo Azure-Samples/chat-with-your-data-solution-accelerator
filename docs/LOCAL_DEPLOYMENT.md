@@ -106,7 +106,7 @@ You can deploy the full solution from local with the following command `azd depl
 To run all applications using Docker Compose, you first need a `.env` file containing the configuration for your
 provisioned resources. This file can be created manually at the root of the project. Alternatively, if resources were
 provisioned using `azd provision` or `azd up`, a `.env` file is automatically generated in the `.azure/<env-name>/.env`
-file.
+file. To get your `<env-name>` run `azd env list` to see which env is default.
 
 To start the services, you can use either of the following commands:
 - `make docker-compose-up`
