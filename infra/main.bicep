@@ -210,6 +210,9 @@ param logLevel string = 'INFO'
 @description('List of comma-separated languages to recognize from the speech input. Supported languages are listed here: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=stt#supported-languages')
 param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
 
+@description('Health check path for the web app')
+param webHealthCheckPath string = '/api/health'
+
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
@@ -370,6 +373,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
     runtimeVersion: '3.11'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
+    healthCheckPath: webHealthCheckPath
     azureOpenAIName: openai.outputs.name
     azureAISearchName: search.outputs.name
     storageAccountName: storage.outputs.name
@@ -433,6 +437,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
     dockerFullImageName: 'fruoccopublic.azurecr.io/rag-webapp'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
+    healthCheckPath: webHealthCheckPath
     azureOpenAIName: openai.outputs.name
     azureAISearchName: search.outputs.name
     storageAccountName: storage.outputs.name
