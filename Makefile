@@ -28,7 +28,7 @@ lint: ## 🧹 Lint the code
 
 unittest: ## 🧪 Run the unit tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@poetry run pytest -m "not azure and not functional"
+	@poetry run pytest -m "not azure and not functional" $(optional_args)
 
 functionaltest: ## 🧪 Run the functional tests
 	@echo -e "\e[34m$@\e[0m" || true
