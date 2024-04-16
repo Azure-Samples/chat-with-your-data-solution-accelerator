@@ -377,7 +377,7 @@ const Chat = () => {
             />
             <QuestionInput
               clearOnSend
-              placeholder="Type a new question..."
+              placeholder="Ask anything..."
               disabled={isLoading}
               onSend={(question) => makeApiRequest(question)}
               recognizedText={recognizedText}
@@ -388,6 +388,9 @@ const Chat = () => {
               setRecognizedText={setRecognizedText}
             />
           </Stack>
+          <div className={`${styles.bgPatternImgContainer}`}>
+            <img src="../../src/assets/Airbus_CarbonGrid.png" className={styles.bgPatternImg} aria-hidden="true" />
+          </div>
         </div>
         {answers.length > 0 && isCitationPanelOpen && activeCitation && (
           <Stack.Item className={`${styles.citationPanel} ${styles.mobileStyles}`}>

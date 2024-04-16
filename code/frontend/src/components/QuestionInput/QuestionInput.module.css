@@ -7,10 +7,11 @@
     bottom: 0%;
     background: #EFF1F4;
     box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.14), 0px 0px 2px rgba(0, 0, 0, 0.12);
-    border-radius: 8px;
+    border-radius: 21px;
        display: flex;
     justify-content: space-between;
     align-items: center;
+    border: solid 12px #fff;
 }
 
 .questionInputTextArea {
@@ -65,7 +66,7 @@
     height: 24px;
     margin-bottom: 12px;
   }
-  
+
   .microphoneAndSendContainer {
     display: flex;
     flex-direction: column;

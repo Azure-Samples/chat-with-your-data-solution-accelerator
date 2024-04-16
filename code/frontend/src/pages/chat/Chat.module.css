@@ -118,9 +118,11 @@
     padding-left: 24px;
     padding-right: 24px;
     width: calc(100% - 100px);
-    max-width: 1028px;
+    /* max-width: 1028px; */
+    max-width: 696px;
     margin-bottom: 50px;
     margin-top: 8px;
+    z-index: 10;
 }
 
 .clearChatBroom {
@@ -139,6 +141,7 @@
     border: 1px solid #D1D1D1;
     border-radius: 20px;
     z-index: 1;
+    display: none !important; /*design does not currently show this*/
 }
 
 .stopGeneratingContainer {
@@ -302,3 +305,19 @@
             font-size: 12px;
         }
      }
+
+
+.bgPatternImgContainer {
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 0;
+  opacity: 0.15;
+}
+
+.bgPatternImg {
+  position: absolute;
+  width: 100%;
+  overflow: hidden;
+}
