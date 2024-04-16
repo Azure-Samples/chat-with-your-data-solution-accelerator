@@ -176,7 +176,7 @@ class EnvHelper:
         self.AZURE_SPEECH_SERVICE_NAME = os.getenv("AZURE_SPEECH_SERVICE_NAME", "")
         self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")
         self.SPEECH_RECOGNIZER_LANGUAGES = self.get_env_var_array(
-            "SPEECH_RECOGNIZER_LANGUAGES"
+            "SPEECH_RECOGNIZER_LANGUAGES", ""
         )
         self.AZURE_SPEECH_REGION_ENDPOINT = os.environ.get(
             "AZURE_SPEECH_REGION_ENDPOINT",
@@ -204,8 +204,8 @@ class EnvHelper:
     def get_env_var_bool(self, var_name: str, default: str = "True") -> bool:
         return os.getenv(var_name, default).lower() == "true"
 
-    def get_env_var_array(self, var_name: str):
-        return os.getenv(var_name).split(",")
+    def get_env_var_array(self, var_name: str, default: str = ""):
+        return os.getenv(var_name, default).split(",")
 
     @staticmethod
     def check_env():
