@@ -1,5 +1,6 @@
 import os
 import logging
+import threading
 from dotenv import load_dotenv
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.keyvault.secrets import SecretClient
@@ -9,12 +10,14 @@ logger = logging.getLogger(__name__)
 
 class EnvHelper:
     _instance = None
+    _lock = threading.Lock()
 
     def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(EnvHelper, cls).__new__(cls)
-            cls._instance.__load_config()
-        return cls._instance
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super(EnvHelper, cls).__new__(cls)
+                cls._instance.__load_config()
+            return cls._instance
 
     def __load_config(self, **kwargs) -> None:
         load_dotenv()
