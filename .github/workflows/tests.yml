@@ -79,6 +79,12 @@ jobs:
         uses: devcontainers/ci@v0.3
         with:
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
-          cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           runCmd: make unittest optional_args="--junitxml=coverage-junit.xml --cov=. --cov-report xml:coverage.xml --cov-fail-under ${{ steps.coverage-value.outputs.MIN_COVERAGE }}"
-          refFilterForPush: refs/heads/main
+          push: never
+
+      - name: Run other tests in dev container
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+          runCmd: make ci
+          push: never
