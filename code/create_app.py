@@ -402,7 +402,7 @@ def create_app():
             )
 
     @app.route("/api/speech", methods=["GET"])
-    def speech_token():
+    def speech_config():
         try:
             speech_key = env_helper.AZURE_SPEECH_KEY or get_speech_key(env_helper)
 
@@ -417,13 +417,14 @@ def create_app():
                 return {
                     "token": response.text,
                     "region": env_helper.AZURE_SPEECH_SERVICE_REGION,
+                    "languages": env_helper.SPEECH_RECOGNIZER_LANGUAGES,
                 }
 
-            logger.error(f"Failed to get speech token: {response.text}")
-            return {"error": "Failed to get speech token"}, response.status_code
+            logger.error(f"Failed to get speech config: {response.text}")
+            return {"error": "Failed to get speech config"}, response.status_code
         except Exception as e:
             logger.exception(f"Exception in /api/speech | {str(e)}")
 
-            return {"error": "Failed to get speech token"}, 500
+            return {"error": "Failed to get speech config"}, 500
 
     return app

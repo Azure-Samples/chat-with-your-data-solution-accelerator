@@ -131,38 +131,15 @@ const Chat = () => {
     return abortController.abort();
   };
 
-  const fetchSpeechToken = async (): Promise<{ token: string, region: string; }> => {
-    try {
-      const response = await fetch("/api/speech");
-      if (!response.ok) {
-        console.error("Error fetching speech token:", response);
-        throw new Error("Network response was not ok");
-      }
-      return response.json();
-    } catch (error) {
-      console.error("Error fetching server configuration:", error);
-      throw error;
-    }
-  };
-
   const startSpeechRecognition = async () => {
     if (!isRecognizing) {
       setIsRecognizing(true);
 
-      const { token, region } = await fetchSpeechToken();
-
-      const recognizer = multiLingualSpeechRecognizer(token, region, [
-        "en-US",
-        "fr-FR",
-        "de-DE",
-        "it-IT"
-      ]);
-      recognizerRef.current = recognizer; // Store the recognizer in the ref
-
+      recognizerRef.current = await multiLingualSpeechRecognizer(); // Store the recognizer in the ref
+      
       recognizerRef.current.recognized = (s, e) => {
         if (e.result.reason === ResultReason.RecognizedSpeech) {
           const recognized = e.result.text;
-          // console.log("Recognized:", recognized);
           setUserMessage(recognized);
           setRecognizedText(recognized);
         }
@@ -170,7 +147,6 @@ const Chat = () => {
 
       recognizerRef.current.startContinuousRecognitionAsync(() => {
         setIsRecognizing(true);
-        // console.log("Speech recognition started.");
         setIsListening(true);
       });
     }

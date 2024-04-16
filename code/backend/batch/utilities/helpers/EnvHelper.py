@@ -1,5 +1,6 @@
 import os
 import logging
+import threading
 from dotenv import load_dotenv
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.keyvault.secrets import SecretClient
@@ -9,12 +10,14 @@ logger = logging.getLogger(__name__)
 
 class EnvHelper:
     _instance = None
+    _lock = threading.Lock()
 
     def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(EnvHelper, cls).__new__(cls)
-            cls._instance.__load_config()
-        return cls._instance
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super(EnvHelper, cls).__new__(cls)
+                cls._instance.__load_config()
+            return cls._instance
 
     def __load_config(self, **kwargs) -> None:
         load_dotenv()
@@ -175,6 +178,9 @@ class EnvHelper:
         # Speech Service
         self.AZURE_SPEECH_SERVICE_NAME = os.getenv("AZURE_SPEECH_SERVICE_NAME", "")
         self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")
+        self.SPEECH_RECOGNIZER_LANGUAGES = self.get_env_var_array(
+            "SPEECH_RECOGNIZER_LANGUAGES", "en-US"
+        )
         self.AZURE_SPEECH_REGION_ENDPOINT = os.environ.get(
             "AZURE_SPEECH_REGION_ENDPOINT",
             f"https://{self.AZURE_SPEECH_SERVICE_REGION}.api.cognitive.microsoft.com/",
@@ -200,6 +206,9 @@ class EnvHelper:
 
     def get_env_var_bool(self, var_name: str, default: str = "True") -> bool:
         return os.getenv(var_name, default).lower() == "true"
+
+    def get_env_var_array(self, var_name: str, default: str = ""):
+        return os.getenv(var_name, default).split(",")
 
     @staticmethod
     def check_env():
