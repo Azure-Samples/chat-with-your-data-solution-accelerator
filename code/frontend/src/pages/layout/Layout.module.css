@@ -9,6 +9,7 @@
 .header {
     height: 56px;
     background-color: rgb(0, 32, 91);
+    display: flex;
 }
 
 .headerContainer {
@@ -23,6 +24,9 @@
     margin-left: 30px;
     margin-top: -5px;
     text-decoration: none;
+    border-right: 1px solid #fff;
+    padding-right: 17px;
+    height: 26px;
 }
 
 .headerTitle {

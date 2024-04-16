@@ -269,7 +269,7 @@ const Chat = () => {
         <div className={`${styles.chatContainer} ${styles.MobileChatContainer}`}>
           {!lastQuestionRef.current ? (
             <Stack className={styles.chatEmptyState}>
-              <img src="../../src/assets/logo_blue.webp" className={styles.chatIcon} aria-hidden="true" />
+              {/* <img src="../../src/assets/logo_blue.webp" className={styles.chatIcon} aria-hidden="true" /> */}
               <h2 className={styles.chatEmptyStateSubtitle}>
                 Let's explore together
               </h2>
