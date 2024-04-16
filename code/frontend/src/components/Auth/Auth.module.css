@@ -1,0 +1,26 @@
+.buttonContainer {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: auto;
+  border: 1px solid;
+}
+
+.signOutButton {
+  margin-right: 126px;
+}
+
+.authorizedBlock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.authorizedBlock .signOutButton {
+  margin: 20px 60px;
+}

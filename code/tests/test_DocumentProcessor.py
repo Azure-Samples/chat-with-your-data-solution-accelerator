@@ -18,7 +18,8 @@ def test_document_processor_layout():
             ConfigHelper.get_active_config_or_default().document_processors,
         )
     )
-    keys = document_processor.process(source_url=document_url, processors=processors)
+    keys = document_processor.process(
+        source_url=document_url, processors=processors)
     print(keys)
     assert len(keys) > 0
 
@@ -32,7 +33,8 @@ def test_document_processor_read():
             ConfigHelper.get_active_config_or_default().document_processors,
         )
     )
-    keys = document_processor.process(source_url=document_url, processors=processors)
+    keys = document_processor.process(
+        source_url=document_url, processors=processors)
     print(keys)
     assert len(keys) > 0
 
@@ -60,6 +62,23 @@ def test_document_processor_docx():
             ConfigHelper.get_active_config_or_default().document_processors,
         )
     )
-    keys = document_processor.process(source_url=docx_url, processors=processors)
+    keys = document_processor.process(
+        source_url=docx_url, processors=processors)
+    print(keys)
+    assert len(keys) > 0
+
+
+@pytest.mark.azure("This test requires Azure")
+def test_document_processor_json():
+    url = "./code/tests/utilities/resources/get_test_json_data.json"
+    document_processor = DocumentProcessor()
+    processors = list(
+        filter(
+            lambda x: x.document_type == "json",
+            ConfigHelper.get_active_config_or_default().document_processors,
+        )
+    )
+    
+    keys = document_processor.process(source_url=url, processors=processors)
     print(keys)
     assert len(keys) > 0

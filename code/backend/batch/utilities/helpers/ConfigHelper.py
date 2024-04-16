@@ -44,6 +44,7 @@ class Config:
             "jpg",
             "png",
             "docx",
+            "json",
             "sharepoint page",
         ]
 
@@ -213,6 +214,15 @@ Answer: {answer}""",
                         "overlap": 100,
                     },
                     "loading": {"strategy": LoadingStrategy.LAYOUT},
+                },
+                {
+                    "document_type": "json",
+                    "chunking": {
+                        "strategy": ChunkingStrategy.MOCK,
+                        "size": 500,
+                        "overlap": 100,
+                    },
+                    "loading": {"strategy": LoadingStrategy.JSON},
                 },
                 {
                     "document_type": "sharepoint page",
