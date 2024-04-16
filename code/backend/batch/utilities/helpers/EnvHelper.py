@@ -93,12 +93,6 @@ class EnvHelper:
         self.CLIENT_SECRET = client_secret
         self.ADMIN_GROUP_ID = self.secretHelper.get_secret("AZURE_ADMIN_GROUP_ID")
 
-        self.AZURE_MS_GRAPH_TOKEN_PROVIDER = get_bearer_token_provider(
-            ClientSecretCredential(
-                client_id=client_id, client_secret=client_secret, tenant_id=tenant_id
-            ),
-            "https://graph.microsoft.com/.default",
-        )
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
         if self.AZURE_AUTH_TYPE == "rbac":
@@ -184,6 +178,15 @@ class EnvHelper:
         if "gpt-4" in self.AZURE_OPENAI_MODEL_NAME.lower():
             return True
         return False
+
+    @property
+    def AZURE_MS_GRAPH_TOKEN_PROVIDER(self):
+        get_bearer_token_provider(
+            ClientSecretCredential(
+                client_id=self.CLIENT_ID, client_secret=self.CLIENT_SECRET, tenant_id=self.TENANT_ID
+            ),
+            "https://graph.microsoft.com/.default",
+        )
 
     @staticmethod
     def check_env():
