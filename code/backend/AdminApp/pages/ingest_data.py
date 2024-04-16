@@ -1,5 +1,7 @@
+import json
 from os import path
 import os
+import re
 import streamlit as st
 from typing import Optional
 import mimetypes
@@ -19,6 +21,7 @@ import urllib.parse
 import sys
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
 from batch.utilities.helpers.EnvHelper import EnvHelper
+from batch.utilities.document_loading.SharePoint import SharePointLoading
 from components.login import isLoggedIn
 from components.menu import menu
 
@@ -82,6 +85,10 @@ def main():
         except Exception:
             st.error(traceback.format_exc())
 
+    def is_sharepoint_url(url):
+        sharepoint_pattern = r"https?://[a-zA-Z0-9.-]*sharepoint\.com"
+        return bool(re.match(sharepoint_pattern, url))
+
     def add_urls():
         params = {}
         if env_helper.FUNCTION_KEY is not None:
@@ -89,15 +96,32 @@ def main():
             params["clientId"] = "clientKey"
         urls = st.session_state["urls"].split("\n")
         for url in urls:
-            body = {"url": url}
-            backend_url = urllib.parse.urljoin(
-                env_helper.BACKEND_URL, "/api/AddURLEmbeddings"
-            )
-            r = requests.post(url=backend_url, params=params, json=body)
-            if not r.ok:
-                raise ValueError(f"Error {r.status_code}: {r.text}")
+
+            if is_sharepoint_url(url):
+                sharepoint_loader = SharePointLoading()
+                pages = sharepoint_loader.load(url)
+                if pages is not None:
+                    for page in pages:
+                        file_name = f'{page["title"]}.json'
+                        json_string = json.dumps(page)
+                        bytes_data = json_string.encode("utf-8")
+                        if st.session_state.get("filename", "") != file_name:
+                            # Upload a new file
+                            upload_file(bytes_data, file_name)
+                    if len(pages) > 0:
+                        st.success(
+                            f"{len(pages)} documents uploaded. Embeddings computation in progress. \nPlease note this is an asynchronous process and may take a few minutes to complete.\nYou can check for further details in the Azure Function logs."
+                        )
             else:
-                st.success(f"Embeddings added successfully for {url}")
+                body = {"url": url}
+                backend_url = urllib.parse.urljoin(
+                    env_helper.BACKEND_URL, "/api/AddURLEmbeddings"
+                )
+                r = requests.post(url=backend_url, params=params, json=body)
+                if not r.ok:
+                    raise ValueError(f"Error {r.status_code}: {r.text}")
+                else:
+                    st.success(f"Embeddings added successfully for {url}")
 
     def upload_file(
         bytes_data: bytes, file_name: str, content_type: Optional[str] = None

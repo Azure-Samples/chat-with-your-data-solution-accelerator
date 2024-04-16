@@ -8,7 +8,7 @@ class MockedDocumentChunking(DocumentChunkingBase):
 
     def chunk(self, documents, chunking):
         for document in documents:
-            if not document.id or document.id == '':
+            if not document.id or document.id == "":
                 document.id = str(uuid.uuid4())
 
         return documents

@@ -34,19 +34,7 @@ class Config:
         )
 
     def get_available_document_types(self):
-        return [
-            "txt",
-            "pdf",
-            "url",
-            "html",
-            "md",
-            "jpeg",
-            "jpg",
-            "png",
-            "docx",
-            "json",
-            "sharepoint page",
-        ]
+        return ["txt", "pdf", "url", "html", "md", "jpeg", "jpg", "png", "docx", "json"]
 
     def get_available_chunking_strategies(self):
         return [c.value for c in ChunkingStrategy]
@@ -223,15 +211,6 @@ Answer: {answer}""",
                         "overlap": 100,
                     },
                     "loading": {"strategy": LoadingStrategy.JSON},
-                },
-                {
-                    "document_type": "sharepoint page",
-                    "chunking": {
-                        "strategy": ChunkingStrategy.SHAREPOINT_PAGE,
-                        "size": 500,
-                        "overlap": 100,
-                    },
-                    "loading": {"strategy": LoadingStrategy.SHAREPOINT},
                 },
             ],
             "logging": {"log_user_interactions": True, "log_tokens": True},

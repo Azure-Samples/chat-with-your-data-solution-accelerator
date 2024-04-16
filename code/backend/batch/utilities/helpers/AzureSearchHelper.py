@@ -16,7 +16,7 @@ class AzureSearchHelper:
     def get_vector_store(self):
         llm_helper = LLMHelper()
         env_helper = EnvHelper()
-        
+
         fields = [
             SimpleField(
                 name="id",
@@ -28,13 +28,10 @@ class AzureSearchHelper:
                 name="content",
                 type=SearchFieldDataType.String,
             ),
-            SearchableField(
-                name="keywords", 
-                type=SearchFieldDataType.String),
+            SearchableField(name="keywords", type=SearchFieldDataType.String),
             SearchField(
                 name="content_vector",
-                type=SearchFieldDataType.Collection(
-                    SearchFieldDataType.Single),
+                type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
                 searchable=True,
                 vector_search_dimensions=len(
                     llm_helper.get_embedding_model().embed_query("Text")
@@ -102,8 +99,7 @@ class AzureSearchHelper:
             ),
             SearchField(
                 name="content_vector",
-                type=SearchFieldDataType.Collection(
-                    SearchFieldDataType.Single),
+                type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
                 searchable=True,
                 vector_search_dimensions=len(
                     llm_helper.get_embedding_model().embed_query("Text")
@@ -128,8 +124,7 @@ class AzureSearchHelper:
             ),
             SimpleField(
                 name="sources",
-                type=SearchFieldDataType.Collection(
-                    SearchFieldDataType.String),
+                type=SearchFieldDataType.Collection(SearchFieldDataType.String),
                 filterable=True,
                 facetable=True,
             ),

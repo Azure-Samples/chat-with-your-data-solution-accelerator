@@ -12,11 +12,6 @@ sys.path.append("..")
 bp_add_url_embeddings = func.Blueprint()
 
 
-def is_sharepoint_url(url):
-    sharepoint_pattern = r"https?://[a-zA-Z0-9.-]*sharepoint\.com"
-    return bool(re.match(sharepoint_pattern, url))
-
-
 @bp_add_url_embeddings.route(route="AddURLEmbeddings")
 def add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Python HTTP trigger function processed a request.")
@@ -34,20 +29,9 @@ def add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
         try:
             config = ConfigHelper.get_active_config_or_default()
             document_processor = DocumentProcessor()
-            processors = []
-            if is_sharepoint_url(url):
-                processors = list(
-                    filter(
-                        lambda x: x.document_type == "sharepoint page",
-                        config.document_processors,
-                    )
-                )
-            else:
-                processors = list(
-                    filter(
-                        lambda x: x.document_type == "url", config.document_processors
-                    )
-                )
+            processors = list(
+                filter(lambda x: x.document_type == "url", config.document_processors)
+            )
             document_processor.process(source_url=url, processors=processors)
         except Exception:
             return func.HttpResponse(

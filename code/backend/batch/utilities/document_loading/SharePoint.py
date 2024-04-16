@@ -20,7 +20,7 @@ class SitePageHeader:
 
 
 class SitePage:
-    def __init__(self, header):
+    def __init__(self, header: SitePageHeader):
         self.header = header
         self.text_content = None
         self.tags = None
@@ -32,9 +32,10 @@ class SitePage:
         self.tags = tags
 
 
-class SharePointLoading(DocumentLoadingBase):
+class SharePointLoading:  # (DocumentLoadingBase):
     def __init__(self) -> None:
-        super().__init__()
+        pass
+        # super().__init__()
 
     def get_site_id(self, site_url, access_token):
         if not site_url:
@@ -191,31 +192,25 @@ class SharePointLoading(DocumentLoadingBase):
     def remove_substring(self, original_string, substring):
         return original_string.replace(substring, "")
 
-    def load(self, document_url: str) -> List[SourceDocument]:
+    def load(self, document_url: str):
 
         access_token = env_helper.AZURE_MS_GRAPH_TOKEN_PROVIDER()
         site_id = self.get_site_id(document_url, access_token)
         site_page_headers = self.get_page_headers(site_id, access_token)
 
-        pages: List[SourceDocument] = []
+        pages = []
         for site_page in [
             self.get_site_page(site_id, page_header, access_token)
             for page_header in site_page_headers
         ]:
             if site_page.text_content and site_page.tags:
-                json_str = json.dumps(
-                    {
-                        "title": site_page.header.title,
-                        "text": site_page.text_content,
-                        "tags": site_page.tags,
-                    }
-                )
                 pages.append(
-                    SourceDocument(
-                        content=json_str,
-                        source=site_page.header.source_url,
-                        project_name=site_page.header.title,
-                    )
+                    {
+                        "content": site_page.text_content,
+                        "title": site_page.header.title,
+                        "tags": site_page.tags,
+                        "source_url": site_page.header.source_url,
+                    }
                 )
 
         return pages
