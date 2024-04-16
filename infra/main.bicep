@@ -416,6 +416,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
+      SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
     }

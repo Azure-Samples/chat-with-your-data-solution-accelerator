@@ -102,3 +102,14 @@ def test_uses_and_uppercases_log_level_when_set(monkeypatch: MonkeyPatch):
 
     # then
     assert env_helper.LOGLEVEL == "DEBUG"
+
+
+def test_get_env_var_array(monkeypatch: MonkeyPatch):
+    # given
+    monkeypatch.setenv("SPEECH_RECOGNIZER_LANGUAGES", "en-US,es-ES")
+
+    # when
+    env_helper = EnvHelper()
+
+    # then
+    assert env_helper.SPEECH_RECOGNIZER_LANGUAGES == ["en-US", "es-ES"]
