@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.170.59819",
-      "templateHash": "14314440219841176041"
+      "templateHash": "15903214309169184638"
     }
   },
   "parameters": {
@@ -422,13 +422,6 @@
       "defaultValue": "en-US,fr-FR,de-DE,it-IT",
       "metadata": {
         "description": "List of comma-separated languages to recognize from the speech input. Supported languages are listed here: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=stt#supported-languages"
-      }
-    },
-    "webHealthCheckPath": {
-      "type": "string",
-      "defaultValue": "/api/health",
-      "metadata": {
-        "description": "Health check path for the web app"
       }
     }
   },
@@ -1504,7 +1497,7 @@
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsName.value]"
           },
           "healthCheckPath": {
-            "value": "[parameters('webHealthCheckPath')]"
+            "value": "/api/health"
           },
           "azureOpenAIName": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName')), '2022-09-01').outputs.name.value]"
@@ -2370,7 +2363,7 @@
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsName.value]"
           },
           "healthCheckPath": {
-            "value": "[parameters('webHealthCheckPath')]"
+            "value": "/api/health"
           },
           "azureOpenAIName": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName')), '2022-09-01').outputs.name.value]"
