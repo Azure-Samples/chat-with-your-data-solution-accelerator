@@ -28,7 +28,7 @@ lint: ## 🧹 Lint the code
 
 unittest: ## 🧪 Run the unit tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@poetry run pytest -m "not azure and not functional"
+	@poetry run pytest -m "not azure and not functional" $(optional_args)
 
 functionaltest: ## 🧪 Run the functional tests
 	@echo -e "\e[34m$@\e[0m" || true
@@ -45,6 +45,9 @@ build-frontend: ## 🏗️ Build the Frontend webapp
 unittest-frontend: build-frontend ## 🏗️ Unit test the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
 	@cd code/frontend && npm run test
+
+docker-compose-up: ## 🐳 Run the docker-compose file
+	@cd docker && AZD_ENV_FILE=$(AZURE_ENV_FILE) docker-compose up
 
 azd-login: ## 🔑 Login to Azure with azd and a SPN
 	@echo -e "\e[34m$@\e[0m" || true
