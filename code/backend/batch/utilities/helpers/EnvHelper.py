@@ -186,7 +186,7 @@ class EnvHelper:
                 client_id=self.CLIENT_ID, client_secret=self.CLIENT_SECRET, tenant_id=self.TENANT_ID
             ),
             "https://graph.microsoft.com/.default",
-        )
+        )()
 
     @staticmethod
     def check_env():
