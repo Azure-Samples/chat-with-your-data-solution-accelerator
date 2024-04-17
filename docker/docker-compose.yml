@@ -13,6 +13,9 @@ services:
     image: fruoccopublic.azurecr.io/rag-adminwebapp
     ports:
       - "8081:80"
+    environment:
+      - BACKEND_URL=http://backend
+      - FUNCTION_KEY=some-test-key
     env_file:
       - path: ../.env
         required: false
@@ -22,8 +25,12 @@ services:
     image: fruoccopublic.azurecr.io/rag-backend
     ports:
       - "8082:80"
+    environment:
+      - AzureWebJobsSecretStorageType=files
     env_file:
       - path: .env
         required: false
       - path: $AZD_ENV_FILE
         required: false
+    volumes:
+      -  ${HOST_DOCKER_FOLDER:-.}/function-host.json:/azure-functions-host/Secrets/host.json

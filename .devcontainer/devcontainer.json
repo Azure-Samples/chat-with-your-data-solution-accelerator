@@ -39,5 +39,10 @@
 				"remote.autoForwardPortsSource": "process"
             }
 		}
+	},
+
+	"remoteEnv": {
+		// the original host directory which is needed for volume mount commands from inside the container (Docker in Docker)
+		"HOST_DOCKER_FOLDER": "${localWorkspaceFolder}/docker"
 	}
 }
