@@ -24,6 +24,9 @@ def app_config(make_httpserver, ca):
     with ca.cert_pem.tempfile() as ca_temp_path:
         app_config = AppConfig(
             {
+                "AZURE_SEARCH_SERVICE": None,
+                "AZURE_SEARCH_INDEX": None,
+                "AZURE_SEARCH_KEY": None,
                 "AZURE_OPENAI_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
                 "AZURE_CONTENT_SAFETY_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
                 "SSL_CERT_FILE": ca_temp_path,
