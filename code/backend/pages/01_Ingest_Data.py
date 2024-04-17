@@ -87,16 +87,16 @@ def add_urls():
 
 
 def download_url_and_upload_to_blob(urls: list[str]):
-    try:
-        for url in urls:
+    for url in urls:
+        try:
             response = requests.get(url)
             parsed_data = BeautifulSoup(response.content, "html.parser")
             with io.BytesIO(parsed_data.get_text().encode("utf-8")) as stream:
                 upload_file(stream, url)
             st.success(f"Url {url} added to knowledge base")
-    except Exception:
-        logger.error(traceback.format_exc())
-        st.error("Exception occurred while adding URLs to the knowledge base.")
+        except Exception:
+            logger.error(traceback.format_exc())
+            st.error(f"Exception occurred while adding {url} to the knowledge base.")
 
 
 def add_url_embeddings(urls: list[str]):
