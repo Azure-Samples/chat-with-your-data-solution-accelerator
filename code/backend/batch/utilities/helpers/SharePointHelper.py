@@ -189,7 +189,7 @@ class SharePointHelper:
         return original_string.replace(substring, "")
 
     def get_site_pages_as_json(self, document_url: str):
-        access_token = env_helper.AZURE_MS_GRAPH_TOKEN_PROVIDER
+        access_token = env_helper.AZURE_MS_GRAPH_TOKEN_PROVIDER()
         site_id = self.get_site_id(document_url, access_token)
         site_page_headers = self.get_page_headers(site_id, access_token)
 

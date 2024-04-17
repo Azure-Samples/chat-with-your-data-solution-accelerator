@@ -181,7 +181,7 @@ class EnvHelper:
 
     @property
     def AZURE_MS_GRAPH_TOKEN_PROVIDER(self):
-        get_bearer_token_provider(
+        return get_bearer_token_provider(
             ClientSecretCredential(
                 client_id=self.CLIENT_ID, client_secret=self.CLIENT_SECRET, tenant_id=self.TENANT_ID
             ),
