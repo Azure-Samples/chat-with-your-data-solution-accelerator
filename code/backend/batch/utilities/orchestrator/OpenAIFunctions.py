@@ -24,14 +24,12 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
                     "properties": {
                         "question": {
                             "type": "string",
-                            "description": "The user's inquiry, formulated to extract pertinent information from available documents. MUST be concise and straightforward, clearly indicating the user's intention, and structured in a simple format without complex operators",
+                            "description": "The user's inquiry, formulated to extract pertinent information from available documents.",
                         },
                         "keywords": {
                             "type": "array",
-                            "items": {
-                                "type": "string"
-                            },
-                            "description": "Relevant keywords, that are list of IT-related terms such as domains, technologies, frameworks, approaches, etc. for precise search",
+                            "items": {"type": "string"},
+                            "description": "Relevant keywords, that are list of IT-related terms for precise search",
                         },
                     },
                     "required": ["question", "keywords"],
@@ -81,14 +79,15 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
         llm_helper = LLMHelper()
 
         system_message = """You help employees to navigate only private information sources, which encompass confidential company documents such as policies, project documentation, technical guides, how-to manuals, and other documentation typical of a large IT company.
-        ### IMPORTANT: Your top priority is to utilize the 'search_documents' function for any query related to these private sources
+        ### IMPORTANT: Your top priority is to utilize the 'search_documents' function with the latest user inquiry for queries concerning these private sources
         ### Instructions for 'search_documents' function:
-        1. **Read the User's Question**: Begin by carefully reading the user's question to grasp the context and intention clearly
-        2. **Extract 'question'**:Identify the main intent of the query, keeping it concise and straightforward
+        1. **Focus on the Most Recent User Inquiry**: Always use the most recent user question as the sole context for the futher steps, we will address to this context as 'user question'. Ignore previous interactions or questions.
+        2. **Analyze context**: Carefully read the 'user question' to grasp the intention clearly
+        3. **Extract 'question'**:Identify the main intent of the 'user question', keeping it concise and straightforward
             - Ensure the query follows a simple structure suitable for Azure AI Search
             - Optimize the query for effective search results using Azure AI Search best practices
-        3. **Extract 'keywords'**:
-            - From the user's question, identify and extract IT-related terms like domains, technologies, frameworks, approaches, testing strategies, etc. directly from the current user inquire without assumptions. Pass empy array if no keywords possible to extract.
+        4. **Extract 'keywords'**:
+            - From the 'user question', identify and extract IT-related terms like domains, technologies, frameworks, approaches, testing strategies, etc. without assumptions. If no keywords are available in 'user question', pass an empty array
         
         Call the 'text_processing' function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.
         When directly replying to the user, always reply in the language the user is speaking.
@@ -120,7 +119,9 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
 
                 # run answering chain
                 answering_tool = QuestionAnswerTool()
-                answer = answering_tool.answer_question(question, chat_history, keywords=keywords)
+                answer = answering_tool.answer_question(
+                    question, chat_history, keywords=keywords
+                )
 
                 self.log_tokens(
                     prompt_tokens=answer.prompt_tokens,
