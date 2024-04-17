@@ -1,8 +1,11 @@
 .container {
     flex: 1;
     display: flex;
-    flex-direction: column;
+    /* flex-direction: column; */
+    flex-direction: row;
     /* gap: 20px */
+    z-index: 10;
+    max-height: calc(100vh - 56px);
 }
 
 .chatRoot {
@@ -13,6 +16,7 @@
     margin-left: 20px;
     margin-right: 20px;
     gap: 20px; */
+    z-index: 10;
 }
 
 .chatContainer {
@@ -20,11 +24,31 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    background: radial-gradient(108.78% 108.78% at 50.02% 19.78%, #FFFFFF 57.29%, #EEF6FE 100%);
+    /* background: radial-gradient(108.78% 108.78% at 50.02% 19.78%, #FFFFFF 57.29%, #EEF6FE 100%); */
+    background: transparent;
     box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.14), 0px 0px 2px rgba(0, 0, 0, 0.12);
     border-radius: 8px;
     overflow-y: auto;
     min-height: calc(100vh - 100px);
+    z-index: 10;
+}
+
+.chatHomeText03 {
+  font-size: 20px;
+  color: #CED5DD;
+  margin: 5px;
+}
+
+.chatHomeText02 {
+  font-size: 28px;
+  color: #63728A;
+  margin: 10px;
+}
+
+.chatHomeText01 {
+  font-size: 36px;
+  color: #14171D;
+  margin: 15px;
 }
 
 .chatEmptyState {
@@ -69,7 +93,7 @@
 
 .chatMessageStream {
     flex-grow: 1;
-    max-width: 1028px;
+    /* max-width: 1028px; */
     width: 100%;
     overflow-y: auto;
     padding-left: 24px;
@@ -77,6 +101,11 @@
     display: flex;
     flex-direction: column;
     margin-top: 24px;
+    align-items: center;
+}
+
+.chatMessageStreamInner {
+  max-width: 750px;
 }
 
 .chatMessageUser {
@@ -198,7 +227,8 @@
     flex-grow: 0.3;
     max-width: 30%;
     overflow-y: scroll;
-    max-height: calc(100vh - 100px);
+    /* max-height: calc(100vh - 100px); */
+    max-height: calc(100vh - 56px);
 }
 
 .citationPanelHeaderContainer {
@@ -314,6 +344,7 @@
   overflow: hidden;
   z-index: 0;
   opacity: 0.15;
+  pointer-events: none;
 }
 
 .bgPatternImg {

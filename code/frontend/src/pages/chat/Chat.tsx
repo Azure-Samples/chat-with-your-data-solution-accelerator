@@ -265,70 +265,72 @@ const Chat = () => {
 
   return (
     <div className={styles.container}>
+      {/* <Sidebar /> */}
       <Stack horizontal className={styles.chatRoot}>
         <div className={`${styles.chatContainer} ${styles.MobileChatContainer}`}>
           {!lastQuestionRef.current ? (
             <Stack className={styles.chatEmptyState}>
               {/* <img src="../../src/assets/logo_blue.webp" className={styles.chatIcon} aria-hidden="true" /> */}
-              <h2 className={styles.chatEmptyStateSubtitle}>
-                Let's explore together
-              </h2>
-              <h1 className={styles.chatEmptyStateTitle}>Let's explore together</h1>
+              <h6 className={styles.chatHomeText03}>Let's explore together</h6>
+              <h5 className={styles.chatHomeText02}>Let's explore together</h5>
+              <h3 className={styles.chatHomeText01}>Let's explore together</h3>
             </Stack>
           ) : (
             <div
               className={styles.chatMessageStream}
               style={{ marginBottom: isLoading ? "40px" : "0px" }}
             >
-              {answers.map((answer, index) => (
-                <>
-                  {answer.role === "user" ? (
+              <div className={styles.chatMessageStreamInner}>
+                {answers.map((answer, index) => (
+                  <>
+                    {answer.role === "user" ? (
+                      <div className={styles.chatMessageUser}>
+                        <div className={styles.chatMessageUserMessage}>
+                          {answer.content}
+                        </div>
+                      </div>
+                    ) : answer.role === "assistant" || answer.role === "error" ? (
+                      <div className={styles.chatMessageGpt}>
+                        <Answer
+                          answer={{
+                            answer:
+                              answer.role === "assistant"
+                                ? answer.content
+                                : "Sorry, an error occurred. Try refreshing the conversation or waiting a few minutes. If the issue persists, contact your system administrator. Error: " +
+                                  answer.content,
+                            citations:
+                              answer.role === "assistant"
+                                ? parseCitationFromMessage(answers[index - 1])
+                                : [],
+                          }}
+                          onCitationClicked={(c) => onShowCitation(c)}
+                          index={index}
+                        />
+                      </div>
+                    ) : null}
+                  </>
+                ))}
+                {showLoadingMessage && (
+                  <>
                     <div className={styles.chatMessageUser}>
                       <div className={styles.chatMessageUserMessage}>
-                        {answer.content}
+                        {lastQuestionRef.current}
                       </div>
                     </div>
-                  ) : answer.role === "assistant" || answer.role === "error" ? (
                     <div className={styles.chatMessageGpt}>
                       <Answer
                         answer={{
-                          answer:
-                            answer.role === "assistant"
-                              ? answer.content
-                              : "Sorry, an error occurred. Try refreshing the conversation or waiting a few minutes. If the issue persists, contact your system administrator. Error: " +
-                                answer.content,
-                          citations:
-                            answer.role === "assistant"
-                              ? parseCitationFromMessage(answers[index - 1])
-                              : [],
+                          answer: "Thinking...",
+                          citations: [],
                         }}
-                        onCitationClicked={(c) => onShowCitation(c)}
-                        index={index}
+                        onCitationClicked={() => null}
+                        index={0}
                       />
                     </div>
-                  ) : null}
-                </>
-              ))}
-              {showLoadingMessage && (
-                <>
-                  <div className={styles.chatMessageUser}>
-                    <div className={styles.chatMessageUserMessage}>
-                      {lastQuestionRef.current}
-                    </div>
-                  </div>
-                  <div className={styles.chatMessageGpt}>
-                    <Answer
-                      answer={{
-                        answer: "Generating answer...",
-                        citations: [],
-                      }}
-                      onCitationClicked={() => null}
-                      index={0}
-                    />
-                  </div>
-                </>
-              )}
-              <div ref={chatMessageStreamEnd} />
+                  </>
+                )}
+                <div ref={chatMessageStreamEnd} />
+              </div>
             </div>
           )}
           <div>
@@ -354,7 +356,7 @@ const Chat = () => {
                   aria-hidden="true"
                 />
                 <span className={styles.stopGeneratingText} aria-hidden="true">
-                  Stop generating
+                  Stop Pronto
                 </span>
               </Stack>
             )}
@@ -388,9 +390,6 @@ const Chat = () => {
               setRecognizedText={setRecognizedText}
             />
           </Stack>
-          <div className={`${styles.bgPatternImgContainer}`}>
-            <img src="../../src/assets/Airbus_CarbonGrid.png" className={styles.bgPatternImg} aria-hidden="true" />
-          </div>
         </div>
         {answers.length > 0 && isCitationPanelOpen && activeCitation && (
           <Stack.Item className={`${styles.citationPanel} ${styles.mobileStyles}`}>
@@ -416,7 +415,9 @@ const Chat = () => {
           </Stack.Item>
         )}
       </Stack>
-      {/* <Sidebar /> */}
+      <div className={`${styles.bgPatternImgContainer}`}>
+        <img src="../../src/assets/Airbus_CarbonGrid.png" className={styles.bgPatternImg} aria-hidden="true" />
+      </div>
     </div>
   );
 };
