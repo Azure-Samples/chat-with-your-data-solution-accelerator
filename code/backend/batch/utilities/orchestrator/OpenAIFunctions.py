@@ -100,6 +100,7 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
                     result.choices[0].message.function_call.arguments
                 )
                 question = func_arguments["question"]
+                # keywords must be a list of strings []
                 keywords = func_arguments.get("keywords")
 
                 # run answering chain
