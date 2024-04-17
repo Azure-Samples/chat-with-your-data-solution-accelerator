@@ -154,15 +154,11 @@ class TestSpeechToken:
 
 
 class TestConfig:
-    def test_returns_correct_config(self, client):
-        response = client.get("/api/config")
+    def test_health(self, client):
+        response = client.get("/api/health")
 
         assert response.status_code == 200
-        assert response.json == {
-            "azureSpeechKey": AZURE_SPEECH_KEY,
-            "azureSpeechRegion": AZURE_SPEECH_SERVICE_REGION,
-            "AZURE_OPENAI_ENDPOINT": AZURE_OPENAI_ENDPOINT,
-        }
+        assert response.text == "OK"
 
 
 class TestConversationCustom:
