@@ -33,7 +33,7 @@ class QuestionAnswerTool(AnsweringToolBase):
         )
 
         llm_helper = LLMHelper()
-        keyword_search = kwargs.get("keywords")
+        keyword_search = kwargs.get("keywords", [])
 
         # Retrieve documents as sources
         from azure.search.documents.models import VectorizedQuery
