@@ -96,5 +96,7 @@ jobs:
           node-version: 20
           cache: "npm"
           cache-dependency-path: "code/frontend/package-lock.json"
+      - name: Install frontend dependencies
+        run: npm --prefix code/frontend install
       - name: Run frontend unit tests
         run: npm --prefix code/frontend run test
