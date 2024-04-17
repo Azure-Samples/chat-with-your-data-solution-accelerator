@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Stack, TextField } from "@fluentui/react";
-import { SendRegular } from "@fluentui/react-icons";
+import {
+  SendRegular,
+  MicFilled,
+  DeleteFilled,
+  SendFilled,
+  MicRecordRegular,
+} from "@fluentui/react-icons";
 import Send from "../../assets/Send.svg";
-import MicrophoneIcon from "../../assets/mic-outline.svg";
+// import MicrophoneIcon from "../../assets/mic-outline.svg";
 import styles from "./QuestionInput.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMicrophone } from "@fortawesome/free-solid-svg-icons";
@@ -69,7 +75,7 @@ export const QuestionInput = ({
     }
   };
 
-  const clearChat = (ev: React.KeyboardEvent<Element>) => {
+  const clearChat = () => {
     onClearChat();
   };
 
@@ -117,58 +123,48 @@ export const QuestionInput = ({
           {disabled ? (
             <SendRegular className={styles.questionInputSendButtonDisabled} />
           ) : (
-            <img
-              src={Send}
-              className={styles.questionInputSendButton}
-              alt="Send"
-            />
+            <SendFilled className={styles.questionInputSendButton} />
           )}
         </div>
       </div>
 
       <div className={styles.chatAdditionalControls}>
-        {/* Microphone Icon */}
-        <div
-          className={styles.questionInputMicrophone}
-          onClick={isListening ? onStopClick : onMicrophoneClick}
-          onKeyDown={(e) =>
-            e.key === "Enter" || e.key === " "
-              ? isListening
-                ? onStopClick()
-                : onMicrophoneClick()
-              : null
-          }
-          role="button"
-          tabIndex={0}
-          aria-label="Microphone button"
-        >
-          {microphoneIconActive ? (
-            <FontAwesomeIcon
-              icon={faMicrophone}
-              className={styles.microphoneIconActive}
-              style={{ color: "blue" }}
-            />
-          ) : (
-            <img
-              src={MicrophoneIcon}
-              className={styles.microphoneIcon}
-              alt="Microphone"
-            />
-          )}
-        </div>
+        <div className={styles.chatAdditionalControlsInner}>
+          {/* Microphone Icon */}
+          <div
+            className={styles.questionInputMicrophone}
+            onClick={isListening ? onStopClick : onMicrophoneClick}
+            onKeyDown={(e) =>
+              e.key === "Enter" || e.key === " "
+                ? isListening
+                  ? onStopClick()
+                  : onMicrophoneClick()
+                : null
+            }
+            role="button"
+            tabIndex={0}
+            aria-label="Microphone button"
+          >
+            {microphoneIconActive ? (
+              <MicRecordRegular className={styles.micIconRecordingOn} />
+            ) : (
+              <MicFilled className={styles.micIconRecordingOff} />
+            )}
+          </div>
 
-        {/* Clear chat option */}
-        {/* <div
-          className={styles.clearChatButton}
-          onClick={clearChat}
-          onKeyDown={(e) =>
-            e.key === "Enter" || e.key === " " ? clearChat(e) : null
-          }
-        >
-          Clear Chat
-        </div> */}
+          {/* Clear chat option */}
+          {/* <div
+            className={styles.clearChatButton}
+            onClick={clearChat}
+            onKeyDown={(e) =>
+              e.key === "Enter" || e.key === " " ? clearChat() : null
+            }
+          >
+            <DeleteFilled className={styles.clearChatIcon} />
+            <span>Clear Chat</span>
+          </div> */}
+        </div>
       </div>
-      <div className={styles.bottomSearchControls}></div>
     </Stack>
   );
 };
