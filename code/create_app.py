@@ -326,16 +326,9 @@ def create_app():
     def static_file(path):
         return app.send_static_file(path)
 
-    @app.route("/api/config", methods=["GET"])
-    def get_config():
-        # Return the configuration data as JSON
-        return jsonify(
-            {
-                "azureSpeechKey": env_helper.AZURE_SPEECH_KEY,
-                "azureSpeechRegion": env_helper.AZURE_SPEECH_SERVICE_REGION,
-                "AZURE_OPENAI_ENDPOINT": env_helper.AZURE_OPENAI_ENDPOINT,
-            }
-        )
+    @app.route("/api/health", methods=["GET"])
+    def health():
+        return "OK"
 
     @app.route("/api/conversation/azure_byod", methods=["POST"])
     def conversation_azure_byod():

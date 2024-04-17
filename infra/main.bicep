@@ -370,6 +370,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
     runtimeVersion: '3.11'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
+    healthCheckPath: '/api/health'
     azureOpenAIName: openai.outputs.name
     azureAISearchName: search.outputs.name
     storageAccountName: storage.outputs.name
@@ -433,6 +434,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
     dockerFullImageName: 'fruoccopublic.azurecr.io/rag-webapp'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
+    healthCheckPath: '/api/health'
     azureOpenAIName: openai.outputs.name
     azureAISearchName: search.outputs.name
     storageAccountName: storage.outputs.name
