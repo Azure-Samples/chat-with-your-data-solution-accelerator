@@ -4,7 +4,8 @@
     align-items: flex-start;
     padding: 8.1285px;
     gap: 5.42px;
-    background: #FFFFFF;
+    /* background: #FFFFFF; */
+    background: #E0E3E9;
     box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.14), 0px 0px 2px rgba(0, 0, 0, 0.12);
     border-radius: 5.419px;
     max-width: 100%;
@@ -180,9 +181,9 @@ sup {
 
 @media (max-width: 500px) {
     .answerFooter {
-      flex-direction: column; 
+      flex-direction: column;
     }
-  
+
     .citationContainer {
         width: 100%;
         overflow-y: auto;

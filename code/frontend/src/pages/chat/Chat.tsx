@@ -3,7 +3,7 @@ import { Stack } from "@fluentui/react";
 import {
   BroomRegular,
   DismissRegular,
-  SquareRegular,
+  RecordStopFilled,
 } from "@fluentui/react-icons";
 import {
   SpeechRecognizer,
@@ -333,7 +333,7 @@ const Chat = () => {
                   e.key === "Enter" || e.key === " " ? stopGenerating() : null
                 }
               >
-                <SquareRegular
+                <RecordStopFilled
                   className={styles.stopGeneratingIcon}
                   aria-hidden="true"
                 />

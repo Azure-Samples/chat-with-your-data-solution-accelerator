@@ -106,8 +106,8 @@
 
 .chatMessageStreamInner {
   /* max-width: 635px; */
-  /* transform: translateX(25px); */
-  width: 696px;
+  width: 686px;
+  transform: translateX(10px);
 }
 
 .chatMessageUser {
@@ -118,7 +118,8 @@
 
 .chatMessageUserMessage {
     padding: 20px;
-    background: #EDF5FD;
+    /* background: #EDF5FD; */
+    background: #255FCC;
     border-radius: 8px;
     box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.14), 0px 0px 2px rgba(0, 0, 0, 0.12);
     font-family: "Segoe UI";
@@ -126,7 +127,8 @@
     font-weight: 400;
     font-size: 14px;
     line-height: 22px;
-    color: #242424;
+    /* color: #242424; */
+    color: #ffffff ;
     flex: none;
     order: 0;
     flex-grow: 0;
@@ -184,22 +186,26 @@
     padding: 5px 16px;
     gap: 4px;
     position: absolute;
-    width: 161px;
+    /* width: 161px; */
     height: 32px;
-    left: calc(50% - 161px/2 + 25.8px);
+    /* left: calc(50% - 161px/2 + 25.8px); */
+    left: 50%;
+    transform: translateX(-50%);
     bottom: 116px;
     border: 1px solid #D1D1D1;
     border-radius: 16px;
+    background-color: #00205B;
 }
 
 .stopGeneratingIcon {
     width: 14px;
     height: 14px;
-    color: #424242;
+    /* color: #424242; */
+    color: #ffffff;
 }
 
 .stopGeneratingText {
-    width: 103px;
+    /* width: 103px; */
     height: 20px;
     font-family: "Segoe UI";
     font-style: normal;
@@ -208,7 +214,8 @@
     line-height: 20px;
     display: flex;
     align-items: center;
-    color: #242424;
+    /* color: #242424;  */
+    color: #ffffff;
     flex: none;
     order: 0;
     flex-grow: 0;
