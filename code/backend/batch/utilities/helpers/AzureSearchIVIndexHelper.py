@@ -42,19 +42,36 @@ class AzureSearchIVIndexHelper:
     def create_or_update_index(self):
         # Create a search index
         fields = [
-            SearchField(
-                name="parent_id",
+            SimpleField(
+                name="id",
                 type=SearchFieldDataType.String,
-                sortable=True,
                 filterable=True,
-                facetable=True,
+                # key=True
             ),
-            SearchableField(name="title", type=SearchFieldDataType.String),
-            SearchableField(name="content", type=SearchFieldDataType.String),
+            SearchableField(
+                name="content",
+                type=SearchFieldDataType.String,
+                sortable=False,
+                filterable=False,
+                facetable=False,
+            ),
+            SearchField(
+                name="content_vector",
+                type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
+                vector_search_dimensions=1536,
+                vector_search_profile_name="myHnswProfile",
+            ),
             SearchableField(name="metadata", type=SearchFieldDataType.String),
+            SearchableField(name="title", type=SearchFieldDataType.String),
             SearchableField(
                 name="source", type=SearchFieldDataType.String, filterable=True
             ),
+            SimpleField(
+                name="chunk",
+                type=SearchFieldDataType.Int32,
+                filterable=True,
+            ),
+            SimpleField(name="offset", type=SearchFieldDataType.Int32, filterable=True),
             SearchField(
                 name="chunk_id",
                 type=SearchFieldDataType.String,
@@ -64,20 +81,6 @@ class AzureSearchIVIndexHelper:
                 facetable=True,
                 analyzer_name="keyword",
             ),
-            SimpleField(
-                name="chunk",
-                type=SearchFieldDataType.String,
-                sortable=False,
-                filterable=False,
-                facetable=False,
-            ),
-            SearchField(
-                name="vector",
-                type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
-                vector_search_dimensions=1536,
-                vector_search_profile_name="myHnswProfile",
-            ),
-            SimpleField(name="offset", type=SearchFieldDataType.Int32, filterable=True),
         ]
 
         # Configure the vector search configuration
@@ -155,7 +158,7 @@ class AzureSearchIVIndexHelper:
         semantic_config = SemanticConfiguration(
             name="my-semantic-config",
             prioritized_fields=SemanticPrioritizedFields(
-                content_fields=[SemanticField(field_name="chunk")]
+                content_fields=[SemanticField(field_name="content")]
             ),
         )
 

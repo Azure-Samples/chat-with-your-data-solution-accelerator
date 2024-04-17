@@ -58,30 +58,30 @@ class AzureSearchIVSkillsetHelper:
             inputs=[
                 InputFieldMappingEntry(name="text", source="/document/pages/*"),
             ],
-            outputs=[OutputFieldMappingEntry(name="embedding", target_name="vector")],
+            outputs=[
+                OutputFieldMappingEntry(name="embedding", target_name="content_vector")
+            ],
         )
 
         index_projections = SearchIndexerIndexProjections(
             selectors=[
                 SearchIndexerIndexProjectionSelector(
                     target_index_name=self.env_helper.AZURE_SEARCH_INDEX,
-                    parent_key_field_name="parent_id",
+                    parent_key_field_name="id",
                     source_context="/document/pages/*",
                     mappings=[
                         InputFieldMappingEntry(
-                            name="chunk", source="/document/pages/*"
+                            name="content", source="/document/pages/*"
                         ),
                         InputFieldMappingEntry(
-                            name="vector", source="/document/pages/*/vector"
+                            name="content_vector",
+                            source="/document/pages/*/content_vector",
                         ),
                         InputFieldMappingEntry(
                             name="title", source="/document/metadata_storage_name"
                         ),
                         InputFieldMappingEntry(
                             name="source", source="/document/metadata_storage_path"
-                        ),
-                        InputFieldMappingEntry(
-                            name="content", source="/document/pages/*"
                         ),
                     ],
                 ),
