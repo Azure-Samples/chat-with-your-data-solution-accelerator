@@ -10,6 +10,7 @@ interface Props {
   onSend: (question: string) => void;
   onMicrophoneClick: () => void;
   onStopClick: () => void;
+  onClearChat: () => void;
   disabled: boolean;
   placeholder?: string;
   clearOnSend?: boolean;
@@ -23,6 +24,7 @@ export const QuestionInput = ({
   onSend,
   onMicrophoneClick,
   onStopClick,
+  onClearChat,
   disabled,
   placeholder,
   clearOnSend,
@@ -67,6 +69,10 @@ export const QuestionInput = ({
     }
   };
 
+  const clearChat = (ev: React.KeyboardEvent<Element>) => {
+    onClearChat(true);
+  };
+
   const onQuestionChange = (
     _ev: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>,
     newValue?: string
@@ -79,23 +85,48 @@ export const QuestionInput = ({
 
   return (
     <Stack horizontal className={styles.questionInputContainer}>
-      {/* Text Input Field */}
-      <TextField
-        className={styles.questionInputTextArea}
-        placeholder={placeholder}
-        multiline
-        resizable={false}
-        borderless
-        value={question || liveRecognizedText}
-        onChange={(e, newValue) => {
-          if (newValue !== undefined) {
-            onQuestionChange(e, newValue);
-            setRecognizedText(newValue);
+      <div className={styles.topSearchInput}>
+        {/* Text Input Field */}
+        <TextField
+          className={styles.questionInputTextArea}
+          placeholder={placeholder}
+          multiline
+          resizable={false}
+          borderless
+          value={question || liveRecognizedText}
+          onChange={(e, newValue) => {
+            if (newValue !== undefined) {
+              onQuestionChange(e, newValue);
+              setRecognizedText(newValue);
+            }
+          }}
+          onKeyDown={onEnterPress}
+        />
+
+        {/* Send Button */}
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label="Ask question button"
+          onClick={sendQuestion}
+          onKeyDown={(e) =>
+            e.key === "Enter" || e.key === " " ? sendQuestion() : null
           }
-        }}
-        onKeyDown={onEnterPress}
-      />
-      <div className={styles.microphoneAndSendContainer}>
+          className={styles.questionInputSendButtonContainer}
+        >
+          {disabled ? (
+            <SendRegular className={styles.questionInputSendButtonDisabled} />
+          ) : (
+            <img
+              src={Send}
+              className={styles.questionInputSendButton}
+              alt="Send"
+            />
+          )}
+        </div>
+      </div>
+
+      <div className={styles.chatAdditionalControls}>
         {/* Microphone Icon */}
         <div
           className={styles.questionInputMicrophone}
@@ -126,28 +157,13 @@ export const QuestionInput = ({
           )}
         </div>
 
-        {/* Send Button */}
+        {/* Clear chat option */}
         <div
-          role="button"
-          tabIndex={0}
-          aria-label="Ask question button"
-          onClick={sendQuestion}
-          onKeyDown={(e) =>
-            e.key === "Enter" || e.key === " " ? sendQuestion() : null
-          }
-          className={styles.questionInputSendButtonContainer}
-        >
-          {disabled ? (
-            <SendRegular className={styles.questionInputSendButtonDisabled} />
-          ) : (
-            <img
-              src={Send}
-              className={styles.questionInputSendButton}
-              alt="Send"
-            />
-          )}
-        </div>
+        className={styles.clearChatButton}
+        onClick={clearChat}
+        >Clear Chat</div>
       </div>
+      <div className={styles.bottomSearchControls}></div>
     </Stack>
   );
 };

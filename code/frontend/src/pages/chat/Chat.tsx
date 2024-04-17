@@ -45,7 +45,7 @@ const Chat = () => {
         title: string,
         filepath: string,
         url: string,
-        metadata: string
+        metadata: string,
       ]
     >();
   const [isCitationPanelOpen, setIsCitationPanelOpen] =
@@ -221,6 +221,11 @@ const Chat = () => {
     }
   };
 
+  // moved clear chat into child component per design, triggered here
+  const onClearChat = () => {
+    clearChat();
+  };
+
   const clearChat = () => {
     lastQuestionRef.current = "";
     setActiveCitation(undefined);
@@ -267,7 +272,9 @@ const Chat = () => {
     <div className={styles.container}>
       {/* <Sidebar /> */}
       <Stack horizontal className={styles.chatRoot}>
-        <div className={`${styles.chatContainer} ${styles.MobileChatContainer}`}>
+        <div
+          className={`${styles.chatContainer} ${styles.MobileChatContainer}`}
+        >
           {!lastQuestionRef.current ? (
             <Stack className={styles.chatEmptyState}>
               {/* <img src="../../src/assets/logo_blue.webp" className={styles.chatIcon} aria-hidden="true" /> */}
@@ -289,7 +296,8 @@ const Chat = () => {
                           {answer.content}
                         </div>
                       </div>
-                    ) : answer.role === "assistant" || answer.role === "error" ? (
+                    ) : answer.role === "assistant" ||
+                      answer.role === "error" ? (
                       <div className={styles.chatMessageGpt}>
                         <Answer
                           answer={{
@@ -360,7 +368,7 @@ const Chat = () => {
                 </span>
               </Stack>
             )}
-            <BroomRegular
+            {/* <BroomRegular
               className={`${styles.clearChatBroom} ${styles.mobileclearChatBroom}`}
               style={{
                 background:
@@ -376,7 +384,7 @@ const Chat = () => {
               aria-label="Clear session"
               role="button"
               tabIndex={0}
-            />
+            /> */}
             <QuestionInput
               clearOnSend
               placeholder="Ask anything..."
@@ -388,11 +396,14 @@ const Chat = () => {
               isListening={isListening}
               isRecognizing={isRecognizing}
               setRecognizedText={setRecognizedText}
+              onClearChat={onClearChat}
             />
           </Stack>
         </div>
         {answers.length > 0 && isCitationPanelOpen && activeCitation && (
-          <Stack.Item className={`${styles.citationPanel} ${styles.mobileStyles}`}>
+          <Stack.Item
+            className={`${styles.citationPanel} ${styles.mobileStyles}`}
+          >
             <Stack
               horizontal
               className={styles.citationPanelHeaderContainer}
@@ -405,7 +416,11 @@ const Chat = () => {
                 onClick={() => setIsCitationPanelOpen(false)}
               />
             </Stack>
-            <h5 className={`${styles.citationPanelTitle} ${styles.mobileCitationPanelTitle}`}>{activeCitation[2]}</h5>
+            <h5
+              className={`${styles.citationPanelTitle} ${styles.mobileCitationPanelTitle}`}
+            >
+              {activeCitation[2]}
+            </h5>
             <ReactMarkdown
               className={`${styles.citationPanelContent} ${styles.mobileCitationPanelContent}`}
               children={activeCitation[0]}
@@ -416,7 +431,11 @@ const Chat = () => {
         )}
       </Stack>
       <div className={`${styles.bgPatternImgContainer}`}>
-        <img src="../../src/assets/Airbus_CarbonGrid.png" className={styles.bgPatternImg} aria-hidden="true" />
+        <img
+          src="../../src/assets/Airbus_CarbonGrid.png"
+          className={styles.bgPatternImg}
+          aria-hidden="true"
+        />
       </div>
     </div>
   );
