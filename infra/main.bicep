@@ -1,7 +1,7 @@
 targetScope = 'subscription'
 
 @minLength(1)
-@maxLength(64)
+@maxLength(20)
 @description('Name of the the environment which is used to generate a short unique hash used in all resources.')
 param environmentName string
 
@@ -11,7 +11,7 @@ param resourceToken string = toLower(uniqueString(subscription().id, environment
 param location string
 
 @description('Name of App Service plan')
-param hostingPlanName string = '${environmentName}-hosting-plan-${resourceToken}'
+param hostingPlanName string = 'hosting-plan-${resourceToken}'
 
 @description('The pricing tier for the App Service plan')
 @allowed([
@@ -30,11 +30,29 @@ param hostingPlanName string = '${environmentName}-hosting-plan-${resourceToken}
 ])
 param hostingPlanSku string = 'B3'
 
+@description('The sku tier for the App Service plan')
+@allowed([
+  'Free'
+  'Shared'
+  'Basic'
+  'Standard'
+  'Premium'
+  'PremiumV2'
+  'PremiumV3'
+])
+param skuTier string = 'Basic'
+
 @description('Name of Web App')
-param websiteName string = '${environmentName}-website-${resourceToken}'
+param websiteName string = 'web-${resourceToken}'
+
+@description('Name of Admin Web App')
+param adminWebsiteName string = '${websiteName}-admin'
 
 @description('Name of Application Insights')
-param applicationInsightsName string = '${environmentName}-appinsights-${resourceToken}'
+param applicationInsightsName string = 'appinsights-${resourceToken}'
+
+@description('Name of the Workbook')
+param workbookDisplayName string = 'workbook-${resourceToken}'
 
 @description('Use semantic search')
 param azureSearchUseSemanticSearch string = 'false'
@@ -57,14 +75,23 @@ param azureSearchContentColumns string = 'content'
 @description('Filename column')
 param azureSearchFilenameColumn string = 'filename'
 
+@description('Search filter')
+param azureSearchFilter string = ''
+
 @description('Title column')
 param azureSearchTitleColumn string = 'title'
 
 @description('Url column')
 param azureSearchUrlColumn string = 'url'
 
+@description('Use Azure Search Integrated Vectorization (Not yet implemented)')
+@allowed([
+  false
+])
+param azureSearchUseIntegratedVectorization bool = false
+
 @description('Name of Azure OpenAI Resource')
-param azureOpenAIResourceName string = '${environmentName}-openai-${resourceToken}'
+param azureOpenAIResourceName string = 'openai-${resourceToken}'
 
 @description('Name of Azure OpenAI Resource SKU')
 param azureOpenAISkuName string = 'S0'
@@ -82,7 +109,7 @@ param azureOpenAIModelVersion string = '0613'
   'openai_function'
   'langchain'
 ])
-param orchestrationStrategy string = 'langchain'
+param orchestrationStrategy string = 'openai_function'
 
 @description('Azure OpenAI Temperature')
 param azureOpenAITemperature string = '0'
@@ -100,7 +127,7 @@ param azureOpenAIStopSequence string = '\n'
 param azureOpenAISystemMessage string = 'You are an AI assistant that helps people find information.'
 
 @description('Azure OpenAI Api Version')
-param azureOpenAIApiVersion string = '2023-10-01-preview'
+param azureOpenAIApiVersion string = '2024-02-01'
 
 @description('Whether or not to stream responses from Azure OpenAI')
 param azureOpenAIStream string = 'true'
@@ -112,7 +139,7 @@ param azureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
 
 @description('Azure AI Search Resource')
-param azureAISearchName string = '${environmentName}-search-${resourceToken}'
+param azureAISearchName string = 'search-${resourceToken}'
 
 @description('The SKU of the search service you want to create. E.g. free or standard')
 @allowed([
@@ -125,7 +152,7 @@ param azureAISearchName string = '${environmentName}-search-${resourceToken}'
 param azureSearchSku string = 'standard'
 
 @description('Azure AI Search Index')
-param azureSearchIndex string = '${environmentName}-index-${resourceToken}'
+param azureSearchIndex string = 'index-${resourceToken}'
 
 @description('Azure AI Search Conversation Log Index')
 param azureSearchConversationLogIndex string = 'conversations'
@@ -134,29 +161,54 @@ param azureSearchConversationLogIndex string = 'conversations'
 param storageAccountName string = 'str${resourceToken}'
 
 @description('Name of Function App for Batch document processing')
-param functionName string = '${environmentName}-backend-${resourceToken}'
+param functionName string = 'backend-${resourceToken}'
 
 @description('Azure Form Recognizer Name')
-param formRecognizerName string = '${environmentName}-formrecog-${resourceToken}'
+param formRecognizerName string = 'formrecog-${resourceToken}'
 
 @description('Azure Content Safety Name')
-param contentSafetyName string = '${environmentName}-contentsafety-${resourceToken}'
+param contentSafetyName string = 'contentsafety-${resourceToken}'
 
 @description('Azure Speech Service Name')
-param speechServiceName string = '${environmentName}-speechservice-${resourceToken}'
+param speechServiceName string = 'speech-${resourceToken}'
+
+@description('Log Analytics Name')
+param logAnalyticsName string = 'la-${resourceToken}'
 
 param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'
-param useKeyVault bool
+
+@description('Whether to use Key Vault to store secrets (best when using keys). If using RBAC, then please set this to false.')
+param useKeyVault bool = authType == 'rbac' ? false : true
 
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 
+@description('Whether the Azure services communicate with each other using RBAC or keys. RBAC is recommended, however some users may not have sufficient permissions to assign roles.')
 @allowed([
   'rbac'
   'keys'
 ])
-param authType string
+param authType string = 'keys'
+
+@description('Hosting model for the web apps. Containers are prebuilt and can be deployed faster, but code allows for more customization.')
+@allowed([
+  'code'
+  'container'
+])
+param hostingModel string = 'container'
+
+@allowed([
+  'CRITICAL'
+  'ERROR'
+  'WARN'
+  'INFO'
+  'DEBUG'
+])
+param logLevel string = 'INFO'
+
+@description('List of comma-separated languages to recognize from the speech input. Supported languages are listed here: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=stt#supported-languages')
+param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
 
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
@@ -185,33 +237,6 @@ module keyvault './core/security/keyvault.bicep' = if (useKeyVault || authType =
   }
 }
 
-module webaccess './core/security/keyvault-access.bicep' = if (useKeyVault) {
-  name: 'web-keyvault-access'
-  scope: rg
-  params: {
-    keyVaultName: keyVaultName
-    principalId: web.outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID
-  }
-}
-
-module adminwebaccess './core/security/keyvault-access.bicep' = if (useKeyVault) {
-  name: 'adminweb-keyvault-access'
-  scope: rg
-  params: {
-    keyVaultName: keyVaultName
-    principalId: adminweb.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
-  }
-}
-
-module functionaccess './core/security/keyvault-access.bicep' = if (useKeyVault) {
-  name: 'function-keyvault-access'
-  scope: rg
-  params: {
-    keyVaultName: keyVaultName
-    principalId: function.outputs.FUNCTION_IDENTITY_PRINCIPAL_ID
-  }
-}
-
 module openai 'core/ai/cognitiveservices.bicep' = {
   name: azureOpenAIResourceName
   scope: rg
@@ -222,6 +247,7 @@ module openai 'core/ai/cognitiveservices.bicep' = {
     sku: {
       name: azureOpenAISkuName
     }
+    managedIdentity: authType == 'rbac'
     deployments: [
       {
         name: azureOpenAIModel
@@ -245,6 +271,28 @@ module openai 'core/ai/cognitiveservices.bicep' = {
         capacity: 30
       }
     ]
+  }
+}
+
+// Search Index Data Reader
+module searchIndexRoleOpenai 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'search-index-role-openai'
+  params: {
+    principalId: openai.outputs.identityPrincipalId
+    roleDefinitionId: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Search Service Contributor
+module searchServiceRoleOpenai 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'search-service-role-openai'
+  params: {
+    principalId: openai.outputs.identityPrincipalId
+    roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+    principalType: 'ServicePrincipal'
   }
 }
 
@@ -304,20 +352,25 @@ module hostingplan './core/host/appserviceplan.bicep' = {
     location: location
     sku: {
       name: hostingPlanSku
+      tier: skuTier
     }
     reserved: true
+    tags: { Automation: 'Ignore' }
   }
 }
 
-module web './app/web.bicep' = {
+module web './app/web.bicep' = if (hostingModel == 'code') {
   name: websiteName
   scope: rg
   params: {
     name: websiteName
     location: location
-    tags: { 'azd-service-name': 'web' }
+    tags: union(tags, { 'azd-service-name': 'web' })
+    runtimeName: 'python'
+    runtimeVersion: '3.11'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
+    healthCheckPath: '/api/health'
     azureOpenAIName: openai.outputs.name
     azureAISearchName: search.outputs.name
     storageAccountName: storage.outputs.name
@@ -332,14 +385,12 @@ module web './app/web.bicep' = {
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     authType: authType
     appSettings: {
-      APPINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -361,22 +412,91 @@ module web './app/web.bicep' = {
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
+      SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
 
-module adminweb './app/adminweb.bicep' = {
-  name: '${websiteName}-admin'
+module web_docker './app/web.bicep' = if (hostingModel == 'container') {
+  name: '${websiteName}-docker'
   scope: rg
   params: {
-    name: '${websiteName}-admin'
+    name: '${websiteName}-docker'
     location: location
-    tags: { 'azd-service-name': 'adminweb' }
+    tags: union(tags, { 'azd-service-name': 'web-docker' })
+    dockerFullImageName: 'fruoccopublic.azurecr.io/rag-webapp'
+    appServicePlanId: hostingplan.outputs.name
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    healthCheckPath: '/api/health'
+    azureOpenAIName: openai.outputs.name
+    azureAISearchName: search.outputs.name
+    storageAccountName: storage.outputs.name
+    formRecognizerName: formrecognizer.outputs.name
+    contentSafetyName: contentsafety.outputs.name
+    speechServiceName: speechService.outputs.name
+    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
+    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
+    useKeyVault: useKeyVault
+    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
+    authType: authType
+    appSettings: {
+      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
+      AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
+      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+      AZURE_OPENAI_MODEL: azureOpenAIModel
+      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
+      AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
+      AZURE_OPENAI_TOP_P: azureOpenAITopP
+      AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
+      AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
+      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_OPENAI_STREAM: azureOpenAIStream
+      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+      AZURE_SEARCH_INDEX: azureSearchIndex
+      AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
+      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+      AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+      AZURE_SEARCH_TOP_K: azureSearchTopK
+      AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+      AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
+      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+      AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+      AZURE_SPEECH_SERVICE_NAME: speechServiceName
+      AZURE_SPEECH_SERVICE_REGION: location
+      SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
+      ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
+    }
+  }
+}
+
+module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
+  name: adminWebsiteName
+  scope: rg
+  params: {
+    name: adminWebsiteName
+    location: location
+    tags: union(tags, { 'azd-service-name': 'adminweb' })
+    runtimeName: 'python'
+    runtimeVersion: '3.11'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
@@ -393,14 +513,12 @@ module adminweb './app/adminweb.bicep' = {
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     authType: authType
     appSettings: {
-      APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -421,12 +539,76 @@ module adminweb './app/adminweb.bicep' = {
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       BACKEND_URL: 'https://${functionName}.azurewebsites.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
+    }
+  }
+}
+
+module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container') {
+  name: '${adminWebsiteName}-docker'
+  scope: rg
+  params: {
+    name: '${adminWebsiteName}-docker'
+    location: location
+    tags: union(tags, { 'azd-service-name': 'adminweb-docker' })
+    dockerFullImageName: 'fruoccopublic.azurecr.io/rag-adminwebapp'
+    appServicePlanId: hostingplan.outputs.name
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    azureOpenAIName: openai.outputs.name
+    azureAISearchName: search.outputs.name
+    storageAccountName: storage.outputs.name
+    formRecognizerName: formrecognizer.outputs.name
+    contentSafetyName: contentsafety.outputs.name
+    speechServiceName: speechService.outputs.name
+    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
+    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
+    useKeyVault: useKeyVault
+    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
+    authType: authType
+    appSettings: {
+      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
+      AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
+      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+      AZURE_OPENAI_MODEL: azureOpenAIModel
+      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
+      AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
+      AZURE_OPENAI_TOP_P: azureOpenAITopP
+      AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
+      AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
+      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_OPENAI_STREAM: azureOpenAIStream
+      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
+      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+      AZURE_SEARCH_INDEX: azureSearchIndex
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+      AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+      AZURE_SEARCH_TOP_K: azureSearchTopK
+      AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+      AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
+      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+      AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+      BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
+      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+      FUNCTION_KEY: clientKey
+      ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -440,19 +622,40 @@ module monitoring './core/monitor/monitoring.bicep' = {
     tags: {
       'hidden-link:${resourceId('Microsoft.Web/sites', applicationInsightsName)}': 'Resource'
     }
-    logAnalyticsName: '${environmentName}-logAnalytics-${resourceToken}'
+    logAnalyticsName: logAnalyticsName
     applicationInsightsDashboardName: 'dash-${applicationInsightsName}'
   }
 }
 
-module function './app/function.bicep' = {
+module workbook './app/workbook.bicep' = {
+  name: 'workbook'
+  scope: rg
+  params: {
+    workbookDisplayName: workbookDisplayName
+    location: location
+    hostingPlanName: hostingplan.outputs.name
+    functionName: hostingModel == 'container' ? function_docker.outputs.functionName : function.outputs.functionName
+    websiteName: hostingModel == 'container' ? web_docker.outputs.FRONTEND_API_NAME : web.outputs.FRONTEND_API_NAME
+    adminWebsiteName: hostingModel == 'container' ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME : adminweb.outputs.WEBSITE_ADMIN_NAME
+    eventGridSystemTopicName: eventgrid.outputs.name
+    logAnalyticsName: monitoring.outputs.logAnalyticsWorkspaceName
+    azureOpenAIResourceName: openai.outputs.name
+    azureAISearchName: search.outputs.name
+    storageAccountName: storage.outputs.name
+  }
+}
+
+module function './app/function.bicep' = if (hostingModel == 'code') {
   name: functionName
   scope: rg
   params: {
     name: functionName
     location: location
-    tags: { 'azd-service-name': 'function' }
+    tags: union(tags, { 'azd-service-name': 'function' })
+    runtimeName: 'python'
+    runtimeVersion: '3.11'
     appServicePlanId: hostingplan.outputs.name
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
     azureAISearchName: search.outputs.name
     storageAccountName: storage.outputs.name
@@ -468,15 +671,12 @@ module function './app/function.bicep' = {
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-    keyVaultEndpoint: useKeyVault ? keyvault.outputs.endpoint : ''
     authType: authType
     appSettings: {
-      APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
-      APPINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
-      AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${location}.api.cognitive.microsoft.com/'
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
@@ -484,9 +684,52 @@ module function './app/function.bicep' = {
       AZURE_SEARCH_INDEX: azureSearchIndex
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-      FUNCTIONS_EXTENSION_VERSION: '~4'
       ORCHESTRATION_STRATEGY: orchestrationStrategy
-      WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
+      LOGLEVEL: logLevel
+    }
+  }
+}
+
+module function_docker './app/function.bicep' = if (hostingModel == 'container') {
+  name: '${functionName}-docker'
+  scope: rg
+  params: {
+    name: '${functionName}-docker'
+    location: location
+    tags: union(tags, { 'azd-service-name': 'function-docker' })
+    dockerFullImageName: 'fruoccopublic.azurecr.io/rag-backend'
+    appServicePlanId: hostingplan.outputs.name
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    azureOpenAIName: openai.outputs.name
+    azureAISearchName: search.outputs.name
+    storageAccountName: storage.outputs.name
+    formRecognizerName: formrecognizer.outputs.name
+    contentSafetyName: contentsafety.outputs.name
+    speechServiceName: speechService.outputs.name
+    clientKey: clientKey
+    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
+    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
+    useKeyVault: useKeyVault
+    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
+    authType: authType
+    appSettings: {
+      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
+      AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
+      AZURE_OPENAI_MODEL: azureOpenAIModel
+      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
+      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_SEARCH_INDEX: azureSearchIndex
+      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+      ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
 }
@@ -556,6 +799,7 @@ module storage 'core/storage/storage-account.bicep' = {
 }
 
 // USER ROLES
+// Storage Blob Data Contributor
 module storageRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: rg
   name: 'storage-role-user'
@@ -566,7 +810,7 @@ module storageRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
   }
 }
 
-// USER ROLES
+// Cognitive Services User
 module openaiRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: rg
   name: 'openai-role-user'
@@ -577,7 +821,7 @@ module openaiRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
   }
 }
 
-// USER ROLES
+// Contributor
 module openaiRoleUserContributor 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: rg
   name: 'openai-role-user-contributor'
@@ -588,7 +832,7 @@ module openaiRoleUserContributor 'core/security/role.bicep' = if (authType == 'r
   }
 }
 
-// USER ROLES
+// Search Index Data Contributor
 module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: rg
   name: 'search-role-user'
@@ -596,116 +840,6 @@ module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
     principalId: principalId
     roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
     principalType: 'User'
-  }
-}
-
-// SYSTEM IDENTITIES
-module storageRoleBackend 'core/security/role.bicep' = if (authType == 'rbac') {
-  scope: rg
-  name: 'storage-role-backend'
-  params: {
-    principalId: adminweb.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
-    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// SYSTEM IDENTITIES
-module openAIRoleBackend 'core/security/role.bicep' = if (authType == 'rbac') {
-  scope: rg
-  name: 'openai-role-backend'
-  params: {
-    principalId: adminweb.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
-    roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// SYSTEM IDENTITIES
-module openAIRoleWeb 'core/security/role.bicep' = if (authType == 'rbac') {
-  scope: rg
-  name: 'openai-role-web'
-  params: {
-    principalId: web.outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID
-    roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// SYSTEM IDENTITIES
-module openAIRoleFunction 'core/security/role.bicep' = if (authType == 'rbac') {
-  scope: rg
-  name: 'openai-role-function'
-  params: {
-    principalId: function.outputs.FUNCTION_IDENTITY_PRINCIPAL_ID
-    roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// SYSTEM IDENTITIES
-module openAIRoleBackendContributor 'core/security/role.bicep' = if (authType == 'rbac') {
-  scope: rg
-  name: 'openai-role-backend-contributor'
-  params: {
-    principalId: adminweb.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
-    roleDefinitionId: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// SYSTEM IDENTITIES
-module openAIRoleWebContributor 'core/security/role.bicep' = if (authType == 'rbac') {
-  scope: rg
-  name: 'openai-role-web-contributor'
-  params: {
-    principalId: web.outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID
-    roleDefinitionId: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// SYSTEM IDENTITIES
-module openAIRoleFunctionContributor 'core/security/role.bicep' = if (authType == 'rbac') {
-  scope: rg
-  name: 'openai-role-function-contributor'
-  params: {
-    principalId: function.outputs.FUNCTION_IDENTITY_PRINCIPAL_ID
-    roleDefinitionId: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// SYSTEM IDENTITIES
-module searchRoleBackend 'core/security/role.bicep' = if (authType == 'rbac') {
-  scope: rg
-  name: 'search-role-backend'
-  params: {
-    principalId: adminweb.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
-    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// SYSTEM IDENTITIES
-module searchRoleWeb 'core/security/role.bicep' = if (authType == 'rbac') {
-  scope: rg
-  name: 'search-role-web'
-  params: {
-    principalId: web.outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID
-    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// SYSTEM IDENTITIES
-module searchRoleFunction 'core/security/role.bicep' = if (authType == 'rbac') {
-  scope: rg
-  name: 'search-role-function'
-  params: {
-    principalId: function.outputs.FUNCTION_IDENTITY_PRINCIPAL_ID
-    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
-    principalType: 'ServicePrincipal'
   }
 }
 
@@ -736,6 +870,7 @@ output AZURE_OPENAI_RESOURCE string = azureOpenAIResourceName
 output AZURE_OPENAI_EMBEDDING_MODEL string = azureOpenAIEmbeddingModel
 output AZURE_OPENAI_MODEL string = azureOpenAIModel
 output AZURE_OPENAI_API_KEY string = useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+output AZURE_RESOURCE_GROUP string = rgName
 output AZURE_SEARCH_KEY string = useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
 output AZURE_SEARCH_SERVICE string = search.outputs.endpoint
 output AZURE_SEARCH_USE_SEMANTIC_SEARCH string = azureSearchUseSemanticSearch
@@ -745,12 +880,20 @@ output AZURE_SEARCH_TOP_K string = azureSearchTopK
 output AZURE_SEARCH_ENABLE_IN_DOMAIN string = azureSearchEnableInDomain
 output AZURE_SEARCH_CONTENT_COLUMNS string = azureSearchContentColumns
 output AZURE_SEARCH_FILENAME_COLUMN string = azureSearchFilenameColumn
+output AZURE_SEARCH_FILTER string = azureSearchFilter
 output AZURE_SEARCH_TITLE_COLUMN string = azureSearchTitleColumn
 output AZURE_SEARCH_URL_COLUMN string = azureSearchUrlColumn
+output AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION bool = azureSearchUseIntegratedVectorization
 output AZURE_SEARCH_INDEX string = azureSearchIndex
+output AZURE_SPEECH_SERVICE_NAME string = speechServiceName
 output AZURE_SPEECH_SERVICE_REGION string = location
 output AZURE_SPEECH_SERVICE_KEY string = useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
 output AZURE_TENANT_ID string = tenant().tenantId
 output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
 output USE_KEY_VAULT bool = useKeyVault
+output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
+output FRONTEND_WEBSITE_NAME string = hostingModel == 'code' ? web.outputs.FRONTEND_API_URI : web_docker.outputs.FRONTEND_API_URI
+output ADMIN_WEBSITE_NAME string = hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_URI : adminweb_docker.outputs.WEBSITE_ADMIN_URI
+output SPEECH_RECOGNIZER_LANGUAGES string = recognizedLanguages
+output LOGLEVEL string = logLevel

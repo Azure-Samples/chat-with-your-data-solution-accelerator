@@ -7,33 +7,18 @@ on:
     branches: [main]
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-    - name: 'Az CLI login'
-      uses: azure/login@v1
-      with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  
-    - name: 'Run Azure CLI commands'
-      run: |
-          az account show
-          az group list
-          pwd 
   docker-build-admin:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
-   
+
     - name: Docker Login
       uses: docker/login-action@v3
       with:
         registry: fruoccopublic.azurecr.io
         username: fruoccopublic
         password: ${{ secrets.DOCKER_PASSWORD }}
-    
+
     - uses: actions/checkout@v4
 
     - name: Build the Admin Docker image

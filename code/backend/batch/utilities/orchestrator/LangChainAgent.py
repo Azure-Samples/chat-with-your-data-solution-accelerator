@@ -1,3 +1,4 @@
+import logging
 from typing import List
 from langchain.agents import Tool
 from langchain.memory import ConversationBufferMemory
@@ -14,6 +15,8 @@ from ..tools.ContentSafetyChecker import ContentSafetyChecker
 from ..parser.OutputParserTool import OutputParserTool
 from ..common.Answer import Answer
 
+logger = logging.getLogger(__name__)
+
 
 class LangChainAgent(OrchestratorBase):
     def __init__(self) -> None:
@@ -21,6 +24,9 @@ class LangChainAgent(OrchestratorBase):
         self.content_safety_checker = ContentSafetyChecker()
         self.question_answer_tool = QuestionAnswerTool()
         self.text_processing_tool = TextProcessingTool()
+        self.output_parser = OutputParserTool()
+        self.llm_helper = LLMHelper()
+
         self.tools = [
             Tool(
                 name="Question Answering",
@@ -53,17 +59,18 @@ class LangChainAgent(OrchestratorBase):
     def orchestrate(
         self, user_message: str, chat_history: List[dict], **kwargs: dict
     ) -> dict:
-        output_formatter = OutputParserTool()
 
         # Call Content Safety tool
         if self.config.prompts.enable_content_safety:
+            logger.debug("Calling content safety with question")
             filtered_user_message = (
                 self.content_safety_checker.validate_input_and_replace_if_harmful(
                     user_message
                 )
             )
             if user_message != filtered_user_message:
-                messages = output_formatter.parse(
+                logger.warning("Content safety detected harmful content in question")
+                messages = self.output_parser.parse(
                     question=user_message,
                     answer=filtered_user_message,
                     source_documents=[],
@@ -71,7 +78,6 @@ class LangChainAgent(OrchestratorBase):
                 return messages
 
         # Call function to determine route
-        llm_helper = LLMHelper()
         prefix = """Have a conversation with a human, answering the following questions as best you can. You have access to the following tools:"""
         suffix = """Begin!"
 
@@ -94,27 +100,26 @@ class LangChainAgent(OrchestratorBase):
             elif message["role"] == "assistant":
                 memory.chat_memory.add_ai_message(message["content"])
         # Define Agent and Agent Chain
-        llm_chain = LLMChain(llm=llm_helper.get_llm(), prompt=prompt)
+        llm_chain = LLMChain(llm=self.llm_helper.get_llm(), prompt=prompt)
         agent = ZeroShotAgent(llm_chain=llm_chain, tools=self.tools, verbose=True)
         agent_chain = AgentExecutor.from_agent_and_tools(
             agent=agent, tools=self.tools, verbose=True, memory=memory
         )
         # Run Agent Chain
         with get_openai_callback() as cb:
-            try:
-                answer = agent_chain.run(user_message)
-                self.log_tokens(
-                    prompt_tokens=cb.prompt_tokens,
-                    completion_tokens=cb.completion_tokens,
-                )
-            except Exception as e:
-                answer = str(e)
+            answer = agent_chain.run(user_message)
+            self.log_tokens(
+                prompt_tokens=cb.prompt_tokens,
+                completion_tokens=cb.completion_tokens,
+            )
+
         try:
             answer = Answer.from_json(answer)
         except Exception:
             answer = Answer(question=user_message, answer=answer)
 
         if self.config.prompts.enable_post_answering_prompt:
+            logger.debug("Running post answering prompt")
             post_prompt_tool = PostPromptTool()
             answer = post_prompt_tool.validate_answer(answer)
             self.log_tokens(
@@ -124,19 +129,21 @@ class LangChainAgent(OrchestratorBase):
 
         # Call Content Safety tool
         if self.config.prompts.enable_content_safety:
+            logger.debug("Calling content safety with answer")
             filtered_answer = (
                 self.content_safety_checker.validate_output_and_replace_if_harmful(
                     answer.answer
                 )
             )
             if answer.answer != filtered_answer:
-                messages = output_formatter.parse(
+                logger.warning("Content safety detected harmful content in answer")
+                messages = self.output_parser.parse(
                     question=user_message, answer=filtered_answer, source_documents=[]
                 )
                 return messages
 
         # Format the output for the UI
-        messages = output_formatter.parse(
+        messages = self.output_parser.parse(
             question=answer.question,
             answer=answer.answer,
             source_documents=answer.source_documents,

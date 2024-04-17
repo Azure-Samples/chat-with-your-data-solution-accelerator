@@ -1,6 +1,8 @@
 {
 	"name": "Chat with your data",
-	"image": "mcr.microsoft.com/devcontainers/python:1-3.11-bullseye",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
 	"features": {
 		"ghcr.io/devcontainers/features/azure-cli:1": {},
 		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
@@ -31,10 +33,16 @@
 				"zeshuaro.vscode-python-poetry"
 			],
 			"settings": {
-				"azureFunctions.projectSubpath": "code/backend/batch",
                 "python.defaultInterpreterPath": "/usr/local/bin/python",
-				"python.pythonPath": "/usr/local/bin/python"
+				"python.pythonPath": "/usr/local/bin/python",
+				"remote.autoForwardPortsFallback": 0,
+				"remote.autoForwardPortsSource": "process"
             }
 		}
+	},
+
+	"remoteEnv": {
+		// the original host directory which is needed for volume mount commands from inside the container (Docker in Docker)
+		"HOST_DOCKER_FOLDER": "${localWorkspaceFolder}/docker"
 	}
 }

@@ -70,7 +70,7 @@ export const QuestionInput = ({
   };
 
   const clearChat = (ev: React.KeyboardEvent<Element>) => {
-    onClearChat(true);
+    onClearChat();
   };
 
   const onQuestionChange = (
@@ -158,10 +158,15 @@ export const QuestionInput = ({
         </div>
 
         {/* Clear chat option */}
-        <div
-        className={styles.clearChatButton}
-        onClick={clearChat}
-        >Clear Chat</div>
+        {/* <div
+          className={styles.clearChatButton}
+          onClick={clearChat}
+          onKeyDown={(e) =>
+            e.key === "Enter" || e.key === " " ? clearChat(e) : null
+          }
+        >
+          Clear Chat
+        </div> */}
       </div>
       <div className={styles.bottomSearchControls}></div>
     </Stack>

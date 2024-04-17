@@ -61,7 +61,8 @@ class SourceDocument:
         hash_key = f"doc_{hash_key}"
         sas_placeholder = (
             "_SAS_TOKEN_PLACEHOLDER_"
-            if "blob.core.windows.net" in parsed_url.netloc
+            if parsed_url.netloc
+            and parsed_url.netloc.endswith(".blob.core.windows.net")
             else ""
         )
         return cls(

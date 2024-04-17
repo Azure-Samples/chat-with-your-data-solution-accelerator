@@ -75,18 +75,72 @@ def test_get_markdown_url(azure_blob_service_mock):
     assert markdown_url == "[A title](http://example.com/path/to/file.txt_12345)"
 
 
+def test_from_metadata_returns_empty_sas_placeholder():
+    # Given
+    content = "Some content"
+    metadata = {}
+    # blob.core.windows.net needs to be the domain name - not a faked one as per CWE-20
+    document_url = "http://blob.core.windows.net.example.com/path/to/file.txt"
+    expectedFileName = "/path/to/file.txt"
+    idx = 0
+
+    # When
+    source_document = SourceDocument.from_metadata(content, metadata, document_url, idx)
+
+    # Then
+    parsed_url = urlparse(document_url)
+    file_url = parsed_url.scheme + "://" + parsed_url.netloc + parsed_url.path
+    hash_key = hashlib.sha1(f"{file_url}_{idx}".encode("utf-8")).hexdigest()
+    hash_key = f"doc_{hash_key}"
+
+    assert source_document.id == hash_key
+    assert source_document.content == content
+    assert source_document.source == document_url
+    assert source_document.title == expectedFileName
+    assert source_document.chunk == idx
+    assert source_document.offset is None
+    assert source_document.page_number is None
+
+
+def test_from_metadata_returns_sas_placeholder():
+    # Given
+    content = "Some content"
+    metadata = {}
+    document_url = "http://example.blob.core.windows.net/path/to/file.txt"
+    expectedFileName = "/path/to/file.txt"
+    expected_sas_placeholder = "_SAS_TOKEN_PLACEHOLDER_"
+    idx = 0
+
+    # When
+    source_document = SourceDocument.from_metadata(content, metadata, document_url, idx)
+
+    # Then
+    parsed_url = urlparse(document_url)
+    file_url = parsed_url.scheme + "://" + parsed_url.netloc + parsed_url.path
+    hash_key = hashlib.sha1(f"{file_url}_{idx}".encode("utf-8")).hexdigest()
+    hash_key = f"doc_{hash_key}"
+
+    assert source_document.id == hash_key
+    assert source_document.content == content
+    assert source_document.source == f"{file_url}{expected_sas_placeholder}"
+    assert source_document.title == expectedFileName
+    assert source_document.chunk == idx
+    assert source_document.offset is None
+    assert source_document.page_number is None
+
+
 def test_from_metadata():
     # Given
     content = "Some content"
     metadata = {
         "id": "1",
-        "source": "http://example.com/path/to/file.txt_SAS_TOKEN_PLACEHOLDER_",
+        "source": "http://example.com/path/to/file.txt",
         "title": "A title",
         "chunk": "A chunk",
         "offset": "An offset",
         "page_number": "1",
     }
-    document_url = "http://example.com/path/to/file.txt_SAS_TOKEN_PLACEHOLDER_"
+    document_url = "http://example.com/path/to/file.txt"
     idx = 0
 
     # When
@@ -98,15 +152,11 @@ def test_from_metadata():
     filename = parsed_url.path
     hash_key = hashlib.sha1(f"{file_url}_{idx}".encode("utf-8")).hexdigest()
     hash_key = f"doc_{hash_key}"
-    sas_placeholder = (
-        "_SAS_TOKEN_PLACEHOLDER_"
-        if "blob.core.windows.net" in parsed_url.netloc
-        else ""
-    )
+
     expected_source_document = SourceDocument(
         id=metadata.get("id", hash_key),
         content=content,
-        source=metadata.get("source", f"{file_url}{sas_placeholder}"),
+        source=metadata.get("source", document_url),
         title=metadata.get("title", filename),
         chunk=metadata.get("chunk", idx),
         offset=metadata.get("offset"),

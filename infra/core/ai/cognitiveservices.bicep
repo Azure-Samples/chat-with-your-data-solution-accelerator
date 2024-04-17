@@ -6,6 +6,7 @@ param tags object = {}
 param customSubDomainName string = name
 param deployments array = []
 param kind string = 'OpenAI'
+param managedIdentity bool = false
 
 @allowed([ 'Enabled', 'Disabled' ])
 param publicNetworkAccess string = 'Enabled'
@@ -32,6 +33,9 @@ resource account 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
     networkAcls: networkAcls
   }
   sku: sku
+  identity: {
+    type: managedIdentity ? 'SystemAssigned' : 'None'
+  }
 }
 
 @batchSize(1)
@@ -49,5 +53,6 @@ resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01
 }]
 
 output endpoint string = account.properties.endpoint
+output identityPrincipalId string = managedIdentity ? account.identity.principalId : ''
 output id string = account.id
 output name string = account.name

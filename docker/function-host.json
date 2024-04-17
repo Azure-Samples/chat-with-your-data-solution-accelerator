@@ -1,0 +1,17 @@
+{
+    "masterKey": {
+        "name": "master",
+        "value": "some-test-key",
+        "encrypted": false
+    },
+    "functionKeys": [
+        {
+            "name": "default",
+            "value": "some-test-key"
+        },
+        {
+            "name": "clientKey",
+            "value": "some-test-key"
+        }
+    ]
+}

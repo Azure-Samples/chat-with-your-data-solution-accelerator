@@ -14,12 +14,12 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 50
   - package-ecosystem: "npm"
-    directory: "/extensions/teams"
+    directory: "/code/frontend"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 50
   - package-ecosystem: "npm"
-    directory: "/code/frontend"
+    directory: "/tests/integration/ui"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 50
