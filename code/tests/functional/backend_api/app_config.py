@@ -15,6 +15,7 @@ class AppConfig:
         "AZURE_SEARCH_INDEX": "some-azure-search-index",
         "AZURE_SEARCH_KEY": "some-azure-search-key",
         "AZURE_SEARCH_FILTER": "some-search-filter",
+        "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "False",
         "AZURE_CONTENT_SAFETY_KEY": "some-content_safety-key",
         "AZURE_OPENAI_EMBEDDING_MODEL": "some-embedding-model",
         "AZURE_OPENAI_MODEL": "some-openai-model",
@@ -22,6 +23,7 @@ class AppConfig:
         "AZURE_OPENAI_STREAM": "True",
         "LOAD_CONFIG_FROM_BLOB_STORAGE": "False",
         "TIKTOKEN_CACHE_DIR": f"{os.path.dirname(os.path.realpath(__file__))}/resources",
+        "USE_KEY_VAULT": "False",
         # These values are set directly within EnvHelper, adding them here ensures
         # that they are removed from the environment when remove_from_environment() runs
         "OPENAI_API_TYPE": None,
