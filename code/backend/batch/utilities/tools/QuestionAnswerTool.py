@@ -46,7 +46,7 @@ class QuestionAnswerTool(AnsweringToolBase):
 
     def legacy_generate_llm_chain(self, question: str, sources: list[Document]):
         answering_prompt = PromptTemplate(
-            template=self.config.prompts.answering_prompt,
+            template=self.config.prompts.answering_user_prompt,
             input_variables=["question", "sources"],
         )
 
@@ -55,8 +55,8 @@ class QuestionAnswerTool(AnsweringToolBase):
         )
 
         return answering_prompt, {
-            "question": question,
             "sources": sources_text,
+            "question": question,
         }
 
     def generate_llm_chain(
@@ -68,14 +68,14 @@ class QuestionAnswerTool(AnsweringToolBase):
         examples = []
 
         few_shot_example = {
-            "documents": self.config.example.documents.strip(),
-            "user_question": self.config.example.user_question.strip(),
+            "sources": self.config.example.documents.strip(),
+            "question": self.config.example.user_question.strip(),
             "answer": self.config.example.answer.strip(),
         }
 
-        if few_shot_example["documents"]:
-            few_shot_example["documents"] = QuestionAnswerTool.json_remove_whitespace(
-                few_shot_example["documents"]
+        if few_shot_example["sources"]:
+            few_shot_example["sources"] = QuestionAnswerTool.json_remove_whitespace(
+                few_shot_example["sources"]
             )
 
         if any(few_shot_example.values()):
@@ -123,8 +123,8 @@ class QuestionAnswerTool(AnsweringToolBase):
         )
 
         return answering_prompt, {
-            "user_question": question,
-            "documents": documents,
+            "sources": documents,
+            "question": question,
             "chat_history": chat_history,
         }
 
@@ -136,7 +136,7 @@ class QuestionAnswerTool(AnsweringToolBase):
             filters=self.env_helper.AZURE_SEARCH_FILTER,
         )
 
-        if self.config.prompts.use_answering_system_prompt:
+        if self.config.prompts.use_new_prompt_format:
             answering_prompt, input = self.generate_llm_chain(
                 question, chat_history, sources
             )
