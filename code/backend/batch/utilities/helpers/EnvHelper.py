@@ -1,5 +1,6 @@
 import os
 import logging
+import threading
 from dotenv import load_dotenv
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.keyvault.secrets import SecretClient
@@ -8,13 +9,29 @@ logger = logging.getLogger(__name__)
 
 
 class EnvHelper:
-    def __init__(self, **kwargs) -> None:
+    _instance = None
+    _lock = threading.Lock()
+
+    def __new__(cls):
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super(EnvHelper, cls).__new__(cls)
+                cls._instance.__load_config()
+            return cls._instance
+
+    def __load_config(self, **kwargs) -> None:
         load_dotenv()
+
+        logger.info("Initializing EnvHelper")
 
         # Wrapper for Azure Key Vault
         self.secretHelper = SecretHelper()
 
         self.LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
+
+        # Azure
+        self.AZURE_SUBSCRIPTION_ID = os.getenv("AZURE_SUBSCRIPTION_ID", "")
+        self.AZURE_RESOURCE_GROUP = os.getenv("AZURE_RESOURCE_GROUP", "")
 
         # Azure Search
         self.AZURE_SEARCH_SERVICE = os.getenv("AZURE_SEARCH_SERVICE", "")
@@ -159,7 +176,15 @@ class EnvHelper:
             "ORCHESTRATION_STRATEGY", "openai_function"
         )
         # Speech Service
+        self.AZURE_SPEECH_SERVICE_NAME = os.getenv("AZURE_SPEECH_SERVICE_NAME", "")
         self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")
+        self.SPEECH_RECOGNIZER_LANGUAGES = self.get_env_var_array(
+            "SPEECH_RECOGNIZER_LANGUAGES", "en-US"
+        )
+        self.AZURE_SPEECH_REGION_ENDPOINT = os.environ.get(
+            "AZURE_SPEECH_REGION_ENDPOINT",
+            f"https://{self.AZURE_SPEECH_SERVICE_REGION}.api.cognitive.microsoft.com/",
+        )
 
         self.LOAD_CONFIG_FROM_BLOB_STORAGE = self.get_env_var_bool(
             "LOAD_CONFIG_FROM_BLOB_STORAGE"
@@ -182,11 +207,19 @@ class EnvHelper:
     def get_env_var_bool(self, var_name: str, default: str = "True") -> bool:
         return os.getenv(var_name, default).lower() == "true"
 
+    def get_env_var_array(self, var_name: str, default: str = ""):
+        return os.getenv(var_name, default).split(",")
+
     @staticmethod
     def check_env():
         for attr, value in EnvHelper().__dict__.items():
             if value == "":
                 logger.warning(f"{attr} is not set in the environment variables.")
+
+    @classmethod
+    def clear_instance(cls):
+        if cls._instance is not None:
+            cls._instance = None
 
 
 class SecretHelper:
