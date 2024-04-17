@@ -142,4 +142,3 @@ module functionaccess '../core/security/keyvault-access.bicep' = if (useKeyVault
 
 output FUNCTION_IDENTITY_PRINCIPAL_ID string = function.outputs.identityPrincipalId
 output functionName string = function.outputs.name
-output azureWebJobsStorage string = function.outputs.azureWebJobsStorage

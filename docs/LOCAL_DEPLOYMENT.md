@@ -108,6 +108,9 @@ provisioned resources. This file can be created manually at the root of the proj
 provisioned using `azd provision` or `azd up`, a `.env` file is automatically generated in the `.azure/<env-name>/.env`
 file. To get your `<env-name>` run `azd env list` to see which env is default.
 
+The `AzureWebJobsStorage` needs to be added to your `.env` file manually. This can be retrieved from the function
+settings via the Azure Portal.
+
 To start the services, you can use either of the following commands:
 - `make docker-compose-up`
 - `cd docker && AZD_ENV_FILE=<path-to-env-file> docker-compose up`

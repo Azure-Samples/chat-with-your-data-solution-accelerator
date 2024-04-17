@@ -43,8 +43,6 @@ param dockerFullImageName string = ''
 param useDocker bool = dockerFullImageName != ''
 param enableOryxBuild bool = useDocker ? false : contains(kind, 'linux')
 
-var azureWebJobsStorage = 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
-
 module functions 'appservice.bicep' = {
   name: '${name}-functions'
   params: {
@@ -58,7 +56,7 @@ module functions 'appservice.bicep' = {
     appServicePlanId: appServicePlanId
     appSettings: union(appSettings,
       {
-        AzureWebJobsStorage: azureWebJobsStorage
+        AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
         FUNCTIONS_EXTENSION_VERSION: extensionVersion
       },
       !useDocker ? { FUNCTIONS_WORKER_RUNTIME: runtimeName } : {}
@@ -75,7 +73,7 @@ module functions 'appservice.bicep' = {
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
     runtimeNameAndVersion: runtimeNameAndVersion
-    scmDoBuildDuringDeployment:  useDocker ? false : true
+    scmDoBuildDuringDeployment: useDocker ? false : true
     use32BitWorkerProcess: use32BitWorkerProcess
     dockerFullImageName: dockerFullImageName
   }
@@ -88,4 +86,3 @@ resource storage 'Microsoft.Storage/storageAccounts@2021-09-01' existing = {
 output identityPrincipalId string = managedIdentity ? functions.outputs.identityPrincipalId : ''
 output name string = functions.outputs.name
 output uri string = functions.outputs.uri
-output azureWebJobsStorage string = azureWebJobsStorage

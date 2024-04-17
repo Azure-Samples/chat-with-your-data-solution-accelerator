@@ -889,4 +889,3 @@ output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code' ? web.outputs.FRONTEND_API_URI : web_docker.outputs.FRONTEND_API_URI
 output ADMIN_WEBSITE_NAME string = hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_URI : adminweb_docker.outputs.WEBSITE_ADMIN_URI
 output LOGLEVEL string = logLevel
-output AzureWebJobsStorage string = function.outputs.azureWebJobsStorage
