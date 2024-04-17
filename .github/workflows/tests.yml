@@ -2,7 +2,7 @@ name: Tests
 
 on:
   push:
-    branches: [main]
+    branches: [add-frontend-tests-to-github-nodevcontainer]
   pull_request:
     branches: [main]
     types:
@@ -90,3 +90,11 @@ jobs:
           if-no-files-found: error
       - name: Run Functional tests
         run: poetry run pytest -m "functional"
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: "code/frontend/package-lock.json"
+      - name: Run frontend unit tests
+        run: npm run test
