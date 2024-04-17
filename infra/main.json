@@ -166,7 +166,7 @@
     },
     "orchestrationStrategy": {
       "type": "string",
-      "defaultValue": "langchain",
+      "defaultValue": "openai_function",
       "allowedValues": [
         "openai_function",
         "langchain"
