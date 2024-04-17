@@ -84,6 +84,7 @@ class QuestionAnswerTool(AnsweringToolBase):
                 source=source.metadata["source"],
                 chunk=source.metadata["chunk"],
                 offset=source.metadata["offset"],
+                keywords=source.metadata["keywords"],
                 page_number=source.metadata["page_number"],
             )
             source_documents.append(source_document)
