@@ -2,7 +2,7 @@ name: Tests
 
 on:
   push:
-    branches: [main]
+    branches: [add-frontend-tests-to-github-nodevcontainer]
   pull_request:
     branches: [main]
     types:
@@ -97,6 +97,8 @@ jobs:
           cache: "npm"
           cache-dependency-path: "code/frontend/package-lock.json"
       - name: Install frontend dependencies
-        run: npm --prefix code/frontend install
+        working-directory: ./code/frontend
+        run: npm install
       - name: Run frontend unit tests
-        run: npm --prefix code/frontend run test
+        working-directory: ./code/frontend
+        run: npm run test
