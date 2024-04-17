@@ -24,7 +24,7 @@ def wait_for_app(port: int, initial_check_delay: int = 2):
     time.sleep(initial_check_delay)
     while attempts < 10:
         try:
-            response = requests.get(f"http://localhost:{port}/api/config")
+            response = requests.get(f"http://localhost:{port}/api/health")
             if response.status_code == 200:
                 return
         except Exception:
