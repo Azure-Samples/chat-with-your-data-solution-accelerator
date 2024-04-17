@@ -188,7 +188,7 @@ class EnvHelper:
                 tenant_id=self.TENANT_ID,
             ),
             "https://graph.microsoft.com/.default",
-        )()
+        )
 
     @staticmethod
     def check_env():
