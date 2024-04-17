@@ -97,4 +97,4 @@ jobs:
           cache: "npm"
           cache-dependency-path: "code/frontend/package-lock.json"
       - name: Run frontend unit tests
-        run: npm run test
+        run: npm --prefix code/frontend run test
