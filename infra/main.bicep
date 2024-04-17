@@ -213,6 +213,9 @@ param hostingModel string = 'container'
 ])
 param logLevel string = 'INFO'
 
+@description('List of comma-separated languages to recognize from the speech input. Supported languages are listed here: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=stt#supported-languages')
+param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
+
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
@@ -373,6 +376,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
     runtimeVersion: '3.11'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
+    healthCheckPath: '/api/health'
     azureOpenAIName: openai.outputs.name
     azureAISearchName: search.outputs.name
     storageAccountName: storage.outputs.name
@@ -419,6 +423,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
+      SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
     }
@@ -435,6 +440,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
     dockerFullImageName: 'fruoccopublic.azurecr.io/rag-webapp'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
+    healthCheckPath: '/api/health'
     azureOpenAIName: openai.outputs.name
     azureAISearchName: search.outputs.name
     storageAccountName: storage.outputs.name
@@ -481,6 +487,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
+      SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
     }
@@ -900,4 +907,5 @@ output USE_KEY_VAULT bool = useKeyVault
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code' ? web.outputs.FRONTEND_API_URI : web_docker.outputs.FRONTEND_API_URI
 output ADMIN_WEBSITE_NAME string = hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_URI : adminweb_docker.outputs.WEBSITE_ADMIN_URI
+output SPEECH_RECOGNIZER_LANGUAGES string = recognizedLanguages
 output LOGLEVEL string = logLevel

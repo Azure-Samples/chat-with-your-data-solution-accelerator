@@ -19,6 +19,7 @@ def test_speech_token_returned(app_url: str, app_config: AppConfig):
     assert response.json() == {
         "token": "speech-token",
         "region": app_config.get("AZURE_SPEECH_SERVICE_REGION"),
+        "languages": app_config.get("SPEECH_RECOGNIZER_LANGUAGES").split(","),
     }
     assert response.headers["Content-Type"] == "application/json"
 
@@ -57,5 +58,5 @@ def test_failure_fetching_speech_token(app_url: str, httpserver: HTTPServer):
 
     # then
     assert response.status_code == 400
-    assert response.json() == {"error": "Failed to get speech token"}
+    assert response.json() == {"error": "Failed to get speech config"}
     assert response.headers["Content-Type"] == "application/json"

@@ -26,6 +26,7 @@ param speechKeyName string = ''
 param authType string
 param dockerFullImageName string = ''
 param useDocker bool = dockerFullImageName != ''
+param healthCheckPath string = ''
 
 module web '../core/host/appservice.bicep' = {
   name: '${name}-app-module'
@@ -50,8 +51,9 @@ module web '../core/host/appservice.bicep' = {
     keyVaultName: keyVaultName
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
-    dockerFullImageName: dockerFullImageName 
+    dockerFullImageName: dockerFullImageName
     scmDoBuildDuringDeployment: useDocker ? false : true
+    healthCheckPath: healthCheckPath
   }
 }
 

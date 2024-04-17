@@ -8,6 +8,7 @@ class AppConfig:
     config: dict[str, str | None] = {
         "AZURE_SPEECH_SERVICE_KEY": "some-azure-speech-service-key",
         "AZURE_SPEECH_SERVICE_REGION": "some-azure-speech-service-region",
+        "SPEECH_RECOGNIZER_LANGUAGES": "en-US,es-ES",
         "APPINSIGHTS_ENABLED": "False",
         "AZURE_OPENAI_API_KEY": "some-azure-openai-api-key",
         "AZURE_OPENAI_API_VERSION": "2024-02-01",
