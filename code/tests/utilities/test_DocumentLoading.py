@@ -50,3 +50,12 @@ def test_document_loading_docx():
     assert len(data) == 1
     assert data[0].source == url
     print(data[0].content)
+
+
+def test_document_loading_json():
+    document_loading = DocumentLoading()
+    url = "./code/tests/utilities/resources/Marco Polo (TradeIX).json"
+    data = document_loading.load(url, LoadingSettings({"strategy": "json"}))
+    assert len(data) == 1
+    assert data[0].source == 'https://example.sharepoint.com/SitePages/Marco-Polo-(TradeIX).aspx'
+    print(data[0].content)

@@ -3,7 +3,7 @@ import json
 import azure.functions as func
 import sys
 from azure.storage.queue import QueueClient, BinaryBase64EncodePolicy
-from utilities.helpers import EnvHelper
+from utilities.helpers.EnvHelper import EnvHelper
 from utilities.helpers.AzureBlobStorageHelper import AzureBlobStorageClient
 
 sys.path.append("..")

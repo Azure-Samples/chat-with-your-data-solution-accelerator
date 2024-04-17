@@ -2,7 +2,7 @@ import azure.functions as func
 import logging
 import json
 import sys
-from utilities.helpers import EnvHelper
+from utilities.helpers.EnvHelper import EnvHelper
 from utilities.helpers.OrchestratorHelper import Orchestrator
 
 sys.path.append("..")

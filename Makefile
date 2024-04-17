@@ -16,15 +16,19 @@ endif
 help: ## 💬 This help message :)
 	@grep -E '[a-zA-Z_-]+:.*?## .*$$' $(firstword $(MAKEFILE_LIST)) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-23s\033[0m %s\n", $$1, $$2}'
 
-ci: lint unittest build-frontend ## 🚀 Continuous Integration (called by Github Actions)
+ci: lint unittest functionaltest build-frontend ## 🚀 Continuous Integration (called by Github Actions)
 
 lint: ## 🧹 Lint the code
 	@echo -e "\e[34m$@\e[0m" || true
-	@flake8 code
+	@poetry run flake8 code
 
 unittest: ## 🧪 Run the unit tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@cd code/ && python -m pytest -m "not azure"
+	@poetry run pytest --no-cov -m "not azure and not functional"
+
+functionaltest: ## 🧪 Run the functional tests
+	@echo -e "\e[34m$@\e[0m" || true
+	@ poetry run pytest --no-cov -m "functional"
 
 build-frontend: ## 🏗️ Build the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true

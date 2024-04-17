@@ -1,7 +1,11 @@
 import os
 import logging
 from dotenv import load_dotenv
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from azure.identity import (
+    DefaultAzureCredential,
+    ClientSecretCredential,
+    get_bearer_token_provider,
+)
 from azure.keyvault.secrets import SecretClient
 
 logger = logging.getLogger(__name__)
@@ -10,6 +14,9 @@ logger = logging.getLogger(__name__)
 class EnvHelper:
     def __init__(self, **kwargs) -> None:
         load_dotenv()
+
+        # Wrapper for Azure Key Vault
+        self.secretHelper = SecretHelper()
 
         # Azure Search
         self.AZURE_SEARCH_SERVICE = os.getenv("AZURE_SEARCH_SERVICE", "")
@@ -76,44 +83,43 @@ class EnvHelper:
         self.AZURE_TOKEN_PROVIDER = get_bearer_token_provider(
             DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
         )
-        self.USE_KEY_VAULT = os.getenv("USE_KEY_VAULT", "").lower() == "true"
+
+        # Azure AD
+        tenant_id = os.getenv("TENANT_ID", "")
+        client_id = os.getenv("CLIENT_ID", "")
+        client_secret = self.secretHelper.get_secret("CLIENT_SECRET")
+        self.TENANT_ID = tenant_id
+        self.CLIENT_ID = client_id
+        self.CLIENT_SECRET = client_secret
+        self.ADMIN_GROUP_ID = self.secretHelper.get_secret("AZURE_ADMIN_GROUP_ID")
+
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
-        # When USE_KEY_VAULT environment variable is set, keys are securely fetched from Azure Key Vault using DefaultAzureCredential.
-        # Otherwise, keys are obtained from environment variables.
         if self.AZURE_AUTH_TYPE == "rbac":
             self.AZURE_SEARCH_KEY = None
-            self.AZURE_OPENAI_KEY = ""
+            self.AZURE_OPENAI_API_KEY = ""
             self.AZURE_SPEECH_KEY = None
-        elif self.USE_KEY_VAULT:
-            credential = DefaultAzureCredential()
-            self.secret_client = SecretClient(
-                os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), credential
-            )
-            self.AZURE_SEARCH_KEY = self.secret_client.get_secret(
-                os.environ.get("AZURE_SEARCH_KEY")
-            ).value
-            self.AZURE_OPENAI_KEY = self.secret_client.get_secret(
-                os.environ.get("AZURE_OPENAI_KEY", "")
-            ).value
-            self.AZURE_SPEECH_KEY = self.secret_client.get_secret(
-                os.environ.get("AZURE_SPEECH_SERVICE_KEY")
-            ).value
         else:
-            self.AZURE_SEARCH_KEY = os.environ.get("AZURE_SEARCH_KEY")
-            self.AZURE_OPENAI_KEY = os.environ.get("AZURE_OPENAI_KEY", "")
-            self.AZURE_SPEECH_KEY = os.environ.get("AZURE_SPEECH_SERVICE_KEY")
-        # Set env for OpenAI SDK
-        self.OPENAI_API_BASE = (
-            f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
+            self.AZURE_SEARCH_KEY = self.secretHelper.get_secret("AZURE_SEARCH_KEY")
+            self.AZURE_OPENAI_API_KEY = self.secretHelper.get_secret(
+                "AZURE_OPENAI_API_KEY"
+            )
+
+            self.AZURE_SPEECH_KEY = self.secretHelper.get_secret(
+                "AZURE_SPEECH_SERVICE_KEY"
+            )
+
+        # Set env for Azure OpenAI
+        self.AZURE_OPENAI_ENDPOINT = os.environ.get(
+            "AZURE_OPENAI_ENDPOINT",
+            f"https://{self.AZURE_OPENAI_RESOURCE}.openai.azure.com/",
         )
+
+        # Set env for OpenAI SDK
         self.OPENAI_API_TYPE = "azure" if self.AZURE_AUTH_TYPE == "keys" else "azure_ad"
-        self.OPENAI_API_KEY = self.AZURE_OPENAI_KEY
+        self.OPENAI_API_KEY = self.AZURE_OPENAI_API_KEY
         self.OPENAI_API_VERSION = self.AZURE_OPENAI_API_VERSION
         os.environ["OPENAI_API_TYPE"] = self.OPENAI_API_TYPE
-        os.environ["OPENAI_API_BASE"] = (
-            f"https://{os.getenv('AZURE_OPENAI_RESOURCE')}.openai.azure.com/"
-        )
         os.environ["OPENAI_API_KEY"] = self.OPENAI_API_KEY
         os.environ["OPENAI_API_VERSION"] = self.OPENAI_API_VERSION
         # Azure Functions - Batch processing
@@ -125,22 +131,16 @@ class EnvHelper:
         )
         # Azure Blob Storage
         self.AZURE_BLOB_ACCOUNT_NAME = os.getenv("AZURE_BLOB_ACCOUNT_NAME", "")
-        self.AZURE_BLOB_ACCOUNT_KEY = (
-            self.secret_client.get_secret(os.getenv("AZURE_BLOB_ACCOUNT_KEY", "")).value
-            if self.USE_KEY_VAULT
-            else os.getenv("AZURE_BLOB_ACCOUNT_KEY", "")
+        self.AZURE_BLOB_ACCOUNT_KEY = self.secretHelper.get_secret(
+            "AZURE_BLOB_ACCOUNT_KEY"
         )
         self.AZURE_BLOB_CONTAINER_NAME = os.getenv("AZURE_BLOB_CONTAINER_NAME", "")
         # Azure Form Recognizer
         self.AZURE_FORM_RECOGNIZER_ENDPOINT = os.getenv(
             "AZURE_FORM_RECOGNIZER_ENDPOINT", ""
         )
-        self.AZURE_FORM_RECOGNIZER_KEY = (
-            self.secret_client.get_secret(
-                os.getenv("AZURE_FORM_RECOGNIZER_KEY", "")
-            ).value
-            if self.USE_KEY_VAULT
-            else os.getenv("AZURE_FORM_RECOGNIZER_KEY", "")
+        self.AZURE_FORM_RECOGNIZER_KEY = self.secretHelper.get_secret(
+            "AZURE_FORM_RECOGNIZER_KEY"
         )
         # Azure App Insights
         self.APPINSIGHTS_CONNECTION_STRING = os.getenv(
@@ -155,12 +155,8 @@ class EnvHelper:
             and "api.cognitive.microsoft.com" not in self.AZURE_CONTENT_SAFETY_ENDPOINT
         ):
             self.AZURE_CONTENT_SAFETY_ENDPOINT = self.AZURE_FORM_RECOGNIZER_ENDPOINT
-        self.AZURE_CONTENT_SAFETY_KEY = (
-            self.secret_client.get_secret(
-                os.getenv("AZURE_CONTENT_SAFETY_KEY", "")
-            ).value
-            if self.USE_KEY_VAULT
-            else os.getenv("AZURE_CONTENT_SAFETY_KEY", "")
+        self.AZURE_CONTENT_SAFETY_KEY = self.secretHelper.get_secret(
+            "AZURE_CONTENT_SAFETY_KEY"
         )
         # Orchestration Settings
         self.ORCHESTRATION_STRATEGY = os.getenv(
@@ -183,8 +179,62 @@ class EnvHelper:
             return True
         return False
 
+    @property
+    def AZURE_MS_GRAPH_TOKEN_PROVIDER(self):
+        return get_bearer_token_provider(
+            ClientSecretCredential(
+                client_id=self.CLIENT_ID,
+                client_secret=self.CLIENT_SECRET,
+                tenant_id=self.TENANT_ID,
+            ),
+            "https://graph.microsoft.com/.default",
+        )()
+
     @staticmethod
     def check_env():
         for attr, value in EnvHelper().__dict__.items():
             if value == "":
                 logging.warning(f"{attr} is not set in the environment variables.")
+
+
+class SecretHelper:
+    def __init__(self) -> None:
+        """
+        Initializes an instance of the SecretHelper class.
+
+        The constructor sets the USE_KEY_VAULT attribute based on the value of the USE_KEY_VAULT environment variable.
+        If USE_KEY_VAULT is set to "true" (case-insensitive), it initializes a SecretClient object using the
+        AZURE_KEY_VAULT_ENDPOINT environment variable and the DefaultAzureCredential.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        self.USE_KEY_VAULT = os.getenv("USE_KEY_VAULT", "").lower() == "true"
+        self.secret_client = None
+        if self.USE_KEY_VAULT:
+            self.secret_client = SecretClient(
+                os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), DefaultAzureCredential()
+            )
+
+    def get_secret(self, secret_name: str) -> str:
+        """
+        Retrieves the value of a secret from the environment variables or Azure Key Vault.
+
+        Args:
+            secret_name (str): The name of the secret or "".
+
+        Returns:
+            str: The value of the secret.
+
+        Raises:
+            None
+
+        """
+        return (
+            self.secret_client.get_secret(os.getenv(secret_name, "")).value
+            if self.USE_KEY_VAULT
+            else os.getenv(secret_name, "")
+        )

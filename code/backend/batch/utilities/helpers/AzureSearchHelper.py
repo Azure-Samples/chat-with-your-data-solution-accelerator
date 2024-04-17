@@ -16,6 +16,7 @@ class AzureSearchHelper:
     def get_vector_store(self):
         llm_helper = LLMHelper()
         env_helper = EnvHelper()
+
         fields = [
             SimpleField(
                 name="id",
@@ -27,6 +28,7 @@ class AzureSearchHelper:
                 name="content",
                 type=SearchFieldDataType.String,
             ),
+            SearchableField(name="keywords", type=SearchFieldDataType.String),
             SearchField(
                 name="content_vector",
                 type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
@@ -62,7 +64,6 @@ class AzureSearchHelper:
                 filterable=True,
             ),
         ]
-
         return AzureSearch(
             azure_search_endpoint=env_helper.AZURE_SEARCH_SERVICE,
             azure_search_key=(

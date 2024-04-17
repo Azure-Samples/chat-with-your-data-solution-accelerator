@@ -34,7 +34,7 @@ class Config:
         )
 
     def get_available_document_types(self):
-        return ["txt", "pdf", "url", "html", "md", "jpeg", "jpg", "png", "docx"]
+        return ["txt", "pdf", "url", "html", "md", "jpeg", "jpg", "png", "docx", "json"]
 
     def get_available_chunking_strategies(self):
         return [c.value for c in ChunkingStrategy]
@@ -202,6 +202,15 @@ Answer: {answer}""",
                         "overlap": 100,
                     },
                     "loading": {"strategy": LoadingStrategy.LAYOUT},
+                },
+                {
+                    "document_type": "json",
+                    "chunking": {
+                        "strategy": ChunkingStrategy.MOCK,
+                        "size": 500,
+                        "overlap": 100,
+                    },
+                    "loading": {"strategy": LoadingStrategy.JSON},
                 },
             ],
             "logging": {"log_user_interactions": True, "log_tokens": True},

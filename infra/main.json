@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.25.53.49325",
-      "templateHash": "10079442882671695803"
+      "version": "0.26.170.59819",
+      "templateHash": "14010307344482621450"
     }
   },
   "parameters": {
@@ -386,8 +386,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "17948623451174129396"
+              "version": "0.26.170.59819",
+              "templateHash": "18407114162280426775"
             },
             "description": "Creates an Azure Key Vault."
           },
@@ -466,8 +466,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "815983560956742247"
+              "version": "0.26.170.59819",
+              "templateHash": "7922086847377910894"
             },
             "description": "Assigns an Azure Key Vault access policy."
           },
@@ -540,8 +540,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "815983560956742247"
+              "version": "0.26.170.59819",
+              "templateHash": "7922086847377910894"
             },
             "description": "Assigns an Azure Key Vault access policy."
           },
@@ -614,8 +614,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "815983560956742247"
+              "version": "0.26.170.59819",
+              "templateHash": "7922086847377910894"
             },
             "description": "Assigns an Azure Key Vault access policy."
           },
@@ -720,8 +720,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "12097385131238776571"
+              "version": "0.26.170.59819",
+              "templateHash": "4186512015795284910"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -862,8 +862,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "12097385131238776571"
+              "version": "0.26.170.59819",
+              "templateHash": "4186512015795284910"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -1015,8 +1015,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "6650512284215172956"
+              "version": "0.26.170.59819",
+              "templateHash": "12714039581294574286"
             }
           },
           "parameters": {
@@ -1058,7 +1058,7 @@
             },
             "openAIKeyName": {
               "type": "string",
-              "defaultValue": "AZURE-OPEN-AI-KEY"
+              "defaultValue": "AZURE-OPENAI-API-KEY"
             },
             "searchKeyName": {
               "type": "string",
@@ -1205,8 +1205,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "17672481318290214724"
+              "version": "0.26.170.59819",
+              "templateHash": "15593973660167090308"
             },
             "description": "Creates an Azure AI Search instance."
           },
@@ -1364,8 +1364,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "7476659406584400671"
+              "version": "0.26.170.59819",
+              "templateHash": "6728315099548749563"
             },
             "description": "Creates an Azure App Service plan."
           },
@@ -1485,6 +1485,22 @@
           },
           "appSettings": {
             "value": {
+              "APPINSIGHTS_CONNECTION_STRING": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsConnectionString.value]",
+              "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
+              "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
+              "AZURE_CONTENT_SAFETY_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
+              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
+              "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
+              "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
+              "AZURE_OPENAI_MODEL_NAME": "[parameters('azureOpenAIModelName')]",
+              "AZURE_OPENAI_TEMPERATURE": "[parameters('azureOpenAITemperature')]",
+              "AZURE_OPENAI_TOP_P": "[parameters('azureOpenAITopP')]",
+              "AZURE_OPENAI_MAX_TOKENS": "[parameters('azureOpenAIMaxTokens')]",
+              "AZURE_OPENAI_STOP_SEQUENCE": "[parameters('azureOpenAIStopSequence')]",
+              "AZURE_OPENAI_SYSTEM_MESSAGE": "[parameters('azureOpenAISystemMessage')]",
+              "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
+              "AZURE_OPENAI_STREAM": "[parameters('azureOpenAIStream')]",
+              "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('azureOpenAIEmbeddingModel')]",
               "AZURE_SEARCH_USE_SEMANTIC_SEARCH": "[parameters('azureSearchUseSemanticSearch')]",
               "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
               "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
@@ -1497,25 +1513,9 @@
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
-              "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
-              "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
-              "AZURE_OPENAI_MODEL_NAME": "[parameters('azureOpenAIModelName')]",
-              "AZURE_OPENAI_TEMPERATURE": "[parameters('azureOpenAITemperature')]",
-              "AZURE_OPENAI_TOP_P": "[parameters('azureOpenAITopP')]",
-              "AZURE_OPENAI_MAX_TOKENS": "[parameters('azureOpenAIMaxTokens')]",
-              "AZURE_OPENAI_STOP_SEQUENCE": "[parameters('azureOpenAIStopSequence')]",
-              "AZURE_OPENAI_SYSTEM_MESSAGE": "[parameters('azureOpenAISystemMessage')]",
-              "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
-              "AZURE_OPENAI_STREAM": "[parameters('azureOpenAIStream')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('azureOpenAIEmbeddingModel')]",
-              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
-              "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
-              "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "AZURE_CONTENT_SAFETY_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
-              "APPINSIGHTS_CONNECTION_STRING": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsConnectionString.value]",
               "AZURE_SPEECH_SERVICE_NAME": "[parameters('speechServiceName')]",
-              "AZURE_SPEECH_SERVICE_REGION": "[parameters('location')]"
+              "AZURE_SPEECH_SERVICE_REGION": "[parameters('location')]",
+              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]"
             }
           }
         },
@@ -1525,8 +1525,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "14696388705295666574"
+              "version": "0.26.170.59819",
+              "templateHash": "8565482056536596304"
             }
           },
           "parameters": {
@@ -1660,7 +1660,7 @@
                     "value": "[parameters('appServicePlanId')]"
                   },
                   "appSettings": {
-                    "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_KEY_VAULT_ENDPOINT', if(parameters('useKeyVault'), parameters('keyVaultEndpoint'), ''), 'AZURE_OPENAI_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_ACCOUNT_KEY', if(parameters('useKeyVault'), parameters('storageAccountKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value), 'AZURE_FORM_RECOGNIZER_KEY', if(parameters('useKeyVault'), parameters('formRecognizerKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1)))]"
+                    "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_KEY_VAULT_ENDPOINT', if(parameters('useKeyVault'), parameters('keyVaultEndpoint'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_ACCOUNT_KEY', if(parameters('useKeyVault'), parameters('storageAccountKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value), 'AZURE_FORM_RECOGNIZER_KEY', if(parameters('useKeyVault'), parameters('formRecognizerKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1)))]"
                   },
                   "keyVaultName": {
                     "value": "[parameters('keyVaultName')]"
@@ -1681,8 +1681,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.25.53.49325",
-                      "templateHash": "13816524355023251267"
+                      "version": "0.26.170.59819",
+                      "templateHash": "15076186465366113178"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -1900,8 +1900,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.25.53.49325",
-                              "templateHash": "8634371485074505644"
+                              "version": "0.26.170.59819",
+                              "templateHash": "15901877046756643519"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -2044,17 +2044,11 @@
           },
           "appSettings": {
             "value": {
-              "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
-              "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
-              "AZURE_SEARCH_USE_SEMANTIC_SEARCH": "[parameters('azureSearchUseSemanticSearch')]",
-              "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG": "[parameters('azureSearchSemanticSearchConfig')]",
-              "AZURE_SEARCH_INDEX_IS_PRECHUNKED": "[parameters('azureSearchIndexIsPrechunked')]",
-              "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
-              "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
-              "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
-              "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
-              "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
-              "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
+              "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsInstrumentationKey.value]",
+              "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
+              "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
+              "AZURE_CONTENT_SAFETY_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
+              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
               "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
               "AZURE_OPENAI_MODEL_NAME": "[parameters('azureOpenAIModelName')]",
@@ -2066,15 +2060,21 @@
               "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
               "AZURE_OPENAI_STREAM": "[parameters('azureOpenAIStream')]",
               "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('azureOpenAIEmbeddingModel')]",
-              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
-              "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
-              "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
-              "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
+              "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
+              "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
+              "AZURE_SEARCH_USE_SEMANTIC_SEARCH": "[parameters('azureSearchUseSemanticSearch')]",
+              "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG": "[parameters('azureSearchSemanticSearchConfig')]",
+              "AZURE_SEARCH_INDEX_IS_PRECHUNKED": "[parameters('azureSearchIndexIsPrechunked')]",
+              "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
+              "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
+              "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
+              "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
+              "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
+              "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
               "BACKEND_URL": "[format('https://{0}.azurewebsites.net', parameters('functionName'))]",
+              "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "FUNCTION_KEY": "[variables('clientKey')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "AZURE_CONTENT_SAFETY_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
-              "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsInstrumentationKey.value]"
+              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]"
             }
           }
         },
@@ -2084,8 +2084,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "3136372115048200083"
+              "version": "0.26.170.59819",
+              "templateHash": "11187625959526037120"
             }
           },
           "parameters": {
@@ -2121,7 +2121,7 @@
             },
             "appCommandLine": {
               "type": "string",
-              "defaultValue": "python -m streamlit run Admin.py --server.port 8000 --server.address 0.0.0.0 --server.enableXsrfProtection false"
+              "defaultValue": "python -m streamlit run app.py --server.port 8000 --server.address 0.0.0.0 --server.enableXsrfProtection false"
             },
             "applicationInsightsName": {
               "type": "string",
@@ -2219,7 +2219,7 @@
                     "value": "[parameters('appServicePlanId')]"
                   },
                   "appSettings": {
-                    "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_KEY_VAULT_ENDPOINT', if(parameters('useKeyVault'), parameters('keyVaultEndpoint'), ''), 'AZURE_OPENAI_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_ACCOUNT_KEY', if(parameters('useKeyVault'), parameters('storageAccountKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value), 'AZURE_FORM_RECOGNIZER_KEY', if(parameters('useKeyVault'), parameters('formRecognizerKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1)))]"
+                    "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_KEY_VAULT_ENDPOINT', if(parameters('useKeyVault'), parameters('keyVaultEndpoint'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_ACCOUNT_KEY', if(parameters('useKeyVault'), parameters('storageAccountKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value), 'AZURE_FORM_RECOGNIZER_KEY', if(parameters('useKeyVault'), parameters('formRecognizerKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1)))]"
                   },
                   "keyVaultName": {
                     "value": "[parameters('keyVaultName')]"
@@ -2240,8 +2240,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.25.53.49325",
-                      "templateHash": "13816524355023251267"
+                      "version": "0.26.170.59819",
+                      "templateHash": "15076186465366113178"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -2459,8 +2459,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.25.53.49325",
-                              "templateHash": "8634371485074505644"
+                              "version": "0.26.170.59819",
+                              "templateHash": "15901877046756643519"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -2576,8 +2576,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "10041669792322197047"
+              "version": "0.26.170.59819",
+              "templateHash": "10048108379044846923"
             },
             "description": "Creates an Application Insights instance and a Log Analytics workspace."
           },
@@ -2628,8 +2628,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.25.53.49325",
-                      "templateHash": "9622176141085970536"
+                      "version": "0.26.170.59819",
+                      "templateHash": "17101038721523251751"
                     },
                     "description": "Creates a Log Analytics workspace."
                   },
@@ -2709,8 +2709,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.25.53.49325",
-                      "templateHash": "1335628967363670282"
+                      "version": "0.26.170.59819",
+                      "templateHash": "5016503703443937813"
                     },
                     "description": "Creates an Application Insights instance based on an existing Log Analytics workspace."
                   },
@@ -2774,8 +2774,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.25.53.49325",
-                              "templateHash": "2145880658446193205"
+                              "version": "0.26.170.59819",
+                              "templateHash": "4596399009213720452"
                             },
                             "description": "Creates a dashboard for an Application Insights instance."
                           },
@@ -4122,22 +4122,22 @@
           },
           "appSettings": {
             "value": {
-              "FUNCTIONS_EXTENSION_VERSION": "~4",
-              "WEBSITES_ENABLE_APP_SERVICE_STORAGE": "false",
+              "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsInstrumentationKey.value]",
+              "APPINSIGHTS_CONNECTION_STRING": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsConnectionString.value]",
+              "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
+              "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
+              "AZURE_CONTENT_SAFETY_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
+              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
               "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
               "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('azureOpenAIEmbeddingModel')]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
-              "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
-              "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
-              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
-              "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
-              "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
               "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
+              "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
+              "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
+              "FUNCTIONS_EXTENSION_VERSION": "~4",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "AZURE_CONTENT_SAFETY_ENDPOINT": "[format('https://{0}.api.cognitive.microsoft.com/', parameters('location'))]",
-              "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsInstrumentationKey.value]",
-              "APPINSIGHTS_CONNECTION_STRING": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsConnectionString.value]"
+              "WEBSITES_ENABLE_APP_SERVICE_STORAGE": "false"
             }
           }
         },
@@ -4147,8 +4147,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "17107668652368092710"
+              "version": "0.26.170.59819",
+              "templateHash": "5588894492924801931"
             }
           },
           "parameters": {
@@ -4313,7 +4313,7 @@
                     "value": "[parameters('runtimeVersion')]"
                   },
                   "appSettings": {
-                    "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_KEY_VAULT_ENDPOINT', if(parameters('useKeyVault'), parameters('keyVaultEndpoint'), ''), 'AZURE_OPENAI_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_ACCOUNT_KEY', if(parameters('useKeyVault'), parameters('storageAccountKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value), 'AZURE_FORM_RECOGNIZER_KEY', if(parameters('useKeyVault'), parameters('formRecognizerKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1)))]"
+                    "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_KEY_VAULT_ENDPOINT', if(parameters('useKeyVault'), parameters('keyVaultEndpoint'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_ACCOUNT_KEY', if(parameters('useKeyVault'), parameters('storageAccountKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value), 'AZURE_FORM_RECOGNIZER_KEY', if(parameters('useKeyVault'), parameters('formRecognizerKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1)))]"
                   }
                 },
                 "template": {
@@ -4322,8 +4322,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.25.53.49325",
-                      "templateHash": "17342861420878721127"
+                      "version": "0.26.170.59819",
+                      "templateHash": "5333111190959199612"
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -4534,8 +4534,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.25.53.49325",
-                              "templateHash": "13816524355023251267"
+                              "version": "0.26.170.59819",
+                              "templateHash": "15076186465366113178"
                             },
                             "description": "Creates an Azure App Service in an existing Azure App Service plan."
                           },
@@ -4753,8 +4753,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.25.53.49325",
-                                      "templateHash": "8634371485074505644"
+                                      "version": "0.26.170.59819",
+                                      "templateHash": "15901877046756643519"
                                     },
                                     "description": "Updates app settings for an Azure App Service."
                                   },
@@ -4875,8 +4875,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "12097385131238776571"
+              "version": "0.26.170.59819",
+              "templateHash": "4186512015795284910"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -5015,8 +5015,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "12097385131238776571"
+              "version": "0.26.170.59819",
+              "templateHash": "4186512015795284910"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -5158,8 +5158,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "13606894074850295336"
+              "version": "0.26.170.59819",
+              "templateHash": "12293071382794458985"
             }
           },
           "parameters": {
@@ -5281,8 +5281,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "262159418746831316"
+              "version": "0.26.170.59819",
+              "templateHash": "246951497570111474"
             },
             "description": "Creates an Azure storage account."
           },
@@ -5506,8 +5506,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "15698903649631098787"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -5576,8 +5576,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "15698903649631098787"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -5646,8 +5646,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "15698903649631098787"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -5716,8 +5716,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "15698903649631098787"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -5786,8 +5786,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "15698903649631098787"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -5857,8 +5857,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "15698903649631098787"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -5928,8 +5928,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "15698903649631098787"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -5999,8 +5999,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "15698903649631098787"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -6070,8 +6070,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "15698903649631098787"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -6141,8 +6141,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "15698903649631098787"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -6212,8 +6212,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "15698903649631098787"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -6283,8 +6283,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "15698903649631098787"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -6354,8 +6354,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "15698903649631098787"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -6425,8 +6425,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.25.53.49325",
-              "templateHash": "15698903649631098787"
+              "version": "0.26.170.59819",
+              "templateHash": "2390256577307700589"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -6482,6 +6482,34 @@
       "type": "string",
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsInstrumentationKey.value]"
     },
+    "AZURE_BLOB_CONTAINER_NAME": {
+      "type": "string",
+      "value": "[variables('blobContainerName')]"
+    },
+    "AZURE_BLOB_ACCOUNT_NAME": {
+      "type": "string",
+      "value": "[parameters('storageAccountName')]"
+    },
+    "AZURE_BLOB_ACCOUNT_KEY": {
+      "type": "string",
+      "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value, '')]"
+    },
+    "AZURE_CONTENT_SAFETY_ENDPOINT": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]"
+    },
+    "AZURE_CONTENT_SAFETY_KEY": {
+      "type": "string",
+      "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.CONTENT_SAFETY_KEY_NAME.value, '')]"
+    },
+    "AZURE_FORM_RECOGNIZER_ENDPOINT": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]"
+    },
+    "AZURE_FORM_RECOGNIZER_KEY": {
+      "type": "string",
+      "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value, '')]"
+    },
     "AZURE_KEY_VAULT_ENDPOINT": {
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'keyvault'), '2022-09-01').outputs.endpoint.value, '')]"
@@ -6494,21 +6522,61 @@
       "type": "string",
       "value": "[parameters('location')]"
     },
-    "AZURE_TENANT_ID": {
+    "AZURE_OPENAI_MODEL_NAME": {
       "type": "string",
-      "value": "[tenant().tenantId]"
+      "value": "[parameters('azureOpenAIModelName')]"
     },
-    "AZURE_CONTENT_SAFETY_ENDPOINT": {
+    "AZURE_OPENAI_STREAM": {
       "type": "string",
-      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]"
+      "value": "[parameters('azureOpenAIStream')]"
+    },
+    "AZURE_OPENAI_SYSTEM_MESSAGE": {
+      "type": "string",
+      "value": "[parameters('azureOpenAISystemMessage')]"
+    },
+    "AZURE_OPENAI_STOP_SEQUENCE": {
+      "type": "string",
+      "value": "[parameters('azureOpenAIStopSequence')]"
+    },
+    "AZURE_OPENAI_MAX_TOKENS": {
+      "type": "string",
+      "value": "[parameters('azureOpenAIMaxTokens')]"
+    },
+    "AZURE_OPENAI_TOP_P": {
+      "type": "string",
+      "value": "[parameters('azureOpenAITopP')]"
+    },
+    "AZURE_OPENAI_TEMPERATURE": {
+      "type": "string",
+      "value": "[parameters('azureOpenAITemperature')]"
+    },
+    "AZURE_OPENAI_API_VERSION": {
+      "type": "string",
+      "value": "[parameters('azureOpenAIApiVersion')]"
+    },
+    "AZURE_OPENAI_RESOURCE": {
+      "type": "string",
+      "value": "[parameters('azureOpenAIResourceName')]"
+    },
+    "AZURE_OPENAI_EMBEDDING_MODEL": {
+      "type": "string",
+      "value": "[parameters('azureOpenAIEmbeddingModel')]"
+    },
+    "AZURE_OPENAI_MODEL": {
+      "type": "string",
+      "value": "[parameters('azureOpenAIModel')]"
+    },
+    "AZURE_OPENAI_API_KEY": {
+      "type": "string",
+      "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.OPENAI_KEY_NAME.value, '')]"
+    },
+    "AZURE_SEARCH_KEY": {
+      "type": "string",
+      "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SEARCH_KEY_NAME.value, '')]"
     },
     "AZURE_SEARCH_SERVICE": {
       "type": "string",
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureAISearchName')), '2022-09-01').outputs.endpoint.value]"
-    },
-    "AZURE_FORM_RECOGNIZER_ENDPOINT": {
-      "type": "string",
-      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]"
     },
     "AZURE_SEARCH_USE_SEMANTIC_SEARCH": {
       "type": "string",
@@ -6546,89 +6614,9 @@
       "type": "string",
       "value": "[parameters('azureSearchUrlColumn')]"
     },
-    "AZURE_OPENAI_MODEL_NAME": {
-      "type": "string",
-      "value": "[parameters('azureOpenAIModelName')]"
-    },
-    "AZURE_OPENAI_STREAM": {
-      "type": "string",
-      "value": "[parameters('azureOpenAIStream')]"
-    },
-    "AZURE_OPENAI_SYSTEM_MESSAGE": {
-      "type": "string",
-      "value": "[parameters('azureOpenAISystemMessage')]"
-    },
-    "AZURE_OPENAI_STOP_SEQUENCE": {
-      "type": "string",
-      "value": "[parameters('azureOpenAIStopSequence')]"
-    },
-    "AZURE_OPENAI_MAX_TOKENS": {
-      "type": "string",
-      "value": "[parameters('azureOpenAIMaxTokens')]"
-    },
-    "AZURE_OPENAI_TOP_P": {
-      "type": "string",
-      "value": "[parameters('azureOpenAITopP')]"
-    },
-    "AZURE_OPENAI_TEMPERATURE": {
-      "type": "string",
-      "value": "[parameters('azureOpenAITemperature')]"
-    },
     "AZURE_SEARCH_INDEX": {
       "type": "string",
       "value": "[parameters('azureSearchIndex')]"
-    },
-    "AZURE_OPENAI_API_VERSION": {
-      "type": "string",
-      "value": "[parameters('azureOpenAIApiVersion')]"
-    },
-    "DOCUMENT_PROCESSING_QUEUE_NAME": {
-      "type": "string",
-      "value": "[variables('queueName')]"
-    },
-    "AZURE_BLOB_CONTAINER_NAME": {
-      "type": "string",
-      "value": "[variables('blobContainerName')]"
-    },
-    "AZURE_BLOB_ACCOUNT_NAME": {
-      "type": "string",
-      "value": "[parameters('storageAccountName')]"
-    },
-    "AZURE_OPENAI_RESOURCE": {
-      "type": "string",
-      "value": "[parameters('azureOpenAIResourceName')]"
-    },
-    "AZURE_OPENAI_EMBEDDING_MODEL": {
-      "type": "string",
-      "value": "[parameters('azureOpenAIEmbeddingModel')]"
-    },
-    "AZURE_OPENAI_MODEL": {
-      "type": "string",
-      "value": "[parameters('azureOpenAIModel')]"
-    },
-    "USE_KEY_VAULT": {
-      "type": "bool",
-      "value": "[parameters('useKeyVault')]"
-    },
-    "AZURE_OPENAI_KEY": {
-      "type": "string",
-      "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.OPENAI_KEY_NAME.value, '')]"
-    },
-    "AZURE_BLOB_ACCOUNT_KEY": {
-      "type": "string",
-      "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value, '')]"
-    },
-    "AZURE_FORM_RECOGNIZER_KEY": {
-      "type": "string",
-      "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value, '')]"
-    },
-    "AZURE_SEARCH_KEY": {
-      "type": "string",
-      "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SEARCH_KEY_NAME.value, '')]"
-    },
-    "AZURE_CONTENT_SAFETY_KEY": {
-      "type": "string",
-      "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.CONTENT_SAFETY_KEY_NAME.value, '')]"
     },
     "AZURE_SPEECH_SERVICE_REGION": {
       "type": "string",
@@ -6638,9 +6626,21 @@
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SPEECH_KEY_NAME.value, '')]"
     },
+    "AZURE_TENANT_ID": {
+      "type": "string",
+      "value": "[tenant().tenantId]"
+    },
+    "DOCUMENT_PROCESSING_QUEUE_NAME": {
+      "type": "string",
+      "value": "[variables('queueName')]"
+    },
     "ORCHESTRATION_STRATEGY": {
       "type": "string",
       "value": "[parameters('orchestrationStrategy')]"
+    },
+    "USE_KEY_VAULT": {
+      "type": "bool",
+      "value": "[parameters('useKeyVault')]"
     }
   }
 }

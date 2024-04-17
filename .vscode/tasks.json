@@ -7,39 +7,22 @@
 			"command": "host start",
 			"problemMatcher": "$func-python-watch",
 			"isBackground": true,
-			"dependsOn": "pip install (functions)",
+			"dependsOn": "poetry install",
 			"options": {
 				"cwd": "${workspaceFolder}/code/backend/batch"
 			}
 		},
 		{
-			"label": "pip install (functions)",
+			"label": "poetry install",
 			"type": "shell",
-			"osx": {
-				"command": "${config:azureFunctions.pythonVenv}/bin/python -m pip install -r requirements.txt"
-			},
-			"windows": {
-				"command": "${config:azureFunctions.pythonVenv}\\Scripts\\python -m pip install -r requirements.txt"
-			},
-			"linux": {
-				"command": "${config:azureFunctions.pythonVenv}/bin/python -m pip install -r requirements.txt"
-			},
+			"command": "poetry install",
 			"problemMatcher": [],
 			"options": {
-				"cwd": "${workspaceFolder}/code/backend"
+				"cwd": "${workspaceFolder}"
 			}
 		},
 		{
-			"label": "pip install (code)",
-			"type": "shell",
-			"command": "python -m pip install -r requirements.txt",
-			"problemMatcher": [],
-			"options": {
-				"cwd": "${workspaceFolder}/code"
-			}
-		},
-		{
-			"label": "npm install (code)",
+			"label": "npm install",
 			"type": "shell",
 			"command": "npm install",
 			"problemMatcher": [],
