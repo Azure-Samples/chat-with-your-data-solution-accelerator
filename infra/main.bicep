@@ -82,7 +82,7 @@ param azureOpenAIModelVersion string = '0613'
   'openai_function'
   'langchain'
 ])
-param orchestrationStrategy string = 'langchain'
+param orchestrationStrategy string = 'openai_function'
 
 @description('Azure OpenAI Temperature')
 param azureOpenAITemperature string = '0'
