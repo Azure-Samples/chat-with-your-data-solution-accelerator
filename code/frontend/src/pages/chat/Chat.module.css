@@ -105,12 +105,13 @@
 }
 
 .chatMessageStreamInner {
-  max-width: 750px;
+  max-width: 635px;
+  transform: translateX(25px);
 }
 
 .chatMessageUser {
     display: flex;
-    justify-content: flex-end;
+    /* justify-content: flex-end; */
     margin-bottom: 12px;
 }
 
@@ -135,7 +136,7 @@
 
 .chatMessageGpt {
     margin-bottom: 12px;
-    max-width: 80%;
+    /* max-width: 80%; */
     display: flex;
 }
 
@@ -170,7 +171,7 @@
     border: 1px solid #D1D1D1;
     border-radius: 20px;
     z-index: 1;
-    display: none !important; /*design does not currently show this*/
+    /* display: none !important; */
 }
 
 .stopGeneratingContainer {
