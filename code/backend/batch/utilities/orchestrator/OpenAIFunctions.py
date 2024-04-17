@@ -88,7 +88,7 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
             - Ensure the query follows a simple structure suitable for Azure AI Search
             - Optimize the query for effective search results using Azure AI Search best practices
         3. **Extract 'keywords'**:
-            - From the user's question, identify and extract IT-related terms like domains, technologies, frameworks, approaches, testing strategies, etc. directly from the query without assumptions
+            - From the user's question, identify and extract IT-related terms like domains, technologies, frameworks, approaches, testing strategies, etc. directly from the current user inquire without assumptions. Pass empy array if no keywords possible to extract.
         
         Call the 'text_processing' function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.
         When directly replying to the user, always reply in the language the user is speaking.
