@@ -17,7 +17,6 @@ class MockedDocumentChunking(DocumentChunkingBase):
                     document_url=document.source,
                     idx=0,
                     metadata={'keywords': document.keywords,
-                              'title': document.title,
-                              'id': str(uuid.uuid4())}
-            ))
+                              'title': document.title}
+                ))
         return source_documents
