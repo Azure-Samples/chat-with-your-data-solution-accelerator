@@ -94,6 +94,14 @@ class AzureBlobStorageClient:
         )
         return user_delegation_key
 
+    def file_exists(self, file_name):
+        container_client = self.blob_service_client.get_container_client(
+            self.container_name
+        )
+        blob_client = container_client.get_blob_client(file_name)
+
+        return blob_client.exists()
+
     def upload_file(self, bytes_data, file_name, content_type="application/pdf"):
         # Create a blob client using the local file name as the name for the blob
         blob_client = self.blob_service_client.get_blob_client(

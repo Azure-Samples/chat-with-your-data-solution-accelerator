@@ -1,6 +1,5 @@
 import json
 import logging
-from azure.core.exceptions import ResourceNotFoundError
 from .AzureBlobStorageHelper import AzureBlobStorageClient
 from ..document_chunking.Strategies import ChunkingSettings, ChunkingStrategy
 from ..document_loading import LoadingSettings, LoadingStrategy
@@ -12,6 +11,7 @@ from .OrchestratorHelper import (
 from .EnvHelper import EnvHelper
 
 CONFIG_CONTAINER_NAME = "config"
+CONFIG_FILE_NAME = "active.json"
 logger = logging.getLogger(__name__)
 
 
@@ -119,18 +119,15 @@ class ConfigHelper:
         config = ConfigHelper.get_default_config()
 
         if env_helper.LOAD_CONFIG_FROM_BLOB_STORAGE:
-            try:
-                default_config = config
+            blob_client = AzureBlobStorageClient(container_name=CONFIG_CONTAINER_NAME)
 
-                blob_client = AzureBlobStorageClient(
-                    container_name=CONFIG_CONTAINER_NAME
-                )
-                config_file = blob_client.download_file("active.json")
+            if blob_client.file_exists(CONFIG_FILE_NAME):
+                default_config = config
+                config_file = blob_client.download_file(CONFIG_FILE_NAME)
                 config = json.loads(config_file)
 
                 ConfigHelper._set_new_config_properties(config, default_config)
-
-            except ResourceNotFoundError:
+            else:
                 logger.info("Returning default config")
 
         return Config(config)
@@ -139,7 +136,9 @@ class ConfigHelper:
     def save_config_as_active(config):
         blob_client = AzureBlobStorageClient(container_name=CONFIG_CONTAINER_NAME)
         blob_client = blob_client.upload_file(
-            json.dumps(config, indent=2), "active.json", content_type="application/json"
+            json.dumps(config, indent=2),
+            CONFIG_FILE_NAME,
+            content_type="application/json",
         )
 
     @staticmethod
