@@ -39,7 +39,10 @@ class QuestionAnswerTool(AnsweringToolBase):
         """
         Remove whitespace from a JSON string.
         """
-        return json.dumps(json.loads(obj), separators=(",", ":"))
+        try:
+            return json.dumps(json.loads(obj), separators=(",", ":"))
+        except json.JSONDecodeError:
+            return obj
 
     def legacy_generate_llm_chain(self, question: str, sources: list[Document]):
         answering_prompt = PromptTemplate(
