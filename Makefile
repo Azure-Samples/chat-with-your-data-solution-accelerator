@@ -46,6 +46,9 @@ unittest-frontend: build-frontend ## 🏗️ Unit test the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
 	@cd code/frontend && npm run test
 
+docker-compose-up: ## 🐳 Run the docker-compose file
+	@cd docker && AZD_ENV_FILE=$(AZURE_ENV_FILE) docker-compose up
+
 azd-login: ## 🔑 Login to Azure with azd and a SPN
 	@echo -e "\e[34m$@\e[0m" || true
 	@azd auth login --client-id ${AZURE_CLIENT_ID} --client-secret ${AZURE_CLIENT_SECRET} --tenant-id ${AZURE_TENANT_ID}
