@@ -250,11 +250,13 @@ Human: Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]},
     )
 
 
-def test_legacy_correct_prompt(config_mock: MagicMock, LLMChainMock: MagicMock):
+def test_non_on_your_data_prompt_correct(
+    config_mock: MagicMock, LLMChainMock: MagicMock
+):
     # given
     tool = QuestionAnswerTool()
     answer_generator = LLMChainMock.return_value
-    config_mock.prompts.use_new_prompt_format = False
+    config_mock.prompts.use_on_your_data_format = False
     config_mock.prompts.answering_user_prompt = (
         "Sources: {sources}, Question: {question}"
     )

@@ -44,7 +44,7 @@ class QuestionAnswerTool(AnsweringToolBase):
         except json.JSONDecodeError:
             return obj
 
-    def legacy_generate_llm_chain(self, question: str, sources: list[Document]):
+    def generate_llm_chain(self, question: str, sources: list[Document]):
         answering_prompt = PromptTemplate(
             template=self.config.prompts.answering_user_prompt,
             input_variables=["question", "sources"],
@@ -59,7 +59,7 @@ class QuestionAnswerTool(AnsweringToolBase):
             "question": question,
         }
 
-    def generate_llm_chain(
+    def generate_on_your_data_llm_chain(
         self,
         question: str,
         chat_history: list[dict],
@@ -136,15 +136,15 @@ class QuestionAnswerTool(AnsweringToolBase):
             filters=self.env_helper.AZURE_SEARCH_FILTER,
         )
 
-        if self.config.prompts.use_new_prompt_format:
-            answering_prompt, input = self.generate_llm_chain(
+        if self.config.prompts.use_on_your_data_format:
+            answering_prompt, input = self.generate_on_your_data_llm_chain(
                 question, chat_history, sources
             )
         else:
             warnings.warn(
-                'The old prompt format is deprecated and will be removed in the future. Enable "Use new prompt format".',
+                "Azure OpenAI On Your Data prompt format is recommended and should be enabled in the Admin app.",
             )
-            answering_prompt, input = self.legacy_generate_llm_chain(question, sources)
+            answering_prompt, input = self.generate_llm_chain(question, sources)
 
         llm_helper = LLMHelper()
 

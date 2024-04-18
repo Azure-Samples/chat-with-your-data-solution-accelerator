@@ -36,8 +36,8 @@ if "answering_system_prompt" not in st.session_state:
     st.session_state["answering_system_prompt"] = config.prompts.answering_system_prompt
 if "answering_user_prompt" not in st.session_state:
     st.session_state["answering_user_prompt"] = config.prompts.answering_user_prompt
-if "use_new_prompt_format" not in st.session_state:
-    st.session_state["use_new_prompt_format"] = config.prompts.use_new_prompt_format
+if "use_on_your_data_format" not in st.session_state:
+    st.session_state["use_on_your_data_format"] = config.prompts.use_on_your_data_format
 if "post_answering_prompt" not in st.session_state:
     st.session_state["post_answering_prompt"] = config.prompts.post_answering_prompt
 if "enable_post_answering_prompt" not in st.session_state:
@@ -149,9 +149,9 @@ try:
             )
 
     # # # condense_question_prompt_help = "This prompt is used to convert the user's input to a standalone question, using the context of the chat history."
-    answering_system_prompt_help = "The system prompt used to answer the user's question. Only used if the new prompt format is enabled."
+    answering_system_prompt_help = "The system prompt used to answer the user's question. Only used if Azure OpenAI On Your Data prompt format is enabled."
     answering_user_prompt_help = (
-        "The user prompt used to answer the user's question, using the sources that were retrieved from the knowledge base. If using the new prompt format, it is recommended to keep this simple, e.g.:  \n"
+        "The user prompt used to answer the user's question, using the sources that were retrieved from the knowledge base. If using the Azure OpenAI On Your Data prompt format, it is recommended to keep this simple, e.g.:  \n"
         """```
 ## Retrieved Documents
 {sources}
@@ -161,7 +161,7 @@ try:
 ```"""
     )
     post_answering_prompt_help = "You can configure a post prompt that allows to fact-check or process the answer, given the sources, question and answer. This prompt needs to return `True` or `False`."
-    use_new_prompt_format_help = "Whether to use the new prompt format, which separates the system and user prompts, and includes a few-shot example."
+    use_on_your_data_format_help = "Whether to use a similar prompt format to Azure OpenAI On Your Data, including separate system and user messages, and a few-shot example."
     post_answering_filter_help = "The message that is returned to the user, when the post-answering prompt returns."
 
     example_documents_help = (
@@ -190,9 +190,9 @@ try:
     with st.expander("Prompt configuration", expanded=True):
         # # # st.text_area("Condense question prompt", key='condense_question_prompt', on_change=validate_question_prompt, help=condense_question_prompt_help, height=200)
         st.checkbox(
-            "Use new prompt format",
-            key="use_new_prompt_format",
-            help=use_new_prompt_format_help,
+            "Use Azure OpenAI On Your Data prompt format",
+            key="use_on_your_data_format",
+            help=use_on_your_data_format_help,
         )
 
         st.text_area(
@@ -208,7 +208,7 @@ try:
             key="answering_system_prompt",
             help=answering_system_prompt_help,
             height=400,
-            disabled=not st.session_state["use_new_prompt_format"],
+            disabled=not st.session_state["use_on_your_data_format"],
         )
 
         st.text_area(
@@ -230,7 +230,7 @@ try:
 
     with st.expander("Few shot example", expanded=True):
         st.write(
-            "The following can be used to configure a few-shot example to be used in the answering prompt. Only used if the new prompt format is enabled.  \n"
+            "The following can be used to configure a few-shot example to be used in the answering prompt. Only used if Azure OpenAI On Your Data prompt format is enabled.  \n"
             "The configuration is optional, but all three options must be provided to be valid."
         )
         st.text_area(
@@ -239,19 +239,19 @@ try:
             help=example_documents_help,
             on_change=validate_documents,
             height=200,
-            disabled=not st.session_state["use_new_prompt_format"],
+            disabled=not st.session_state["use_on_your_data_format"],
         )
         st.text_area(
             "User Question",
             key="example_user_question",
             help=example_user_question_help,
-            disabled=not st.session_state["use_new_prompt_format"],
+            disabled=not st.session_state["use_on_your_data_format"],
         )
         st.text_area(
             "User Answer",
             key="example_answer",
             help=example_answer_help,
-            disabled=not st.session_state["use_new_prompt_format"],
+            disabled=not st.session_state["use_on_your_data_format"],
         )
 
     document_processors = list(
@@ -313,7 +313,7 @@ try:
                 "condense_question_prompt": "",  # st.session_state['condense_question_prompt'],
                 "answering_system_prompt": st.session_state["answering_system_prompt"],
                 "answering_user_prompt": st.session_state["answering_user_prompt"],
-                "use_new_prompt_format": st.session_state["use_new_prompt_format"],
+                "use_on_your_data_format": st.session_state["use_on_your_data_format"],
                 "post_answering_prompt": st.session_state["post_answering_prompt"],
                 "enable_post_answering_prompt": st.session_state[
                     "enable_post_answering_prompt"

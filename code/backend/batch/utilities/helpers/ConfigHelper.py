@@ -57,7 +57,7 @@ class Prompts:
         self.answering_system_prompt = prompts["answering_system_prompt"]
         self.answering_user_prompt = prompts["answering_user_prompt"]
         self.post_answering_prompt = prompts["post_answering_prompt"]
-        self.use_new_prompt_format = prompts["use_new_prompt_format"]
+        self.use_on_your_data_format = prompts["use_on_your_data_format"]
         self.enable_post_answering_prompt = prompts["enable_post_answering_prompt"]
         self.enable_content_safety = prompts["enable_content_safety"]
 
@@ -107,8 +107,8 @@ class ConfigHelper:
                     "answering_user_prompt"
                 ]
 
-        if config["prompts"].get("use_new_prompt_format") is None:
-            config["prompts"]["use_new_prompt_format"] = not prompt_modified
+        if config["prompts"].get("use_on_your_data_format") is None:
+            config["prompts"]["use_on_your_data_format"] = not prompt_modified
 
         if config.get("example") is None:
             config["example"] = default_config["example"]
@@ -236,7 +236,7 @@ Sources:
 
 Question: {question}
 Answer: {answer}""",
-                "use_new_prompt_format": True,
+                "use_on_your_data_format": True,
                 "enable_post_answering_prompt": False,
                 "enable_content_safety": True,
             },

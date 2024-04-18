@@ -12,7 +12,7 @@ def config_dict():
             "answering_system_prompt": "mock_answering_system_prompt",
             "answering_user_prompt": "mock_answering_user_prompt",
             "answering_prompt": "mock_answering_prompt",
-            "use_new_prompt_format": True,
+            "use_on_your_data_format": True,
             "post_answering_prompt": "mock_post_answering_prompt",
             "enable_post_answering_prompt": False,
             "enable_content_safety": True,
@@ -237,7 +237,7 @@ def test_loading_old_config(
     # then
     assert config.prompts.answering_system_prompt == "mock_answering_system_prompt"
     assert config.prompts.answering_user_prompt == "mock_answering_user_prompt"
-    assert config.prompts.use_new_prompt_format is True
+    assert config.prompts.use_on_your_data_format is True
     assert config.example.documents == "mock_documents"
     assert config.example.user_question == "mock_user_question"
     assert config.example.answer == "mock_answer"
@@ -261,7 +261,7 @@ def test_loading_old_config_with_modified_prompt(
     # then
     assert config.prompts.answering_system_prompt == "mock_answering_system_prompt"
     assert config.prompts.answering_user_prompt == "new_mock_answering_prompt"
-    assert config.prompts.use_new_prompt_format is False
+    assert config.prompts.use_on_your_data_format is False
     assert config.example.documents == "mock_documents"
     assert config.example.user_question == "mock_user_question"
     assert config.example.answer == "mock_answer"
