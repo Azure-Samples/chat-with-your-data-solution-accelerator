@@ -32,7 +32,7 @@ jobs:
         context: .
         file: docker/Frontend.Dockerfile
         push: false
-        cache-from: ref=fruoccopublic.azurecr.io/rag-webapp:latest
+        cache-from: type=registry, ref=fruoccopublic.azurecr.io/rag-webapp:latest
         tags: |
           rag-webapp:latest
           rag-webapp:${{ steps.date.outputs.date }}_${{ github.run_number }}
