@@ -10,6 +10,9 @@
 There are two ways to ingest data to the search index i.e using Push based approach or a Pull based approach. This repository is currently using Push based approach in which the developer has more control on how the index is created and what values are put into the index.
 We want to add Integrated vectorization (Pull based approach) and give the flexibility to the user to use either of the two approaches. The purpose of this ADR is to document the approach taken to be able to deploy Pull based approach.
 
+## Requirements
+* Demostrate the usage of Integrated Vectorization (Pull approach)
+
 ## Decision Drivers
 * Ease of deployment
 * Ability to convey the concept of Integrated Vectorization (Pull based approach)
@@ -28,7 +31,7 @@ We want to add Integrated vectorization (Pull based approach) and give the flexi
 
 Ask the user at the time of deployment on which approach to take. If the user selects Integrated Vectorization(IV), the resources for IV are created during the infra deployment through [bicep](https://learn.microsoft.com/en-us/azure/search/search-get-started-bicep?tabs=CLI) using REST APIs wrapped in script or resources can be created via code when the document gets uploaded to the blob. Once the document is uploaded, the indexer is executed asyncronously which indexes the documents.
 In both the options of the resource creation, we still need to have an azure function to index the documents uploaded immediately.
-For URL embedding, the URL content is scraped of any html & css related content and the text will be uploaded as a byte stream to the blob storage for further processing.
+For URL embedding, the URL content is scraped of any html & css related content and the text will be uploaded as a byte stream to the blob storage for further processing. In case the URL content is very large we can handle it by streaming the content in chunks and avoid loading the entire web page content into memory all at once.
 
 With this option in place, we will also be looking if it is possible for anyone to switch between Pull & Push approach.
 
