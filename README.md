@@ -35,6 +35,10 @@ This repository provides a template for setting up the solution accelerator, alo
 * Easy prompt configuration
 * Multiple chunking strategies
 
+### Getting Support
+
+If you're facing issues with setting up or using Chat With Your Data, follow the instructions [here](SUPPORT.md) to get support.
+
 ### When should you use this repo?
 
 If you need to customize your scenario beyond what [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data) offers out-of-the-box, use this repository.
