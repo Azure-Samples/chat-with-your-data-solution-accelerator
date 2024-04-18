@@ -24,6 +24,7 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: .
+        file: docker/Frontend.Dockerfile
         push: false
         tags: |
           rag-webapp:latest
