@@ -132,7 +132,7 @@ class QuestionAnswerTool(AnsweringToolBase):
         # Retrieve documents as sources
         sources = self.vector_store.similarity_search(
             query=question,
-            k=int(self.env_helper.AZURE_SEARCH_TOP_K),
+            k=self.env_helper.AZURE_SEARCH_TOP_K,
             filters=self.env_helper.AZURE_SEARCH_FILTER,
         )
 

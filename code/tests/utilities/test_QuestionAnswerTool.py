@@ -57,7 +57,7 @@ def env_helper_mock():
     with patch("backend.batch.utilities.tools.QuestionAnswerTool.EnvHelper") as mock:
         env_helper = mock.return_value
         env_helper.AZURE_OPENAI_SYSTEM_MESSAGE = "mock azure openai system message"
-        env_helper.AZURE_SEARCH_TOP_K = "1"
+        env_helper.AZURE_SEARCH_TOP_K = 1
         env_helper.AZURE_SEARCH_FILTER = "mock filter"
 
         yield env_helper
