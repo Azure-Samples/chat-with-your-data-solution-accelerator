@@ -302,6 +302,17 @@ module searchServiceRoleOpenai 'core/security/role.bicep' = if (authType == 'rba
   }
 }
 
+// Storage Blob Data Reader
+module blobDataReaderRoleSearch 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'blob-data-reader-role-search'
+  params: {
+    principalId: search.outputs.identityPrincipalId
+    roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
+    principalType: 'ServicePrincipal'
+  }
+}
+
 module speechService 'core/ai/cognitiveservices.bicep' = {
   scope: rg
   name: speechServiceName
