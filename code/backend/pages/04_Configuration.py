@@ -161,7 +161,7 @@ try:
 ```"""
     )
     post_answering_prompt_help = "You can configure a post prompt that allows to fact-check or process the answer, given the sources, question and answer. This prompt needs to return `True` or `False`."
-    use_new_prompt_format_help = "Whether to use the new prompt format, including the answering system prompt and a few-shot example."
+    use_new_prompt_format_help = "Whether to use the new prompt format, which separates the system and user prompts, and includes a few-shot example."
     post_answering_filter_help = "The message that is returned to the user, when the post-answering prompt returns."
 
     example_documents_help = (
@@ -185,7 +185,7 @@ try:
 ```"""
     )
     example_user_question_help = "The example user question."
-    example_answer_help = "The example answer from the LLM."
+    example_answer_help = "The expected answer."
 
     with st.expander("Prompt configuration", expanded=True):
         # # # st.text_area("Condense question prompt", key='condense_question_prompt', on_change=validate_question_prompt, help=condense_question_prompt_help, height=200)
