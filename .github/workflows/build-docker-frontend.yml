@@ -1,10 +1,9 @@
 name: WebApp Docker Image
 
 on:
-  workflow_run:
-    workflows: [Tests]
-    types: [completed]
-    branches: [docker-build-github-action]
+  push:
+    branches:
+      - docker-build-github-action
 
 jobs:
   docker-build-frontend:
