@@ -7,8 +7,16 @@
     /* background: #FFFFFF; */
     background: #E0E3E9;
     box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.14), 0px 0px 2px rgba(0, 0, 0, 0.12);
-    border-radius: 5.419px;
+    /* border-radius: 5.419px; */
+    border-radius: 3px 3px 3px 0px;
     max-width: 100%;
+}
+
+.sourcesTitle {
+  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  margin-left: 8px;
 }
 
 .answerText {
@@ -22,11 +30,19 @@
     order: 1;
     align-self: stretch;
     flex-grow: 0;
-    margin: 11px;
+    margin: 8px;
     white-space: normal;
     word-wrap: break-word;
     max-width: 800px;
     overflow-x: auto;
+}
+
+.answerText p {
+  margin: 0px;
+}
+
+.answerProntoResponse {
+  margin-top: 8px;
 }
 
 .answerFooter {
@@ -34,6 +50,16 @@
     flex-direction: column;
     width: 100%;
     box-sizing: border-box;
+}
+
+.answerNewFooter {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  gap: 8px;
+  font-size: 12px;
+  color: #63728A;
+  margin-top: 6px;
 }
 
 .answerDisclaimerContainer {
@@ -60,7 +86,7 @@
 }
 
 .citationContainer {
-    margin-left: 10px;
+    margin-left: 8px;
     font-family: "Segoe UI";
     font-style: normal;
     font-weight: 600;
@@ -72,9 +98,10 @@
     flex-direction: row;
     align-items: center;
     padding: 4px 6px;
-    gap: 4px;
+    gap: 8px;
     border: 1px solid #D1D1D1;
-    border-radius: 4px;
+    border-radius: 24px;
+    background-color: #EFF1F4;
 }
 
 .citationContainer:hover {

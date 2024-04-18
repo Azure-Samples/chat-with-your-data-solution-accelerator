@@ -29,7 +29,7 @@ import {
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
 import { Sidebar } from "../../components/Sidebar";
-import { Avatar } from "@fluentui/react-components";
+import { Avatar, Spinner } from "@fluentui/react-components";
 
 const Chat = () => {
   const lastQuestionRef = useRef<string>("");
@@ -250,16 +250,16 @@ const Chat = () => {
                 {answers.map((answer, index) => (
                   <>
                     {answer.role === "user" ? (
-                      <div className={styles.chatMessageUser}>
-                        <Avatar image={{ src: '../../public/eddie-hoover-user-avatar.png'}} aria-label="Guest" className={styles.chatAvatar}/>
+                      <div className={`${styles.chatMessageUser}`} key={index}>
+                        <Avatar image={{ src: '../../eddie-hoover-user-avatar.png'}} aria-label="Guest" className={styles.chatAvatar}/>
                         <div className={styles.chatMessageUserMessage}>
                           {answer.content}
                         </div>
                       </div>
                     ) : answer.role === "assistant" ||
                       answer.role === "error" ? (
-                      <div className={styles.chatMessageGpt}>
-                        <Avatar image={{ src: '../../public/pronto-avatar-anim-close.gif'}} aria-label="Guest" className={styles.chatAvatar}/>
+                      <div className={`${styles.chatMessageGpt} ${styles.answerShowing}`} key={index}>
+                        <Avatar image={{ src: '../../pronto-avatar-anim-close.gif'}} aria-label="Guest" className={styles.chatAvatar}/>
                         <Answer
                           answer={{
                             answer:
@@ -282,37 +282,22 @@ const Chat = () => {
                 {showLoadingMessage && (
                   <>
                     <div className={styles.chatMessageUser}>
-                      <Avatar image={{ src: '../../public/eddie-hoover-user-avatar.png'}} aria-label="Guest" className={styles.chatAvatar}/>
+                      <Avatar image={{ src: '../../eddie-hoover-user-avatar.png'}} aria-label="Guest" className={styles.chatAvatar}/>
                       <div className={styles.chatMessageUserMessage}>
                         {lastQuestionRef.current}
                       </div>
                     </div>
                     <div className={styles.chatMessageGpt}>
-                      <Avatar image={{ src: '../../public/pronto-avatar-anim-close.gif'}} aria-label="Guest" className={styles.chatAvatar}/>
+                      <Avatar image={{ src: '../../pronto-avatar-anim-close.gif'}} aria-label="Guest" className={styles.chatAvatar}/>
                       <Answer
                         answer={{
-                          answer: "Thinking...",
+                          answer: "Generating Answer... AI-generated content may be incorrect",
                           citations: [],
                         }}
                         onCitationClicked={() => null}
                         index={0}
                       />
-                      {/* this was breaking for me ↓ */}
-                      {/* <Answer
-                        answer={{
-                          answer:
-                            answer.role === "assistant"
-                              ? answer.content
-                              : "Sorry, an error occurred. Try refreshing the conversation or waiting a few minutes. If the issue persists, contact your system administrator. Error: " +
-                                answer.content,
-                          citations:
-                            answer.role === "assistant"
-                              ? parseCitationFromMessage(answers[index - 1])
-                              : [],
-                        }}
-                        onCitationClicked={() => null}
-                        index={0}
-                      /> */}
+                      <Spinner size="extra-small" className={styles.thinkingSpinner} labelPosition="after" label="Thinking..." />
                     </div>
                   </>
                 )}
@@ -411,7 +396,7 @@ const Chat = () => {
       </Stack>
       <div className={`${styles.bgPatternImgContainer}`}>
         <img
-          src="../../src/assets/Airbus_CarbonGrid.png"
+          src="../../Airbus_CarbonGrid.png"
           className={styles.bgPatternImg}
           aria-hidden="true"
         />
