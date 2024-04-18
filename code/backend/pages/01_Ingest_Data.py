@@ -1,4 +1,6 @@
+import io
 from os import path
+from bs4 import BeautifulSoup
 import streamlit as st
 from typing import Optional
 import mimetypes
@@ -15,11 +17,13 @@ from azure.storage.blob import (
 )
 import urllib.parse
 import sys
+import logging
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
 from batch.utilities.helpers.EnvHelper import EnvHelper
 
 sys.path.append(path.join(path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
+logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="Ingest Data",
@@ -75,11 +79,31 @@ def remote_convert_files_and_add_embeddings(process_all=False):
 
 
 def add_urls():
+    urls = st.session_state["urls"].split("\n")
+    if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+        download_url_and_upload_to_blob(urls)
+    else:
+        add_url_embeddings(urls)
+
+
+def download_url_and_upload_to_blob(urls: list[str]):
+    for url in urls:
+        try:
+            response = requests.get(url)
+            parsed_data = BeautifulSoup(response.content, "html.parser")
+            with io.BytesIO(parsed_data.get_text().encode("utf-8")) as stream:
+                upload_file(stream, url)
+            st.success(f"Url {url} added to knowledge base")
+        except Exception:
+            logger.error(traceback.format_exc())
+            st.error(f"Exception occurred while adding {url} to the knowledge base.")
+
+
+def add_url_embeddings(urls: list[str]):
     params = {}
     if env_helper.FUNCTION_KEY is not None:
         params["code"] = env_helper.FUNCTION_KEY
         params["clientId"] = "clientKey"
-    urls = st.session_state["urls"].split("\n")
     for url in urls:
         body = {"url": url}
         backend_url = urllib.parse.urljoin(
@@ -121,6 +145,7 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
             bytes_data,
             overwrite=True,
             content_settings=ContentSettings(content_type=content_type + charset),
+            metadata={"source_url": file_name},
         )
         st.session_state["file_url"] = (
             blob_client.url
@@ -154,6 +179,7 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
             bytes_data,
             overwrite=True,
             content_settings=ContentSettings(content_type=content_type + charset),
+            metadata={"source_url": file_name},
         )
         # Generate a SAS URL to the blob and return it
         st.session_state["file_url"] = (
