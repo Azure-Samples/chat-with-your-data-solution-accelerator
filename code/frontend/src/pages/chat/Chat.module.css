@@ -113,11 +113,11 @@
 .chatMessageUser {
     /* display: flex; */
     /* justify-content: flex-end; */
-    margin-bottom: 12px;
+    margin-bottom: 22px;
 }
 
 .chatMessageUserMessage {
-    padding: 20px;
+    padding: 12px 16px;
     /* background: #EDF5FD; */
     background: #255FCC;
     border-radius: 8px;
@@ -138,9 +138,17 @@
 }
 
 .chatMessageGpt {
-    margin-bottom: 12px;
+    margin-bottom: 22px;
     /* max-width: 80%; */
     /* display: flex; */
+}
+
+.chatAvatar {
+  position: absolute !important;
+  width: 46px !important;
+  height: 46px !important;
+  left: -53px;
+  margin-top: 0px;
 }
 
 .chatInput {

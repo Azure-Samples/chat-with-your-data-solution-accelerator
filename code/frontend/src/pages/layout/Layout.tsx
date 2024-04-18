@@ -1,7 +1,7 @@
 import { Outlet, Link } from "react-router-dom";
 import styles from "./Layout.module.css";
 // import Azure from "../../assets/Azure.svg";
-import { CopyRegular, ShareRegular } from "@fluentui/react-icons";
+import { CopyRegular, ShareRegular, ShareAndroidFilled } from "@fluentui/react-icons";
 import { Dialog, Stack, TextField } from "@fluentui/react";
 import { useEffect, useState } from "react";
 
@@ -45,8 +45,7 @@ const Layout = () => {
                             <h3 className={styles.headerTitle}>Pronto</h3>
                         </Link>
                         {/* <div className={styles.shareButtonContainer} role="button" tabIndex={0} aria-label="Share" onClick={handleShareClick} onKeyDown={e => e.key === "Enter" || e.key === " " ? handleShareClick() : null}>
-                            <ShareRegular className={styles.shareButton} />
-                            <span className={styles.shareButtonText}>Share</span>
+                          <ShareAndroidFilled className={styles.shareButton} />
                         </div> */}
                     </Stack>
                 </div>
@@ -71,7 +70,7 @@ const Layout = () => {
                       }]
                 }}
                 dialogContentProps={{
-                    title: "Share the web app",
+                    title: "Share this Pronto thread!",
                     showCloseButton: true
                 }}
             >

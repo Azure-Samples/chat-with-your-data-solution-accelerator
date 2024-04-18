@@ -29,6 +29,7 @@ import {
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
 import { Sidebar } from "../../components/Sidebar";
+import { Avatar } from "@fluentui/react-components";
 
 const Chat = () => {
   const lastQuestionRef = useRef<string>("");
@@ -250,6 +251,7 @@ const Chat = () => {
                   <>
                     {answer.role === "user" ? (
                       <div className={styles.chatMessageUser}>
+                        <Avatar aria-label="Guest" className={styles.chatAvatar}/>
                         <div className={styles.chatMessageUserMessage}>
                           {answer.content}
                         </div>
@@ -257,6 +259,7 @@ const Chat = () => {
                     ) : answer.role === "assistant" ||
                       answer.role === "error" ? (
                       <div className={styles.chatMessageGpt}>
+                        <Avatar aria-label="Guest" className={styles.chatAvatar}/>
                         <Answer
                           answer={{
                             answer:
