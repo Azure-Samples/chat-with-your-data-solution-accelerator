@@ -47,38 +47,50 @@
     /* margin-left: 36px; */
 }
 
+.mainNavLinks {
+  position:absolute;
+  display: flex;
+  direction: row;
+  align-items: center;
+  right:15px;
+  color: #ffffff;
+  gap: 18px;
+}
+
 .shareButtonContainer {
     display: flex;
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    padding: 5px 12px;
-    gap: 4px;
-    width: 86px;
+    width: 32px;
     height: 32px;
-    background: radial-gradient(109.81% 107.82% at 100.1% 90.19%, #0F6CBD 33.63%, #2D87C3 70.31%, #8DDDD8 100%) /* warning: gradient uses a rotation that is not supported by CSS and may not behave as expected */;
     border-radius: 4px;
-    flex: none;
-    order: 1;
-    flex-grow: 0;
-    position: absolute;
-    right: 20px;
     cursor: pointer;
 }
 
-.shareButton {
+.shareButton, .addSourceButton {
+    width: 20px;
+    height: 20px;
     color: #FFFFFF;
 }
 
-.shareButtonText {
-    font-family: "Segoe UI";
-    font-style: normal;
-    font-weight: 600;
-    font-size: 14px;
-    line-height: 20px;
-    display: flex;
-    align-items: center;
-    color: #FFFFFF;
+.userMenuContainer {
+  display: flex;
+  flex-direction: row;
+}
+
+.userMenuBtn {
+  display: flex;
+  flex-direction: row;
+  margin: 4px 8px;
+  align-items: center;
+  gap: 8px;
+}
+
+.userMenuArrows {
+  font-weight: bold;
+  font-size: 8px;
+  transform: rotate(90deg) scale(1, 2);
 }
 
 .urlTextBox {
@@ -123,4 +135,10 @@
     display: flex;
     align-items: center;
     color: #242424;
+}
+
+
+.disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
 }
