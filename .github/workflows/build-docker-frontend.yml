@@ -30,4 +30,4 @@ jobs:
         push: false
         tags: |
           rag-webapp:latest
-          rag-webapp:$(date +'%Y-%m-%d')
+          rag-webapp:$GITHUB_RUN_NUMBER
