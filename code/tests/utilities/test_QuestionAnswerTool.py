@@ -36,9 +36,8 @@ def config_mock():
         config = mock.get_active_config_or_default.return_value
         config.prompts.answering_system_prompt = "mock answering system prompt"
         config.prompts.answering_user_prompt = (
-            "Documents: {documents}, User Question: {user_question}"
+            "Sources: {sources}, Question: {question}"
         )
-        config.prompts.answering_prompt = ""
         config.example.documents = json.dumps(
             {
                 "retrieved_documents": [
@@ -160,8 +159,8 @@ def test_correct_prompt_with_few_shot_example(
 
     # then
     expected_input = {
-        "user_question": "mock question",
-        "documents": '{"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}',
+        "question": "mock question",
+        "sources": '{"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}',
         "chat_history": [],
     }
 
@@ -176,10 +175,10 @@ def test_correct_prompt_with_few_shot_example(
     assert (
         prompt_test
         == """System: mock answering system prompt
-Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock example content"}}]}, User Question: mock example user question
+Human: Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock example content"}}]}, Question: mock example user question
 AI: mock example answer
 System: mock azure openai system message
-Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}, User Question: mock question"""
+Human: Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}, Question: mock question"""
     )
 
 
@@ -197,8 +196,8 @@ def test_correct_prompt_without_few_shot_example(
 
     # then
     expected_input = {
-        "user_question": "mock question",
-        "documents": '{"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}',
+        "question": "mock question",
+        "sources": '{"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}',
         "chat_history": [],
     }
 
@@ -211,7 +210,7 @@ def test_correct_prompt_without_few_shot_example(
         prompt_test
         == """System: mock answering system prompt
 System: mock azure openai system message
-Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}, User Question: mock question"""
+Human: Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}, Question: mock question"""
     )
 
 
@@ -229,8 +228,8 @@ def test_correct_prompt_with_few_shot_example_and_chat_history(LLMChainMock: Mag
 
     # then
     expected_input = {
-        "user_question": "mock question",
-        "documents": '{"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}',
+        "question": "mock question",
+        "sources": '{"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}',
         "chat_history": chat_history,
     }
 
@@ -242,12 +241,12 @@ def test_correct_prompt_with_few_shot_example_and_chat_history(LLMChainMock: Mag
     assert (
         prompt_test
         == """System: mock answering system prompt
-Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock example content"}}]}, User Question: mock example user question
+Human: Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock example content"}}]}, Question: mock example user question
 AI: mock example answer
 System: mock azure openai system message
 Human: Hello
 AI: Hi, how can I help?
-Human: Documents: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}, User Question: mock question"""
+Human: Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]}, Question: mock question"""
     )
 
 
@@ -255,16 +254,18 @@ def test_legacy_correct_prompt(config_mock: MagicMock, LLMChainMock: MagicMock):
     # given
     tool = QuestionAnswerTool()
     answer_generator = LLMChainMock.return_value
-    config_mock.prompts.use_answering_system_prompt = False
-    config_mock.prompts.answering_prompt = "Sources: {sources}, Question: {question}"
+    config_mock.prompts.use_new_prompt_format = False
+    config_mock.prompts.answering_user_prompt = (
+        "Sources: {sources}, Question: {question}"
+    )
 
     # when
     tool.answer_question("mock question", [])
 
     # then
     expected_input = {
-        "question": "mock question",
         "sources": """[doc1]: mock content""",
+        "question": "mock question",
     }
 
     answer_generator.assert_called_once_with(expected_input)
@@ -273,3 +274,15 @@ def test_legacy_correct_prompt(config_mock: MagicMock, LLMChainMock: MagicMock):
     prompt_test = prompt.format(**expected_input)
 
     assert prompt_test == """Sources: [doc1]: mock content, Question: mock question"""
+
+
+@pytest.mark.parametrize(
+    "input,expected",
+    [(' {"mock": "data"} ', '{"mock":"data"}'), ("invalid", "invalid")],
+)
+def test_json_remove_whitespace(input: str, expected: str):
+    # when
+    result = QuestionAnswerTool.json_remove_whitespace(input)
+
+    # then
+    assert result == expected

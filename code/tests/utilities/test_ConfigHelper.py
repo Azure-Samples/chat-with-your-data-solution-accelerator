@@ -1,51 +1,92 @@
 import json
 import pytest
 from unittest.mock import patch, MagicMock
-from azure.core.exceptions import ResourceNotFoundError
 from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper, Config
 
 
-config_dict = {
-    "prompts": {
-        "condense_question_prompt": "mock_condense_question_prompt",
-        "answering_prompt": "mock_answering_prompt",
-        "answering_system_prompt": "mock_answering_system_prompt",
-        "answering_user_prompt": "mock_answering_user_prompt",
-        "use_answering_system_prompt": "mock_use_answering_system_prompt",
-        "post_answering_prompt": "mock_post_answering_prompt",
-        "enable_post_answering_prompt": False,
-        "enable_content_safety": True,
-    },
-    "messages": {
-        "post_answering_filter": "mock_post_answering_filter",
-    },
-    "example": {
-        "documents": "mock_documents",
-        "user_question": "mock_user_question",
-        "answer": "mock_answer",
-    },
-    "document_processors": [
-        {
-            "document_type": "jpg",
-            "chunking": {
-                "strategy": "layout",
-                "size": 500,
-                "overlap": 100,
-            },
-            "loading": {
-                "strategy": "web",
-            },
+@pytest.fixture
+def config_dict():
+    return {
+        "prompts": {
+            "condense_question_prompt": "mock_condense_question_prompt",
+            "answering_system_prompt": "mock_answering_system_prompt",
+            "answering_user_prompt": "mock_answering_user_prompt",
+            "answering_prompt": "mock_answering_prompt",
+            "use_new_prompt_format": True,
+            "post_answering_prompt": "mock_post_answering_prompt",
+            "enable_post_answering_prompt": False,
+            "enable_content_safety": True,
         },
-    ],
-    "logging": {
-        "log_user_interactions": True,
-        "log_tokens": True,
-    },
-    "orchestrator": {
-        "strategy": "langchain",
-    },
-}
-config_mock = Config(config_dict)
+        "messages": {
+            "post_answering_filter": "mock_post_answering_filter",
+        },
+        "example": {
+            "documents": "mock_documents",
+            "user_question": "mock_user_question",
+            "answer": "mock_answer",
+        },
+        "document_processors": [
+            {
+                "document_type": "jpg",
+                "chunking": {
+                    "strategy": "layout",
+                    "size": 500,
+                    "overlap": 100,
+                },
+                "loading": {
+                    "strategy": "web",
+                },
+            },
+        ],
+        "logging": {
+            "log_user_interactions": True,
+            "log_tokens": True,
+        },
+        "orchestrator": {
+            "strategy": "langchain",
+        },
+    }
+
+
+@pytest.fixture
+def old_config_dict():
+    return {
+        "prompts": {
+            "condense_question_prompt": "mock_condense_question_prompt",
+            "answering_prompt": "mock_answering_prompt",
+            "post_answering_prompt": "mock_post_answering_prompt",
+            "enable_post_answering_prompt": False,
+            "enable_content_safety": True,
+        },
+        "messages": {
+            "post_answering_filter": "mock_post_answering_filter",
+        },
+        "document_processors": [
+            {
+                "document_type": "jpg",
+                "chunking": {
+                    "strategy": "layout",
+                    "size": 500,
+                    "overlap": 100,
+                },
+                "loading": {
+                    "strategy": "web",
+                },
+            },
+        ],
+        "logging": {
+            "log_user_interactions": True,
+            "log_tokens": True,
+        },
+        "orchestrator": {
+            "strategy": "langchain",
+        },
+    }
+
+
+@pytest.fixture()
+def config_mock(config_dict: dict):
+    return Config(config_dict)
 
 
 @pytest.fixture(autouse=True)
@@ -57,7 +98,7 @@ def AzureBlobStorageClientMock():
 
 
 @pytest.fixture(autouse=True)
-def blob_client_mock(AzureBlobStorageClientMock: MagicMock):
+def blob_client_mock(config_dict: dict, AzureBlobStorageClientMock: MagicMock):
     mock = AzureBlobStorageClientMock.return_value
     mock.download_file.return_value = json.dumps(config_dict)
 
@@ -90,23 +131,31 @@ def test_get_config_from_azure(
 
 @patch("backend.batch.utilities.helpers.ConfigHelper.ConfigHelper.get_default_config")
 def test_get_default_config_when_not_in_azure(
-    get_default_config_mock: MagicMock, blob_client_mock: MagicMock
+    get_default_config_mock: MagicMock,
+    config_dict: MagicMock,
+    blob_client_mock: MagicMock,
 ):
     # given
+    blob_client_mock.file_exists.return_value = False
+    config_dict["prompts"][
+        "answering_system_prompt"
+    ] = "mock_default_answering_system_prompt"
     get_default_config_mock.return_value = config_dict
-    blob_client_mock.download_file.side_effect = ResourceNotFoundError()
 
     # when
     config = ConfigHelper.get_active_config_or_default()
 
     # then
     assert isinstance(config, Config)
-    assert config.prompts.condense_question_prompt == "mock_condense_question_prompt"
+    assert (
+        config.prompts.answering_system_prompt == "mock_default_answering_system_prompt"
+    )
 
 
 def test_save_config_as_active(
     AzureBlobStorageClientMock: MagicMock,
     blob_client_mock: MagicMock,
+    config_dict: dict,
 ):
     # when
     ConfigHelper.save_config_as_active(config_dict)
@@ -120,7 +169,7 @@ def test_save_config_as_active(
     )
 
 
-def test_get_available_document_types():
+def test_get_available_document_types(config_mock: Config):
     # when
     document_types = config_mock.get_available_document_types()
 
@@ -140,7 +189,7 @@ def test_get_available_document_types():
     )
 
 
-def test_get_available_chunking_strategies():
+def test_get_available_chunking_strategies(config_mock: Config):
     # when
     chunking_strategies = config_mock.get_available_chunking_strategies()
 
@@ -155,7 +204,7 @@ def test_get_available_chunking_strategies():
     )
 
 
-def test_get_available_loading_strategies():
+def test_get_available_loading_strategies(config_mock: Config):
     # when
     loading_strategies = config_mock.get_available_loading_strategies()
 
@@ -163,9 +212,56 @@ def test_get_available_loading_strategies():
     assert sorted(loading_strategies) == sorted(["layout", "read", "web", "docx"])
 
 
-def test_get_available_orchestration_strategies():
+def test_get_available_orchestration_strategies(config_mock: Config):
     # when
     orchestration_strategies = config_mock.get_available_orchestration_strategies()
 
     # then
     assert sorted(orchestration_strategies) == sorted(["openai_function", "langchain"])
+
+
+@patch("backend.batch.utilities.helpers.ConfigHelper.ConfigHelper.get_default_config")
+def test_loading_old_config(
+    get_default_config_mock: MagicMock,
+    config_dict: dict,
+    old_config_dict: dict,
+    blob_client_mock: MagicMock,
+):
+    # given
+    get_default_config_mock.return_value = config_dict
+    blob_client_mock.download_file.return_value = json.dumps(old_config_dict)
+
+    # when
+    config = ConfigHelper.get_active_config_or_default()
+
+    # then
+    assert config.prompts.answering_system_prompt == "mock_answering_system_prompt"
+    assert config.prompts.answering_user_prompt == "mock_answering_user_prompt"
+    assert config.prompts.use_new_prompt_format is True
+    assert config.example.documents == "mock_documents"
+    assert config.example.user_question == "mock_user_question"
+    assert config.example.answer == "mock_answer"
+
+
+@patch("backend.batch.utilities.helpers.ConfigHelper.ConfigHelper.get_default_config")
+def test_loading_old_config_with_modified_prompt(
+    get_default_config_mock: MagicMock,
+    config_dict: dict,
+    old_config_dict: dict,
+    blob_client_mock: MagicMock,
+):
+    # given
+    old_config_dict["prompts"]["answering_prompt"] = "new_mock_answering_prompt"
+    get_default_config_mock.return_value = config_dict
+    blob_client_mock.download_file.return_value = json.dumps(old_config_dict)
+
+    # when
+    config = ConfigHelper.get_active_config_or_default()
+
+    # then
+    assert config.prompts.answering_system_prompt == "mock_answering_system_prompt"
+    assert config.prompts.answering_user_prompt == "new_mock_answering_prompt"
+    assert config.prompts.use_new_prompt_format is False
+    assert config.example.documents == "mock_documents"
+    assert config.example.user_question == "mock_user_question"
+    assert config.example.answer == "mock_answer"
