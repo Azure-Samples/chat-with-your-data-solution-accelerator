@@ -4,7 +4,7 @@ on:
   workflow_run:
     workflows: [Tests]
     types: [completed]
-    branches: [main]
+    branches: [docker-build-github-action]
 
 jobs:
   docker-build-frontend:
@@ -26,7 +26,7 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: .
-        push: true
+        push: false
         tags: |
           rag-webapp:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER
           rag-webapp:latest
