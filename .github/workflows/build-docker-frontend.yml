@@ -26,5 +26,4 @@ jobs:
         context: .
         push: false
         tags: |
-          rag-webapp:$(date +'%Y-%m-%d')_$GITHUB_RUN_NUMBER
           rag-webapp:latest
