@@ -142,7 +142,7 @@ class QuestionAnswerTool(AnsweringToolBase):
             )
         else:
             warnings.warn(
-                "'Answering prompt' is deprecated. Enable 'Use answering system prompt' instead.",
+                'The old prompt format is deprecated and will be removed in the future. Enable "Use new prompt format".',
             )
             answering_prompt, input = self.legacy_generate_llm_chain(question, sources)
 
