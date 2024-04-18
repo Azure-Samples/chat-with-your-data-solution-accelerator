@@ -11,7 +11,7 @@ There are two ways to ingest data to the search index i.e using Push based appro
 We want to add Integrated vectorization (Pull based approach) and give the flexibility to the user to use either of the two approaches. The purpose of this ADR is to document the approach taken to be able to deploy Pull based approach.
 
 ## Requirements
-* Demostrate the usage of Integrated Vectorization (Pull approach)
+* Demonstrate the usage of Integrated Vectorization (Pull approach)
 
 ## Decision Drivers
 * Ease of deployment
