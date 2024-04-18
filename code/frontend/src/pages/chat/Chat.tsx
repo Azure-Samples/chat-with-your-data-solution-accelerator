@@ -251,7 +251,7 @@ const Chat = () => {
                   <>
                     {answer.role === "user" ? (
                       <div className={styles.chatMessageUser}>
-                        <Avatar aria-label="Guest" className={styles.chatAvatar}/>
+                        <Avatar image={{ src: '../../public/eddie-hoover-user-avatar.png'}} aria-label="Guest" className={styles.chatAvatar}/>
                         <div className={styles.chatMessageUserMessage}>
                           {answer.content}
                         </div>
@@ -259,7 +259,7 @@ const Chat = () => {
                     ) : answer.role === "assistant" ||
                       answer.role === "error" ? (
                       <div className={styles.chatMessageGpt}>
-                        <Avatar aria-label="Guest" className={styles.chatAvatar}/>
+                        <Avatar image={{ src: '../../public/pronto-avatar-anim-close.gif'}} aria-label="Guest" className={styles.chatAvatar}/>
                         <Answer
                           answer={{
                             answer:
@@ -282,11 +282,13 @@ const Chat = () => {
                 {showLoadingMessage && (
                   <>
                     <div className={styles.chatMessageUser}>
+                      <Avatar image={{ src: '../../public/eddie-hoover-user-avatar.png'}} aria-label="Guest" className={styles.chatAvatar}/>
                       <div className={styles.chatMessageUserMessage}>
                         {lastQuestionRef.current}
                       </div>
                     </div>
                     <div className={styles.chatMessageGpt}>
+                      <Avatar image={{ src: '../../public/pronto-avatar-anim-close.gif'}} aria-label="Guest" className={styles.chatAvatar}/>
                       <Answer
                         answer={{
                           answer: "Thinking...",
