@@ -79,7 +79,7 @@ jobs:
 
           echo "MIN_COVERAGE=$MIN_COVERAGE" >> "$GITHUB_OUTPUT"
       - name: Run Unit tests
-        run: poetry run pytest -m "not azure and not functional" --junitxml=coverage-junit.xml --cov=. --cov-report xml:coverage.xml --cov-fail-under ${{ steps.coverage-value.outputs.MIN_COVERAGE }}
+        run: make unittest optional_args="--junitxml=coverage-junit.xml --cov=. --cov-report xml:coverage.xml --cov-fail-under ${{ steps.coverage-value.outputs.MIN_COVERAGE }}"
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
@@ -89,4 +89,12 @@ jobs:
             coverage.xml
           if-no-files-found: error
       - name: Run Functional tests
-        run: poetry run pytest -m "functional"
+        run: make functionaltest
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: "code/frontend/package-lock.json"
+      - name: Run frontend unit tests
+        run: make unittest-frontend
