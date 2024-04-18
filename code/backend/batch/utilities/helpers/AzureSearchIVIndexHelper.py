@@ -112,7 +112,6 @@ class AzureSearchIVIndexHelper:
                 resource_uri=self.env_helper.AZURE_OPENAI_ENDPOINT,
                 deployment_id=self.env_helper.AZURE_OPENAI_EMBEDDING_MODEL,
             )
-            # azure_ad_token_provider=self.env_helper.AZURE_TOKEN_PROVIDER)
 
         # Configure the vector search configuration
         return VectorSearch(
