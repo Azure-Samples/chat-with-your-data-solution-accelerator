@@ -115,6 +115,31 @@ def env_helper_mock():
         yield env_helper
 
 
+@pytest.fixture(autouse=True)
+def reset_default_config():
+    ConfigHelper._default_config = None
+    yield
+    ConfigHelper._default_config = None
+
+
+def test_default_config(monkeypatch: pytest.MonkeyPatch):
+    # when
+    monkeypatch.setenv("ORCHESTRATION_STRATEGY", "mock-strategy")
+    default_config = ConfigHelper.get_default_config()
+
+    # then
+    assert default_config["orchestrator"]["strategy"] == "mock-strategy"
+
+
+def test_default_config_is_cached():
+    # when
+    default_config_one = ConfigHelper.get_default_config()
+    default_config_two = ConfigHelper.get_default_config()
+
+    # then
+    assert default_config_one is default_config_two
+
+
 def test_get_config_from_azure(
     AzureBlobStorageClientMock: MagicMock,
     blob_client_mock: MagicMock,
