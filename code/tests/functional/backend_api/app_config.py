@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 
 class AppConfig:
-    before_config: dict[str, str | None] = {}
+    before_config: dict[str, str] = {}
     config: dict[str, str | None] = {
         "APPINSIGHTS_CONNECTION_STRING": "",
         "APPINSIGHTS_ENABLED": "False",
