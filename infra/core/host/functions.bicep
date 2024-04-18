@@ -73,7 +73,7 @@ module functions 'appservice.bicep' = {
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
     runtimeNameAndVersion: runtimeNameAndVersion
-    scmDoBuildDuringDeployment:  useDocker ? false : true
+    scmDoBuildDuringDeployment: useDocker ? false : true
     use32BitWorkerProcess: use32BitWorkerProcess
     dockerFullImageName: dockerFullImageName
   }
