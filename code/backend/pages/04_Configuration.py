@@ -161,7 +161,7 @@ try:
 ```"""
     )
     post_answering_prompt_help = "You can configure a post prompt that allows to fact-check or process the answer, given the sources, question and answer. This prompt needs to return `True` or `False`."
-    use_new_prompt_format_help = "Whether to use the new prompt format, including the answering system prompt, a few-shot example and chat history."
+    use_new_prompt_format_help = "Whether to use the new prompt format, including the answering system prompt and a few-shot example."
     post_answering_filter_help = "The message that is returned to the user, when the post-answering prompt returns."
 
     example_documents_help = (
@@ -208,6 +208,7 @@ try:
             key="answering_system_prompt",
             help=answering_system_prompt_help,
             height=400,
+            disabled=not st.session_state["use_new_prompt_format"],
         )
 
         st.text_area(
@@ -238,16 +239,19 @@ try:
             help=example_documents_help,
             on_change=validate_documents,
             height=200,
+            disabled=not st.session_state["use_new_prompt_format"],
         )
         st.text_area(
             "User Question",
             key="example_user_question",
             help=example_user_question_help,
+            disabled=not st.session_state["use_new_prompt_format"],
         )
         st.text_area(
             "User Answer",
             key="example_answer",
             help=example_answer_help,
+            disabled=not st.session_state["use_new_prompt_format"],
         )
 
     document_processors = list(
