@@ -204,6 +204,7 @@ const Chat = () => {
   );
 
   const onShowCitation = (citation: Citation) => {
+    console.log('citation: ', citation);
     setActiveCitation([
       citation.content,
       citation.id,
@@ -213,6 +214,7 @@ const Chat = () => {
       "",
     ]);
     setIsCitationPanelOpen(true);
+    // window.open(citation?.metadata?.original_url, '_blank');
   };
 
   const parseCitationFromMessage = (message: ChatMessage) => {

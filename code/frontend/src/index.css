@@ -1,5 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
 * {
     box-sizing: border-box;
+    font-family: "Inter", Roboto, "Helvetica Neue", sans-serif !important;
 }
 
 html,
@@ -11,8 +14,7 @@ body {
 
 html {
     background: #f2f2f2;
-    font-family: "Segoe UI", "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
-    -webkit-font-smoothing: antialiased;
+    /* font-family: "Segoe UI", "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif; */
     -moz-osx-font-smoothing: grayscale;
 }
 
