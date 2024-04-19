@@ -7,12 +7,12 @@ on:
     branches: [main]
 
 jobs:
-  docker-build-backend:
+  docker-build-admin:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     uses: ./.github/workflows/build-docker.yml
     with:
       registry: fruoccopublic.azurecr.io
       username: fruoccopublic
-      app_name: rag-backend
+      app_name: rag-adminwebapp
       dockerfile: docker/Admin.Dockerfile
     secrets: inherit
