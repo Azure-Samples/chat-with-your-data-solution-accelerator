@@ -1,4 +1,4 @@
-name: Build Docker Image (and push if on main branch)
+name: Reusable Docker build and push workflow
 
 on:
   workflow_call:
@@ -44,7 +44,7 @@ jobs:
       id: date
       run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
-    - name: Build and push the Docker image
+    - name: Build Docker Image and optionally push
       uses: docker/build-push-action@v5
       with:
         context: .
