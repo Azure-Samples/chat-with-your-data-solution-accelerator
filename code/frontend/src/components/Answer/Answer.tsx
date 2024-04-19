@@ -138,11 +138,11 @@ export const Answer = ({
                                 <div className={styles.citation}>{idx}</div>
 
                                 {/* ↓ this is the original Citation title generator */}
-                                {createCitationFilepath(citation, idx, true)}
+                                {/* {createCitationFilepath(citation, idx, true)} */}
 
                                 {/* ↓ testing getting other title/source info */}
-                                {/* <div className={styles.citationTitle}>{citation.metadata?.title || 'Citation'}</div>
-                                <div className={styles.citationSource}>•&nbsp;&nbsp;{citation.metadata?.source || 'Source'}</div> */}
+                                <div className={styles.citationTitle}>{citation.metadata?.title || 'Citation'}</div>
+                                <div className={styles.citationSource}>•&nbsp;&nbsp;{citation.metadata?.source || 'Source'}</div>
                             </span>);
                     })}
                 </div>

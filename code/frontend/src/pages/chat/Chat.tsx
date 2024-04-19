@@ -25,6 +25,7 @@ import {
   Citation,
   ToolMessageContent,
   ChatResponse,
+  CitationMetadata,
 } from "../../api";
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
@@ -208,6 +209,9 @@ const Chat = () => {
   const onShowCitation = (citation: Citation, isKeyPressed: boolean) => {
     // console.log('citation: ', citation);
     // console.log('moment: ', moment().calendar());
+
+    // const metaDataObj = citation.metadata as unknown as CitationMetadata;
+
     setActiveCitation([
       citation.content,
       citation.id,
@@ -217,12 +221,13 @@ const Chat = () => {
       "",
     ]);
 
-    console.log('isSpacebarPressed: ', isKeyPressed);
+    // console.log('isKeyPressed: ', isKeyPressed);
 
     if (isKeyPressed) {
       setIsCitationPanelOpen(true);
     } else {
-      // window.open(citation?.metadata?.original_url, '_blank');
+      // console.log(citation?.metadata?.original_url);
+      window.open(citation?.metadata?.original_url, '_blank');
     }
   };
 
