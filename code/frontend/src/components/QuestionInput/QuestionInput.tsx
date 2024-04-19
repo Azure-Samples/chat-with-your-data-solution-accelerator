@@ -155,7 +155,7 @@ export const QuestionInput = ({
           </div>
 
           {/* Clear chat option */}
-          <div
+          {/* <div
             className={styles.clearChatButton}
             onClick={clearChat}
             onKeyDown={(e) =>
@@ -164,7 +164,7 @@ export const QuestionInput = ({
           >
             <DeleteFilled className={styles.clearChatIcon} />
             <span>Clear Chat</span>
-          </div>
+          </div> */}
         </div>
       </div>
     </Stack>

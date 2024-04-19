@@ -222,7 +222,7 @@ const Chat = () => {
     if (isKeyPressed) {
       setIsCitationPanelOpen(true);
     } else {
-      window.open(citation?.metadata?.original_url, '_blank');
+      // window.open(citation?.metadata?.original_url, '_blank');
     }
   };
 

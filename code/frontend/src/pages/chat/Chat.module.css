@@ -109,7 +109,7 @@
   max-width: 686px;
   width: 100%;
   transform: translateX(10px);
-  padding-bottom: 150px; /* would need to adapt if chat box grows*/
+  margin-bottom: 150px; /* would need to adapt if chat box grows*/
 }
 
 .chatMessageUser {
@@ -236,7 +236,8 @@
     /* left: calc(50% - 161px/2 + 25.8px); */
     left: 50%;
     transform: translateX(-50%);
-    bottom: 116px;
+    /* bottom: 116px; */
+    bottom: 56px;
     border: 1px solid #D1D1D1;
     border-radius: 16px;
     background-color: #00205B;

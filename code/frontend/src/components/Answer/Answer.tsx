@@ -41,11 +41,6 @@ export const Answer = ({
 
     const [keyIsPressed, setKeyIsPressed] = useState(false);
 
-    const preClickTest = (c, s) => {
-      console.log(c, s);
-    }
-
-
     useEffect(() => {
         setChevronIsExpanded(isRefAccordionOpen);
         // console.log('parsedAnswer: ', parsedAnswer);
@@ -69,7 +64,7 @@ export const Answer = ({
         return citationFilename;
     }
 
-    const detectKeyDown = (e) => {
+    const detectKeyDown = (e: KeyboardEvent) => {
       // console.log('clicked down: ', e.key);
       // if (e.key === " ") {
       if (e.key === "Control") {
@@ -77,7 +72,7 @@ export const Answer = ({
       }
     }
 
-    const detectKeyUp = (e) => {
+    const detectKeyUp = (e: KeyboardEvent) => {
       // console.log('clicked up: ', e.key);
       // if (e.key === " ") {
       if (e.key === "Control") {
@@ -143,11 +138,11 @@ export const Answer = ({
                                 <div className={styles.citation}>{idx}</div>
 
                                 {/* ↓ this is the original Citation title generator */}
-                                {/* {createCitationFilepath(citation, idx, true)} */}
+                                {createCitationFilepath(citation, idx, true)}
 
                                 {/* ↓ testing getting other title/source info */}
-                                <div className={styles.citationTitle}>{citation.metadata?.title || 'Citation'}</div>
-                                <div className={styles.citationSource}>•&nbsp;&nbsp;{citation.metadata?.source || 'Source'}</div>
+                                {/* <div className={styles.citationTitle}>{citation.metadata?.title || 'Citation'}</div>
+                                <div className={styles.citationSource}>•&nbsp;&nbsp;{citation.metadata?.source || 'Source'}</div> */}
                             </span>);
                     })}
                 </div>
