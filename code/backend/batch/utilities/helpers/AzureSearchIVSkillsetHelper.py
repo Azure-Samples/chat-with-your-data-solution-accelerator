@@ -25,7 +25,7 @@ class AzureSearchIVSkillsetHelper:
             self.env_helper.AZURE_SEARCH_SERVICE,
             (
                 AzureKeyCredential(self.env_helper.AZURE_SEARCH_KEY)
-                if self.env_helper.AZURE_AUTH_TYPE == "keys"
+                if self.env_helper.is_auth_type_keys()
                 else DefaultAzureCredential()
             ),
         )
@@ -37,8 +37,8 @@ class AzureSearchIVSkillsetHelper:
             description="Split skill to chunk documents",
             text_split_mode="pages",
             context="/document",
-            maximum_page_length=2000,
-            page_overlap_length=500,
+            maximum_page_length=self.env_helper.AZURE_SEARCH_IV_MAX_PAGE_LENGTH,
+            page_overlap_length=self.env_helper.AZURE_SEARCH_IV_PAGE_OVERLAP_LENGTH,
             inputs=[
                 InputFieldMappingEntry(name="text", source="/document/content"),
             ],
@@ -98,6 +98,6 @@ class AzureSearchIVSkillsetHelper:
             index_projections=index_projections,
         )
 
-        self.indexer_client.create_or_update_skillset(skillset)
+        skillset_result = self.indexer_client.create_or_update_skillset(skillset)
         logger.info(f"{skillset.name} created")
-        return skillset.name
+        return skillset_result

@@ -13,7 +13,11 @@ param allowCrossTenantReplication bool = true
 param allowSharedKeyAccess bool = true
 param containers array = []
 param defaultToOAuthAuthentication bool = false
-param deleteRetentionPolicy object = {}
+param azureSearchUseIntegratedVectorization bool = false
+param deleteRetentionPolicy object = azureSearchUseIntegratedVectorization ? {
+  enabled: true
+  days: 7
+} : {}
 @allowed([ 'AzureDnsZone', 'Standard' ])
 param dnsEndpointType string = 'Standard'
 param kind string = 'StorageV2'

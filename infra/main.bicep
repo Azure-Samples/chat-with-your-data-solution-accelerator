@@ -794,14 +794,11 @@ module storage 'core/storage/storage-account.bicep' = {
     sku: {
       name: 'Standard_GRS'
     }
+    azureSearchUseIntegratedVectorization: azureSearchUseIntegratedVectorization
     containers: [
       {
         name: blobContainerName
         publicAccess: 'None'
-        deleteRetentionPolicy: azureSearchUseIntegratedVectorization ? {
-          enabled: true
-          days: 7
-        } : {}
       }
       {
         name: 'config'

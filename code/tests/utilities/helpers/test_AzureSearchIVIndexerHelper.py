@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 from backend.batch.utilities.helpers.AzureSearchIVIndexerHelper import (
     AzureSearchIVIndexerHelper,
 )
@@ -55,6 +55,14 @@ def test_create_or_update_indexer_keys(
     azure_search_indexer.indexer_client.create_or_update_indexer.assert_called_once_with(
         search_indexer_mock.return_value
     )
+    search_indexer_mock.assert_called_once_with(
+        name="indexer_name",
+        description="Indexer to index documents and generate embeddings",
+        skillset_name="skillset_name",
+        target_index_name=env_helper_mock.AZURE_SEARCH_INDEX,
+        data_source_name=env_helper_mock.AZURE_SEARCH_DATASOURCE_NAME,
+        field_mappings=ANY,
+    )
 
 
 def test_create_or_update_indexer_rbac(
@@ -72,4 +80,12 @@ def test_create_or_update_indexer_rbac(
     # then
     azure_search_indexer.indexer_client.create_or_update_indexer.assert_called_once_with(
         search_indexer_mock.return_value
+    )
+    search_indexer_mock.assert_called_once_with(
+        name="indexer_name",
+        description="Indexer to index documents and generate embeddings",
+        skillset_name="skillset_name",
+        target_index_name=env_helper_mock.AZURE_SEARCH_INDEX,
+        data_source_name=env_helper_mock.AZURE_SEARCH_DATASOURCE_NAME,
+        field_mappings=ANY,
     )

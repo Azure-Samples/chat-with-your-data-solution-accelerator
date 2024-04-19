@@ -23,21 +23,33 @@ from azure.search.documents.indexes.models import (
 from .EnvHelper import EnvHelper
 from azure.identity import DefaultAzureCredential
 from azure.core.credentials import AzureKeyCredential
+from .LLMHelper import LLMHelper
 
 logger = logging.getLogger(__name__)
 
 
 class AzureSearchIVIndexHelper:
-    def __init__(self, env_helper: EnvHelper):
+    _search_dimension: int | None = None
+
+    def __init__(self, env_helper: EnvHelper, llm_helper: LLMHelper):
         self.env_helper = env_helper
+        self.llm_helper = llm_helper
         self.index_client = SearchIndexClient(
             self.env_helper.AZURE_SEARCH_SERVICE,
             (
                 AzureKeyCredential(self.env_helper.AZURE_SEARCH_KEY)
-                if self.env_helper.AZURE_AUTH_TYPE == "keys"
+                if self.env_helper.is_auth_type_keys()
                 else DefaultAzureCredential()
             ),
         )
+
+    @property
+    def search_dimensions(self) -> int:
+        if AzureSearchIVIndexHelper._search_dimension is None:
+            AzureSearchIVIndexHelper._search_dimension = len(
+                self.llm_helper.get_embedding_model().embed_query("Text")
+            )
+        return AzureSearchIVIndexHelper._search_dimension
 
     def create_or_update_index(self):
         # Create a search index
@@ -46,7 +58,6 @@ class AzureSearchIVIndexHelper:
                 name="id",
                 type=SearchFieldDataType.String,
                 filterable=True,
-                # key=True
             ),
             SearchableField(
                 name="content",
@@ -58,7 +69,7 @@ class AzureSearchIVIndexHelper:
             SearchField(
                 name="content_vector",
                 type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
-                vector_search_dimensions=1536,
+                vector_search_dimensions=self.search_dimensions,
                 vector_search_profile_name="myHnswProfile",
             ),
             SearchableField(name="metadata", type=SearchFieldDataType.String),
@@ -83,13 +94,10 @@ class AzureSearchIVIndexHelper:
             ),
         ]
 
-        # Configure the vector search configuration
         vector_search = self.get_vector_search_config()
 
-        # Configure the semantic search configuration
         semantic_search = self.get_semantic_search_config()
 
-        # Create the search index
         index = SearchIndex(
             name=self.env_helper.AZURE_SEARCH_INDEX,
             fields=fields,
@@ -113,7 +121,6 @@ class AzureSearchIVIndexHelper:
                 deployment_id=self.env_helper.AZURE_OPENAI_EMBEDDING_MODEL,
             )
 
-        # Configure the vector search configuration
         return VectorSearch(
             algorithms=[
                 HnswAlgorithmConfiguration(
@@ -161,5 +168,4 @@ class AzureSearchIVIndexHelper:
             ),
         )
 
-        # Create the semantic search with the configuration
         return SemanticSearch(configurations=[semantic_config])

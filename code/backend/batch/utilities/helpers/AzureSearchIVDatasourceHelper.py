@@ -18,7 +18,7 @@ class AzureSearchIVDatasourceHelper:
             self.env_helper.AZURE_SEARCH_SERVICE,
             (
                 AzureKeyCredential(self.env_helper.AZURE_SEARCH_KEY)
-                if self.env_helper.AZURE_AUTH_TYPE == "keys"
+                if self.env_helper.is_auth_type_keys()
                 else DefaultAzureCredential()
             ),
         )

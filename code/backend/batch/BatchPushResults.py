@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from utilities.helpers.AzureBlobStorageHelper import AzureBlobStorageClient
 from utilities.helpers.DocumentProcessorHelper import DocumentProcessor
 from utilities.helpers.ConfigHelper import ConfigHelper
+from utilities.helpers.EnvHelper import EnvHelper
 
 
 bp_batch_push_results = func.Blueprint()
@@ -32,6 +33,7 @@ def batch_push_results(msg: func.QueueMessage) -> None:
 
 
 def do_batch_push_results(msg: func.QueueMessage) -> None:
+    env_helper: EnvHelper = EnvHelper()
     logger.info(
         "Python queue trigger function processed a queue item: %s",
         msg.get_body().decode("utf-8"),
@@ -53,5 +55,8 @@ def do_batch_push_results(msg: func.QueueMessage) -> None:
         )
     )
     # Process the file
-    document_processor.process(source_url=file_sas, processors=processors)
-    blob_client.upsert_blob_metadata(file_name, {"embeddings_added": "true"})
+    if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+        document_processor.process_using_integrated_vectorisation(source_url=file_sas)
+    else:
+        document_processor.process(source_url=file_sas, processors=processors)
+        blob_client.upsert_blob_metadata(file_name, {"embeddings_added": "true"})

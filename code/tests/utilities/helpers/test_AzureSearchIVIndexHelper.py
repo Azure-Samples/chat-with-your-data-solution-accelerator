@@ -25,6 +25,19 @@ def env_helper_mock():
 
 
 @pytest.fixture(autouse=True)
+def llm_helper_mock():
+    with patch(
+        "backend.batch.utilities.helpers.AzureSearchIVIndexHelper.LLMHelper"
+    ) as mock:
+        llm_helper = mock.return_value
+        llm_helper.get_embedding_model.return_value.embed_query.return_value = [
+            0
+        ] * 1536
+
+        yield llm_helper
+
+
+@pytest.fixture(autouse=True)
 def search_index_client_mock():
     with patch(
         "backend.batch.utilities.helpers.AzureSearchIVIndexHelper.SearchIndexClient"
@@ -69,9 +82,12 @@ def test_create_or_update_index_keys(
     search_index_mock: MagicMock,
     vector_seach_mock: MagicMock,
     semantic_search_mock: MagicMock,
+    llm_helper_mock: MagicMock,
 ):
     # given
-    azure_search_iv_index_helper = AzureSearchIVIndexHelper(env_helper_mock)
+    azure_search_iv_index_helper = AzureSearchIVIndexHelper(
+        env_helper_mock, llm_helper_mock
+    )
 
     # when
     azure_search_iv_index_helper.create_or_update_index()
@@ -90,13 +106,16 @@ def test_create_or_update_index_rbac(
     search_index_mock: MagicMock,
     vector_seach_mock: MagicMock,
     semantic_search_mock: MagicMock,
+    llm_helper_mock: MagicMock,
 ):
     # given
     env_helper_mock.AZURE_AUTH_TYPE = "rbac"
-    azure_search_iv_index_helper = AzureSearchIVIndexHelper(env_helper_mock)
+    azure_search_iv_index_helper = AzureSearchIVIndexHelper(
+        env_helper_mock, llm_helper_mock
+    )
 
     # when
-    azure_search_iv_index_helper.create_or_update_index()
+    azure_search_iv_index = azure_search_iv_index_helper.create_or_update_index()
 
     # then
     search_index_mock.assert_called_once_with(
@@ -105,3 +124,4 @@ def test_create_or_update_index_rbac(
         vector_search=vector_seach_mock.return_value,
         semantic_search=semantic_search_mock.return_value,
     )
+    assert azure_search_iv_index.fields == ANY

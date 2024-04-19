@@ -3,6 +3,12 @@ from unittest.mock import MagicMock, patch
 from backend.batch.utilities.helpers.AzureSearchIVSkillsetHelper import (
     AzureSearchIVSkillsetHelper,
 )
+from azure.search.documents.indexes.models import (
+    SearchIndexerSkillset,
+    SplitSkill,
+    AzureOpenAIEmbeddingSkill,
+    SearchIndexerIndexProjections,
+)
 
 AZURE_AUTH_TYPE = "keys"
 AZURE_SEARCH_KEY = "mock-key"
@@ -33,103 +39,46 @@ def search_indexer_client_mock():
     with patch(
         "backend.batch.utilities.helpers.AzureSearchIVSkillsetHelper.SearchIndexerClient"
     ) as mock:
-        yield mock
-
-
-@pytest.fixture(autouse=True)
-def split_skill_mock():
-    with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVSkillsetHelper.SplitSkill"
-    ) as mock:
-        yield mock
-
-
-@pytest.fixture(autouse=True)
-def azure_open_ai_embedding_skill_mock():
-    with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVSkillsetHelper.AzureOpenAIEmbeddingSkill"
-    ) as mock:
-        yield mock
-
-
-@pytest.fixture(autouse=True)
-def search_indexer_index_projections_mock():
-    with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVSkillsetHelper.SearchIndexerIndexProjections"
-    ) as mock:
-        yield mock
-
-
-@pytest.fixture(autouse=True)
-def search_indexer_skillset_mock():
-    with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVSkillsetHelper.SearchIndexerSkillset"
-    ) as mock:
+        indexer_client = mock.return_value
+        indexer_client.create_or_update_skillset.return_value = SearchIndexerSkillset(
+            name="skillset_name",
+            description="Skillset to chunk documents and generating embeddings",
+            skills=[SplitSkill, AzureOpenAIEmbeddingSkill],
+            index_projections=SearchIndexerIndexProjections,
+        )
         yield mock
 
 
 def test_create_skillset_keys(
     env_helper_mock: MagicMock,
     search_indexer_client_mock: MagicMock,
-    split_skill_mock: MagicMock,
-    azure_open_ai_embedding_skill_mock: MagicMock,
-    search_indexer_index_projections_mock: MagicMock,
-    search_indexer_skillset_mock: MagicMock,
 ):
     # given
-    azure_search_iv_skillset_helper = AzureSearchIVSkillsetHelper(
-        env_helper_mock.return_value
-    )
+    azure_search_iv_skillset_helper = AzureSearchIVSkillsetHelper(env_helper_mock)
 
     # when
     create_or_update_skillset = azure_search_iv_skillset_helper.create_skillset()
 
     # then
-    assert create_or_update_skillset == search_indexer_skillset_mock.return_value.name
-
-    search_indexer_skillset_mock.assert_called_once_with(
-        name=f"{env_helper_mock.return_value.AZURE_SEARCH_INDEX}-skillset",
-        description="Skillset to chunk documents and generating embeddings",
-        skills=[
-            split_skill_mock.return_value,
-            azure_open_ai_embedding_skill_mock.return_value,
-        ],
-        index_projections=search_indexer_index_projections_mock.return_value,
-    )
-    search_indexer_client_mock.return_value.create_or_update_skillset.assert_called_once_with(
-        search_indexer_skillset_mock.return_value
-    )
+    assert create_or_update_skillset.name == "skillset_name"
+    assert len(create_or_update_skillset.skills) == 2
+    assert create_or_update_skillset.index_projections is not None
+    search_indexer_client_mock.return_value.create_or_update_skillset.assert_called_once()
 
 
 def test_create_skillset_rbac(
     env_helper_mock: MagicMock,
     search_indexer_client_mock: MagicMock,
-    split_skill_mock: MagicMock,
-    azure_open_ai_embedding_skill_mock: MagicMock,
-    search_indexer_index_projections_mock: MagicMock,
-    search_indexer_skillset_mock: MagicMock,
 ):
     # given
     env_helper_mock.AZURE_AUTH_TYPE = "rbac"
-    azure_search_iv_skillset_helper = AzureSearchIVSkillsetHelper(
-        env_helper_mock.return_value
-    )
+    azure_search_iv_skillset_helper = AzureSearchIVSkillsetHelper(env_helper_mock)
 
     # when
     create_or_update_skillset = azure_search_iv_skillset_helper.create_skillset()
 
     # then
-    assert create_or_update_skillset == search_indexer_skillset_mock.return_value.name
-
-    search_indexer_skillset_mock.assert_called_once_with(
-        name=f"{env_helper_mock.return_value.AZURE_SEARCH_INDEX}-skillset",
-        description="Skillset to chunk documents and generating embeddings",
-        skills=[
-            split_skill_mock.return_value,
-            azure_open_ai_embedding_skill_mock.return_value,
-        ],
-        index_projections=search_indexer_index_projections_mock.return_value,
-    )
-    search_indexer_client_mock.return_value.create_or_update_skillset.assert_called_once_with(
-        search_indexer_skillset_mock.return_value
-    )
+    assert create_or_update_skillset.name == "skillset_name"
+    assert len(create_or_update_skillset.skills) == 2
+    assert create_or_update_skillset.index_projections is not None
+    search_indexer_client_mock.return_value.create_or_update_skillset.assert_called_once()

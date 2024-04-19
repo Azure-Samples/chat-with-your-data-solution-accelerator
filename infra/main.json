@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "13647067331511002463"
+      "templateHash": "16624637555282129601"
     }
   },
   "parameters": {
@@ -9743,12 +9743,14 @@
               "name": "Standard_GRS"
             }
           },
+          "azureSearchUseIntegratedVectorization": {
+            "value": "[parameters('azureSearchUseIntegratedVectorization')]"
+          },
           "containers": {
             "value": [
               {
                 "name": "[variables('blobContainerName')]",
-                "publicAccess": "None",
-                "deleteRetentionPolicy": "[if(parameters('azureSearchUseIntegratedVectorization'), createObject('enabled', true(), 'days', 7), createObject())]"
+                "publicAccess": "None"
               },
               {
                 "name": "config",
@@ -9774,7 +9776,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.54.24096",
-              "templateHash": "425644292909061969"
+              "templateHash": "8649782314912119648"
             },
             "description": "Creates an Azure storage account."
           },
@@ -9819,9 +9821,13 @@
               "type": "bool",
               "defaultValue": false
             },
+            "azureSearchUseIntegratedVectorization": {
+              "type": "bool",
+              "defaultValue": false
+            },
             "deleteRetentionPolicy": {
               "type": "object",
-              "defaultValue": {}
+              "defaultValue": "[if(parameters('azureSearchUseIntegratedVectorization'), createObject('enabled', true(), 'days', 7), createObject())]"
             },
             "dnsEndpointType": {
               "type": "string",

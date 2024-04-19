@@ -15,7 +15,7 @@ class AzureSearchIVIndexerHelper:
             self.env_helper.AZURE_SEARCH_SERVICE,
             (
                 AzureKeyCredential(self.env_helper.AZURE_SEARCH_KEY)
-                if self.env_helper.AZURE_AUTH_TYPE == "keys"
+                if self.env_helper.is_auth_type_keys()
                 else DefaultAzureCredential()
             ),
         )
@@ -27,7 +27,6 @@ class AzureSearchIVIndexerHelper:
             skillset_name=skillset_name,
             target_index_name=self.env_helper.AZURE_SEARCH_INDEX,
             data_source_name=self.env_helper.AZURE_SEARCH_DATASOURCE_NAME,
-            # Map the metadata_storage_name field to the title field in the index to display the PDF title in the search results
             field_mappings=[
                 FieldMapping(
                     source_field_name="metadata_storage_name",
@@ -39,12 +38,13 @@ class AzureSearchIVIndexerHelper:
                 ),
             ],
         )
-        self.indexer_client.create_or_update_indexer(indexer)
+        indexer_result = self.indexer_client.create_or_update_indexer(indexer)
         # Run the indexer
         self.indexer_client.run_indexer(indexer_name)
         logger.info(
             f" {indexer_name} is created and running. If queries return no results, please wait a bit and try again."
         )
+        return indexer_result
 
     # To be updated for 'Reprocess All'
     def run_indexer(self, indexer_name: str):
