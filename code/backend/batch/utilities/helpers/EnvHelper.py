@@ -175,8 +175,6 @@ class EnvHelper:
         self.ORCHESTRATION_STRATEGY = os.getenv(
             "ORCHESTRATION_STRATEGY", "openai_function"
         )
-        # Ensure this environment variable is set
-        os.environ["ORCHESTRATION_STRATEGY"] = self.ORCHESTRATION_STRATEGY
         # Speech Service
         self.AZURE_SPEECH_SERVICE_NAME = os.getenv("AZURE_SPEECH_SERVICE_NAME", "")
         self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")

@@ -122,9 +122,9 @@ def reset_default_config():
     ConfigHelper._default_config = None
 
 
-def test_default_config(monkeypatch: pytest.MonkeyPatch):
+def test_default_config(env_helper_mock: MagicMock):
     # when
-    monkeypatch.setenv("ORCHESTRATION_STRATEGY", "mock-strategy")
+    env_helper_mock.ORCHESTRATION_STRATEGY = "mock-strategy"
     default_config = ConfigHelper.get_default_config()
 
     # then

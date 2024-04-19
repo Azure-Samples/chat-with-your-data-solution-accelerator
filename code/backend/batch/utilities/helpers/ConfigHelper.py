@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+from string import Template
 from .AzureBlobStorageHelper import AzureBlobStorageClient
 from ..document_chunking.Strategies import ChunkingSettings, ChunkingStrategy
 from ..document_loading import LoadingSettings, LoadingStrategy
@@ -147,7 +148,7 @@ class ConfigHelper:
     @staticmethod
     def get_default_config():
         if ConfigHelper._default_config is None:
-            EnvHelper()  # Ensure the environment variables from the env helper are set
+            env_helper = EnvHelper()
 
             config_file_path = os.path.join(
                 os.path.dirname(__file__), "config", "default.json"
@@ -155,6 +156,10 @@ class ConfigHelper:
 
             with open(config_file_path) as f:
                 logging.info(f"Loading default config from {config_file_path}")
-                ConfigHelper._default_config = json.loads(os.path.expandvars(f.read()))
+                ConfigHelper._default_config = json.loads(
+                    Template(f.read()).substitute(
+                        ORCHESTRATION_STRATEGY=env_helper.ORCHESTRATION_STRATEGY
+                    )
+                )
 
         return ConfigHelper._default_config
