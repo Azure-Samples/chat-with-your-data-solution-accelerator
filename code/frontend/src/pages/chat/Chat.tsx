@@ -205,7 +205,7 @@ const Chat = () => {
     [showLoadingMessage]
   );
 
-  const onShowCitation = (citation: Citation, isSpacebarPressed: boolean) => {
+  const onShowCitation = (citation: Citation, isKeyPressed: boolean) => {
     // console.log('citation: ', citation);
     // console.log('moment: ', moment().calendar());
     setActiveCitation([
@@ -217,7 +217,9 @@ const Chat = () => {
       "",
     ]);
 
-    if (isSpacebarPressed) {
+    console.log('isSpacebarPressed: ', isKeyPressed);
+
+    if (isKeyPressed) {
       setIsCitationPanelOpen(true);
     } else {
       window.open(citation?.metadata?.original_url, '_blank');
@@ -289,7 +291,7 @@ const Chat = () => {
                                 ? parseCitationFromMessage(answers[index - 1])
                                 : [],
                           }}
-                          onCitationClicked={(c, isSpacebarPressed) => onShowCitation(c, isSpacebarPressed)}
+                          onCitationClicked={(c, isKeyPressed) => onShowCitation(c, isKeyPressed)}
                           // onCitationHover={(e, c) => onCitationHover(e, c)}
                           index={index}
                         />

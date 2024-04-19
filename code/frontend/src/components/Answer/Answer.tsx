@@ -15,9 +15,8 @@ import moment from "moment";
 
 interface Props {
     answer: AskResponse;
-    onCitationClicked: (citedDocument: Citation, isSpacebarPressed: boolean) => void;
+    onCitationClicked: (citedDocument: Citation, isKeyPressed: boolean) => void;
     // onCitationHover: (e: MouseEvent,  citedDocument: Citation) => void;
-    isSpacebarPressed: boolean;
     index: number;
 }
 
@@ -40,7 +39,7 @@ export const Answer = ({
         toggleIsRefAccordionOpen();
       };
 
-    const [spacebarIsPressed, setSpacebarIsPressed] = useState(false);
+    const [keyIsPressed, setKeyIsPressed] = useState(false);
 
     const preClickTest = (c, s) => {
       console.log(c, s);
@@ -71,16 +70,18 @@ export const Answer = ({
     }
 
     const detectKeyDown = (e) => {
-      if (e.key === " ") {
-        // console.log('clicked down: SPACEBAR');
-        setSpacebarIsPressed(true);
+      // console.log('clicked down: ', e.key);
+      // if (e.key === " ") {
+      if (e.key === "Control") {
+        setKeyIsPressed(true);
       }
     }
 
     const detectKeyUp = (e) => {
-      if (e.key === " ") {
-        // console.log('clicked up: SPACEBAR');
-        setSpacebarIsPressed(false);
+      // console.log('clicked up: ', e.key);
+      // if (e.key === " ") {
+      if (e.key === "Control") {
+        setKeyIsPressed(false);
       }
     }
 
@@ -138,7 +139,7 @@ export const Answer = ({
                 <div style={{ marginTop: 8, display: "flex", flexDirection: "column", height: "100%", gap: "4px", maxWidth: "100%" }} >
                     {parsedAnswer.citations.map((citation, idx) => {
                         return (
-                            <span title={createCitationFilepath(citation, ++idx)} key={idx} onClick={() => onCitationClicked(citation, spacebarIsPressed)} className={styles.citationContainer}>
+                            <span title={createCitationFilepath(citation, ++idx)} key={idx} onClick={() => onCitationClicked(citation, keyIsPressed)} className={styles.citationContainer}>
                                 <div className={styles.citation}>{idx}</div>
 
                                 {/* ↓ this is the original Citation title generator */}

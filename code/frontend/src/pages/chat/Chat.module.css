@@ -109,6 +109,7 @@
   max-width: 686px;
   width: 100%;
   transform: translateX(10px);
+  padding-bottom: 150px; /* would need to adapt if chat box grows*/
 }
 
 .chatMessageUser {
@@ -179,7 +180,7 @@
 }
 
 .chatInput {
-    position: sticky;
+    /* position: sticky; */
     flex: 0 0 100px;
     padding-top: 12px;
     padding-bottom: 24px;
@@ -192,6 +193,9 @@
     margin-top: 8px;
     z-index: 10;
     transition: margin 0.5s ease-out;
+
+    position: absolute;
+    bottom: 64px;
 }
 
 .chatThreadActive {
@@ -330,6 +334,11 @@
     order: 1;
     align-self: stretch;
     flex-grow: 0;
+    overflow-wrap: break-word;
+}
+
+.citationPanel p {
+  overflow-wrap: break-word;
 }
 
 .MobileChatContainer{
