@@ -103,11 +103,13 @@
     border: 1px solid #D1D1D1;
     border-radius: 24px;
     background-color: #EFF1F4;
+    transition: background-color 0.5s;
 }
 
 .citationContainer:hover {
     /* text-decoration: underline; */
     cursor: pointer;
+    background-color: #CED5DD;
 }
 
 .citation {
