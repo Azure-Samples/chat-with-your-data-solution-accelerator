@@ -1,14 +1,12 @@
 name: WebApp Docker Image
 
 on:
-  workflow_run:
-    workflows: [Tests]
-    types: [completed]
-    branches: [main]
+  push:
+    branches:
+      - docker-build-github-action
 
 jobs:
   docker-build-frontend:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     uses: ./.github/workflows/build-docker.yml
     with:
       registry: fruoccopublic.azurecr.io
