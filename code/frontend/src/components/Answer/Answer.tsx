@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, MouseEvent } from "react";
 import { useBoolean } from "@fluentui/react-hooks"
 import { FontIcon, Stack, Text } from "@fluentui/react";
 
@@ -15,13 +15,16 @@ import moment from "moment";
 
 interface Props {
     answer: AskResponse;
-    onCitationClicked: (citedDocument: Citation) => void;
+    onCitationClicked: (citedDocument: Citation, isSpacebarPressed: boolean) => void;
+    // onCitationHover: (e: MouseEvent,  citedDocument: Citation) => void;
+    isSpacebarPressed: boolean;
     index: number;
 }
 
 export const Answer = ({
     answer,
     onCitationClicked,
+    // onCitationHover,
     index,
 }: Props) => {
     const [isRefAccordionOpen, { toggle: toggleIsRefAccordionOpen }] = useBoolean(false);
@@ -37,9 +40,16 @@ export const Answer = ({
         toggleIsRefAccordionOpen();
       };
 
+    const [spacebarIsPressed, setSpacebarIsPressed] = useState(false);
+
+    const preClickTest = (c, s) => {
+      console.log(c, s);
+    }
+
+
     useEffect(() => {
         setChevronIsExpanded(isRefAccordionOpen);
-        console.log('parsedAnswer: ', parsedAnswer);
+        // console.log('parsedAnswer: ', parsedAnswer);
     }, [isRefAccordionOpen]);
 
     const createCitationFilepath = (citation: Citation, index: number, truncate: boolean = false) => {
@@ -60,6 +70,20 @@ export const Answer = ({
         return citationFilename;
     }
 
+    const detectKeyDown = (e) => {
+      if (e.key === " ") {
+        // console.log('clicked down: SPACEBAR');
+        setSpacebarIsPressed(true);
+      }
+    }
+
+    const detectKeyUp = (e) => {
+      if (e.key === " ") {
+        // console.log('clicked up: SPACEBAR');
+        setSpacebarIsPressed(false);
+      }
+    }
+
     useEffect(() => {
         const handleCopy = () => {
             alert("Please consider where you paste this content.");
@@ -67,8 +91,14 @@ export const Answer = ({
         const messageBox = document.getElementById(messageBoxId);
         messageBox?.addEventListener("copy", handleCopy);
         // console.log('citations: ', parsedAnswer.citations);
+
+        document.addEventListener('keydown', detectKeyDown, true);
+        document.addEventListener('keyup', detectKeyUp, true);
+
         return () => {
             messageBox?.removeEventListener("copy", handleCopy);
+            document.removeEventListener('keydown', detectKeyDown, true);
+            document.removeEventListener('keyup', detectKeyUp, true);
         };
     }, []);
 
@@ -105,12 +135,16 @@ export const Answer = ({
                 )} */}
 
                 {/* ↓ not nesting the citations per design */}
-                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", height: "100%", gap: "4px", maxWidth: "100%" }}>
+                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", height: "100%", gap: "4px", maxWidth: "100%" }} >
                     {parsedAnswer.citations.map((citation, idx) => {
                         return (
-                            <span title={createCitationFilepath(citation, ++idx)} key={idx} onClick={() => onCitationClicked(citation)} className={styles.citationContainer}>
+                            <span title={createCitationFilepath(citation, ++idx)} key={idx} onClick={() => onCitationClicked(citation, spacebarIsPressed)} className={styles.citationContainer}>
                                 <div className={styles.citation}>{idx}</div>
+
+                                {/* ↓ this is the original Citation title generator */}
                                 {/* {createCitationFilepath(citation, idx, true)} */}
+
+                                {/* ↓ testing getting other title/source info */}
                                 <div className={styles.citationTitle}>{citation.metadata?.title || 'Citation'}</div>
                                 <div className={styles.citationSource}>•&nbsp;&nbsp;{citation.metadata?.source || 'Source'}</div>
                             </span>);

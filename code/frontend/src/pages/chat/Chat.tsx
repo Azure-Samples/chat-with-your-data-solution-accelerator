@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, MouseEvent } from "react";
 import { Stack } from "@fluentui/react";
 import {
   BroomRegular,
@@ -205,7 +205,7 @@ const Chat = () => {
     [showLoadingMessage]
   );
 
-  const onShowCitation = (citation: Citation) => {
+  const onShowCitation = (citation: Citation, isSpacebarPressed: boolean) => {
     // console.log('citation: ', citation);
     // console.log('moment: ', moment().calendar());
     setActiveCitation([
@@ -216,8 +216,17 @@ const Chat = () => {
       "",
       "",
     ]);
-    setIsCitationPanelOpen(true);
-    // window.open(citation?.metadata?.original_url, '_blank');
+
+    if (isSpacebarPressed) {
+      setIsCitationPanelOpen(true);
+    } else {
+      window.open(citation?.metadata?.original_url, '_blank');
+    }
+  };
+
+  const onCitationHover = (e: MouseEvent, citation: Citation) => {
+    // console.log('HOVERED!!!!!!!!!');
+    // console.log(e, citation);
   };
 
   const parseCitationFromMessage = (message: ChatMessage) => {
@@ -280,7 +289,8 @@ const Chat = () => {
                                 ? parseCitationFromMessage(answers[index - 1])
                                 : [],
                           }}
-                          onCitationClicked={(c) => onShowCitation(c)}
+                          onCitationClicked={(c, isSpacebarPressed) => onShowCitation(c, isSpacebarPressed)}
+                          // onCitationHover={(e, c) => onCitationHover(e, c)}
                           index={index}
                         />
                       </div>

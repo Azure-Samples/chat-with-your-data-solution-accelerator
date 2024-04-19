@@ -141,7 +141,8 @@
 }
 
 .citationTitle {
-  max-width: 45%;
+  width: 45%;
+  max-width: 300px;
   text-overflow: ellipsis;
   text-wrap: nowrap;
   overflow: hidden;
@@ -151,7 +152,8 @@
 }
 
 .citationSource {
-  max-width: 35%;
+  width: 35%;
+  max-width: 250px;
   text-overflow: ellipsis;
   text-wrap: nowrap;
   overflow: hidden;
