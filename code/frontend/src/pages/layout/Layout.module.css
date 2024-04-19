@@ -24,17 +24,18 @@
     margin-left: 30px;
     margin-top: -5px;
     text-decoration: none;
-    border-right: 1px solid #fff;
+    border-right: 1px solid #919CB0;
     padding-right: 17px;
-    height: 26px;
+    height: 24px;
+    width: 86px;
 }
 
 .headerTitle {
-    font-family: "Segoe UI";
-    font-style: normal;
-    font-weight: 100;
-    font-size: 20px;
-    line-height: 28px;
+    /* font-family: "Segoe UI"; */
+    /* font-style: normal; */
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 24px;
     display: flex;
     align-items: flex-end;
     color: white;
@@ -54,7 +55,7 @@
   align-items: center;
   right:15px;
   color: #ffffff;
-  gap: 18px;
+  gap: 20px;
 }
 
 .shareButtonContainer {
@@ -69,8 +70,8 @@
 }
 
 .shareButton, .addSourceButton {
-    width: 20px;
-    height: 20px;
+    /* width: 20px; */
+    /* height: 20px; */
     color: #FFFFFF;
 }
 

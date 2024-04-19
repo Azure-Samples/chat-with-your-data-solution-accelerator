@@ -53,11 +53,21 @@ const Layout = () => {
                         <div className={styles.mainNavLinks}>
                           <div className={styles.addSourceButtonContainer}>
                             <a href="https://rsta4xey-test-website-6eg6fe2yksguu-admin.azurewebsites.net/Ingest_Data" target="_blank" rel="noopener noreferrer">
-                              <NoteAdd16Filled className={styles.addSourceButton} />
+                              {/* <NoteAdd16Filled className={styles.addSourceButton} /> */}
+                              <img
+                                src="../../addSourceIcon.png"
+                                className={styles.addSourceButton}
+                                aria-hidden="true"
+                                />
                             </a>
                           </div>
                           <div className={styles.shareButtonContainer} role="button" tabIndex={0} aria-label="Share" onClick={handleShareClick} onKeyDown={e => e.key === "Enter" || e.key === " " ? handleShareClick() : null}>
-                            <ShareAndroid16Filled className={styles.shareButton} />
+                            {/* <ShareAndroid16Filled className={styles.shareButton} /> */}
+                            <img
+                              src="../../shareLinkIcon.png"
+                              className={styles.shareButton}
+                              aria-hidden="true"
+                              />
                           </div>
                           <div className={`${styles.userMenuContainer} ${styles.disabled}`}>
                             <div className={styles.userMenuBtn}>

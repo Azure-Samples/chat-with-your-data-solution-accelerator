@@ -30,6 +30,8 @@ import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
 import { Sidebar } from "../../components/Sidebar";
 import { Avatar, Spinner } from "@fluentui/react-components";
+import moment from "moment";
+
 
 const Chat = () => {
   const lastQuestionRef = useRef<string>("");
@@ -204,7 +206,8 @@ const Chat = () => {
   );
 
   const onShowCitation = (citation: Citation) => {
-    console.log('citation: ', citation);
+    // console.log('citation: ', citation);
+    // console.log('moment: ', moment().calendar());
     setActiveCitation([
       citation.content,
       citation.id,
@@ -250,12 +253,15 @@ const Chat = () => {
             >
               <div className={styles.chatMessageStreamInner}>
                 {answers.map((answer, index) => (
-                  <>
+                  <div key={index}>
                     {answer.role === "user" ? (
                       <div className={`${styles.chatMessageUser}`} key={index}>
                         <Avatar image={{ src: '../../eddie-hoover-user-avatar.png'}} aria-label="Guest" className={styles.chatAvatar}/>
                         <div className={styles.chatMessageUserMessage}>
                           {answer.content}
+                        </div>
+                        <div className={` ${styles.timeStamp}`}>
+                          <div>{moment().calendar()}</div>
                         </div>
                       </div>
                     ) : answer.role === "assistant" ||
@@ -279,7 +285,7 @@ const Chat = () => {
                         />
                       </div>
                     ) : null}
-                  </>
+                  </div>
                 ))}
                 {showLoadingMessage && (
                   <>

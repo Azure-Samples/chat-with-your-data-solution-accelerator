@@ -9,7 +9,9 @@ import { parseAnswer } from "./AnswerParser";
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import supersub from 'remark-supersub'
+import supersub from 'remark-supersub';
+
+import moment from "moment";
 
 interface Props {
     answer: AskResponse;
@@ -140,7 +142,8 @@ export const Answer = ({
 
           {parsedAnswer.citations.length > 0 && (
             <div className={` ${styles.answerNewFooter}`}>
-              <div>(timestamp)</div>
+              <div>{moment().calendar()}</div>
+              {/* <div>{moment().format("dddd [at] HH:mm")}</div> */}
               <div>•</div>
               <div>AI-generated content may be incorrect</div>
             </div>
