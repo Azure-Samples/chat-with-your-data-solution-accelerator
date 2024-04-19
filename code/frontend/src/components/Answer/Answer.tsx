@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState, MouseEvent } from "react";
 import { useBoolean } from "@fluentui/react-hooks"
 import { FontIcon, Stack, Text } from "@fluentui/react";
+import { Button, Tooltip, makeStyles } from "@fluentui/react-components";
+import { SlideTextRegular } from "@fluentui/react-icons";
+import type { TooltipProps } from "@fluentui/react-components";
 
 import styles from "./Answer.module.css";
 
@@ -12,6 +15,8 @@ import remarkGfm from "remark-gfm";
 import supersub from 'remark-supersub';
 
 import moment from "moment";
+
+import rehypeRaw from "rehype-raw";
 
 interface Props {
     answer: AskResponse;
@@ -131,19 +136,40 @@ export const Answer = ({
                 )} */}
 
                 {/* ↓ not nesting the citations per design */}
+
                 <div style={{ marginTop: 8, display: "flex", flexDirection: "column", height: "100%", gap: "4px", maxWidth: "100%" }} >
                     {parsedAnswer.citations.map((citation, idx) => {
                         return (
-                            <span title={createCitationFilepath(citation, ++idx)} key={idx} onClick={() => onCitationClicked(citation, keyIsPressed)} className={styles.citationContainer}>
-                                <div className={styles.citation}>{idx}</div>
+                          <Tooltip content={
+                            // ↓ this is where you form the tooltip content
+                            <div className={styles.citationToolTip}>
+                              {/* <div className={styles.ttHeader}>
+                                {citation.metadata?.title || 'Citation'}
+                              </div>
+                              <div className={styles.ttBody}>
+                                •&nbsp;&nbsp;{citation.metadata?.source || 'Source'}
+                              </div> */}
+                              <ReactMarkdown
+                                className={`${styles.citationPanelContent} ${styles.mobileCitationPanelContent}`}
+                                children={citation.content}
+                                remarkPlugins={[remarkGfm]}
+                                rehypePlugins={[rehypeRaw]}
+                              />
+                            </div>
+                          }
+                          key={idx} relationship="label" positioning={'after-bottom'} withArrow>
+                              <span onClick={() => onCitationClicked(citation, keyIsPressed)} className={styles.citationContainer}>
+                                  <div className={styles.citation}>{idx}</div>
 
-                                {/* ↓ this is the original Citation title generator */}
-                                {/* {createCitationFilepath(citation, idx, true)} */}
+                                  {/* ↓ this is the original Citation title generator */}
+                                  {/* {createCitationFilepath(citation, idx, true)} */}
 
-                                {/* ↓ testing getting other title/source info */}
-                                <div className={styles.citationTitle}>{citation.metadata?.title || 'Citation'}</div>
-                                <div className={styles.citationSource}>•&nbsp;&nbsp;{citation.metadata?.source || 'Source'}</div>
-                            </span>);
+                                  {/* ↓ testing getting other title/source info */}
+                                  <div className={styles.citationTitle}>{citation.metadata?.title || 'Citation'}</div>
+                                  <div className={styles.citationSource}>•&nbsp;&nbsp;{citation.metadata?.source || 'Source'}</div>
+                              </span>
+                          </Tooltip>
+                        );
                     })}
                 </div>
 
