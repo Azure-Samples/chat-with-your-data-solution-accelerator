@@ -1,0 +1,56 @@
+name: Reusable Docker build and push workflow
+
+on:
+  workflow_call:
+    inputs:
+      registry:
+        required: true
+        type: string
+      username:
+        required: true
+        type: string
+      app_name:
+        required: true
+        type: string
+      dockerfile:
+        required: true
+        type: string
+      push:
+        required: true
+        type: boolean
+    secrets:
+      DOCKER_PASSWORD:
+        required: true
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Docker Login
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ inputs.registry }}
+        username: ${{ inputs.username }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Get current date
+      id: date
+      run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+    - name: Build Docker Image and optionally push
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ${{ inputs.dockerfile }}
+        push: ${{ inputs.push }}
+        cache-from: type=registry,ref=${{ inputs.registry }}/${{ inputs.app_name}}:latest
+        tags: |
+          ${{ inputs.registry }}/${{ inputs.app_name}}:latest
+          ${{ inputs.registry }}/${{ inputs.app_name}}:${{ steps.date.outputs.date }}_${{ github.run_number }}
