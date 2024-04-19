@@ -1,0 +1,42 @@
+name: Docker Build without Push
+
+on:
+  pull_request:
+    branches: [main]
+    types:
+    - opened
+    - ready_for_review
+    - reopened
+    - synchronize
+
+
+jobs:
+  docker-build-without-push-frontend:
+    uses: ./.github/workflows/build-docker.yml
+    with:
+      registry: fruoccopublic.azurecr.io
+      username: fruoccopublic
+      app_name: rag-webapp
+      dockerfile: docker/Frontend.Dockerfile
+      push: false
+    secrets: inherit
+
+  docker-build-without-push-backend:
+    uses: ./.github/workflows/build-docker.yml
+    with:
+        registry: fruoccopublic.azurecr.io
+        username: fruoccopublic
+        app_name: rag-backend
+        dockerfile: docker/Backend.Dockerfile
+        push: false
+    secrets: inherit
+
+  docker-build-without-push-admin:
+    uses: ./.github/workflows/build-docker.yml
+    with:
+        registry: fruoccopublic.azurecr.io
+        username: fruoccopublic
+        app_name: rag-backend
+        dockerfile: docker/Admin.Dockerfile
+        push: false
+    secrets: inherit
