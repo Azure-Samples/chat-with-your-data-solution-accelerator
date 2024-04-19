@@ -27,7 +27,7 @@
     border-right: 1px solid #919CB0;
     padding-right: 17px;
     height: 24px;
-    width: 86px;
+    width: 110px;
 }
 
 .headerTitle {
@@ -46,6 +46,7 @@
     /* height: 57px;
     width: 100px; */
     /* margin-left: 36px; */
+    width: 100%;;
 }
 
 .mainNavLinks {
