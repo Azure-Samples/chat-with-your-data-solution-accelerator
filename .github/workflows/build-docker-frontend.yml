@@ -1,14 +1,12 @@
 name: WebApp Docker Image
 
 on:
-  workflow_run:
-    workflows: [Tests]
-    types: [completed]
-    branches: [main]
+  push:
+    branches:
+      - docker-build-github-action
 
 jobs:
   docker-build-frontend:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -36,5 +34,5 @@ jobs:
         push: true
         cache-from: type=registry,ref=fruoccopublic.azurecr.io/rag-webapp:latest
         tags: |
-          rag-webapp:latest
-          rag-webapp:${{ steps.date.outputs.date }}_${{ github.run_number }}
+          fruoccopublic.azurecr.io/rag-webapp:latest
+          fruoccopublic.azurecr.io/rag-webapp:${{ steps.date.outputs.date }}_${{ github.run_number }}
