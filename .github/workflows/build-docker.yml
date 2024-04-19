@@ -15,6 +15,9 @@ on:
       dockerfile:
         required: true
         type: string
+      push:
+        required: true
+        type: boolean
     secrets:
       DOCKER_PASSWORD:
         required: true
@@ -46,7 +49,7 @@ jobs:
       with:
         context: .
         file: ${{ inputs.dockerfile }}
-        push: true
+        push: ${{ inputs.push }}
         cache-from: type=registry,ref=${{ inputs.registry }}/${{ inputs.app_name}}:latest
         tags: |
           ${{ inputs.registry }}/${{ inputs.app_name}}:latest

@@ -15,4 +15,5 @@ jobs:
       username: fruoccopublic
       app_name: rag-webapp
       dockerfile: docker/Frontend.Dockerfile
+      push: true
     secrets: inherit
