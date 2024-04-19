@@ -227,7 +227,11 @@ const Chat = () => {
       setIsCitationPanelOpen(true);
     } else {
       // console.log(citation?.metadata?.original_url);
-      window.open(citation?.metadata?.original_url, '_blank');
+      if (citation?.metadata?.original_url) {
+        window.open(citation.metadata.original_url, '_blank');
+      } else {
+        alert('No source URL found');
+      }
     }
   };
 
