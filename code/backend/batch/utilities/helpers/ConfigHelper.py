@@ -102,9 +102,9 @@ class ConfigHelper:
 
         if config["prompts"].get("answering_user_prompt") is None:
             if prompt_modified:
-                config["prompts"]["answering_user_prompt"] = config["prompts"][
+                config["prompts"]["answering_user_prompt"] = config["prompts"].get(
                     "answering_prompt"
-                ]
+                )
             else:
                 config["prompts"]["answering_user_prompt"] = default_config["prompts"][
                     "answering_user_prompt"
