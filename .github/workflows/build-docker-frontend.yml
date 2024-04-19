@@ -36,5 +36,5 @@ jobs:
         push: true
         cache-from: type=registry,ref=fruoccopublic.azurecr.io/rag-webapp:latest
         tags: |
-          rag-webapp:latest
-          rag-webapp:${{ steps.date.outputs.date }}_${{ github.run_number }}
+          fruoccopublic.azurecr.io/rag-webapp:latest
+          fruoccopublic.azurecr.io/rag-webapp:${{ steps.date.outputs.date }}_${{ github.run_number }}
