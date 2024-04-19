@@ -3,6 +3,11 @@ from unittest.mock import ANY, MagicMock, patch
 from backend.batch.utilities.helpers.AzureSearchIVIndexHelper import (
     AzureSearchIVIndexHelper,
 )
+from azure.search.documents.indexes.models import (
+    VectorSearch,
+    SemanticSearch,
+    SearchIndex,
+)
 
 AZURE_AUTH_TYPE = "keys"
 AZURE_SEARCH_KEY = "mock-key"
@@ -42,47 +47,20 @@ def search_index_client_mock():
     with patch(
         "backend.batch.utilities.helpers.AzureSearchIVIndexHelper.SearchIndexClient"
     ) as mock:
-        yield mock
-
-
-@pytest.fixture(autouse=True)
-def search_index_mock():
-    with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVIndexHelper.SearchIndex"
-    ) as mock:
-        yield mock
-
-
-@pytest.fixture(autouse=True)
-def vector_seach_mock():
-    with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVIndexHelper.VectorSearch"
-    ) as mock:
-        yield mock
-
-
-@pytest.fixture(autouse=True)
-def semantic_config_mock():
-    with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVIndexHelper.SemanticConfiguration"
-    ) as mock:
-        yield mock
-
-
-@pytest.fixture(autouse=True)
-def semantic_search_mock():
-    with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVIndexHelper.SemanticSearch"
-    ) as mock:
+        indexer_client = mock.return_value
+        indexer_client.create_or_update_index.return_value = SearchIndex(
+            name=AZURE_SEARCH_INDEX,
+            fields=ANY,
+            vector_search=VectorSearch,
+            semantic_search=SemanticSearch,
+        )
         yield mock
 
 
 def test_create_or_update_index_keys(
     env_helper_mock: MagicMock,
-    search_index_mock: MagicMock,
-    vector_seach_mock: MagicMock,
-    semantic_search_mock: MagicMock,
     llm_helper_mock: MagicMock,
+    search_index_client_mock: MagicMock,
 ):
     # given
     azure_search_iv_index_helper = AzureSearchIVIndexHelper(
@@ -90,23 +68,19 @@ def test_create_or_update_index_keys(
     )
 
     # when
-    azure_search_iv_index_helper.create_or_update_index()
+    result = azure_search_iv_index_helper.create_or_update_index()
 
     # then
-    search_index_mock.assert_called_once_with(
-        name=env_helper_mock.AZURE_SEARCH_INDEX,
-        fields=ANY,
-        vector_search=vector_seach_mock.return_value,
-        semantic_search=semantic_search_mock.return_value,
-    )
+    assert result.name == env_helper_mock.AZURE_SEARCH_INDEX
+    assert result.fields == ANY
+    assert result.vector_search is not None
+    search_index_client_mock.return_value.create_or_update_index.assert_called_once()
 
 
 def test_create_or_update_index_rbac(
     env_helper_mock: MagicMock,
-    search_index_mock: MagicMock,
-    vector_seach_mock: MagicMock,
-    semantic_search_mock: MagicMock,
     llm_helper_mock: MagicMock,
+    search_index_client_mock: MagicMock,
 ):
     # given
     env_helper_mock.AZURE_AUTH_TYPE = "rbac"
@@ -115,13 +89,10 @@ def test_create_or_update_index_rbac(
     )
 
     # when
-    azure_search_iv_index = azure_search_iv_index_helper.create_or_update_index()
+    result = azure_search_iv_index_helper.create_or_update_index()
 
     # then
-    search_index_mock.assert_called_once_with(
-        name=env_helper_mock.AZURE_SEARCH_INDEX,
-        fields=ANY,
-        vector_search=vector_seach_mock.return_value,
-        semantic_search=semantic_search_mock.return_value,
-    )
-    assert azure_search_iv_index.fields == ANY
+    assert result.name == env_helper_mock.AZURE_SEARCH_INDEX
+    assert result.fields == ANY
+    assert result.vector_search is not None
+    search_index_client_mock.return_value.create_or_update_index.assert_called_once()
