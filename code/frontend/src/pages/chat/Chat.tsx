@@ -1,9 +1,9 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, MouseEvent } from "react";
 import { Stack } from "@fluentui/react";
 import {
   BroomRegular,
   DismissRegular,
-  SquareRegular,
+  RecordStopFilled,
 } from "@fluentui/react-icons";
 import {
   SpeechRecognizer,
@@ -25,9 +25,14 @@ import {
   Citation,
   ToolMessageContent,
   ChatResponse,
+  CitationMetadata,
 } from "../../api";
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
+import { Sidebar } from "../../components/Sidebar";
+import { Avatar, Spinner } from "@fluentui/react-components";
+import moment from "moment";
+
 
 const Chat = () => {
   const lastQuestionRef = useRef<string>("");
@@ -42,7 +47,7 @@ const Chat = () => {
         title: string,
         filepath: string,
         url: string,
-        metadata: string
+        metadata: string,
       ]
     >();
   const [isCitationPanelOpen, setIsCitationPanelOpen] =
@@ -107,7 +112,7 @@ const Chat = () => {
                 ]);
               }
               runningText = "";
-            } catch { }
+            } catch {}
           });
         }
         setAnswers([...answers, userMessage, ...result.choices[0].messages]);
@@ -136,7 +141,7 @@ const Chat = () => {
       setIsRecognizing(true);
 
       recognizerRef.current = await multiLingualSpeechRecognizer(); // Store the recognizer in the ref
-      
+
       recognizerRef.current.recognized = (s, e) => {
         if (e.result.reason === ResultReason.RecognizedSpeech) {
           const recognized = e.result.text;
@@ -178,6 +183,11 @@ const Chat = () => {
     }
   };
 
+  // moved clear chat into child component per design, triggered here
+  const onClearChat = () => {
+    clearChat();
+  };
+
   const clearChat = () => {
     lastQuestionRef.current = "";
     setActiveCitation(undefined);
@@ -196,7 +206,12 @@ const Chat = () => {
     [showLoadingMessage]
   );
 
-  const onShowCitation = (citation: Citation) => {
+  const onShowCitation = (citation: Citation, isKeyPressed: boolean) => {
+    // console.log('citation: ', citation);
+    // console.log('moment: ', moment().calendar());
+
+    // const metaDataObj = citation.metadata as unknown as CitationMetadata;
+
     setActiveCitation([
       citation.content,
       citation.id,
@@ -205,7 +220,24 @@ const Chat = () => {
       "",
       "",
     ]);
-    setIsCitationPanelOpen(true);
+
+    // console.log('isKeyPressed: ', isKeyPressed);
+
+    if (isKeyPressed) {
+      setIsCitationPanelOpen(true);
+    } else {
+      // console.log(citation?.metadata?.original_url);
+      if (citation?.metadata?.original_url) {
+        window.open(citation.metadata.original_url, '_blank');
+      } else {
+        alert('No source URL found');
+      }
+    }
+  };
+
+  const onCitationHover = (e: MouseEvent, citation: Citation) => {
+    // console.log('HOVERED!!!!!!!!!');
+    // console.log(e, citation);
   };
 
   const parseCitationFromMessage = (message: ChatMessage) => {
@@ -222,70 +254,84 @@ const Chat = () => {
 
   return (
     <div className={styles.container}>
+      {/* <Sidebar /> */}
       <Stack horizontal className={styles.chatRoot}>
-        <div className={`${styles.chatContainer} ${styles.MobileChatContainer}`}>
+        <div
+          className={`${styles.chatContainer} ${styles.MobileChatContainer}`}
+        >
           {!lastQuestionRef.current ? (
             <Stack className={styles.chatEmptyState}>
-              <img src={Azure} className={styles.chatIcon} aria-hidden="true" />
-              <h1 className={styles.chatEmptyStateTitle}>Start chatting</h1>
-              <h2 className={styles.chatEmptyStateSubtitle}>
-                This chatbot is configured to answer your questions
-              </h2>
+              {/* <img src="../../src/assets/logo_blue.webp" className={styles.chatIcon} aria-hidden="true" /> */}
+              <h6 className={styles.chatHomeText03}>Let's explore together</h6>
+              <h5 className={styles.chatHomeText02}>Let's explore together</h5>
+              <h3 className={styles.chatHomeText01}>Let's explore together</h3>
             </Stack>
           ) : (
             <div
               className={styles.chatMessageStream}
               style={{ marginBottom: isLoading ? "40px" : "0px" }}
             >
-              {answers.map((answer, index) => (
-                <>
-                  {answer.role === "user" ? (
+              <div className={styles.chatMessageStreamInner}>
+                {answers.map((answer, index) => (
+                  <div key={index}>
+                    {answer.role === "user" ? (
+                      <div className={`${styles.chatMessageUser}`} key={index}>
+                        <Avatar image={{ src: '../../eddie-hoover-user-avatar.png'}} aria-label="Guest" className={styles.chatAvatar}/>
+                        <div className={styles.chatMessageUserMessage}>
+                          {answer.content}
+                        </div>
+                        <div className={` ${styles.timeStamp}`}>
+                          <div>{moment().calendar()}</div>
+                        </div>
+                      </div>
+                    ) : answer.role === "assistant" ||
+                      answer.role === "error" ? (
+                      <div className={`${styles.chatMessageGpt} ${styles.answerShowing}`} key={index}>
+                        <Avatar image={{ src: '../../pronto-avatar-anim-close.gif'}} aria-label="Guest" className={styles.chatAvatar}/>
+                        <Answer
+                          answer={{
+                            answer:
+                              answer.role === "assistant"
+                                ? answer.content
+                                : "Sorry, an error occurred. Try refreshing the conversation or waiting a few minutes. If the issue persists, contact your system administrator. Error: " +
+                                  answer.content,
+                            citations:
+                              answer.role === "assistant"
+                                ? parseCitationFromMessage(answers[index - 1])
+                                : [],
+                          }}
+                          onCitationClicked={(c, isKeyPressed) => onShowCitation(c, isKeyPressed)}
+                          // onCitationHover={(e, c) => onCitationHover(e, c)}
+                          index={index}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+                {showLoadingMessage && (
+                  <>
                     <div className={styles.chatMessageUser}>
+                      <Avatar image={{ src: '../../eddie-hoover-user-avatar.png'}} aria-label="Guest" className={styles.chatAvatar}/>
                       <div className={styles.chatMessageUserMessage}>
-                        {answer.content}
+                        {lastQuestionRef.current}
                       </div>
                     </div>
-                  ) : answer.role === "assistant" || answer.role === "error" ? (
                     <div className={styles.chatMessageGpt}>
+                      <Avatar image={{ src: '../../pronto-avatar-anim-close.gif'}} aria-label="Guest" className={styles.chatAvatar}/>
                       <Answer
                         answer={{
-                          answer:
-                            answer.role === "assistant"
-                              ? answer.content
-                              : "Sorry, an error occurred. Try refreshing the conversation or waiting a few minutes. If the issue persists, contact your system administrator. Error: " +
-                              answer.content,
-                          citations:
-                            answer.role === "assistant"
-                              ? parseCitationFromMessage(answers[index - 1])
-                              : [],
+                          answer: "Generating Answer... AI-generated content may be incorrect",
+                          citations: [],
                         }}
-                        onCitationClicked={(c) => onShowCitation(c)}
-                        index={index}
+                        onCitationClicked={() => null}
+                        index={0}
                       />
+                      <Spinner size="extra-small" className={styles.thinkingSpinner} labelPosition="after" label="Thinking..." />
                     </div>
-                  ) : null}
-                </>
-              ))}
-              {showLoadingMessage && (
-                <>
-                  <div className={styles.chatMessageUser}>
-                    <div className={styles.chatMessageUserMessage}>
-                      {lastQuestionRef.current}
-                    </div>
-                  </div>
-                  <div className={styles.chatMessageGpt}>
-                    <Answer
-                      answer={{
-                        answer: "Generating answer...",
-                        citations: [],
-                      }}
-                      onCitationClicked={() => null}
-                      index={0}
-                    />
-                  </div>
-                </>
-              )}
-              <div ref={chatMessageStreamEnd} />
+                  </>
+                )}
+                <div ref={chatMessageStreamEnd} />
+              </div>
             </div>
           )}
           <div>
@@ -293,7 +339,7 @@ const Chat = () => {
             {isListening && <p>Listening...</p>}{" "}
           </div>
 
-          <Stack horizontal className={styles.chatInput}>
+          <Stack horizontal className={`${styles.chatInput} ${!lastQuestionRef.current ? '' : styles.chatThreadActive}`}>
             {isLoading && (
               <Stack
                 horizontal
@@ -306,16 +352,16 @@ const Chat = () => {
                   e.key === "Enter" || e.key === " " ? stopGenerating() : null
                 }
               >
-                <SquareRegular
+                <RecordStopFilled
                   className={styles.stopGeneratingIcon}
                   aria-hidden="true"
                 />
                 <span className={styles.stopGeneratingText} aria-hidden="true">
-                  Stop generating
+                  Stop Pronto
                 </span>
               </Stack>
             )}
-            <BroomRegular
+            {/* <BroomRegular
               className={`${styles.clearChatBroom} ${styles.mobileclearChatBroom}`}
               style={{
                 background:
@@ -331,10 +377,10 @@ const Chat = () => {
               aria-label="Clear session"
               role="button"
               tabIndex={0}
-            />
+            /> */}
             <QuestionInput
               clearOnSend
-              placeholder="Type a new question..."
+              placeholder="Ask anything..."
               disabled={isLoading}
               onSend={(question) => makeApiRequest(question)}
               recognizedText={recognizedText}
@@ -343,11 +389,15 @@ const Chat = () => {
               isListening={isListening}
               isRecognizing={isRecognizing}
               setRecognizedText={setRecognizedText}
+              onClearChat={onClearChat}
+              isThreadActive={!(!lastQuestionRef.current)}
             />
           </Stack>
         </div>
         {answers.length > 0 && isCitationPanelOpen && activeCitation && (
-          <Stack.Item className={`${styles.citationPanel} ${styles.mobileStyles}`}>
+          <Stack.Item
+            className={`${styles.citationPanel} ${styles.mobileStyles}`}
+          >
             <Stack
               horizontal
               className={styles.citationPanelHeaderContainer}
@@ -360,7 +410,11 @@ const Chat = () => {
                 onClick={() => setIsCitationPanelOpen(false)}
               />
             </Stack>
-            <h5 className={`${styles.citationPanelTitle} ${styles.mobileCitationPanelTitle}`}>{activeCitation[2]}</h5>
+            <h5
+              className={`${styles.citationPanelTitle} ${styles.mobileCitationPanelTitle}`}
+            >
+              {activeCitation[2]}
+            </h5>
             <ReactMarkdown
               className={`${styles.citationPanelContent} ${styles.mobileCitationPanelContent}`}
               children={activeCitation[0]}
@@ -370,6 +424,13 @@ const Chat = () => {
           </Stack.Item>
         )}
       </Stack>
+      <div className={`${styles.bgPatternImgContainer}`}>
+        <img
+          src="../../Airbus_CarbonGrid.png"
+          className={styles.bgPatternImg}
+          aria-hidden="true"
+        />
+      </div>
     </div>
   );
 };

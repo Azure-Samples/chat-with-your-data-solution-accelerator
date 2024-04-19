@@ -37,6 +37,10 @@ jobs:
         env:
           AZURE_ENV_NAME: ${{ github.run_id }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         with:
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator

@@ -4,10 +4,19 @@
     align-items: flex-start;
     padding: 8.1285px;
     gap: 5.42px;
-    background: #FFFFFF;
+    /* background: #FFFFFF; */
+    background: #E0E3E9;
     box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.14), 0px 0px 2px rgba(0, 0, 0, 0.12);
-    border-radius: 5.419px;
+    /* border-radius: 5.419px; */
+    border-radius: 3px 3px 3px 0px;
     max-width: 100%;
+}
+
+.sourcesTitle {
+  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  margin-left: 8px;
 }
 
 .answerText {
@@ -21,11 +30,19 @@
     order: 1;
     align-self: stretch;
     flex-grow: 0;
-    margin: 11px;
+    margin: 8px;
     white-space: normal;
     word-wrap: break-word;
     max-width: 800px;
     overflow-x: auto;
+}
+
+.answerText p {
+  margin: 0px;
+}
+
+.answerProntoResponse {
+  margin-top: 8px;
 }
 
 .answerFooter {
@@ -33,6 +50,16 @@
     flex-direction: column;
     width: 100%;
     box-sizing: border-box;
+}
+
+.answerNewFooter {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  gap: 8px;
+  font-size: 12px;
+  color: #63728A;
+  margin-top: 6px;
 }
 
 .answerDisclaimerContainer {
@@ -59,26 +86,30 @@
 }
 
 .citationContainer {
-    margin-left: 10px;
+    margin-left: 8px;
     font-family: "Segoe UI";
     font-style: normal;
     font-weight: 600;
     font-size: 12px;
     line-height: 16px;
     max-width: 100%;
-    color: #115EA3;
+    /* color: #115EA3; */
+    color: #14171D;
     display: flex;
     flex-direction: row;
     align-items: center;
-    padding: 4px 6px;
-    gap: 4px;
+    padding: 5px 16px 5px 6px;
+    gap: 8px;
     border: 1px solid #D1D1D1;
-    border-radius: 4px;
+    border-radius: 24px;
+    background-color: #EFF1F4;
+    transition: background-color 0.5s;
 }
 
 .citationContainer:hover {
-    text-decoration: underline;
+    /* text-decoration: underline; */
     cursor: pointer;
+    background-color: #CED5DD;
 }
 
 .citation {
@@ -88,26 +119,49 @@
     justify-content: center;
     align-items: center;
     padding: 0px;
-    width: 14px;
-    height: 14px;
-    border: 1px solid #E0E0E0;
-    border-radius: 4px;
+    width: 16px;
+    height: 16px;
+    /* border: 1px solid #E0E0E0; */
+    border-radius: 28px;
     flex: none;
     flex-grow: 0;
     z-index: 2;
-    font-family: "Segoe UI";
+    /* font-family: "Segoe UI"; */
     font-style: normal;
-    font-weight: 600;
-    font-size: 10px;
+    /* font-weight: 600; */
+    font-size: 12px;
     line-height: 14px;
     text-align: center;
-    color: #424242;
+    color: #505D74;
     cursor: pointer;
+    background-color: #E0E3E9;
 }
 
 .citation:hover {
-    text-decoration: underline;
+    /* text-decoration: underline; */
     cursor: pointer;
+}
+
+.citationTitle {
+  width: 45%;
+  max-width: 300px;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+  overflow: hidden;
+  color: #14171D;
+  font-weight: 400;
+  font-size: 14px;
+}
+
+.citationSource {
+  width: 35%;
+  max-width: 250px;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+  overflow: hidden;
+  color: #505D74;
+  font-weight: 400;
+  font-size: 14px;
 }
 
 .accordionIcon {
@@ -180,9 +234,9 @@ sup {
 
 @media (max-width: 500px) {
     .answerFooter {
-      flex-direction: column; 
+      flex-direction: column;
     }
-  
+
     .citationContainer {
         width: 100%;
         overflow-y: auto;

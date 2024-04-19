@@ -4,6 +4,7 @@
     "version": "0.0.0",
     "type": "module",
     "scripts": {
+        "start": "vite --host",
         "dev": "tsc && vite",
         "build": "tsc && vite build",
         "watch": "tsc && vite build --watch",
@@ -12,6 +13,7 @@
     "dependencies": {
         "@babel/traverse": "^7.24.0",
         "@fluentui/react": "^8.117.5",
+        "@fluentui/react-components": "^9.47.5",
         "@fluentui/react-icons": "^2.0.235",
         "@fortawesome/fontawesome-svg-core": "^6.5.2",
         "@fortawesome/free-solid-svg-icons": "^6.5.2",
@@ -19,6 +21,7 @@
         "lodash": "^4.17.21",
         "lodash-es": "^4.17.21",
         "microsoft-cognitiveservices-speech-sdk": "^1.36.0",
+        "moment": "^2.30.1",
         "postcss": "^8.4.38",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
