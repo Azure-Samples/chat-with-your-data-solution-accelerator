@@ -1,15 +1,18 @@
 name: WebApp Docker Image
 
 on:
-  push:
-    branches:
-      - docker-build-github-action
+  workflow_run:
+    workflows: [Tests]
+    types: [completed]
+    branches: [main]
 
 jobs:
   docker-build-frontend:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     uses: ./.github/workflows/build-docker.yml
     with:
       registry: fruoccopublic.azurecr.io
       username: fruoccopublic
       app_name: rag-webapp
+      dockerfile: docker/Frontend.Dockerfile
     secrets: inherit

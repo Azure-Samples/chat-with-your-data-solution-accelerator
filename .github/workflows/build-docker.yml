@@ -12,6 +12,9 @@ on:
       app_name:
         required: true
         type: string
+      dockerfile:
+        required: true
+        type: string
     secrets:
       DOCKER_PASSWORD:
         required: true
@@ -38,11 +41,11 @@ jobs:
       id: date
       run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
-    - name: Build and push the Admin Docker image
+    - name: Build and push the Docker image
       uses: docker/build-push-action@v5
       with:
         context: .
-        file: docker/Frontend.Dockerfile
+        file: ${{ inputs.dockerfile }}
         push: true
         cache-from: type=registry,ref=${{ inputs.registry }}/${{ inputs.app_name}}:latest
         tags: |
