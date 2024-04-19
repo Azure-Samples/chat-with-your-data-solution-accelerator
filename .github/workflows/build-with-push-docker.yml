@@ -1,0 +1,41 @@
+name: Docker Build With Push
+
+on:
+  workflow_run:
+    workflows: [Tests]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  docker-build-admin:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    uses: ./.github/workflows/build-docker.yml
+    with:
+      registry: fruoccopublic.azurecr.io
+      username: fruoccopublic
+      app_name: rag-adminwebapp
+      dockerfile: docker/Admin.Dockerfile
+      push: true
+    secrets: inherit
+
+  docker-build-backend:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    uses: ./.github/workflows/build-docker.yml
+    with:
+      registry: fruoccopublic.azurecr.io
+      username: fruoccopublic
+      app_name: rag-backend
+      dockerfile: docker/Backend.Dockerfile
+      push: true
+    secrets: inherit
+
+  docker-build-frontend:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    uses: ./.github/workflows/build-docker.yml
+    with:
+      registry: fruoccopublic.azurecr.io
+      username: fruoccopublic
+      app_name: rag-webapp
+      dockerfile: docker/Frontend.Dockerfile
+      push: true
+    secrets: inherit
