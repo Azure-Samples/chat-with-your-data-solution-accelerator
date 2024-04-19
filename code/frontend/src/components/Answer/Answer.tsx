@@ -110,7 +110,9 @@ export const Answer = ({
                         return (
                             <span title={createCitationFilepath(citation, ++idx)} key={idx} onClick={() => onCitationClicked(citation)} className={styles.citationContainer}>
                                 <div className={styles.citation}>{idx}</div>
-                                {createCitationFilepath(citation, idx, true)}
+                                {/* {createCitationFilepath(citation, idx, true)} */}
+                                <div className={styles.citationTitle}>{citation.metadata?.title || 'Citation'}</div>
+                                <div className={styles.citationSource}>•&nbsp;&nbsp;{citation.metadata?.source || 'Source'}</div>
                             </span>);
                     })}
                 </div>

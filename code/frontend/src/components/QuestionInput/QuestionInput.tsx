@@ -23,6 +23,7 @@ interface Props {
   recognizedText: string;
   isListening: boolean;
   isRecognizing: boolean;
+  isThreadActive: boolean;
   setRecognizedText: (text: string) => void;
 }
 
@@ -37,6 +38,7 @@ export const QuestionInput = ({
   recognizedText,
   isListening,
   isRecognizing,
+  isThreadActive,
   setRecognizedText,
 }: Props) => {
   const [question, setQuestion] = useState<string>("");
@@ -90,7 +92,7 @@ export const QuestionInput = ({
   const sendQuestionDisabled = disabled || !question.trim();
 
   return (
-    <Stack horizontal className={styles.questionInputContainer}>
+    <Stack horizontal className={`${styles.questionInputContainer} ${!isThreadActive ? '' : styles.chatThreadActive}`}>
       <div className={styles.topSearchInput}>
         {/* Text Input Field */}
         <TextField

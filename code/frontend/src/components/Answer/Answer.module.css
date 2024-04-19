@@ -140,6 +140,26 @@
     cursor: pointer;
 }
 
+.citationTitle {
+  max-width: 45%;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+  overflow: hidden;
+  color: #14171D;
+  font-weight: 400;
+  font-size: 14px;
+}
+
+.citationSource {
+  max-width: 35%;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+  overflow: hidden;
+  color: #505D74;
+  font-weight: 400;
+  font-size: 14px;
+}
+
 .accordionIcon {
     display: inline-flex;
     flex-direction: row;

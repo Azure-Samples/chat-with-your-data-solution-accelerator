@@ -318,7 +318,7 @@ const Chat = () => {
             {isListening && <p>Listening...</p>}{" "}
           </div>
 
-          <Stack horizontal className={styles.chatInput}>
+          <Stack horizontal className={`${styles.chatInput} ${!lastQuestionRef.current ? '' : styles.chatThreadActive}`}>
             {isLoading && (
               <Stack
                 horizontal
@@ -369,6 +369,7 @@ const Chat = () => {
               isRecognizing={isRecognizing}
               setRecognizedText={setRecognizedText}
               onClearChat={onClearChat}
+              isThreadActive={!(!lastQuestionRef.current)}
             />
           </Stack>
         </div>

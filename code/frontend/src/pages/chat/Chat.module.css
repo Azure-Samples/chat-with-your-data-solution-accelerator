@@ -191,6 +191,12 @@
     margin-bottom: 60px;
     margin-top: 8px;
     z-index: 10;
+    transition: margin 0.5s ease-out;
+}
+
+.chatThreadActive {
+  margin-bottom: 40px;
+  transition: margin 0.65s ease-in-out;
 }
 
 .clearChatBroom {

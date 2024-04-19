@@ -16,6 +16,11 @@
   border: solid 12px #fff;
   display: flex;
   flex-direction: column;
+  transition: all 1.5s;
+}
+
+.chatThreadActive {
+  border-radius: 21px 21px 0px 0px;
 }
 
 .topSearchInput {
