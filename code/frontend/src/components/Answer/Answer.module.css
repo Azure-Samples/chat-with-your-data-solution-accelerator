@@ -143,7 +143,6 @@
 }
 
 .citationToolTip {
-  /* color: red !important; */
   width: 500px;
   max-height: 40vh;
   overflow-wrap: break-word;
