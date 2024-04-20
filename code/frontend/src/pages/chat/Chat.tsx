@@ -33,7 +33,6 @@ import { Sidebar } from "../../components/Sidebar";
 import { Avatar, Spinner } from "@fluentui/react-components";
 import moment from "moment";
 
-
 const Chat = () => {
   const lastQuestionRef = useRef<string>("");
   const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
@@ -60,6 +59,9 @@ const Chat = () => {
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognizerRef = useRef<SpeechRecognizer | null>(null);
+
+  // const [controlIsPressed, setControlIsPressed] = useState(false);
+
   const makeApiRequest = async (question: string) => {
     lastQuestionRef.current = question;
 
@@ -201,12 +203,41 @@ const Chat = () => {
     setIsLoading(false);
   };
 
+  /* const detectKeyDown = (e: KeyboardEvent) => {
+    // console.log("Key clicked: ", e.key);
+
+    if (e.key === "Control") {
+      setControlIsPressed(true);
+      // console.log("Control clicked");
+    }
+  };
+
+  const detectKeyUp = (e: KeyboardEvent) => {
+    // console.log("Key clicked: ", e.key);
+
+    if (e.key === "Control") {
+      setControlIsPressed(false);
+      // console.log("Control un-clicked");
+    }
+  }; */
+
   useEffect(
     () => chatMessageStreamEnd.current?.scrollIntoView({ behavior: "smooth" }),
     [showLoadingMessage]
   );
 
-  const onShowCitation = (citation: Citation, isKeyPressed: boolean) => {
+  /* useEffect(() => {
+    document.addEventListener("keydown", detectKeyDown, true);
+    document.addEventListener("keyup", detectKeyUp, true);
+
+    return () => {
+      document.removeEventListener("keydown", detectKeyDown, true);
+      document.removeEventListener("keyup", detectKeyUp, true);
+    };
+  }, []); */
+
+  // const onShowCitation = (citation: Citation, isKeyPressed: boolean) => {
+  const onShowCitation = (citation: Citation) => {
     // console.log('citation: ', citation);
     // console.log('moment: ', moment().calendar());
 
@@ -221,24 +252,36 @@ const Chat = () => {
       "",
     ]);
 
+    if (citation?.metadata?.original_url) {
+      window.open(citation.metadata.original_url, "_blank");
+    } else {
+      alert("No source URL found");
+    }
+
     // console.log('isKeyPressed: ', isKeyPressed);
 
-    if (isKeyPressed) {
+    /* if (isKeyPressed) {
       setIsCitationPanelOpen(true);
     } else {
       // console.log(citation?.metadata?.original_url);
       if (citation?.metadata?.original_url) {
-        window.open(citation.metadata.original_url, '_blank');
+        window.open(citation.metadata.original_url, "_blank");
       } else {
-        alert('No source URL found');
+        alert("No source URL found");
       }
-    }
+    } */
   };
 
-  const onCitationHover = (e: MouseEvent, citation: Citation) => {
+  /* const onCitationHover = (
+    e: MouseEvent,
+    citation: Citation,
+    isKeyPressed: boolean
+  ) => {
     // console.log('HOVERED!!!!!!!!!');
-    // console.log(e, citation);
-  };
+    // console.log(e, citation, isKeyPressed);
+    // console.log(isKeyPressed);
+    console.log("should trigger to show tooltip");
+  }; */
 
   const parseCitationFromMessage = (message: ChatMessage) => {
     if (message.role === "tool") {
@@ -254,7 +297,6 @@ const Chat = () => {
 
   return (
     <div className={styles.container}>
-
       {/* <Sidebar /> */}
 
       <Stack horizontal className={styles.chatRoot}>
@@ -277,7 +319,11 @@ const Chat = () => {
                   <div key={index}>
                     {answer.role === "user" ? (
                       <div className={`${styles.chatMessageUser}`} key={index}>
-                        <Avatar image={{ src: '../../eddie-hoover-user-avatar.png'}} aria-label="Guest" className={styles.chatAvatar}/>
+                        <Avatar
+                          image={{ src: "../../eddie-hoover-user-avatar.png" }}
+                          aria-label="Guest"
+                          className={styles.chatAvatar}
+                        />
                         <div className={styles.chatMessageUserMessage}>
                           {answer.content}
                         </div>
@@ -288,8 +334,15 @@ const Chat = () => {
                       </div>
                     ) : answer.role === "assistant" ||
                       answer.role === "error" ? (
-                      <div className={`${styles.chatMessageGpt} ${styles.answerShowing}`} key={index}>
-                        <Avatar image={{ src: '../../pronto-avatar-anim-close.gif'}} aria-label="Guest" className={styles.chatAvatar}/>
+                      <div
+                        className={`${styles.chatMessageGpt} ${styles.answerShowing}`}
+                        key={index}
+                      >
+                        <Avatar
+                          image={{ src: "../../pronto-avatar-anim-close.gif" }}
+                          aria-label="Guest"
+                          className={styles.chatAvatar}
+                        />
                         <Answer
                           answer={{
                             answer:
@@ -302,8 +355,12 @@ const Chat = () => {
                                 ? parseCitationFromMessage(answers[index - 1])
                                 : [],
                           }}
-                          onCitationClicked={(c, isKeyPressed) => onShowCitation(c, isKeyPressed)}
-                          // onCitationHover={(e, c) => onCitationHover(e, c)}
+                          // onCitationClicked={(c, isKeyPressed) =>
+                          onCitationClicked={(c) =>
+                            // onShowCitation(c, isKeyPressed)
+                            onShowCitation(c)
+                          }
+                          // onCitationHover={(e, c, k) => onCitationHover(e, c, k)}
                           index={index}
                         />
                       </div>
@@ -313,22 +370,36 @@ const Chat = () => {
                 {showLoadingMessage && (
                   <>
                     <div className={styles.chatMessageUser}>
-                      <Avatar image={{ src: '../../eddie-hoover-user-avatar.png'}} aria-label="Guest" className={styles.chatAvatar}/>
+                      <Avatar
+                        image={{ src: "../../eddie-hoover-user-avatar.png" }}
+                        aria-label="Guest"
+                        className={styles.chatAvatar}
+                      />
                       <div className={styles.chatMessageUserMessage}>
                         {lastQuestionRef.current}
                       </div>
                     </div>
                     <div className={styles.chatMessageGpt}>
-                      <Avatar image={{ src: '../../pronto-avatar-anim-close.gif'}} aria-label="Guest" className={styles.chatAvatar}/>
+                      <Avatar
+                        image={{ src: "../../pronto-avatar-anim-close.gif" }}
+                        aria-label="Guest"
+                        className={styles.chatAvatar}
+                      />
                       <Answer
                         answer={{
-                          answer: "Generating Answer... AI-generated content may be incorrect",
+                          answer:
+                            "Generating Answer... AI-generated content may be incorrect",
                           citations: [],
                         }}
                         onCitationClicked={() => null}
                         index={0}
                       />
-                      <Spinner size="extra-small" className={styles.thinkingSpinner} labelPosition="after" label="Thinking..." />
+                      <Spinner
+                        size="extra-small"
+                        className={styles.thinkingSpinner}
+                        labelPosition="after"
+                        label="Thinking..."
+                      />
                     </div>
                   </>
                 )}
@@ -341,7 +412,10 @@ const Chat = () => {
             {isListening && <p>Listening...</p>}{" "}
           </div>
 
-          <Stack horizontal className={`${styles.chatInput} ${!lastQuestionRef.current ? '' : styles.chatThreadActive}`}>
+          <Stack
+            horizontal
+            className={`${styles.chatInput} ${!lastQuestionRef.current ? "" : styles.chatThreadActive}`}
+          >
             {isLoading && (
               <Stack
                 horizontal
@@ -376,9 +450,8 @@ const Chat = () => {
               isRecognizing={isRecognizing}
               setRecognizedText={setRecognizedText}
               onClearChat={onClearChat}
-              isThreadActive={!(!lastQuestionRef.current)}
+              isThreadActive={!!lastQuestionRef.current}
             />
-
           </Stack>
         </div>
         {answers.length > 0 && isCitationPanelOpen && activeCitation && (

@@ -143,7 +143,6 @@
 }
 
 .citationToolTip {
-  /* width: 500px !important; */
   max-height: 60vh !important;
   overflow-wrap: break-word;
   min-width: fit-content !important;
@@ -254,3 +253,8 @@ sup {
         overflow-y: auto;
     }
   }
+
+
+.hide {
+  display: none !important;
+}
