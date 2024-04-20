@@ -143,11 +143,15 @@
 }
 
 .citationToolTip {
-  width: 500px;
-  max-height: 40vh;
+  /* width: 500px !important; */
+  max-height: 60vh !important;
   overflow-wrap: break-word;
-  width: 100%;
+  min-width: fit-content !important;
   overflow: auto;
+}
+
+.citationToolTipInner {
+  width: 24vw !important;
 }
 
 .citationTitle {

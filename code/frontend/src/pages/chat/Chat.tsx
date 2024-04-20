@@ -254,14 +254,15 @@ const Chat = () => {
 
   return (
     <div className={styles.container}>
+
       {/* <Sidebar /> */}
+
       <Stack horizontal className={styles.chatRoot}>
         <div
           className={`${styles.chatContainer} ${styles.MobileChatContainer}`}
         >
           {!lastQuestionRef.current ? (
             <Stack className={styles.chatEmptyState}>
-              {/* <img src="../../src/assets/logo_blue.webp" className={styles.chatIcon} aria-hidden="true" /> */}
               <h6 className={styles.chatHomeText03}>Let's explore together</h6>
               <h5 className={styles.chatHomeText02}>Let's explore together</h5>
               <h3 className={styles.chatHomeText01}>Let's explore together</h3>
@@ -281,6 +282,7 @@ const Chat = () => {
                           {answer.content}
                         </div>
                         <div className={` ${styles.timeStamp}`}>
+                          {/* ↓ TEMP - this will need to be timestamp from BE */}
                           <div>{moment().calendar()}</div>
                         </div>
                       </div>
@@ -361,23 +363,7 @@ const Chat = () => {
                 </span>
               </Stack>
             )}
-            {/* <BroomRegular
-              className={`${styles.clearChatBroom} ${styles.mobileclearChatBroom}`}
-              style={{
-                background:
-                  isLoading || answers.length === 0
-                    ? "#BDBDBD"
-                    : "radial-gradient(109.81% 107.82% at 100.1% 90.19%, #0F6CBD 33.63%, #2D87C3 70.31%, #8DDDD8 100%)",
-                cursor: isLoading || answers.length === 0 ? "" : "pointer",
-              }}
-              onClick={clearChat}
-              onKeyDown={(e) =>
-                e.key === "Enter" || e.key === " " ? clearChat() : null
-              }
-              aria-label="Clear session"
-              role="button"
-              tabIndex={0}
-            /> */}
+
             <QuestionInput
               clearOnSend
               placeholder="Ask anything..."
@@ -392,6 +378,7 @@ const Chat = () => {
               onClearChat={onClearChat}
               isThreadActive={!(!lastQuestionRef.current)}
             />
+
           </Stack>
         </div>
         {answers.length > 0 && isCitationPanelOpen && activeCitation && (
@@ -424,6 +411,7 @@ const Chat = () => {
           </Stack.Item>
         )}
       </Stack>
+
       <div className={`${styles.bgPatternImgContainer}`}>
         <img
           src="../../Airbus_CarbonGrid.png"

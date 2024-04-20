@@ -138,9 +138,9 @@ export const Answer = ({
                 <div style={{ marginTop: 8, display: "flex", flexDirection: "column", height: "100%", gap: "4px", maxWidth: "100%" }} >
                     {parsedAnswer.citations.map((citation, idx) => {
                         return (
-                          <Tooltip content={
+                          <Tooltip content={{ children:
                             // ↓ this is where you form the tooltip content
-                            <div className={styles.citationToolTip}>
+                            <div className={styles.citationToolTipInner}>
                               {/* <div className={styles.ttHeader}>
                                 {citation.metadata?.title || 'Citation'}
                               </div>
@@ -153,11 +153,12 @@ export const Answer = ({
                                 remarkPlugins={[remarkGfm]}
                                 rehypePlugins={[rehypeRaw]}
                               />
-                            </div>
-                          }
+                            </div>,
+                            className: styles.citationToolTip
+                          }}
                           key={idx} relationship="label" positioning={'after-bottom'} withArrow>
                               <span onClick={() => onCitationClicked(citation, keyIsPressed)} className={styles.citationContainer}>
-                                  <div className={styles.citation}>{idx}</div>
+                                  <div className={styles.citation}>{idx + 1}</div>
 
                                   {/* ↓ this is the original Citation title generator */}
                                   {/* {createCitationFilepath(citation, idx, true)} */}
@@ -198,6 +199,7 @@ export const Answer = ({
 
           {parsedAnswer.citations.length > 0 && (
             <div className={` ${styles.answerNewFooter}`}>
+              {/* ↓ TEMP - this will need to be timestamp from BE */}
               <div>{moment().calendar()}</div>
               {/* <div>{moment().format("dddd [at] HH:mm")}</div> */}
               <div>•</div>
