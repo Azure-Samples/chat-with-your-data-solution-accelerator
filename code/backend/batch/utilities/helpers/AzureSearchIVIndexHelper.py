@@ -73,7 +73,12 @@ class AzureSearchIVIndexHelper:
                 vector_search_profile_name="myHnswProfile",
             ),
             SearchableField(name="metadata", type=SearchFieldDataType.String),
-            SearchableField(name="title", type=SearchFieldDataType.String),
+            SearchableField(
+                name="title",
+                type=SearchFieldDataType.String,
+                facetable=True,
+                filterable=True,
+            ),
             SearchableField(
                 name="source", type=SearchFieldDataType.String, filterable=True
             ),

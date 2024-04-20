@@ -145,7 +145,7 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
             bytes_data,
             overwrite=True,
             content_settings=ContentSettings(content_type=content_type + charset),
-            metadata={"source_url": file_name},
+            metadata={"title": file_name},
         )
         st.session_state["file_url"] = (
             blob_client.url
@@ -179,7 +179,7 @@ def upload_file(bytes_data: bytes, file_name: str, content_type: Optional[str] =
             bytes_data,
             overwrite=True,
             content_settings=ContentSettings(content_type=content_type + charset),
-            metadata={"source_url": file_name},
+            metadata={"title": file_name},
         )
         # Generate a SAS URL to the blob and return it
         st.session_state["file_url"] = (
