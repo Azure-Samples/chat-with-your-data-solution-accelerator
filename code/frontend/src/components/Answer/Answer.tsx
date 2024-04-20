@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState, MouseEvent } from "react";
 import { useBoolean } from "@fluentui/react-hooks"
 import { FontIcon, Stack, Text } from "@fluentui/react";
-import { Button, Tooltip, makeStyles } from "@fluentui/react-components";
-import { SlideTextRegular } from "@fluentui/react-icons";
-import type { TooltipProps } from "@fluentui/react-components";
+import { Button, Tooltip } from "@fluentui/react-components";
 
 import styles from "./Answer.module.css";
 

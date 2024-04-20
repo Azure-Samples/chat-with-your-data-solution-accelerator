@@ -153,9 +153,42 @@
   border-radius: 3px !important;
 }
 
+.dataSourceToolTipInner {
+  padding: 3px 2px;
+}
+
+.dataSourceToolTipInner span{
+  font-size: 14px !important;
+  font-weight: 400 !important;
+}
+
 .shareToolTip {
   background-color: #00205B !important;
   color: #ffffff !important;
   margin-top: 10px !important;
   border-radius: 3px !important;
+}
+
+.shareToolTipInner {
+  padding: 3px 2px;
+}
+
+.shareToolTipInner span{
+  font-size: 14px !important;
+  font-weight: 400 !important;
+}
+
+.copiedToClipboard{
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.copiedToClipboard img{
+
+}
+
+.copiedToClipboard span{
+  font-size: 14px !important;
+  font-weight: 400 !important;
 }

@@ -32,6 +32,12 @@ const Layout = () => {
         setCopyClicked(true);
     };
 
+    const resetCopyClick = () => {
+      setTimeout(() => {
+        setCopyClicked(false);
+      }, 500);
+    };
+
     useEffect(() => {
         if (copyClicked) {
             setCopyText("Copied URL");
@@ -78,13 +84,19 @@ const Layout = () => {
                           <Tooltip content={{ children:
                             // ↓ this is where you form the tooltip content
                             <div className={styles.shareToolTipInner}>
-                              <span>Share Pronto</span>
-                              {/* <span>Link copied to clipboard!</span> */}
+                              {!copyClicked ? (
+                                <span>Share Pronto</span>
+                              ) : (
+                                <div className={styles.copiedToClipboard}>
+                                  <img src="../../copiedIcon.png" alt="Pronto link copied to clipbaord" />
+                                  <span>Link copied to clipboard!</span>
+                                </div>
+                              )}
                             </div>,
                             className: styles.shareToolTip
                           }} relationship="label" positioning={'below'}>
                             {/* ↓ this is where the hoverable content goes */}
-                            <div className={styles.shareButtonContainer} role="button" tabIndex={0} aria-label="Share" onClick={handleShareClick} onKeyDown={e => e.key === "Enter" || e.key === " " ? handleShareClick() : null}>
+                            <div className={styles.shareButtonContainer} role="button" tabIndex={0} aria-label="Share" onClick={handleCopyClick} onKeyDown={e => e.key === "Enter" || e.key === " " ? handleCopyClick() : null} onMouseLeave={e => resetCopyClick()}>
                               {/* <ShareAndroid16Filled className={styles.shareButton} /> */}
                               <img
                                 src="../../shareLinkIcon.png"
