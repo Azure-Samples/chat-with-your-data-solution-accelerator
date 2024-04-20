@@ -60,8 +60,6 @@ const Chat = () => {
   const [isListening, setIsListening] = useState(false);
   const recognizerRef = useRef<SpeechRecognizer | null>(null);
 
-  // const [controlIsPressed, setControlIsPressed] = useState(false);
-
   const makeApiRequest = async (question: string) => {
     lastQuestionRef.current = question;
 
@@ -239,9 +237,6 @@ const Chat = () => {
   // const onShowCitation = (citation: Citation, isKeyPressed: boolean) => {
   const onShowCitation = (citation: Citation) => {
     // console.log('citation: ', citation);
-    // console.log('moment: ', moment().calendar());
-
-    // const metaDataObj = citation.metadata as unknown as CitationMetadata;
 
     setActiveCitation([
       citation.content,
@@ -257,8 +252,6 @@ const Chat = () => {
     } else {
       alert("No source URL found");
     }
-
-    // console.log('isKeyPressed: ', isKeyPressed);
 
     /* if (isKeyPressed) {
       setIsCitationPanelOpen(true);

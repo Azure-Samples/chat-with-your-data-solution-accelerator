@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, MouseEvent } from "react";
-import { useBoolean } from "@fluentui/react-hooks";
 import { Stack } from "@fluentui/react";
 import { Tooltip } from "@fluentui/react-components";
 
@@ -29,18 +28,9 @@ export const Answer = ({
   // onCitationHover,
   index,
 }: Props) => {
-  // const [isRefAccordionOpen, { toggle: toggleIsRefAccordionOpen }] = useBoolean(false);
   const filePathTruncationLimit = 50;
-
   const messageBoxId = "message-" + index;
-
   const parsedAnswer = useMemo(() => parseAnswer(answer), [answer]);
-  // const [chevronIsExpanded, setChevronIsExpanded] = useState(isRefAccordionOpen);
-
-  /* const handleChevronClick = () => {
-    setChevronIsExpanded(!chevronIsExpanded);
-    toggleIsRefAccordionOpen();
-  }; */
 
   const [keyIsPressed, setKeyIsPressed] = useState(false);
   const [isCitationHovered, setIsCitationHovered] = useState(false);
@@ -91,21 +81,6 @@ export const Answer = ({
     } */
   };
 
-  /* const onMouseEnter = (e: MouseEvent, citedDocument: Citation) => {
-    console.log("mouse entered citation");
-    // console.log("keyIsPressed: ", keyIsPressed);
-    // onCitationHover(citedDocument);
-    setIsCitationHovered(true);
-    setHoveredCitation(citedDocument);
-  };
-
-  const onMouseExit = (e: MouseEvent, citedDocument: Citation) => {
-    console.log("mouse left citation");
-    // console.log("keyIsPressed: ", keyIsPressed);
-    // onCitationHover(citedDocument);
-    setIsCitationHovered(false);
-  }; */
-
   useEffect(() => {
     const handleCopy = () => {
       alert("Please consider where you paste this content.");
@@ -148,37 +123,29 @@ export const Answer = ({
               {parsedAnswer.citations.map((citation, idx) => {
                 return (
                   <Tooltip
+                    onVisibleChange={(e) => {
+                      // console.log('changed: ', e);
+                      if (e?.type === "pointerleave") {
+                        setKeyIsPressed(false);
+                      }
+                    }}
                     content={{
-                      children: keyIsPressed || isCitationContentHovered ? (
-                        // ↓ this is where you form the tooltip content
-                        <div
-                          className={`${styles.citationToolTipInner}`}
-                          onMouseEnter={(e) => {
-                            setIsCitationContentHovered(true);
-                            // setKeyIsPressed(true);
-                          }}
-                          onMouseLeave={(e) => {
-                            setKeyIsPressed(false);
-                            setIsCitationContentHovered(false);
-                          }}
-                        >
-                          {/* <div className={styles.ttHeader}>
-                                {citation.metadata?.title || 'Citation'}
-                              </div>
-                              <div className={styles.ttBody}>
-                                •&nbsp;&nbsp;{citation.metadata?.source || 'Source'}
-                              </div> */}
-                          <ReactMarkdown
-                            className={`${styles.citationPanelContent} ${styles.mobileCitationPanelContent}`}
-                            children={citation.content}
-                            remarkPlugins={[remarkGfm]}
-                            rehypePlugins={[rehypeRaw]}
-                          />
-                        </div>
-                      ) : null,
-                      className: (keyIsPressed || isCitationContentHovered)
-                        ? styles.citationToolTip
-                        : styles.hide,
+                      children:
+                        keyIsPressed || isCitationContentHovered ? (
+                          // ↓ this is where you form the tooltip content
+                          <div className={`${styles.citationToolTipInner}`}>
+                            <ReactMarkdown
+                              className={`${styles.citationPanelContent} ${styles.mobileCitationPanelContent}`}
+                              children={citation.content}
+                              remarkPlugins={[remarkGfm]}
+                              rehypePlugins={[rehypeRaw]}
+                            />
+                          </div>
+                        ) : null,
+                      className:
+                        keyIsPressed || isCitationContentHovered
+                          ? styles.citationToolTip
+                          : styles.hide,
                     }}
                     key={idx}
                     relationship="label"
@@ -188,16 +155,7 @@ export const Answer = ({
                     <span
                       onClick={() => onCitationClicked(citation)}
                       // onClick={() => onCitationClicked(citation, keyIsPressed)}
-                      // onMouseOver={(e: MouseEvent) => onMouseEnter(e, citation)}
-                      // onMouseLeave={(e: MouseEvent) => onMouseExit(e, citation)}
                       className={styles.citationContainer}
-                      onMouseLeave={(e) => {
-                        setTimeout(() => {
-                          // if (!isCitationContentHovered) {
-                            setKeyIsPressed(false);
-                          // }
-                        }, 1000);
-                      }}
                     >
                       <div className={styles.citation}>{idx + 1}</div>
 
