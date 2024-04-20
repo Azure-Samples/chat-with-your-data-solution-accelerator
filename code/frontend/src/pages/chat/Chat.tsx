@@ -15,7 +15,7 @@ import rehypeRaw from "rehype-raw";
 import { v4 as uuidv4 } from "uuid";
 
 import styles from "./Chat.module.css";
-import Azure from "../../assets/Azure.svg";
+// import Azure from "../../assets/Azure.svg";
 import { multiLingualSpeechRecognizer } from "../../util/SpeechToText";
 
 import {
@@ -25,7 +25,7 @@ import {
   Citation,
   ToolMessageContent,
   ChatResponse,
-  CitationMetadata,
+  // CitationMetadata,
 } from "../../api";
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
@@ -290,7 +290,8 @@ const Chat = () => {
 
   return (
     <div className={styles.container}>
-      {/* <Sidebar /> */}
+
+      <Sidebar />
 
       <Stack horizontal className={styles.chatRoot}>
         <div

@@ -1,0 +1,58 @@
+.sidebar {
+  position: absolute; /*comment out to take up space on page*/
+  z-index: 50;
+}
+
+.openSideMenuBtn {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  top: 16px;
+  left: 8px;
+  color: #063b9e;
+  cursor: pointer;
+  z-index: -1;
+}
+
+
+.sidebarMain {
+  display: flex;
+  flex-direction: column;
+  width: 250px;
+  /* height: -webkit-fill-available; */
+  min-height: calc(100vh - 56px);
+  background-color: #ffffff;
+  border-right: 1px solid #D4D4D4;
+  box-shadow: 0px 1px 4px 0px #0000003D;
+  z-index: 60;
+}
+
+
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.newThreadActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  width: 196px;
+  background-color: #FAFAFA;
+}
+
+.closeSideBarBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+}
+
+
+.sidebarBody {
+
+}
