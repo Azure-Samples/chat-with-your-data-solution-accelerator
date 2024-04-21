@@ -20,30 +20,24 @@ export const Sidebar = () => {
       <InlineDrawer
         open={isOpen}
         // onOpenChange={(_, { open }) => setIsOpen(open)}
-        style={{ width: "auto" }}
+        style={{
+          width: "auto",
+          borderRight: "1px solid #D4D4D4",
+          boxShadow: "0px 1px 4px 0px #0000003D",
+        }}
       >
         <div className={styles.sidebarMain}>
-          {/* <DrawerHeader>
-            <DrawerHeaderTitle
-              action={
-                <Button
-                  appearance="subtle"
-                  aria-label="Close"
-                  icon={<Dismiss24Regular />}
-                  onClick={() => setIsOpen(false)}
-                />
-              }
-            >
-              Overlay Drawer
-            </DrawerHeaderTitle>
-          </DrawerHeader>
-
-          <DrawerBody>
-            <p>Drawer content</p>
-          </DrawerBody> */}
-
           <div className={styles.sidebarHeader}>
-            <div className={styles.newThreadActions}></div>
+            <div className={styles.newThreadActions}>
+              <div className={styles.newThreadBtn}>
+                <img src="../../plusIcon.png" />
+                <span>New Thread</span>
+              </div>
+              <div className={styles.newThreadHotkeyIcons}>
+                <img src="../../Cntrl_key_icon.png" />
+                <img src="../../K_key_icon.png" />
+              </div>
+            </div>
 
             <div
               className={styles.closeSideBarBtn}
@@ -54,21 +48,35 @@ export const Sidebar = () => {
           </div>
 
           <div className={styles.sidebarBody}>
-            <span>Threads</span>
-            <ul>
-              <li>
-                {/* icon */}
-                <span>Example Test Thread</span>
+            <span className={styles.threadsHeader}>Threads</span>
+            <ul className={styles.threadListContainer}>
+              <li className={`${styles.threadItem} ${styles.activeThread}`}>
+                <div className={styles.threadItemLabel}>
+                  <img src="../../threadIcon.png" />
+                  <span>Example Test Thread</span>
+                </div>
+                <div className={styles.threadMenu}>
+                  <img src="../../ellipsesIconBlue.png" />
+                </div>
+              </li>
+              <li className={`${styles.threadItem}`}>
+                <div className={styles.threadItemLabel}>
+                  <img src="../../threadIcon.png" />
+                  <span>Example Test Thread</span>
+                </div>
+                <div className={styles.threadMenu}>
+                  <img src="../../ellipsesIconBlue.png" />
+                </div>
               </li>
             </ul>
           </div>
         </div>
       </InlineDrawer>
 
-      <TextBulletListSquareFilled
-        className={styles.openSideMenuBtn}
-        onClick={() => setIsOpen(true)}
-      />
+      <div className={styles.openSideMenuBtn} onClick={() => setIsOpen(true)}>
+        <img src="../../dock_to_right_outline.png" />
+      </div>
+
     </div>
   );
 };
