@@ -159,17 +159,17 @@ param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
 @description('Azure OpenAI Embedding Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIEmbeddingModelCapacity int = 30
 
-@description('Name of Computer Vision Resource (if using GPT-4 and Vision Preview)')
+@description('Name of Computer Vision Resource (if useGPT4Vision=true)')
 param computerVisionName string = 'computer-vision-${resourceToken}'
 
-@description('Name of Computer Vision Resource SKU (if using GPT-4 and Vision Preview)')
+@description('Name of Computer Vision Resource SKU (if useGPT4Vision=true)')
 @allowed([
   'F0'
   'S1'
 ])
 param computerVisionSkuName string = 'S1'
 
-@description('Location of Computer Vision Resource (if using GPT-4 and Vision Preview)')
+@description('Location of Computer Vision Resource (if useGPT4Vision=true)')
 @allowed([// List taken from https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/image-retrieval?tabs=python#prerequisites
   'eastus'
   'westus'

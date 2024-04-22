@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.24.24.22086",
-      "templateHash": "12260471619692156561"
+      "templateHash": "9107380361745472305"
     }
   },
   "parameters": {
@@ -338,7 +338,7 @@
       "type": "string",
       "defaultValue": "[format('computer-vision-{0}', parameters('resourceToken'))]",
       "metadata": {
-        "description": "Name of Computer Vision Resource (if using GPT-4 and Vision Preview)"
+        "description": "Name of Computer Vision Resource (if useGPT4Vision=true)"
       }
     },
     "computerVisionSkuName": {
@@ -349,7 +349,7 @@
         "S1"
       ],
       "metadata": {
-        "description": "Name of Computer Vision Resource SKU (if using GPT-4 and Vision Preview)"
+        "description": "Name of Computer Vision Resource SKU (if useGPT4Vision=true)"
       }
     },
     "computerVisionLocation": {
@@ -366,7 +366,7 @@
         ""
       ],
       "metadata": {
-        "description": "Location of Computer Vision Resource (if using GPT-4 and Vision Preview)"
+        "description": "Location of Computer Vision Resource (if useGPT4Vision=true)"
       }
     },
     "azureAISearchName": {
