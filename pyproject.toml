@@ -47,6 +47,7 @@ black = "24.4.0"
 pre-commit = "3.7.0"
 pytest_httpserver = "1.0.10"
 trustme = "1.1.0"
+jupyter = "1.0.0"
 
 [tool.coverage.run]
 omit = [
