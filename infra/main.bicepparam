@@ -16,6 +16,15 @@ param hostingModel = readEnvironmentVariable('AZURE_APP_SERVICE_HOSTING_MODEL', 
 param azureOpenAIModel = readEnvironmentVariable('AZURE_OPENAI_MODEL', 'gpt-35-turbo')
 param azureOpenAIModelName = readEnvironmentVariable('AZURE_OPENAI_MODEL_NAME', 'gpt-35-turbo')
 param azureOpenAIModelVersion = readEnvironmentVariable('AZURE_OPENAI_MODEL_VERSION', '0613')
+param azureOpenAIModelCapacity = int(readEnvironmentVariable('AZURE_OPENAI_MODEL_CAPACITY', '30'))
+param useGPT4Vision = bool(readEnvironmentVariable('USE_GPT4_VISION', 'false'))
+param azureOpenAIGPT4VisionModel = readEnvironmentVariable('AZURE_OPENAI_GPT4_VISION_MODEL', 'gpt-4')
+param azureOpenAIGPT4VisionModelName = readEnvironmentVariable('AZURE_OPENAI_GPT4_VISION_MODEL_NAME', 'gpt-4-vision')
+param azureOpenAIGPT4VisionModelVersion = readEnvironmentVariable('AZURE_OPENAI_GPT4_VISION_MODEL_VERSION', 'vision-preview')
+param azureOpenAIGPT4VisionModelCapacity = int(readEnvironmentVariable('AZURE_OPENAI_GPT4_VISION_MODEL_CAPACITY', '10'))
+param azureOpenAIEmbeddingModelCapacity = int(readEnvironmentVariable('AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY', '30'))
+
+param computerVisionLocation = readEnvironmentVariable('AZURE_COMPUTER_VISION_LOCATION', '')
 
 // The following are being renamed to align with the new naming convention
 // we manipulate existing resources here to maintain backwards compatibility

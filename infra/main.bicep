@@ -104,6 +104,24 @@ param azureOpenAIModelName string = 'gpt-35-turbo'
 
 param azureOpenAIModelVersion string = '0613'
 
+@description('Azure OpenAI Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
+param azureOpenAIModelCapacity int = 30
+
+@description('Deploys and uses GPT-4 vision for processing images')
+param useGPT4Vision bool = false
+
+@description('Azure OpenAI GPT-4 Vision Model Deployment Name')
+param azureOpenAIGPT4VisionModel string = 'gpt-4'
+
+@description('Azure OpenAI GPT-4 Vision Model Name')
+param azureOpenAIGPT4VisionModelName string = 'gpt-4-vision'
+
+@description('Azure OpenAI GPT-4 Vision Model Version')
+param azureOpenAIGPT4VisionModelVersion string = 'vision-preview'
+
+@description('Azure OpenAI GPT-4 Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
+param azureOpenAIGPT4VisionModelCapacity int = 10
+
 @description('Orchestration strategy: openai_function or langchain str. If you use a old version of turbo (0301), plese select langchain')
 @allowed([
   'openai_function'
@@ -137,6 +155,32 @@ param azureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 
 @description('Azure OpenAI Embedding Model Name')
 param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
+
+@description('Azure OpenAI Embedding Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
+param azureOpenAIEmbeddingModelCapacity int = 30
+
+@description('Name of Computer Vision Resource (if useGPT4Vision=true)')
+param computerVisionName string = 'computer-vision-${resourceToken}'
+
+@description('Name of Computer Vision Resource SKU (if useGPT4Vision=true)')
+@allowed([
+  'F0'
+  'S1'
+])
+param computerVisionSkuName string = 'S1'
+
+@description('Location of Computer Vision Resource (if useGPT4Vision=true)')
+@allowed([// List taken from https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/image-retrieval?tabs=python#prerequisites
+  'eastus'
+  'westus'
+  'koreacentral'
+  'francecentral'
+  'northeurope'
+  'westeurope'
+  'southeastasia'
+  ''
+])
+param computerVisionLocation string = useGPT4Vision ? location : ''
 
 @description('Azure AI Search Resource')
 param azureAISearchName string = 'search-${resourceToken}'
@@ -237,6 +281,45 @@ module keyvault './core/security/keyvault.bicep' = if (useKeyVault || authType =
   }
 }
 
+var defaultOpenAiDeployments = [
+  {
+    name: azureOpenAIModel
+    model: {
+      format: 'OpenAI'
+      name: azureOpenAIModelName
+      version: azureOpenAIModelVersion
+    }
+    sku: {
+      name: 'Standard'
+      capacity: azureOpenAIModelCapacity
+    }
+  }
+  {
+    name: azureOpenAIEmbeddingModel
+    model: {
+      format: 'OpenAI'
+      name: azureOpenAIEmbeddingModelName
+      version: '2'
+    }
+    capacity: azureOpenAIEmbeddingModelCapacity
+  }
+]
+
+var openAiDeployments = concat(defaultOpenAiDeployments, useGPT4Vision ? [
+    {
+      name: azureOpenAIGPT4VisionModelName
+      model: {
+        format: 'OpenAI'
+        name: azureOpenAIGPT4VisionModel
+        version: azureOpenAIGPT4VisionModelVersion
+      }
+      sku: {
+        name: 'Standard'
+        capacity: azureOpenAIGPT4VisionModelCapacity
+      }
+    }
+  ] : [])
+
 module openai 'core/ai/cognitiveservices.bicep' = {
   name: azureOpenAIResourceName
   scope: rg
@@ -248,29 +331,21 @@ module openai 'core/ai/cognitiveservices.bicep' = {
       name: azureOpenAISkuName
     }
     managedIdentity: authType == 'rbac'
-    deployments: [
-      {
-        name: azureOpenAIModel
-        model: {
-          format: 'OpenAI'
-          name: azureOpenAIModelName
-          version: azureOpenAIModelVersion
-        }
-        sku: {
-          name: 'Standard'
-          capacity: 30
-        }
-      }
-      {
-        name: azureOpenAIEmbeddingModel
-        model: {
-          format: 'OpenAI'
-          name: azureOpenAIEmbeddingModelName
-          version: '2'
-        }
-        capacity: 30
-      }
-    ]
+    deployments: openAiDeployments
+  }
+}
+
+module computerVision 'core/ai/cognitiveservices.bicep' = if (useGPT4Vision) {
+  name: 'computerVision'
+  scope: rg
+  params: {
+    name: computerVisionName
+    kind: 'ComputerVision'
+    location: computerVisionLocation
+    tags: tags
+    sku: {
+      name: computerVisionSkuName
+    }
   }
 }
 
