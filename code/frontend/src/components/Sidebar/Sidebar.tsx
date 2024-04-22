@@ -40,7 +40,7 @@ export const Sidebar = () => {
             </div>
 
             <div
-              className={styles.closeSideBarBtn}
+              className={`${styles.closeSideBarBtn} ghostIconBtn`}
               onClick={() => setIsOpen(false)}
             >
               <img src="../../dock_to_right.png" alt="close side bar button" />
@@ -49,22 +49,23 @@ export const Sidebar = () => {
 
           <div className={styles.sidebarBody}>
             <span className={styles.threadsHeader}>Threads</span>
-            <ul className={styles.threadListContainer}>
-              <li className={`${styles.threadItem} ${styles.activeThread}`}>
-                <div className={styles.threadItemLabel}>
+            <ul className={`menuListContainer`}>
+              <li className={`${styles.threadMenuItem} menuListItem activeListItem`}>
+                <div className={`listItemLabel`}>
                   <img src="../../threadIcon.png" />
                   <span>Example Test Thread</span>
                 </div>
-                <div className={styles.threadMenu}>
+                <div className={`${styles.threadMenu} ghostIconBtn`}>
                   <img src="../../ellipsesIconBlue.png" />
                 </div>
               </li>
-              <li className={`${styles.threadItem}`}>
-                <div className={styles.threadItemLabel}>
+              {/* <li className={`menuListItem disabled`}> */}
+              <li className={`${styles.threadMenuItem} menuListItem`}>
+                <div className={`listItemLabel`}>
                   <img src="../../threadIcon.png" />
                   <span>Example Test Thread</span>
                 </div>
-                <div className={styles.threadMenu}>
+                <div className={`${styles.threadMenu} ghostIconBtn`}>
                   <img src="../../ellipsesIconBlue.png" />
                 </div>
               </li>
@@ -73,10 +74,9 @@ export const Sidebar = () => {
         </div>
       </InlineDrawer>
 
-      <div className={styles.openSideMenuBtn} onClick={() => setIsOpen(true)}>
+      <div className={`${styles.openSideMenuBtn} ghostIconBtn`} onClick={() => setIsOpen(true)}>
         <img src="../../dock_to_right_outline.png" />
       </div>
-
     </div>
   );
 };

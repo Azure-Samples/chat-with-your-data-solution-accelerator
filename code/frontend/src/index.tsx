@@ -5,6 +5,7 @@ import { initializeIcons } from "@fluentui/react";
 import { FluentProvider, webLightTheme } from '@fluentui/react-components';
 
 import "./index.css";
+import "./prontoStyles.css";
 
 import Layout from "./pages/layout/Layout";
 import NoPage from "./pages/NoPage";

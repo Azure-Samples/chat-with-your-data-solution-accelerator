@@ -14,7 +14,7 @@
 .headerTitleContainer {
     display: flex;
     align-items: center;
-    margin-left: 30px;
+    margin-left: 20px;
     margin-top: -5px;
     text-decoration: none;
     border-right: 1px solid #919CB0;
@@ -77,16 +77,22 @@
 .userMenuBtn {
   display: flex;
   flex-direction: row;
-  margin: 4px 8px;
+  padding: 0px 16px;
   align-items: center;
   gap: 8px;
+  height: 56px;
+  cursor: pointer;
+  background-color: #ffffff00;
+  transition: all 0.35s;
+}
+.userMenuBtn:hover {
+  background-color: #FFFFFF17;
 }
 
-.userMenuArrows {
-  font-weight: bold;
-  font-size: 8px;
-  transform: rotate(90deg) scale(1, 2);
+.headerMenu {
+  margin-top: 0px;
 }
+
 
 .urlTextBox {
     font-family: "Segoe UI";

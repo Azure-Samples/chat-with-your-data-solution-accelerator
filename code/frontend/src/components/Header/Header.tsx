@@ -1,8 +1,20 @@
 import { Link } from "react-router-dom";
 import styles from "./Header.module.css";
 import { Stack } from "@fluentui/react";
-import { Tooltip } from "@fluentui/react-components";
+import {
+  Tooltip,
+  Button,
+  Menu,
+  MenuTrigger,
+  MenuList,
+  MenuItem,
+  MenuPopover,
+} from "@fluentui/react-components";
 import { useEffect, useState } from "react";
+import {
+  DoorArrowLeftFilled,
+  PersonSettingsFilled,
+} from "@fluentui/react-icons";
 
 export const Header = () => {
   const [copyClicked, setCopyClicked] = useState<boolean>(false);
@@ -108,13 +120,34 @@ export const Header = () => {
               </div>
             </Tooltip>
 
-            <div className={`${styles.userMenuContainer} ${styles.disabled}`}>
-              <div className={styles.userMenuBtn}>
-                <span>Eddie Hoover</span>
-                <div className={styles.userMenuArrows}>{"<  >"}</div>
-              </div>
-              {/* <div>Future menu content</div> */}
-            </div>
+            <Menu>
+              <MenuTrigger disableButtonEnhancement>
+                <div className={styles.userMenuBtn}>
+                  <span>Eddie Hoover</span>
+                  <img
+                    className={styles.userMenuArrows}
+                    src="../../menuExpandIcon.png"
+                  />
+                </div>
+              </MenuTrigger>
+
+              <MenuPopover style={{ padding: '0px' }}>
+                <ul className={`${styles.headerMenu} menuListContainer`}>
+                  <li className={`menuListItem disabled`}>
+                    <div className={`listItemLabel`}>
+                      <PersonSettingsFilled />
+                      <span>Settings</span>
+                    </div>
+                  </li>
+                  <li className={`menuListItem disabled`}>
+                    <div className={`listItemLabel`}>
+                      <DoorArrowLeftFilled />
+                      <span>Log Out</span>
+                    </div>
+                  </li>
+                </ul>
+              </MenuPopover>
+            </Menu>
           </div>
         </Stack>
       </div>
