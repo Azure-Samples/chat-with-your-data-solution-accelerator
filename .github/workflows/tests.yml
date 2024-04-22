@@ -11,6 +11,7 @@ on:
       - reopened
       - synchronize
   workflow_call:
+  merge_group:
 
 jobs:
   test_package:
