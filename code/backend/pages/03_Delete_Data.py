@@ -3,6 +3,7 @@ import os
 import traceback
 import sys
 from batch.utilities.helpers.AzureSearchHelper import AzureSearchHelper
+from batch.utilities.helpers.AzureBlobStorageHelper import AzureBlobStorageClient
 from dotenv import load_dotenv
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -64,9 +65,10 @@ def delete_files(files):
     ids_to_delete = []
     files_to_delete = []
 
-    for filename, ids in files.items():
-        if st.session_state[filename]:
-            files_to_delete.append(filename)
+    for file, ids in files.items():
+        if st.session_state[file]:
+            files_to_delete.append(file)
+            blob_storage_client.delete_file(get_filename(file))
             ids_to_delete += [{"id": id} for id in ids]
 
     if len(ids_to_delete) == 0:
@@ -78,7 +80,23 @@ def delete_files(files):
     st.success("Deleted files: " + str(files_to_delete))
 
 
+def get_filename(file: str) -> str:
+    """
+    Parses a file path in the format:
+    /container_name/file_name
+    to return the file name.
+
+    Args:
+        file (str): The file path of the file to delete.
+
+    Returns:
+        filename (str): The filename part of the file path
+    """
+    return file.split("/")[2]
+
+
 try:
+    blob_storage_client = AzureBlobStorageClient()
     vector_store_helper: AzureSearchHelper = AzureSearchHelper()
     search_client = vector_store_helper.get_vector_store().client
 
