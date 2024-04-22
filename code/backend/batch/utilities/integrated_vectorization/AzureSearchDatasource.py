@@ -41,7 +41,7 @@ class AzureSearchDatasource:
         )
 
     def generate_datasource_connection_string(self):
-        if self.env_helper.AZURE_AUTH_TYPE == "keys":
+        if self.env_helper.is_auth_type_keys():
             return f"DefaultEndpointsProtocol=https;AccountName={self.env_helper.AZURE_BLOB_ACCOUNT_NAME};AccountKey={self.env_helper.AZURE_BLOB_ACCOUNT_KEY};EndpointSuffix=core.windows.net"
         else:
             return f"ResourceId=/subscriptions/{self.env_helper.AZURE_SUBSCRIPTION_ID}/resourceGroups/{self.env_helper.AZURE_RESOURCE_GROUP}/providers/Microsoft.Storage/storageAccounts/{self.env_helper.AZURE_BLOB_ACCOUNT_NAME}/;"

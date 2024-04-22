@@ -52,7 +52,7 @@ class AzureSearchSkillset:
             deployment_id=self.env_helper.AZURE_OPENAI_EMBEDDING_MODEL,
             api_key=(
                 self.env_helper.OPENAI_API_KEY
-                if self.env_helper.AZURE_AUTH_TYPE == "keys"
+                if self.env_helper.is_auth_type_keys()
                 else None
             ),
             inputs=[

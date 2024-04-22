@@ -114,7 +114,7 @@ class AzureSearchIndex:
         return result
 
     def get_vector_search_config(self):
-        if self.env_helper.AZURE_AUTH_TYPE == "keys":
+        if self.env_helper.is_auth_type_keys():
             azure_open_ai_parameters = AzureOpenAIParameters(
                 resource_uri=self.env_helper.AZURE_OPENAI_ENDPOINT,
                 deployment_id=self.env_helper.AZURE_OPENAI_EMBEDDING_MODEL,
