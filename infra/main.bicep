@@ -313,6 +313,17 @@ module blobDataReaderRoleSearch 'core/security/role.bicep' = if (authType == 'rb
   }
 }
 
+// Cognitive Services OpenAI User
+module openAiRoleSearchService 'core/security/role.bicep' = if (authType == 'rbac'){
+  scope: rg
+  name: 'openai-role-searchservice'
+  params: {
+    principalId: search.outputs.identityPrincipalId
+    roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+    principalType: 'ServicePrincipal'
+  }
+}
+
 module speechService 'core/ai/cognitiveservices.bicep' = {
   scope: rg
   name: speechServiceName
