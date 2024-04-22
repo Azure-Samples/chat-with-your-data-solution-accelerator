@@ -104,7 +104,7 @@ param azureOpenAIModelName string = 'gpt-35-turbo'
 
 param azureOpenAIModelVersion string = '0613'
 
-@description('Azure OpenAI Model Capacity')
+@description('Azure OpenAI Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIModelCapacity int = 30
 
 @description('Orchestration strategy: openai_function or langchain str. If you use a old version of turbo (0301), plese select langchain')
@@ -141,7 +141,7 @@ param azureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 @description('Azure OpenAI Embedding Model Name')
 param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
 
-@description('Azure OpenAI Embedding Model Capacity')
+@description('Azure OpenAI Embedding Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIEmbeddingModelCapacity int = 30
 
 @description('Name of Computer Vision Resource (if using GPT-4 and Vision Preview)')

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.170.59819",
-      "templateHash": "4986345165374393363"
+      "templateHash": "10457495064136139168"
     }
   },
   "parameters": {
@@ -215,7 +215,7 @@
       "type": "int",
       "defaultValue": 30,
       "metadata": {
-        "description": "Azure OpenAI Model Capacity"
+        "description": "Azure OpenAI Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota"
       }
     },
     "orchestrationStrategy": {
@@ -296,7 +296,7 @@
       "type": "int",
       "defaultValue": 30,
       "metadata": {
-        "description": "Azure OpenAI Embedding Model Capacity"
+        "description": "Azure OpenAI Embedding Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota"
       }
     },
     "computerVisionName": {
