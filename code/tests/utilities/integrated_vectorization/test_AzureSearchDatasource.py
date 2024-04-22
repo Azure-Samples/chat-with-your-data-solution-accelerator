@@ -99,6 +99,7 @@ def test_create_or_update_datasource_rbac(
     search_indexer_datasource_connection_mock: MagicMock,
 ):
     # given
+    env_helper_mock.is_auth_type_keys.return_value = False
     env_helper_mock.AZURE_AUTH_TYPE = "rbac"
     rbac_datasource_connection = f"ResourceId=/subscriptions/{env_helper_mock.AZURE_SUBSCRIPTION_ID}/resourceGroups/{env_helper_mock.AZURE_RESOURCE_GROUP}/providers/Microsoft.Storage/storageAccounts/{env_helper_mock.AZURE_BLOB_ACCOUNT_NAME}/;"
 

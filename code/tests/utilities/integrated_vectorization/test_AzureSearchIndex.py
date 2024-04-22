@@ -81,6 +81,7 @@ def test_create_or_update_index_rbac(
     search_index_client_mock: MagicMock,
 ):
     # given
+    env_helper_mock.is_auth_type_keys.return_value = False
     env_helper_mock.AZURE_AUTH_TYPE = "rbac"
     azure_search_iv_index_helper = AzureSearchIndex(env_helper_mock, llm_helper_mock)
 

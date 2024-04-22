@@ -71,6 +71,7 @@ def test_create_skillset_rbac(
     search_indexer_client_mock: MagicMock,
 ):
     # given
+    env_helper_mock.is_auth_type_keys.return_value = False
     env_helper_mock.AZURE_AUTH_TYPE = "rbac"
     azure_search_iv_skillset_helper = AzureSearchSkillset(env_helper_mock)
 
