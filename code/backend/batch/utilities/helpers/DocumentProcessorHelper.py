@@ -51,15 +51,16 @@ class DocumentProcessor:
         env_helper: EnvHelper = EnvHelper()
         llm_helper: LLMHelper = LLMHelper()
         try:
-            search_datasource_helper = AzureSearchDatasource(env_helper)
-            search_datasource_helper.create_or_update_datasource()
-            search_index_helper = AzureSearchIndex(env_helper, llm_helper)
-            search_index_helper.create_or_update_index()
-            search_skillset_helper = AzureSearchSkillset(env_helper)
-            search_skillset = search_skillset_helper.create_skillset()
-            search_indexer_helper = AzureSearchIndexer(env_helper)
-            indexer_result = search_indexer_helper.create_or_update_indexer(
-                env_helper.AZURE_SEARCH_INDEXER_NAME, skillset_name=search_skillset.name
+            search_datasource = AzureSearchDatasource(env_helper)
+            search_datasource.create_or_update_datasource()
+            search_index = AzureSearchIndex(env_helper, llm_helper)
+            search_index.create_or_update_index()
+            search_skillset = AzureSearchSkillset(env_helper)
+            search_skillset_result = search_skillset.create_skillset()
+            search_indexer = AzureSearchIndexer(env_helper)
+            indexer_result = search_indexer.create_or_update_indexer(
+                env_helper.AZURE_SEARCH_INDEXER_NAME,
+                skillset_name=search_skillset_result.name,
             )
             return indexer_result
         except Exception as e:

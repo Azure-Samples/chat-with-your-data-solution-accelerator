@@ -167,7 +167,7 @@ class AzureSearchIndex:
 
     def get_semantic_search_config(self):
         semantic_config = SemanticConfiguration(
-            name="my-semantic-config",
+            name=self.env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
             prioritized_fields=SemanticPrioritizedFields(
                 content_fields=[SemanticField(field_name="content")]
             ),
