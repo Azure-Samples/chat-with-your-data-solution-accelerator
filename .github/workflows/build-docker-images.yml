@@ -1,14 +1,22 @@
-name: Docker Build With Push
+name: Build Docker Images
 
 on:
   workflow_run:
     workflows: [Tests]
     types: [completed]
     branches: [main]
+  pull_request:
+    branches: [main]
+    types:
+    - opened
+    - ready_for_review
+    - reopened
+    - synchronize
+  merge_group:
 
 jobs:
   docker-build:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     strategy:
       matrix:
         include:
@@ -24,5 +32,5 @@ jobs:
       username: fruoccopublic
       app_name: ${{ matrix.app_name }}
       dockerfile: ${{ matrix.dockerfile }}
-      push: true
+      push: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main' }}
     secrets: inherit
