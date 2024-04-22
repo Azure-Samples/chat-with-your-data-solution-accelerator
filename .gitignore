@@ -419,3 +419,6 @@ requirements.txt
 
 # Cypress UI tests screenshots folder
 tests/integration/ui/cypress/screenshots/
+
+# Jupyter
+.ipynb_checkpoints
