@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from backend.batch.utilities.helpers.AzureSearchIVSkillsetHelper import (
-    AzureSearchIVSkillsetHelper,
+from backend.batch.utilities.integrated_vectorization.AzureSearchSkillset import (
+    AzureSearchSkillset,
 )
 from azure.search.documents.indexes.models import (
     SearchIndexerSkillset,
@@ -21,7 +21,7 @@ AZURE_OPENAI_EMBEDDING_MODEL = "mock-openai-embedding-model"
 @pytest.fixture(autouse=True)
 def env_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVSkillsetHelper.EnvHelper"
+        "backend.batch.utilities.integrated_vectorization.AzureSearchSkillset.EnvHelper"
     ) as mock:
         env_helper = mock.return_value
         env_helper.AZURE_AUTH_TYPE = AZURE_AUTH_TYPE
@@ -37,7 +37,7 @@ def env_helper_mock():
 @pytest.fixture(autouse=True)
 def search_indexer_client_mock():
     with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVSkillsetHelper.SearchIndexerClient"
+        "backend.batch.utilities.integrated_vectorization.AzureSearchSkillset.SearchIndexerClient"
     ) as mock:
         indexer_client = mock.return_value
         indexer_client.create_or_update_skillset.return_value = SearchIndexerSkillset(
@@ -54,7 +54,7 @@ def test_create_skillset_keys(
     search_indexer_client_mock: MagicMock,
 ):
     # given
-    azure_search_iv_skillset_helper = AzureSearchIVSkillsetHelper(env_helper_mock)
+    azure_search_iv_skillset_helper = AzureSearchSkillset(env_helper_mock)
 
     # when
     create_or_update_skillset = azure_search_iv_skillset_helper.create_skillset()
@@ -72,7 +72,7 @@ def test_create_skillset_rbac(
 ):
     # given
     env_helper_mock.AZURE_AUTH_TYPE = "rbac"
-    azure_search_iv_skillset_helper = AzureSearchIVSkillsetHelper(env_helper_mock)
+    azure_search_iv_skillset_helper = AzureSearchSkillset(env_helper_mock)
 
     # when
     create_or_update_skillset = azure_search_iv_skillset_helper.create_skillset()

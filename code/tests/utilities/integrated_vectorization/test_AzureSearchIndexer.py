@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import ANY, MagicMock, patch
-from backend.batch.utilities.helpers.AzureSearchIVIndexerHelper import (
-    AzureSearchIVIndexerHelper,
+from backend.batch.utilities.integrated_vectorization.AzureSearchIndexer import (
+    AzureSearchIndexer,
 )
 
 AZURE_AUTH_TYPE = "keys"
@@ -13,7 +13,7 @@ AZURE_SEARCH_INDEX = "mock-index"
 @pytest.fixture(autouse=True)
 def env_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVIndexHelper.EnvHelper"
+        "backend.batch.utilities.integrated_vectorization.AzureSearchIndexer.EnvHelper"
     ) as mock:
         env_helper = mock.return_value
         env_helper.AZURE_AUTH_TYPE = AZURE_AUTH_TYPE
@@ -27,7 +27,7 @@ def env_helper_mock():
 @pytest.fixture(autouse=True)
 def search_indexer_client_mock():
     with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVIndexerHelper.SearchIndexerClient"
+        "backend.batch.utilities.integrated_vectorization.AzureSearchIndexer.SearchIndexerClient"
     ) as mock:
         yield mock
 
@@ -35,7 +35,7 @@ def search_indexer_client_mock():
 @pytest.fixture(autouse=True)
 def search_indexer_mock():
     with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVIndexerHelper.SearchIndexer"
+        "backend.batch.utilities.integrated_vectorization.AzureSearchIndexer.SearchIndexer"
     ) as mock:
         yield mock
 
@@ -46,7 +46,7 @@ def test_create_or_update_indexer_keys(
     search_indexer_mock: MagicMock,
 ):
     # given
-    azure_search_indexer = AzureSearchIVIndexerHelper(env_helper_mock)
+    azure_search_indexer = AzureSearchIndexer(env_helper_mock)
 
     # when
     azure_search_indexer.create_or_update_indexer("indexer_name", "skillset_name")
@@ -72,7 +72,7 @@ def test_create_or_update_indexer_rbac(
 ):
     # given
     env_helper_mock.AZURE_AUTH_TYPE = "rbac"
-    azure_search_indexer = AzureSearchIVIndexerHelper(env_helper_mock)
+    azure_search_indexer = AzureSearchIndexer(env_helper_mock)
 
     # when
     azure_search_indexer.create_or_update_indexer("indexer_name", "skillset_name")

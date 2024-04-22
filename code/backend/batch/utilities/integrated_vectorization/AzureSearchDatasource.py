@@ -6,12 +6,12 @@ from azure.search.documents.indexes._generated.models import (
     NativeBlobSoftDeleteDeletionDetectionPolicy,
 )
 from azure.search.documents.indexes import SearchIndexerClient
-from .EnvHelper import EnvHelper
+from ..helpers.EnvHelper import EnvHelper
 from azure.identity import DefaultAzureCredential
 from azure.core.credentials import AzureKeyCredential
 
 
-class AzureSearchIVDatasourceHelper:
+class AzureSearchDatasource:
     def __init__(self, env_helper: EnvHelper):
         self.env_helper = env_helper
         self.indexer_client = SearchIndexerClient(

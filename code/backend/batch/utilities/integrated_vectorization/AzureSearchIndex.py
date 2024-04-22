@@ -20,15 +20,15 @@ from azure.search.documents.indexes.models import (
     SemanticField,
     SearchIndex,
 )
-from .EnvHelper import EnvHelper
+from ..helpers.EnvHelper import EnvHelper
 from azure.identity import DefaultAzureCredential
 from azure.core.credentials import AzureKeyCredential
-from .LLMHelper import LLMHelper
+from ..helpers.LLMHelper import LLMHelper
 
 logger = logging.getLogger(__name__)
 
 
-class AzureSearchIVIndexHelper:
+class AzureSearchIndex:
     _search_dimension: int | None = None
 
     def __init__(self, env_helper: EnvHelper, llm_helper: LLMHelper):
@@ -45,11 +45,11 @@ class AzureSearchIVIndexHelper:
 
     @property
     def search_dimensions(self) -> int:
-        if AzureSearchIVIndexHelper._search_dimension is None:
-            AzureSearchIVIndexHelper._search_dimension = len(
+        if AzureSearchIndex._search_dimension is None:
+            AzureSearchIndex._search_dimension = len(
                 self.llm_helper.get_embedding_model().embed_query("Text")
             )
-        return AzureSearchIVIndexHelper._search_dimension
+        return AzureSearchIndex._search_dimension
 
     def create_or_update_index(self):
         # Create a search index
@@ -73,7 +73,12 @@ class AzureSearchIVIndexHelper:
                 vector_search_profile_name="myHnswProfile",
             ),
             SearchableField(name="metadata", type=SearchFieldDataType.String),
-            SearchableField(name="title", type=SearchFieldDataType.String),
+            SearchableField(
+                name="title",
+                type=SearchFieldDataType.String,
+                filterable=True,
+                facetable=True,
+            ),
             SearchableField(
                 name="source", type=SearchFieldDataType.String, filterable=True
             ),

@@ -1,10 +1,10 @@
 import logging
 from typing import List
 
-from .AzureSearchIVIndexHelper import AzureSearchIVIndexHelper
-from .AzureSearchIVIndexerHelper import AzureSearchIVIndexerHelper
-from .AzureSearchIVDatasourceHelper import AzureSearchIVDatasourceHelper
-from .AzureSearchIVSkillsetHelper import AzureSearchIVSkillsetHelper
+from ..integrated_vectorization.AzureSearchIndex import AzureSearchIndex
+from ..integrated_vectorization.AzureSearchIndexer import AzureSearchIndexer
+from ..integrated_vectorization.AzureSearchDatasource import AzureSearchDatasource
+from ..integrated_vectorization.AzureSearchSkillset import AzureSearchSkillset
 from .AzureSearchHelper import AzureSearchHelper
 from .DocumentLoadingHelper import DocumentLoading, LoadingSettings
 from .DocumentChunkingHelper import DocumentChunking, ChunkingSettings
@@ -51,13 +51,13 @@ class DocumentProcessor:
         env_helper: EnvHelper = EnvHelper()
         llm_helper: LLMHelper = LLMHelper()
         try:
-            search_datasource_helper = AzureSearchIVDatasourceHelper(env_helper)
+            search_datasource_helper = AzureSearchDatasource(env_helper)
             search_datasource_helper.create_or_update_datasource()
-            search_index_helper = AzureSearchIVIndexHelper(env_helper, llm_helper)
+            search_index_helper = AzureSearchIndex(env_helper, llm_helper)
             search_index_helper.create_or_update_index()
-            search_skillset_helper = AzureSearchIVSkillsetHelper(env_helper)
+            search_skillset_helper = AzureSearchSkillset(env_helper)
             search_skillset = search_skillset_helper.create_skillset()
-            search_indexer_helper = AzureSearchIVIndexerHelper(env_helper)
+            search_indexer_helper = AzureSearchIndexer(env_helper)
             indexer_result = search_indexer_helper.create_or_update_indexer(
                 env_helper.AZURE_SEARCH_INDEXER_NAME, skillset_name=search_skillset.name
             )

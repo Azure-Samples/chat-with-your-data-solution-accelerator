@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import ANY, MagicMock, patch
-from backend.batch.utilities.helpers.AzureSearchIVIndexHelper import (
-    AzureSearchIVIndexHelper,
+from backend.batch.utilities.integrated_vectorization.AzureSearchIndex import (
+    AzureSearchIndex,
 )
 from azure.search.documents.indexes.models import (
     VectorSearch,
@@ -18,7 +18,7 @@ AZURE_SEARCH_INDEX = "mock-index"
 @pytest.fixture(autouse=True)
 def env_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVIndexHelper.EnvHelper"
+        "backend.batch.utilities.integrated_vectorization.AzureSearchIndex.EnvHelper"
     ) as mock:
         env_helper = mock.return_value
         env_helper.AZURE_AUTH_TYPE = AZURE_AUTH_TYPE
@@ -32,7 +32,7 @@ def env_helper_mock():
 @pytest.fixture(autouse=True)
 def llm_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVIndexHelper.LLMHelper"
+        "backend.batch.utilities.integrated_vectorization.AzureSearchIndex.LLMHelper"
     ) as mock:
         llm_helper = mock.return_value
         llm_helper.get_embedding_model.return_value.embed_query.return_value = [
@@ -45,7 +45,7 @@ def llm_helper_mock():
 @pytest.fixture(autouse=True)
 def search_index_client_mock():
     with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVIndexHelper.SearchIndexClient"
+        "backend.batch.utilities.integrated_vectorization.AzureSearchIndex.SearchIndexClient"
     ) as mock:
         indexer_client = mock.return_value
         indexer_client.create_or_update_index.return_value = SearchIndex(
@@ -63,9 +63,7 @@ def test_create_or_update_index_keys(
     search_index_client_mock: MagicMock,
 ):
     # given
-    azure_search_iv_index_helper = AzureSearchIVIndexHelper(
-        env_helper_mock, llm_helper_mock
-    )
+    azure_search_iv_index_helper = AzureSearchIndex(env_helper_mock, llm_helper_mock)
 
     # when
     result = azure_search_iv_index_helper.create_or_update_index()
@@ -84,9 +82,7 @@ def test_create_or_update_index_rbac(
 ):
     # given
     env_helper_mock.AZURE_AUTH_TYPE = "rbac"
-    azure_search_iv_index_helper = AzureSearchIVIndexHelper(
-        env_helper_mock, llm_helper_mock
-    )
+    azure_search_iv_index_helper = AzureSearchIndex(env_helper_mock, llm_helper_mock)
 
     # when
     result = azure_search_iv_index_helper.create_or_update_index()

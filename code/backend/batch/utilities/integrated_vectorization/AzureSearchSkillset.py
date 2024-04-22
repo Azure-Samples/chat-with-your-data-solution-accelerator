@@ -11,14 +11,14 @@ from azure.search.documents.indexes.models import (
     SearchIndexerSkillset,
 )
 from azure.search.documents.indexes import SearchIndexerClient
-from .EnvHelper import EnvHelper
+from ..helpers.EnvHelper import EnvHelper
 from azure.identity import DefaultAzureCredential
 from azure.core.credentials import AzureKeyCredential
 
 logger = logging.getLogger(__name__)
 
 
-class AzureSearchIVSkillsetHelper:
+class AzureSearchSkillset:
     def __init__(self, env_helper: EnvHelper):
         self.env_helper = env_helper
         self.indexer_client = SearchIndexerClient(

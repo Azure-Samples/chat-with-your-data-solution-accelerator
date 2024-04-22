@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from backend.batch.utilities.helpers.AzureSearchIVDatasourceHelper import (
-    AzureSearchIVDatasourceHelper,
+from backend.batch.utilities.integrated_vectorization.AzureSearchDatasource import (
+    AzureSearchDatasource,
 )
 from azure.search.documents.indexes._generated.models import (
     NativeBlobSoftDeleteDeletionDetectionPolicy,
@@ -23,7 +23,7 @@ AZURE_RESOURCE_GROUP = "mock-resource-group"
 @pytest.fixture(autouse=True)
 def env_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVDatasourceHelper.EnvHelper"
+        "backend.batch.utilities.integrated_vectorization.AzureSearchDatasource.EnvHelper"
     ) as mock:
         env_helper = mock.return_value
         env_helper.AZURE_AUTH_TYPE = AZURE_AUTH_TYPE
@@ -40,7 +40,7 @@ def env_helper_mock():
 @pytest.fixture(autouse=True)
 def search_indexer_client_mock():
     with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVDatasourceHelper.SearchIndexerClient"
+        "backend.batch.utilities.integrated_vectorization.AzureSearchDatasource.SearchIndexerClient"
     ) as mock:
         yield mock
 
@@ -48,7 +48,7 @@ def search_indexer_client_mock():
 @pytest.fixture(autouse=True)
 def search_indexer_data_container_mock():
     with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVDatasourceHelper.SearchIndexerDataContainer"
+        "backend.batch.utilities.integrated_vectorization.AzureSearchDatasource.SearchIndexerDataContainer"
     ) as mock:
         yield mock
 
@@ -56,7 +56,7 @@ def search_indexer_data_container_mock():
 @pytest.fixture(autouse=True)
 def search_indexer_datasource_connection_mock():
     with patch(
-        "backend.batch.utilities.helpers.AzureSearchIVDatasourceHelper.SearchIndexerDataSourceConnection"
+        "backend.batch.utilities.integrated_vectorization.AzureSearchDatasource.SearchIndexerDataSourceConnection"
     ) as mock:
         yield mock
 
@@ -68,7 +68,7 @@ def test_create_or_update_datasource_keys(
     search_indexer_datasource_connection_mock: MagicMock,
 ):
     # given
-    azure_search_iv_datasource_helper = AzureSearchIVDatasourceHelper(env_helper_mock)
+    azure_search_iv_datasource_helper = AzureSearchDatasource(env_helper_mock)
     keys_datasource_connection = f"DefaultEndpointsProtocol=https;AccountName={env_helper_mock.AZURE_BLOB_ACCOUNT_NAME};AccountKey={env_helper_mock.AZURE_BLOB_ACCOUNT_KEY};EndpointSuffix=core.windows.net"
 
     # when
@@ -102,7 +102,7 @@ def test_create_or_update_datasource_rbac(
     env_helper_mock.AZURE_AUTH_TYPE = "rbac"
     rbac_datasource_connection = f"ResourceId=/subscriptions/{env_helper_mock.AZURE_SUBSCRIPTION_ID}/resourceGroups/{env_helper_mock.AZURE_RESOURCE_GROUP}/providers/Microsoft.Storage/storageAccounts/{env_helper_mock.AZURE_BLOB_ACCOUNT_NAME}/;"
 
-    azure_search_iv_datasource_helper = AzureSearchIVDatasourceHelper(env_helper_mock)
+    azure_search_iv_datasource_helper = AzureSearchDatasource(env_helper_mock)
 
     # when
     azure_search_iv_datasource_helper.create_or_update_datasource()
