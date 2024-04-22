@@ -20,7 +20,7 @@ on:
         type: boolean
     secrets:
       DOCKER_PASSWORD:
-        required: true
+        required: false
 
 jobs:
   docker-build:
