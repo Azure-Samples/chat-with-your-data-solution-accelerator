@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.24.24.22086",
-      "templateHash": "9644226637097027261"
+      "templateHash": "12260471619692156561"
     }
   },
   "parameters": {
@@ -250,7 +250,7 @@
       "type": "int",
       "defaultValue": 10,
       "metadata": {
-        "description": "Azure OpenAI Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota"
+        "description": "Azure OpenAI GPT-4 Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota"
       }
     },
     "orchestrationStrategy": {

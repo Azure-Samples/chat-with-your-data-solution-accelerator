@@ -119,7 +119,7 @@ param azureOpenAIGPT4VisionModelName string = 'gpt-4-vision'
 @description('Azure OpenAI GPT-4 Vision Model Version')
 param azureOpenAIGPT4VisionModelVersion string = 'vision-preview'
 
-@description('Azure OpenAI Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
+@description('Azure OpenAI GPT-4 Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIGPT4VisionModelCapacity int = 10
 
 @description('Orchestration strategy: openai_function or langchain str. If you use a old version of turbo (0301), plese select langchain')
