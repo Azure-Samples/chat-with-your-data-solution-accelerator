@@ -104,6 +104,9 @@ param azureOpenAIModelName string = 'gpt-35-turbo'
 
 param azureOpenAIModelVersion string = '0613'
 
+@description('Azure OpenAI Model Capacity')
+param azureOpenAIModelCapacity int = 30
+
 @description('Orchestration strategy: openai_function or langchain str. If you use a old version of turbo (0301), plese select langchain')
 @allowed([
   'openai_function'
@@ -137,6 +140,52 @@ param azureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 
 @description('Azure OpenAI Embedding Model Name')
 param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
+
+@description('Azure OpenAI Embedding Model Capacity')
+param azureOpenAIEmbeddingModelCapacity int = 30
+
+@description('Name of Computer Vision Resource (if using GPT-4 and Vision Preview)')
+param computerVisionName string = 'computer-vision-${resourceToken}'
+
+@description('Name of Computer Vision Resource SKU (if using GPT-4 and Vision Preview)')
+@allowed([
+  'F0'
+  'S1'
+])
+param computerVisionSkuName string = 'S1'
+
+@description('Location of Computer Vision Resource (if using GPT-4 and Vision Preview)')
+@allowed([// List taken from https://azure.microsoft.com/en-us/pricing/details/cognitive-services/computer-vision/
+  'centralus'
+  'eastus'
+  'eastus2'
+  'northcentralus'
+  'southcentralus'
+  'westcentralus'
+  'westus'
+  'westus2'
+  'westus3'
+  'uksouth'
+  'ukwest'
+  'switzerlandnorth'
+  'switzerlandwest'
+  'swedencentral'
+  'qatarcentral'
+  'polandcentral'
+  'koreacentral'
+  'japaneast'
+  'japanwest'
+  'centralindia'
+  'francecentral'
+  'northeurope'
+  'westeurope'
+  'canadacentral'
+  'brazilsouth'
+  'australiaeast'
+  'eastasia'
+  'southeastasia'
+])
+param computerVisionLocation string = location
 
 @description('Azure AI Search Resource')
 param azureAISearchName string = 'search-${resourceToken}'
@@ -218,6 +267,10 @@ var tags = { 'azd-env-name': environmentName }
 var rgName = 'rg-${environmentName}'
 var keyVaultName = 'kv-${resourceToken}'
 
+var isGPT4 = azureOpenAIModel == 'gpt-4'
+var isVision = azureOpenAIModelVersion == 'vision-preview'
+var useGPT4Vision = isGPT4 && isVision
+
 // Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: rgName
@@ -258,7 +311,7 @@ module openai 'core/ai/cognitiveservices.bicep' = {
         }
         sku: {
           name: 'Standard'
-          capacity: 30
+          capacity: azureOpenAIModelCapacity
         }
       }
       {
@@ -268,9 +321,23 @@ module openai 'core/ai/cognitiveservices.bicep' = {
           name: azureOpenAIEmbeddingModelName
           version: '2'
         }
-        capacity: 30
+        capacity: azureOpenAIEmbeddingModelCapacity
       }
     ]
+  }
+}
+
+module computerVision 'core/ai/cognitiveservices.bicep' = if (useGPT4Vision) {
+  name: 'computerVision'
+  scope: rg
+  params: {
+    name: computerVisionName
+    kind: 'ComputerVision'
+    location: computerVisionLocation
+    tags: tags
+    sku: {
+      name: computerVisionSkuName
+    }
   }
 }
 
