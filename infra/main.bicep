@@ -246,8 +246,8 @@ var tags = { 'azd-env-name': environmentName }
 var rgName = 'rg-${environmentName}'
 var keyVaultName = 'kv-${resourceToken}'
 
-var isGPT4 = azureOpenAIModel == 'gpt-4'
-var isVision = azureOpenAIModelVersion == 'vision-preview'
+var isGPT4 = contains(azureOpenAIModel, 'gpt-4')
+var isVision = contains(azureOpenAIModelVersion, 'vision')
 var useGPT4Vision = isGPT4 && isVision
 
 // Organize resources in a resource group

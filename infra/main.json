@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.170.59819",
-      "templateHash": "6779432007427316292"
+      "templateHash": "4986345165374393363"
     }
   },
   "parameters": {
@@ -483,8 +483,8 @@
     },
     "rgName": "[format('rg-{0}', parameters('environmentName'))]",
     "keyVaultName": "[format('kv-{0}', parameters('resourceToken'))]",
-    "isGPT4": "[equals(parameters('azureOpenAIModel'), 'gpt-4')]",
-    "isVision": "[equals(parameters('azureOpenAIModelVersion'), 'vision-preview')]",
+    "isGPT4": "[contains(parameters('azureOpenAIModel'), 'gpt-4')]",
+    "isVision": "[contains(parameters('azureOpenAIModelVersion'), 'vision')]",
     "useGPT4Vision": "[and(variables('isGPT4'), variables('isVision'))]"
   },
   "resources": [
