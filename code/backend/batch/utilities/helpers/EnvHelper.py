@@ -71,8 +71,18 @@ class EnvHelper:
             "AZURE_SEARCH_CONVERSATIONS_LOG_INDEX", "conversations"
         )
         # Integrated Vectorization
+        self.AZURE_SEARCH_DATASOURCE_NAME = os.getenv(
+            "AZURE_SEARCH_DATASOURCE_NAME", ""
+        )
+        self.AZURE_SEARCH_INDEXER_NAME = os.getenv("AZURE_SEARCH_INDEXER_NAME", "")
         self.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = self.get_env_var_bool(
             "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION", "False"
+        )
+        self.AZURE_SEARCH_IV_MAX_PAGE_LENGTH = int(
+            os.getenv("AZURE_SEARCH_IV_MAX_PAGE_LENGTH", "2000")
+        )
+        self.AZURE_SEARCH_IV_PAGE_OVERLAP_LENGTH = int(
+            os.getenv("AZURE_SEARCH_IV_PAGE_OVERLAP_LENGTH", "500")
         )
 
         self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "keys")
@@ -209,6 +219,9 @@ class EnvHelper:
 
     def get_env_var_array(self, var_name: str, default: str = ""):
         return os.getenv(var_name, default).split(",")
+
+    def is_auth_type_keys(self):
+        return self.AZURE_AUTH_TYPE == "keys"
 
     @staticmethod
     def check_env():

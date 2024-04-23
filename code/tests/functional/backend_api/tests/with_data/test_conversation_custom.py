@@ -100,7 +100,7 @@ def test_post_makes_correct_call_to_get_search_index(
                 "Accept": "application/json;odata.metadata=minimal",
                 "Api-Key": app_config.get("AZURE_SEARCH_KEY"),
             },
-            query_string="api-version=2023-11-01",
+            query_string="api-version=2023-10-01-Preview",
             times=1,
         ),
     )
@@ -218,7 +218,7 @@ def test_post_makes_correct_call_to_store_conversation_in_search(
                 "Content-Type": "application/json",
                 "Api-Key": app_config.get("AZURE_SEARCH_KEY"),
             },
-            query_string="api-version=2023-11-01",
+            query_string="api-version=2023-10-01-Preview",
             times=2,
         ),
     )

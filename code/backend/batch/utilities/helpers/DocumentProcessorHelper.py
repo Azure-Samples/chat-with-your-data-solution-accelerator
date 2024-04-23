@@ -1,9 +1,16 @@
 import logging
 from typing import List
+
+from ..integrated_vectorization.AzureSearchIndex import AzureSearchIndex
+from ..integrated_vectorization.AzureSearchIndexer import AzureSearchIndexer
+from ..integrated_vectorization.AzureSearchDatasource import AzureSearchDatasource
+from ..integrated_vectorization.AzureSearchSkillset import AzureSearchSkillset
 from .AzureSearchHelper import AzureSearchHelper
 from .DocumentLoadingHelper import DocumentLoading, LoadingSettings
 from .DocumentChunkingHelper import DocumentChunking, ChunkingSettings
 from ..common.SourceDocument import SourceDocument
+from .EnvHelper import EnvHelper
+from .LLMHelper import LLMHelper
 
 logger = logging.getLogger(__name__)
 
@@ -39,3 +46,23 @@ class DocumentProcessor:
             except Exception as e:
                 logger.error(f"Error adding embeddings for {source_url}: {e}")
                 raise e
+
+    def process_using_integrated_vectorisation(self, source_url: str):
+        env_helper: EnvHelper = EnvHelper()
+        llm_helper: LLMHelper = LLMHelper()
+        try:
+            search_datasource = AzureSearchDatasource(env_helper)
+            search_datasource.create_or_update_datasource()
+            search_index = AzureSearchIndex(env_helper, llm_helper)
+            search_index.create_or_update_index()
+            search_skillset = AzureSearchSkillset(env_helper)
+            search_skillset_result = search_skillset.create_skillset()
+            search_indexer = AzureSearchIndexer(env_helper)
+            indexer_result = search_indexer.create_or_update_indexer(
+                env_helper.AZURE_SEARCH_INDEXER_NAME,
+                skillset_name=search_skillset_result.name,
+            )
+            return indexer_result
+        except Exception as e:
+            logger.error(f"Error processing {source_url}: {e}")
+            raise e
