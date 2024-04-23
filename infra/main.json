@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "13181754873349078836"
+      "templateHash": "8672723214403233033"
     }
   },
   "parameters": {
@@ -553,7 +553,10 @@
           "name": "[parameters('azureOpenAIEmbeddingModelName')]",
           "version": "2"
         },
-        "capacity": "[parameters('azureOpenAIEmbeddingModelCapacity')]"
+        "sku": {
+          "name": "Standard",
+          "capacity": "[parameters('azureOpenAIEmbeddingModelCapacity')]"
+        }
       }
     ],
     "openAiDeployments": "[concat(variables('defaultOpenAiDeployments'), if(parameters('useGPT4Vision'), createArray(createObject('name', parameters('azureOpenAIGPT4VisionModelName'), 'model', createObject('format', 'OpenAI', 'name', parameters('azureOpenAIGPT4VisionModel'), 'version', parameters('azureOpenAIGPT4VisionModelVersion')), 'sku', createObject('name', 'Standard', 'capacity', parameters('azureOpenAIGPT4VisionModelCapacity')))), createArray()))]"

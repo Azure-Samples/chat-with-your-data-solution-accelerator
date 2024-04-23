@@ -307,7 +307,10 @@ var defaultOpenAiDeployments = [
       name: azureOpenAIEmbeddingModelName
       version: '2'
     }
-    capacity: azureOpenAIEmbeddingModelCapacity
+    sku: {
+      name: 'Standard'
+      capacity: azureOpenAIEmbeddingModelCapacity
+    }
   }
 ]
 
