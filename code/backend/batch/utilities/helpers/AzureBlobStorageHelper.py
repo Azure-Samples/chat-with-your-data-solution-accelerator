@@ -95,10 +95,9 @@ class AzureBlobStorageClient:
         return user_delegation_key
 
     def file_exists(self, file_name):
-        container_client = self.blob_service_client.get_container_client(
-            self.container_name
+        blob_client = self.blob_service_client.get_blob_client(
+            container=self.container_name, blob=file_name
         )
-        blob_client = container_client.get_blob_client(file_name)
 
         return blob_client.exists()
 
@@ -204,14 +203,9 @@ class AzureBlobStorageClient:
         return files
 
     def upsert_blob_metadata(self, file_name, metadata):
-        if self.auth_type == "rbac":
-            blob_client = self.blob_service_client.get_blob_client(
-                container=self.container_name, blob=file_name
-            )
-        else:
-            blob_client = BlobServiceClient.from_connection_string(
-                self.connect_str
-            ).get_blob_client(container=self.container_name, blob=file_name)
+        blob_client = self.blob_service_client.get_blob_client(
+            container=self.container_name, blob=file_name
+        )
         # Read metadata from the blob
         blob_metadata = blob_client.get_blob_properties().metadata
         # Update metadata

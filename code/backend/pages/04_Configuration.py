@@ -6,6 +6,7 @@ import traceback
 from dotenv import load_dotenv
 import sys
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
+from azure.core.exceptions import ResourceNotFoundError
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -339,6 +340,31 @@ try:
         }
         ConfigHelper.save_config_as_active(current_config)
         st.success("Configuration saved successfully!")
+
+    with st.popover(":red[Reset confiiguration to defaults]"):
+        st.write(
+            "**Resetting the configuration cannot be reversed, proceed with caution!**"
+        )
+        st.text_input('Enter "reset" to proceed', key="reset_configuration")
+        if st.button(
+            ":red[Reset]", disabled=st.session_state["reset_configuration"] != "reset"
+        ):
+            try:
+                ConfigHelper.delete_config()
+            except ResourceNotFoundError:
+                pass
+
+            for key in st.session_state:
+                del st.session_state[key]
+
+            st.session_state["reset"] = True
+            st.session_state["reset_configuration"] = ""
+            st.rerun()
+
+        if st.session_state.get("reset") is True:
+            st.success("Configuration reset successfully!")
+            del st.session_state["reset"]
+            del st.session_state["reset_configuration"]
 
 except Exception:
     st.error(traceback.format_exc())
