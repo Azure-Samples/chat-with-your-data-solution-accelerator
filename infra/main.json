@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.54.24096",
-      "templateHash": "4241066963827046704"
+      "templateHash": "8672723214403233033"
     }
   },
   "parameters": {
@@ -10091,7 +10091,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.54.24096",
-              "templateHash": "8649782314912119648"
+              "templateHash": "425644292909061969"
             },
             "description": "Creates an Azure storage account."
           },
@@ -10136,13 +10136,9 @@
               "type": "bool",
               "defaultValue": false
             },
-            "azureSearchUseIntegratedVectorization": {
-              "type": "bool",
-              "defaultValue": false
-            },
             "deleteRetentionPolicy": {
               "type": "object",
-              "defaultValue": "[if(parameters('azureSearchUseIntegratedVectorization'), createObject('enabled', true(), 'days', 7), createObject())]"
+              "defaultValue": {}
             },
             "dnsEndpointType": {
               "type": "string",
