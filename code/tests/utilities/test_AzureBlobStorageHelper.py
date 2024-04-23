@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 from backend.batch.utilities.helpers.AzureBlobStorageHelper import (
     AzureBlobStorageClient,
 )
@@ -91,4 +91,50 @@ def test_upsert_blob_metadata(BlobServiceClientMock: MagicMock):
             "old-key": "new-value",
             "new-key": "some-value",
         }
+    )
+
+
+@patch("backend.batch.utilities.helpers.AzureBlobStorageHelper.generate_blob_sas")
+def test_get_blob_sas(generate_blob_sas_mock: MagicMock):
+    # given
+    client = AzureBlobStorageClient()
+    generate_blob_sas_mock.return_value = "mock-sas"
+
+    # when
+    result = client.get_blob_sas("mock-file")
+
+    # then
+    assert (
+        result
+        == "https://mock-account.blob.core.windows.net/mock-container/mock-file?mock-sas"
+    )
+    generate_blob_sas_mock.assert_called_once_with(
+        account_name="mock-account",
+        container_name="mock-container",
+        blob_name="mock-file",
+        user_delegation_key=None,
+        account_key="mock-key",
+        permission="r",
+        expiry=ANY,
+    )
+
+
+@patch("backend.batch.utilities.helpers.AzureBlobStorageHelper.generate_container_sas")
+def test_get_container_sas(generate_container_sas_mock: MagicMock):
+    # given
+    client = AzureBlobStorageClient()
+    generate_container_sas_mock.return_value = "mock-sas"
+
+    # when
+    result = client.get_container_sas()
+
+    # then
+    assert result == "?mock-sas"
+    generate_container_sas_mock.assert_called_once_with(
+        account_name="mock-account",
+        container_name="mock-container",
+        user_delegation_key=None,
+        account_key="mock-key",
+        permission="r",
+        expiry=ANY,
     )
