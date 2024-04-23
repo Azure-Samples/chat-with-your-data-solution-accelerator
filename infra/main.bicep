@@ -107,20 +107,20 @@ param azureOpenAIModelVersion string = '0613'
 @description('Azure OpenAI Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIModelCapacity int = 30
 
-@description('Deploys and uses GPT-4 vision for processing images')
-param useGPT4Vision bool = false
+@description('Enables the use of a vision LLM and Computer Vision for embedding images')
+param useAdvancedImageProcessing bool = false
 
-@description('Azure OpenAI GPT-4 Vision Model Deployment Name')
-param azureOpenAIGPT4VisionModel string = 'gpt-4'
+@description('Azure OpenAI Vision Model Deployment Name')
+param azureOpenAIVisionModel string = 'gpt-4-vision'
 
-@description('Azure OpenAI GPT-4 Vision Model Name')
-param azureOpenAIGPT4VisionModelName string = 'gpt-4-vision'
+@description('Azure OpenAI Vision Model Name')
+param azureOpenAIVisionModelName string = 'gpt-4'
 
-@description('Azure OpenAI GPT-4 Vision Model Version')
-param azureOpenAIGPT4VisionModelVersion string = 'vision-preview'
+@description('Azure OpenAI Vision Model Version')
+param azureOpenAIVisionModelVersion string = 'vision-preview'
 
-@description('Azure OpenAI GPT-4 Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
-param azureOpenAIGPT4VisionModelCapacity int = 10
+@description('Azure OpenAI Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
+param azureOpenAIVisionModelCapacity int = 10
 
 @description('Orchestration strategy: openai_function or langchain str. If you use a old version of turbo (0301), plese select langchain')
 @allowed([
@@ -159,17 +159,17 @@ param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
 @description('Azure OpenAI Embedding Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIEmbeddingModelCapacity int = 30
 
-@description('Name of Computer Vision Resource (if useGPT4Vision=true)')
+@description('Name of Computer Vision Resource (if useAdvancedImageProcessing=true)')
 param computerVisionName string = 'computer-vision-${resourceToken}'
 
-@description('Name of Computer Vision Resource SKU (if useGPT4Vision=true)')
+@description('Name of Computer Vision Resource SKU (if useAdvancedImageProcessing=true)')
 @allowed([
   'F0'
   'S1'
 ])
 param computerVisionSkuName string = 'S1'
 
-@description('Location of Computer Vision Resource (if useGPT4Vision=true)')
+@description('Location of Computer Vision Resource (if useAdvancedImageProcessing=true)')
 @allowed([// List taken from https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/image-retrieval?tabs=python#prerequisites
   'eastus'
   'westus'
@@ -180,7 +180,7 @@ param computerVisionSkuName string = 'S1'
   'southeastasia'
   ''
 ])
-param computerVisionLocation string = useGPT4Vision ? location : ''
+param computerVisionLocation string = useAdvancedImageProcessing ? location : ''
 
 @description('Azure AI Search Resource')
 param azureAISearchName string = 'search-${resourceToken}'
@@ -314,17 +314,17 @@ var defaultOpenAiDeployments = [
   }
 ]
 
-var openAiDeployments = concat(defaultOpenAiDeployments, useGPT4Vision ? [
+var openAiDeployments = concat(defaultOpenAiDeployments, useAdvancedImageProcessing ? [
     {
-      name: azureOpenAIGPT4VisionModelName
+      name: azureOpenAIVisionModel
       model: {
         format: 'OpenAI'
-        name: azureOpenAIGPT4VisionModel
-        version: azureOpenAIGPT4VisionModelVersion
+        name: azureOpenAIVisionModelName
+        version: azureOpenAIVisionModelVersion
       }
       sku: {
         name: 'Standard'
-        capacity: azureOpenAIGPT4VisionModelCapacity
+        capacity: azureOpenAIVisionModelCapacity
       }
     }
   ] : [])
@@ -344,7 +344,7 @@ module openai 'core/ai/cognitiveservices.bicep' = {
   }
 }
 
-module computerVision 'core/ai/cognitiveservices.bicep' = if (useGPT4Vision) {
+module computerVision 'core/ai/cognitiveservices.bicep' = if (useAdvancedImageProcessing) {
   name: 'computerVision'
   scope: rg
   params: {
@@ -392,7 +392,7 @@ module blobDataReaderRoleSearch 'core/security/role.bicep' = if (authType == 'rb
 }
 
 // Cognitive Services OpenAI User
-module openAiRoleSearchService 'core/security/role.bicep' = if (authType == 'rbac'){
+module openAiRoleSearchService 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: rg
   name: 'openai-role-searchservice'
   params: {
