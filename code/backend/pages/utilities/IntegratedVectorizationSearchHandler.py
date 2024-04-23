@@ -4,6 +4,7 @@ from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential
 import pandas as pd
 import streamlit as st
+import re
 
 
 class IntegratedVectorizationSearchHandler(SearchHandlerBase):
@@ -26,7 +27,10 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
         )
 
     def process_results(self, results):
-        data = [[result["chunk_id"], result["content"]] for result in results]
+        data = [
+            [re.findall(r"\d+", result["chunk_id"])[-1], result["content"]]
+            for result in results
+        ]
         return pd.DataFrame(data, columns=("Chunk", "Content")).sort_values(
             by=["Chunk"]
         )
