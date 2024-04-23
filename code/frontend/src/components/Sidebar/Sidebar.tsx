@@ -1,22 +1,54 @@
 import * as React from "react";
+import { useEffect } from "react";
 import {
-  DrawerBody,
-  DrawerHeader,
-  DrawerHeaderTitle,
   InlineDrawer,
-  Button,
   Menu,
   MenuTrigger,
   MenuPopover,
 } from "@fluentui/react-components";
-import {
-  Dismiss24Regular,
-  TextBulletListSquareFilled,
-} from "@fluentui/react-icons";
 import styles from "./Sidebar.module.css";
 
 export const Sidebar = () => {
   const [isOpen, setIsOpen] = React.useState(true);
+
+  const createNewThread = () => {
+    alert("Threads coming soon 🎉");
+  };
+
+  const detectKeyDown = (e: KeyboardEvent) => {
+    switch (e.key) {
+      case "[":
+        setIsOpen(false);
+        break;
+
+      case "]":
+        setIsOpen(true);
+        break;
+
+      /* case "[":
+        setIsOpen(false);
+        break; */
+
+      default:
+        break;
+    }
+  };
+
+  const detectKeyUp = (e: KeyboardEvent) => {
+    /* if (e.key === "Shift" || e.key === "Control") {
+      // console.log("Control un-clicked");
+    } */
+  };
+
+  useEffect(() => {
+    document.addEventListener("keydown", detectKeyDown, true);
+    document.addEventListener("keyup", detectKeyUp, true);
+
+    return () => {
+      document.removeEventListener("keydown", detectKeyDown, true);
+      document.removeEventListener("keyup", detectKeyUp, true);
+    };
+  }, []);
 
   return (
     <div className={styles.sidebar}>
@@ -31,7 +63,10 @@ export const Sidebar = () => {
       >
         <div className={styles.sidebarMain}>
           <div className={styles.sidebarHeader}>
-            <div className={styles.newThreadActions}>
+            <div
+              className={styles.newThreadActions}
+              onClick={(e) => createNewThread()}
+            >
               <div className={styles.newThreadBtn}>
                 <img src="../../plusIcon.png" />
                 <span>New Thread</span>
