@@ -38,6 +38,7 @@ azure-monitor-opentelemetry = "^1.4.0"
 opentelemetry-instrumentation-httpx = "^0.45b0"
 pillow = "10.3.0"
 azure-mgmt-cognitiveservices = "^13.5.0"
+jsonschema = "^4.21.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
