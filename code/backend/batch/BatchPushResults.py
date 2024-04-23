@@ -48,15 +48,15 @@ def do_batch_push_results(msg: func.QueueMessage) -> None:
     # Get file extension's processors
     file_extension = file_name.split(".")[-1]
 
-    processors = list(
-        filter(
-            lambda x: x.document_type.lower() == file_extension.lower(),
-            ConfigHelper.get_active_config_or_default().document_processors,
-        )
-    )
     # Process the file
     if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
         document_processor.process_using_integrated_vectorisation(source_url=file_sas)
     else:
+        processors = list(
+            filter(
+                lambda x: x.document_type.lower() == file_extension.lower(),
+                ConfigHelper.get_active_config_or_default().document_processors,
+            )
+        )
         document_processor.process(source_url=file_sas, processors=processors)
         blob_client.upsert_blob_metadata(file_name, {"embeddings_added": "true"})

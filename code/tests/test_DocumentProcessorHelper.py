@@ -32,7 +32,7 @@ def llm_helper_mock():
 @pytest.fixture(autouse=True)
 def azure_search_iv_index_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.DocumentProcessorHelper.AzureSearchIVIndexHelper"
+        "backend.batch.utilities.helpers.DocumentProcessorHelper.AzureSearchIndex"
     ) as mock:
         yield mock
 
@@ -40,7 +40,7 @@ def azure_search_iv_index_helper_mock():
 @pytest.fixture(autouse=True)
 def azure_search_iv_datasource_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.DocumentProcessorHelper.AzureSearchIVDatasourceHelper"
+        "backend.batch.utilities.helpers.DocumentProcessorHelper.AzureSearchDatasource"
     ) as mock:
         yield mock
 
@@ -48,7 +48,7 @@ def azure_search_iv_datasource_helper_mock():
 @pytest.fixture(autouse=True)
 def azure_search_iv_skillset_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.DocumentProcessorHelper.AzureSearchIVSkillsetHelper"
+        "backend.batch.utilities.helpers.DocumentProcessorHelper.AzureSearchSkillset"
     ) as mock:
         yield mock
 
@@ -56,7 +56,7 @@ def azure_search_iv_skillset_helper_mock():
 @pytest.fixture(autouse=True)
 def azure_search_iv_indexer_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.DocumentProcessorHelper.AzureSearchIVIndexerHelper"
+        "backend.batch.utilities.helpers.DocumentProcessorHelper.AzureSearchIndexer"
     ) as mock:
         yield mock
 
