@@ -20,11 +20,15 @@ include $(AZURE_ENV_FILE)
 help: ## 💬 This help message :)
 	@grep -E '[a-zA-Z_-]+:.*?## .*$$' $(firstword $(MAKEFILE_LIST)) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-23s\033[0m %s\n", $$1, $$2}'
 
-ci: lint unittest functionaltest build-frontend unittest-frontend ## 🚀 Continuous Integration (called by Github Actions)
+ci: lint unittest functionaltest frontendtest ## 🚀 Continuous Integration (called by Github Actions)
 
 lint: ## 🧹 Lint the code
 	@echo -e "\e[34m$@\e[0m" || true
 	@poetry run flake8 code
+
+build-frontend: ## 🏗️ Build the Frontend webapp
+	@echo -e "\e[34m$@\e[0m" || true
+	@cd code/frontend && npm install && npm run build
 
 unittest: ## 🧪 Run the unit tests
 	@echo -e "\e[34m$@\e[0m" || true
@@ -38,11 +42,7 @@ uitest: ## 🧪 Run the ui tests in headless mode
 	@echo -e "\e[34m$@\e[0m" || true
 	@cd tests/integration/ui && npm install && npx cypress run --env ADMIN_WEBSITE_NAME=$(ADMIN_WEBSITE_NAME),FRONTEND_WEBSITE_NAME=$(FRONTEND_WEBSITE_NAME)
 
-build-frontend: ## 🏗️ Build the Frontend webapp
-	@echo -e "\e[34m$@\e[0m" || true
-	@cd code/frontend && npm install && npm run build
-
-unittest-frontend: build-frontend ## 🏗️ Unit test the Frontend webapp
+frontendtest: build-frontend ## 🧪 Unit test the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
 	@cd code/frontend && npm run test
 
