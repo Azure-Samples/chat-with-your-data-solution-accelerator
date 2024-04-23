@@ -52,7 +52,8 @@ jupyter = "1.0.0"
 
 [tool.coverage.run]
 omit = [
-    "code/tests/*",
+    "**/tests/*",
+    "**/dist/*",
 ]
 
 [tool.coverage.report]

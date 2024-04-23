@@ -32,8 +32,7 @@ def test_file_exists(BlobServiceClientMock: MagicMock, exists: bool, expected: b
     # given
     client = AzureBlobStorageClient()
     blob_service_client_mock = BlobServiceClientMock.from_connection_string.return_value
-    container_client_mock = blob_service_client_mock.get_container_client.return_value
-    blob_client_mock = container_client_mock.get_blob_client.return_value
+    blob_client_mock = blob_service_client_mock.get_blob_client.return_value
     blob_client_mock.exists.return_value = exists
 
     # when
@@ -42,7 +41,54 @@ def test_file_exists(BlobServiceClientMock: MagicMock, exists: bool, expected: b
     # then
     assert result is expected
 
-    blob_service_client_mock.get_container_client.assert_called_once_with(
-        "mock-container"
+    blob_service_client_mock.get_blob_client.assert_called_once_with(
+        container="mock-container", blob="mock-file"
     )
-    container_client_mock.get_blob_client.assert_called_once_with("mock-file")
+
+
+def test_delete_file(BlobServiceClientMock: MagicMock):
+    # given
+    client = AzureBlobStorageClient()
+    blob_service_client_mock = BlobServiceClientMock.from_connection_string.return_value
+    blob_client_mock = blob_service_client_mock.get_blob_client.return_value
+
+    # when
+    client.delete_file("mock-file")
+
+    # then
+    blob_service_client_mock.get_blob_client.assert_called_once_with(
+        container="mock-container", blob="mock-file"
+    )
+    blob_client_mock.delete_blob.assert_called_once()
+
+
+def test_upsert_blob_metadata(BlobServiceClientMock: MagicMock):
+    # given
+    client = AzureBlobStorageClient()
+    blob_service_client_mock = BlobServiceClientMock.from_connection_string.return_value
+    blob_client_mock = blob_service_client_mock.get_blob_client.return_value
+    blob_client_mock.get_blob_properties.return_value.metadata = {
+        "other-key": "other-value",
+        "old-key": "old-value",
+    }
+
+    # when
+    client.upsert_blob_metadata(
+        "mock-file",
+        {
+            "old-key": "new-value",
+            "new-key": "some-value",
+        },
+    )
+
+    # then
+    blob_service_client_mock.get_blob_client.assert_called_once_with(
+        container="mock-container", blob="mock-file"
+    )
+    blob_client_mock.set_blob_metadata.assert_called_once_with(
+        metadata={
+            "other-key": "other-value",
+            "old-key": "new-value",
+            "new-key": "some-value",
+        }
+    )
