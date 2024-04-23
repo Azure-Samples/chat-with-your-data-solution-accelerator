@@ -5,6 +5,9 @@ import {
   DrawerHeaderTitle,
   InlineDrawer,
   Button,
+  Menu,
+  MenuTrigger,
+  MenuPopover,
 } from "@fluentui/react-components";
 import {
   Dismiss24Regular,
@@ -50,31 +53,54 @@ export const Sidebar = () => {
           <div className={styles.sidebarBody}>
             <span className={styles.threadsHeader}>Threads</span>
             <ul className={`menuListContainer`}>
-              <li className={`${styles.threadMenuItem} menuListItem activeListItem`}>
+              {/* ↓ should be in for loop when data is hooked up */}
+              <li
+                className={`${styles.threadMenuItem} menuListItem activeListItem`}
+              >
                 <div className={`listItemLabel`}>
                   <img src="../../threadIcon.png" />
                   <span>Example Test Thread</span>
                 </div>
-                <div className={`${styles.threadMenu} ghostIconBtn`}>
-                  <img src="../../ellipsesIconBlue.png" />
-                </div>
-              </li>
-              {/* <li className={`menuListItem disabled`}> */}
-              <li className={`${styles.threadMenuItem} menuListItem`}>
-                <div className={`listItemLabel`}>
-                  <img src="../../threadIcon.png" />
-                  <span>Example Test Thread</span>
-                </div>
-                <div className={`${styles.threadMenu} ghostIconBtn`}>
-                  <img src="../../ellipsesIconBlue.png" />
-                </div>
+                <Menu>
+                  <MenuTrigger disableButtonEnhancement>
+                    <div className={`${styles.threadMenu} ghostIconBtn`}>
+                      <img src="../../ellipsesIconBlue.png" />
+                    </div>
+                  </MenuTrigger>
+
+                  <MenuPopover style={{ padding: "0px" }}>
+                    <ul className={`${styles.headerMenu} menuListContainer`}>
+                      <li className={`menuListItem disabled`}>
+                        <div className={`listItemLabel`}>
+                          <img src="../../shareLinkIcon_blue.png" />
+                          <span>Share Thread</span>
+                        </div>
+                      </li>
+                      <li className={`menuListItem disabled`}>
+                        <div className={`listItemLabel`}>
+                          <img src="../../editIcon.png" />
+                          <span>Rename</span>
+                        </div>
+                      </li>
+                      <li className={`menuListItem disabled`}>
+                        <div className={`listItemLabel`}>
+                          <img src="../../deleteIcon.png" />
+                          <span>Delete Thread</span>
+                        </div>
+                      </li>
+                    </ul>
+                  </MenuPopover>
+                </Menu>
               </li>
             </ul>
           </div>
         </div>
       </InlineDrawer>
 
-      <div className={`${styles.openSideMenuBtn} ghostIconBtn`} onClick={() => setIsOpen(true)}>
+      <div
+        className={`${styles.openSideMenuBtn} ghostIconBtn`}
+        onClick={() => setIsOpen(true)}
+      >
         <img src="../../dock_to_right_outline.png" />
       </div>
     </div>

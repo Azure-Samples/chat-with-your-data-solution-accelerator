@@ -93,3 +93,8 @@
   opacity: 0.0;
   transition: all 0.35s;
 }
+
+
+.headerMenu {
+  margin-top: 0px;
+}
