@@ -1,5 +1,5 @@
 from backend.pages.utilities.SearchHandlerBase import SearchHandlerBase
-from batch.utilities.helpers.AzureSearchHelper import AzureSearchHelper
+from backend.batch.utilities.helpers.AzureSearchHelper import AzureSearchHelper
 import json
 import pandas as pd
 import streamlit as st
