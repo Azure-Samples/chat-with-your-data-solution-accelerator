@@ -6,6 +6,7 @@ import traceback
 from dotenv import load_dotenv
 import sys
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
+from azure.core.exceptions import ResourceNotFoundError
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -348,8 +349,13 @@ try:
         if st.button(
             ":red[Reset]", disabled=st.session_state["reset_configuration"] != "reset"
         ):
-            ConfigHelper.delete_config()
+            try:
+                ConfigHelper.delete_config()
+            except ResourceNotFoundError:
+                pass
+
             st.success("Configuration reset successfully! Refresh to update.")
+
 
 except Exception:
     st.error(traceback.format_exc())
