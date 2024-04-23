@@ -345,7 +345,7 @@ try:
         st.write(
             "**Resetting the configuration cannot be reversed, proceed with caution!**"
         )
-        name = st.text_input('Enter "reset" to proceed', key="reset_configuration")
+        st.text_input('Enter "reset" to proceed', key="reset_configuration")
         if st.button(
             ":red[Reset]", disabled=st.session_state["reset_configuration"] != "reset"
         ):
@@ -354,8 +354,17 @@ try:
             except ResourceNotFoundError:
                 pass
 
-            st.success("Configuration reset successfully! Refresh to update.")
+            for key in st.session_state:
+                del st.session_state[key]
 
+            st.session_state["reset"] = True
+            st.session_state["reset_configuration"] = ""
+            st.rerun()
+
+        if st.session_state.get("reset") is True:
+            st.success("Configuration reset successfully!")
+            del st.session_state["reset"]
+            del st.session_state["reset_configuration"]
 
 except Exception:
     st.error(traceback.format_exc())
