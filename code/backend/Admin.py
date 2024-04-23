@@ -10,6 +10,7 @@ load_dotenv()
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
+logging.captureWarnings(True)
 logging.basicConfig(level=os.getenv("LOGLEVEL", "INFO").upper())
 # Raising the azure log level to WARN as it is too verbose - https://github.com/Azure/azure-sdk-for-python/issues/9422
 logging.getLogger("azure").setLevel(os.environ.get("LOGLEVEL_AZURE", "WARN").upper())
