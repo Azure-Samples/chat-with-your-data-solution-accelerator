@@ -163,3 +163,8 @@ class ConfigHelper:
                 )
 
         return ConfigHelper._default_config
+
+    @staticmethod
+    def delete_config():
+        blob_client = AzureBlobStorageClient(container_name=CONFIG_CONTAINER_NAME)
+        blob_client.delete_file(CONFIG_FILE_NAME)

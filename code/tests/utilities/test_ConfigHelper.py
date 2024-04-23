@@ -194,6 +194,17 @@ def test_save_config_as_active(
     )
 
 
+def test_delete_config(AzureBlobStorageClientMock: MagicMock):
+    # when
+    ConfigHelper.delete_config()
+
+    # then
+    AzureBlobStorageClientMock.assert_called_once_with(container_name="config")
+    AzureBlobStorageClientMock.return_value.delete_file.assert_called_once_with(
+        "active.json"
+    )
+
+
 def test_get_available_document_types(config_mock: Config):
     # when
     document_types = config_mock.get_available_document_types()

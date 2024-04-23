@@ -340,5 +340,16 @@ try:
         ConfigHelper.save_config_as_active(current_config)
         st.success("Configuration saved successfully!")
 
+    with st.popover(":red[Reset confiiguration to defaults]"):
+        st.write(
+            "**Resetting the configuration cannot be reversed, proceed with caution!**"
+        )
+        name = st.text_input('Enter "reset" to proceed', key="reset_configuration")
+        if st.button(
+            ":red[Reset]", disabled=st.session_state["reset_configuration"] != "reset"
+        ):
+            ConfigHelper.delete_config()
+            st.success("Configuration reset successfully! Refresh to update.")
+
 except Exception:
     st.error(traceback.format_exc())
