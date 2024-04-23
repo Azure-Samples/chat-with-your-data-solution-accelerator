@@ -198,6 +198,12 @@ param azureSearchSku string = 'standard'
 @description('Azure AI Search Index')
 param azureSearchIndex string = 'index-${resourceToken}'
 
+@description('Azure AI Search Indexer')
+param azureSearchIndexer string = 'indexer-${resourceToken}'
+
+@description('Azure AI Search Datasource')
+param azureSearchDatasource string = 'datasource-${resourceToken}'
+
 @description('Azure AI Search Conversation Log Index')
 param azureSearchConversationLogIndex string = 'conversations'
 
@@ -370,6 +376,28 @@ module searchServiceRoleOpenai 'core/security/role.bicep' = if (authType == 'rba
   params: {
     principalId: openai.outputs.identityPrincipalId
     roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Storage Blob Data Reader
+module blobDataReaderRoleSearch 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'blob-data-reader-role-search'
+  params: {
+    principalId: search.outputs.identityPrincipalId
+    roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Cognitive Services OpenAI User
+module openAiRoleSearchService 'core/security/role.bicep' = if (authType == 'rbac'){
+  scope: rg
+  name: 'openai-role-searchservice'
+  params: {
+    principalId: search.outputs.identityPrincipalId
+    roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
     principalType: 'ServicePrincipal'
   }
 }
@@ -855,6 +883,10 @@ module storage 'core/storage/storage-account.bicep' = {
     sku: {
       name: 'Standard_GRS'
     }
+    deleteRetentionPolicy: azureSearchUseIntegratedVectorization ? {
+      enabled: true
+      days: 7
+    } : {}
     containers: [
       {
         name: blobContainerName
@@ -963,6 +995,8 @@ output AZURE_SEARCH_TITLE_COLUMN string = azureSearchTitleColumn
 output AZURE_SEARCH_URL_COLUMN string = azureSearchUrlColumn
 output AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION bool = azureSearchUseIntegratedVectorization
 output AZURE_SEARCH_INDEX string = azureSearchIndex
+output AZURE_SEARCH_INDEXER_NAME string = azureSearchIndexer
+output AZURE_SEARCH_DATASOURCE_NAME string = azureSearchDatasource
 output AZURE_SPEECH_SERVICE_NAME string = speechServiceName
 output AZURE_SPEECH_SERVICE_REGION string = location
 output AZURE_SPEECH_SERVICE_KEY string = useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
