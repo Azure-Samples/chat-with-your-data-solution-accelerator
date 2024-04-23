@@ -114,6 +114,10 @@ class EnvHelper:
         self.AZURE_TOKEN_PROVIDER = get_bearer_token_provider(
             DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
         )
+        self.USE_ADVANCED_IMAGE_PROCESSING = self.get_env_var_bool(
+            "USE_ADVANCED_IMAGE_PROCESSING", "False"
+        )
+
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
         if self.AZURE_AUTH_TYPE == "rbac":

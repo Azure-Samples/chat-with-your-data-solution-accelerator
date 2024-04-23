@@ -123,3 +123,19 @@ def test_speech_recognizer_languages_default(monkeypatch: MonkeyPatch):
 
     # then
     assert env_helper.SPEECH_RECOGNIZER_LANGUAGES == ["en-US"]
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [("true", True), ("false", False), ("this is the way", False), (None, False)],
+)
+def test_use_advanced_image_processing(monkeypatch: MonkeyPatch, value, expected):
+    # given
+    if value is not None:
+        monkeypatch.setenv("USE_ADVANCED_IMAGE_PROCESSING", value)
+
+    # when
+    actual_use_advanced_image_processing = EnvHelper().USE_ADVANCED_IMAGE_PROCESSING
+
+    # then
+    assert actual_use_advanced_image_processing == expected
