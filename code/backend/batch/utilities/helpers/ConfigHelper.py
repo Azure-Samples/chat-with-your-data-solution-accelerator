@@ -165,12 +165,12 @@ class ConfigHelper:
                     )
                 )
                 if env_helper.USE_ADVANCED_IMAGE_PROCESSING:
-                    ConfigHelper._append_advanced_image_processing_processors()
+                    ConfigHelper._append_advanced_image_processors()
 
         return ConfigHelper._default_config
 
     @staticmethod
-    def _append_advanced_image_processing_processors():
+    def _append_advanced_image_processors():
         image_file_types = ["jpeg", "jpg", "png", "tiff", "bmp"]
         ConfigHelper._remove_processors_for_file_types(image_file_types)
         ConfigHelper._default_config["document_processors"].extend(
