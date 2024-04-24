@@ -19,8 +19,8 @@ class Processor(ChunkingSettings, LoadingSettings):
     def __init__(
         self,
         document_type: str,
-        chunking: ChunkingSettings,
-        loading: LoadingSettings,
+        chunking: ChunkingSettings | None,
+        loading: LoadingSettings | None,
         use_advanced_image_processing: bool,
     ):
         self.document_type = document_type
