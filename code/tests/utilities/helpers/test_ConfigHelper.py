@@ -323,7 +323,24 @@ def test_get_available_document_types(config: Config):
     document_types = config.get_available_document_types()
 
     # then
-    assert sorted(document_types) == sorted(["jpg", "pdf"])
+    assert sorted(document_types) == sorted(
+        ["txt", "pdf", "url", "html", "md", "jpeg", "jpg", "png", "docx"]
+    )
+
+
+def test_get_available_document_types_when_advanced_image_processing_enabled(
+    config: Config, env_helper_mock: MagicMock
+):
+    # given
+    env_helper_mock.USE_ADVANCED_IMAGE_PROCESSING = True
+
+    # when
+    document_types = config.get_available_document_types()
+
+    # then
+    assert sorted(document_types) == sorted(
+        ["txt", "pdf", "url", "html", "md", "jpeg", "jpg", "png", "docx", "tiff", "bmp"]
+    )
 
 
 def test_get_available_chunking_strategies(config: Config):

@@ -51,7 +51,21 @@ class Config:
         )
 
     def get_available_document_types(self):
-        return [processor.document_type for processor in self.document_processors]
+        document_types = [
+            "txt",
+            "pdf",
+            "url",
+            "html",
+            "md",
+            "jpeg",
+            "jpg",
+            "png",
+            "docx",
+        ]
+        if self.env_helper.USE_ADVANCED_IMAGE_PROCESSING:
+            document_types.extend(["tiff", "bmp"])
+
+        return sorted(document_types)
 
     def get_available_chunking_strategies(self):
         return [c.value for c in ChunkingStrategy]
