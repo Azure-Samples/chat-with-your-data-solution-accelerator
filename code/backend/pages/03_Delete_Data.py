@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import traceback
 import sys
-from dotenv import load_dotenv
+import logging
 from batch.utilities.helpers.EnvHelper import EnvHelper
 from backend.pages.utilities.IntegratedVectorizationSearchHandler import (
     IntegratedVectorizationSearchHandler,
@@ -11,8 +11,7 @@ from backend.pages.utilities.AzureSearchHandler import AzureSearchHandler
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
-
-load_dotenv()
+logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="Delete Data",
@@ -51,12 +50,33 @@ try:
         search_client = search_handler.search_client
 
     results = search_handler.get_files()
+    if results.get_count() == 0:
+        st.info("No files to delete")
+        st.stop()
+    else:
+        st.write("Select files to delete:")
+
     files = search_handler.output_results(results)
+    selections = {
+        filename: st.checkbox(filename, False, key=filename)
+        for filename in files.keys()
+    }
+    selected_files = {
+        filename: ids for filename, ids in files.items() if selections[filename]
+    }
+
     if st.button("Delete"):
         with st.spinner("Deleting files..."):
-            search_handler.delete_files(
-                files,
-            )
+            if len(selected_files) == 0:
+                st.info("No files selected")
+                st.stop()
+            else:
+                files_to_delete = search_handler.delete_files(
+                    selected_files,
+                )
+                if len(files_to_delete) > 0:
+                    st.success("Deleted files: " + str(files_to_delete))
 
 except Exception:
-    st.error(traceback.format_exc())
+    logger.error(traceback.format_exc())
+    st.error("Exception occurred deleting files.")

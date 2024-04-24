@@ -2,8 +2,6 @@ from backend.pages.utilities.SearchHandlerBase import SearchHandlerBase
 from azure.search.documents import SearchClient
 from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential
-import pandas as pd
-import streamlit as st
 import re
 
 
@@ -31,9 +29,7 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
             [re.findall(r"\d+", result["chunk_id"])[-1], result["content"]]
             for result in results
         ]
-        return pd.DataFrame(data, columns=("Chunk", "Content")).sort_values(
-            by=["Chunk"]
-        )
+        return data
 
     def get_files(self):
         return self.search_client.search(
@@ -42,12 +38,6 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
 
     def output_results(self, results):
         files = {}
-        if results.get_count() == 0:
-            st.info("No files to delete")
-            st.stop()
-        else:
-            st.write("Select files to delete:")
-
         for result in results:
             id = result["chunk_id"]
             filename = result["title"]
@@ -55,7 +45,6 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
                 files[filename].append(id)
             else:
                 files[filename] = [id]
-                st.checkbox(filename, False, key=filename)
 
         return files
 
@@ -64,14 +53,9 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
         files_to_delete = []
 
         for filename, ids in files.items():
-            if st.session_state[filename]:
-                files_to_delete.append(filename)
-                ids_to_delete += [{"chunk_id": id} for id in ids]
-
-        if len(ids_to_delete) == 0:
-            st.info("No files selected")
-            st.stop()
+            files_to_delete.append(filename)
+            ids_to_delete += [{"chunk_id": id} for id in ids]
 
         self.search_client.delete_documents(ids_to_delete)
 
-        st.success("Deleted files: " + str(files_to_delete))
+        return ", ".join(files_to_delete)

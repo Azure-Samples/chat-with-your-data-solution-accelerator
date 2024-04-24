@@ -56,31 +56,19 @@ def test_process_results(handler):
     results = [{"chunk_id": "123_chunk", "content": "some content"}]
 
     # when
-    df = handler.process_results(results)
+    data = handler.process_results(results)
 
     # then
-    assert df.iloc[0]["Chunk"] == "123"
-    assert df.iloc[0]["Content"] == "some content"
+    assert data[0] == ["123", "some content"]
 
 
-def test_delete_files(handler):
+def test_delete_files(handler, search_client_mock):
     # given
     files = {"file1": ["1", "2"]}
-    with patch(
-        "backend.pages.utilities.IntegratedVectorizationSearchHandler.st.session_state",
-        {"file1": True},
-    ), patch(
-        "backend.pages.utilities.IntegratedVectorizationSearchHandler.st.info"
-    ) as mock_info, patch(
-        "backend.pages.utilities.IntegratedVectorizationSearchHandler.st.success"
-    ) as mock_success, patch(
-        "backend.pages.utilities.IntegratedVectorizationSearchHandler.st.stop"
-    ) as mock_stop:
 
-        # when
-        handler.delete_files(files)
+    # when
+    result = handler.delete_files(files)
 
-        # then
-        mock_success.assert_called_once_with("Deleted files: ['file1']")
-        assert not mock_info.called
-        assert not mock_stop.called
+    # then
+    assert result == "file1"
+    search_client_mock.delete_documents.assert_called_once()

@@ -29,10 +29,6 @@ class AzureSearchIndexer:
             data_source_name=self.env_helper.AZURE_SEARCH_DATASOURCE_NAME,
             field_mappings=[
                 FieldMapping(
-                    source_field_name="metadata_storage_name",
-                    target_field_name="title",
-                ),
-                FieldMapping(
                     source_field_name="metadata_storage_path",
                     target_field_name="source",
                 ),

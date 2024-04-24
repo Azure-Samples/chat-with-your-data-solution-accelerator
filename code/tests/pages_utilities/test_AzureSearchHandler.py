@@ -43,28 +43,19 @@ def test_process_results(handler):
     results = [{"metadata": json.dumps({"chunk": 1}), "content": "Content 1"}]
 
     # when
-    df = handler.process_results(results)
+    data = handler.process_results(results)
 
     # then
-    assert df.iloc[0]["Chunk"] == 1
-    assert df.iloc[0]["Content"] == "Content 1"
+    assert data[0] == [1, "Content 1"]
 
 
 def test_delete_files(handler):
     # given
     files = {"file1": ["1", "2"]}
-    with patch(
-        "backend.pages.utilities.AzureSearchHandler.st.session_state", {"file1": True}
-    ), patch("backend.pages.utilities.AzureSearchHandler.st.info") as mock_info, patch(
-        "backend.pages.utilities.AzureSearchHandler.st.success"
-    ) as mock_success, patch(
-        "backend.pages.utilities.AzureSearchHandler.st.stop"
-    ) as mock_stop:
 
-        # when
-        handler.delete_files(files)
+    # when
+    result = handler.delete_files(files)
 
-        # then
-        mock_success.assert_called_once_with("Deleted files: ['file1']")
-        assert not mock_info.called
-        assert not mock_stop.called
+    # then
+    assert result == "file1"
+    handler.search_client.delete_documents.assert_called_once()

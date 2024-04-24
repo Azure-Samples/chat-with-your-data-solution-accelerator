@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import traceback
 import sys
-from dotenv import load_dotenv
+import pandas as pd
 from batch.utilities.helpers.EnvHelper import EnvHelper
 from backend.pages.utilities.IntegratedVectorizationSearchHandler import (
     IntegratedVectorizationSearchHandler,
@@ -11,8 +11,6 @@ from backend.pages.utilities.AzureSearchHandler import AzureSearchHandler
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
-
-load_dotenv()
 
 st.set_page_config(
     page_title="Explore Data",
@@ -52,7 +50,8 @@ try:
     st.write("Showing chunks for:", filename)
 
     results = search_handler.perform_search(filename)
-    df = search_handler.process_results(results)
+    data = search_handler.process_results(results)
+    df = pd.DataFrame(data, columns=("Chunk", "Content")).sort_values(by=["Chunk"])
     st.table(df)
 
 
