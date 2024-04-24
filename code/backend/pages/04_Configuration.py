@@ -311,6 +311,7 @@ try:
                     "loading": {
                         "strategy": x["loading_strategy"],
                     },
+                    "use_advanced_image_processing": x["use_advanced_image_processing"],
                 },
                 edited_document_processors,
             )
