@@ -77,7 +77,9 @@ def test_process_use_advanced_image_processing_skips_processing(
 ):
     # given
     vector_store_mock = MagicMock()
-    azure_search_helper_mock.get_vector_store.return_value = vector_store_mock
+    azure_search_helper_mock.return_value.get_vector_store.return_value = (
+        vector_store_mock
+    )
     document_processor = DocumentProcessor()
     processor = Processor("jpg", None, None, use_advanced_image_processing=True)
 
@@ -85,7 +87,7 @@ def test_process_use_advanced_image_processing_skips_processing(
     document_processor.process("some-url", [processor])
 
     # then
-    vector_store_mock.assert_not_called()
+    vector_store_mock.add_documents.assert_not_called()
 
 
 def test_process_integrated_vectorisation(
