@@ -273,6 +273,12 @@ def test_get_document_processors(config_dict: dict):
     config_dict["document_processors"] = [
         {"document_type": "jpg", "use_advanced_image_processing": True},
         {
+            "document_type": "png",
+            "chunking": {"strategy": None, "size": None, "overlap": None},
+            "loading": {"strategy": None},
+            "use_advanced_image_processing": True,
+        },
+        {
             "document_type": "pdf",
             "chunking": {
                 "strategy": "layout",
@@ -291,6 +297,12 @@ def test_get_document_processors(config_dict: dict):
     assert config.document_processors == [
         Processor(
             document_type="jpg",
+            chunking=None,
+            loading=None,
+            use_advanced_image_processing=True,
+        ),
+        Processor(
+            document_type="png",
             chunking=None,
             loading=None,
             use_advanced_image_processing=True,

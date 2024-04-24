@@ -26,8 +26,16 @@ class Config:
         self.document_processors = [
             Processor(
                 document_type=c["document_type"],
-                chunking=ChunkingSettings(c["chunking"]) if "chunking" in c else None,
-                loading=LoadingSettings(c["loading"]) if "loading" in c else None,
+                chunking=(
+                    ChunkingSettings(c["chunking"])
+                    if c.get("use_advanced_image_processing", False) is False
+                    else None
+                ),
+                loading=(
+                    LoadingSettings(c["loading"])
+                    if c.get("use_advanced_image_processing", False) is False
+                    else None
+                ),
                 use_advanced_image_processing=c.get(
                     "use_advanced_image_processing", False
                 ),
