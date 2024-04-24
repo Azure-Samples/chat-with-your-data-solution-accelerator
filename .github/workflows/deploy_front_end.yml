@@ -1,0 +1,39 @@
+name: deploy to azure
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: azure/login@v1
+      with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: npm install, build, and test
+      working-directory: ./code/frontend
+      run: |
+        npm install
+        npm run build --if-present
+        npm run test --if-present
+
+    - name: Upload to blob storage
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+            az storage blob upload-batch --account-name aasdoprontofrontend --auth-mode key -d '$web' -s ./code/frontend/build
+
+    # - name: Purge CDN endpoint
+    #   uses: azure/CLI@v1
+    #   with:
+    #     inlineScript: |
+    #        az cdn endpoint purge --content-paths  "/*" --profile-name "pronto-app" --name "pronto-app" --resource-group "rg-rsta4xey-test"
+
+      # Azure logout
+    - name: logout
+      run: |
+            az logout
+      if: always()
