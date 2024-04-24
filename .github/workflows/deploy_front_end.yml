@@ -26,11 +26,11 @@ jobs:
         inlineScript: |
             az storage blob upload-batch --account-name aasdoprontofrontend --auth-mode key -d '$web' -s ./code/frontend/build
 
-    - name: Purge CDN endpoint
-      uses: azure/CLI@v1
-      with:
-        inlineScript: |
-           az cdn endpoint purge --content-paths  "/*" --profile-name "pronto-app" --name "pronto-app" --resource-group "rg-rsta4xey-test"
+    # - name: Purge CDN endpoint
+    #   uses: azure/CLI@v1
+    #   with:
+    #     inlineScript: |
+    #        az cdn endpoint purge --content-paths  "/*" --profile-name "pronto-app" --name "pronto-app" --resource-group "rg-rsta4xey-test"
 
       # Azure logout
     - name: logout
