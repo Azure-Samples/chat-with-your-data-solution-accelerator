@@ -1,6 +1,9 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from backend.batch.utilities.helpers.DocumentProcessorHelper import DocumentProcessor
+from backend.batch.utilities.helpers.DocumentProcessorHelper import (
+    DocumentProcessor,
+    Processor,
+)
 
 AZURE_SEARCH_INDEXER_NAME = "mock-indexer-name"
 
@@ -27,6 +30,14 @@ def llm_helper_mock():
         ] * 1536
 
         yield llm_helper
+
+
+@pytest.fixture(autouse=True)
+def azure_search_helper_mock():
+    with patch(
+        "backend.batch.utilities.helpers.DocumentProcessorHelper.AzureSearchHelper"
+    ) as mock:
+        yield mock
 
 
 @pytest.fixture(autouse=True)
@@ -59,6 +70,24 @@ def azure_search_iv_indexer_helper_mock():
         "backend.batch.utilities.helpers.DocumentProcessorHelper.AzureSearchIndexer"
     ) as mock:
         yield mock
+
+
+def test_process_use_advanced_image_processing_skips_processing(
+    azure_search_helper_mock,
+):
+    # given
+    vector_store_mock = MagicMock()
+    azure_search_helper_mock.return_value.get_vector_store.return_value = (
+        vector_store_mock
+    )
+    document_processor = DocumentProcessor()
+    processor = Processor("jpg", None, None, use_advanced_image_processing=True)
+
+    # when
+    document_processor.process("some-url", [processor])
+
+    # then
+    vector_store_mock.add_documents.assert_not_called()
 
 
 def test_process_integrated_vectorisation(

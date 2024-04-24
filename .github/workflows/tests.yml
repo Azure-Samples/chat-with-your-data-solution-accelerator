@@ -19,17 +19,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install Poetry
+        run: pip install poetry
       - name: Setup python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           architecture: x64
-          cache: pip
-          cache-dependency-path: "**/pyproject.toml"
-      - name: Install Poetry
-        run: |
-          pip install poetry
-      - name: Install dependencies
+          cache: 'poetry'
+      - name: Install dependencies through poetry
         run: |
           poetry install
       - name: Get coverage artifact ID

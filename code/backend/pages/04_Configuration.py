@@ -6,6 +6,7 @@ import traceback
 from dotenv import load_dotenv
 import sys
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
+from azure.core.exceptions import ResourceNotFoundError
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -258,14 +259,20 @@ try:
         map(
             lambda x: {
                 "document_type": x.document_type,
-                "chunking_strategy": x.chunking.chunking_strategy.value,
-                "chunking_size": x.chunking.chunk_size,
-                "chunking_overlap": x.chunking.chunk_overlap,
-                "loading_strategy": x.loading.loading_strategy.value,
+                "chunking_strategy": (
+                    x.chunking.chunking_strategy.value if x.chunking else None
+                ),
+                "chunking_size": x.chunking.chunk_size if x.chunking else None,
+                "chunking_overlap": x.chunking.chunk_overlap if x.chunking else None,
+                "loading_strategy": (
+                    x.loading.loading_strategy.value if x.loading else None
+                ),
+                "use_advanced_image_processing": x.use_advanced_image_processing,
             },
             config.document_processors,
         )
     )
+
     with st.expander("Document processing configuration", expanded=True):
         edited_document_processors = st.data_editor(
             data=document_processors,
@@ -304,6 +311,7 @@ try:
                     "loading": {
                         "strategy": x["loading_strategy"],
                     },
+                    "use_advanced_image_processing": x["use_advanced_image_processing"],
                 },
                 edited_document_processors,
             )
@@ -339,6 +347,31 @@ try:
         }
         ConfigHelper.save_config_as_active(current_config)
         st.success("Configuration saved successfully!")
+
+    with st.popover(":red[Reset confiiguration to defaults]"):
+        st.write(
+            "**Resetting the configuration cannot be reversed, proceed with caution!**"
+        )
+        st.text_input('Enter "reset" to proceed', key="reset_configuration")
+        if st.button(
+            ":red[Reset]", disabled=st.session_state["reset_configuration"] != "reset"
+        ):
+            try:
+                ConfigHelper.delete_config()
+            except ResourceNotFoundError:
+                pass
+
+            for key in st.session_state:
+                del st.session_state[key]
+
+            st.session_state["reset"] = True
+            st.session_state["reset_configuration"] = ""
+            st.rerun()
+
+        if st.session_state.get("reset") is True:
+            st.success("Configuration reset successfully!")
+            del st.session_state["reset"]
+            del st.session_state["reset_configuration"]
 
 except Exception:
     st.error(traceback.format_exc())
