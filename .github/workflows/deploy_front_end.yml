@@ -1,7 +1,7 @@
 name: deploy to azure
 on:
   push:
-    branches: [ "main", "fix-build-v2" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
