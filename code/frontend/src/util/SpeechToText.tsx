@@ -7,7 +7,7 @@ import {
 
 const fetchSpeechConfig = async (): Promise<{ token: string, region: string, languages: string[]; }> => {
   try {
-    const response = await fetch("/api/speech");
+    const response = await fetch(import.meta.env.VITE_API_URL + "/api/speech");
 
     if (!response.ok) {
       console.error("Error fetching speech config:", response);

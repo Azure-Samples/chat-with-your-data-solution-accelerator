@@ -1,21 +1,24 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 
-// https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ command, mode }) => {
+  const { VITE_API_URL } = loadEnv(mode, process.cwd(), "");
+  return {
     plugins: [react()],
     build: {
-        outDir: "../dist/static",
-        emptyOutDir: true,
-        sourcemap: true
+      outDir: "build",
+      emptyOutDir: true,
+      sourcemap: false,
     },
+    publicDir: "public",
     server: {
-        proxy: {
-            "/api": {
-                target: "https://rsta4xey-test-website-6eg6fe2yksguu.azurewebsites.net",
-                changeOrigin: true,
-                secure: false
-            }
-        }
-    }
+      proxy: {
+        "/api": {
+          target: VITE_API_URL,
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+    },
+  };
 });
