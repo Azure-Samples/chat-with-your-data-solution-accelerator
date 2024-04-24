@@ -125,7 +125,7 @@ def env_helper_mock():
         env_helper = mock.return_value
         env_helper.ORCHESTRATION_STRATEGY = "openai_function"
         env_helper.LOAD_CONFIG_FROM_BLOB_STORAGE = True
-        env_helper_mock.USE_ADVANCED_IMAGE_PROCESSING = False
+        env_helper.USE_ADVANCED_IMAGE_PROCESSING = False
 
         yield env_helper
 
@@ -155,7 +155,7 @@ def test_default_config_is_cached():
     assert default_config_one is default_config_two
 
 
-def test_default_config_when_use_advanced_image_processing():
+def test_default_config_when_use_advanced_image_processing(env_helper_mock):
     # given
     env_helper_mock.USE_ADVANCED_IMAGE_PROCESSING = True
 
