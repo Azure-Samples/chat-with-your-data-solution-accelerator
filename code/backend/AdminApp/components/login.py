@@ -24,6 +24,8 @@ def isLoggedIn() -> bool:
 
 
 def isAdmin() -> bool:
+    if env_helper.ADMIN_AUTH_DISABLED:
+        return True
     try:
         url = "https://graph.microsoft.com/v1.0/me/memberOf"
         access_token = st.session_state.access_data["accessToken"]
