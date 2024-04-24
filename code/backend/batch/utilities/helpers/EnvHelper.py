@@ -1,7 +1,11 @@
 import os
 import logging
 from dotenv import load_dotenv
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from azure.identity import (
+    DefaultAzureCredential,
+    ClientSecretCredential,
+    get_bearer_token_provider,
+)
 from azure.keyvault.secrets import SecretClient
 
 logger = logging.getLogger(__name__)
@@ -79,6 +83,7 @@ class EnvHelper:
         self.AZURE_TOKEN_PROVIDER = get_bearer_token_provider(
             DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
         )
+
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
         if self.AZURE_AUTH_TYPE == "rbac":
@@ -90,6 +95,7 @@ class EnvHelper:
             self.AZURE_OPENAI_API_KEY = self.secretHelper.get_secret(
                 "AZURE_OPENAI_API_KEY"
             )
+
             self.AZURE_SPEECH_KEY = self.secretHelper.get_secret(
                 "AZURE_SPEECH_SERVICE_KEY"
             )
@@ -157,6 +163,16 @@ class EnvHelper:
         self.CLIENT_ID = client_id
         self.CLIENT_SECRET = client_secret
         self.ADMIN_GROUP_ID = self.secretHelper.get_secret("AZURE_ADMIN_GROUP_ID")
+        self.ADMIN_AUTH_DISABLED = os.getenv("AUTH_DISABLED", "False").lower() in (
+            "true",
+            "1",
+            "t",
+        )
+        self.BACKEND_AUTH_DISABLED = os.getenv("DISABLE_AUTH", "False").lower() in (
+            "true",
+            "1",
+            "t",
+        )
 
     def should_use_data(self) -> bool:
         if (
@@ -171,6 +187,17 @@ class EnvHelper:
         if "gpt-4" in self.AZURE_OPENAI_MODEL_NAME.lower():
             return True
         return False
+
+    @property
+    def AZURE_MS_GRAPH_TOKEN_PROVIDER(self):
+        return get_bearer_token_provider(
+            ClientSecretCredential(
+                client_id=self.CLIENT_ID,
+                client_secret=self.CLIENT_SECRET,
+                tenant_id=self.TENANT_ID,
+            ),
+            "https://graph.microsoft.com/.default",
+        )
 
     @staticmethod
     def check_env():

@@ -15,6 +15,7 @@ class SourceDocument:
         chunk: Optional[int] = None,
         offset: Optional[int] = None,
         page_number: Optional[int] = None,
+        keywords: Optional[str] = None,
     ):
         self.id = id
         self.content = content
@@ -23,6 +24,7 @@ class SourceDocument:
         self.chunk = chunk
         self.offset = offset
         self.page_number = page_number
+        self.keywords = keywords
 
     def __str__(self):
         return f"SourceDocument(id={self.id}, title={self.title}, source={self.source}, chunk={self.chunk}, offset={self.offset}, page_number={self.page_number})"
@@ -43,6 +45,7 @@ class SourceDocument:
             dict_obj["title"],
             dict_obj["chunk"],
             dict_obj["offset"],
+            dict_obj["keywords"],
             dict_obj["page_number"],
         )
 
@@ -72,6 +75,7 @@ class SourceDocument:
             chunk=metadata.get("chunk", idx),
             offset=metadata.get("offset"),
             page_number=metadata.get("page_number"),
+            keywords=metadata.get("keywords"),
         )
 
     def convert_to_langchain_document(self):
@@ -81,6 +85,7 @@ class SourceDocument:
             page_content=self.content,
             metadata={
                 "id": self.id,
+                "keywords": self.keywords,
                 "source": self.source,
                 "title": self.title,
                 "chunk": self.chunk,
@@ -119,6 +124,7 @@ class SourceDocumentEncoder(json.JSONEncoder):
                 "chunk": obj.chunk,
                 "offset": obj.offset,
                 "page_number": obj.page_number,
+                "keywords": obj.keywords,
             }
         return super().default(obj)
 
@@ -134,4 +140,5 @@ class SourceDocumentDecoder(json.JSONDecoder):
             chunk=obj["chunk"],
             offset=obj["offset"],
             page_number=obj["page_number"],
+            keywords=obj["keywords"],
         )

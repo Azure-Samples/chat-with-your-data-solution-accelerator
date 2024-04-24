@@ -1,13 +1,15 @@
-from os import path
-import os
-import streamlit as st
-from typing import Optional
-import mimetypes
-import traceback
 import chardet
-from datetime import datetime, timedelta
+import json
 import logging
+import mimetypes
+import os
+import re
 import requests
+import streamlit as st
+import sys
+import traceback
+import urllib.parse
+
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import (
     BlobServiceClient,
@@ -15,10 +17,13 @@ from azure.storage.blob import (
     ContentSettings,
     UserDelegationKey,
 )
-import urllib.parse
-import sys
+from datetime import datetime, timedelta
+from os import path
+from typing import Optional
+
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
 from batch.utilities.helpers.EnvHelper import EnvHelper
+from batch.utilities.helpers.SharePointHelper import SharePointHelper
 from components.login import isLoggedIn
 from components.menu import menu
 
@@ -52,7 +57,8 @@ def main():
     ) -> UserDelegationKey:
         # Get a user delegation key that's valid for 1 day
         delegation_key_start_time = datetime.utcnow()
-        delegation_key_expiry_time = delegation_key_start_time + timedelta(days=1)
+        delegation_key_expiry_time = delegation_key_start_time + \
+            timedelta(days=1)
 
         user_delegation_key = blob_service_client.get_user_delegation_key(
             key_start_time=delegation_key_start_time,
@@ -82,6 +88,10 @@ def main():
         except Exception:
             st.error(traceback.format_exc())
 
+    def _is_sharepoint_url(url):
+        sharepoint_pattern = r"https?://[a-zA-Z0-9.-]*sharepoint\.com"
+        return bool(re.match(sharepoint_pattern, url))
+
     def add_urls():
         params = {}
         if env_helper.FUNCTION_KEY is not None:
@@ -89,15 +99,32 @@ def main():
             params["clientId"] = "clientKey"
         urls = st.session_state["urls"].split("\n")
         for url in urls:
-            body = {"url": url}
-            backend_url = urllib.parse.urljoin(
-                env_helper.BACKEND_URL, "/api/AddURLEmbeddings"
-            )
-            r = requests.post(url=backend_url, params=params, json=body)
-            if not r.ok:
-                raise ValueError(f"Error {r.status_code}: {r.text}")
+
+            if _is_sharepoint_url(url):
+                sharepoint_helper = SharePointHelper()
+                pages = sharepoint_helper.get_site_pages_as_json(url)
+                if pages is not None:
+                    for page in pages:
+                        file_name = f'{page["title"]}.json'
+                        json_string = json.dumps(page)
+                        bytes_data = json_string.encode("utf-8")
+                        if st.session_state.get("filename", "") != file_name:
+                            # Upload a new file
+                            upload_file(bytes_data, file_name)
+                    if len(pages) > 0:
+                        st.success(
+                            f"{len(pages)} documents uploaded. Embeddings computation in progress. \nPlease note this is an asynchronous process and may take a few minutes to complete.\nYou can check for further details in the Azure Function logs."
+                        )
             else:
-                st.success(f"Embeddings added successfully for {url}")
+                body = {"url": url}
+                backend_url = urllib.parse.urljoin(
+                    env_helper.BACKEND_URL, "/api/AddURLEmbeddings"
+                )
+                r = requests.post(url=backend_url, params=params, json=body)
+                if not r.ok:
+                    raise ValueError(f"Error {r.status_code}: {r.text}")
+                else:
+                    st.success(f"Embeddings added successfully for {url}")
 
     def upload_file(
         bytes_data: bytes, file_name: str, content_type: Optional[str] = None
@@ -129,7 +156,8 @@ def main():
             blob_client.upload_blob(
                 bytes_data,
                 overwrite=True,
-                content_settings=ContentSettings(content_type=content_type + charset),
+                content_settings=ContentSettings(
+                    content_type=content_type + charset),
             )
             st.session_state["file_url"] = (
                 blob_client.url
@@ -162,7 +190,8 @@ def main():
             blob_client.upload_blob(
                 bytes_data,
                 overwrite=True,
-                content_settings=ContentSettings(content_type=content_type + charset),
+                content_settings=ContentSettings(
+                    content_type=content_type + charset),
             )
             # Generate a SAS URL to the blob and return it
             st.session_state["file_url"] = (

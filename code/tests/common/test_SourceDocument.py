@@ -18,6 +18,7 @@ def test_convert_to_langchain_document():
         chunk="A chunk",
         offset="An offset",
         page_number="1",
+        keywords="A test keyword",
     )
 
     # When
@@ -32,6 +33,7 @@ def test_convert_to_langchain_document():
         "chunk": "A chunk",
         "offset": "An offset",
         "page_number": "1",
+        "keywords": "A test keyword",
     }
 
 
@@ -45,6 +47,7 @@ def test_get_filename():
         chunk="A chunk",
         offset="An offset",
         page_number="1",
+        keywords="A test keyword",
     )
 
     # When
@@ -66,6 +69,7 @@ def test_get_markdown_url(azure_blob_service_mock):
         chunk="A chunk",
         offset="An offset",
         page_number="1",
+        keywords="A test keyword",
     )
 
     # When
@@ -85,6 +89,7 @@ def test_from_metadata():
         "chunk": "A chunk",
         "offset": "An offset",
         "page_number": "1",
+        "keywords": "A test keyword",
     }
     document_url = "http://example.com/path/to/file.txt_SAS_TOKEN_PLACEHOLDER_"
     idx = 0
@@ -111,6 +116,7 @@ def test_from_metadata():
         chunk=metadata.get("chunk", idx),
         offset=metadata.get("offset"),
         page_number=metadata.get("page_number"),
+        keywords=metadata.get("keywords"),
     )
     assert source_document.id == expected_source_document.id
     assert source_document.content == expected_source_document.content
@@ -119,6 +125,7 @@ def test_from_metadata():
     assert source_document.chunk == expected_source_document.chunk
     assert source_document.offset == expected_source_document.offset
     assert source_document.page_number == expected_source_document.page_number
+    assert source_document.keywords == expected_source_document.keywords
 
 
 def test_default_method_returns_expected_dict():
@@ -131,6 +138,7 @@ def test_default_method_returns_expected_dict():
         chunk="A chunk",
         offset="An offset",
         page_number="1",
+        keywords="A test keyword",
     )
 
     # When
@@ -148,6 +156,7 @@ def test_default_method_returns_expected_dict():
         "chunk": "A chunk",
         "offset": "An offset",
         "page_number": "1",
+        "keywords": "A test keyword",
     }
     assert result == expected_dict
 
@@ -162,6 +171,7 @@ def test_default_method_calls_super_default():
         chunk="A chunk",
         offset="An offset",
         page_number="1",
+        keywords="A test keyword",
     )
 
     # When
@@ -174,7 +184,7 @@ def test_default_method_calls_super_default():
 
 def test_decode_method_returns_expected_source_document():
     # Given
-    obj = '{"id": "1","content": "Some content","source": "A source","title": "A title","chunk": "A chunk","offset": "An offset","page_number": "1"}'
+    obj = '{"id": "1","content": "Some content","source": "A source","title": "A title","chunk": "A chunk","offset": "An offset","page_number": "1", "keywords": "A test keyword"}'
 
     # When
     result = SourceDocumentDecoder().decode(obj)
@@ -190,6 +200,7 @@ def test_decode_method_returns_expected_source_document():
         chunk="A chunk",
         offset="An offset",
         page_number="1",
+        keywords="A test keyword",
     )
     assert result.id == expected_source_document.id
     assert result.content == expected_source_document.content
@@ -198,3 +209,4 @@ def test_decode_method_returns_expected_source_document():
     assert result.chunk == expected_source_document.chunk
     assert result.offset == expected_source_document.offset
     assert result.page_number == expected_source_document.page_number
+    assert result.keywords == expected_source_document.keywords

@@ -28,7 +28,7 @@ param hostingPlanName string = '${environmentName}-hosting-plan-${resourceToken}
   'P3'
   'P4'
 ])
-param hostingPlanSku string = 'B3'
+param hostingPlanSku string = 'B2'
 
 @description('Name of Web App')
 param websiteName string = '${environmentName}-website-${resourceToken}'
@@ -82,7 +82,7 @@ param azureOpenAIModelVersion string = '0613'
   'openai_function'
   'langchain'
 ])
-param orchestrationStrategy string = 'langchain'
+param orchestrationStrategy string = 'openai_function'
 
 @description('Azure OpenAI Temperature')
 param azureOpenAITemperature string = '0'
@@ -122,7 +122,7 @@ param azureAISearchName string = '${environmentName}-search-${resourceToken}'
   'standard2'
   'standard3'
 ])
-param azureSearchSku string = 'standard'
+param azureSearchSku string = 'basic'
 
 @description('Azure AI Search Index')
 param azureSearchIndex string = '${environmentName}-index-${resourceToken}'
@@ -162,7 +162,11 @@ var blobContainerName = 'documents'
 var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
 var eventGridSystemTopicName = 'doc-processing'
-var tags = { 'azd-env-name': environmentName }
+var tags = {
+  'azd-env-name': environmentName
+  department: 'TO_UA'
+  project: 'AI_Accel'
+}
 var rgName = 'rg-${environmentName}'
 var keyVaultName = 'kv-${resourceToken}'
 
@@ -532,7 +536,7 @@ module storage 'core/storage/storage-account.bicep' = {
     name: storageAccountName
     location: location
     sku: {
-      name: 'Standard_GRS'
+      name: 'Standard_LRS'
     }
     containers: [
       {

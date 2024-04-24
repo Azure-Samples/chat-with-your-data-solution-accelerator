@@ -1,4 +1,5 @@
 import logging
+import re
 import traceback
 import azure.functions as func
 import sys

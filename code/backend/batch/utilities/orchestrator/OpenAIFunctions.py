@@ -18,16 +18,21 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
         self.functions = [
             {
                 "name": "search_documents",
-                "description": "Provide answers to any fact question coming from users.",
+                "description": "Retrieve relevant documents to answer user fact-based questions",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "question": {
                             "type": "string",
-                            "description": "A standalone question, converted from the chat history",
+                            "description": "The user's inquiry, formulated to extract pertinent information from available documents.",
+                        },
+                        "keywords": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Relevant keywords, that are list of IT-related terms for precise search",
                         },
                     },
-                    "required": ["question"],
+                    "required": ["question", "keywords"],
                 },
             },
             {
@@ -73,9 +78,18 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
         # Call function to determine route
         llm_helper = LLMHelper()
 
-        system_message = """You help employees to navigate only private information sources.
-        You must prioritize the function call over your general knowledge for any question by calling the search_documents function.
-        Call the text_processing function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.
+        system_message = """You help employees to navigate only private information sources, which encompass confidential company documents such as policies, project documentation, technical guides, how-to manuals, and other documentation typical of a large IT company.
+        ### IMPORTANT: Your top priority is to utilize the 'search_documents' function with the latest user inquiry for queries concerning these private sources
+        ### Instructions for 'search_documents' function:
+        1. **Focus on the Most Recent User Inquiry**: Always use the most recent user question as the sole context for the futher steps, we will address to this context as 'user question'. Ignore previous interactions or questions.
+        2. **Analyze context**: Carefully read the 'user question' to grasp the intention clearly
+        3. **Extract 'question'**:Identify the main intent of the 'user question', keeping it concise and straightforward
+            - Ensure the query follows a simple structure suitable for Azure AI Search
+            - Optimize the query for effective search results using Azure AI Search best practices
+        4. **Extract 'keywords'**:
+            - From the 'user question', identify and extract IT-related terms like domains, technologies, frameworks, approaches, testing strategies, etc. without assumptions. If no keywords are available in 'user question', pass an empty array
+        
+        Call the 'text_processing' function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.
         When directly replying to the user, always reply in the language the user is speaking.
         """
         # Create conversation history
@@ -96,12 +110,18 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
 
         if result.choices[0].finish_reason == "function_call":
             if result.choices[0].message.function_call.name == "search_documents":
-                question = json.loads(
+                func_arguments = json.loads(
                     result.choices[0].message.function_call.arguments
-                )["question"]
+                )
+                question = func_arguments["question"]
+                # keywords must be a list of strings []
+                keywords = func_arguments.get("keywords")
+
                 # run answering chain
                 answering_tool = QuestionAnswerTool()
-                answer = answering_tool.answer_question(question, chat_history)
+                answer = answering_tool.answer_question(
+                    question, chat_history, keywords=keywords
+                )
 
                 self.log_tokens(
                     prompt_tokens=answer.prompt_tokens,

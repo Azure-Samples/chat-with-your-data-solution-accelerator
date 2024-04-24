@@ -58,7 +58,17 @@ def main():
 
         for result in results:
             id = result["id"]
-            filename = result["title"]
+            if not result["title"]:
+                print("a")
+            filename = (
+                result["title"]
+                if result["title"]
+                else (
+                    result["source"]
+                    if "source" in result and result["source"]
+                    else result["id"]
+                )
+            )
             if filename in files:
                 files[filename].append(id)
             else:

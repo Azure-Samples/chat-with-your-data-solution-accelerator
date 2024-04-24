@@ -26,6 +26,7 @@ import {
   Citation,
   ToolMessageContent,
   ChatResponse,
+  fetchServerConfigApi,
 } from "../../api";
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
@@ -137,10 +138,7 @@ const Chat = () => {
   useEffect(() => {
     async function fetchServerConfig() {
       try {
-        const response = await fetch("/api/config");
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
+        const response = await fetchServerConfigApi();
         const data = await response.json();
         const fetchedSubscriptionKey = data.azureSpeechKey;
         const fetchedServiceRegion = data.azureSpeechRegion;

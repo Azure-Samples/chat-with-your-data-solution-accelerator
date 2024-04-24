@@ -1,15 +1,16 @@
-from functools import wraps
 import json
-import logging
-from os import path
-import os
 import jwt
-import requests
-from openai import AzureOpenAI
+import logging
 import mimetypes
-from flask import Flask, Response, request, jsonify
-from dotenv import load_dotenv
+import requests
 import sys
+
+from dotenv import load_dotenv
+from flask import Flask, Response, request, jsonify
+from functools import wraps
+from openai import AzureOpenAI
+from os import path
+
 from backend.batch.utilities.helpers.EnvHelper import EnvHelper
 from backend.auth.token_validator import TokenValidator
 
@@ -37,7 +38,7 @@ def static_file(path):
 def auth_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if os.environ.get("DISABLE_AUTH"):
+        if env_helper.BACKEND_AUTH_DISABLED:
             return f(*args, **kwargs)
         auth_header = request.headers.get("Authorization")
         if not auth_header:

@@ -1,0 +1,54 @@
+{
+    "content":"About Company\nMarco Polo (TradeIX) is a distributed trade finance, and supply chain platform which leverages blockchain (Corda) technology to ensure trust between parties and data sharing on a need-to-know basis. Capgemini team was responsible for the end-to-end development cycle (design, implementation, testing, deployment, support) The platform is built using microservices and is cloud-agnostic. Marco Polo started in Jan 2019 with 8 engineers and has grown to a max of 100+ people. \n\nChallenges\nMarco Polo's main product is an open platform designed to facilitate trade finance interactions between various stakeholders, including suppliers, service providers, buyers, and B2B networks. This platform operates on a secure, API-driven infrastructure and leverages distributed ledger technology (DLT) to ensure transparency and data privacy in financial transactions. By harnessing automated, data-driven processes, the platform enhances the efficiency of supply chain operations and the movement of assets and credit across the globe. \n\nSolution\nA key strategic partnership with R3 and Corda, a leading blockchain protocol for the financial services sector, underscores the client's commitment to innovation. This collaboration enables several benefits, including strengthening the supply chain's resilience and sustainability, reducing risks and costs, securely transferring assets and agreements among untrusting parties, maintaining data consistency, and implementing smart contracts for modeling assets and value transfer. \n\nTechnologies\nA diverse set of technologies was employed to meet these challenges. tools: gRPC, Kafka, Postgres, ElasticSearch, Jaeger, Kibana, Grafana, VictoriaMetrics. languages and frameworks: Kotlin, Spring, TypeScript, Angular, C#, ASP.NET Technics: ADR, microservices, cloud agnostic, gitops Platforms: Azure, GCP, IBM, on-prem The client PostgreSQLalso leverages cloud services from Azure, GCP, and IBM Cloud to enhance scalability and flexibility. The transition from a monolithic multitenant system to a fully distributed network platform was a significant undertaking necessitated by security, maintainability, and scalability requirements. The adoption of Corda, while promising, posed challenges due to its emerging nature, lack of established best practices, and numerous technical hurdles. A critical factor in the success of this transition was the client's collaboration with Capgemini Engineering, which provided approximately 10 cross-functional teams of highly skilled professionals. These teams were instrumental in delivering end-to-end features, from architectural design and initial business requirement refinements to successful deployment and production support. The architecture of the system is built around microservices, all managed within Kubernetes. Istio serves as the service mesh, while Kong functions as the API gateway, managing integrations with identity providers. A business service layer acts as the orchestrator for Corda flows and offers APIs for data retrieval. Corda Persistence API stores denormalized data in the database, with Logstash and tracking mechanisms syncing data to Elasticsearch. Elasticsearch is then utilized for data reading and reporting purposes. \n\nSummary\nThe client's platform represents a forward-looking approach to trade finance, leveraging cutting-edge technologies like Corda and Kubernetes to streamline operations, enhance transparency, and drive efficiency across the supply chain. Collaboration with technology partners like Capgemini Engineering has been pivotal in overcoming challenges and achieving ambitious development goals.",
+    "title":"Marco Polo (TradeIX)",
+    "tags":{
+       "Domain":[
+          "Fintech",
+          "Blockchain",
+          "Distributed platform",
+          "Supply Chain",
+          "Payments"
+       ],
+       "Technology":[
+          "Kotlin",
+          "Corda Flows",
+          "Smart Contracts",
+          "Persistence API",
+          "Angular",
+          "TypeScript",
+          "PostgreSQL",
+          "ElasticSearch",
+          "Kafka",
+          "Okta",
+          "Jenkins",
+          "tectonic",
+          "Kubernetes",
+          "Kong",
+          "Istio",
+          "Kibana",
+          "Grafana",
+          "Prometheus",
+          "Victoria Metrics",
+          "Open Tracing",
+          "Jaeger",
+          "Azure",
+          "GCP",
+          "IBM cloud",
+          "Telepresence"
+       ],
+       "Approaches":[
+          "Microservices",
+          "Cloud native",
+          "Cloud Agnostic"
+       ],
+       "Testing":[
+          "Unit",
+          "Integration",
+          "Contract",
+          "Migration",
+          "Performance",
+          "Volume"
+       ]
+    },
+    "source_url":"https://example.sharepoint.com/SitePages/Marco-Polo-(TradeIX).aspx"
+ }

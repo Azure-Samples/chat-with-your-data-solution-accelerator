@@ -12,16 +12,14 @@ env_helper: EnvHelper = EnvHelper()
 
 
 def isLoggedIn() -> bool:
+    if env_helper.ADMIN_AUTH_DISABLED:
+        return True
     if "access_data" not in st.session_state:
         return False
     if not st.session_state.access_data:
         return False
     if not st.session_state.access_data["accessToken"]:
         return False
-    # account = auth_data["account"]
-    # name = account["name"]
-    # username = account["username"]
-    # account_id = account["localAccountId"]
     return True
 
 
