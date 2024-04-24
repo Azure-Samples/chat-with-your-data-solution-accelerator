@@ -142,6 +142,17 @@
     cursor: pointer;
 }
 
+.citationToolTip {
+  max-height: 60vh !important;
+  overflow-wrap: break-word;
+  min-width: fit-content !important;
+  overflow: auto;
+}
+
+.citationToolTipInner {
+  width: 24vw !important;
+}
+
 .citationTitle {
   width: 45%;
   max-width: 300px;
@@ -242,3 +253,8 @@ sup {
         overflow-y: auto;
     }
   }
+
+
+.hide {
+  display: none !important;
+}

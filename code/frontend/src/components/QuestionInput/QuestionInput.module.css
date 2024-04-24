@@ -16,10 +16,11 @@
   border: solid 12px #fff;
   display: flex;
   flex-direction: column;
-  transition: all 1.5s;
+  transition: all 0.65s ease-in-out 0s;
 }
 
 .chatThreadActive {
+  transition: all 1.15s ease-out 0.35s;
   border-radius: 21px 21px 0px 0px;
 }
 
