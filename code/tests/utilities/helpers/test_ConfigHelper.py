@@ -2,6 +2,9 @@ import json
 import pytest
 from unittest.mock import patch, MagicMock
 from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper, Config
+from backend.batch.utilities.helpers.DocumentProcessorHelper import Processor
+from backend.batch.utilities.document_chunking.Strategies import ChunkingSettings
+from backend.batch.utilities.document_loading import LoadingSettings
 
 
 @pytest.fixture
@@ -35,6 +38,17 @@ def config_dict():
                 },
                 "loading": {
                     "strategy": "web",
+                },
+            },
+            {
+                "document_type": "pdf",
+                "chunking": {
+                    "strategy": "layout",
+                    "size": 500,
+                    "overlap": 100,
+                },
+                "loading": {
+                    "strategy": "read",
                 },
             },
         ],
@@ -85,7 +99,7 @@ def old_config_dict():
 
 
 @pytest.fixture()
-def config_mock(config_dict: dict):
+def config(config_dict: dict):
     return Config(config_dict)
 
 
@@ -111,6 +125,7 @@ def env_helper_mock():
         env_helper = mock.return_value
         env_helper.ORCHESTRATION_STRATEGY = "openai_function"
         env_helper.LOAD_CONFIG_FROM_BLOB_STORAGE = True
+        env_helper.USE_ADVANCED_IMAGE_PROCESSING = False
 
         yield env_helper
 
@@ -138,6 +153,54 @@ def test_default_config_is_cached():
 
     # then
     assert default_config_one is default_config_two
+
+
+def test_default_config_when_use_advanced_image_processing(env_helper_mock):
+    # given
+    env_helper_mock.USE_ADVANCED_IMAGE_PROCESSING = True
+
+    # when
+    config = ConfigHelper.get_default_config()
+
+    # then
+    expected_chunking = {"strategy": "layout", "size": 500, "overlap": 100}
+    assert config["document_processors"] == [
+        {
+            "document_type": "pdf",
+            "chunking": expected_chunking,
+            "loading": {"strategy": "layout"},
+        },
+        {
+            "document_type": "txt",
+            "chunking": expected_chunking,
+            "loading": {"strategy": "web"},
+        },
+        {
+            "document_type": "url",
+            "chunking": expected_chunking,
+            "loading": {"strategy": "web"},
+        },
+        {
+            "document_type": "md",
+            "chunking": expected_chunking,
+            "loading": {"strategy": "web"},
+        },
+        {
+            "document_type": "html",
+            "chunking": expected_chunking,
+            "loading": {"strategy": "web"},
+        },
+        {
+            "document_type": "docx",
+            "chunking": expected_chunking,
+            "loading": {"strategy": "docx"},
+        },
+        {"document_type": "jpeg", "use_advanced_image_processing": True},
+        {"document_type": "jpg", "use_advanced_image_processing": True},
+        {"document_type": "png", "use_advanced_image_processing": True},
+        {"document_type": "tiff", "use_advanced_image_processing": True},
+        {"document_type": "bmp", "use_advanced_image_processing": True},
+    ]
 
 
 def test_get_config_from_azure(
@@ -205,29 +268,84 @@ def test_delete_config(AzureBlobStorageClientMock: MagicMock):
     )
 
 
-def test_get_available_document_types(config_mock: Config):
+def test_get_document_processors(config_dict: dict):
+    # given
+    config_dict["document_processors"] = [
+        {"document_type": "jpg", "use_advanced_image_processing": True},
+        {
+            "document_type": "png",
+            "chunking": {"strategy": None, "size": None, "overlap": None},
+            "loading": {"strategy": None},
+            "use_advanced_image_processing": True,
+        },
+        {
+            "document_type": "pdf",
+            "chunking": {
+                "strategy": "layout",
+                "size": 500,
+                "overlap": 100,
+            },
+            "loading": {
+                "strategy": "read",
+            },
+        },
+    ]
     # when
-    document_types = config_mock.get_available_document_types()
+    config = Config(config_dict)
+
+    # then
+    assert config.document_processors == [
+        Processor(
+            document_type="jpg",
+            chunking=None,
+            loading=None,
+            use_advanced_image_processing=True,
+        ),
+        Processor(
+            document_type="png",
+            chunking=None,
+            loading=None,
+            use_advanced_image_processing=True,
+        ),
+        Processor(
+            document_type="pdf",
+            chunking=ChunkingSettings(
+                {"strategy": "layout", "size": 500, "overlap": 100}
+            ),
+            loading=LoadingSettings({"strategy": "read"}),
+            use_advanced_image_processing=False,
+        ),
+    ]
+
+
+def test_get_available_document_types(config: Config):
+    # when
+    document_types = config.get_available_document_types()
 
     # then
     assert sorted(document_types) == sorted(
-        [
-            "txt",
-            "pdf",
-            "url",
-            "html",
-            "md",
-            "jpeg",
-            "jpg",
-            "png",
-            "docx",
-        ]
+        ["txt", "pdf", "url", "html", "md", "jpeg", "jpg", "png", "docx"]
     )
 
 
-def test_get_available_chunking_strategies(config_mock: Config):
+def test_get_available_document_types_when_advanced_image_processing_enabled(
+    config: Config, env_helper_mock: MagicMock
+):
+    # given
+    env_helper_mock.USE_ADVANCED_IMAGE_PROCESSING = True
+
     # when
-    chunking_strategies = config_mock.get_available_chunking_strategies()
+    document_types = config.get_available_document_types()
+
+    # then
+    assert sorted(document_types) == sorted(
+        ["txt", "pdf", "url", "html", "md", "jpeg", "jpg", "png", "docx", "tiff", "bmp"]
+    )
+
+
+def test_get_available_chunking_strategies(config: Config):
+    # when
+    chunking_strategies = config.get_available_chunking_strategies()
 
     # then
     assert sorted(chunking_strategies) == sorted(
@@ -240,17 +358,17 @@ def test_get_available_chunking_strategies(config_mock: Config):
     )
 
 
-def test_get_available_loading_strategies(config_mock: Config):
+def test_get_available_loading_strategies(config: Config):
     # when
-    loading_strategies = config_mock.get_available_loading_strategies()
+    loading_strategies = config.get_available_loading_strategies()
 
     # then
     assert sorted(loading_strategies) == sorted(["layout", "read", "web", "docx"])
 
 
-def test_get_available_orchestration_strategies(config_mock: Config):
+def test_get_available_orchestration_strategies(config: Config):
     # when
-    orchestration_strategies = config_mock.get_available_orchestration_strategies()
+    orchestration_strategies = config.get_available_orchestration_strategies()
 
     # then
     assert sorted(orchestration_strategies) == sorted(["openai_function", "langchain"])

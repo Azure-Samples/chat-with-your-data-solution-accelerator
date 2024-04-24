@@ -17,11 +17,27 @@ logger = logging.getLogger(__name__)
 
 class Processor(ChunkingSettings, LoadingSettings):
     def __init__(
-        self, document_type: str, chunking: ChunkingSettings, loading: LoadingSettings
+        self,
+        document_type: str,
+        chunking: ChunkingSettings | None,
+        loading: LoadingSettings | None,
+        use_advanced_image_processing: bool,
     ):
         self.document_type = document_type
         self.chunking = chunking
         self.loading = loading
+        self.use_advanced_image_processing = use_advanced_image_processing
+
+    def __eq__(self, other):
+        if isinstance(self, other.__class__):
+            return (
+                self.document_type == other.document_type
+                and self.chunking == other.chunking
+                and self.loading == other.loading
+                and self.use_advanced_image_processing
+                == other.use_advanced_image_processing
+            )
+        return False
 
 
 class DocumentProcessor:
@@ -32,20 +48,24 @@ class DocumentProcessor:
         vector_store_helper = AzureSearchHelper()
         vector_store = vector_store_helper.get_vector_store()
         for processor in processors:
-            try:
-                document_loading = DocumentLoading()
-                document_chunking = DocumentChunking()
-                documents: List[SourceDocument] = []
-                documents = document_loading.load(source_url, processor.loading)
-                documents = document_chunking.chunk(documents, processor.chunking)
-                keys = list(map(lambda x: x.id, documents))
-                documents = [
-                    document.convert_to_langchain_document() for document in documents
-                ]
-                return vector_store.add_documents(documents=documents, keys=keys)
-            except Exception as e:
-                logger.error(f"Error adding embeddings for {source_url}: {e}")
-                raise e
+            if not processor.use_advanced_image_processing:
+                try:
+                    document_loading = DocumentLoading()
+                    document_chunking = DocumentChunking()
+                    documents: List[SourceDocument] = []
+                    documents = document_loading.load(source_url, processor.loading)
+                    documents = document_chunking.chunk(documents, processor.chunking)
+                    keys = list(map(lambda x: x.id, documents))
+                    documents = [
+                        document.convert_to_langchain_document()
+                        for document in documents
+                    ]
+                    return vector_store.add_documents(documents=documents, keys=keys)
+                except Exception as e:
+                    logger.error(f"Error adding embeddings for {source_url}: {e}")
+                    raise e
+            else:
+                logger.warn("Advanced image processing is not supported yet")
 
     def process_using_integrated_vectorisation(self, source_url: str):
         env_helper: EnvHelper = EnvHelper()

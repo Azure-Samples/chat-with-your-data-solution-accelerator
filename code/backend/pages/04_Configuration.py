@@ -259,14 +259,20 @@ try:
         map(
             lambda x: {
                 "document_type": x.document_type,
-                "chunking_strategy": x.chunking.chunking_strategy.value,
-                "chunking_size": x.chunking.chunk_size,
-                "chunking_overlap": x.chunking.chunk_overlap,
-                "loading_strategy": x.loading.loading_strategy.value,
+                "chunking_strategy": (
+                    x.chunking.chunking_strategy.value if x.chunking else None
+                ),
+                "chunking_size": x.chunking.chunk_size if x.chunking else None,
+                "chunking_overlap": x.chunking.chunk_overlap if x.chunking else None,
+                "loading_strategy": (
+                    x.loading.loading_strategy.value if x.loading else None
+                ),
+                "use_advanced_image_processing": x.use_advanced_image_processing,
             },
             config.document_processors,
         )
     )
+
     with st.expander("Document processing configuration", expanded=True):
         edited_document_processors = st.data_editor(
             data=document_processors,
@@ -305,6 +311,7 @@ try:
                     "loading": {
                         "strategy": x["loading_strategy"],
                     },
+                    "use_advanced_image_processing": x["use_advanced_image_processing"],
                 },
                 edited_document_processors,
             )

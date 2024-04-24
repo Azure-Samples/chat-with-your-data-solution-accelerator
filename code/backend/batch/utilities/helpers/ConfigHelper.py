@@ -26,8 +26,19 @@ class Config:
         self.document_processors = [
             Processor(
                 document_type=c["document_type"],
-                chunking=ChunkingSettings(c["chunking"]),
-                loading=LoadingSettings(c["loading"]),
+                chunking=(
+                    ChunkingSettings(c["chunking"])
+                    if c.get("use_advanced_image_processing", False) is False
+                    else None
+                ),
+                loading=(
+                    LoadingSettings(c["loading"])
+                    if c.get("use_advanced_image_processing", False) is False
+                    else None
+                ),
+                use_advanced_image_processing=c.get(
+                    "use_advanced_image_processing", False
+                ),
             )
             for c in config["document_processors"]
         ]
@@ -40,7 +51,21 @@ class Config:
         )
 
     def get_available_document_types(self):
-        return ["txt", "pdf", "url", "html", "md", "jpeg", "jpg", "png", "docx"]
+        document_types = [
+            "txt",
+            "pdf",
+            "url",
+            "html",
+            "md",
+            "jpeg",
+            "jpg",
+            "png",
+            "docx",
+        ]
+        if self.env_helper.USE_ADVANCED_IMAGE_PROCESSING:
+            document_types.extend(["tiff", "bmp"])
+
+        return sorted(document_types)
 
     def get_available_chunking_strategies(self):
         return [c.value for c in ChunkingStrategy]
@@ -161,8 +186,31 @@ class ConfigHelper:
                         ORCHESTRATION_STRATEGY=env_helper.ORCHESTRATION_STRATEGY
                     )
                 )
+                if env_helper.USE_ADVANCED_IMAGE_PROCESSING:
+                    ConfigHelper._append_advanced_image_processors()
 
         return ConfigHelper._default_config
+
+    @staticmethod
+    def _append_advanced_image_processors():
+        image_file_types = ["jpeg", "jpg", "png", "tiff", "bmp"]
+        ConfigHelper._remove_processors_for_file_types(image_file_types)
+        ConfigHelper._default_config["document_processors"].extend(
+            [
+                {"document_type": file_type, "use_advanced_image_processing": True}
+                for file_type in image_file_types
+            ]
+        )
+
+    @staticmethod
+    def _remove_processors_for_file_types(file_types: list[str]):
+        document_processors = ConfigHelper._default_config["document_processors"]
+        document_processors = [
+            document_processor
+            for document_processor in document_processors
+            if document_processor["document_type"] not in file_types
+        ]
+        ConfigHelper._default_config["document_processors"] = document_processors
 
     @staticmethod
     def delete_config():
