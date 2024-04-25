@@ -1,0 +1,48 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+}
+
+.prontoAvatar {
+  margin-top: -10vh;
+}
+
+.logInHolder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 400px;
+  height: 150px;
+  border-radius: 12px;
+  border: 12px solid #ffffff;
+  box-shadow:
+    0px 8px 16px rgba(0, 0, 0, 0.14),
+    0px 0px 2px rgba(0, 0, 0, 0.12);
+}
+
+.logInInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background-color: #eff1f4;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.logInHolder label {
+  display: flex;
+  margin: 0px 0px 16px 0px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.logInHolder span {
+  cursor: pointer;
+}

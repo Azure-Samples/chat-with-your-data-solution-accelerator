@@ -55,7 +55,7 @@ export const Header = () => {
                   <div className={styles.dataSourceToolTipInner}>
                     <img
                       src="../../addSourceTooltipIcon.png"
-                      className={styles.addSourceButton}
+                      // className={styles.addSourceButton}
                       aria-hidden="true"
                     />
                     <span>Add a data source</span>
