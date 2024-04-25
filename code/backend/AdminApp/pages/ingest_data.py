@@ -111,6 +111,7 @@ def main():
                         if st.session_state.get("filename", "") != file_name:
                             # Upload a new file
                             upload_file(bytes_data, file_name)
+                            remote_convert_files_and_add_embeddings()
                     if len(pages) > 0:
                         st.success(
                             f"{len(pages)} documents uploaded. Embeddings computation in progress. \nPlease note this is an asynchronous process and may take a few minutes to complete.\nYou can check for further details in the Azure Function logs."
