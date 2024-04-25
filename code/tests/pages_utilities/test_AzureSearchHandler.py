@@ -83,14 +83,14 @@ def test_output_results(handler):
     }
 
 
-def test_get_files(handler, mock_azure_search_helper):
+def test_get_files(handler):
     # given
     results = [
         {"id": 1, "title": "file1"},
         {"id": 2, "title": "file2"},
         {"id": 3, "title": "file3"},
     ]
-    mock_azure_search_helper.search.return_value = results
+    handler.search_client.search.return_value = results
 
     # when
     files = handler.get_files()
