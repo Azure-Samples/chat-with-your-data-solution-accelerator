@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import Mock, patch
-from backend.pages.utilities.IntegratedVectorizationSearchHandler import (
+from backend.batch.utilities.search.IntegratedVectorizationSearchHandler import (
     IntegratedVectorizationSearchHandler,
 )
 
@@ -18,7 +18,7 @@ def env_helper_mock():
 @pytest.fixture
 def search_client_mock():
     with patch(
-        "backend.pages.utilities.IntegratedVectorizationSearchHandler.SearchClient"
+        "backend.batch.utilities.search.IntegratedVectorizationSearchHandler.SearchClient"
     ) as mock:
         yield mock
 
@@ -26,7 +26,7 @@ def search_client_mock():
 @pytest.fixture
 def handler(env_helper_mock, search_client_mock):
     with patch(
-        "backend.pages.utilities.IntegratedVectorizationSearchHandler.SearchClient",
+        "backend.batch.utilities.search.IntegratedVectorizationSearchHandler.SearchClient",
         return_value=search_client_mock,
     ):
         return IntegratedVectorizationSearchHandler(env_helper_mock)
@@ -72,3 +72,40 @@ def test_delete_files(handler, search_client_mock):
     # then
     assert result == "file1"
     search_client_mock.delete_documents.assert_called_once()
+
+
+def test_output_results(handler):
+    # given
+    results = [
+        {"chunk_id": "123_chunk", "title": "file1"},
+        {"chunk_id": "456_chunk", "title": "file2"},
+        {"chunk_id": "789_chunk", "title": "file1"},
+    ]
+
+    # when
+    files = handler.output_results(results)
+
+    # then
+    assert files == {
+        "file1": ["123_chunk", "789_chunk"],
+        "file2": ["456_chunk"],
+    }
+
+
+def test_get_files(handler, search_client_mock):
+    # given
+    results = [
+        {"id": "1", "chunk_id": "123_chunk", "title": "file1"},
+        {"id": "2", "chunk_id": "456_chunk", "title": "file2"},
+        {"id": "3", "chunk_id": "789_chunk", "title": "file1"},
+    ]
+    search_client_mock.search.return_value = results
+
+    # when
+    files = handler.get_files()
+
+    # then
+    assert files == results
+    search_client_mock.search.assert_called_once_with(
+        "*", select="id, chunk_id, title", include_total_count=True
+    )

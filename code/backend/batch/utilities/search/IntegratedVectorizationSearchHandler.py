@@ -1,4 +1,4 @@
-from backend.pages.utilities.SearchHandlerBase import SearchHandlerBase
+from backend.batch.utilities.search.SearchHandlerBase import SearchHandlerBase
 from azure.search.documents import SearchClient
 from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential
