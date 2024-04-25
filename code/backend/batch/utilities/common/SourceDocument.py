@@ -76,7 +76,7 @@ class SourceDocument:
             chunk=metadata.get("chunk", idx),
             offset=metadata.get("offset"),
             page_number=metadata.get("page_number"),
-            page_number=metadata.get("chunk_id"),
+            chunk_id=metadata.get("chunk_id"),
         )
 
     def convert_to_langchain_document(self):
