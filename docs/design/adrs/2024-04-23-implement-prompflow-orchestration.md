@@ -1,6 +1,6 @@
 # Implement a PromptFlow Orchestration as an alternative for the chat backend
 
-* **Status:** proposed
+* **Status:** approved
 * **Proposer:** @superhindupur
 * **Date:** 2024-04-23
 * **Technical Story:** [Include a prompt flow integration](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/406)
