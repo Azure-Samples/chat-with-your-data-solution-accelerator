@@ -6,10 +6,11 @@ from backend.batch.utilities.helpers.OrchestratorHelper import (
 
 
 @pytest.mark.azure("This test requires Azure Open AI configured")
-def test_orchestrator_openai_function():
+@pytest.mark.asyncio
+async def test_orchestrator_openai_function():
     message_orchestrator = Orchestrator()
     strategy = "openai_function"
-    messages = message_orchestrator.handle_message(
+    messages = await message_orchestrator.handle_message(
         user_message="What's Azure AI Search?",
         chat_history=[],
         conversation_id="test_openai_function",
@@ -20,10 +21,11 @@ def test_orchestrator_openai_function():
 
 
 @pytest.mark.azure("This test requires Azure Open AI configured")
-def test_orchestrator_langchain():
+@pytest.mark.asyncio
+async def test_orchestrator_langchain():
     message_orchestrator = Orchestrator()
     strategy = "langchain"
-    messages = message_orchestrator.handle_message(
+    messages = await message_orchestrator.handle_message(
         user_message="What's Azure AI Search?",
         chat_history=[],
         conversation_id="test_langchain",
