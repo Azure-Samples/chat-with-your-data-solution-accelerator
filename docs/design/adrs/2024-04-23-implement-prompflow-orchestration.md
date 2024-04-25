@@ -13,6 +13,7 @@ This orchestration between the chat backend, LLM and search service is done insi
 
 ## Decision Drivers
 
+* Allowing customers to experiment with the chat backend orchestration with low/no code
 * Being able to demonstrate various orchestration options to customers
 * Limiting complexity in the repo
 * Ease of maintenance of the PromptFlow configuration
@@ -23,20 +24,21 @@ This orchestration between the chat backend, LLM and search service is done insi
 * Not adding the PromptFlow orchestration
 
 ## Decision Outcome
-In the absence of concrete business / customer requirements, the outcome is to NOT add a PromptFlow orchestrator alternative for the chat backend.
+The outcome is to go ahead and build a simple promptflow backend orchestrator iteratively, with the first version being a straightforward RAG implementation that doesn't necessarily do everything that the langchain or openai_fuctions orchestrators in the code do at the time of writing.
+
+E2E tests are missing for every orchestratir at the moment - once E2E tests are added, they can cover all orchestrators including promptflow.
 
 
 ## Pros and Cons of the Options
 
 ### Adding the PromptFlow orchestration
-* Good, because customers wanting to deploy the chat backend as a PromptFlow endpoint will be able to do so.
-* Good, because customers will have a low-code mechanism to experiment with the orchestration of the chat backend.
-* Bad, because building a PromptFlow orchestration that mimics the current chat backend requires significant effort - and it is unclear how much customer demand we have for it.
+* Good, because customers will have a low-code mechanism to experiment with the orchestration of the chat backend. Promptflow also allows for off-the-shelf evaluation that can be plugged-in with low/no code, which can be very useful for improving accuracy of the search and chat responses.
+* Bad, because building a PromptFlow orchestration that mimics the current chat backend requires significant effort.
 * Bad, because the PromptFlow configuration can get out of date with the other orchestrators that are in code. This will cause confusion to customers and will lead them to open issues against the repo.
 * Bad, because outside of end-to-end tests that test an actual deployment, there is no way to test the PromptFlow configuration (i.e., no way to unit-test it).
 
 
 ### Not adding the PromptFlow Orchestration
-* Bad, because customers wanting to deploy the chat backend as a PromptFlow endpoint will NOT be able to do so.
-* Bad, because in the absence of a low-code PromptFlow alternative, customers will need coding knowledge to experiment with the chat backend orchestration.
 * Good, because there's one less thing to maintain / explain / test in the repo. :)
+* Bad, because customers wanting to deploy the chat backend as a PromptFlow endpoint will NOT be able to do so.
+* Bad, because in the absence of a low-code PromptFlow alternative, customers will need coding knowledge to experiment with the chat backend orchestration. This is almost prohibitive for customers wanting to experiment and evaluate accuracy of search and chat responses.
