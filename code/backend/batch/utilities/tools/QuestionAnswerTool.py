@@ -1,6 +1,11 @@
 import json
 import logging
 import warnings
+
+from backend.batch.utilities.integrated_vectorization.AzureSearchIndex import (
+    AzureSearchIndex,
+)
+from azure.search.documents.models import VectorizableTextQuery
 from .AnsweringToolBase import AnsweringToolBase
 
 from langchain.chains.llm import LLMChain
@@ -29,9 +34,15 @@ logger = logging.getLogger(__name__)
 class QuestionAnswerTool(AnsweringToolBase):
     def __init__(self) -> None:
         self.name = "QuestionAnswer"
-        self.vector_store = AzureSearchHelper().get_vector_store()
-        self.verbose = True
         self.env_helper = EnvHelper()
+        self.llm_helper = LLMHelper()
+        if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+            self.search_index = AzureSearchIndex(self.env_helper, self.llm_helper)
+            self.search_index.create_or_update_index()
+        else:
+            self.vector_store = AzureSearchHelper().get_vector_store()
+        self.verbose = True
+
         self.config = ConfigHelper.get_active_config_or_default()
 
     @staticmethod
@@ -130,11 +141,44 @@ class QuestionAnswerTool(AnsweringToolBase):
 
     def answer_question(self, question: str, chat_history: list[dict], **kwargs: dict):
         # Retrieve documents as sources
-        sources = self.vector_store.similarity_search(
-            query=question,
-            k=self.env_helper.AZURE_SEARCH_TOP_K,
-            filters=self.env_helper.AZURE_SEARCH_FILTER,
-        )
+        if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+            vector_query = VectorizableTextQuery(
+                text=question,
+                k_nearest_neighbors=self.env_helper.AZURE_SEARCH_TOP_K,
+                fields="content_vector",
+                exhaustive=True,
+            )
+            search_results = self.search_index.index_client.get_search_client(
+                index_name=self.env_helper.AZURE_SEARCH_INDEX
+            ).search(
+                search_text=question,
+                vector_queries=[vector_query],
+                top=self.env_helper.AZURE_SEARCH_TOP_K,
+            )
+            sources = []
+
+            for result in search_results:
+                metadata_dict = {
+                    "id": result.get(
+                        "id", ""
+                    ),  # Using get() to avoid KeyErrors if key doesn't exist
+                    "title": result.get("title", ""),
+                    "source": result.get("source", ""),
+                    "chunk_id": result.get("chunk_id", ""),
+                }
+                sources.append(
+                    Document(
+                        page_content=result["content"],
+                        metadata=metadata_dict,
+                    )
+                )
+
+        else:
+            sources = self.vector_store.similarity_search(
+                query=question,
+                k=self.env_helper.AZURE_SEARCH_TOP_K,
+                filters=self.env_helper.AZURE_SEARCH_FILTER,
+            )
 
         if self.config.prompts.use_on_your_data_format:
             answering_prompt, input = self.generate_on_your_data_llm_chain(
@@ -161,15 +205,24 @@ class QuestionAnswerTool(AnsweringToolBase):
         # Generate Answer Object
         source_documents = []
         for source in sources:
-            source_document = SourceDocument(
-                id=source.metadata["id"],
-                content=source.page_content,
-                title=source.metadata["title"],
-                source=source.metadata["source"],
-                chunk=source.metadata["chunk"],
-                offset=source.metadata["offset"],
-                page_number=source.metadata["page_number"],
-            )
+            if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+                source_document = SourceDocument(
+                    id=source.metadata["id"],
+                    content=source.page_content,
+                    title=source.metadata["title"],
+                    source=source.metadata["source"],
+                    chunk_id=source.metadata["chunk_id"],
+                )
+            else:
+                source_document = SourceDocument(
+                    id=source.metadata["id"],
+                    content=source.page_content,
+                    title=source.metadata["title"],
+                    source=source.metadata["source"],
+                    chunk=source.metadata["chunk"],
+                    offset=source.metadata["offset"],
+                    page_number=source.metadata["page_number"],
+                )
             source_documents.append(source_document)
 
         clean_answer = Answer(
