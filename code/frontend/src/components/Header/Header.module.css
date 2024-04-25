@@ -177,10 +177,10 @@
   font-weight: 400 !important;
 }
 
-.copiedToClipboard{
+.copiedToClipboard, .dataSourceToolTipInner{
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 6px;
 }
 
 .copiedToClipboard img{
