@@ -84,15 +84,6 @@ class EnvHelper:
             DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
         )
 
-        # Azure AD
-        tenant_id = os.getenv("TENANT_ID", "")
-        client_id = os.getenv("CLIENT_ID", "")
-        client_secret = self.secretHelper.get_secret("CLIENT_SECRET")
-        self.TENANT_ID = tenant_id
-        self.CLIENT_ID = client_id
-        self.CLIENT_SECRET = client_secret
-        self.ADMIN_GROUP_ID = self.secretHelper.get_secret("AZURE_ADMIN_GROUP_ID")
-
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
         if self.AZURE_AUTH_TYPE == "rbac":
@@ -164,6 +155,24 @@ class EnvHelper:
         )
         # Speech Service
         self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")
+        # Azure AD
+        tenant_id = os.getenv("TENANT_ID", "")
+        client_id = os.getenv("CLIENT_ID", "")
+        client_secret = self.secretHelper.get_secret("CLIENT_SECRET")
+        self.TENANT_ID = tenant_id
+        self.CLIENT_ID = client_id
+        self.CLIENT_SECRET = client_secret
+        self.ADMIN_GROUP_ID = self.secretHelper.get_secret("AZURE_ADMIN_GROUP_ID")
+        self.ADMIN_AUTH_DISABLED = os.getenv("AUTH_DISABLED", "False").lower() in (
+            "true",
+            "1",
+            "t",
+        )
+        self.BACKEND_AUTH_DISABLED = os.getenv("DISABLE_AUTH", "False").lower() in (
+            "true",
+            "1",
+            "t",
+        )
 
     def should_use_data(self) -> bool:
         if (

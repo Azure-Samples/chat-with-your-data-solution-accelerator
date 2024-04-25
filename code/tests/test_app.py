@@ -103,7 +103,7 @@ class TestConversationCustom:
         get_message_orchestrator_mock.return_value = message_orchestrator_mock
 
         env_helper_mock.AZURE_OPENAI_MODEL = self.openai_model
-
+        env_helper_mock.BACKEND_AUTH_DISABLED = False
         # when
         response = app.test_client().post(
             "/api/conversation/custom",
@@ -298,7 +298,7 @@ class TestConversationAzureByod:
         response_mock = MockResponse(include_error=True)
         mock_session.post = Mock(return_value=response_mock)
         env_helper_mock.should_use_data.return_value = True
-
+        env_helper_mock.BACKEND_AUTH_DISABLED = False
         # when
         response = app.test_client().post(
             "/api/conversation/azure_byod",

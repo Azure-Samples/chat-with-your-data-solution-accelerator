@@ -1,6 +1,9 @@
 import streamlit as st
 from components.login import isLoggedIn, logout
 import os
+from batch.utilities.helpers.EnvHelper import EnvHelper
+
+env_helper: EnvHelper = EnvHelper()
 
 
 def authenticated_menu():
@@ -19,7 +22,10 @@ def authenticated_menu():
         os.path.join(pages_path, "configuration.py"), label="Configuration"
     )
 
-    st.sidebar.button("Sign Out", key="logout_button", help="Sign Out", on_click=logout)
+    if not env_helper.ADMIN_AUTH_DISABLED:
+        st.sidebar.button(
+            "Sign Out", key="logout_button", help="Sign Out", on_click=logout
+        )
 
 
 def menu():

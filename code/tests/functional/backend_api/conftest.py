@@ -1,5 +1,4 @@
 from multiprocessing import Process
-import os
 import socket
 import time
 import pytest
@@ -34,8 +33,9 @@ def mock_httpserver(make_httpserver):
 
 @pytest.fixture(scope="module")
 def app_config(mock_httpserver: HTTPServer) -> AppConfig:
-    os.environ["DISABLE_AUTH"] = "1"
-    return AppConfig({"AZURE_OPENAI_ENDPOINT": mock_httpserver.url_for("/")})
+    return AppConfig(
+        {"AZURE_OPENAI_ENDPOINT": mock_httpserver.url_for("/"), "DISABLE_AUTH": "True"}
+    )
 
 
 @pytest.fixture(scope="module", autouse=True)

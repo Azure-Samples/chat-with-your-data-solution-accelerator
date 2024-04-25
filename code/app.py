@@ -3,7 +3,6 @@ import jwt
 import logging
 import mimetypes
 import requests
-import os
 import sys
 
 from dotenv import load_dotenv
@@ -39,10 +38,13 @@ def static_file(path):
 def auth_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if os.environ.get("DISABLE_AUTH"):
+        if env_helper.BACKEND_AUTH_DISABLED:
             return f(*args, **kwargs)
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            return Response("Unauthorized", status=401)
 
-        token = request.headers.get("Authorization")
+        token = auth_header.split(" ")[1]
         if not token:
             return Response("Unauthorized", status=401)
 
@@ -173,8 +175,7 @@ def stream_with_data(body, headers, endpoint):
         with s.post(endpoint, json=body, headers=headers, stream=True) as r:
             for line in r.iter_lines(chunk_size=10):
                 if line:
-                    lineJson = json.loads(
-                        line.lstrip(b"data:").decode("utf-8"))
+                    lineJson = json.loads(line.lstrip(b"data:").decode("utf-8"))
                     if "error" in lineJson:
                         yield json.dumps(lineJson, ensure_ascii=False) + "\n"
                     response["id"] = lineJson["id"]
@@ -182,8 +183,7 @@ def stream_with_data(body, headers, endpoint):
                     response["created"] = lineJson["created"]
                     response["object"] = lineJson["object"]
 
-                    role = lineJson["choices"][0]["messages"][0]["delta"].get(
-                        "role")
+                    role = lineJson["choices"][0]["messages"][0]["delta"].get("role")
                     if role == "tool":
                         response["choices"][0]["messages"].append(
                             lineJson["choices"][0]["messages"][0]["delta"]
@@ -258,12 +258,10 @@ def conversation_without_data(request):
         )
 
     request_messages = request.json["messages"]
-    messages = [
-        {"role": "system", "content": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE}]
+    messages = [{"role": "system", "content": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE}]
 
     for message in request_messages:
-        messages.append(
-            {"role": message["role"], "content": message["content"]})
+        messages.append({"role": message["role"], "content": message["content"]})
 
     # Azure Open AI takes the deployment name as the model name, "AZURE_OPENAI_MODEL" means deployment name.
     response = openai_client.chat.completions.create(
@@ -318,8 +316,7 @@ def conversation_azure_byod():
             return conversation_without_data(request)
     except Exception as e:
         errorMessage = str(e)
-        logging.exception(
-            f"Exception in /api/conversation/azure_byod | {errorMessage}")
+        logging.exception(f"Exception in /api/conversation/azure_byod | {errorMessage}")
         return (
             jsonify(
                 {
@@ -376,8 +373,7 @@ def conversation_custom():
 
     except Exception as e:
         errorMessage = str(e)
-        logging.exception(
-            f"Exception in /api/conversation/custom | {errorMessage}")
+        logging.exception(f"Exception in /api/conversation/custom | {errorMessage}")
         return (
             jsonify(
                 {
