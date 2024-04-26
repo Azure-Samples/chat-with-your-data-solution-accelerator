@@ -4,10 +4,10 @@ import traceback
 import sys
 import logging
 from batch.utilities.helpers.EnvHelper import EnvHelper
-from backend.pages.utilities.IntegratedVectorizationSearchHandler import (
+from batch.utilities.search.IntegratedVectorizationSearchHandler import (
     IntegratedVectorizationSearchHandler,
 )
-from backend.pages.utilities.AzureSearchHandler import AzureSearchHandler
+from batch.utilities.search.AzureSearchHandler import AzureSearchHandler
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
