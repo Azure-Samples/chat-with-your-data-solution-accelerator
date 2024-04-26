@@ -30,6 +30,11 @@ export const Header = () => {
     }, 500);
   };
 
+  const logOut = () => {
+      localStorage.removeItem('loggedIn');
+      location.reload();
+  };
+
   /* useEffect(() => {
 
     },); */
@@ -144,7 +149,7 @@ export const Header = () => {
                       <span>Settings</span>
                     </div>
                   </li>
-                  <li className={`menuListItem disabled`}>
+                  <li className={`menuListItem`} onClick={(e) => logOut()}>
                     <div className={`listItemLabel`}>
                       <DoorArrowLeftFilled />
                       <span>Log Out</span>

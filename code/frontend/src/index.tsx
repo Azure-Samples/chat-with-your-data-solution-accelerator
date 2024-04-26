@@ -18,12 +18,12 @@ export default function App() {
   const [userLoggedIn, setUserLoggedIn] = useState<boolean>(false);
 
   useEffect(() => {
-    setUserLoggedIn(localStorage.getItem("loggedIn") !== null);
-
-    if (userLoggedIn) {
+    if (localStorage.getItem("loggedIn") === null) {
       console.log("User is not logged in, should reRoute to login");
+      setUserLoggedIn(false);
     } else {
       console.log("User is logged in, should display chat");
+      setUserLoggedIn(true);
     }
   });
 

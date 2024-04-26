@@ -1,5 +1,4 @@
-import { useRef, useState, useEffect } from "react";
-import { Stack } from "@fluentui/react";
+import { useState, useEffect } from "react";
 
 import styles from "./LogIn.module.css";
 import { Input, Label, useId } from "@fluentui/react-components";
@@ -9,12 +8,18 @@ import { ArrowEnterFilled } from "@fluentui/react-icons";
 const LogIn = (props: InputProps) => {
   const inputId = useId("input");
   const [liveRecognizedText, setLiveRecognizedText] = useState<string>("");
+  const [isWrongPW, setIsWrongPW] = useState<boolean>(false);
 
   const submitLogInField = (passwordEntered: string) => {
-    if (passwordEntered.trim() === "nagenai") {
-      console.log("yup, passed");
+    if (passwordEntered.trim() === import.meta.env.VITE_TEMP_PW) {
+      localStorage.setItem("loggedIn", "true");
+      location.reload();
     } else {
-      console.log("nope, wrong");
+      setLiveRecognizedText("");
+      setIsWrongPW(true);
+      setTimeout(() => {
+        setIsWrongPW(false);
+      }, 1000);
     }
   };
 
@@ -31,8 +36,10 @@ const LogIn = (props: InputProps) => {
         <div className={styles.logInInner}>
           <Label htmlFor={inputId}>Welcome to Pronto, please log in!</Label>
           <Input
+            className={isWrongPW ? styles.shake : ""}
             id={inputId}
             {...props}
+            type="password"
             placeholder={"Enter Password"}
             contentAfter={
               <ArrowEnterFilled
