@@ -352,7 +352,7 @@ def create_app():
             )
 
     @app.route("/api/conversation/custom", methods=["POST"])
-    def conversation_custom():
+    async def conversation_custom():
         message_orchestrator = get_message_orchestrator()
 
         try:
@@ -365,7 +365,7 @@ def create_app():
                 )
             )
 
-            messages = message_orchestrator.handle_message(
+            messages = await message_orchestrator.handle_message(
                 user_message=user_message,
                 chat_history=user_assistant_messages,
                 conversation_id=conversation_id,

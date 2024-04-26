@@ -56,7 +56,7 @@ class LangChainAgent(OrchestratorBase):
         )
         return answer.to_json()
 
-    def orchestrate(
+    async def orchestrate(
         self, user_message: str, chat_history: List[dict], **kwargs: dict
     ) -> dict:
 

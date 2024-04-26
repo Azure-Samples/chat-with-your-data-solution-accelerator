@@ -72,7 +72,8 @@ def test_run_text_processing_tool_returns_answer_json():
 @patch("backend.batch.utilities.orchestrator.LangChainAgent.ZeroShotAgent")
 @patch("backend.batch.utilities.orchestrator.LangChainAgent.LLMChain")
 @patch("langchain.agents.AgentExecutor.from_agent_and_tools")
-def test_orchestrate_langchain_to_orchestrate_chat(
+@pytest.mark.asyncio
+async def test_orchestrate_langchain_to_orchestrate_chat(
     agent_executor_mock, llm_chain_mock, zero_shot_agent_mock
 ):
     # Given
@@ -89,7 +90,7 @@ def test_orchestrate_langchain_to_orchestrate_chat(
     agent.output_parser.parse.return_value = expected_messages
 
     # When
-    actual_messages = agent.orchestrate(user_message="Hello", chat_history=[])
+    actual_messages = await agent.orchestrate(user_message="Hello", chat_history=[])
 
     # Then
     assert actual_messages == expected_messages
@@ -102,7 +103,8 @@ def test_orchestrate_langchain_to_orchestrate_chat(
 @patch("backend.batch.utilities.orchestrator.LangChainAgent.ZeroShotAgent")
 @patch("backend.batch.utilities.orchestrator.LangChainAgent.LLMChain")
 @patch("langchain.agents.AgentExecutor.from_agent_and_tools")
-def test_orchestrate_returns_error_message_on_Exception(
+@pytest.mark.asyncio
+async def test_orchestrate_returns_error_message_on_Exception(
     agent_executor_mock, llm_chain_mock, zero_shot_agent_mock
 ):
     # Given
@@ -119,4 +121,4 @@ def test_orchestrate_returns_error_message_on_Exception(
 
     # When + Then
     with pytest.raises(Exception):
-        agent.orchestrate(user_message="Hello", chat_history=[])
+        await agent.orchestrate(user_message="Hello", chat_history=[])

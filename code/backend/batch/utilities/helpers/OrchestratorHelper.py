@@ -9,7 +9,7 @@ class Orchestrator:
     def __init__(self) -> None:
         pass
 
-    def handle_message(
+    async def handle_message(
         self,
         user_message: str,
         chat_history: List[dict],
@@ -22,4 +22,6 @@ class Orchestrator:
             raise Exception(
                 f"Unknown orchestration strategy: {orchestrator.strategy.value}"
             )
-        return orchestrator.handle_message(user_message, chat_history, conversation_id)
+        return await orchestrator.handle_message(
+            user_message, chat_history, conversation_id
+        )

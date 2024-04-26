@@ -14,11 +14,11 @@ logger.setLevel(level=os.environ.get("LOGLEVEL", "INFO").upper())
 
 
 @bp_get_conversation_response.route(route="GetConversationResponse")
-def get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
-    return do_get_conversation_response(req)
+async def get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
+    return await do_get_conversation_response(req)
 
 
-def do_get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
+async def do_get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
     logger.info("Python HTTP trigger function processed a request.")
 
     message_orchestrator = Orchestrator()
@@ -43,7 +43,7 @@ def do_get_conversation_response(req: func.HttpRequest) -> func.HttpResponse:
                     )
                 )
 
-        messages = message_orchestrator.handle_message(
+        messages = await message_orchestrator.handle_message(
             user_message=user_message,
             chat_history=chat_history,
             conversation_id=conversation_id,
