@@ -2,12 +2,16 @@ import streamlit as st
 import os
 import traceback
 import sys
-from batch.utilities.helpers.AzureSearchHelper import AzureSearchHelper
-from dotenv import load_dotenv
+import logging
+from batch.utilities.helpers.EnvHelper import EnvHelper
+from batch.utilities.search.IntegratedVectorizationSearchHandler import (
+    IntegratedVectorizationSearchHandler,
+)
+from batch.utilities.search.AzureSearchHandler import AzureSearchHandler
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
-load_dotenv()
+env_helper: EnvHelper = EnvHelper()
+logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="Delete Data",
@@ -35,59 +39,44 @@ hide_table_row_index = """
 # Inject CSS with Markdown
 st.markdown(hide_table_row_index, unsafe_allow_html=True)
 
+try:
+    if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+        search_handler: IntegratedVectorizationSearchHandler = (
+            IntegratedVectorizationSearchHandler(env_helper)
+        )
+        search_client = search_handler.search_client
+    else:
+        search_handler: AzureSearchHandler = AzureSearchHandler(env_helper)
+        search_client = search_handler.search_client
 
-def get_files():
-    return search_client.search("*", select="id, title", include_total_count=True)
-
-
-def output_results(results):
-    files = {}
+    results = search_handler.get_files()
     if results.get_count() == 0:
         st.info("No files to delete")
         st.stop()
     else:
         st.write("Select files to delete:")
 
-    for result in results:
-        id = result["id"]
-        filename = result["title"]
-        if filename in files:
-            files[filename].append(id)
-        else:
-            files[filename] = [id]
-            st.checkbox(filename, False, key=filename)
-
-    return files
-
-
-def delete_files(files):
-    ids_to_delete = []
-    files_to_delete = []
-
-    for filename, ids in files.items():
-        if st.session_state[filename]:
-            files_to_delete.append(filename)
-            ids_to_delete += [{"id": id} for id in ids]
-
-    if len(ids_to_delete) == 0:
-        st.info("No files selected")
-        st.stop()
-
-    search_client.delete_documents(ids_to_delete)
-
-    st.success("Deleted files: " + str(files_to_delete))
-
-
-try:
-    vector_store_helper: AzureSearchHelper = AzureSearchHelper()
-    search_client = vector_store_helper.get_vector_store().client
-
-    results = get_files()
-    files = output_results(results)
+    files = search_handler.output_results(results)
+    selections = {
+        filename: st.checkbox(filename, False, key=filename)
+        for filename in files.keys()
+    }
+    selected_files = {
+        filename: ids for filename, ids in files.items() if selections[filename]
+    }
 
     if st.button("Delete"):
         with st.spinner("Deleting files..."):
-            delete_files(files)
+            if len(selected_files) == 0:
+                st.info("No files selected")
+                st.stop()
+            else:
+                files_to_delete = search_handler.delete_files(
+                    selected_files,
+                )
+                if len(files_to_delete) > 0:
+                    st.success("Deleted files: " + str(files_to_delete))
 
 except Exception:
-    st.error(traceback.format_exc())
+    logger.error(traceback.format_exc())
+    st.error("Exception occurred deleting files.")

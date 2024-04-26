@@ -77,9 +77,7 @@ class AzureSearchSkillset:
                             name="content_vector",
                             source="/document/pages/*/content_vector",
                         ),
-                        InputFieldMappingEntry(
-                            name="title", source="/document/metadata_storage_name"
-                        ),
+                        InputFieldMappingEntry(name="title", source="/document/title"),
                         InputFieldMappingEntry(
                             name="source", source="/document/metadata_storage_path"
                         ),
