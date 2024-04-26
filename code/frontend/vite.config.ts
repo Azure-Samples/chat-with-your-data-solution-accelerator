@@ -16,7 +16,7 @@ export default defineConfig(({ command, mode }) => {
         "/api": {
           target: VITE_API_URL,
           changeOrigin: true,
-          secure: false
+          secure: false,
         },
       },
     },

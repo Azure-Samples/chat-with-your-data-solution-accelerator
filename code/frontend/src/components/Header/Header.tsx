@@ -30,6 +30,11 @@ export const Header = () => {
     }, 500);
   };
 
+  const logOut = () => {
+      localStorage.removeItem('loggedIn');
+      location.reload();
+  };
+
   /* useEffect(() => {
 
     },); */
@@ -53,6 +58,11 @@ export const Header = () => {
                 children: (
                   // ↓ this is where you form the tooltip content
                   <div className={styles.dataSourceToolTipInner}>
+                    <img
+                      src="../../addSourceTooltipIcon.png"
+                      // className={styles.addSourceButton}
+                      aria-hidden="true"
+                    />
                     <span>Add a data source</span>
                   </div>
                 ),
@@ -64,7 +74,7 @@ export const Header = () => {
               {/* ↓ this is where the hoverable content goes */}
               <div className={styles.addSourceButtonContainer}>
                 <a
-                  href="https://rsta4xey-test-website-6eg6fe2yksguu-admin.azurewebsites.net/Ingest_Data"
+                  href="https://web-5cmvhl67t5ruq-admin.azurewebsites.net/Ingest_Data"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -131,7 +141,7 @@ export const Header = () => {
                 </div>
               </MenuTrigger>
 
-              <MenuPopover style={{ padding: '0px' }}>
+              <MenuPopover style={{ padding: "0px" }}>
                 <ul className={`${styles.headerMenu} menuListContainer`}>
                   <li className={`menuListItem disabled`}>
                     <div className={`listItemLabel`}>
@@ -139,7 +149,7 @@ export const Header = () => {
                       <span>Settings</span>
                     </div>
                   </li>
-                  <li className={`menuListItem disabled`}>
+                  <li className={`menuListItem`} onClick={(e) => logOut()}>
                     <div className={`listItemLabel`}>
                       <DoorArrowLeftFilled />
                       <span>Log Out</span>
