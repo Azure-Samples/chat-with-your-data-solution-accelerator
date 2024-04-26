@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 from backend.batch.utilities.search.IntegratedVectorizationSearchHandler import (
     IntegratedVectorizationSearchHandler,
 )
+from azure.search.documents.models import VectorizableTextQuery
 
 
 @pytest.fixture
@@ -12,6 +13,7 @@ def env_helper_mock():
     mock.AZURE_SEARCH_INDEX = "example-index"
     mock.AZURE_SEARCH_KEY = "example-key"
     mock.is_auth_type_keys = Mock(return_value=True)
+    mock.AZURE_SEARCH_TOP_K = 5
     return mock
 
 
@@ -108,4 +110,25 @@ def test_get_files(handler, search_client_mock):
     assert files == results
     search_client_mock.search.assert_called_once_with(
         "*", select="id, chunk_id, title", include_total_count=True
+    )
+
+
+def test_query_search(handler, env_helper_mock):
+    # given
+    question = "test question"
+    vector_query = VectorizableTextQuery(
+        text=question,
+        k_nearest_neighbors=env_helper_mock.AZURE_SEARCH_TOP_K,
+        fields="content_vector",
+        exhaustive=True,
+    )
+
+    # when
+    handler.query_search(question)
+
+    # then
+    handler.search_client.search.assert_called_once_with(
+        search_text=question,
+        vector_queries=[vector_query],
+        top=env_helper_mock.AZURE_SEARCH_TOP_K,
     )

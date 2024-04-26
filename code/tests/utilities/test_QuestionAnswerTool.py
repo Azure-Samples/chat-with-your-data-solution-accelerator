@@ -8,12 +8,11 @@ from langchain_core.documents import Document
 
 
 @pytest.fixture(autouse=True)
-def vector_store_mock():
+def azure_search_handler_mock():
     with patch(
-        "backend.batch.utilities.tools.QuestionAnswerTool.AzureSearchHelper"
+        "backend.batch.utilities.tools.QuestionAnswerTool.AzureSearchHandler"
     ) as mock:
-        vector_store = mock.return_value.get_vector_store.return_value
-
+        query_search = mock.return_value.query_search
         document = Document("mock content")
         document.metadata = {
             "id": "mock id",
@@ -24,10 +23,33 @@ def vector_store_mock():
             "page_number": "mock page number",
         }
         documents = [document]
+        query_search.return_value = documents
+        yield query_search
 
-        vector_store.similarity_search.return_value = documents
 
-        yield vector_store
+@pytest.fixture(autouse=True)
+def integrated_vectorization_search_handler_mock():
+    with patch(
+        "backend.batch.utilities.tools.QuestionAnswerTool.IntegratedVectorizationSearchHandler"
+    ) as mock:
+        query_search = mock.return_value.query_search
+        query_search.return_value = [
+            {
+                "id": "mock id 1",
+                "title": "mock title 1",
+                "source": "https://example.com/doc1",
+                "chunk_id": "mock chunk id 1",
+                "content": "mock content 1",
+            },
+            {
+                "id": "mock id 2",
+                "title": "mock title 2",
+                "source": "https://example.com/doc2",
+                "chunk_id": "mock chunk id 2",
+                "content": "mock content 2",
+            },
+        ]
+        yield query_search
 
 
 @pytest.fixture(autouse=True)
@@ -58,6 +80,7 @@ def env_helper_mock():
         env_helper.AZURE_OPENAI_SYSTEM_MESSAGE = "mock azure openai system message"
         env_helper.AZURE_SEARCH_TOP_K = 1
         env_helper.AZURE_SEARCH_FILTER = "mock filter"
+        env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = False
 
         yield env_helper
 
@@ -84,19 +107,6 @@ def get_openai_callback_mock():
         yield mock
 
 
-def test_similarity_search_is_called(vector_store_mock: MagicMock):
-    # given
-    tool = QuestionAnswerTool()
-
-    # when
-    tool.answer_question("mock question", [])
-
-    # then
-    vector_store_mock.similarity_search.assert_called_once_with(
-        query="mock question", k=1, filters="mock filter"
-    )
-
-
 def test_answer_question_returns_source_documents():
     # given
     tool = QuestionAnswerTool()
@@ -115,6 +125,27 @@ def test_answer_question_returns_source_documents():
     assert source_documents[0].chunk == "mock chunk"
     assert source_documents[0].offset == "mock offset"
     assert source_documents[0].page_number == "mock page number"
+
+
+def test_answer_question_integrated_vectorization(env_helper_mock: MagicMock):
+    # given
+    env_helper_mock.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = True
+    tool = QuestionAnswerTool()
+
+    # when
+    answer = tool.answer_question("mock question", [])
+
+    # then
+    source_documents = answer.source_documents
+
+    assert len(source_documents) == 2
+
+    assert source_documents[0].chunk_id == "mock chunk id 1"
+    assert source_documents[0].title == "mock title 1"
+    assert (
+        source_documents[0].source == "https://example.com/doc1_SAS_TOKEN_PLACEHOLDER_"
+    )
+    assert source_documents[0].content == "mock content 1"
 
 
 def test_answer_question_returns_answer():
@@ -288,3 +319,45 @@ def test_json_remove_whitespace(input: str, expected: str):
 
     # then
     assert result == expected
+
+
+def test_generate_source_documents():
+    # given
+    search_results = [
+        {
+            "id": "mock id 1",
+            "title": "mock title 1",
+            "source": "https://example.com/doc1",
+            "chunk_id": "mock chunk id 1",
+            "content": "mock content 1",
+        },
+        {
+            "id": "mock id 2",
+            "title": "mock title 2",
+            "source": "https://example.com/doc2",
+            "chunk_id": "mock chunk id 2",
+            "content": "mock content 2",
+        },
+    ]
+
+    # when
+    sources = QuestionAnswerTool().generate_source_documents(search_results)
+
+    # then
+    assert len(sources) == 2
+
+    assert sources[0].metadata == {
+        "id": "mock id 1",
+        "title": "mock title 1",
+        "source": "https://example.com/doc1_SAS_TOKEN_PLACEHOLDER_",
+        "chunk_id": "mock chunk id 1",
+    }
+    assert sources[0].page_content == "mock content 1"
+
+    assert sources[1].metadata == {
+        "id": "mock id 2",
+        "title": "mock title 2",
+        "source": "https://example.com/doc2_SAS_TOKEN_PLACEHOLDER_",
+        "chunk_id": "mock chunk id 2",
+    }
+    assert sources[1].page_content == "mock content 2"

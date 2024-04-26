@@ -29,3 +29,7 @@ class SearchHandlerBase(ABC):
     @abstractmethod
     def delete_files(self, files, id_field):
         pass
+
+    @abstractmethod
+    def query_search(self, question):
+        pass

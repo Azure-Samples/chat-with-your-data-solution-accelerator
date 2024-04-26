@@ -79,10 +79,10 @@ class EnvHelper:
             "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION", "False"
         )
         self.AZURE_SEARCH_IV_MAX_PAGE_LENGTH = int(
-            os.getenv("AZURE_SEARCH_IV_MAX_PAGE_LENGTH", "2000")
+            os.getenv("AZURE_SEARCH_IV_MAX_PAGE_LENGTH", "800")
         )
         self.AZURE_SEARCH_IV_PAGE_OVERLAP_LENGTH = int(
-            os.getenv("AZURE_SEARCH_IV_PAGE_OVERLAP_LENGTH", "500")
+            os.getenv("AZURE_SEARCH_IV_PAGE_OVERLAP_LENGTH", "100")
         )
 
         self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "keys")

@@ -47,3 +47,11 @@ class AzureSearchHandler(SearchHandlerBase):
         self.search_client.delete_documents(ids_to_delete)
 
         return ", ".join(files_to_delete)
+
+    def query_search(self, question):
+        vector_store = AzureSearchHelper().get_vector_store()
+        return vector_store.similarity_search(
+            query=question,
+            k=self.env_helper.AZURE_SEARCH_TOP_K,
+            filters=self.env_helper.AZURE_SEARCH_FILTER,
+        )

@@ -1,5 +1,6 @@
 from backend.batch.utilities.search.SearchHandlerBase import SearchHandlerBase
 from azure.search.documents import SearchClient
+from azure.search.documents.models import VectorizableTextQuery
 from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential
 import re
@@ -59,3 +60,17 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
         self.search_client.delete_documents(ids_to_delete)
 
         return ", ".join(files_to_delete)
+
+    def query_search(self, question):
+        vector_query = VectorizableTextQuery(
+            text=question,
+            k_nearest_neighbors=self.env_helper.AZURE_SEARCH_TOP_K,
+            fields="content_vector",
+            exhaustive=True,
+        )
+        search_results = self.search_client.search(
+            search_text=question,
+            vector_queries=[vector_query],
+            top=self.env_helper.AZURE_SEARCH_TOP_K,
+        )
+        return search_results

@@ -24,6 +24,15 @@ def mock_azure_search_helper():
 
 
 @pytest.fixture
+def mock_vector_store():
+    with patch(
+        "backend.batch.utilities.search.AzureSearchHandler.AzureSearchHelper"
+    ) as mock:
+        vector_store = mock.return_value.get_vector_store.return_value
+        yield vector_store
+
+
+@pytest.fixture
 def handler(env_helper_mock, mock_azure_search_helper):
     with patch(
         "backend.batch.utilities.search.AzureSearchHandler.AzureSearchHelper",
@@ -99,4 +108,20 @@ def test_get_files(handler):
     assert files == results
     handler.search_client.search.assert_called_once_with(
         "*", select="id, title", include_total_count=True
+    )
+
+
+def test_query_search(handler, mock_vector_store):
+    # given
+    question = "What is the answer?"
+
+    # when
+    handler.query_search(question)
+
+    # then
+    # assert result == handler.search_client.similarity_search.return_value
+    mock_vector_store.similarity_search.assert_called_once_with(
+        query=question,
+        k=handler.env_helper.AZURE_SEARCH_TOP_K,
+        filters=handler.env_helper.AZURE_SEARCH_FILTER,
     )
