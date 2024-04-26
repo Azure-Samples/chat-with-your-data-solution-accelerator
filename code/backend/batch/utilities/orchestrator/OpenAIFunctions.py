@@ -53,7 +53,7 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
             },
         ]
 
-    def orchestrate(
+    async def orchestrate(
         self, user_message: str, chat_history: List[dict], **kwargs: dict
     ) -> dict:
         output_formatter = OutputParserTool()

@@ -2,7 +2,7 @@ import json
 import os
 from flask.testing import FlaskClient
 import pytest
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 from create_app import create_app
 
 AZURE_SPEECH_KEY = "mock-speech-key"
@@ -198,7 +198,7 @@ class TestConversationCustom:
             self.orchestrator_config
         )
 
-        message_orchestrator_mock = Mock()
+        message_orchestrator_mock = AsyncMock()
         message_orchestrator_mock.handle_message.return_value = self.messages
         get_message_orchestrator_mock.return_value = message_orchestrator_mock
 
@@ -232,7 +232,7 @@ class TestConversationCustom:
         # given
         get_orchestrator_config_mock.return_value = self.orchestrator_config
 
-        message_orchestrator_mock = Mock()
+        message_orchestrator_mock = AsyncMock()
         message_orchestrator_mock.handle_message.return_value = self.messages
         get_message_orchestrator_mock.return_value = message_orchestrator_mock
 
@@ -283,7 +283,7 @@ class TestConversationCustom:
         # given
         get_orchestrator_config_mock.return_value = self.orchestrator_config
 
-        message_orchestrator_mock = Mock()
+        message_orchestrator_mock = AsyncMock()
         message_orchestrator_mock.handle_message.return_value = self.messages
         get_message_orchestrator_mock.return_value = message_orchestrator_mock
 

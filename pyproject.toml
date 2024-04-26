@@ -18,7 +18,7 @@ python-dotenv = "1.0.1"
 azure-ai-formrecognizer = "3.3.3"
 azure-storage-blob = "12.19.1"
 azure-identity = "1.16.0"
-flask = "3.0.3"
+flask = {extras = ["async"], version = "^3.0.3"}
 openai = "1.23.2"
 langchain = "0.1.16"
 langchain-community = "0.0.34"
@@ -49,6 +49,7 @@ pre-commit = "3.7.0"
 pytest_httpserver = "1.0.10"
 trustme = "1.1.0"
 jupyter = "1.0.0"
+pytest-asyncio = "^0.23.6"
 
 [tool.coverage.run]
 omit = [
