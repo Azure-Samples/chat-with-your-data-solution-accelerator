@@ -1,15 +1,16 @@
 import streamlit as st
 import os
-import json
 import traceback
-import pandas as pd
 import sys
-from batch.utilities.helpers.AzureSearchHelper import AzureSearchHelper
-from dotenv import load_dotenv
+import pandas as pd
+from batch.utilities.helpers.EnvHelper import EnvHelper
+from batch.utilities.search.IntegratedVectorizationSearchHandler import (
+    IntegratedVectorizationSearchHandler,
+)
+from batch.utilities.search.AzureSearchHandler import AzureSearchHandler
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
-load_dotenv()
+env_helper: EnvHelper = EnvHelper()
 
 st.set_page_config(
     page_title="Explore Data",
@@ -37,24 +38,19 @@ hide_table_row_index = """
 # Inject CSS with Markdown
 st.markdown(hide_table_row_index, unsafe_allow_html=True)
 
-
 try:
-    vector_store_helper: AzureSearchHelper = AzureSearchHelper()
-    search_client = vector_store_helper.get_vector_store().client
-    # get unique document names by getting facets for title field
-    results = search_client.search("*", facets=["title"])
+    if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+        search_handler = IntegratedVectorizationSearchHandler(env_helper)
+    else:
+        search_handler = AzureSearchHandler(env_helper)
+
+    results = search_handler.search_client.search("*", facets=["title"])
     unique_files = [filename["value"] for filename in results.get_facets()["title"]]
     filename = st.selectbox("Select your file:", unique_files)
     st.write("Showing chunks for:", filename)
 
-    results = search_client.search(
-        "*", select="title, content, metadata", filter=f"title eq '{filename}'"
-    )
-
-    data = [
-        [json.loads(result["metadata"])["chunk"], result["content"]]
-        for result in results
-    ]
+    results = search_handler.perform_search(filename)
+    data = search_handler.process_results(results)
     df = pd.DataFrame(data, columns=("Chunk", "Content")).sort_values(by=["Chunk"])
     st.table(df)
 
