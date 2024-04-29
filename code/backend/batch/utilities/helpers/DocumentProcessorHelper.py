@@ -70,12 +70,16 @@ class DocumentProcessor:
     def process_using_integrated_vectorisation(self, source_url: str):
         env_helper: EnvHelper = EnvHelper()
         llm_helper: LLMHelper = LLMHelper()
+
+        from .ConfigHelper import ConfigHelper
+
+        config = ConfigHelper.get_active_config_or_default()
         try:
             search_datasource = AzureSearchDatasource(env_helper)
             search_datasource.create_or_update_datasource()
             search_index = AzureSearchIndex(env_helper, llm_helper)
             search_index.create_or_update_index()
-            search_skillset = AzureSearchSkillset(env_helper)
+            search_skillset = AzureSearchSkillset(env_helper, config)
             search_skillset_result = search_skillset.create_skillset()
             search_indexer = AzureSearchIndexer(env_helper)
             indexer_result = search_indexer.create_or_update_indexer(

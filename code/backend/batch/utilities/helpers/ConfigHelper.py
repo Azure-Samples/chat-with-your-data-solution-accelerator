@@ -49,6 +49,11 @@ class Config:
         self.orchestrator = OrchestrationSettings(
             config.get("orchestrator", self.default_orchestration_settings)
         )
+        self.integrated_vectorization_config = (
+            IntegratedVectorizationConfig(config["integrated_vectorization_config"])
+            if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
+            else None
+        )
 
     def get_available_document_types(self):
         document_types = [
@@ -105,6 +110,14 @@ class Logging:
     def __init__(self, logging: dict):
         self.log_user_interactions = logging["log_user_interactions"]
         self.log_tokens = logging["log_tokens"]
+
+
+class IntegratedVectorizationConfig:
+    def __init__(self, integrated_vectorization_config: dict):
+        self.max_page_length = integrated_vectorization_config["max_page_length"]
+        self.page_overlap_length = integrated_vectorization_config[
+            "page_overlap_length"
+        ]
 
 
 class ConfigHelper:
