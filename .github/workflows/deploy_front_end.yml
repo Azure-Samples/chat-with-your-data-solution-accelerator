@@ -8,7 +8,7 @@ jobs:
   deploy_dev:
     runs-on: ubuntu-latest
     environment: 
-      name: devlopment
+      name: dev
       url: https://aasdoprontodev.z13.web.core.windows.net/
     steps:
     - uses: actions/checkout@v3
