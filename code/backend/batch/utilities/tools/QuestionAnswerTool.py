@@ -2,10 +2,7 @@ import json
 import logging
 import warnings
 import re
-from ..search.IntegratedVectorizationSearchHandler import (
-    IntegratedVectorizationSearchHandler,
-)
-from ..search.AzureSearchHandler import AzureSearchHandler
+from ..search.Search import Search
 from .AnsweringToolBase import AnsweringToolBase
 
 from langchain.chains.llm import LLMChain
@@ -35,12 +32,7 @@ class QuestionAnswerTool(AnsweringToolBase):
         self.name = "QuestionAnswer"
         self.env_helper = EnvHelper()
         self.llm_helper = LLMHelper()
-        if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
-            self.search_handler = IntegratedVectorizationSearchHandler(
-                env_helper=self.env_helper
-            )
-        else:
-            self.search_handler = AzureSearchHandler(env_helper=self.env_helper)
+        self.search_handler = Search.get_search_handler(env_helper=self.env_helper)
         self.verbose = True
 
         self.config = ConfigHelper.get_active_config_or_default()
