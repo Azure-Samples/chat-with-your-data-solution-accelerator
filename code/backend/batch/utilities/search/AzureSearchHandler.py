@@ -1,5 +1,5 @@
-from batch.utilities.search.SearchHandlerBase import SearchHandlerBase
-from batch.utilities.helpers.AzureSearchHelper import AzureSearchHelper
+from utilities.search.SearchHandlerBase import SearchHandlerBase
+from utilities.helpers.AzureSearchHelper import AzureSearchHelper
 import json
 
 
