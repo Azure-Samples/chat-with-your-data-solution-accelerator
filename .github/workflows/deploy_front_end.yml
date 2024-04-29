@@ -5,8 +5,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
+    environment: 
+      name: production
+      url: https://aasdoprontofrontend.z13.web.core.windows.net/    
     steps:
     - uses: actions/checkout@v3
     - uses: azure/login@v1
