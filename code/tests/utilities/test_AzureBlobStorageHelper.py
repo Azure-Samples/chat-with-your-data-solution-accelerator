@@ -46,6 +46,38 @@ def test_file_exists(BlobServiceClientMock: MagicMock, exists: bool, expected: b
     )
 
 
+@patch("backend.batch.utilities.helpers.AzureBlobStorageHelper.generate_blob_sas")
+@patch("backend.batch.utilities.helpers.AzureBlobStorageHelper.BlobServiceClient")
+def test_upload_file(
+    BlobServiceClientMock: MagicMock, generate_blob_sas_mock: MagicMock
+):
+    # given
+    client = AzureBlobStorageClient()
+    blob_service_client_mock = BlobServiceClientMock.from_connection_string.return_value
+    blob_client_mock = blob_service_client_mock.get_blob_client.return_value
+    blob_client_mock.url = "mock_url"
+    generate_blob_sas_mock.return_value = "mock-sas"
+
+    # when
+    result = client.upload_file(str.encode("mock-data"), "mock-file")
+
+    # then
+    blob_client_mock.upload_blob.assert_called_once_with(
+        str.encode("mock-data"), overwrite=True, content_settings=ANY
+    )
+    generate_blob_sas_mock.assert_called_once_with(
+        "mock-account",
+        "mock-container",
+        "mock-file",
+        user_delegation_key=None,
+        account_key="mock-key",
+        permission="r",
+        expiry=ANY,
+    )
+
+    assert result == "mock_url?mock-sas"
+
+
 def test_delete_file(BlobServiceClientMock: MagicMock):
     # given
     client = AzureBlobStorageClient()
