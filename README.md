@@ -1,6 +1,4 @@
 ---
-name: Chat with your Data Solution Accelerator
-description: Chat with your data using OpenAI and AI Search.
 page_type: sample
 languages:
 - python
@@ -9,11 +7,20 @@ languages:
 - azdeveloper
 products:
 - azure-openai
-- azure-ai-search
+- azure-cognitive-search
 - azure-app-service
 - azure
+- azure-bot-service
+- document-intelligence
+- azure-functions
+- azure-storage-accounts
+- azure-speech
 urlFragment: chat-with-your-data-solution-accelerator
+name: Chat with your data - Solution accelerator (Python)
+description: Chat with your data using OpenAI and AI Search with Python.
 ---
+<!-- YAML front-matter schema: https://review.learn.microsoft.com/en-us/help/contribute/samples/process/onboarding?branch=main#supported-metadata-fields-for-readmemd -->
+
 # Chat with your data - Solution accelerator
 
 [**USER STORY**](#user-story) | [**DEPLOY**](#Deploy) | [**SUPPORTING DOCUMENTATION**](#supporting-documentation) | [**CUSTOMER TRUTH**](#customer-truth)\
