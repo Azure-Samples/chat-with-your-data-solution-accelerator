@@ -142,7 +142,7 @@ class QuestionAnswerTool(AnsweringToolBase):
     def generate_source_documents(self, search_results):
         sources = []
         for result in search_results:
-            source_url = self._find_all_http_or_https(result.get("source", ""))
+            source_url = self._extract_source_url(result.get("source", ""))
 
             metadata_dict = {
                 "id": result.get("id", ""),
@@ -158,7 +158,7 @@ class QuestionAnswerTool(AnsweringToolBase):
             )
         return sources
 
-    def _find_all_http_or_https(self, original_source):
+    def _extract_source_url(self, original_source):
         matches = list(re.finditer(r"https?://", original_source))
         if len(matches) > 1:
             second_http_start = matches[1].start()
