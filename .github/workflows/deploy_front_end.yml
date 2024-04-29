@@ -5,7 +5,32 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  deploy_dev:
+    runs-on: ubuntu-latest
+    environment: 
+      name: devlopment
+      url: https://aasdoprontodev.z13.web.core.windows.net/
+    steps:
+    - uses: actions/checkout@v3
+    - uses: azure/login@v1
+      with:
+          creds: ${{ secrets.DEV_AZURE_CREDENTIALS }}
+
+    - name: npm install, build, and test
+      working-directory: ./code/frontend
+      run: |
+        npm install
+        npm run build --if-present
+        npm run test --if-present
+
+        
+    - name: Upload to blob storage
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |            
+            az storage blob upload-batch --account-name aasdoprontodev    -d '$web' -s ./code/frontend/build --overwrite
+      
+  deploy_prod:
     runs-on: ubuntu-latest
     environment: 
       name: production
