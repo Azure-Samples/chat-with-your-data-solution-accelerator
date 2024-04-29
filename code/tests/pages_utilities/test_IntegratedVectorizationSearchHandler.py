@@ -124,7 +124,7 @@ def test_query_search(handler, env_helper_mock):
     )
 
     # when
-    handler.query_search(question)
+    result = handler.query_search(question)
 
     # then
     handler.search_client.search.assert_called_once_with(
@@ -132,3 +132,4 @@ def test_query_search(handler, env_helper_mock):
         vector_queries=[vector_query],
         top=env_helper_mock.AZURE_SEARCH_TOP_K,
     )
+    assert result == handler.search_client.search.return_value

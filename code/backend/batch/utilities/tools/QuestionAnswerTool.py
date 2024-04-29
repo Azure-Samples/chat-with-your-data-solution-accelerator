@@ -142,20 +142,8 @@ class QuestionAnswerTool(AnsweringToolBase):
     def generate_source_documents(self, search_results):
         sources = []
         for result in search_results:
-            original_source = result.get("source", "")
+            source_url = self._find_all_http_or_https(result.get("source", ""))
 
-            # Find all occurrences of 'http' or 'https'
-            matches = list(re.finditer(r"https?://", original_source))
-
-            if len(matches) > 1:
-                # If there is more than one 'http', take the part after the second 'http'
-                second_http_start = matches[1].start()
-                source_url = original_source[second_http_start:]
-            else:
-                # If there is only one or none 'http', append the SAS token placeholder
-                source_url = (
-                    original_source + "_SAS_TOKEN_PLACEHOLDER_"
-                )  # Placeholder for SAS token
             metadata_dict = {
                 "id": result.get("id", ""),
                 "title": result.get("title", ""),
@@ -169,6 +157,15 @@ class QuestionAnswerTool(AnsweringToolBase):
                 )
             )
         return sources
+
+    def _find_all_http_or_https(self, original_source):
+        matches = list(re.finditer(r"https?://", original_source))
+        if len(matches) > 1:
+            second_http_start = matches[1].start()
+            source_url = original_source[second_http_start:]
+        else:
+            source_url = original_source + "_SAS_TOKEN_PLACEHOLDER_"
+        return source_url
 
     def answer_question(self, question: str, chat_history: list[dict], **kwargs: dict):
         if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:

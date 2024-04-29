@@ -327,7 +327,7 @@ def test_generate_source_documents():
         {
             "id": "mock id 1",
             "title": "mock title 1",
-            "source": "https://example.com/doc1",
+            "source": "https://strr73dnzv4fabcd.blob.core.windows.net/documents/https://example.com/doc1",
             "chunk_id": "mock chunk id 1",
             "content": "mock content 1",
         },
@@ -349,7 +349,7 @@ def test_generate_source_documents():
     assert sources[0].metadata == {
         "id": "mock id 1",
         "title": "mock title 1",
-        "source": "https://example.com/doc1_SAS_TOKEN_PLACEHOLDER_",
+        "source": "https://example.com/doc1",
         "chunk_id": "mock chunk id 1",
     }
     assert sources[0].page_content == "mock content 1"

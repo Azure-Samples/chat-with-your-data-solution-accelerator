@@ -116,12 +116,12 @@ def test_query_search(handler, mock_vector_store):
     question = "What is the answer?"
 
     # when
-    handler.query_search(question)
+    result = handler.query_search(question)
 
     # then
-    # assert result == handler.search_client.similarity_search.return_value
     mock_vector_store.similarity_search.assert_called_once_with(
         query=question,
         k=handler.env_helper.AZURE_SEARCH_TOP_K,
         filters=handler.env_helper.AZURE_SEARCH_FILTER,
     )
+    assert result == mock_vector_store.similarity_search.return_value

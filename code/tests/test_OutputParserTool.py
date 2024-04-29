@@ -177,6 +177,34 @@ def test_does_not_remove_doc_ids_from_answer_if_missing_citations():
     assert messages[1]["content"] == "An answer [doc1] [doc2]"
 
 
+def test_returns_chunk_number():
+    # Given
+    output_parser = OutputParserTool()
+    question = "A question?"
+    answer = "An answer [doc1] [doc2]"
+    source_documents = [
+        SourceDocument(
+            id="2",
+            content="Some more content",
+            title="Another title",
+            source="Another source",
+            chunk=None,
+            offset="Another offset",
+            page_number="",
+            chunk_id="abcd_pages_2",
+        )
+    ]
+
+    # When
+    messages = output_parser.parse(
+        question=question, answer=answer, source_documents=source_documents
+    )
+
+    # Then
+    expected = json.loads(messages[0]["content"])
+    assert expected["citations"][0]["chunk_id"] == "2"
+
+
 def _convert_source_documents_to_content(
     question: str, source_documents: List[SourceDocument]
 ) -> dict:
