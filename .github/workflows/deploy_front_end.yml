@@ -25,8 +25,8 @@ jobs:
       uses: azure/CLI@v1
       with:
         inlineScript: |
-            #az storage blob upload-batch --account-name aasdoprontofrontend   -d '$web' -s ./code/frontend/build --overwrite --sas-token ${{ secrets.STORAGE_TOKEN }} 
-            az storage blob sync -c $web --account-name aasdoprontofrontend  -s ./code/frontend/build --sas-token ${{ secrets.STORAGE_TOKEN }}
+            az storage blob upload-batch --account-name aasdoprontofrontend   -d '$web' -s ./code/frontend/build --overwrite --sas-token ${{ secrets.STORAGE_TOKEN }} 
+            #az storage blob sync -c $web --account-name aasdoprontofrontend  -s ./code/frontend/build --sas-token ${{ secrets.STORAGE_TOKEN }}
             
     - name: Purge CDN endpoint
       uses: azure/CLI@v1
