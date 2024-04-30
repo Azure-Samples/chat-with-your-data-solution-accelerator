@@ -56,7 +56,7 @@ def request_user_delegation_key(
     return user_delegation_key
 
 
-def remote_convert_files_and_add_embeddings(process_all=False):
+def remote_convert_files_and_add_embeddings():
     backend_url = urllib.parse.urljoin(
         env_helper.BACKEND_URL, "/api/BatchStartProcessing"
     )
@@ -64,8 +64,7 @@ def remote_convert_files_and_add_embeddings(process_all=False):
     if env_helper.FUNCTION_KEY is not None:
         params["code"] = env_helper.FUNCTION_KEY
         params["clientId"] = "clientKey"
-    if process_all:
-        params["process_all"] = "true"
+
     try:
         response = requests.post(backend_url, params=params)
         if response.status_code == 200:
@@ -220,13 +219,10 @@ try:
                 )
 
         col1, col2, col3 = st.columns([2, 1, 2])
-        # with col1:
-        #     st.button("Process and ingest new files", on_click=remote_convert_files_and_add_embeddings)
         with col3:
             st.button(
                 "Reprocess all documents in the Azure Storage account",
                 on_click=remote_convert_files_and_add_embeddings,
-                args=(True,),
             )
 
     with st.expander("Add URLs to the knowledge base", expanded=True):
