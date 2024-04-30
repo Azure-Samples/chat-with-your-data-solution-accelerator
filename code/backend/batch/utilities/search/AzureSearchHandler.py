@@ -1,5 +1,6 @@
 from .SearchHandlerBase import SearchHandlerBase
 from ..helpers.AzureSearchHelper import AzureSearchHelper
+from ..common.SourceDocument import SourceDocument
 import json
 
 
@@ -55,3 +56,19 @@ class AzureSearchHandler(SearchHandlerBase):
             k=self.env_helper.AZURE_SEARCH_TOP_K,
             filters=self.env_helper.AZURE_SEARCH_FILTER,
         )
+
+    def return_answer_source_documents(self, search_results):
+        source_documents = []
+        for source in search_results:
+            source_documents.append(
+                SourceDocument(
+                    id=source.metadata["id"],
+                    content=source.page_content,
+                    title=source.metadata["title"],
+                    source=source.metadata["source"],
+                    chunk=source.metadata["chunk"],
+                    offset=source.metadata["offset"],
+                    page_number=source.metadata["page_number"],
+                )
+            )
+        return source_documents
