@@ -70,7 +70,9 @@ def download_url_and_upload_to_blob(
             parsed_data = BeautifulSoup(response.content, "html.parser")
             with io.BytesIO(parsed_data.get_text().encode("utf-8")) as stream:
                 st.session_state["filename"] = url
-                st.session_state["file_url"] = blob_client.upload_file(stream, url)
+                st.session_state["file_url"] = blob_client.upload_file(
+                    stream, url, metadata={"title": url}
+                )
             st.success(f"Url {url} added to knowledge base")
         except Exception:
             logger.error(traceback.format_exc())
@@ -114,7 +116,7 @@ try:
                     # Upload a new file
                     st.session_state["filename"] = up.name
                     st.session_state["file_url"] = blob_client.upload_file(
-                        bytes_data, up.name
+                        bytes_data, up.name, metadata={"title": up.name}
                     )
             if len(uploaded_files) > 0:
                 st.success(
