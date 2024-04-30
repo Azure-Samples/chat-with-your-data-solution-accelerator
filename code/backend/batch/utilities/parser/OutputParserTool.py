@@ -68,7 +68,11 @@ class OutputParserTool(ParserBase):
                 {
                     "content": doc.get_markdown_url() + "\n\n\n" + doc.content,
                     "id": doc.id,
-                    "chunk_id": doc.chunk,
+                    "chunk_id": (
+                        re.findall(r"\d+", doc.chunk_id)[-1]
+                        if doc.chunk_id is not None
+                        else doc.chunk
+                    ),
                     "title": doc.title,
                     "filepath": doc.get_filename(include_path=True),
                     "url": doc.get_markdown_url(),
