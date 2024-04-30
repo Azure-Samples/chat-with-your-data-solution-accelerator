@@ -30,6 +30,7 @@ mod_page_style = """
             """
 st.markdown(mod_page_style, unsafe_allow_html=True)
 
+
 def remote_convert_files_and_add_embeddings():
     backend_url = urllib.parse.urljoin(
         env_helper.BACKEND_URL, "/api/BatchStartProcessing"
