@@ -48,11 +48,15 @@ def test_file_exists(BlobServiceClientMock: MagicMock, exists: bool, expected: b
 
 @patch("backend.batch.utilities.helpers.AzureBlobStorageClient.generate_blob_sas")
 @patch("backend.batch.utilities.helpers.AzureBlobStorageClient.BlobServiceClient")
-@pytest.mark.parametrize("content_type", [(None), ("text/pdf")])
+@pytest.mark.parametrize(
+    "content_type, expected_content_type",
+    [("text/pdf", "text/pdf"), (None, "text/plain")],
+)
 def test_upload_file(
     BlobServiceClientMock: MagicMock,
     generate_blob_sas_mock: MagicMock,
     content_type: str,
+    expected_content_type: str,
 ):
     # given
     client = AzureBlobStorageClient()
@@ -72,11 +76,7 @@ def test_upload_file(
         metadata={"title": "mock-file"},
     )
     _, kwargs = blob_client_mock.upload_blob.call_args
-    assert (
-        kwargs["content_settings"]["content_type"] == content_type
-        if content_type is not None
-        else "text/plain"
-    )
+    assert kwargs["content_settings"]["content_type"] == expected_content_type
 
     generate_blob_sas_mock.assert_called_once_with(
         "mock-account",
