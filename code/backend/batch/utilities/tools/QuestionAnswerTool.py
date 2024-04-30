@@ -1,11 +1,7 @@
 import json
 import logging
 import warnings
-import re
-from ..search.IntegratedVectorizationSearchHandler import (
-    IntegratedVectorizationSearchHandler,
-)
-from ..search.AzureSearchHandler import AzureSearchHandler
+from ..search.Search import Search
 from .AnsweringToolBase import AnsweringToolBase
 
 from langchain.chains.llm import LLMChain
@@ -25,7 +21,6 @@ from ..helpers.ConfigHelper import ConfigHelper
 from ..helpers.LLMHelper import LLMHelper
 from ..helpers.EnvHelper import EnvHelper
 from ..common.Answer import Answer
-from ..common.SourceDocument import SourceDocument
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +30,7 @@ class QuestionAnswerTool(AnsweringToolBase):
         self.name = "QuestionAnswer"
         self.env_helper = EnvHelper()
         self.llm_helper = LLMHelper()
-        if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
-            self.search_handler = IntegratedVectorizationSearchHandler(
-                env_helper=self.env_helper
-            )
-        else:
-            self.search_handler = AzureSearchHandler(env_helper=self.env_helper)
+        self.search_handler = Search.get_search_handler(env_helper=self.env_helper)
         self.verbose = True
 
         self.config = ConfigHelper.get_active_config_or_default()
@@ -139,40 +129,8 @@ class QuestionAnswerTool(AnsweringToolBase):
             "chat_history": chat_history,
         }
 
-    def generate_source_documents(self, search_results):
-        sources = []
-        for result in search_results:
-            source_url = self._extract_source_url(result.get("source", ""))
-
-            metadata_dict = {
-                "id": result.get("id", ""),
-                "title": result.get("title", ""),
-                "source": source_url,
-                "chunk_id": result.get("chunk_id", ""),
-            }
-            sources.append(
-                Document(
-                    page_content=result["content"],
-                    metadata=metadata_dict,
-                )
-            )
-        return sources
-
-    def _extract_source_url(self, original_source):
-        matches = list(re.finditer(r"https?://", original_source))
-        if len(matches) > 1:
-            second_http_start = matches[1].start()
-            source_url = original_source[second_http_start:]
-        else:
-            source_url = original_source + "_SAS_TOKEN_PLACEHOLDER_"
-        return source_url
-
     def answer_question(self, question: str, chat_history: list[dict], **kwargs: dict):
-        if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
-            search_results = self.search_handler.query_search(question)
-            sources = self.generate_source_documents(search_results)
-        else:
-            sources = self.search_handler.query_search(question)
+        sources = Search.get_source_documents(self.search_handler, question)
 
         if self.config.prompts.use_on_your_data_format:
             answering_prompt, input = self.generate_on_your_data_llm_chain(
@@ -197,28 +155,7 @@ class QuestionAnswerTool(AnsweringToolBase):
         logger.debug(f"Answer: {answer}")
 
         # Generate Answer Object
-        source_documents = []
-        for source in sources:
-            if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
-                source_document = SourceDocument(
-                    id=source.metadata["id"],
-                    content=source.page_content,
-                    title=source.metadata["title"],
-                    source=source.metadata["source"],
-                    chunk_id=source.metadata["chunk_id"],
-                )
-            else:
-                source_document = SourceDocument(
-                    id=source.metadata["id"],
-                    content=source.page_content,
-                    title=source.metadata["title"],
-                    source=source.metadata["source"],
-                    chunk=source.metadata["chunk"],
-                    offset=source.metadata["offset"],
-                    page_number=source.metadata["page_number"],
-                )
-            source_documents.append(source_document)
-
+        source_documents = self.search_handler.return_answer_source_documents(sources)
         clean_answer = Answer(
             question=question,
             answer=answer,

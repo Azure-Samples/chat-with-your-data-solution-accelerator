@@ -4,6 +4,7 @@ from backend.batch.utilities.search.IntegratedVectorizationSearchHandler import 
     IntegratedVectorizationSearchHandler,
 )
 from azure.search.documents.models import VectorizableTextQuery
+from langchain_core.documents import Document
 
 
 @pytest.fixture
@@ -133,3 +134,25 @@ def test_query_search(handler, env_helper_mock):
         top=env_helper_mock.AZURE_SEARCH_TOP_K,
     )
     assert result == handler.search_client.search.return_value
+
+
+def test_return_answer_source_documents(handler):
+    # given
+    document = Document("mock content")
+    document.metadata = {
+        "id": "mock id",
+        "title": "mock title",
+        "source": "mock source",
+        "chunk_id": "abcd_page_1",
+    }
+    documents = [document]
+    # when
+    source_documents = handler.return_answer_source_documents(documents)
+
+    # then
+    assert len(source_documents) == 1
+    assert source_documents[0].id == "mock id"
+    assert source_documents[0].content == "mock content"
+    assert source_documents[0].title == "mock title"
+    assert source_documents[0].source == "mock source"
+    assert source_documents[0].chunk_id == "abcd_page_1"

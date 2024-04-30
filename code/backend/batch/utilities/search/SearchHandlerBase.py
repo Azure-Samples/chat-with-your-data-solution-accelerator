@@ -33,3 +33,7 @@ class SearchHandlerBase(ABC):
     @abstractmethod
     def query_search(self, question):
         pass
+
+    @abstractmethod
+    def return_answer_source_documents(self, search_results):
+        pass

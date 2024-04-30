@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch
 from backend.batch.utilities.search.AzureSearchHandler import AzureSearchHandler
+from langchain_core.documents import Document
 import json
 
 
@@ -125,3 +126,26 @@ def test_query_search(handler, mock_vector_store):
         filters=handler.env_helper.AZURE_SEARCH_FILTER,
     )
     assert result == mock_vector_store.similarity_search.return_value
+
+
+def test_return_answer_source_documents(handler):
+    # given
+    document = Document("mock content")
+    document.metadata = {
+        "id": "mock id",
+        "title": "mock title",
+        "source": "mock source",
+        "chunk": "mock chunk",
+        "offset": "mock offset",
+        "page_number": "mock page number",
+    }
+    documents = [document]
+    # when
+    source_documents = handler.return_answer_source_documents(documents)
+
+    # then
+    assert len(source_documents) == 1
+    assert source_documents[0].id == "mock id"
+    assert source_documents[0].content == "mock content"
+    assert source_documents[0].title == "mock title"
+    assert source_documents[0].source == "mock source"
