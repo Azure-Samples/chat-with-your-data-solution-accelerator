@@ -3,6 +3,8 @@ from unittest.mock import Mock, patch
 from backend.batch.utilities.search.IntegratedVectorizationSearchHandler import (
     IntegratedVectorizationSearchHandler,
 )
+from azure.search.documents.models import VectorizableTextQuery
+from langchain_core.documents import Document
 
 
 @pytest.fixture
@@ -12,6 +14,7 @@ def env_helper_mock():
     mock.AZURE_SEARCH_INDEX = "example-index"
     mock.AZURE_SEARCH_KEY = "example-key"
     mock.is_auth_type_keys = Mock(return_value=True)
+    mock.AZURE_SEARCH_TOP_K = 5
     return mock
 
 
@@ -109,3 +112,47 @@ def test_get_files(handler, search_client_mock):
     search_client_mock.search.assert_called_once_with(
         "*", select="id, chunk_id, title", include_total_count=True
     )
+
+
+def test_query_search(handler, env_helper_mock):
+    # given
+    question = "test question"
+    vector_query = VectorizableTextQuery(
+        text=question,
+        k_nearest_neighbors=env_helper_mock.AZURE_SEARCH_TOP_K,
+        fields="content_vector",
+        exhaustive=True,
+    )
+
+    # when
+    result = handler.query_search(question)
+
+    # then
+    handler.search_client.search.assert_called_once_with(
+        search_text=question,
+        vector_queries=[vector_query],
+        top=env_helper_mock.AZURE_SEARCH_TOP_K,
+    )
+    assert result == handler.search_client.search.return_value
+
+
+def test_return_answer_source_documents(handler):
+    # given
+    document = Document("mock content")
+    document.metadata = {
+        "id": "mock id",
+        "title": "mock title",
+        "source": "mock source",
+        "chunk_id": "abcd_page_1",
+    }
+    documents = [document]
+    # when
+    source_documents = handler.return_answer_source_documents(documents)
+
+    # then
+    assert len(source_documents) == 1
+    assert source_documents[0].id == "mock id"
+    assert source_documents[0].content == "mock content"
+    assert source_documents[0].title == "mock title"
+    assert source_documents[0].source == "mock source"
+    assert source_documents[0].chunk_id == "abcd_page_1"

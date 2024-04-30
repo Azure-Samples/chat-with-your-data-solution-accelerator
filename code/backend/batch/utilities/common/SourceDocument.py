@@ -15,6 +15,7 @@ class SourceDocument:
         chunk: Optional[int] = None,
         offset: Optional[int] = None,
         page_number: Optional[int] = None,
+        chunk_id: Optional[str] = None,
     ):
         self.id = id
         self.content = content
@@ -23,9 +24,10 @@ class SourceDocument:
         self.chunk = chunk
         self.offset = offset
         self.page_number = page_number
+        self.chunk_id = chunk_id
 
     def __str__(self):
-        return f"SourceDocument(id={self.id}, title={self.title}, source={self.source}, chunk={self.chunk}, offset={self.offset}, page_number={self.page_number})"
+        return f"SourceDocument(id={self.id}, title={self.title}, source={self.source}, chunk={self.chunk}, offset={self.offset}, page_number={self.page_number}, chunk_id={self.chunk_id})"
 
     def to_json(self):
         return json.dumps(self, cls=SourceDocumentEncoder)
@@ -44,6 +46,7 @@ class SourceDocument:
             dict_obj["chunk"],
             dict_obj["offset"],
             dict_obj["page_number"],
+            dict_obj["chunk_id"],
         )
 
     @classmethod
@@ -73,6 +76,7 @@ class SourceDocument:
             chunk=metadata.get("chunk", idx),
             offset=metadata.get("offset"),
             page_number=metadata.get("page_number"),
+            chunk_id=metadata.get("chunk_id"),
         )
 
     def convert_to_langchain_document(self):
@@ -87,6 +91,7 @@ class SourceDocument:
                 "chunk": self.chunk,
                 "offset": self.offset,
                 "page_number": self.page_number,
+                "chunk_id": self.chunk_id,
             },
         )
 
@@ -120,6 +125,7 @@ class SourceDocumentEncoder(json.JSONEncoder):
                 "chunk": obj.chunk,
                 "offset": obj.offset,
                 "page_number": obj.page_number,
+                "chunk_id": obj.chunk_id,
             }
         return super().default(obj)
 
@@ -135,4 +141,5 @@ class SourceDocumentDecoder(json.JSONDecoder):
             chunk=obj["chunk"],
             offset=obj["offset"],
             page_number=obj["page_number"],
+            chunk_id=obj["chunk_id"],
         )

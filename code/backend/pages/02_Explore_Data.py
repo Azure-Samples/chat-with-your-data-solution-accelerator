@@ -4,10 +4,7 @@ import traceback
 import sys
 import pandas as pd
 from batch.utilities.helpers.EnvHelper import EnvHelper
-from batch.utilities.search.IntegratedVectorizationSearchHandler import (
-    IntegratedVectorizationSearchHandler,
-)
-from batch.utilities.search.AzureSearchHandler import AzureSearchHandler
+from batch.utilities.search.Search import Search
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
@@ -39,10 +36,7 @@ hide_table_row_index = """
 st.markdown(hide_table_row_index, unsafe_allow_html=True)
 
 try:
-    if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
-        search_handler = IntegratedVectorizationSearchHandler(env_helper)
-    else:
-        search_handler = AzureSearchHandler(env_helper)
+    search_handler = Search.get_search_handler(env_helper)
 
     results = search_handler.search_client.search("*", facets=["title"])
     unique_files = [filename["value"] for filename in results.get_facets()["title"]]

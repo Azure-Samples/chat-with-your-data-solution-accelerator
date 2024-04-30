@@ -1,7 +1,9 @@
 from .SearchHandlerBase import SearchHandlerBase
 from azure.search.documents import SearchClient
+from azure.search.documents.models import VectorizableTextQuery
 from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential
+from ..common.SourceDocument import SourceDocument
 import re
 
 
@@ -59,3 +61,31 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
         self.search_client.delete_documents(ids_to_delete)
 
         return ", ".join(files_to_delete)
+
+    def query_search(self, question):
+        vector_query = VectorizableTextQuery(
+            text=question,
+            k_nearest_neighbors=self.env_helper.AZURE_SEARCH_TOP_K,
+            fields="content_vector",
+            exhaustive=True,
+        )
+        search_results = self.search_client.search(
+            search_text=question,
+            vector_queries=[vector_query],
+            top=self.env_helper.AZURE_SEARCH_TOP_K,
+        )
+        return search_results
+
+    def return_answer_source_documents(self, search_results):
+        source_documents = []
+        for source in search_results:
+            source_documents.append(
+                SourceDocument(
+                    id=source.metadata["id"],
+                    content=source.page_content,
+                    title=source.metadata["title"],
+                    source=source.metadata["source"],
+                    chunk_id=source.metadata["chunk_id"],
+                )
+            )
+        return source_documents
