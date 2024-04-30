@@ -59,7 +59,8 @@ This change would give us full control over how we create and query the search i
 * Good, because the changes have been proven in [Pull Request #786](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/pull/786)
 * Good, because speed of delivery is low and in our control
 * Good, because no loss of functionality
-
+* Bad, because we stop using Langchain which makes it easier to switch between different vector stores and llms.
+  However, we are very much setup to mainly work with Azure based services already.
 
 ### Contribute features back to Langchain
 
