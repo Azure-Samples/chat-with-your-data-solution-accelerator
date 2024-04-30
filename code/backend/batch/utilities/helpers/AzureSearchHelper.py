@@ -1,3 +1,4 @@
+import logging
 from langchain.vectorstores.azuresearch import AzureSearch
 from azure.search.documents.indexes.models import (
     SearchableField,
@@ -7,6 +8,21 @@ from azure.search.documents.indexes.models import (
 )
 from .LLMHelper import LLMHelper
 from .EnvHelper import EnvHelper
+from azure.search.documents.indexes import SearchIndexClient
+from azure.search.documents import SearchClient
+from azure.core.credentials import AzureKeyCredential
+from azure.identity import DefaultAzureCredential
+from azure.search.documents.indexes.models import (
+    HnswAlgorithmConfiguration,
+    HnswParameters,
+    SearchIndex,
+    SemanticConfiguration,
+    SemanticField,
+    SemanticPrioritizedFields,
+    SemanticSearch,
+    VectorSearch,
+    VectorSearchProfile,
+)
 
 
 class AzureSearchHelper:
@@ -16,6 +32,24 @@ class AzureSearchHelper:
         self.llm_helper = LLMHelper()
         self.env_helper = EnvHelper()
 
+        if self.env_helper.is_auth_type_keys:
+            search_credential = AzureKeyCredential(self.env_helper.AZURE_SEARCH_KEY)
+        else:
+            search_credential = DefaultAzureCredential()
+
+        logging.info(
+            f"Creating search client for {self.env_helper.AZURE_SEARCH_SERVICE} and index {self.env_helper.AZURE_SEARCH_INDEX}"
+        )
+
+        self.search_client = SearchClient(
+            endpoint=self.env_helper.AZURE_SEARCH_SERVICE,
+            index_name=self.env_helper.AZURE_SEARCH_INDEX,
+            credential=search_credential,
+        )
+        self.search_index_client = SearchIndexClient(
+            endpoint=self.env_helper.AZURE_SEARCH_SERVICE, credential=search_credential
+        )
+
     @property
     def search_dimensions(self) -> int:
         if AzureSearchHelper._search_dimension is None:
@@ -24,7 +58,10 @@ class AzureSearchHelper:
             )
         return AzureSearchHelper._search_dimension
 
-    def get_vector_store(self):
+    def get_client(self):
+        return self.search_client
+
+    def create_or_update_index(self):
         fields = [
             SimpleField(
                 name="id",
@@ -70,24 +107,51 @@ class AzureSearchHelper:
             ),
         ]
 
-        return AzureSearch(
-            azure_search_endpoint=self.env_helper.AZURE_SEARCH_SERVICE,
-            azure_search_key=(
-                self.env_helper.AZURE_SEARCH_KEY
-                if self.env_helper.AZURE_AUTH_TYPE == "keys"
+        index = SearchIndex(
+            name=self.env_helper.AZURE_SEARCH_INDEX,
+            fields=fields,
+            semantic_search=(
+                SemanticSearch(
+                    configurations=[
+                        SemanticConfiguration(
+                            name=self.env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
+                            prioritized_fields=SemanticPrioritizedFields(
+                                title_field=None,
+                                content_fields=[SemanticField(field_name="content")],
+                            ),
+                        )
+                    ]
+                )
+                if self.env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH
                 else None
             ),
-            index_name=self.env_helper.AZURE_SEARCH_INDEX,
-            embedding_function=self.llm_helper.get_embedding_model().embed_query,
-            fields=fields,
-            search_type=(
-                "semantic_hybrid"
-                if self.env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH
-                else "hybrid"
+            vector_search=VectorSearch(
+                algorithms=[
+                    HnswAlgorithmConfiguration(
+                        name="hnsw_config",
+                        parameters=HnswParameters(metric="cosine"),
+                    )
+                ],
+                profiles=[
+                    VectorSearchProfile(
+                        name="myHnswProfile",
+                        algorithm_configuration_name="hnsw_config",
+                    ),
+                ],
             ),
-            semantic_configuration_name=self.env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
-            user_agent="langchain chatwithyourdata-sa",
         )
+
+        if self.env_helper.AZURE_SEARCH_INDEX not in [
+            name for name in self.search_index_client.list_index_names()
+        ]:
+            try:
+                logging.info(f"Creating index {self.env_helper.AZURE_SEARCH_INDEX}")
+                self.search_index_client.create_index(index)
+            except Exception as e:
+                logging.exception("Error Creating index")
+                raise e
+        else:
+            logging.info(f"Index {self.env_helper.AZURE_SEARCH_INDEX} already exists")
 
     def get_conversation_logger(self):
         fields = [

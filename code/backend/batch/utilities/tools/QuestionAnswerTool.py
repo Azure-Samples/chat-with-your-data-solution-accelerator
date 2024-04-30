@@ -1,20 +1,8 @@
 import json
 import logging
+from typing import List
 import warnings
 from .AnsweringToolBase import AnsweringToolBase
-
-from langchain.chains.llm import LLMChain
-from langchain.prompts import (
-    AIMessagePromptTemplate,
-    ChatPromptTemplate,
-    FewShotChatMessagePromptTemplate,
-    HumanMessagePromptTemplate,
-    MessagesPlaceholder,
-    PromptTemplate,
-)
-from langchain_community.callbacks import get_openai_callback
-from langchain_core.documents import Document
-from langchain_core.messages import SystemMessage
 
 from ..helpers.AzureSearchHelper import AzureSearchHelper
 from ..helpers.ConfigHelper import ConfigHelper
@@ -22,161 +10,104 @@ from ..helpers.LLMHelper import LLMHelper
 from ..helpers.EnvHelper import EnvHelper
 from ..common.Answer import Answer
 from ..common.SourceDocument import SourceDocument
+from azure.search.documents.models import VectorizedQuery
+
 
 logger = logging.getLogger(__name__)
 
 
 class QuestionAnswerTool(AnsweringToolBase):
+
     def __init__(self) -> None:
         self.name = "QuestionAnswer"
-        self.vector_store = AzureSearchHelper().get_vector_store()
-        self.verbose = True
+        self.azure_search_helper = AzureSearchHelper()
+        self.llm_helper = LLMHelper()
         self.env_helper = EnvHelper()
         self.config = ConfigHelper.get_active_config_or_default()
 
-    @staticmethod
-    def json_remove_whitespace(obj: str) -> str:
-        """
-        Remove whitespace from a JSON string.
-        """
-        try:
-            return json.dumps(json.loads(obj), separators=(",", ":"))
-        except json.JSONDecodeError:
-            return obj
+    def answer_question(
+        self, question: str, chat_history: List[dict], **kwargs: dict
+    ) -> Answer:
+        question_embeddings = self.llm_helper.generate_embeddings(question)
 
-    def generate_llm_chain(self, question: str, sources: list[Document]):
-        answering_prompt = PromptTemplate(
-            template=self.config.prompts.answering_user_prompt,
-            input_variables=["question", "sources"],
+        # Now that we are querying Azure Search using the official libraries, we can add and modify the query any way we need, such as adding a query for image embeddings
+        vector_query = VectorizedQuery(
+            vector=question_embeddings,
+            k_nearest_neighbors=self.env_helper.AZURE_SEARCH_TOP_K,
+            fields="content_vector",
+        )
+        search_results = self.azure_search_helper.search_client.search(
+            search_text=question,
+            top=self.env_helper.AZURE_SEARCH_TOP_K,
+            vector_queries=[vector_query],
         )
 
-        sources_text = "\n\n".join(
-            [f"[doc{i+1}]: {source.page_content}" for i, source in enumerate(sources)]
-        )
-
-        return answering_prompt, {
-            "sources": sources_text,
-            "question": question,
-        }
-
-    def generate_on_your_data_llm_chain(
-        self,
-        question: str,
-        chat_history: list[dict],
-        sources: list[Document],
-    ):
-        examples = []
-
-        few_shot_example = {
-            "sources": self.config.example.documents.strip(),
-            "question": self.config.example.user_question.strip(),
-            "answer": self.config.example.answer.strip(),
-        }
-
-        if few_shot_example["sources"]:
-            few_shot_example["sources"] = QuestionAnswerTool.json_remove_whitespace(
-                few_shot_example["sources"]
-            )
-
-        if any(few_shot_example.values()):
-            if all((few_shot_example.values())):
-                examples.append(few_shot_example)
-            else:
-                warnings.warn(
-                    "Not all example fields are set in the config. Skipping few-shot example."
+        retrieved_documents = []
+        source_documents = []
+        i = 1
+        for page in search_results.by_page():
+            for document in page:
+                retrieved_documents.append(
+                    {f"[doc{i}]": {"content": document.get("content")}}
                 )
+                source_documents.append(
+                    SourceDocument(
+                        id=document.get("id"),
+                        content=document.get("content"),
+                        title=document.get("title"),
+                        source=document.get("source"),
+                        chunk=document.get("chunk"),
+                        offset=document.get("offset"),
+                        page_number=document.get("page_number"),
+                    )
+                )
+                i += 1
 
-        example_prompt = ChatPromptTemplate.from_messages(
-            [
-                HumanMessagePromptTemplate.from_template(
-                    self.config.prompts.answering_user_prompt
-                ),
-                AIMessagePromptTemplate.from_template("{answer}"),
-            ]
+        ret_docs_json = json.dumps(
+            {"retrieved_documents": retrieved_documents}, separators=(",", ":")
         )
-
-        few_shot_prompt = FewShotChatMessagePromptTemplate(
-            example_prompt=example_prompt,
-            examples=examples,
-        )
-
-        answering_prompt = ChatPromptTemplate.from_messages(
-            [
-                SystemMessage(content=self.config.prompts.answering_system_prompt),
-                few_shot_prompt,
-                SystemMessage(content=self.env_helper.AZURE_OPENAI_SYSTEM_MESSAGE),
-                MessagesPlaceholder("chat_history"),
-                HumanMessagePromptTemplate.from_template(
-                    self.config.prompts.answering_user_prompt
-                ),
-            ]
-        )
-
-        documents = json.dumps(
-            {
-                "retrieved_documents": [
-                    {f"[doc{i+1}]": {"content": source.page_content}}
-                    for i, source in enumerate(sources)
-                ],
-            },
-            separators=(",", ":"),
-        )
-
-        return answering_prompt, {
-            "sources": documents,
-            "question": question,
-            "chat_history": chat_history,
-        }
-
-    def answer_question(self, question: str, chat_history: list[dict], **kwargs: dict):
-        # Retrieve documents as sources
-        sources = self.vector_store.similarity_search(
-            query=question,
-            k=self.env_helper.AZURE_SEARCH_TOP_K,
-            filters=self.env_helper.AZURE_SEARCH_FILTER,
-        )
+        question_with_sources = self.config.prompts.answering_user_prompt.replace(
+            "{sources}", ret_docs_json
+        ).replace("{question}", question)
 
         if self.config.prompts.use_on_your_data_format:
-            answering_prompt, input = self.generate_on_your_data_llm_chain(
-                question, chat_history, sources
-            )
+            example_question = self.config.prompts.answering_user_prompt.replace(
+                "{sources}", self.config.example.documents
+            ).replace("{question}", self.config.example.user_question)
+            messages = [
+                # {"role": "system", "content": f"{self.config.prompts.answering_system_prompt} {self.env_helper.AZURE_OPENAI_SYSTEM_MESSAGE}"}, # TODO is this second system message needed?
+                {
+                    "role": "system",
+                    "content": self.config.prompts.answering_system_prompt,
+                },
+                {"role": "system", "name": "example_user", "content": example_question},
+                {
+                    "role": "system",
+                    "name": "example_assistant",
+                    "content": self.config.example.answer,
+                },
+            ]
+
+            for message in chat_history:
+                messages.append(
+                    {"role": message["role"], "content": message["content"]}
+                )  # TODO should this be in the else too?
+
         else:
             warnings.warn(
                 "Azure OpenAI On Your Data prompt format is recommended and should be enabled in the Admin app.",
             )
-            answering_prompt, input = self.generate_llm_chain(question, sources)
+            messages = []
 
-        llm_helper = LLMHelper()
+        messages.append({"role": "user", "content": question_with_sources})
 
-        answer_generator = LLMChain(
-            llm=llm_helper.get_llm(), prompt=answering_prompt, verbose=self.verbose
-        )
+        response = self.llm_helper.get_chat_completion(messages)
+        logger.info(response)
 
-        with get_openai_callback() as cb:
-            result = answer_generator(input)
-
-        answer = result["text"]
-        logger.debug(f"Answer: {answer}")
-
-        # Generate Answer Object
-        source_documents = []
-        for source in sources:
-            source_document = SourceDocument(
-                id=source.metadata["id"],
-                content=source.page_content,
-                title=source.metadata["title"],
-                source=source.metadata["source"],
-                chunk=source.metadata["chunk"],
-                offset=source.metadata["offset"],
-                page_number=source.metadata["page_number"],
-            )
-            source_documents.append(source_document)
-
-        clean_answer = Answer(
+        return Answer(
             question=question,
-            answer=answer,
+            answer=response.choices[0].message.content,
             source_documents=source_documents,
-            prompt_tokens=cb.prompt_tokens,
-            completion_tokens=cb.completion_tokens,
+            completion_tokens=response.usage.completion_tokens,
+            prompt_tokens=response.usage.prompt_tokens,
         )
-        return clean_answer

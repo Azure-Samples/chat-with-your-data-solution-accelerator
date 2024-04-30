@@ -95,6 +95,15 @@ class LLMHelper:
                 chunk_size=1,
             )
 
+    def generate_embeddings(self, text):
+        return (
+            self.openai_client.embeddings.create(
+                input=[text], model=self.embedding_model
+            )
+            .data[0]
+            .embedding
+        )
+
     def get_chat_completion_with_functions(
         self, messages: List[dict], functions: List[dict], function_call: str = "auto"
     ):

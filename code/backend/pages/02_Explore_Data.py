@@ -1,6 +1,5 @@
 import streamlit as st
 import os
-import json
 import traceback
 import pandas as pd
 import sys
@@ -40,7 +39,7 @@ st.markdown(hide_table_row_index, unsafe_allow_html=True)
 
 try:
     vector_store_helper: AzureSearchHelper = AzureSearchHelper()
-    search_client = vector_store_helper.get_vector_store().client
+    search_client = vector_store_helper.get_client()
     # get unique document names by getting facets for title field
     results = search_client.search("*", facets=["title"])
     unique_files = [filename["value"] for filename in results.get_facets()["title"]]
@@ -48,13 +47,10 @@ try:
     st.write("Showing chunks for:", filename)
 
     results = search_client.search(
-        "*", select="title, content, metadata", filter=f"title eq '{filename}'"
+        "*", select="title, content, chunk", filter=f"title eq '{filename}'"
     )
 
-    data = [
-        [json.loads(result["metadata"])["chunk"], result["content"]]
-        for result in results
-    ]
+    data = [[result["chunk"], result["content"]] for result in results]
     df = pd.DataFrame(data, columns=("Chunk", "Content")).sort_values(by=["Chunk"])
     st.table(df)
 

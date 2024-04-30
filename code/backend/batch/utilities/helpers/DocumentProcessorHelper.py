@@ -42,11 +42,13 @@ class Processor(ChunkingSettings, LoadingSettings):
 
 class DocumentProcessor:
     def __init__(self):
-        pass
+        self.azure_search_helper = AzureSearchHelper()
+        self.search_client = self.azure_search_helper.search_client
+        self.llm_helper = LLMHelper()
 
     def process(self, source_url: str, processors: List[Processor]):
-        vector_store_helper = AzureSearchHelper()
-        vector_store = vector_store_helper.get_vector_store()
+        logger.info(f"Processing {source_url} with processors {processors}")
+        self.azure_search_helper.create_or_update_index()
         for processor in processors:
             if not processor.use_advanced_image_processing:
                 try:
@@ -55,12 +57,21 @@ class DocumentProcessor:
                     documents: List[SourceDocument] = []
                     documents = document_loading.load(source_url, processor.loading)
                     documents = document_chunking.chunk(documents, processor.chunking)
-                    keys = list(map(lambda x: x.id, documents))
-                    documents = [
-                        document.convert_to_langchain_document()
-                        for document in documents
-                    ]
-                    return vector_store.add_documents(documents=documents, keys=keys)
+
+                    for document in documents:
+                        doc = {
+                            "id": document.id,
+                            "content": document.content,
+                            "content_vector": self.llm_helper.generate_embeddings(
+                                document.content
+                            ),
+                            # "metadata": document.metadata, this is just a full json escaped version of the entry
+                            "title": document.title,
+                            "source": document.source,
+                            "chunk": document.chunk,
+                            "offset": document.offset,
+                        }
+                        self.search_client.upload_documents([doc])
                 except Exception as e:
                     logger.error(f"Error adding embeddings for {source_url}: {e}")
                     raise e

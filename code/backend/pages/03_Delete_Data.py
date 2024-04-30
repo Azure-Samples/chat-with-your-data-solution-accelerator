@@ -80,7 +80,7 @@ def delete_files(files):
 
 try:
     vector_store_helper: AzureSearchHelper = AzureSearchHelper()
-    search_client = vector_store_helper.get_vector_store().client
+    search_client = vector_store_helper.get_client()
 
     results = get_files()
     files = output_results(results)
