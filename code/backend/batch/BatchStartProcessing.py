@@ -20,12 +20,7 @@ def batch_start_processing(req: func.HttpRequest) -> func.HttpResponse:
     azure_blob_storage_client = AzureBlobStorageClient()
     # Get all files from Blob Storage
     files_data = azure_blob_storage_client.get_all_files()
-    # Filter out files that have already been processed
-    files_data = (
-        list(filter(lambda x: not x["embeddings_added"], files_data))
-        if req.params.get("process_all") != "true"
-        else files_data
-    )
+
     files_data = list(map(lambda x: {"filename": x["filename"]}, files_data))
 
     # Send a message to the queue for each file
