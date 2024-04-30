@@ -4,7 +4,6 @@ from backend.batch.utilities.search.Search import Search
 from backend.batch.utilities.search.IntegratedVectorizationSearchHandler import (
     IntegratedVectorizationSearchHandler,
 )
-from backend.batch.utilities.search.AzureSearchHandler import AzureSearchHandler
 
 
 @pytest.fixture
@@ -37,23 +36,6 @@ def test_get_search_handler_integrated_vectorization(
 
     # then
     assert isinstance(search_handler, IntegratedVectorizationSearchHandler)
-
-
-@pytest.fixture(autouse=True)
-def azure_search_handler_mock():
-    with patch("backend.batch.utilities.search.AzureSearchHandler") as mock:
-        yield mock
-
-
-def test_get_search_handler_azure_search(env_helper_mock, azure_search_handler_mock):
-    # given
-    env_helper_mock.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = False
-
-    # when
-    search_handler = Search.get_search_handler(env_helper_mock)
-
-    # then
-    assert isinstance(search_handler, AzureSearchHandler)
 
 
 @patch("backend.batch.utilities.search.Search")
