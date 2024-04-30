@@ -103,7 +103,13 @@ class AzureBlobStorageClient:
 
         return blob_client.exists()
 
-    def upload_file(self, bytes_data, file_name, content_type: Optional[str] = None):
+    def upload_file(
+        self,
+        bytes_data,
+        file_name,
+        content_type: Optional[str] = None,
+        metadata: Optional[dict[str, str]] = None,
+    ):
         # Create a blob client using the local file name as the name for the blob
         blob_client = self.blob_service_client.get_blob_client(
             container=self.container_name, blob=file_name
@@ -126,7 +132,7 @@ class AzureBlobStorageClient:
             bytes_data,
             overwrite=True,
             content_settings=content_settings,
-            metadata={"title": file_name},
+            metadata=metadata,
         )
         # Generate a SAS URL to the blob and return it, if auth_type is rbac, account_key is None, if not, user_delegation_key is None.
         return (

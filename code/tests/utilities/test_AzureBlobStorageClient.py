@@ -49,14 +49,15 @@ def test_file_exists(BlobServiceClientMock: MagicMock, exists: bool, expected: b
 @patch("backend.batch.utilities.helpers.AzureBlobStorageClient.generate_blob_sas")
 @patch("backend.batch.utilities.helpers.AzureBlobStorageClient.BlobServiceClient")
 @pytest.mark.parametrize(
-    "content_type, expected_content_type",
-    [("text/pdf", "text/pdf"), (None, "text/plain")],
+    "content_type, expected_content_type, metadata",
+    [("text/pdf", "text/pdf", {"title": "mock-file"}), (None, "text/plain", None)],
 )
 def test_upload_file(
     BlobServiceClientMock: MagicMock,
     generate_blob_sas_mock: MagicMock,
     content_type: str,
     expected_content_type: str,
+    metadata: dict[str, str],
 ):
     # given
     client = AzureBlobStorageClient()
@@ -66,14 +67,16 @@ def test_upload_file(
     generate_blob_sas_mock.return_value = "mock-sas"
 
     # when
-    result = client.upload_file(str.encode("mock-data"), "mock-file", content_type)
+    result = client.upload_file(
+        str.encode("mock-data"), "mock-file", content_type, metadata
+    )
 
     # then
     blob_client_mock.upload_blob.assert_called_once_with(
         str.encode("mock-data"),
         overwrite=True,
         content_settings=ANY,
-        metadata={"title": "mock-file"},
+        metadata=metadata,
     )
     _, kwargs = blob_client_mock.upload_blob.call_args
     assert kwargs["content_settings"]["content_type"] == expected_content_type
