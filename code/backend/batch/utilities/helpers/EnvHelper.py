@@ -192,8 +192,8 @@ class EnvHelper:
         # Speech Service
         self.AZURE_SPEECH_SERVICE_NAME = os.getenv("AZURE_SPEECH_SERVICE_NAME", "")
         self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")
-        self.SPEECH_RECOGNIZER_LANGUAGES = self.get_env_var_array(
-            "SPEECH_RECOGNIZER_LANGUAGES", "en-US"
+        self.AZURE_SPEECH_RECOGNIZER_LANGUAGES = self.get_env_var_array(
+            "AZURE_SPEECH_RECOGNIZER_LANGUAGES", "en-US"
         )
         self.AZURE_SPEECH_REGION_ENDPOINT = os.environ.get(
             "AZURE_SPEECH_REGION_ENDPOINT",
