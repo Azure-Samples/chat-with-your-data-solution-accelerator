@@ -109,6 +109,8 @@ class AzureBlobStorageClient:
             container=self.container_name, blob=file_name
         )
 
+        content_settings = ContentSettings(content_type=content_type)
+
         if content_type is None:
             content_type = mimetypes.MimeTypes().guess_type(file_name)[0]
             charset = (
@@ -117,12 +119,14 @@ class AzureBlobStorageClient:
                 else ""
             )
             content_type = content_type if content_type is not None else "text/plain"
+            content_settings = ContentSettings(content_type=content_type + charset)
 
         # Upload the created file
         blob_client.upload_blob(
             bytes_data,
             overwrite=True,
-            content_settings=ContentSettings(content_type=content_type + charset),
+            content_settings=content_settings,
+            metadata={"title": file_name},
         )
         # Generate a SAS URL to the blob and return it, if auth_type is rbac, account_key is None, if not, user_delegation_key is None.
         return (

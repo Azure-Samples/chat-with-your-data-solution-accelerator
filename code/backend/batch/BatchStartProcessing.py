@@ -3,7 +3,7 @@ import logging
 import json
 import azure.functions as func
 
-from utilities.helpers.AzureBlobStorageHelper import (
+from utilities.helpers.AzureBlobStorageClient import (
     AzureBlobStorageClient,
     create_queue_client,
 )

@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import ANY, MagicMock, patch
-from backend.batch.utilities.helpers.AzureBlobStorageHelper import (
+from backend.batch.utilities.helpers.AzureBlobStorageClient import (
     AzureBlobStorageClient,
 )
 
@@ -8,7 +8,7 @@ from backend.batch.utilities.helpers.AzureBlobStorageHelper import (
 @pytest.fixture(autouse=True)
 def env_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.AzureBlobStorageHelper.EnvHelper"
+        "backend.batch.utilities.helpers.AzureBlobStorageClient.EnvHelper"
     ) as mock:
         env_helper = mock.return_value
         env_helper.AZURE_AUTH_TYPE = "keys"
@@ -22,7 +22,7 @@ def env_helper_mock():
 @pytest.fixture()
 def BlobServiceClientMock():
     with patch(
-        "backend.batch.utilities.helpers.AzureBlobStorageHelper.BlobServiceClient"
+        "backend.batch.utilities.helpers.AzureBlobStorageClient.BlobServiceClient"
     ) as mock:
         yield mock
 
@@ -46,10 +46,13 @@ def test_file_exists(BlobServiceClientMock: MagicMock, exists: bool, expected: b
     )
 
 
-@patch("backend.batch.utilities.helpers.AzureBlobStorageHelper.generate_blob_sas")
-@patch("backend.batch.utilities.helpers.AzureBlobStorageHelper.BlobServiceClient")
+@patch("backend.batch.utilities.helpers.AzureBlobStorageClient.generate_blob_sas")
+@patch("backend.batch.utilities.helpers.AzureBlobStorageClient.BlobServiceClient")
+@pytest.mark.parametrize("content_type", [(None), ("text/pdf")])
 def test_upload_file(
-    BlobServiceClientMock: MagicMock, generate_blob_sas_mock: MagicMock
+    BlobServiceClientMock: MagicMock,
+    generate_blob_sas_mock: MagicMock,
+    content_type: str,
 ):
     # given
     client = AzureBlobStorageClient()
@@ -59,12 +62,22 @@ def test_upload_file(
     generate_blob_sas_mock.return_value = "mock-sas"
 
     # when
-    result = client.upload_file(str.encode("mock-data"), "mock-file")
+    result = client.upload_file(str.encode("mock-data"), "mock-file", content_type)
 
     # then
     blob_client_mock.upload_blob.assert_called_once_with(
-        str.encode("mock-data"), overwrite=True, content_settings=ANY
+        str.encode("mock-data"),
+        overwrite=True,
+        content_settings=ANY,
+        metadata={"title": "mock-file"},
     )
+    _, kwargs = blob_client_mock.upload_blob.call_args
+    assert (
+        kwargs["content_settings"]["content_type"] == content_type
+        if content_type is not None
+        else "text/plain"
+    )
+
     generate_blob_sas_mock.assert_called_once_with(
         "mock-account",
         "mock-container",
@@ -126,7 +139,7 @@ def test_upsert_blob_metadata(BlobServiceClientMock: MagicMock):
     )
 
 
-@patch("backend.batch.utilities.helpers.AzureBlobStorageHelper.generate_blob_sas")
+@patch("backend.batch.utilities.helpers.AzureBlobStorageClient.generate_blob_sas")
 def test_get_blob_sas(generate_blob_sas_mock: MagicMock):
     # given
     client = AzureBlobStorageClient()
@@ -151,7 +164,7 @@ def test_get_blob_sas(generate_blob_sas_mock: MagicMock):
     )
 
 
-@patch("backend.batch.utilities.helpers.AzureBlobStorageHelper.generate_container_sas")
+@patch("backend.batch.utilities.helpers.AzureBlobStorageClient.generate_container_sas")
 def test_get_container_sas(generate_container_sas_mock: MagicMock):
     # given
     client = AzureBlobStorageClient()

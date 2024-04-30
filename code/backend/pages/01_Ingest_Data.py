@@ -9,7 +9,7 @@ import sys
 import logging
 from batch.utilities.helpers.ConfigHelper import ConfigHelper
 from batch.utilities.helpers.EnvHelper import EnvHelper
-from batch.utilities.helpers.AzureBlobStorageHelper import AzureBlobStorageClient
+from batch.utilities.helpers.AzureBlobStorageClient import AzureBlobStorageClient
 
 sys.path.append(path.join(path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
