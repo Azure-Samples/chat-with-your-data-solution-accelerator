@@ -15,12 +15,20 @@ def env_helper_mock():
     mock.AZURE_SEARCH_KEY = "example-key"
     mock.is_auth_type_keys = Mock(return_value=True)
     mock.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = False
-    mock.is_auth_type_keys = Mock(return_value=True)
-    mock.AZURE_OPENAI_API_KEY = "mock-api-key"
     return mock
 
 
-def test_get_search_handler_integrated_vectorization(env_helper_mock):
+@pytest.fixture(autouse=True)
+def iv_search_handler_mock():
+    with patch(
+        "backend.batch.utilities.search.IntegratedVectorizationSearchHandler"
+    ) as mock:
+        yield mock
+
+
+def test_get_search_handler_integrated_vectorization(
+    env_helper_mock, iv_search_handler_mock
+):
     # given
     env_helper_mock.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = True
 
@@ -31,7 +39,13 @@ def test_get_search_handler_integrated_vectorization(env_helper_mock):
     assert isinstance(search_handler, IntegratedVectorizationSearchHandler)
 
 
-def test_get_search_handler_azure_search(env_helper_mock):
+@pytest.fixture(autouse=True)
+def azure_search_handler_mock():
+    with patch("backend.batch.utilities.search.AzureSearchHandler") as mock:
+        yield mock
+
+
+def test_get_search_handler_azure_search(env_helper_mock, azure_search_handler_mock):
     # given
     env_helper_mock.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = False
 
