@@ -1,6 +1,6 @@
 # Remove Langchain from tools
 
-* **Status:** proposed
+* **Status:** approved
 * **Proposer:**  @adamdougal
 * **Date:** 2024-04-30
 * **Technical Story:** [Make required changes to store image embeddings](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/748)
