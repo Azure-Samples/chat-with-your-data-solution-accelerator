@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 from ..loggers.TokenLogger import TokenLogger
 from ..loggers.ConversationLogger import ConversationLogger
 from ..helpers.ConfigHelper import ConfigHelper
+from ..parser.OutputParserTool import OutputParserTool
+from ..tools.ContentSafetyChecker import ContentSafetyChecker
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +20,8 @@ class OrchestratorBase(ABC):
         logger.debug(f"New message id: {self.message_id} with tokens {self.tokens}")
         self.token_logger: TokenLogger = TokenLogger()
         self.conversation_logger: ConversationLogger = ConversationLogger()
+        self.content_safety_checker = ContentSafetyChecker()
+        self.output_parser = OutputParserTool()
 
     def log_tokens(self, prompt_tokens, completion_tokens):
         self.tokens["prompt"] += prompt_tokens
@@ -27,8 +31,38 @@ class OrchestratorBase(ABC):
     @abstractmethod
     async def orchestrate(
         self, user_message: str, chat_history: List[dict], **kwargs: dict
-    ) -> dict:
+    ) -> list[dict]:
         pass
+
+    def call_content_safety_input(self, user_message: str):
+        logger.debug("Calling content safety with question")
+        filtered_user_message = (
+            self.content_safety_checker.validate_input_and_replace_if_harmful(
+                user_message
+            )
+        )
+        if user_message != filtered_user_message:
+            logger.warning("Content safety detected harmful content in question")
+            messages = self.output_parser.parse(
+                question=user_message, answer=filtered_user_message
+            )
+            return messages
+
+        return None
+
+    def call_content_safety_output(self, user_message: str, answer: str):
+        logger.debug("Calling content safety with answer")
+        filtered_answer = (
+            self.content_safety_checker.validate_output_and_replace_if_harmful(answer)
+        )
+        if answer != filtered_answer:
+            logger.warning("Content safety detected harmful content in answer")
+            messages = self.output_parser.parse(
+                question=user_message, answer=filtered_answer
+            )
+            return messages
+
+        return None
 
     async def handle_message(
         self,

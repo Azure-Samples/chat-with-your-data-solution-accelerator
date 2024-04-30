@@ -371,7 +371,9 @@ def test_get_available_orchestration_strategies(config: Config):
     orchestration_strategies = config.get_available_orchestration_strategies()
 
     # then
-    assert sorted(orchestration_strategies) == sorted(["openai_function", "langchain"])
+    assert sorted(orchestration_strategies) == sorted(
+        ["openai_function", "langchain", "semantic_kernel"]
+    )
 
 
 @patch("backend.batch.utilities.helpers.ConfigHelper.ConfigHelper.get_default_config")

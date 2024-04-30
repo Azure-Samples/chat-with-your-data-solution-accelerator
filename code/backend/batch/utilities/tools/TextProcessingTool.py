@@ -8,12 +8,14 @@ class TextProcessingTool(AnsweringToolBase):
     def __init__(self) -> None:
         self.name = "TextProcessing"
 
-    def answer_question(self, question: str, chat_history: List[dict], **kwargs: dict):
+    def answer_question(self, question: str, chat_history: List[dict] = [], **kwargs):
         llm_helper = LLMHelper()
         text = kwargs.get("text")
         operation = kwargs.get("operation")
         user_content = (
-            f"{operation} the following TEXT: {text}" if question == "" else question
+            f"{operation} the following TEXT: {text}"
+            if (text and operation)
+            else question
         )
 
         system_message = """You are an AI assistant for the user."""

@@ -180,7 +180,7 @@ class ConfigHelper:
             )
 
             with open(config_file_path) as f:
-                logging.info(f"Loading default config from {config_file_path}")
+                logger.info(f"Loading default config from {config_file_path}")
                 ConfigHelper._default_config = json.loads(
                     Template(f.read()).substitute(
                         ORCHESTRATION_STRATEGY=env_helper.ORCHESTRATION_STRATEGY
