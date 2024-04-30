@@ -21,7 +21,7 @@ class SemanticKernelOrchestrator(OrchestratorBase):
         self.llm_helper = LLMHelper()
 
         # Add the Azure OpenAI service to the kernel
-        self.chat_service = self.llm_helper.get_sk_chat_completion_service("aoai")
+        self.chat_service = self.llm_helper.get_sk_chat_completion_service("cwyd")
         self.kernel.add_service(self.chat_service)
 
         self.kernel.add_plugin(
@@ -77,7 +77,7 @@ When directly replying to the user, always reply in the language the user is spe
         )
 
         if result.tool_calls:
-            logger.info("Function call detected")
+            logger.info("Semantic Kernel function call detected")
 
             function_name = result.tool_calls[0].function.name
             logger.info(f"{function_name} function detected")
