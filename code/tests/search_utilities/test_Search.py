@@ -15,6 +15,7 @@ def env_helper_mock():
     mock.AZURE_SEARCH_KEY = "example-key"
     mock.is_auth_type_keys = Mock(return_value=True)
     mock.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = False
+    mock.is_auth_type_keys = Mock(return_value=True)
     mock.AZURE_OPENAI_API_KEY = "mock-api-key"
     return mock
 
