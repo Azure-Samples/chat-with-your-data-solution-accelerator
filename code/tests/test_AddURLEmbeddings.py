@@ -9,8 +9,9 @@ sys.path.append(os.path.join(os.path.dirname(sys.path[0]), "backend", "batch"))
 from backend.batch.AddURLEmbeddings import add_url_embeddings  # noqa: E402
 
 
+@patch("backend.batch.AddURLEmbeddings.ConfigHelper")
 @patch("backend.batch.AddURLEmbeddings.DocumentProcessor")
-def test_add_url_embeddings(mock_document_processor: MagicMock):
+def test_add_url_embeddings(mock_document_processor: MagicMock, _):
     # given
     fake_request = func.HttpRequest(
         method="POST",
@@ -46,9 +47,10 @@ def test_add_url_embeddings_returns_400_when_url_not_set():
     assert response.status_code == 400
 
 
+@patch("backend.batch.AddURLEmbeddings.ConfigHelper")
 @patch("backend.batch.AddURLEmbeddings.DocumentProcessor")
 def test_add_url_embeddings_returns_500_when_exception_occurs(
-    mock_document_processor: MagicMock,
+    mock_document_processor: MagicMock, _
 ):
     # given
     fake_request = func.HttpRequest(
