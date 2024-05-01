@@ -6,7 +6,7 @@ from azure.storage.blob import BlobServiceClient, generate_blob_sas, UserDelegat
 
 from .EnvHelper import EnvHelper
 from pptx import Presentation
-from langchain.agents import tool
+from pptx.dml.color import RGBColor
 import uuid
 
 env_helper = EnvHelper()
@@ -143,23 +143,37 @@ class PowerPointHelper:
             for shape in slide.shapes:
                 match shape.shape_id:
                     case 31:
-                        shape.text = projectData.name
+                        replaceText(shape.text_frame.paragraphs[0], projectData.name)
                     # case 5:
                     #    shape.text = "project logo"
                     case 24:
-                        shape.text = substitudeText(projectData.overview, shape.text)
+                        replaceText(
+                            shape.text_frame.paragraphs[1], projectData.overview
+                        )
                     case 2:
-                        shape.text = substitudeText(projectData.challenges, shape.text)
+                        replaceText(
+                            shape.text_frame.paragraphs[1], projectData.challenges
+                        )
                     case 23:
-                        shape.text = substitudeText(
-                            projectData.technologies, shape.text
+                        replaceText(
+                            shape.text_frame.paragraphs[1], projectData.technologies
                         )
                     case 20:
-                        shape.text = substitudeText(projectData.results, shape.text)
+                        replaceText(shape.text_frame.paragraphs[1], projectData.results)
                     case 18:
-                        shape.text = substitudeText(projectData.solution, shape.text)
+                        replaceText(
+                            shape.text_frame.paragraphs[2], projectData.solution
+                        )
 
 
-def substitudeText(replacement_text, source_text) -> str:
-    title = source_text.split("\n", 1)[0]
-    return f"{title}\n{replacement_text}"
+def replaceText(paragraph, source_text):
+    for run in paragraph.runs:
+        font = run.font
+        break
+    paragraph.text = source_text
+    paragraph.font.name = font.name
+    paragraph.font.size = font.size
+    paragraph.font.bold = font.bold
+    paragraph.font.color.theme_color = font.color.theme_color
+    paragraph.font.color.brightness = font.color.brightness
+    paragraph.font.color.rgb = RGBColor(255, 255, 255)
