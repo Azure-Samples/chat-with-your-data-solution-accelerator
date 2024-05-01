@@ -1,73 +1,22 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from backend.batch.utilities.helpers.DocumentProcessorHelper import (
+from backend.batch.utilities.helpers.processors.DocumentProcessorHelper import (
     DocumentProcessor,
-    Processor,
 )
+from backend.batch.utilities.helpers.Processor import Processor
+
+from backend.batch.utilities.helpers.DocumentLoadingHelper import DocumentLoading
+from backend.batch.utilities.helpers.DocumentChunkingHelper import DocumentChunking
+from backend.batch.utilities.common.SourceDocument import SourceDocument
+from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
 
 AZURE_SEARCH_INDEXER_NAME = "mock-indexer-name"
 
 
 @pytest.fixture(autouse=True)
-def env_helper_mock():
-    with patch(
-        "backend.batch.utilities.helpers.DocumentProcessorHelper.EnvHelper"
-    ) as mock:
-        env_helper = mock.return_value
-        env_helper.AZURE_SEARCH_INDEXER_NAME = AZURE_SEARCH_INDEXER_NAME
-
-        yield env_helper
-
-
-@pytest.fixture(autouse=True)
-def llm_helper_mock():
-    with patch(
-        "backend.batch.utilities.helpers.DocumentProcessorHelper.LLMHelper"
-    ) as mock:
-        llm_helper = mock.return_value
-        llm_helper.get_embedding_model.return_value.embed_query.return_value = [
-            0
-        ] * 1536
-
-        yield llm_helper
-
-
-@pytest.fixture(autouse=True)
 def azure_search_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.DocumentProcessorHelper.AzureSearchHelper"
-    ) as mock:
-        yield mock
-
-
-@pytest.fixture(autouse=True)
-def azure_search_iv_index_helper_mock():
-    with patch(
-        "backend.batch.utilities.helpers.DocumentProcessorHelper.AzureSearchIndex"
-    ) as mock:
-        yield mock
-
-
-@pytest.fixture(autouse=True)
-def azure_search_iv_datasource_helper_mock():
-    with patch(
-        "backend.batch.utilities.helpers.DocumentProcessorHelper.AzureSearchDatasource"
-    ) as mock:
-        yield mock
-
-
-@pytest.fixture(autouse=True)
-def azure_search_iv_skillset_helper_mock():
-    with patch(
-        "backend.batch.utilities.helpers.DocumentProcessorHelper.AzureSearchSkillset"
-    ) as mock:
-        yield mock
-
-
-@pytest.fixture(autouse=True)
-def azure_search_iv_indexer_helper_mock():
-    with patch(
-        "backend.batch.utilities.helpers.DocumentProcessorHelper.AzureSearchIndexer"
+        "backend.batch.utilities.helpers.processors.DocumentProcessorHelper.AzureSearchHelper"
     ) as mock:
         yield mock
 
@@ -80,7 +29,7 @@ def test_process_use_advanced_image_processing_skips_processing(
     azure_search_helper_mock.return_value.get_vector_store.return_value = (
         vector_store_mock
     )
-    document_processor = DocumentProcessor()
+    document_processor = DocumentProcessor(None)
     processor = Processor("jpg", None, None, use_advanced_image_processing=True)
 
     # when
@@ -90,41 +39,53 @@ def test_process_use_advanced_image_processing_skips_processing(
     vector_store_mock.add_documents.assert_not_called()
 
 
-def test_process_integrated_vectorisation(
-    env_helper_mock: MagicMock,
-    llm_helper_mock: MagicMock,
-    azure_search_iv_index_helper_mock: MagicMock,
-    azure_search_iv_datasource_helper_mock: MagicMock,
-    azure_search_iv_skillset_helper_mock: MagicMock,
-    azure_search_iv_indexer_helper_mock: MagicMock,
+def test_process_with_non_advanced_image_processing_adds_documents_to_vector_store(
+    azure_search_helper_mock,
 ):
     # given
-    document_processor = DocumentProcessor()
-    source_url = "https://dagrs.berkeley.edu/sites/default/files/2020-01/sample.pdf"
-
-    # when
-    result = document_processor.process_using_integrated_vectorisation(source_url)
-
-    # then
-    azure_search_iv_datasource_helper_mock.assert_called_once_with(env_helper_mock)
-    azure_search_iv_datasource_helper_mock.return_value.create_or_update_datasource.assert_called_once()
-
-    azure_search_iv_index_helper_mock.assert_called_once_with(
-        env_helper_mock, llm_helper_mock
+    vector_store_mock = MagicMock()
+    azure_search_helper_mock.return_value.get_vector_store.return_value = (
+        vector_store_mock
     )
-    azure_search_iv_index_helper_mock.return_value.create_or_update_index.assert_called_once()
+    document_processor = DocumentProcessor(None)
+    processor = Processor("jpg", None, None, use_advanced_image_processing=False)
+    source_url = "some-url"
+    documents = [
+        SourceDocument("1", "document1", "content1"),
+        SourceDocument("2", "document2", "content2"),
+    ]
 
-    azure_search_iv_skillset_helper_mock.assert_called_once_with(env_helper_mock)
-    azure_search_iv_skillset_helper_mock.return_value.create_skillset.assert_called_once()
+    with patch.object(
+        DocumentLoading, "load", return_value=documents
+    ) as load_mock, patch.object(
+        DocumentChunking, "chunk", return_value=documents
+    ) as chunk_mock:
+        # when
+        document_processor.process(source_url, [processor])
 
-    azure_search_iv_indexer_helper_mock.assert_called_once_with(env_helper_mock)
-    azure_search_iv_indexer_helper_mock.return_value.create_or_update_indexer.assert_called_once()
+        # then
+        load_mock.assert_called_once_with(source_url, processor.loading)
+        chunk_mock.assert_called_once_with(documents, processor.chunking)
 
-    assert (
-        result
-        == azure_search_iv_indexer_helper_mock.return_value.create_or_update_indexer.return_value
+
+def test_process_file_with_non_url_extension_processes_and_adds_metadata(
+    azure_search_helper_mock,
+):
+    # given
+    vector_store_mock = MagicMock()
+    azure_search_helper_mock.return_value.get_vector_store.return_value = (
+        vector_store_mock
     )
-    assert (
-        azure_search_iv_skillset_helper_mock.return_value.create_skillset.return_value.skills
-        is not None
-    )
+    document_processor = DocumentProcessor(blob_client=MagicMock())
+    source_url = "some-url"
+    file_name = "file.jpg"
+
+    with patch.object(
+        ConfigHelper, "get_active_config_or_default"
+    ) as config_mock, patch.object(document_processor, "process") as process_mock:
+        # when
+        document_processor.process_file(source_url, file_name)
+
+        # then
+        config_mock.assert_called_once()
+        process_mock.assert_called_once_with(source_url="some-url", processors=[])

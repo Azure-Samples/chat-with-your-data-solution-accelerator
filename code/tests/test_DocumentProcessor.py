@@ -1,5 +1,5 @@
 import pytest
-from backend.batch.utilities.helpers.DocumentProcessorHelper import (
+from backend.batch.utilities.helpers.processors.DocumentProcessorHelper import (
     DocumentProcessor,
 )
 from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper

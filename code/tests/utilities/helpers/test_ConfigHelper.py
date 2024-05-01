@@ -2,7 +2,7 @@ import json
 import pytest
 from unittest.mock import patch, MagicMock
 from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper, Config
-from backend.batch.utilities.helpers.DocumentProcessorHelper import Processor
+from backend.batch.utilities.helpers.processors.DocumentProcessorHelper import Processor
 from backend.batch.utilities.document_chunking.Strategies import ChunkingSettings
 from backend.batch.utilities.document_loading import LoadingSettings
 
@@ -52,6 +52,10 @@ def config_dict():
                 },
             },
         ],
+        "integrated_vectorization_config": {
+            "max_page_length": "800",
+            "page_overlap_length": "100",
+        },
         "logging": {
             "log_user_interactions": True,
             "log_tokens": True,
@@ -88,6 +92,10 @@ def old_config_dict():
                 },
             },
         ],
+        "integrated_vectorization_config": {
+            "max_page_length": "800",
+            "page_overlap_length": "100",
+        },
         "logging": {
             "log_user_interactions": True,
             "log_tokens": True,
