@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.170.59819",
-      "templateHash": "2419222715560485220"
+      "templateHash": "8845139983291887508"
     }
   },
   "parameters": {
@@ -195,14 +195,14 @@
     },
     "azureOpenAIModel": {
       "type": "string",
-      "defaultValue": "gpt-35-turbo",
+      "defaultValue": "gpt-35-turbo-16k",
       "metadata": {
         "description": "Azure OpenAI Model Deployment Name"
       }
     },
     "azureOpenAIModelName": {
       "type": "string",
-      "defaultValue": "gpt-35-turbo",
+      "defaultValue": "gpt-35-turbo-16k",
       "metadata": {
         "description": "Azure OpenAI Model Name"
       }
