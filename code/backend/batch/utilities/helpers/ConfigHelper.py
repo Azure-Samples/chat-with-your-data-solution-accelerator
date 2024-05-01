@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from string import Template
-from .AzureBlobStorageHelper import AzureBlobStorageClient
+from .AzureBlobStorageClient import AzureBlobStorageClient
 from ..document_chunking.Strategies import ChunkingSettings, ChunkingStrategy
 from ..document_loading import LoadingSettings, LoadingStrategy
 from .DocumentProcessorHelper import Processor

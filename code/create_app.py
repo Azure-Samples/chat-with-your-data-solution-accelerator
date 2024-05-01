@@ -410,7 +410,7 @@ def create_app():
                 return {
                     "token": response.text,
                     "region": env_helper.AZURE_SPEECH_SERVICE_REGION,
-                    "languages": env_helper.SPEECH_RECOGNIZER_LANGUAGES,
+                    "languages": env_helper.AZURE_SPEECH_RECOGNIZER_LANGUAGES,
                 }
 
             logger.error(f"Failed to get speech config: {response.text}")

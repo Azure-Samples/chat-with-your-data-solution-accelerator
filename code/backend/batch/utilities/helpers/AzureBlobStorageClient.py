@@ -1,3 +1,4 @@
+import mimetypes
 from typing import Optional
 from datetime import datetime, timedelta
 from azure.storage.blob import (
@@ -8,6 +9,7 @@ from azure.storage.blob import (
     UserDelegationKey,
 )
 from azure.storage.queue import QueueClient, BinaryBase64EncodePolicy
+import chardet
 from .EnvHelper import EnvHelper
 from azure.identity import DefaultAzureCredential
 
@@ -101,16 +103,36 @@ class AzureBlobStorageClient:
 
         return blob_client.exists()
 
-    def upload_file(self, bytes_data, file_name, content_type="application/pdf"):
+    def upload_file(
+        self,
+        bytes_data,
+        file_name,
+        content_type: Optional[str] = None,
+        metadata: Optional[dict[str, str]] = None,
+    ):
         # Create a blob client using the local file name as the name for the blob
         blob_client = self.blob_service_client.get_blob_client(
             container=self.container_name, blob=file_name
         )
+
+        content_settings = ContentSettings(content_type=content_type)
+
+        if content_type is None:
+            content_type = mimetypes.MimeTypes().guess_type(file_name)[0]
+            charset = (
+                f"; charset={chardet.detect(bytes_data)['encoding']}"
+                if content_type == "text/plain"
+                else ""
+            )
+            content_type = content_type if content_type is not None else "text/plain"
+            content_settings = ContentSettings(content_type=content_type + charset)
+
         # Upload the created file
         blob_client.upload_blob(
             bytes_data,
             overwrite=True,
-            content_settings=ContentSettings(content_type=content_type),
+            content_settings=content_settings,
+            metadata=metadata,
         )
         # Generate a SAS URL to the blob and return it, if auth_type is rbac, account_key is None, if not, user_delegation_key is None.
         return (
