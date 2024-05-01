@@ -1,4 +1,4 @@
-from ..AzureBlobStorageHelper import AzureBlobStorageClient
+from ..AzureBlobStorageClient import AzureBlobStorageClient
 from .DocumentProcessorHelper import DocumentProcessor
 from .IntegratedVectorizationProcessorHelper import (
     IntegratedVectorizationProcessorHelper,

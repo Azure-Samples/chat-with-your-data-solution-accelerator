@@ -3,6 +3,9 @@ from backend.batch.utilities.helpers.processors.DocumentProcessorHelper import (
     DocumentProcessor,
 )
 from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
+from backend.batch.utilities.helpers.AzureBlobStorageClient import (
+    AzureBlobStorageClient,
+)
 
 document_url = "https://dagrs.berkeley.edu/sites/default/files/2020-01/sample.pdf"
 url = "https://learn.microsoft.com/en-us/azure/search/search-what-is-azure-search"
@@ -11,7 +14,7 @@ docx_url = "https://csciblob.blob.core.windows.net/rag-sol-acc/What is Azure Ope
 
 @pytest.mark.azure("This test requires Azure")
 def test_document_processor_layout():
-    document_processor = DocumentProcessor()
+    document_processor = DocumentProcessor(AzureBlobStorageClient())
     processors = list(
         filter(
             lambda x: x.document_type == "pdf",
@@ -25,7 +28,7 @@ def test_document_processor_layout():
 
 @pytest.mark.azure("This test requires Azure")
 def test_document_processor_read():
-    document_processor = DocumentProcessor()
+    document_processor = DocumentProcessor(AzureBlobStorageClient())
     processors = list(
         filter(
             lambda x: x.document_type == "pdf",
@@ -39,7 +42,7 @@ def test_document_processor_read():
 
 @pytest.mark.azure("This test requires Azure")
 def test_document_processor_web():
-    document_processor = DocumentProcessor()
+    document_processor = DocumentProcessor(AzureBlobStorageClient())
     processors = list(
         filter(
             lambda x: x.document_type == "url",
@@ -53,7 +56,7 @@ def test_document_processor_web():
 
 @pytest.mark.azure("This test requires Azure")
 def test_document_processor_docx():
-    document_processor = DocumentProcessor()
+    document_processor = DocumentProcessor(AzureBlobStorageClient())
     processors = list(
         filter(
             lambda x: x.document_type == "docx",

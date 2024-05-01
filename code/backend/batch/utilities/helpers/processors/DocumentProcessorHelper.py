@@ -1,7 +1,7 @@
 import logging
 from typing import List
 
-from ..AzureBlobStorageHelper import AzureBlobStorageClient
+from ..AzureBlobStorageClient import AzureBlobStorageClient
 
 from ..Processor import Processor
 from ..ConfigHelper import ConfigHelper
