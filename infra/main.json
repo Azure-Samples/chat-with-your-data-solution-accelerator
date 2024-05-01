@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.170.59819",
-      "templateHash": "1803788085744945090"
+      "templateHash": "8845139983291887508"
     }
   },
   "parameters": {
@@ -1968,7 +1968,7 @@
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
               "AZURE_SPEECH_SERVICE_NAME": "[parameters('speechServiceName')]",
               "AZURE_SPEECH_SERVICE_REGION": "[parameters('location')]",
-              "SPEECH_RECOGNIZER_LANGUAGES": "[parameters('recognizedLanguages')]",
+              "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "[parameters('recognizedLanguages')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
               "LOGLEVEL": "[parameters('logLevel')]"
             }
@@ -2834,7 +2834,7 @@
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
               "AZURE_SPEECH_SERVICE_NAME": "[parameters('speechServiceName')]",
               "AZURE_SPEECH_SERVICE_REGION": "[parameters('location')]",
-              "SPEECH_RECOGNIZER_LANGUAGES": "[parameters('recognizedLanguages')]",
+              "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "[parameters('recognizedLanguages')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
               "LOGLEVEL": "[parameters('logLevel')]"
             }
@@ -10749,6 +10749,10 @@
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SPEECH_KEY_NAME.value, '')]"
     },
+    "AZURE_SPEECH_RECOGNIZER_LANGUAGES": {
+      "type": "string",
+      "value": "[parameters('recognizedLanguages')]"
+    },
     "AZURE_TENANT_ID": {
       "type": "string",
       "value": "[tenant().tenantId]"
@@ -10776,10 +10780,6 @@
     "ADMIN_WEBSITE_NAME": {
       "type": "string",
       "value": "[if(equals(parameters('hostingModel'), 'code'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('adminWebsiteName')), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_URI.value)]"
-    },
-    "SPEECH_RECOGNIZER_LANGUAGES": {
-      "type": "string",
-      "value": "[parameters('recognizedLanguages')]"
     },
     "LOGLEVEL": {
       "type": "string",

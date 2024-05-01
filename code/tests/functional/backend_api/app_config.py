@@ -67,7 +67,7 @@ class AppConfig:
         "LOAD_CONFIG_FROM_BLOB_STORAGE": "False",
         "LOGLEVEL": "DEBUG",
         "ORCHESTRATION_STRATEGY": "openai_function",
-        "SPEECH_RECOGNIZER_LANGUAGES": "en-US,es-ES",
+        "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "en-US,es-ES",
         "TIKTOKEN_CACHE_DIR": f"{os.path.dirname(os.path.realpath(__file__))}/resources",
         "USE_ADVANCED_IMAGE_PROCESSING": "False",
         "USE_KEY_VAULT": "False",

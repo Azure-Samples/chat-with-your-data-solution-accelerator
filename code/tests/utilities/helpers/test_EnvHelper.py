@@ -106,23 +106,23 @@ def test_uses_and_uppercases_log_level_when_set(monkeypatch: MonkeyPatch):
 
 def test_get_env_var_array(monkeypatch: MonkeyPatch):
     # given
-    monkeypatch.setenv("SPEECH_RECOGNIZER_LANGUAGES", "en-US,es-ES")
+    monkeypatch.setenv("AZURE_SPEECH_RECOGNIZER_LANGUAGES", "en-US,es-ES")
 
     # when
     env_helper = EnvHelper()
 
     # then
-    assert env_helper.SPEECH_RECOGNIZER_LANGUAGES == ["en-US", "es-ES"]
+    assert env_helper.AZURE_SPEECH_RECOGNIZER_LANGUAGES == ["en-US", "es-ES"]
 
 
-def test_speech_recognizer_languages_default(monkeypatch: MonkeyPatch):
+def test_azure_speech_recognizer_languages_default(monkeypatch: MonkeyPatch):
     # given - no env var set
 
     # when
     env_helper = EnvHelper()
 
     # then
-    assert env_helper.SPEECH_RECOGNIZER_LANGUAGES == ["en-US"]
+    assert env_helper.AZURE_SPEECH_RECOGNIZER_LANGUAGES == ["en-US"]
 
 
 @pytest.mark.parametrize(
