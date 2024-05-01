@@ -1,6 +1,4 @@
-import io
 from os import path
-from bs4 import BeautifulSoup
 import streamlit as st
 import traceback
 import requests
@@ -53,30 +51,9 @@ def remote_convert_files_and_add_embeddings(process_all=False):
         st.error(traceback.format_exc())
 
 
-def add_urls(blob_client: AzureBlobStorageClient):
+def add_urls():
     urls = st.session_state["urls"].split("\n")
-    if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
-        download_url_and_upload_to_blob(blob_client, urls)
-    else:
-        add_url_embeddings(urls)
-
-
-def download_url_and_upload_to_blob(
-    blob_client: AzureBlobStorageClient, urls: list[str]
-):
-    for url in urls:
-        try:
-            response = requests.get(url)
-            parsed_data = BeautifulSoup(response.content, "html.parser")
-            with io.BytesIO(parsed_data.get_text().encode("utf-8")) as stream:
-                st.session_state["filename"] = url
-                st.session_state["file_url"] = blob_client.upload_file(
-                    stream, url, metadata={"title": url}
-                )
-            st.success(f"Url {url} added to knowledge base")
-        except Exception:
-            logger.error(traceback.format_exc())
-            st.error(f"Exception occurred while adding {url} to the knowledge base.")
+    add_url_embeddings(urls)
 
 
 def add_url_embeddings(urls: list[str]):
@@ -151,7 +128,7 @@ try:
             )
             st.button(
                 "Process and ingest web pages",
-                on_click=lambda: add_urls(blob_client),
+                on_click=add_urls,
                 key="add_url",
             )
 
