@@ -3,7 +3,8 @@ import logging
 import json
 import azure.functions as func
 from urllib.parse import urlparse
-from utilities.helpers.AzureBlobStorageHelper import AzureBlobStorageClient
+
+from utilities.helpers.AzureBlobStorageClient import AzureBlobStorageClient
 from utilities.helpers.EnvHelper import EnvHelper
 from utilities.helpers.processors.Process import Process
 

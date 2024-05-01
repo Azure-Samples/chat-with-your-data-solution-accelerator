@@ -57,6 +57,16 @@ module web '../core/host/appservice.bicep' = {
   }
 }
 
+// Storage Blob Data Contributor
+module storageBlobRoleWeb '../core/security/role.bicep' = if (authType == 'rbac') {
+  name: 'storage-blob-role-web'
+  params: {
+    principalId: web.outputs.identityPrincipalId
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // Cognitive Services User
 module openAIRoleWeb '../core/security/role.bicep' = if (authType == 'rbac') {
   name: 'openai-role-web'

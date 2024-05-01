@@ -2,7 +2,7 @@ from typing import Optional, Type
 import hashlib
 import json
 from urllib.parse import urlparse, quote
-from ..helpers.AzureBlobStorageHelper import AzureBlobStorageClient
+from ..helpers.AzureBlobStorageClient import AzureBlobStorageClient
 
 
 class SourceDocument:

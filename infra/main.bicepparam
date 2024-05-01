@@ -13,8 +13,8 @@ param authType = readEnvironmentVariable('AZURE_AUTH_TYPE', 'keys')
 
 param hostingModel = readEnvironmentVariable('AZURE_APP_SERVICE_HOSTING_MODEL', 'code')
 
-param azureOpenAIModel = readEnvironmentVariable('AZURE_OPENAI_MODEL', 'gpt-35-turbo')
-param azureOpenAIModelName = readEnvironmentVariable('AZURE_OPENAI_MODEL_NAME', 'gpt-35-turbo')
+param azureOpenAIModel = readEnvironmentVariable('AZURE_OPENAI_MODEL', 'gpt-35-turbo-16k')
+param azureOpenAIModelName = readEnvironmentVariable('AZURE_OPENAI_MODEL_NAME', 'gpt-35-turbo-16k')
 param azureOpenAIModelVersion = readEnvironmentVariable('AZURE_OPENAI_MODEL_VERSION', '0613')
 param azureOpenAIModelCapacity = int(readEnvironmentVariable('AZURE_OPENAI_MODEL_CAPACITY', '30'))
 param useAdvancedImageProcessing = bool(readEnvironmentVariable('USE_ADVANCED_IMAGE_PROCESSING', 'false'))

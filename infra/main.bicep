@@ -97,10 +97,10 @@ param azureOpenAIResourceName string = 'openai-${resourceToken}'
 param azureOpenAISkuName string = 'S0'
 
 @description('Azure OpenAI Model Deployment Name')
-param azureOpenAIModel string = 'gpt-35-turbo'
+param azureOpenAIModel string = 'gpt-35-turbo-16k'
 
 @description('Azure OpenAI Model Name')
-param azureOpenAIModelName string = 'gpt-35-turbo'
+param azureOpenAIModelName string = 'gpt-35-turbo-16k'
 
 param azureOpenAIModelVersion string = '0613'
 
@@ -523,7 +523,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
-      SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
+      AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
     }
@@ -587,7 +587,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
-      SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
+      AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
     }
@@ -1000,6 +1000,7 @@ output AZURE_SEARCH_DATASOURCE_NAME string = azureSearchDatasource
 output AZURE_SPEECH_SERVICE_NAME string = speechServiceName
 output AZURE_SPEECH_SERVICE_REGION string = location
 output AZURE_SPEECH_SERVICE_KEY string = useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
+output AZURE_SPEECH_RECOGNIZER_LANGUAGES string = recognizedLanguages
 output AZURE_TENANT_ID string = tenant().tenantId
 output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
@@ -1007,5 +1008,4 @@ output USE_KEY_VAULT bool = useKeyVault
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code' ? web.outputs.FRONTEND_API_URI : web_docker.outputs.FRONTEND_API_URI
 output ADMIN_WEBSITE_NAME string = hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_URI : adminweb_docker.outputs.WEBSITE_ADMIN_URI
-output SPEECH_RECOGNIZER_LANGUAGES string = recognizedLanguages
 output LOGLEVEL string = logLevel
