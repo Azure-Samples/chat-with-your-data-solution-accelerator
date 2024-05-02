@@ -10,7 +10,7 @@ class PostPromptTool:
     def __init__(self) -> None:
         pass
 
-    def validate_answer(self, answer: Answer) -> dict:
+    def validate_answer(self, answer: Answer) -> Answer:
         config = ConfigHelper.get_active_config_or_default()
         llm_helper = LLMHelper()
 

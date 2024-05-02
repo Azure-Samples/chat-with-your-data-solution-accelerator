@@ -196,7 +196,7 @@ class ConfigHelper:
             config_file_path = os.path.join(os.path.dirname(__file__), "default.json")
 
             with open(config_file_path) as f:
-                logging.info(f"Loading default config from {config_file_path}")
+                logger.info(f"Loading default config from {config_file_path}")
                 ConfigHelper._default_config = json.loads(
                     Template(f.read()).substitute(
                         ORCHESTRATION_STRATEGY=env_helper.ORCHESTRATION_STRATEGY
@@ -206,6 +206,10 @@ class ConfigHelper:
                     ConfigHelper._append_advanced_image_processors()
 
         return ConfigHelper._default_config
+
+    @staticmethod
+    def clear_config():
+        ConfigHelper._default_config = None
 
     @staticmethod
     def _append_advanced_image_processors():
