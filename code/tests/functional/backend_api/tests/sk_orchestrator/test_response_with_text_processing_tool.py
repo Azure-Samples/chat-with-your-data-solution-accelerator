@@ -1,6 +1,5 @@
 import pytest
 from pytest_httpserver import HTTPServer
-from pytest_httpserver.httpserver import HandlerType
 import requests
 
 from tests.functional.backend_api.request_matching import (
@@ -24,10 +23,9 @@ body = {
 
 @pytest.fixture(autouse=True)
 def completions_mocking(httpserver: HTTPServer, app_config: AppConfig):
-    httpserver.expect_request(
+    httpserver.expect_oneshot_request(
         f"/openai/deployments/{app_config.get('AZURE_OPENAI_MODEL')}/chat/completions",
         method="POST",
-        handler_type=HandlerType.ONESHOT,
     ).respond_with_json(
         {
             "choices": [
@@ -75,10 +73,9 @@ def completions_mocking(httpserver: HTTPServer, app_config: AppConfig):
         }
     )
 
-    httpserver.expect_request(
+    httpserver.expect_oneshot_request(
         f"/openai/deployments/{app_config.get('AZURE_OPENAI_MODEL')}/chat/completions",
         method="POST",
-        handler_type=HandlerType.ONESHOT,
     ).respond_with_json(
         {
             "choices": [
