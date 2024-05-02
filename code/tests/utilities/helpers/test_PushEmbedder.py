@@ -32,7 +32,7 @@ def test_process_use_advanced_image_processing_skips_processing(
     processor = EmbeddingConfig("jpg", None, None, use_advanced_image_processing=True)
 
     # when
-    push_embedder._PushEmbedder__embed("some-url", processor)
+    push_embedder._PushEmbedder__embed("https://example.com", processor)
 
     # then
     vector_store_mock.add_documents.assert_not_called()
@@ -48,7 +48,7 @@ def test_process_with_non_advanced_image_processing_adds_documents_to_vector_sto
     )
     push_embedder = PushEmbedder(None)
     processor = EmbeddingConfig("jpg", None, None, use_advanced_image_processing=False)
-    source_url = "some-url"
+    source_url = "https://example.com"
     documents = [
         SourceDocument("1", "document1", "content1"),
         SourceDocument("2", "document2", "content2"),
@@ -77,7 +77,7 @@ def test_process_file_with_non_url_extension_processes_and_adds_metadata(
         vector_store_mock
     )
     push_embedder = PushEmbedder(blob_client=MagicMock())
-    source_url = "some-url"
+    source_url = "https://example.com"
     file_name = "file.jpg"
 
     with patch.object(push_embedder, "_PushEmbedder__embed") as embed_mock:
