@@ -268,6 +268,19 @@ def test_delete_config(AzureBlobStorageClientMock: MagicMock):
     )
 
 
+def test_clear_config():
+    # given
+    ConfigHelper.get_default_config()
+    config = ConfigHelper._default_config
+
+    # when
+    ConfigHelper.clear_config()
+
+    # then
+    assert config is not None
+    assert ConfigHelper._default_config is None
+
+
 def test_get_document_processors(config_dict: dict):
     # given
     config_dict["document_processors"] = [
