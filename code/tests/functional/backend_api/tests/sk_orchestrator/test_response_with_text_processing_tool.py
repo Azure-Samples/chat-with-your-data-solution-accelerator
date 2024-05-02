@@ -185,3 +185,20 @@ def test_post_makes_correct_call_to_openai_chat_completions_in_text_processing_t
             times=1,
         ),
     )
+
+
+def test_post_does_not_call_azure_search(
+    app_url: str, app_config: AppConfig, httpserver: HTTPServer
+):
+    # when
+    requests.post(f"{app_url}{path}", json=body)
+
+    # then
+    verify_request_made(
+        mock_httpserver=httpserver,
+        request_matcher=RequestMatcher(
+            path=f"/indexes('{app_config.get('AZURE_SEARCH_INDEX')}')/docs/search.post.search",
+            method="POST",
+            times=0,
+        ),
+    )
