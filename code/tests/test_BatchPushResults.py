@@ -15,7 +15,7 @@ from backend.batch.BatchPushResults import (  # noqa: E402
 
 @pytest.fixture(autouse=True)
 def get_processor_handler_mock():
-    with patch("backend.batch.BatchPushResults.Process.get_processor_handler") as mock:
+    with patch("backend.batch.BatchPushResults.EmbedderFactory.create") as mock:
         processor_handler = mock.return_value
         yield processor_handler
 
@@ -53,6 +53,6 @@ def test_batch_push_results(
     mock_blob_client_instance.get_blob_sas.return_value = "test_blob_sas"
 
     batch_push_results.build().get_user_function()(mock_queue_message)
-    get_processor_handler_mock.process_file.assert_called_once_with(
+    get_processor_handler_mock.embed_file.assert_called_once_with(
         "test_blob_sas", "test/test/test_filename.md"
     )

@@ -1,8 +1,8 @@
-from .DocumentLoadingHelper import LoadingSettings
-from .DocumentChunkingHelper import ChunkingSettings
+from ..DocumentLoadingHelper import LoadingSettings
+from ..DocumentChunkingHelper import ChunkingSettings
 
 
-class Processor(ChunkingSettings, LoadingSettings):
+class EmbeddingConfig(ChunkingSettings, LoadingSettings):
     def __init__(
         self,
         document_type: str,

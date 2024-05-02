@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from utilities.helpers.AzureBlobStorageClient import AzureBlobStorageClient
 from utilities.helpers.EnvHelper import EnvHelper
-from utilities.helpers.processors.Process import Process
+from utilities.helpers.embedders.EmbedderFactory import EmbedderFactory
 
 bp_batch_push_results = func.Blueprint()
 logger = logging.getLogger(__name__)
@@ -43,5 +43,5 @@ def do_batch_push_results(msg: func.QueueMessage) -> None:
     # Generate the SAS URL for the file
     file_sas = blob_client.get_blob_sas(file_name)
     # Process the file
-    processor_handler = Process.get_processor_handler(env_helper)
-    processor_handler.process_file(file_sas, file_name)
+    embedder_factory = EmbedderFactory.create(env_helper)
+    embedder_factory.embed_file(file_sas, file_name)

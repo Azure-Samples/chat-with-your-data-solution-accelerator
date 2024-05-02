@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.path.dirname(sys.path[0]), "backend", "batch"))
 from backend.batch.AddURLEmbeddings import add_url_embeddings  # noqa: E402
 
 
-@patch("backend.batch.AddURLEmbeddings.Process")
+@patch("backend.batch.AddURLEmbeddings.EmbedderFactory")
 def test_add_url_embeddings_when_url_set_in_body(_):
     fake_request = func.HttpRequest(
         method="POST",
@@ -23,7 +23,7 @@ def test_add_url_embeddings_when_url_set_in_body(_):
     assert response.status_code == 200
 
 
-@patch("backend.batch.AddURLEmbeddings.Process")
+@patch("backend.batch.AddURLEmbeddings.EmbedderFactory")
 def test_add_url_embeddings_when_url_set_in_param(_):
     fake_request = func.HttpRequest(
         method="POST",
@@ -38,7 +38,7 @@ def test_add_url_embeddings_when_url_set_in_param(_):
     assert response.status_code == 200
 
 
-@patch("backend.batch.AddURLEmbeddings.Process")
+@patch("backend.batch.AddURLEmbeddings.EmbedderFactory")
 def test_add_url_embeddings_returns_400_when_url_not_set(_):
     fake_request = func.HttpRequest(
         method="POST",

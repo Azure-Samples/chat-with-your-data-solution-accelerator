@@ -2,7 +2,7 @@ import os
 import logging
 import traceback
 import azure.functions as func
-from utilities.helpers.processors.Process import Process
+from utilities.helpers.embedders.EmbedderFactory import EmbedderFactory
 from utilities.helpers.EnvHelper import EnvHelper
 
 bp_add_url_embeddings = func.Blueprint()
@@ -27,8 +27,8 @@ def add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
     # Check if url is present, compute embeddings and add them to VectorStore
     if url:
         try:
-            processor_handler = Process.get_processor_handler(env_helper)
-            processor_handler.process_file(url, ".url")
+            processor_handler = EmbedderFactory.create(env_helper)
+            processor_handler.embed_file(url, ".url")
         except Exception:
             return func.HttpResponse(
                 f"Error: {traceback.format_exc()}", status_code=500

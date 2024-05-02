@@ -1,23 +1,23 @@
-from .ProcessorBase import ProcessorBase
+from .EmbedderBase import EmbedderBase
 from ..EnvHelper import EnvHelper
 from ..LLMHelper import LLMHelper
 from ...integrated_vectorization.AzureSearchIndex import AzureSearchIndex
 from ...integrated_vectorization.AzureSearchIndexer import AzureSearchIndexer
 from ...integrated_vectorization.AzureSearchDatasource import AzureSearchDatasource
 from ...integrated_vectorization.AzureSearchSkillset import AzureSearchSkillset
-from ..ConfigHelper import ConfigHelper
+from ..config.ConfigHelper import ConfigHelper
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-class IntegratedVectorizationProcessorHelper(ProcessorBase):
+class IntegratedVectorizationEmbedder(EmbedderBase):
     def __init__(self, env_helper: EnvHelper):
         self.env_helper = env_helper
         self.llm_helper: LLMHelper = LLMHelper()
         pass
 
-    def process_file(self, source_url: str, file_name: str):
+    def embed_file(self, source_url: str, file_name: str):
         self.process_using_integrated_vectorization(source_url=source_url)
 
     def process_using_integrated_vectorization(self, source_url: str):

@@ -5,7 +5,7 @@ import os
 import traceback
 import sys
 from batch.utilities.helpers.EnvHelper import EnvHelper
-from batch.utilities.helpers.ConfigHelper import ConfigHelper
+from batch.utilities.helpers.config.ConfigHelper import ConfigHelper
 from azure.core.exceptions import ResourceNotFoundError
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
