@@ -1,28 +1,31 @@
 from openai import AzureOpenAI
-from typing import List
-from langchain_openai import AzureChatOpenAI
-from langchain_openai import AzureOpenAIEmbeddings
+from typing import cast
+from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
+from semantic_kernel.connectors.ai.open_ai.prompt_execution_settings.azure_chat_prompt_execution_settings import (
+    AzureChatPromptExecutionSettings,
+)
 from .EnvHelper import EnvHelper
 
 
 class LLMHelper:
     def __init__(self):
         self.env_helper: EnvHelper = EnvHelper()
-        self.auth_type = self.env_helper.AZURE_AUTH_TYPE
+        self.auth_type_keys = self.env_helper.is_auth_type_keys()
         self.token_provider = self.env_helper.AZURE_TOKEN_PROVIDER
 
-        if self.auth_type == "rbac":
+        if self.auth_type_keys:
             self.openai_client = AzureOpenAI(
                 azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
                 api_version=self.env_helper.AZURE_OPENAI_API_VERSION,
-                azure_ad_token_provider=self.token_provider,
+                api_key=self.env_helper.OPENAI_API_KEY,
             )
         else:
             self.openai_client = AzureOpenAI(
                 azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
                 api_version=self.env_helper.AZURE_OPENAI_API_VERSION,
-                api_key=self.env_helper.OPENAI_API_KEY,
+                azure_ad_token_provider=self.token_provider,
             )
 
         self.llm_model = self.env_helper.AZURE_OPENAI_MODEL
@@ -34,14 +37,14 @@ class LLMHelper:
         self.embedding_model = self.env_helper.AZURE_OPENAI_EMBEDDING_MODEL
 
     def get_llm(self):
-        if self.auth_type == "rbac":
+        if self.auth_type_keys:
             return AzureChatOpenAI(
                 deployment_name=self.llm_model,
                 temperature=0,
                 max_tokens=self.llm_max_tokens,
                 openai_api_version=self.openai_client._api_version,
                 azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
-                azure_ad_token_provider=self.token_provider,
+                api_key=self.env_helper.OPENAI_API_KEY,
             )
         else:
             return AzureChatOpenAI(
@@ -50,12 +53,12 @@ class LLMHelper:
                 max_tokens=self.llm_max_tokens,
                 openai_api_version=self.openai_client._api_version,
                 azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
-                api_key=self.env_helper.OPENAI_API_KEY,
+                azure_ad_token_provider=self.token_provider,
             )
 
     # TODO: This needs to have a custom callback to stream back to the UI
     def get_streaming_llm(self):
-        if self.auth_type == "rbac":
+        if self.auth_type_keys:
             return AzureChatOpenAI(
                 azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
                 api_key=self.env_helper.OPENAI_API_KEY,
@@ -65,7 +68,6 @@ class LLMHelper:
                 temperature=0,
                 max_tokens=self.llm_max_tokens,
                 openai_api_version=self.openai_client._api_version,
-                azure_ad_token_provider=self.token_provider,
             )
         else:
             return AzureChatOpenAI(
@@ -77,26 +79,27 @@ class LLMHelper:
                 temperature=0,
                 max_tokens=self.llm_max_tokens,
                 openai_api_version=self.openai_client._api_version,
+                azure_ad_token_provider=self.token_provider,
             )
 
     def get_embedding_model(self):
-        if self.auth_type == "rbac":
-            return AzureOpenAIEmbeddings(
-                azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
-                azure_deployment=self.embedding_model,
-                chunk_size=1,
-                azure_ad_token_provider=self.token_provider,
-            )
-        else:
+        if self.auth_type_keys:
             return AzureOpenAIEmbeddings(
                 azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
                 api_key=self.env_helper.OPENAI_API_KEY,
                 azure_deployment=self.embedding_model,
                 chunk_size=1,
             )
+        else:
+            return AzureOpenAIEmbeddings(
+                azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
+                azure_deployment=self.embedding_model,
+                chunk_size=1,
+                azure_ad_token_provider=self.token_provider,
+            )
 
     def get_chat_completion_with_functions(
-        self, messages: List[dict], functions: List[dict], function_call: str = "auto"
+        self, messages: list[dict], functions: list[dict], function_call: str = "auto"
     ):
         return self.openai_client.chat.completions.create(
             model=self.llm_model,
@@ -105,8 +108,36 @@ class LLMHelper:
             function_call=function_call,
         )
 
-    def get_chat_completion(self, messages: List[dict]):
+    def get_chat_completion(self, messages: list[dict]):
         return self.openai_client.chat.completions.create(
             model=self.llm_model,
             messages=messages,
+        )
+
+    def get_sk_chat_completion_service(self, service_id: str):
+        if self.auth_type_keys:
+            return AzureChatCompletion(
+                service_id=service_id,
+                deployment_name=self.llm_model,
+                endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
+                api_version=self.env_helper.AZURE_OPENAI_API_VERSION,
+                api_key=self.env_helper.OPENAI_API_KEY,
+            )
+        else:
+            return AzureChatCompletion(
+                service_id=service_id,
+                deployment_name=self.llm_model,
+                endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
+                api_version=self.env_helper.AZURE_OPENAI_API_VERSION,
+                ad_token_provider=self.token_provider,
+            )
+
+    def get_sk_service_settings(self, service: AzureChatCompletion):
+        return cast(
+            AzureChatPromptExecutionSettings,
+            service.instantiate_prompt_execution_settings(
+                service_id=service.service_id,
+                temperature=0,
+                max_tokens=self.llm_max_tokens,
+            ),
         )

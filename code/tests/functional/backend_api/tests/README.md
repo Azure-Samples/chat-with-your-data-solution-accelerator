@@ -1,9 +1,12 @@
 # Backend API Tests
 
-At present, there are two sets of tests: `with_data` and `without_data`.
+At present, there are three sets of tests:
+
+- `with_data` - This is the base configuration. The majority of tests should be added here.
+- `without_data` - This configuration does not include any of the `AZURE_SEARCH` environment variables
+- `sk_orchestrator` - This configuration uses Semantic Kernel as the orchestrator
+
 Each set of tests starts its own instance of the backend API on a different port.
-The difference between the two is the environment variables, namely the lack of the
-`AZURE_SEARCH_SERVICE` variable for the `without_data` tests.
 
 When adding new tests, first check to see if it is possible to add the tests to an
 existing set of tests, rather than creating a new set, as this removes the need for

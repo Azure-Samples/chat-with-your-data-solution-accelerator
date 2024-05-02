@@ -37,7 +37,7 @@ class OutputParserTool(ParserBase):
         self,
         question: str,
         answer: str,
-        source_documents: List[SourceDocument],
+        source_documents: List[SourceDocument] = [],
         **kwargs: dict,
     ) -> List[dict]:
         answer = self._clean_up_answer(answer)

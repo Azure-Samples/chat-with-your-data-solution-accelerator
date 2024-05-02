@@ -268,6 +268,19 @@ def test_delete_config(AzureBlobStorageClientMock: MagicMock):
     )
 
 
+def test_clear_config():
+    # given
+    ConfigHelper.get_default_config()
+    config = ConfigHelper._default_config
+
+    # when
+    ConfigHelper.clear_config()
+
+    # then
+    assert config is not None
+    assert ConfigHelper._default_config is None
+
+
 def test_get_document_processors(config_dict: dict):
     # given
     config_dict["document_processors"] = [
@@ -371,7 +384,9 @@ def test_get_available_orchestration_strategies(config: Config):
     orchestration_strategies = config.get_available_orchestration_strategies()
 
     # then
-    assert sorted(orchestration_strategies) == sorted(["openai_function", "langchain"])
+    assert sorted(orchestration_strategies) == sorted(
+        ["openai_function", "langchain", "semantic_kernel"]
+    )
 
 
 @patch("backend.batch.utilities.helpers.ConfigHelper.ConfigHelper.get_default_config")
