@@ -192,6 +192,10 @@ class ConfigHelper:
         return ConfigHelper._default_config
 
     @staticmethod
+    def clear_config():
+        ConfigHelper._default_config = None
+
+    @staticmethod
     def _append_advanced_image_processors():
         image_file_types = ["jpeg", "jpg", "png", "tiff", "bmp"]
         ConfigHelper._remove_processors_for_file_types(image_file_types)
