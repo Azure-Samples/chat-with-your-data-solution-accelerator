@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.170.59819",
-      "templateHash": "15825354539587977995"
+      "templateHash": "7867283002505805735"
     }
   },
   "parameters": {
@@ -10229,7 +10229,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.26.170.59819",
-              "templateHash": "246951497570111474"
+              "templateHash": "6920700803708650043"
             },
             "description": "Creates an Azure storage account."
           },
@@ -10256,7 +10256,7 @@
             },
             "allowBlobPublicAccess": {
               "type": "bool",
-              "defaultValue": true
+              "defaultValue": false
             },
             "allowCrossTenantReplication": {
               "type": "bool",
