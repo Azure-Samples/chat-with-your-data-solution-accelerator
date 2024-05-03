@@ -11,7 +11,7 @@ from azure.search.documents.indexes.models import (
     SearchIndexerSkillset,
 )
 from azure.search.documents.indexes import SearchIndexerClient
-from ..helpers.config.ConfigHelper import Config
+from ..helpers.config.ConfigHelper import IntegratedVectorizationConfig
 from ..helpers.EnvHelper import EnvHelper
 from azure.identity import DefaultAzureCredential
 from azure.core.credentials import AzureKeyCredential
@@ -20,7 +20,11 @@ logger = logging.getLogger(__name__)
 
 
 class AzureSearchSkillset:
-    def __init__(self, env_helper: EnvHelper, integrated_vectorization_config: Config):
+    def __init__(
+        self,
+        env_helper: EnvHelper,
+        integrated_vectorization_config: IntegratedVectorizationConfig,
+    ):
         self.env_helper = env_helper
         self.indexer_client = SearchIndexerClient(
             self.env_helper.AZURE_SEARCH_SERVICE,
