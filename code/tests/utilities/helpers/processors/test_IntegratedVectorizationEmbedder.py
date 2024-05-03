@@ -68,8 +68,9 @@ def mock_config_helper():
     with patch(
         "backend.batch.utilities.helpers.embedders.IntegratedVectorizationEmbedder.ConfigHelper"
     ) as mock:
-        config_helper = mock.get_active_config_or_default.return_value
-        yield config_helper
+        config_helper = mock.get_active_config_or_default
+        iv_config = config_helper.return_value.integrated_vectorization_config
+        yield iv_config
 
 
 def test_process_using_integrated_vectorization(
