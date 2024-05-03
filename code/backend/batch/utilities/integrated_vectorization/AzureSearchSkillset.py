@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class AzureSearchSkillset:
-    def __init__(self, env_helper: EnvHelper, config: Config):
+    def __init__(self, env_helper: EnvHelper, integrated_vectorization_config: Config):
         self.env_helper = env_helper
         self.indexer_client = SearchIndexerClient(
             self.env_helper.AZURE_SEARCH_SERVICE,
@@ -30,7 +30,7 @@ class AzureSearchSkillset:
                 else DefaultAzureCredential()
             ),
         )
-        self.config = config
+        self.integrated_vectorization_config = integrated_vectorization_config
 
     def create_skillset(self):
         skillset_name = f"{self.env_helper.AZURE_SEARCH_INDEX}-skillset"
@@ -39,8 +39,8 @@ class AzureSearchSkillset:
             description="Split skill to chunk documents",
             text_split_mode="pages",
             context="/document",
-            maximum_page_length=self.config.integrated_vectorization_config.max_page_length,
-            page_overlap_length=self.config.integrated_vectorization_config.page_overlap_length,
+            maximum_page_length=self.integrated_vectorization_config.max_page_length,
+            page_overlap_length=self.integrated_vectorization_config.page_overlap_length,
             inputs=[
                 InputFieldMappingEntry(name="text", source="/document/content"),
             ],

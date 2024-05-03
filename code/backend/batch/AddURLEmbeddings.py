@@ -27,8 +27,8 @@ def add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
     # Check if url is present, compute embeddings and add them to VectorStore
     if url:
         try:
-            processor_handler = EmbedderFactory.create(env_helper)
-            processor_handler.embed_file(url, ".url")
+            embedder = EmbedderFactory.create(env_helper)
+            embedder.embed_file(url, ".url")
         except Exception:
             return func.HttpResponse(
                 f"Error: {traceback.format_exc()}", status_code=500

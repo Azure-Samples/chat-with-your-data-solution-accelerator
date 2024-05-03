@@ -107,7 +107,7 @@
       }
     }
   ],
-  "integrated_vectorization_config":{
+  "integrated_vectorization_config": {
     "max_page_length": "800",
     "page_overlap_length": "100"
   },

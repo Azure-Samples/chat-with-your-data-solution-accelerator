@@ -64,21 +64,16 @@ if "log_tokens" not in st.session_state:
 if "orchestrator_strategy" not in st.session_state:
     st.session_state["orchestrator_strategy"] = config.orchestrator.strategy.value
 
-if (
-    env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
-    and "max_page_length" not in st.session_state
-):
-    st.session_state["max_page_length"] = (
-        config.integrated_vectorization_config.max_page_length
-    )
+if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+    if "max_page_length" not in st.session_state:
+        st.session_state["max_page_length"] = (
+            config.integrated_vectorization_config.max_page_length
+        )
 
-if (
-    env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
-    and "page_overlap_length" not in st.session_state
-):
-    st.session_state["page_overlap_length"] = (
-        config.integrated_vectorization_config.page_overlap_length
-    )
+    if "page_overlap_length" not in st.session_state:
+        st.session_state["page_overlap_length"] = (
+            config.integrated_vectorization_config.page_overlap_length
+        )
 
 
 # # # def validate_question_prompt():

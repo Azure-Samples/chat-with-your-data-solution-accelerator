@@ -43,5 +43,5 @@ def do_batch_push_results(msg: func.QueueMessage) -> None:
     # Generate the SAS URL for the file
     file_sas = blob_client.get_blob_sas(file_name)
     # Process the file
-    embedder_factory = EmbedderFactory.create(env_helper)
-    embedder_factory.embed_file(file_sas, file_name)
+    embedder = EmbedderFactory.create(env_helper)
+    embedder.embed_file(file_sas, file_name)

@@ -15,7 +15,6 @@ class IntegratedVectorizationEmbedder(EmbedderBase):
     def __init__(self, env_helper: EnvHelper):
         self.env_helper = env_helper
         self.llm_helper: LLMHelper = LLMHelper()
-        pass
 
     def embed_file(self, source_url: str, file_name: str):
         self.process_using_integrated_vectorization(source_url=source_url)
@@ -27,7 +26,9 @@ class IntegratedVectorizationEmbedder(EmbedderBase):
             search_datasource.create_or_update_datasource()
             search_index = AzureSearchIndex(self.env_helper, self.llm_helper)
             search_index.create_or_update_index()
-            search_skillset = AzureSearchSkillset(self.env_helper, config)
+            search_skillset = AzureSearchSkillset(
+                self.env_helper, config.integrated_vectorization_config
+            )
             search_skillset_result = search_skillset.create_skillset()
             search_indexer = AzureSearchIndexer(self.env_helper)
             indexer_result = search_indexer.create_or_update_indexer(
