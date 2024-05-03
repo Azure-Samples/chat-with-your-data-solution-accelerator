@@ -35,7 +35,7 @@ Welcome to the *Chat with your data* Solution accelerator repository! The *Chat 
 
 ### About this repo
 
-This repository provides a template for setting up the solution accelerator, along with detailed instructions on how to use and customize it to fit your specific needs. This repository is created to provide an end-to-end solution accelerator for users who want to use natural language to query their data. The repo includes a well designed ingestion mechanism, best practises for deployment, and a support team for maintenance. This repository also helps in creating solution for ingesting multiple data types, and it uses the dataSources parameter which allows diffrent data types for ingestion, with a vision where with single front end you were able to use multiple backends with Azure, Openai or the custom back end. 
+This repository provides an end-to-end solution for users who want to query their data with natural language. It includes a well designed ingestion mechanism for multiple file types, an easy deployment, and a support team for maintenance. The accelerator demonstrates both Push or Pull Ingestion; the choice of orchestration (Semantic Kernel or LangChain) and should be the minimum components needed to implement a RAG pattern. It is not intended to be put into Production as-is without experimentation or evaluation of your data. 
 The simpler frontend of the chat-with repo seems to have streamlined the interaction with Multiple backend a lot.  It provides the following features:
 
 * Chat with an Azure OpenAI model using your own data
