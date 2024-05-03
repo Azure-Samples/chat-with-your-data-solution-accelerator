@@ -20,8 +20,17 @@ def azure_search_helper_mock():
         yield mock
 
 
+@pytest.fixture(autouse=True)
+def mock_config_helper():
+    with patch(
+        "backend.batch.utilities.helpers.embedders.PushEmbedder.ConfigHelper"
+    ) as mock:
+        config_helper = mock.get_active_config_or_default.return_value
+        yield config_helper
+
+
 def test_process_use_advanced_image_processing_skips_processing(
-    azure_search_helper_mock,
+    azure_search_helper_mock, mock_config_helper
 ):
     # given
     vector_store_mock = MagicMock()
@@ -32,16 +41,14 @@ def test_process_use_advanced_image_processing_skips_processing(
     processor = EmbeddingConfig("pdf", None, None, use_advanced_image_processing=True)
 
     # when
-    push_embedder._PushEmbedder__embed(
-        "https://sample.blob.core.windows.net/sample/sample.pdf?token", processor
-    )
+    push_embedder._PushEmbedder__embed("some-url", processor)
 
     # then
     vector_store_mock.add_documents.assert_not_called()
 
 
 def test_process_with_non_advanced_image_processing_adds_documents_to_vector_store(
-    azure_search_helper_mock,
+    azure_search_helper_mock, mock_config_helper
 ):
     # given
     vector_store_mock = MagicMock()
@@ -50,7 +57,7 @@ def test_process_with_non_advanced_image_processing_adds_documents_to_vector_sto
     )
     push_embedder = PushEmbedder(None)
     processor = EmbeddingConfig("pdf", None, None, use_advanced_image_processing=False)
-    source_url = "https://sample.blob.core.windows.net/sample/sample.pdf?token"
+    source_url = "some-url"
     documents = [
         SourceDocument("1", "document1", "content1"),
         SourceDocument("2", "document2", "content2"),
@@ -71,7 +78,7 @@ def test_process_with_non_advanced_image_processing_adds_documents_to_vector_sto
 
 
 def test_process_file_with_non_url_extension_processes_and_adds_metadata(
-    azure_search_helper_mock,
+    azure_search_helper_mock, mock_config_helper
 ):
     # given
     vector_store_mock = MagicMock()
@@ -79,7 +86,7 @@ def test_process_file_with_non_url_extension_processes_and_adds_metadata(
         vector_store_mock
     )
     push_embedder = PushEmbedder(blob_client=MagicMock())
-    source_url = "https://sample.blob.core.windows.net/sample/sample.pdf?token"
+    source_url = "some-url"
     file_name = "sample.pdf"
 
     with patch.object(push_embedder, "_PushEmbedder__embed") as embed_mock:
