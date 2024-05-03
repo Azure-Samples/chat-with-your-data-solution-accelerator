@@ -58,7 +58,12 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     httpserver.expect_request(
         f"/indexes('{app_config.get('AZURE_SEARCH_INDEX')}')",
         method="GET",
-    ).respond_with_json({})
+    ).respond_with_json({}, status=404)
+
+    httpserver.expect_request(
+        "/indexes",
+        method="POST",
+    ).respond_with_json({}, status=201)
 
     httpserver.expect_request(
         f"/indexes('{app_config.get('AZURE_SEARCH_CONVERSATIONS_LOG_INDEX')}')",
