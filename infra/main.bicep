@@ -883,7 +883,6 @@ module storage 'core/storage/storage-account.bicep' = {
     sku: {
       name: 'Standard_GRS'
     }
-    allowBlobPublicAccess: false
     deleteRetentionPolicy: azureSearchUseIntegratedVectorization ? {
       enabled: true
       days: 7
