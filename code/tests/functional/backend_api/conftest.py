@@ -55,10 +55,15 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
         }
     )
 
-    httpserver.expect_request(
-        f"/indexes('{app_config.get('AZURE_SEARCH_INDEX')}')",
+    httpserver.expect_oneshot_request(
+        "/indexes",
         method="GET",
-    ).respond_with_json({}, status=404)
+    ).respond_with_json({"value": []})
+
+    httpserver.expect_request(
+        "/indexes",
+        method="GET",
+    ).respond_with_json({"value": [{"name": app_config.get("AZURE_SEARCH_INDEX")}]})
 
     httpserver.expect_request(
         "/indexes",
