@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.170.59819",
-      "templateHash": "15825354539587977995"
+      "templateHash": "2869962071098375343"
     }
   },
   "parameters": {
@@ -10197,6 +10197,9 @@
             "value": {
               "name": "Standard_GRS"
             }
+          },
+          "allowBlobPublicAccess": {
+            "value": false
           },
           "deleteRetentionPolicy": "[if(parameters('azureSearchUseIntegratedVectorization'), createObject('value', createObject('enabled', true(), 'days', 7)), createObject('value', createObject()))]",
           "containers": {
