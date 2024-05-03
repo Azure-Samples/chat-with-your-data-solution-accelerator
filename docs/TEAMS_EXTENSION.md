@@ -33,7 +33,7 @@ This extension enables users to experience Chat with your data within Teams, wit
 4. Locate the environment variable _AZURE_FUNCTION_URL_.
 5. Replace the `<RESOURCE_TOKEN>`  and `<FUNCTION_APP_CLIENT_KEY>` with the name of your Function App resource and its clientKey (created in previous section)
     ```env
-    AZURE_FUNCTION_URL=https://<DEPLOYMENT_PREFIX>-backend.azurewebsites.net/api/GetConversationResponse?code=<FUNCTION_APP_CLIENT_KEY>&clientId=clientKey
+    AZURE_FUNCTION_URL=https://backend-<RESOURCE_TOKEN>.azurewebsites.net/api/GetConversationResponse?code=<FUNCTION_APP_CLIENT_KEY>&clientId=clientKey
 
     ```
     ![Env](/media/teams-deploy-env.png)
