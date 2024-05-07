@@ -198,11 +198,6 @@ class EnvHelper:
             "LOAD_CONFIG_FROM_BLOB_STORAGE"
         )
 
-    def is_chat_model(self):
-        if "gpt-4" in self.AZURE_OPENAI_MODEL_NAME.lower():
-            return True
-        return False
-
     def get_env_var_bool(self, var_name: str, default: str = "True") -> bool:
         return os.getenv(var_name, default).lower() == "true"
 

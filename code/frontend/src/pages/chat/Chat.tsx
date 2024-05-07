@@ -136,7 +136,7 @@ const Chat = () => {
       setIsRecognizing(true);
 
       recognizerRef.current = await multiLingualSpeechRecognizer(); // Store the recognizer in the ref
-      
+
       recognizerRef.current.recognized = (s, e) => {
         if (e.result.reason === ResultReason.RecognizedSpeech) {
           const recognized = e.result.text;
