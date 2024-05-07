@@ -25,6 +25,30 @@ urlFragment: chat-with-your-data-solution-accelerator
 # Chat with your data - Solution accelerator
 
 [**USER STORY**](#user-story) | [**DEPLOY**](#Deploy) | [**SUPPORTING DOCUMENTATION**](#supporting-documentation) | [**CUSTOMER TRUTH**](#customer-truth)\
+ ##### Table of Contents   
+ * [User story](#user-story)
+    + [About this repo](#about-this-repo)
+    + [Getting Support](#getting-support)
+    + [When should you use this repo](#when-should-you-use-this-repo)
+    + [Key features](#key-features)
+    + [Supported file types](#supported-file-types)
+    + [Target end users](#target-end-users)
+    + [Industry scenario](#industry-scenario)
+    + [Speech-to-text functionality](#speech-to-text-functionality)
+    + [Teams extension](#teams-extension)
+  * [Deploy](#deploy)
+    + [Pre-requisites](#pre-requisites)
+    + [Products used](#products-used)
+    + [Required licenses](#required-licenses)
+    + [Pricing Considerations](#pricing-considerations)
+    + [Deploy instructions](#deploy-instructions)
+    + [Testing the deployment](#testing-the-deployment)
+  * [Supporting documentation](#supporting-documentation)
+    + [Best practices](#best-practices)
+    + [Resource links](#resource-links)
+    + [Licensing](#licensing)
+  * [Customer truth](#customer-truth)
+  * [Disclaimers](#disclaimers) 
 \
 \
 ![User Story](/media/userStory.png)
@@ -51,7 +75,7 @@ If you're facing issues with setting up or using Chat With Your Data, follow the
 ### When should you use this repo?
 
 If you need to customize your scenario beyond what [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data) offers out-of-the-box, use this repository.
-    Note - developers can use this repo as starter and then they can customize the solution and adapt with best practices according to individual company policies. 
+By default, this repo comes with one specific set of RAG configurations including but not limited to: chunk size, overlap, retrieval/search type and system prompt. It is important that you evaluate the retrieval/search and the generation of the answers for your data and tune these configurations accordingly before you use this repo in production. For a starting point to understand and perform RAG evaluations, we encourage you to look into the [RAG Experiment Accelerator](https://github.com/microsoft/rag-experiment-accelerator).
 
 The accelerator presented here provides several options, for example:
 * The ability to ground a model using both data and public web pages
