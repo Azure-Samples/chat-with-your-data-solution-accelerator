@@ -222,7 +222,7 @@ def get_message_orchestrator():
 
 
 def get_orchestrator_config():
-    from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper
+    from backend.batch.utilities.helpers.config.ConfigHelper import ConfigHelper
 
     return ConfigHelper.get_active_config_or_default().orchestrator
 

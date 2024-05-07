@@ -7,7 +7,7 @@ import requests
 import urllib.parse
 import sys
 import logging
-from batch.utilities.helpers.ConfigHelper import ConfigHelper
+from batch.utilities.helpers.config.ConfigHelper import ConfigHelper
 from batch.utilities.helpers.EnvHelper import EnvHelper
 from batch.utilities.helpers.AzureBlobStorageClient import AzureBlobStorageClient
 
