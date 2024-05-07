@@ -45,19 +45,12 @@ Pros:
 
 * **Simple**: There are extensive [docs](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases).
 
-Cons:
-
-* **Automatic releases**: Whilst it is straight-forward to publish a release manually, there are extra steps required if we would want to have automatic releases.
-    - This [GitHub Blog post](https://github.blog/2021-12-16-5-automations-every-developer-should-be-running/#5-automate-your-releases-and-release-notes-with-github-actions) shares how you can use GitHub Actions to run a workflow which will create a release.
-    - If we were to automate the release, we would need to make decisions on the release schedule or trigger, for example, should a new release be created each time a change is merged to `main`? Or should it be done on a schedule such as daily, weekly, etc?
-    - If we had an automatic release, how would we deal with cases such as major version changes and making sure breaking changes didn't get included in a minor version release?
-* **Manual releases**: If we were to do manual releases, this would be a responsibility that would need to be assigned, for example to a Project Maintainer.
+* **Automated releases**: Using GitHub actions, it is also possible to automate the entire release, by generating a new version tag and creating a release with generated release notes.
 
 ## Proposal
 
-Based on the current activity in the project, we could:
-
-- Elect a Release Driver who will manually go through the steps of creating a release, this could be done during a call with the broader team and should take <30 mins.
-- The Release Driver produces documentation to capture the steps and any related team discussion.
-- Thereafter, follow a weekly release cadence. It will be the responsibility of the team to decide the release version, and the responsibility of the Release Driver to create the release with that version (which should take <15 mins).
-- In the future, review whether further automation is needed, based on experience from previous releases and whether there is a benefit.
+- **Sprint Champion**: The Sprint Champion is responsible for reviewing any automated and manual releases which may occur during the sprint.
+- **Release cadence**:
+    - **Automated** releases will happen on each green PR merge. We will use GitHub actions to automate the release. This follows our current release cadence with the addition of adding a version. Note: Releasing smaller changesets is preferred in general since it is less riskier and easier to troubleshoot as compared to collecting changes for a week and releasing everything together.
+    - **Manual** releases will happen ad-hoc where required, such as for important bug fixes. These can be created manually and will be documented in the Release Guide.
+- **Release guide**: Create a Release Guide which includes what is required for automated and manual releases, define the versioning format (semantic versioning) and guidelines around what is considered a breaking change.
