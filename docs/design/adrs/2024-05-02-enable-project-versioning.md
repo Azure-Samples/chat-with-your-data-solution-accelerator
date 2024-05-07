@@ -43,7 +43,7 @@ Pros:
 
 * **Automation**: There is support to automatically generate [release notes](https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes) based on changes since the previous release, it also includes who has contributed.
 
-* **Simple**: There are extensive [docs](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases).
+* **Simple**: There is extensive [documentation available](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases).
 
 * **Automated releases**: Using GitHub actions, it is also possible to automate the entire release, by generating a new version tag and creating a release with generated release notes.
 
