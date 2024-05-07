@@ -20,7 +20,7 @@ flask = {extras = ["async"], version = "^3.0.3"}
 openai = "1.24.0"
 langchain = "0.1.16"
 langchain-community = "0.0.34"
-langchain-openai = "0.1.4"
+langchain-openai = "0.1.6"
 requests = "2.31.0"
 tiktoken = "0.6.0"
 azure-storage-queue = "12.9.0"
