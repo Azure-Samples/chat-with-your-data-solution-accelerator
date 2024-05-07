@@ -63,6 +63,7 @@ To run the accelerator in local when the solution is secured by RBAC you need to
 
 ### Manually assign roles
 You need to assign the following roles to your `PRINCIPALID` (you can get your 'principal id' from Microsoft Entra ID):
+
 | Role | GUID |
 |----|----|
 |  Cognitive Services OpenAI Contributor | a001fd3d-188f-4b5d-821b-7da978bf7442 |
