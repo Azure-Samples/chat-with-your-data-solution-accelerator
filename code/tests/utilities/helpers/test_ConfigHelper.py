@@ -1,8 +1,8 @@
 import json
 import pytest
 from unittest.mock import patch, MagicMock
-from backend.batch.utilities.helpers.ConfigHelper import ConfigHelper, Config
-from backend.batch.utilities.helpers.DocumentProcessorHelper import Processor
+from backend.batch.utilities.helpers.config.ConfigHelper import ConfigHelper, Config
+from backend.batch.utilities.helpers.config.EmbeddingConfig import EmbeddingConfig
 from backend.batch.utilities.document_chunking.Strategies import ChunkingSettings
 from backend.batch.utilities.document_loading import LoadingSettings
 
@@ -52,6 +52,10 @@ def config_dict():
                 },
             },
         ],
+        "integrated_vectorization_config": {
+            "max_page_length": "800",
+            "page_overlap_length": "100",
+        },
         "logging": {
             "log_user_interactions": True,
             "log_tokens": True,
@@ -106,7 +110,7 @@ def config(config_dict: dict):
 @pytest.fixture(autouse=True)
 def AzureBlobStorageClientMock():
     with patch(
-        "backend.batch.utilities.helpers.ConfigHelper.AzureBlobStorageClient"
+        "backend.batch.utilities.helpers.config.ConfigHelper.AzureBlobStorageClient"
     ) as mock:
         yield mock
 
@@ -121,7 +125,7 @@ def blob_client_mock(config_dict: dict, AzureBlobStorageClientMock: MagicMock):
 
 @pytest.fixture(autouse=True)
 def env_helper_mock():
-    with patch("backend.batch.utilities.helpers.ConfigHelper.EnvHelper") as mock:
+    with patch("backend.batch.utilities.helpers.config.ConfigHelper.EnvHelper") as mock:
         env_helper = mock.return_value
         env_helper.ORCHESTRATION_STRATEGY = "openai_function"
         env_helper.LOAD_CONFIG_FROM_BLOB_STORAGE = True
@@ -217,7 +221,9 @@ def test_get_config_from_azure(
     assert config.prompts.condense_question_prompt == "mock_condense_question_prompt"
 
 
-@patch("backend.batch.utilities.helpers.ConfigHelper.ConfigHelper.get_default_config")
+@patch(
+    "backend.batch.utilities.helpers.config.ConfigHelper.ConfigHelper.get_default_config"
+)
 def test_get_default_config_when_not_in_azure(
     get_default_config_mock: MagicMock,
     config_dict: MagicMock,
@@ -308,19 +314,19 @@ def test_get_document_processors(config_dict: dict):
 
     # then
     assert config.document_processors == [
-        Processor(
+        EmbeddingConfig(
             document_type="jpg",
             chunking=None,
             loading=None,
             use_advanced_image_processing=True,
         ),
-        Processor(
+        EmbeddingConfig(
             document_type="png",
             chunking=None,
             loading=None,
             use_advanced_image_processing=True,
         ),
-        Processor(
+        EmbeddingConfig(
             document_type="pdf",
             chunking=ChunkingSettings(
                 {"strategy": "layout", "size": 500, "overlap": 100}
@@ -389,7 +395,9 @@ def test_get_available_orchestration_strategies(config: Config):
     )
 
 
-@patch("backend.batch.utilities.helpers.ConfigHelper.ConfigHelper.get_default_config")
+@patch(
+    "backend.batch.utilities.helpers.config.ConfigHelper.ConfigHelper.get_default_config"
+)
 def test_loading_old_config(
     get_default_config_mock: MagicMock,
     config_dict: dict,
@@ -412,7 +420,9 @@ def test_loading_old_config(
     assert config.example.answer == "mock_answer"
 
 
-@patch("backend.batch.utilities.helpers.ConfigHelper.ConfigHelper.get_default_config")
+@patch(
+    "backend.batch.utilities.helpers.config.ConfigHelper.ConfigHelper.get_default_config"
+)
 def test_loading_old_config_with_modified_prompt(
     get_default_config_mock: MagicMock,
     config_dict: dict,

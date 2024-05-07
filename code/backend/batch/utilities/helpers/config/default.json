@@ -107,6 +107,10 @@
       }
     }
   ],
+  "integrated_vectorization_config": {
+    "max_page_length": "800",
+    "page_overlap_length": "100"
+  },
   "logging": {
     "log_user_interactions": true,
     "log_tokens": true

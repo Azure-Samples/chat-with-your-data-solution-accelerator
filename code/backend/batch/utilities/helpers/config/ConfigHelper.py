@@ -2,15 +2,15 @@ import os
 import json
 import logging
 from string import Template
-from .AzureBlobStorageClient import AzureBlobStorageClient
-from ..document_chunking.Strategies import ChunkingSettings, ChunkingStrategy
-from ..document_loading import LoadingSettings, LoadingStrategy
-from .DocumentProcessorHelper import Processor
-from .OrchestratorHelper import (
+from ..AzureBlobStorageClient import AzureBlobStorageClient
+from ...document_chunking.Strategies import ChunkingSettings, ChunkingStrategy
+from ...document_loading import LoadingSettings, LoadingStrategy
+from .EmbeddingConfig import EmbeddingConfig
+from ..OrchestratorHelper import (
     OrchestrationSettings,
     OrchestrationStrategy,
 )
-from .EnvHelper import EnvHelper
+from ..EnvHelper import EnvHelper
 
 CONFIG_CONTAINER_NAME = "config"
 CONFIG_FILE_NAME = "active.json"
@@ -24,7 +24,7 @@ class Config:
         self.example = Example(config["example"])
         self.logging = Logging(config["logging"])
         self.document_processors = [
-            Processor(
+            EmbeddingConfig(
                 document_type=c["document_type"],
                 chunking=(
                     ChunkingSettings(c["chunking"])
@@ -48,6 +48,11 @@ class Config:
         }
         self.orchestrator = OrchestrationSettings(
             config.get("orchestrator", self.default_orchestration_settings)
+        )
+        self.integrated_vectorization_config = (
+            IntegratedVectorizationConfig(config["integrated_vectorization_config"])
+            if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
+            else None
         )
 
     def get_available_document_types(self):
@@ -107,6 +112,14 @@ class Logging:
         self.log_tokens = logging["log_tokens"]
 
 
+class IntegratedVectorizationConfig:
+    def __init__(self, integrated_vectorization_config: dict):
+        self.max_page_length = integrated_vectorization_config["max_page_length"]
+        self.page_overlap_length = integrated_vectorization_config[
+            "page_overlap_length"
+        ]
+
+
 class ConfigHelper:
     _default_config = None
 
@@ -142,6 +155,11 @@ class ConfigHelper:
         if config.get("example") is None:
             config["example"] = default_config["example"]
 
+        if config.get("integrated_vectorization_config") is None:
+            config["integrated_vectorization_config"] = default_config[
+                "integrated_vectorization_config"
+            ]
+
     @staticmethod
     def get_active_config_or_default():
         env_helper = EnvHelper()
@@ -175,9 +193,7 @@ class ConfigHelper:
         if ConfigHelper._default_config is None:
             env_helper = EnvHelper()
 
-            config_file_path = os.path.join(
-                os.path.dirname(__file__), "config", "default.json"
-            )
+            config_file_path = os.path.join(os.path.dirname(__file__), "default.json")
 
             with open(config_file_path) as f:
                 logger.info(f"Loading default config from {config_file_path}")

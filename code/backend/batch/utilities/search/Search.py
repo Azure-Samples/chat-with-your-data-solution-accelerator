@@ -4,11 +4,12 @@ from ..search.IntegratedVectorizationSearchHandler import (
 )
 from langchain_core.documents import Document
 import re
+from ..helpers.EnvHelper import EnvHelper
 
 
 class Search:
     @staticmethod
-    def get_search_handler(env_helper):
+    def get_search_handler(env_helper: EnvHelper):
         if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
             return IntegratedVectorizationSearchHandler(env_helper)
         else:

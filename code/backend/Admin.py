@@ -2,11 +2,7 @@ import streamlit as st
 import os
 import logging
 import sys
-from dotenv import load_dotenv
 from azure.monitor.opentelemetry import configure_azure_monitor
-
-
-load_dotenv()
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 

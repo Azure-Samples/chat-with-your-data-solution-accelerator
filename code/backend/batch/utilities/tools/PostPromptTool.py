@@ -3,7 +3,7 @@ from langchain.prompts import PromptTemplate
 from langchain_community.callbacks import get_openai_callback
 from ..common.Answer import Answer
 from ..helpers.LLMHelper import LLMHelper
-from ..helpers.ConfigHelper import ConfigHelper
+from ..helpers.config.ConfigHelper import ConfigHelper
 
 
 class PostPromptTool:
