@@ -5,7 +5,6 @@ import sys
 from azure.monitor.opentelemetry import configure_azure_monitor
 from batch.utilities.helpers.EnvHelper import EnvHelper
 
-env_helper: EnvHelper = EnvHelper()
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 logging.captureWarnings(True)
@@ -19,6 +18,7 @@ if os.getenv("APPINSIGHTS_ENABLED", "false").lower() == "true":
 
 logger = logging.getLogger(__name__)
 logger.debug("Starting admin app")
+env_helper: EnvHelper = EnvHelper()
 
 
 st.set_page_config(
