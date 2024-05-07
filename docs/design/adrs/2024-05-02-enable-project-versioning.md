@@ -54,3 +54,10 @@ Pros:
     - **Automated** releases will happen on each green PR merge. We will use GitHub actions to automate the release. This follows our current release cadence with the addition of adding a version. Note: Releasing smaller changesets is preferred in general since it is less riskier and easier to troubleshoot as compared to collecting changes for a week and releasing everything together.
     - **Manual** releases will happen ad-hoc where required, such as for important bug fixes. These can be created manually and will be documented in the Release Guide.
 - **Release guide**: Create a Release Guide which includes what is required for automated and manual releases, define the versioning format (semantic versioning) and guidelines around what is considered a breaking change.
+- **How to automate**:
+    - When introducing automated versioning, there are a few things we need to consider:
+        - **major/minor/patch** versions: Each release is tagged with a semantic version which is based on the change included (e.g. breaking change, feature, bug fix).
+        - **Changelog**: A changelog must be included which details the changes that are included in the release.
+    - The [**release-please**](https://github.com/google-github-actions/release-please-action) GitHub Action is created by Google, and automates releases. It looks at commit messages to automatically generate the version number and to generate the changelog.
+        - It uses [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/), meaning we'd need to follow a convention of labelling PRs with `fix`/`feat`/`BREAKING CHANGE`, etc, in order to be picked up by the release generator. It uses these labels to create the correct version.
+        - As a consequence, current dependabot PRs would not trigger a release PR. These would be in main until a automatic or manual release was triggered.
