@@ -3,14 +3,13 @@ import json
 import jsonschema
 import os
 import traceback
-from dotenv import load_dotenv
 import sys
-from batch.utilities.helpers.ConfigHelper import ConfigHelper
+from batch.utilities.helpers.EnvHelper import EnvHelper
+from batch.utilities.helpers.config.ConfigHelper import ConfigHelper
 from azure.core.exceptions import ResourceNotFoundError
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
-load_dotenv()
+env_helper: EnvHelper = EnvHelper()
 
 st.set_page_config(
     page_title="Configure Prompts",
@@ -64,6 +63,17 @@ if "log_tokens" not in st.session_state:
 
 if "orchestrator_strategy" not in st.session_state:
     st.session_state["orchestrator_strategy"] = config.orchestrator.strategy.value
+
+if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+    if "max_page_length" not in st.session_state:
+        st.session_state["max_page_length"] = (
+            config.integrated_vectorization_config.max_page_length
+        )
+
+    if "page_overlap_length" not in st.session_state:
+        st.session_state["page_overlap_length"] = (
+            config.integrated_vectorization_config.page_overlap_length
+        )
 
 
 # # # def validate_question_prompt():
@@ -273,23 +283,35 @@ try:
         )
     )
 
-    with st.expander("Document processing configuration", expanded=True):
-        edited_document_processors = st.data_editor(
-            data=document_processors,
-            use_container_width=True,
-            num_rows="dynamic",
-            column_config={
-                "document_type": st.column_config.SelectboxColumn(
-                    options=config.get_available_document_types()
-                ),
-                "chunking_strategy": st.column_config.SelectboxColumn(
-                    options=[cs for cs in config.get_available_chunking_strategies()]
-                ),
-                "loading_strategy": st.column_config.SelectboxColumn(
-                    options=[ls for ls in config.get_available_loading_strategies()]
-                ),
-            },
-        )
+    if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+        with st.expander("Integrated Vectorization configuration", expanded=True):
+            st.text_input("Max Page Length", key="max_page_length")
+            st.text_input("Page Overlap Length", key="page_overlap_length")
+            integrated_vectorization_config = {
+                "max_page_length": st.session_state["max_page_length"],
+                "page_overlap_length": st.session_state["page_overlap_length"],
+            }
+
+    else:
+        with st.expander("Document processing configuration", expanded=True):
+            edited_document_processors = st.data_editor(
+                data=document_processors,
+                use_container_width=True,
+                num_rows="dynamic",
+                column_config={
+                    "document_type": st.column_config.SelectboxColumn(
+                        options=config.get_available_document_types()
+                    ),
+                    "chunking_strategy": st.column_config.SelectboxColumn(
+                        options=[
+                            cs for cs in config.get_available_chunking_strategies()
+                        ]
+                    ),
+                    "loading_strategy": st.column_config.SelectboxColumn(
+                        options=[ls for ls in config.get_available_loading_strategies()]
+                    ),
+                },
+            )
 
     with st.expander("Logging configuration", expanded=True):
         st.checkbox(
@@ -299,22 +321,28 @@ try:
         st.checkbox("Log tokens", key="log_tokens")
 
     if st.button("Save configuration"):
-        document_processors = list(
-            map(
-                lambda x: {
-                    "document_type": x["document_type"],
-                    "chunking": {
-                        "strategy": x["chunking_strategy"],
-                        "size": x["chunking_size"],
-                        "overlap": x["chunking_overlap"],
+        document_processors = (
+            list(
+                map(
+                    lambda x: {
+                        "document_type": x["document_type"],
+                        "chunking": {
+                            "strategy": x["chunking_strategy"],
+                            "size": x["chunking_size"],
+                            "overlap": x["chunking_overlap"],
+                        },
+                        "loading": {
+                            "strategy": x["loading_strategy"],
+                        },
+                        "use_advanced_image_processing": x[
+                            "use_advanced_image_processing"
+                        ],
                     },
-                    "loading": {
-                        "strategy": x["loading_strategy"],
-                    },
-                    "use_advanced_image_processing": x["use_advanced_image_processing"],
-                },
-                edited_document_processors,
+                    edited_document_processors,
+                )
             )
+            if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION is False
+            else []
         )
         current_config = {
             "prompts": {
@@ -344,6 +372,11 @@ try:
                 "log_tokens": st.session_state["log_tokens"],
             },
             "orchestrator": {"strategy": st.session_state["orchestrator_strategy"]},
+            "integrated_vectorization_config": (
+                integrated_vectorization_config
+                if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
+                else None
+            ),
         }
         ConfigHelper.save_config_as_active(current_config)
         st.success("Configuration saved successfully!")

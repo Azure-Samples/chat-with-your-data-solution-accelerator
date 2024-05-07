@@ -2,10 +2,8 @@ import os
 import logging
 import traceback
 import azure.functions as func
-
-from utilities.helpers.DocumentProcessorHelper import DocumentProcessor
-from utilities.helpers.ConfigHelper import ConfigHelper
-
+from utilities.helpers.embedders.EmbedderFactory import EmbedderFactory
+from utilities.helpers.EnvHelper import EnvHelper
 
 bp_add_url_embeddings = func.Blueprint()
 logger = logging.getLogger(__name__)
@@ -14,6 +12,7 @@ logger.setLevel(level=os.environ.get("LOGLEVEL", "INFO").upper())
 
 @bp_add_url_embeddings.route(route="AddURLEmbeddings")
 def add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
+    env_helper: EnvHelper = EnvHelper()
     logger.info("Python HTTP trigger function processed a request.")
 
     # Get Url from request
@@ -28,12 +27,8 @@ def add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
     # Check if url is present, compute embeddings and add them to VectorStore
     if url:
         try:
-            config = ConfigHelper.get_active_config_or_default()
-            document_processor = DocumentProcessor()
-            processors = list(
-                filter(lambda x: x.document_type == "url", config.document_processors)
-            )
-            document_processor.process(source_url=url, processors=processors)
+            embedder = EmbedderFactory.create(env_helper)
+            embedder.embed_file(url, ".url")
         except Exception:
             return func.HttpResponse(
                 f"Error: {traceback.format_exc()}", status_code=500
