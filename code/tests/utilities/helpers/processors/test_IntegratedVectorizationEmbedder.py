@@ -37,14 +37,6 @@ def llm_helper_mock():
 
 
 @pytest.fixture(autouse=True)
-def azure_search_helper_mock():
-    with patch(
-        "backend.batch.utilities.helpers.DocumentProcessorHelper.AzureSearchHelper"
-    ) as mock:
-        yield mock
-
-
-@pytest.fixture(autouse=True)
 def azure_search_iv_index_helper_mock():
     with patch(
         "backend.batch.utilities.helpers.embedders.IntegratedVectorizationEmbedder.AzureSearchIndex"
