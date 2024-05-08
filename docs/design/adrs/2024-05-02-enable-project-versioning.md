@@ -1,6 +1,6 @@
 # Use Github Releases to manage project versioning
 
-* **Status:** proposed
+* **Status:** approved
 * **Proposer:** @frtibble
 * **Date:** 2024-05-02
 * **Technical Story:** [https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/651](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/651)
@@ -10,6 +10,8 @@
 Versioning allows users and developers to track changes between deployments, either by comparing code differences between versions or by referring to a changelog.
 
 It also signals to users the nature of the changes, such as breaking changes, new functionality, or bug fixes, through the use of [semantic versioning](https://semver.org/).
+
+Currently CWYD does not provide versioned releases.
 
 Adopting versioning will give us more control over releases and improve communication to our users through changelogs and migration guides.
 
@@ -25,7 +27,7 @@ Adopting versioning will give us more control over releases and improve communic
 
 ## Decision Outcome
 
-TBD
+The decision is to use a combination of GitHub Releases and GitHub Actions to create a mostly automated process for creating releases, with a manual option too.
 
 ## Pros and Cons of the Options
 
