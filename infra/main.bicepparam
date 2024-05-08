@@ -26,6 +26,8 @@ param azureOpenAIEmbeddingModelCapacity = int(readEnvironmentVariable('AZURE_OPE
 
 param computerVisionLocation = readEnvironmentVariable('AZURE_COMPUTER_VISION_LOCATION', '')
 
+param azureSearchUseIntegratedVectorization = bool(readEnvironmentVariable('AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', 'false'))
+
 // The following are being renamed to align with the new naming convention
 // we manipulate existing resources here to maintain backwards compatibility
 
