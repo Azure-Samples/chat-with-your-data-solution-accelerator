@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 import sys
 import functools
 from backend.batch.utilities.helpers.EnvHelper import EnvHelper
+from backend.batch.utilities.helpers.OrchestratorHelper import Orchestrator
+from backend.batch.utilities.helpers.config.ConfigHelper import ConfigHelper
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
 from azure.identity import DefaultAzureCredential
 
@@ -216,14 +218,10 @@ def stream_without_data(response):
 
 
 def get_message_orchestrator():
-    from backend.batch.utilities.helpers.OrchestratorHelper import Orchestrator
-
     return Orchestrator()
 
 
 def get_orchestrator_config():
-    from backend.batch.utilities.helpers.config.ConfigHelper import ConfigHelper
-
     return ConfigHelper.get_active_config_or_default().orchestrator
 
 
