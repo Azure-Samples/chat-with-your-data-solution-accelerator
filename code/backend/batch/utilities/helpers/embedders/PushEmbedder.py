@@ -2,7 +2,7 @@ import json
 import logging
 from typing import List
 
-from ...helpers import LLMHelper
+from ...helpers.LLMHelper import LLMHelper
 
 from ..AzureBlobStorageClient import AzureBlobStorageClient
 
