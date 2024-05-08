@@ -30,7 +30,9 @@
                 "--app",
                 "./app.py",
                 "--debug",
-                "run"
+                "run",
+                "--port",
+                "5050"
             ],
             "cwd": "${workspaceFolder}/code",
             "preLaunchTask": "poetry install",
