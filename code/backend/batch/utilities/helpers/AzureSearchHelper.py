@@ -169,14 +169,10 @@ class AzureSearchHelper:
         )
 
         if self._index_not_exists(self.env_helper.AZURE_SEARCH_INDEX):
-            try:
-                logger.info(
-                    f"Creating or updating index {self.env_helper.AZURE_SEARCH_INDEX}"
-                )
-                self.search_index_client.create_index(index)
-            except Exception as e:
-                logger.exception("Error Creating index")
-                raise e
+            logger.info(
+                f"Creating or updating index {self.env_helper.AZURE_SEARCH_INDEX}"
+            )
+            self.search_index_client.create_index(index)
 
     def _index_not_exists(self, index_name: str) -> bool:
         return index_name not in [
