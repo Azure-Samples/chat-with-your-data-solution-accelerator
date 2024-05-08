@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
+from ..helpers.EnvHelper import EnvHelper
 
 
 class SearchHandlerBase(ABC):
-    def __init__(self, env_helper):
+    def __init__(self, env_helper: EnvHelper):
         self.env_helper = env_helper
         self.search_client = self.create_search_client()
 

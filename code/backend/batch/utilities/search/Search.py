@@ -19,7 +19,11 @@ class Search:
     def get_source_documents(search_handler, question):
         if isinstance(search_handler, IntegratedVectorizationSearchHandler):
             search_results = search_handler.query_search(question)
-            return Search.generate_source_documents(search_results)
+            return (
+                Search.generate_source_documents(search_results)
+                if search_results
+                else []
+            )
         else:
             return search_handler.query_search(question)
 
