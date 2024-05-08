@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.26.170.59819",
-      "templateHash": "7867283002505805735"
+      "templateHash": "13417848583364624457"
     }
   },
   "parameters": {
@@ -1966,6 +1966,7 @@
               "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
+              "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
               "AZURE_SPEECH_SERVICE_NAME": "[parameters('speechServiceName')]",
               "AZURE_SPEECH_SERVICE_REGION": "[parameters('location')]",
               "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "[parameters('recognizedLanguages')]",
@@ -2901,6 +2902,7 @@
               "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
+              "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
               "AZURE_SPEECH_SERVICE_NAME": "[parameters('speechServiceName')]",
               "AZURE_SPEECH_SERVICE_REGION": "[parameters('location')]",
               "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "[parameters('recognizedLanguages')]",
@@ -3835,6 +3837,9 @@
               "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
+              "AZURE_SEARCH_DATASOURCE_NAME": "[parameters('azureSearchDatasource')]",
+              "AZURE_SEARCH_INDEXER_NAME": "[parameters('azureSearchIndexer')]",
+              "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
               "BACKEND_URL": "[format('https://{0}.azurewebsites.net', parameters('functionName'))]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "FUNCTION_KEY": "[variables('clientKey')]",
@@ -4759,6 +4764,9 @@
               "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
+              "AZURE_SEARCH_DATASOURCE_NAME": "[parameters('azureSearchDatasource')]",
+              "AZURE_SEARCH_INDEXER_NAME": "[parameters('azureSearchIndexer')]",
+              "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
               "BACKEND_URL": "[format('https://{0}-docker.azurewebsites.net', parameters('functionName'))]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "FUNCTION_KEY": "[variables('clientKey')]",
@@ -7405,6 +7413,9 @@
               "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
               "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
               "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
+              "AZURE_SEARCH_DATASOURCE_NAME": "[parameters('azureSearchDatasource')]",
+              "AZURE_SEARCH_INDEXER_NAME": "[parameters('azureSearchIndexer')]",
+              "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
               "LOGLEVEL": "[parameters('logLevel')]"
@@ -8622,6 +8633,9 @@
               "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
               "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
               "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
+              "AZURE_SEARCH_DATASOURCE_NAME": "[parameters('azureSearchDatasource')]",
+              "AZURE_SEARCH_INDEXER_NAME": "[parameters('azureSearchIndexer')]",
+              "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
               "LOGLEVEL": "[parameters('logLevel')]"
