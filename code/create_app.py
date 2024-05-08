@@ -16,7 +16,7 @@ from azure.identity import DefaultAzureCredential
 logger = logging.getLogger(__name__)
 
 
-def stream_azure_openai_on_your_data_response(response: Stream[ChatCompletionChunk]):
+def stream_with_data(response: Stream[ChatCompletionChunk]):
     response_obj = {
         "id": "",
         "model": "",
@@ -67,19 +67,7 @@ def stream_azure_openai_on_your_data_response(response: Stream[ChatCompletionChu
         yield json.dumps(response_obj, ensure_ascii=False) + "\n"
 
 
-def get_message_orchestrator():
-    from backend.batch.utilities.helpers.OrchestratorHelper import Orchestrator
-
-    return Orchestrator()
-
-
-def get_orchestrator_config():
-    from backend.batch.utilities.helpers.config.ConfigHelper import ConfigHelper
-
-    return ConfigHelper.get_active_config_or_default().orchestrator
-
-
-def conversation_azure_openai_on_your_data(request: Request, env_helper: EnvHelper):
+def conversation_with_data(request: Request, env_helper: EnvHelper):
     if env_helper.is_auth_type_keys():
         openai_client = AzureOpenAI(
             azure_endpoint=env_helper.AZURE_OPENAI_ENDPOINT,
@@ -188,8 +176,102 @@ def conversation_azure_openai_on_your_data(request: Request, env_helper: EnvHelp
         return response_obj
     else:
         return Response(
-            stream_azure_openai_on_your_data_response(response),
+            stream_with_data(response),
             mimetype="application/json-lines",
+        )
+
+
+def stream_without_data(response: Stream[ChatCompletionChunk]):
+    responseText = ""
+    for line in response:
+        if not line.choices:
+            continue
+
+        deltaText = line.choices[0].delta.content
+
+        if deltaText is None:
+            return
+
+        responseText += deltaText
+
+        response_obj = {
+            "id": line.id,
+            "model": line.model,
+            "created": line.created,
+            "object": line.object,
+            "choices": [{"messages": [{"role": "assistant", "content": responseText}]}],
+        }
+        yield json.dumps(response_obj, ensure_ascii=False) + "\n"
+
+
+def get_message_orchestrator():
+    from backend.batch.utilities.helpers.OrchestratorHelper import Orchestrator
+
+    return Orchestrator()
+
+
+def get_orchestrator_config():
+    from backend.batch.utilities.helpers.config.ConfigHelper import ConfigHelper
+
+    return ConfigHelper.get_active_config_or_default().orchestrator
+
+
+def conversation_without_data(request: Request, env_helper: EnvHelper):
+    if env_helper.AZURE_AUTH_TYPE == "rbac":
+        openai_client = AzureOpenAI(
+            azure_endpoint=env_helper.AZURE_OPENAI_ENDPOINT,
+            api_version=env_helper.AZURE_OPENAI_API_VERSION,
+            azure_ad_token_provider=env_helper.AZURE_TOKEN_PROVIDER,
+        )
+    else:
+        openai_client = AzureOpenAI(
+            azure_endpoint=env_helper.AZURE_OPENAI_ENDPOINT,
+            api_version=env_helper.AZURE_OPENAI_API_VERSION,
+            api_key=env_helper.AZURE_OPENAI_API_KEY,
+        )
+
+    request_messages = request.json["messages"]
+    messages = [{"role": "system", "content": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE}]
+
+    for message in request_messages:
+        messages.append({"role": message["role"], "content": message["content"]})
+
+    # Azure Open AI takes the deployment name as the model name, "AZURE_OPENAI_MODEL" means deployment name.
+    response = openai_client.chat.completions.create(
+        model=env_helper.AZURE_OPENAI_MODEL,
+        messages=messages,
+        temperature=float(env_helper.AZURE_OPENAI_TEMPERATURE),
+        max_tokens=int(env_helper.AZURE_OPENAI_MAX_TOKENS),
+        top_p=float(env_helper.AZURE_OPENAI_TOP_P),
+        stop=(
+            env_helper.AZURE_OPENAI_STOP_SEQUENCE.split("|")
+            if env_helper.AZURE_OPENAI_STOP_SEQUENCE
+            else None
+        ),
+        stream=env_helper.SHOULD_STREAM,
+    )
+
+    if not env_helper.SHOULD_STREAM:
+        response_obj = {
+            "id": response.id,
+            "model": response.model,
+            "created": response.created,
+            "object": response.object,
+            "choices": [
+                {
+                    "messages": [
+                        {
+                            "role": "assistant",
+                            "content": response.choices[0].message.content,
+                        }
+                    ]
+                }
+            ],
+        }
+        return jsonify(response_obj), 200
+    else:
+        return Response(
+            stream_without_data(response), mimetype="application/json-lines"
         )
 
 
@@ -239,7 +321,10 @@ def create_app():
     @app.route("/api/conversation/azure_byod", methods=["POST"])
     def conversation_azure_byod():
         try:
-            return conversation_azure_openai_on_your_data(request, env_helper)
+            if env_helper.should_use_data():
+                return conversation_with_data(request, env_helper)
+            else:
+                return conversation_without_data(request, env_helper)
         except Exception as e:
             errorMessage = str(e)
             logger.exception(

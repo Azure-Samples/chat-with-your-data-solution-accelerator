@@ -70,6 +70,7 @@ def env_helper_mock():
         )
         env_helper.SHOULD_STREAM = True
         env_helper.is_auth_type_keys.return_value = True
+        env_helper.should_use_data.return_value = True
 
         yield env_helper
 
@@ -600,14 +601,12 @@ class TestConversationAzureByod:
             ],
         }
 
-    @patch("create_app.conversation_azure_openai_on_your_data")
+    @patch("create_app.conversation_with_data")
     def test_converstation_azure_byod_returns_500_when_exception_occurs(
-        self, conversation_azure_openai_on_your_data_mock, client
+        self, conversation_with_data_mock, client
     ):
         # given
-        conversation_azure_openai_on_your_data_mock.side_effect = Exception(
-            "Test exception"
-        )
+        conversation_with_data_mock.side_effect = Exception("Test exception")
 
         # when
         response = client.post(
@@ -621,6 +620,170 @@ class TestConversationAzureByod:
         assert response.json == {
             "error": "Exception in /api/conversation/azure_byod. See log for more details."
         }
+
+    @patch("create_app.AzureOpenAI")
+    def test_converstation_azure_byod_returns_correct_response_when_not_streaming_without_data_keys(
+        self, azure_openai_mock, env_helper_mock, client
+    ):
+        # given
+        env_helper_mock.should_use_data.return_value = False
+        env_helper_mock.SHOULD_STREAM = False
+
+        openai_client_mock = MagicMock()
+        azure_openai_mock.return_value = openai_client_mock
+
+        openai_create_mock = MagicMock(
+            id="response.id",
+            model=AZURE_OPENAI_MODEL,
+            created=0,
+            object="response.object",
+        )
+        openai_create_mock.choices[0].message.content = self.content
+        openai_client_mock.chat.completions.create.return_value = openai_create_mock
+
+        # when
+        response = client.post(
+            "/api/conversation/azure_byod",
+            headers={"content-type": "application/json"},
+            json=self.body,
+        )
+
+        # then
+        assert response.status_code == 200
+        assert response.json == {
+            "id": "response.id",
+            "model": AZURE_OPENAI_MODEL,
+            "created": 0,
+            "object": "response.object",
+            "choices": [
+                {
+                    "messages": [
+                        {
+                            "role": "assistant",
+                            "content": self.content,
+                        }
+                    ]
+                }
+            ],
+        }
+
+        azure_openai_mock.assert_called_once_with(
+            azure_endpoint=AZURE_OPENAI_ENDPOINT,
+            api_version=AZURE_OPENAI_API_VERSION,
+            api_key=AZURE_OPENAI_API_KEY,
+        )
+
+        openai_client_mock.chat.completions.create.assert_called_once_with(
+            model=AZURE_OPENAI_MODEL,
+            messages=[{"role": "system", "content": "system-message"}]
+            + self.body["messages"],
+            temperature=0.5,
+            max_tokens=500,
+            top_p=0.8,
+            stop=["\n", "STOP"],
+            stream=False,
+        )
+
+    @patch("create_app.AzureOpenAI")
+    def test_converstation_azure_byod_returns_correct_response_when_not_streaming_without_data_rbac(
+        self, azure_openai_mock, env_helper_mock, client
+    ):
+        # given
+        env_helper_mock.should_use_data.return_value = False
+        env_helper_mock.SHOULD_STREAM = False
+        env_helper_mock.AZURE_AUTH_TYPE = "rbac"
+        env_helper_mock.AZURE_OPENAI_STOP_SEQUENCE = ""
+
+        openai_client_mock = MagicMock()
+        azure_openai_mock.return_value = openai_client_mock
+
+        openai_create_mock = MagicMock(
+            id="response.id",
+            model=AZURE_OPENAI_MODEL,
+            created=0,
+            object="response.object",
+        )
+        openai_create_mock.choices[0].message.content = self.content
+        openai_client_mock.chat.completions.create.return_value = openai_create_mock
+
+        # when
+        response = client.post(
+            "/api/conversation/azure_byod",
+            headers={"content-type": "application/json"},
+            json=self.body,
+        )
+
+        # then
+        assert response.status_code == 200
+        assert response.json == {
+            "id": "response.id",
+            "model": AZURE_OPENAI_MODEL,
+            "created": 0,
+            "object": "response.object",
+            "choices": [
+                {
+                    "messages": [
+                        {
+                            "role": "assistant",
+                            "content": self.content,
+                        }
+                    ]
+                }
+            ],
+        }
+
+        azure_openai_mock.assert_called_once_with(
+            azure_endpoint=AZURE_OPENAI_ENDPOINT,
+            api_version=AZURE_OPENAI_API_VERSION,
+            azure_ad_token_provider=env_helper_mock.AZURE_TOKEN_PROVIDER,
+        )
+
+        openai_client_mock.chat.completions.create.assert_called_once_with(
+            model=AZURE_OPENAI_MODEL,
+            messages=[{"role": "system", "content": "system-message"}]
+            + self.body["messages"],
+            temperature=0.5,
+            max_tokens=500,
+            top_p=0.8,
+            stop=None,
+            stream=False,
+        )
+
+    @patch("create_app.AzureOpenAI")
+    def test_converstation_azure_byod_returns_correct_response_when_streaming_without_data(
+        self, azure_openai_mock, env_helper_mock, client
+    ):
+        # given
+        env_helper_mock.should_use_data.return_value = False
+
+        openai_client_mock = MagicMock()
+        azure_openai_mock.return_value = openai_client_mock
+
+        mock_response = MagicMock(
+            id="response.id",
+            model=AZURE_OPENAI_MODEL,
+            created=0,
+            object="response.object",
+        )
+        mock_response.choices[0].delta.content = self.content
+
+        openai_client_mock.chat.completions.create.return_value = [mock_response]
+
+        # when
+        response = client.post(
+            "/api/conversation/azure_byod",
+            headers={"content-type": "application/json"},
+            json=self.body,
+        )
+
+        # then
+        assert response.status_code == 200
+
+        data = str(response.data, "utf-8")
+        assert (
+            data
+            == '{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"role": "assistant", "content": "mock content"}]}]}\n'
+        )
 
     @patch("create_app.AzureOpenAI")
     def test_converstation_azure_byod_uses_semantic_config(

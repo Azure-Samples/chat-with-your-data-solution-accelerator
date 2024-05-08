@@ -3,6 +3,7 @@
 At present, there are three sets of tests:
 
 - `default` - This is the base configuration. The majority of tests should be added here.
+- `without_data` - This configuration does not include any of the `AZURE_SEARCH` environment variables
 - `sk_orchestrator` - This configuration uses Semantic Kernel as the orchestrator
 
 Each set of tests starts its own instance of the backend API on a different port.
