@@ -33,7 +33,7 @@ def llm_helper_mock():
             0
         ] * 1536
         llm_helper.generate_embeddings.return_value = [123]
-        yield mock
+        yield llm_helper
 
 
 @pytest.fixture(autouse=True)
@@ -99,7 +99,7 @@ def test_process_using_integrated_vectorization(
     azure_search_iv_datasource_helper_mock.return_value.create_or_update_datasource.assert_called_once()
 
     azure_search_iv_index_helper_mock.assert_called_once_with(
-        env_helper_mock, llm_helper_mock.return_value
+        env_helper_mock, llm_helper_mock
     )
     azure_search_iv_index_helper_mock.return_value.create_or_update_index.assert_called_once()
 
