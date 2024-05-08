@@ -78,7 +78,7 @@ By default, this repo comes with one specific set of RAG configurations includin
 
 The accelerator presented here provides several options, for example:
 * The ability to ground a model using both data and public web pages
-* A backend that mimics the [On Your Data](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/use-your-data) flow, with the ability to switch to a custom backend```
+* A backend that mimics the [On Your Data](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/use-your-data) flow, with the ability to switch to a custom backend
 * Advanced prompt engineering capabilities
 * An admin site for ingesting/inspecting/configuring your dataset on the fly
 * Running a Retrieval Augmented Generation (RAG) solution locally
