@@ -11,16 +11,16 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.10"
 azure-functions = "1.19.0"
-streamlit = "1.33.0"
+streamlit = "1.34.0"
 python-dotenv = "1.0.1"
 azure-ai-formrecognizer = "3.3.3"
 azure-storage-blob = "12.19.1"
 azure-identity = "1.16.0"
 flask = {extras = ["async"], version = "^3.0.3"}
-openai = "1.24.0"
+openai = "1.26.0"
 langchain = "0.1.16"
-langchain-community = "0.0.34"
-langchain-openai = "0.1.4"
+langchain-community = "0.0.37"
+langchain-openai = "0.1.6"
 requests = "2.31.0"
 tiktoken = "0.6.0"
 azure-storage-queue = "12.9.0"
@@ -36,7 +36,7 @@ azure-monitor-opentelemetry = "^1.4.1"
 opentelemetry-instrumentation-httpx = "^0.45b0"
 pillow = "10.3.0"
 azure-mgmt-cognitiveservices = "^13.5.0"
-jsonschema = "^4.21.1"
+jsonschema = "^4.22.0"
 semantic-kernel = {version = "^0.9.6b1", python = "<3.13"}
 
 [tool.poetry.group.dev.dependencies]
