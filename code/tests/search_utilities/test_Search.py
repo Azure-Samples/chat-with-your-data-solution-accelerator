@@ -25,8 +25,16 @@ def iv_search_handler_mock():
         yield mock
 
 
+@pytest.fixture(autouse=True)
+def search_index_mock():
+    with patch.object(
+        IntegratedVectorizationSearchHandler, "_check_index_exists", return_value=True
+    ) as mock:
+        yield mock
+
+
 def test_get_search_handler_integrated_vectorization(
-    env_helper_mock, iv_search_handler_mock
+    env_helper_mock, iv_search_handler_mock, search_index_mock
 ):
     # given
     env_helper_mock.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = True
