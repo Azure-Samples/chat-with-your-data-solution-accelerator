@@ -2,8 +2,9 @@ import os
 import json
 import logging
 from string import Template
+
 from ..AzureBlobStorageClient import AzureBlobStorageClient
-from ...document_chunking.Strategies import ChunkingSettings, ChunkingStrategy
+from ...document_chunking.ChunkingStrategy import ChunkingStrategy, ChunkingSettings
 from ...document_loading import LoadingSettings, LoadingStrategy
 from .EmbeddingConfig import EmbeddingConfig
 from ..OrchestratorHelper import (
