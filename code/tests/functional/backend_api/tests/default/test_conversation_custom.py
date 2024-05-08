@@ -189,7 +189,7 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question_to_stor
                 "input": [
                     [3923, 374, 279, 7438, 315, 2324, 30]
                 ],  # Embedding of "What is the meaning of life?"
-                "model": "text-embedding-ada-002",  # this is harded in the langchain code base
+                "model": "text-embedding-ada-002",  # this is hard coded in the langchain code base
                 "encoding_format": "base64",
             },
             headers={
