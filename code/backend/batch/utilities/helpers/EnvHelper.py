@@ -78,12 +78,6 @@ class EnvHelper:
         self.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = self.get_env_var_bool(
             "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION", "False"
         )
-        self.AZURE_SEARCH_IV_MAX_PAGE_LENGTH = int(
-            os.getenv("AZURE_SEARCH_IV_MAX_PAGE_LENGTH", "2000")
-        )
-        self.AZURE_SEARCH_IV_PAGE_OVERLAP_LENGTH = int(
-            os.getenv("AZURE_SEARCH_IV_PAGE_OVERLAP_LENGTH", "500")
-        )
 
         self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "keys")
         # Azure OpenAI
@@ -192,8 +186,8 @@ class EnvHelper:
         # Speech Service
         self.AZURE_SPEECH_SERVICE_NAME = os.getenv("AZURE_SPEECH_SERVICE_NAME", "")
         self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")
-        self.SPEECH_RECOGNIZER_LANGUAGES = self.get_env_var_array(
-            "SPEECH_RECOGNIZER_LANGUAGES", "en-US"
+        self.AZURE_SPEECH_RECOGNIZER_LANGUAGES = self.get_env_var_array(
+            "AZURE_SPEECH_RECOGNIZER_LANGUAGES", "en-US"
         )
         self.AZURE_SPEECH_REGION_ENDPOINT = os.environ.get(
             "AZURE_SPEECH_REGION_ENDPOINT",

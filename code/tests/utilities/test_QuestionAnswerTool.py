@@ -5,29 +5,7 @@ import pytest
 from backend.batch.utilities.common.Answer import Answer
 from backend.batch.utilities.tools.QuestionAnswerTool import QuestionAnswerTool
 from langchain_core.documents import Document
-
-
-@pytest.fixture(autouse=True)
-def vector_store_mock():
-    with patch(
-        "backend.batch.utilities.tools.QuestionAnswerTool.AzureSearchHelper"
-    ) as mock:
-        vector_store = mock.return_value.get_vector_store.return_value
-
-        document = Document("mock content")
-        document.metadata = {
-            "id": "mock id",
-            "title": "mock title",
-            "source": "mock source",
-            "chunk": "mock chunk",
-            "offset": "mock offset",
-            "page_number": "mock page number",
-        }
-        documents = [document]
-
-        vector_store.similarity_search.return_value = documents
-
-        yield vector_store
+from backend.batch.utilities.common.SourceDocument import SourceDocument
 
 
 @pytest.fixture(autouse=True)
@@ -58,6 +36,7 @@ def env_helper_mock():
         env_helper.AZURE_OPENAI_SYSTEM_MESSAGE = "mock azure openai system message"
         env_helper.AZURE_SEARCH_TOP_K = 1
         env_helper.AZURE_SEARCH_FILTER = "mock filter"
+        env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = False
 
         yield env_helper
 
@@ -84,22 +63,52 @@ def get_openai_callback_mock():
         yield mock
 
 
-def test_similarity_search_is_called(vector_store_mock: MagicMock):
+@pytest.fixture(autouse=True)
+def get_search_handler_mock():
+    with patch(
+        "backend.batch.utilities.tools.QuestionAnswerTool.Search.get_search_handler"
+    ) as mock:
+        search_handler = mock.return_value
+
+        yield search_handler
+
+
+@pytest.fixture(autouse=True)
+def get_source_documents_mock():
+    with patch(
+        "backend.batch.utilities.tools.QuestionAnswerTool.Search.get_source_documents"
+    ) as mock:
+        source_documents = mock.return_value
+        yield source_documents
+
+
+@pytest.fixture(autouse=True)
+def get_source_documents_yield():
+    with patch(
+        "backend.batch.utilities.tools.QuestionAnswerTool.Search.get_source_documents"
+    ) as mock:
+        document = Document(page_content="mock content")
+        document.metadata = {
+            "id": "mock id",
+            "title": "mock title",
+            "source": "mock source",
+            "chunk": "mock chunk",
+            "offset": "mock offset",
+            "page_number": "mock page number",
+        }
+        documents = [document]
+        mock.return_value = documents
+        yield mock
+
+
+def test_answer_question_returns_source_documents(
+    get_search_handler_mock, get_source_documents_mock
+):
     # given
     tool = QuestionAnswerTool()
-
-    # when
-    tool.answer_question("mock question", [])
-
-    # then
-    vector_store_mock.similarity_search.assert_called_once_with(
-        query="mock question", k=1, filters="mock filter"
+    create_document_and_source_documents(
+        get_source_documents_mock, get_search_handler_mock
     )
-
-
-def test_answer_question_returns_source_documents():
-    # given
-    tool = QuestionAnswerTool()
 
     # when
     answer = tool.answer_question("mock question", [])
@@ -117,7 +126,50 @@ def test_answer_question_returns_source_documents():
     assert source_documents[0].page_number == "mock page number"
 
 
-def test_answer_question_returns_answer():
+def test_answer_question_integrated_vectorization(
+    env_helper_mock: MagicMock, get_search_handler_mock, get_source_documents_mock
+):
+    # given
+    env_helper_mock.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = True
+    document = Document("mock content")
+    document.metadata = {
+        "id": "mock id 1",
+        "title": "mock title 1",
+        "source": "https://example.com/doc1",
+        "chunk_id": "mock chunk id 1",
+        "content": "mock content 1",
+    }
+    get_source_documents_mock.return_value = document
+    documents = []
+    documents.append(
+        SourceDocument(
+            id=document.metadata["id"],
+            content=document.page_content,
+            title=document.metadata["title"],
+            source=document.metadata["source"],
+            chunk_id=document.metadata["chunk_id"],
+        )
+    )
+    get_search_handler_mock.return_answer_source_documents.return_value = documents
+    tool = QuestionAnswerTool()
+
+    # when
+    answer = tool.answer_question("mock question", [])
+
+    # then
+    source_documents = answer.source_documents
+
+    assert len(source_documents) == 1
+
+    assert source_documents[0].chunk_id == "mock chunk id 1"
+    assert source_documents[0].title == "mock title 1"
+    assert source_documents[0].source == "https://example.com/doc1"
+    assert source_documents[0].content == "mock content"
+
+
+def test_answer_question_returns_answer(
+    get_search_handler_mock, get_source_documents_yield
+):
     # given
     tool = QuestionAnswerTool()
 
@@ -147,7 +199,7 @@ def test_get_openai_callback(get_openai_callback_mock: MagicMock):
 
 
 def test_correct_prompt_with_few_shot_example(
-    LLMHelperMock: MagicMock, LLMChainMock: MagicMock
+    LLMHelperMock: MagicMock, LLMChainMock: MagicMock, get_source_documents_yield
 ):
     # given
     tool = QuestionAnswerTool()
@@ -183,7 +235,10 @@ Human: Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]},
 
 
 def test_correct_prompt_without_few_shot_example(
-    config_mock: MagicMock, LLMChainMock: MagicMock
+    config_mock: MagicMock,
+    LLMChainMock: MagicMock,
+    get_search_handler_mock,
+    get_source_documents_yield,
 ):
     # given
     tool = QuestionAnswerTool()
@@ -214,7 +269,9 @@ Human: Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]},
     )
 
 
-def test_correct_prompt_with_few_shot_example_and_chat_history(LLMChainMock: MagicMock):
+def test_correct_prompt_with_few_shot_example_and_chat_history(
+    LLMChainMock: MagicMock, get_search_handler_mock, get_source_documents_yield
+):
     # given
     tool = QuestionAnswerTool()
     answer_generator = LLMChainMock.return_value
@@ -251,7 +308,10 @@ Human: Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}}]},
 
 
 def test_non_on_your_data_prompt_correct(
-    config_mock: MagicMock, LLMChainMock: MagicMock
+    config_mock: MagicMock,
+    LLMChainMock: MagicMock,
+    get_search_handler_mock,
+    get_source_documents_yield,
 ):
     # given
     tool = QuestionAnswerTool()
@@ -288,3 +348,31 @@ def test_json_remove_whitespace(input: str, expected: str):
 
     # then
     assert result == expected
+
+
+def create_document_and_source_documents(
+    get_source_documents_mock, get_search_handler_mock
+):
+    document = Document("mock content")
+    document.metadata = {
+        "id": "mock id",
+        "title": "mock title",
+        "source": "mock source",
+        "chunk": "mock chunk",
+        "offset": "mock offset",
+        "page_number": "mock page number",
+    }
+    get_source_documents_mock.return_value = document
+    documents = []
+    documents.append(
+        SourceDocument(
+            id=document.metadata["id"],
+            content=document.page_content,
+            title=document.metadata["title"],
+            source=document.metadata["source"],
+            chunk=document.metadata["chunk"],
+            offset=document.metadata["offset"],
+            page_number=document.metadata["page_number"],
+        )
+    )
+    get_search_handler_mock.return_answer_source_documents.return_value = documents

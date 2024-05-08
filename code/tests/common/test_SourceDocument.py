@@ -18,6 +18,7 @@ def test_convert_to_langchain_document():
         chunk="A chunk",
         offset="An offset",
         page_number="1",
+        chunk_id="abcd",
     )
 
     # When
@@ -32,6 +33,7 @@ def test_convert_to_langchain_document():
         "chunk": "A chunk",
         "offset": "An offset",
         "page_number": "1",
+        "chunk_id": "abcd",
     }
 
 
@@ -181,6 +183,7 @@ def test_default_method_returns_expected_dict():
         chunk="A chunk",
         offset="An offset",
         page_number="1",
+        chunk_id="abcd",
     )
 
     # When
@@ -198,6 +201,7 @@ def test_default_method_returns_expected_dict():
         "chunk": "A chunk",
         "offset": "An offset",
         "page_number": "1",
+        "chunk_id": "abcd",
     }
     assert result == expected_dict
 
@@ -224,7 +228,7 @@ def test_default_method_calls_super_default():
 
 def test_decode_method_returns_expected_source_document():
     # Given
-    obj = '{"id": "1","content": "Some content","source": "A source","title": "A title","chunk": "A chunk","offset": "An offset","page_number": "1"}'
+    obj = '{"id": "1","content": "Some content","source": "A source","title": "A title","chunk": "A chunk","offset": "An offset","page_number": "1", "chunk_id": "abcd"}'
 
     # When
     result = SourceDocumentDecoder().decode(obj)
@@ -240,6 +244,7 @@ def test_decode_method_returns_expected_source_document():
         chunk="A chunk",
         offset="An offset",
         page_number="1",
+        chunk_id="abcd",
     )
     assert result.id == expected_source_document.id
     assert result.content == expected_source_document.content
