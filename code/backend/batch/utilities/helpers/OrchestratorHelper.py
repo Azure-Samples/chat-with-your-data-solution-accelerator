@@ -1,6 +1,8 @@
 from typing import List
+
+from ..orchestrator.OrchestrationStrategy import OrchestrationStrategy
 from ..orchestrator import OrchestrationSettings
-from ..orchestrator.Strategies import get_orchestrator, OrchestrationStrategy
+from ..orchestrator.Strategies import get_orchestrator
 
 __all__ = ["OrchestrationStrategy"]
 

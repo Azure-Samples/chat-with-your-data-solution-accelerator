@@ -7,10 +7,8 @@ from ..AzureBlobStorageClient import AzureBlobStorageClient
 from ...document_chunking.ChunkingStrategy import ChunkingStrategy, ChunkingSettings
 from ...document_loading import LoadingSettings, LoadingStrategy
 from .EmbeddingConfig import EmbeddingConfig
-from ..OrchestratorHelper import (
-    OrchestrationSettings,
-    OrchestrationStrategy,
-)
+from ...orchestrator.OrchestrationStrategy import OrchestrationStrategy
+from ...orchestrator import OrchestrationSettings
 from ..EnvHelper import EnvHelper
 
 CONFIG_CONTAINER_NAME = "config"
