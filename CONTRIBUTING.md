@@ -36,14 +36,14 @@ a proposal for your work first, to be sure that we can use it.
 
 Poetry is a package manager for Python that allows developers to manage dependencies, create virtual environments, and package their projects for distribution, all using a single command-line tool.
 
-Poetry is setup for you in the devcontainer, but should you need to set this up manually you can 
+Poetry is setup for you in the devcontainer, but should you need to set this up manually you can
 ```sh
 sh ./.devcontainer/postCreate.sh
 ```
 
 The following manual steps can also be followed to setup poetry:
-- Poetry can be installed using `pip install poetry`. 
-- Using `poetry init` poetry creates a `pyproject.toml` file with all the main dependencies required to run the application. 
+- Poetry can be installed using `pip install poetry`.
+- Using `poetry init` poetry creates a `pyproject.toml` file with all the main dependencies required to run the application.
 - Executing `poetry install` from the root folder which has the `pyproject.toml` file, installs all the dependencies and creates a virtual environment which is used to run the application. `poetry install` also generates a `poetry.lock` file which locks the dependency versions so that any user who installs the application get the same package version.
 - Executing `pip install .` from the root folder only installs the main dependencies.
 - Dependencies for different environments (dev, test etc.) can be managed by creating groups in the `pyproject.toml` file.
@@ -54,7 +54,7 @@ The following manual steps can also be followed to setup poetry:
   To add a new package execute the below command:
   ```shell
   poetry add <package-name>
-  ``` 
+  ```
   To add a package to specific group:
   ``` shell
   poetry add <package-name> --group <group-name>
@@ -64,9 +64,9 @@ The following manual steps can also be followed to setup poetry:
 
   **Note**: In case the pyproject.toml file is manually updated, the following command should be executed to update the `poetry.lock` file.
 
-  ``` shell 
+  ``` shell
   poetry lock --no-update
-  ```  
+  ```
   `--no-update` Locks the packages without updating the locked versions.
 
 ## <a name="submit"></a> Submission Guidelines
@@ -101,7 +101,19 @@ Before you submit your Pull Request (PR) consider the following guidelines:
 * Commit your changes using a descriptive commit message
 * If you are using the devcontainer, committing code will run black and flake8 to lint python code. You can run `black .` or `flake8 .` at anytime.
 * Push your fork to GitHub:
-* In GitHub, create a pull request
+* In GitHub, create a pull request. **Note**: We require PRs to be named following the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification. This is where PRs are prefixed according to their type. The available types are:
+  * feat: A new feature
+  * fix: A bug fix
+  * docs: Documentation only changes
+  * style: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+  * refactor: A code change that neither fixes a bug nor adds a feature
+  * perf: A code change that improves performance
+  * test: Adding missing tests or correcting existing tests
+  * build: Changes that affect the build system or external dependencies (example scopes: gulp, broccoli, npm)
+  * ci: Changes to our CI configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs)
+  * chore: Other changes that don't modify src or test files
+  * revert: Reverts a previous commit
+
 * If we suggest changes then:
   * Make the required updates.
   * Rebase your fork and force push to your GitHub repository (this will update your Pull Request):

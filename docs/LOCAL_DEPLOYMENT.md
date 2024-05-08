@@ -73,12 +73,7 @@ You need to assign the following roles to your `PRINCIPALID` (you can get your '
 | Reader | acdd72a7-3385-48ef-bd42-f606fba81ae7 |
 
 ### Programatically assign roles
-You can also update the `principalId` value with your own principalId in `deployment.bicep` file.
-
-Then deploy the bicep file using the below command:
-```shell
-az deployment group create --resource-group {your_resource_group} --template-file deployment.bicep --subscription {your_azure_subscription_id}
-```
+You can also update the `principalId` value with your own principalId in the `main.bicep` file.
 
 ### Authenticate using RBAC
 To authenticate using API Keys, update the value of `AZURE_AUTH_TYPE` to keys. For accessing using 'rbac', manually make changes by following the below steps:
@@ -220,10 +215,8 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 
 ## Bicep
 
-A [Bicep file](./infra/main.bicep) is used to generate the [ARM template](./infra/main.json). You can deploy this accelerator by the following command
+A [Bicep file](./infra/main.bicep) is used to generate the [ARM template](./infra/main.json). You can deploy this accelerator by the following command if you do not want to use `azd`.
 
 ```sh
-RESOURCE_GROUP_NAME=cwyd
-az group create --location uksouth --resource-group $RESOURCE_GROUP_NAME
-az deployment group create --resource-group $RESOURCE_GROUP_NAME --template-file ./infra/main.bicep
+az deployment sub create --template-file ./infra/main.bicep --subscription {your_azure_subscription_id} --location {search_location}
  ```

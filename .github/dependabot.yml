@@ -8,18 +8,26 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    commit-message:
+      prefix: "build"
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "weekly"
+    commit-message:
+      prefix: "build"
     open-pull-requests-limit: 50
   - package-ecosystem: "npm"
     directory: "/code/frontend"
     schedule:
       interval: "weekly"
+    commit-message:
+      prefix: "build"
     open-pull-requests-limit: 50
   - package-ecosystem: "npm"
     directory: "/tests/integration/ui"
     schedule:
       interval: "weekly"
+    commit-message:
+      prefix: "build"
     open-pull-requests-limit: 50
