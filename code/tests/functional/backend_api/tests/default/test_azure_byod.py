@@ -98,6 +98,7 @@ def test_post_makes_correct_call_to_azure_openai(
             method="POST",
             json={
                 "messages": body["messages"],
+                "model": app_config.get("AZURE_OPENAI_MODEL"),
                 "temperature": 0.0,
                 "max_tokens": 1000,
                 "top_p": 1.0,
@@ -130,8 +131,6 @@ def test_post_makes_correct_call_to_azure_openai(
                 ],
             },
             headers={
-                "Content-Type": "application/json",
-                "x-ms-useragent": "GitHubSampleWebApp/PublicAPI/1.0.0",
                 "api-key": app_config.get("AZURE_OPENAI_API_KEY"),
             },
             query_string="api-version=2024-02-01",
