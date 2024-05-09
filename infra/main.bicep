@@ -84,10 +84,7 @@ param azureSearchTitleColumn string = 'title'
 @description('Url column')
 param azureSearchUrlColumn string = 'url'
 
-@description('Use Azure Search Integrated Vectorization (Not yet implemented)')
-@allowed([
-  false
-])
+@description('Use Azure Search Integrated Vectorization')
 param azureSearchUseIntegratedVectorization bool = false
 
 @description('Name of Azure OpenAI Resource')
@@ -521,6 +518,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
       AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
@@ -585,6 +583,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
       AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
@@ -648,6 +647,9 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
       BACKEND_URL: 'https://${functionName}.azurewebsites.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       FUNCTION_KEY: clientKey
@@ -710,6 +712,9 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
       BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       FUNCTION_KEY: clientKey
@@ -789,6 +794,9 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_SEARCH_INDEX: azureSearchIndex
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
@@ -833,6 +841,9 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_SEARCH_INDEX: azureSearchIndex
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
