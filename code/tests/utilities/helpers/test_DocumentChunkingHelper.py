@@ -1,8 +1,8 @@
 from backend.batch.utilities.common.SourceDocument import SourceDocument
-from backend.batch.utilities.helpers.DocumentChunkingHelper import (
-    DocumentChunking,
-    ChunkingSettings,
+from backend.batch.utilities.helpers.DocumentChunkingHelper import DocumentChunking
+from backend.batch.utilities.document_chunking.ChunkingStrategy import (
     ChunkingStrategy,
+    ChunkingSettings,
 )
 
 # Create a sample document
