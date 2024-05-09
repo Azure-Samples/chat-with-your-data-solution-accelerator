@@ -1,3 +1,4 @@
+from typing import List
 from .SearchHandlerBase import SearchHandlerBase
 from azure.search.documents import SearchClient
 from azure.search.documents.models import VectorizableTextQuery
@@ -62,7 +63,7 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
 
         return ", ".join(files_to_delete)
 
-    def query_search(self, question):
+    def query_search(self, question) -> List[SourceDocument]:
         vector_query = VectorizableTextQuery(
             text=question,
             k_nearest_neighbors=self.env_helper.AZURE_SEARCH_TOP_K,
@@ -74,18 +75,27 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
             vector_queries=[vector_query],
             top=self.env_helper.AZURE_SEARCH_TOP_K,
         )
-        return search_results
+        return self._convert_to_source_documents(search_results)
 
-    def return_answer_source_documents(self, search_results):
+    def _convert_to_source_documents(self, search_results) -> List[SourceDocument]:
         source_documents = []
         for source in search_results:
             source_documents.append(
                 SourceDocument(
-                    id=source.metadata["id"],
-                    content=source.page_content,
-                    title=source.metadata["title"],
-                    source=source.metadata["source"],
-                    chunk_id=source.metadata["chunk_id"],
+                    id=source.get("id"),
+                    content=source.get("content"),
+                    title=source.get("title"),
+                    source=self._extract_source_url(source.get("source")),
+                    chunk_id=source.get("chunk_id"),
                 )
             )
         return source_documents
+
+    def _extract_source_url(self, original_source: str) -> str:
+        matches = list(re.finditer(r"https?://", original_source))
+        if len(matches) > 1:
+            second_http_start = matches[1].start()
+            source_url = original_source[second_http_start:]
+        else:
+            source_url = original_source + "_SAS_TOKEN_PLACEHOLDER_"
+        return source_url

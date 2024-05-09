@@ -3,6 +3,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from backend.batch.utilities.helpers.LLMHelper import LLMHelper
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
+from openai.types.create_embedding_response import CreateEmbeddingResponse
+from openai.types.embedding import Embedding
+
 
 AZURE_OPENAI_ENDPOINT = "https://mock-endpoint"
 AZURE_OPENAI_API_VERSION = "mock-api-version"
@@ -25,6 +28,12 @@ def env_helper_mock():
         env_helper.AZURE_OPENAI_EMBEDDING_MODEL = AZURE_OPENAI_EMBEDDING_MODEL
 
         yield env_helper
+
+
+@pytest.fixture(autouse=True)
+def azure_openai_mock():
+    with patch("backend.batch.utilities.helpers.LLMHelper.AzureOpenAI") as mock:
+        yield mock
 
 
 @patch("backend.batch.utilities.helpers.LLMHelper.AzureChatCompletion")
@@ -83,3 +92,38 @@ def test_get_sk_service_settings():
     assert settings.service_id == "mock-service-id"
     assert settings.temperature == 0
     assert settings.max_tokens == int(AZURE_OPENAI_MAX_TOKENS)
+
+
+def test_generate_embeddings_embeds_input(azure_openai_mock):
+    # given
+    llm_helper = LLMHelper()
+
+    # when
+    llm_helper.generate_embeddings("some input")
+
+    # then
+    azure_openai_mock.return_value.embeddings.create.assert_called_once_with(
+        input=["some input"], model=AZURE_OPENAI_EMBEDDING_MODEL
+    )
+
+
+def test_generate_embeddings_returns_embeddings(azure_openai_mock):
+    # given
+    llm_helper = LLMHelper()
+    expected_embeddings = [1, 2, 3]
+    azure_openai_mock.return_value.embeddings.create.return_value = (
+        CreateEmbeddingResponse(
+            data=[
+                Embedding(embedding=expected_embeddings, index=0, object="embedding")
+            ],
+            model="mock-model",
+            object="list",
+            usage={"prompt_tokens": 0, "total_tokens": 0},
+        )
+    )
+
+    # when
+    actual_embeddings = llm_helper.generate_embeddings("some input")
+
+    # then
+    assert actual_embeddings == expected_embeddings
