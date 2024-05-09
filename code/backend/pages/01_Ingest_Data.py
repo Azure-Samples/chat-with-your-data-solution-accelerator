@@ -10,6 +10,9 @@ import logging
 from batch.utilities.helpers.config.ConfigHelper import ConfigHelper
 from batch.utilities.helpers.EnvHelper import EnvHelper
 from batch.utilities.helpers.AzureBlobStorageClient import AzureBlobStorageClient
+from batch.utilities.integrated_vectorization.AzureSearchIndexer import (
+    AzureSearchIndexer,
+)
 
 sys.path.append(path.join(path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
@@ -29,6 +32,24 @@ mod_page_style = """
             </style>
             """
 st.markdown(mod_page_style, unsafe_allow_html=True)
+
+
+def reprocess_all(process_all=False):
+    if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+        reprocess_integrated_vectorization()
+    else:
+        remote_convert_files_and_add_embeddings(process_all)
+
+
+def reprocess_integrated_vectorization():
+    azure_search_indexer = AzureSearchIndexer(env_helper)
+    response = azure_search_indexer.reprocess_all(env_helper.AZURE_SEARCH_INDEXER_NAME)
+    if response["status"] == "success":
+        st.success(
+            "Please note this is an asynchronous process and may take a few minutes to complete."
+        )
+    else:
+        st.error("Error occured while reprocessing all documents")
 
 
 def remote_convert_files_and_add_embeddings(process_all=False):
@@ -129,7 +150,7 @@ try:
         with col3:
             st.button(
                 "Reprocess all documents in the Azure Storage account",
-                on_click=remote_convert_files_and_add_embeddings,
+                on_click=reprocess_all,
                 args=(True,),
             )
 
