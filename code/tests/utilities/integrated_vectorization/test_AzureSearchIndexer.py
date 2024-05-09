@@ -90,3 +90,65 @@ def test_create_or_update_indexer_rbac(
         data_source_name=env_helper_mock.AZURE_SEARCH_DATASOURCE_NAME,
         field_mappings=ANY,
     )
+
+
+def test_reprocess_all_indexer_exists(
+    env_helper_mock: MagicMock,
+    search_indexer_client_mock: MagicMock,
+    search_indexer_mock: MagicMock,
+):
+    # given
+    indexer_name = "indexer_name"
+    azure_search_indexer = AzureSearchIndexer(env_helper_mock)
+    azure_search_indexer.indexer_client.get_indexer_names.return_value = [indexer_name]
+    azure_search_indexer.indexer_client.reset_indexer.return_value = None
+    azure_search_indexer.indexer_client.run_indexer.return_value = None
+
+    # when
+    result = azure_search_indexer.reprocess_all(indexer_name)
+
+    # then
+    azure_search_indexer.indexer_client.reset_indexer.assert_called_once_with(
+        indexer_name
+    )
+    azure_search_indexer.indexer_client.run_indexer.assert_called_once_with(
+        indexer_name
+    )
+    assert result == {"status": "success"}
+
+
+def test_reprocess_all_indexer_not_found(
+    env_helper_mock: MagicMock,
+    search_indexer_client_mock: MagicMock,
+    search_indexer_mock: MagicMock,
+):
+    # given
+    indexer_name = "indexer_name"
+    azure_search_indexer = AzureSearchIndexer(env_helper_mock)
+    azure_search_indexer.indexer_client.get_indexer_names.return_value = [
+        "some-indexer"
+    ]
+
+    # when
+    result = azure_search_indexer.reprocess_all(indexer_name)
+
+    # then
+    assert result == {"status": "error"}
+
+
+def test_reprocess_all_indexer_run_error(
+    env_helper_mock: MagicMock,
+    search_indexer_client_mock: MagicMock,
+    search_indexer_mock: MagicMock,
+):
+    # given
+    indexer_name = "indexer_name"
+    azure_search_indexer = AzureSearchIndexer(env_helper_mock)
+    azure_search_indexer.indexer_client.get_indexer_names.return_value = [indexer_name]
+    azure_search_indexer.indexer_client.run_indexer.return_value = "error"
+
+    # when
+    result = azure_search_indexer.reprocess_all(indexer_name)
+
+    # then
+    assert result == {"status": "error"}
