@@ -63,13 +63,13 @@ def test_load_config_from_blob_storage(monkeypatch: MonkeyPatch, value, expected
 def test_app_insights_enabled(monkeypatch: MonkeyPatch, value, expected):
     # given
     if value is not None:
-        monkeypatch.setenv("APPINSIGHTS_ENABLED", value)
+        monkeypatch.setenv("APPLICATIONINSIGHTS_ENABLED", value)
 
     # when
-    actual_appinsights_enabled = EnvHelper().APPINSIGHTS_ENABLED
+    actual_APPLICATIONINSIGHTS_enabled = EnvHelper().APPLICATIONINSIGHTS_ENABLED
 
     # then
-    assert actual_appinsights_enabled == expected
+    assert actual_APPLICATIONINSIGHTS_enabled == expected
 
 
 def test_keys_are_unset_when_auth_type_rbac(monkeypatch: MonkeyPatch):

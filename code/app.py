@@ -9,7 +9,7 @@ logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO").upper())
 logging.getLogger("azure").setLevel(os.environ.get("LOGLEVEL_AZURE", "WARN").upper())
 # We cannot use EnvHelper here as Application Insights should be configured first
 # for instrumentation to work correctly
-if os.getenv("APPINSIGHTS_ENABLED", "false").lower() == "true":
+if os.getenv("APPLICATIONINSIGHTS_ENABLED", "false").lower() == "true":
     configure_azure_monitor()
     HTTPXClientInstrumentor().instrument()  # httpx is used by openai
 
