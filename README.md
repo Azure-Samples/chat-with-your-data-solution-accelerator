@@ -106,7 +106,7 @@ Now that the financial advisor is more informed about Woodgrove’s Emerging Mar
 Note: Some of the sample data included with this accelerator was generated using AI and is for illustrative purposes only.
 
 ### Integrated Vectorization
-The Chat with your data accelerator supports Integrated Vectorization, an Azure AI Search feature that pulls, processes and indexes data directly from Azure storage. This greatly simplifies the code that needs to be maintained by developers deploying the accelerator since the chunking, vectorization and indexing of data is handled by Azure AI's built-in pull-indexers. Learn more about deploying with Integrated Vectorization [here](./docs/INTEGRATED_VECTORIZATION.md).
+The Chat with your data accelerator supports Integrated Vectorization, an Azure AI Search feature that pulls, processes and indexes data directly from Azure Storage. This greatly simplifies the code that needs to be maintained by developers deploying the accelerator since the chunking, vectorization and indexing of data is handled by Azure AI's built-in pull-indexers. Learn more about deploying with Integrated Vectorization [here](./docs/INTEGRATED_VECTORIZATION.md).
 
 ### Speech-to-text functionality
 Many users are used to the convenience of speech-to-text functionality in their consumer products. With hybrid work increasing, speech-to-text supports a more flexible way for users to chat with their data, whether they’re at their computer or on the go with their mobile device. The speech-to-text capability is combined with NLP capabilities to extract intent and context from spoken language, allowing the chatbot to understand and respond to user requests more intelligently.
