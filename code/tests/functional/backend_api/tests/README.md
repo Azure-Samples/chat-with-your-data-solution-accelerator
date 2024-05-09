@@ -2,7 +2,7 @@
 
 At present, there are three sets of tests:
 
-- `with_data` - This is the base configuration. The majority of tests should be added here.
+- `default` - This is the base configuration. The majority of tests should be added here.
 - `without_data` - This configuration does not include any of the `AZURE_SEARCH` environment variables
 - `sk_orchestrator` - This configuration uses Semantic Kernel as the orchestrator
 
@@ -15,7 +15,7 @@ starting up a new instance of the application on another port.
 New environment variables common to all tests can be directly added to the `config`
 dict in [app_config.py](../app_config.py), while variables only needed for one set
 of tests can be added to the `app_config` fixture in the respective `conftest.py`
-file, e.g. [./with_data/conftest.py](./with_data/conftest.py).
+file, e.g. [./default/conftest.py](./default/conftest.py).
 
 ```py
 @pytest.fixture(scope="package")
