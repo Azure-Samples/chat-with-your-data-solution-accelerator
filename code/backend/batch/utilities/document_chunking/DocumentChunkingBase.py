@@ -2,7 +2,7 @@
 from typing import List
 from abc import ABC, abstractmethod
 from ..common.SourceDocument import SourceDocument
-from .Strategies import ChunkingSettings
+from .ChunkingStrategy import ChunkingSettings
 
 
 class DocumentChunkingBase(ABC):

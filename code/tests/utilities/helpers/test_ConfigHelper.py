@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from backend.batch.utilities.helpers.config.ConfigHelper import ConfigHelper, Config
 from backend.batch.utilities.helpers.config.EmbeddingConfig import EmbeddingConfig
-from backend.batch.utilities.document_chunking.Strategies import ChunkingSettings
+from backend.batch.utilities.document_chunking.ChunkingStrategy import ChunkingSettings
 from backend.batch.utilities.document_loading import LoadingSettings
 
 
