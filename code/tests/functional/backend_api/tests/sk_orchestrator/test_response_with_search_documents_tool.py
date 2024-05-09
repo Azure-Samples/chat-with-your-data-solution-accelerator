@@ -150,7 +150,7 @@ def test_post_responds_successfully(app_url: str, app_config: AppConfig):
     assert response.headers["Content-Type"] == "application/json"
 
 
-def test_post_makes_correct_call_to_get_search_index(
+def test_post_makes_correct_call_to_list_search_index(
     app_url: str, app_config: AppConfig, httpserver: HTTPServer
 ):
     # when
@@ -160,14 +160,14 @@ def test_post_makes_correct_call_to_get_search_index(
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
-            path=f"/indexes('{app_config.get('AZURE_SEARCH_INDEX')}')",
+            path="/indexes",
             method="GET",
             headers={
                 "Accept": "application/json;odata.metadata=minimal",
                 "Api-Key": app_config.get("AZURE_SEARCH_KEY"),
             },
             query_string="api-version=2023-10-01-Preview",
-            times=2,
+            times=3,
         ),
     )
 
@@ -193,7 +193,7 @@ def test_post_makes_correct_call_to_get_search_documents(
                         "kind": "vector",
                         "k": int(app_config.get("AZURE_SEARCH_TOP_K")),
                         "fields": "content_vector",
-                        "vector": [0.9320719838142395, -0.3622731566429138],
+                        "vector": [0.018990106880664825, -0.0073809814639389515],
                     }
                 ],
             },

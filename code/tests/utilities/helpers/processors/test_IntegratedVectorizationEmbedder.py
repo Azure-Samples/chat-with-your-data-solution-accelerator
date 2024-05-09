@@ -3,8 +3,13 @@ from unittest.mock import MagicMock, patch
 from backend.batch.utilities.helpers.embedders.IntegratedVectorizationEmbedder import (
     IntegratedVectorizationEmbedder,
 )
+from backend.batch.utilities.document_chunking.ChunkingStrategy import ChunkingSettings
+from backend.batch.utilities.document_loading import LoadingSettings
+from backend.batch.utilities.document_loading.Strategies import LoadingStrategy
 
 AZURE_SEARCH_INDEXER_NAME = "mock-indexer-name"
+CHUNKING_SETTINGS = ChunkingSettings({"strategy": "layout", "size": 1, "overlap": 0})
+LOADING_SETTINGS = LoadingSettings({"strategy": LoadingStrategy.LAYOUT})
 
 
 @pytest.fixture(autouse=True)
@@ -27,7 +32,7 @@ def llm_helper_mock():
         llm_helper.get_embedding_model.return_value.embed_query.return_value = [
             0
         ] * 1536
-
+        llm_helper.generate_embeddings.return_value = [123]
         yield llm_helper
 
 

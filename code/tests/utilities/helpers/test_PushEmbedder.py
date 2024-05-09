@@ -1,15 +1,28 @@
+import json
 import pytest
-from unittest.mock import MagicMock, patch
-from backend.batch.utilities.helpers.embedders.PushEmbedder import (
-    PushEmbedder,
-)
+from unittest.mock import MagicMock, call, patch
+from backend.batch.utilities.helpers.embedders.PushEmbedder import PushEmbedder
+from backend.batch.utilities.document_chunking.ChunkingStrategy import ChunkingSettings
+from backend.batch.utilities.document_loading import LoadingSettings
+from backend.batch.utilities.document_loading.Strategies import LoadingStrategy
+from backend.batch.utilities.common.SourceDocument import SourceDocument
 from backend.batch.utilities.helpers.config.EmbeddingConfig import EmbeddingConfig
 
-from backend.batch.utilities.helpers.DocumentLoadingHelper import DocumentLoading
-from backend.batch.utilities.helpers.DocumentChunkingHelper import DocumentChunking
-from backend.batch.utilities.common.SourceDocument import SourceDocument
+CHUNKING_SETTINGS = ChunkingSettings({"strategy": "layout", "size": 1, "overlap": 0})
+LOADING_SETTINGS = LoadingSettings({"strategy": LoadingStrategy.LAYOUT})
 
-AZURE_SEARCH_INDEXER_NAME = "mock-indexer-name"
+
+@pytest.fixture(autouse=True)
+def llm_helper_mock():
+    with patch(
+        "backend.batch.utilities.helpers.embedders.PushEmbedder.LLMHelper"
+    ) as mock:
+        llm_helper = mock.return_value
+        llm_helper.get_embedding_model.return_value.embed_query.return_value = [
+            0
+        ] * 1536
+        llm_helper.generate_embeddings.return_value = [123]
+        yield mock
 
 
 @pytest.fixture(autouse=True)
@@ -26,72 +39,208 @@ def mock_config_helper():
         "backend.batch.utilities.helpers.embedders.PushEmbedder.ConfigHelper"
     ) as mock:
         config_helper = mock.get_active_config_or_default.return_value
+        config_helper.document_processors = [
+            EmbeddingConfig(
+                "jpg",
+                CHUNKING_SETTINGS,
+                LOADING_SETTINGS,
+                use_advanced_image_processing=True,
+            ),
+            EmbeddingConfig(
+                "pdf",
+                CHUNKING_SETTINGS,
+                LOADING_SETTINGS,
+                use_advanced_image_processing=False,
+            ),
+        ]
         yield config_helper
 
 
-def test_process_use_advanced_image_processing_skips_processing(
-    azure_search_helper_mock, mock_config_helper
+@pytest.fixture(autouse=True)
+def document_loading_mock():
+    with patch(
+        "backend.batch.utilities.helpers.embedders.PushEmbedder.DocumentLoading"
+    ) as mock:
+        expected_documents = [
+            SourceDocument(content="some content", source="some source")
+        ]
+        mock.return_value.load.return_value = expected_documents
+        yield mock
+
+
+@pytest.fixture(autouse=True)
+def document_chunking_mock():
+    with patch(
+        "backend.batch.utilities.helpers.embedders.PushEmbedder.DocumentChunking"
+    ) as mock:
+        expected_chunked_documents = [
+            SourceDocument(
+                content="some content",
+                source="some source",
+                id="some id",
+                title="some-title",
+                offset=1,
+                chunk=1,
+                page_number=1,
+                chunk_id="some chunk id",
+            ),
+            SourceDocument(
+                content="some other content",
+                source="some other source",
+                id="some other id",
+                title="some other-title",
+                offset=2,
+                chunk=2,
+                page_number=2,
+                chunk_id="some other chunk id",
+            ),
+        ]
+        mock.return_value.chunk.return_value = expected_chunked_documents
+        yield mock
+
+
+def test_embed_file_use_advanced_image_processing_skips_processing(
+    azure_search_helper_mock,
 ):
     # given
-    vector_store_mock = MagicMock()
-    azure_search_helper_mock.return_value.get_vector_store.return_value = (
-        vector_store_mock
-    )
-    push_embedder = PushEmbedder(None)
-    processor = EmbeddingConfig("pdf", None, None, use_advanced_image_processing=True)
+    push_embedder = PushEmbedder(MagicMock())
 
     # when
-    push_embedder._PushEmbedder__embed("some-url", processor)
+    push_embedder.embed_file("some-url", "some-file-name.jpg")
 
     # then
-    vector_store_mock.add_documents.assert_not_called()
+    azure_search_helper_mock.return_value.get_search_client.assert_not_called()
 
 
-def test_process_with_non_advanced_image_processing_adds_documents_to_vector_store(
-    azure_search_helper_mock, mock_config_helper
+def test_embed_file_loads_documents(document_loading_mock):
+    # given
+    push_embedder = PushEmbedder(MagicMock())
+    source_url = "some-url"
+
+    # when
+    push_embedder.embed_file(
+        source_url,
+        "some-file-name.pdf",
+    )
+
+    # then
+    document_loading_mock.return_value.load.assert_called_once_with(
+        source_url, LOADING_SETTINGS
+    )
+
+
+def test_embed_file_chunks_documents(document_loading_mock, document_chunking_mock):
+    # given
+    push_embedder = PushEmbedder(MagicMock())
+
+    # when
+    push_embedder.embed_file(
+        "some-url",
+        "some-file-name.pdf",
+    )
+
+    # then
+    document_chunking_mock.return_value.chunk.assert_called_once_with(
+        document_loading_mock.return_value.load.return_value, CHUNKING_SETTINGS
+    )
+
+
+def test_embed_file_generates_embeddings_for_documents(llm_helper_mock):
+    # given
+    push_embedder = PushEmbedder(MagicMock())
+
+    # when
+    push_embedder.embed_file(
+        "some-url",
+        "some-file-name.pdf",
+    )
+
+    # then
+    llm_helper_mock.return_value.generate_embeddings.assert_has_calls(
+        [call("some content"), call("some other content")]
+    )
+
+
+def test_embed_file_stores_documents_in_search_index(
+    document_chunking_mock,
+    llm_helper_mock,
+    azure_search_helper_mock,
 ):
     # given
-    vector_store_mock = MagicMock()
-    azure_search_helper_mock.return_value.get_vector_store.return_value = (
-        vector_store_mock
+    push_embedder = PushEmbedder(MagicMock())
+
+    # when
+    push_embedder.embed_file(
+        "some-url",
+        "some-file-name.pdf",
     )
-    push_embedder = PushEmbedder(None)
-    processor = EmbeddingConfig("pdf", None, None, use_advanced_image_processing=False)
-    source_url = "some-url"
-    documents = [
-        SourceDocument("1", "document1", "content1"),
-        SourceDocument("2", "document2", "content2"),
+
+    # then
+    expected_chunked_documents = document_chunking_mock.return_value.chunk.return_value
+    azure_search_helper_mock.return_value.get_search_client.return_value.upload_documents.assert_called_once_with(
+        [
+            {
+                "id": expected_chunked_documents[0].id,
+                "content": expected_chunked_documents[0].content,
+                "content_vector": llm_helper_mock.return_value.generate_embeddings.return_value,
+                "metadata": json.dumps(
+                    {
+                        "id": expected_chunked_documents[0].id,
+                        "source": expected_chunked_documents[0].source,
+                        "title": expected_chunked_documents[0].title,
+                        "chunk": expected_chunked_documents[0].chunk,
+                        "offset": expected_chunked_documents[0].offset,
+                        "page_number": expected_chunked_documents[0].page_number,
+                        "chunk_id": expected_chunked_documents[0].chunk_id,
+                    }
+                ),
+                "title": expected_chunked_documents[0].title,
+                "source": expected_chunked_documents[0].source,
+                "chunk": expected_chunked_documents[0].chunk,
+                "offset": expected_chunked_documents[0].offset,
+            },
+            {
+                "id": expected_chunked_documents[1].id,
+                "content": expected_chunked_documents[1].content,
+                "content_vector": llm_helper_mock.return_value.generate_embeddings.return_value,
+                "metadata": json.dumps(
+                    {
+                        "id": expected_chunked_documents[1].id,
+                        "source": expected_chunked_documents[1].source,
+                        "title": expected_chunked_documents[1].title,
+                        "chunk": expected_chunked_documents[1].chunk,
+                        "offset": expected_chunked_documents[1].offset,
+                        "page_number": expected_chunked_documents[1].page_number,
+                        "chunk_id": expected_chunked_documents[1].chunk_id,
+                    }
+                ),
+                "title": expected_chunked_documents[1].title,
+                "source": expected_chunked_documents[1].source,
+                "chunk": expected_chunked_documents[1].chunk,
+                "offset": expected_chunked_documents[1].offset,
+            },
+        ]
+    )
+
+
+def test_embed_file_raises_exception_on_failure(
+    azure_search_helper_mock,
+):
+    # given
+    push_embedder = PushEmbedder(MagicMock())
+
+    successful_indexing_result = MagicMock()
+    successful_indexing_result.succeeded = True
+    failed_indexing_result = MagicMock()
+    failed_indexing_result.succeeded = False
+    azure_search_helper_mock.return_value.get_search_client.return_value.upload_documents.return_value = [
+        successful_indexing_result,
+        failed_indexing_result,
     ]
 
-    with patch.object(
-        DocumentLoading, "load", return_value=documents
-    ) as load_mock, patch.object(
-        DocumentChunking, "chunk", return_value=documents
-    ) as chunk_mock:
-
-        # when
-        push_embedder._PushEmbedder__embed(source_url, processor)
-
-        # then
-        load_mock.assert_called_once_with(source_url, processor.loading)
-        chunk_mock.assert_called_once_with(documents, processor.chunking)
-
-
-def test_process_file_with_non_url_extension_processes_and_adds_metadata(
-    azure_search_helper_mock, mock_config_helper
-):
-    # given
-    vector_store_mock = MagicMock()
-    azure_search_helper_mock.return_value.get_vector_store.return_value = (
-        vector_store_mock
-    )
-    push_embedder = PushEmbedder(blob_client=MagicMock())
-    source_url = "some-url"
-    file_name = "sample.pdf"
-
-    with patch.object(push_embedder, "_PushEmbedder__embed") as embed_mock:
-        # when
-        push_embedder.embed_file(source_url, file_name)
-
-        # then
-        embed_mock.assert_called_once()
+    # when + then
+    with pytest.raises(Exception):
+        push_embedder.embed_file(
+            "some-url",
+            "some-file-name.pdf",
+        )

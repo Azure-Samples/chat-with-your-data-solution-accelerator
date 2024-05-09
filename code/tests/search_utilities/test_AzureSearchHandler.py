@@ -1,53 +1,56 @@
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from backend.batch.utilities.search.AzureSearchHandler import AzureSearchHandler
-from langchain_core.documents import Document
 import json
+from azure.search.documents.models import VectorizedQuery
+
+from backend.batch.utilities.common.SourceDocument import SourceDocument
 
 
 @pytest.fixture
 def env_helper_mock():
     mock = Mock()
-    mock.AZURE_SEARCH_SERVICE = "https://example.search.windows.net"
-    mock.AZURE_SEARCH_INDEX = "example-index"
-    mock.AZURE_SEARCH_KEY = "example-key"
-    mock.is_auth_type_keys = Mock(return_value=True)
+    mock.AZURE_SEARCH_USE_SEMANTIC_SEARCH = False
+    mock.AZURE_SEARCH_TOP_K = 3
+    mock.AZURE_SEARCH_FILTER = "some-search-filter"
     return mock
 
 
 @pytest.fixture
-def mock_azure_search_helper():
+def mock_search_client():
     with patch(
         "backend.batch.utilities.search.AzureSearchHandler.AzureSearchHelper"
     ) as mock:
-        vector_store = mock.return_value.get_vector_store.return_value.client
-        yield vector_store
+        search_client = mock.return_value.get_search_client.return_value
+        yield search_client
 
 
 @pytest.fixture
-def mock_vector_store():
-    with patch(
-        "backend.batch.utilities.search.AzureSearchHandler.AzureSearchHelper"
-    ) as mock:
-        vector_store = mock.return_value.get_vector_store.return_value
-        yield vector_store
+def mock_llm_helper():
+    with patch("backend.batch.utilities.search.AzureSearchHandler.LLMHelper") as mock:
+        mock_llm_helper = mock.return_value
+        yield mock_llm_helper
 
 
 @pytest.fixture
-def handler(env_helper_mock, mock_azure_search_helper):
+def handler(env_helper_mock, mock_search_client, mock_llm_helper):
     with patch(
         "backend.batch.utilities.search.AzureSearchHandler.AzureSearchHelper",
-        return_value=mock_azure_search_helper,
+        return_value=mock_search_client,
     ):
-        return AzureSearchHandler(env_helper_mock)
+        with patch(
+            "backend.batch.utilities.search.AzureSearchHandler.LLMHelper",
+            return_value=mock_llm_helper,
+        ):
+            return AzureSearchHandler(env_helper_mock)
 
 
-def test_create_search_client(handler, mock_azure_search_helper):
+def test_create_search_client(handler, mock_search_client):
     # when
     search_client = handler.create_search_client()
 
     # then
-    assert search_client == mock_azure_search_helper
+    assert search_client == mock_search_client
 
 
 def test_process_results(handler):
@@ -112,40 +115,131 @@ def test_get_files(handler):
     )
 
 
-def test_query_search(handler, mock_vector_store):
+@patch("backend.batch.utilities.search.AzureSearchHandler.tiktoken")
+def test_query_search_uses_tiktoken_encoder(mock_tiktoken, handler, mock_llm_helper):
     # given
     question = "What is the answer?"
 
+    mock_encoder = MagicMock()
+    mock_tiktoken.get_encoding.return_value = mock_encoder
+    mock_encoder.encode.return_value = [1, 2, 3]
+
     # when
-    result = handler.query_search(question)
+    handler.query_search(question)
 
     # then
-    mock_vector_store.similarity_search.assert_called_once_with(
-        query=question,
-        k=handler.env_helper.AZURE_SEARCH_TOP_K,
-        filters=handler.env_helper.AZURE_SEARCH_FILTER,
-    )
-    assert result == mock_vector_store.similarity_search.return_value
+    mock_tiktoken.get_encoding.assert_called_once_with("cl100k_base")
+    mock_encoder.encode.assert_called_once_with(question)
+    mock_llm_helper.generate_embeddings.assert_called_once_with([1, 2, 3])
 
 
-def test_return_answer_source_documents(handler):
+def test_query_search_performs_hybrid_search(handler, mock_llm_helper):
     # given
-    document = Document("mock content")
-    document.metadata = {
-        "id": "mock id",
-        "title": "mock title",
-        "source": "mock source",
-        "chunk": "mock chunk",
-        "offset": "mock offset",
-        "page_number": "mock page number",
-    }
-    documents = [document]
+    question = "What is the answer?"
+
+    mock_llm_helper.generate_embeddings.return_value = [1, 2, 3]
+
     # when
-    source_documents = handler.return_answer_source_documents(documents)
+    handler.query_search(question)
 
     # then
-    assert len(source_documents) == 1
-    assert source_documents[0].id == "mock id"
-    assert source_documents[0].content == "mock content"
-    assert source_documents[0].title == "mock title"
-    assert source_documents[0].source == "mock source"
+    handler.search_client.search.assert_called_once_with(
+        search_text=question,
+        vector_queries=[
+            VectorizedQuery(
+                vector=[1, 2, 3],
+                k_nearest_neighbors=handler.env_helper.AZURE_SEARCH_TOP_K,
+                filter=handler.env_helper.AZURE_SEARCH_FILTER,
+                fields="content_vector",
+            )
+        ],
+        filter=handler.env_helper.AZURE_SEARCH_FILTER,
+        top=handler.env_helper.AZURE_SEARCH_TOP_K,
+    )
+
+
+def test_query_search_performs_semantic_search(
+    handler, mock_llm_helper, env_helper_mock
+):
+    # given
+    question = "What is the answer?"
+
+    mock_llm_helper.generate_embeddings.return_value = [1, 2, 3]
+    env_helper_mock.AZURE_SEARCH_USE_SEMANTIC_SEARCH = True
+    env_helper_mock.AZURE_SEARCH_SEMANTIC_CONFIG_NAME = "some-semantic-config"
+
+    # when
+    handler.query_search(question)
+
+    # then
+    handler.search_client.search.assert_called_once_with(
+        search_text=question,
+        vector_queries=[
+            VectorizedQuery(
+                vector=[1, 2, 3],
+                k_nearest_neighbors=handler.env_helper.AZURE_SEARCH_TOP_K,
+                fields="content_vector",
+            )
+        ],
+        filter=handler.env_helper.AZURE_SEARCH_FILTER,
+        query_type="semantic",
+        semantic_configuration_name=handler.env_helper.AZURE_SEARCH_SEMANTIC_CONFIG_NAME,
+        query_caption="extractive",
+        query_answer="extractive",
+        top=handler.env_helper.AZURE_SEARCH_TOP_K,
+    )
+
+
+def test_query_search_converts_results_to_source_documents(
+    handler,
+):
+    # given
+    question = "What is the answer?"
+
+    handler.search_client.search.return_value = [
+        {
+            "id": 1,
+            "content": "content1",
+            "title": "title1",
+            "source": "source1",
+            "chunk": "chunk1",
+            "offset": "offset1",
+            "page_number": "page_number1",
+        },
+        {
+            "id": 2,
+            "content": "content2",
+            "title": "title2",
+            "source": "source2",
+            "chunk": "chunk2",
+            "offset": "offset2",
+            "page_number": "page_number2",
+        },
+    ]
+
+    expected_results = [
+        SourceDocument(
+            id=1,
+            content="content1",
+            title="title1",
+            source="source1",
+            chunk="chunk1",
+            offset="offset1",
+            page_number="page_number1",
+        ),
+        SourceDocument(
+            id=2,
+            content="content2",
+            title="title2",
+            source="source2",
+            chunk="chunk2",
+            offset="offset2",
+            page_number="page_number2",
+        ),
+    ]
+
+    # when
+    actual_results = handler.query_search(question)
+
+    # then
+    assert actual_results == expected_results

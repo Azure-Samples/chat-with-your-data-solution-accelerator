@@ -1,6 +1,8 @@
 import json
 import logging
 import warnings
+
+from ..common.SourceDocument import SourceDocument
 from ..search.Search import Search
 from .AnsweringToolBase import AnsweringToolBase
 
@@ -14,7 +16,6 @@ from langchain.prompts import (
     PromptTemplate,
 )
 from langchain_community.callbacks import get_openai_callback
-from langchain_core.documents import Document
 from langchain_core.messages import SystemMessage
 
 from ..helpers.config.ConfigHelper import ConfigHelper
@@ -45,14 +46,14 @@ class QuestionAnswerTool(AnsweringToolBase):
         except json.JSONDecodeError:
             return obj
 
-    def generate_llm_chain(self, question: str, sources: list[Document]):
+    def generate_llm_chain(self, question: str, sources: list[dict]):
         answering_prompt = PromptTemplate(
             template=self.config.prompts.answering_user_prompt,
             input_variables=["question", "sources"],
         )
 
         sources_text = "\n\n".join(
-            [f"[doc{i+1}]: {source.page_content}" for i, source in enumerate(sources)]
+            [f"[doc{i+1}]: {source.content}" for i, source in enumerate(sources)]
         )
 
         return answering_prompt, {
@@ -64,7 +65,7 @@ class QuestionAnswerTool(AnsweringToolBase):
         self,
         question: str,
         chat_history: list[dict],
-        sources: list[Document],
+        sources: list[SourceDocument],
     ):
         examples = []
 
@@ -116,7 +117,7 @@ class QuestionAnswerTool(AnsweringToolBase):
         documents = json.dumps(
             {
                 "retrieved_documents": [
-                    {f"[doc{i+1}]": {"content": source.page_content}}
+                    {f"[doc{i+1}]": {"content": source.content}}
                     for i, source in enumerate(sources)
                 ],
             },
@@ -129,18 +130,22 @@ class QuestionAnswerTool(AnsweringToolBase):
             "chat_history": chat_history,
         }
 
-    def answer_question(self, question: str, chat_history: list[dict], **kwargs):
-        sources = Search.get_source_documents(self.search_handler, question)
+    def answer_question(
+        self, question: str, chat_history: list[SourceDocument], **kwargs
+    ):
+        source_documents = Search.get_source_documents(self.search_handler, question)
 
         if self.config.prompts.use_on_your_data_format:
             answering_prompt, input = self.generate_on_your_data_llm_chain(
-                question, chat_history, sources
+                question, chat_history, source_documents
             )
         else:
             warnings.warn(
                 "Azure OpenAI On Your Data prompt format is recommended and should be enabled in the Admin app.",
             )
-            answering_prompt, input = self.generate_llm_chain(question, sources)
+            answering_prompt, input = self.generate_llm_chain(
+                question, source_documents
+            )
 
         llm_helper = LLMHelper()
 
@@ -155,7 +160,6 @@ class QuestionAnswerTool(AnsweringToolBase):
         logger.debug(f"Answer: {answer}")
 
         # Generate Answer Object
-        source_documents = self.search_handler.return_answer_source_documents(sources)
         clean_answer = Answer(
             question=question,
             answer=answer,
