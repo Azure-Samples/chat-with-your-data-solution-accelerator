@@ -8,19 +8,17 @@ from backend.batch.utilities.orchestrator.SemanticKernel import (
 from backend.batch.utilities.parser.OutputParserTool import OutputParserTool
 from semantic_kernel import Kernel
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
-from semantic_kernel.connectors.ai.open_ai.contents.azure_chat_message_content import (
-    AzureChatMessageContent,
-)
-from semantic_kernel.connectors.ai.open_ai.contents.function_call import FunctionCall
-from semantic_kernel.connectors.ai.open_ai.contents.tool_calls import ToolCall
 from semantic_kernel.connectors.ai.open_ai.prompt_execution_settings.azure_chat_prompt_execution_settings import (
     AzureChatPromptExecutionSettings,
 )
-from semantic_kernel.contents.chat_role import ChatRole
+from semantic_kernel.contents.author_role import AuthorRole
+from semantic_kernel.contents.chat_message_content import ChatMessageContent
+from semantic_kernel.contents.finish_reason import FinishReason
+from semantic_kernel.contents.function_call_content import FunctionCallContent
 
-chat_message_default_content = AzureChatMessageContent(
+chat_message_default_content = ChatMessageContent(
     content="mock-response",
-    role=ChatRole.ASSISTANT,
+    role=AuthorRole.ASSISTANT,
     metadata={
         "usage": MagicMock(
             prompt_tokens=10,
@@ -228,14 +226,14 @@ async def test_semantic_kernel_text_processing(
     # given
     question = "question"
 
-    first_response = AzureChatMessageContent(
-        role=ChatRole.ASSISTANT,
-        tool_calls=[
-            ToolCall(
-                function=FunctionCall(
-                    name="Chat-text_processing",
-                    arguments='{"text": "mock-text", "operation": "mock-operation"}',
-                )
+    first_response = ChatMessageContent(
+        role=AuthorRole.ASSISTANT,
+        finish_reason=FinishReason.TOOL_CALLS,
+        items=[
+            FunctionCallContent(
+                id="id",
+                name="Chat-text_processing",
+                arguments='{"text": "mock-text", "operation": "mock-operation"}',
             )
         ],
         metadata={
@@ -293,14 +291,14 @@ async def test_semantic_kernel_search_documents_post_answering_prompt(
     orchestrator: SemanticKernelOrchestrator,
 ):
     # given
-    first_response = AzureChatMessageContent(
-        role=ChatRole.ASSISTANT,
-        tool_calls=[
-            ToolCall(
-                function=FunctionCall(
-                    name="Chat-search_documents",
-                    arguments='{"question": "mock-tool-question"}',
-                )
+    first_response = ChatMessageContent(
+        role=AuthorRole.ASSISTANT,
+        finish_reason=FinishReason.TOOL_CALLS,
+        items=[
+            FunctionCallContent(
+                id="id",
+                name="Chat-search_documents",
+                arguments='{"question": "mock-tool-question"}',
             )
         ],
         metadata={
@@ -376,14 +374,14 @@ async def test_semantic_kernel_search_documents_without_post_answering_prompt(
     # given
     orchestrator.config.prompts.enable_post_answering_prompt = False
 
-    first_response = AzureChatMessageContent(
-        role=ChatRole.ASSISTANT,
-        tool_calls=[
-            ToolCall(
-                function=FunctionCall(
-                    name="Chat-search_documents",
-                    arguments='{"question": "mock-tool-question"}',
-                )
+    first_response = ChatMessageContent(
+        role=AuthorRole.ASSISTANT,
+        finish_reason=FinishReason.TOOL_CALLS,
+        items=[
+            FunctionCallContent(
+                id="id",
+                name="Chat-search_documents",
+                arguments='{"question": "mock-tool-question"}',
             )
         ],
         metadata={
@@ -457,21 +455,21 @@ async def test_chat_history_included(
     messages = chat_history.messages
 
     assert len(messages) == 3
-    assert messages[0].role == ChatRole.SYSTEM
+    assert messages[0].role == AuthorRole.SYSTEM
 
-    assert messages[1].role == ChatRole.USER
+    assert messages[1].role == AuthorRole.USER
     assert messages[1].content == "Hello"
 
-    assert messages[2].role == ChatRole.ASSISTANT
+    assert messages[2].role == AuthorRole.ASSISTANT
     assert messages[2].content == "Hi, how can I help you today?"
 
 
 @pytest.mark.asyncio
 async def test_content_safety_output(orchestrator: SemanticKernelOrchestrator):
     # given
-    chat_message_content = AzureChatMessageContent(
+    chat_message_content = ChatMessageContent(
         content="bad-response",
-        role=ChatRole.ASSISTANT,
+        role=AuthorRole.ASSISTANT,
         metadata={
             "usage": MagicMock(
                 prompt_tokens=10,

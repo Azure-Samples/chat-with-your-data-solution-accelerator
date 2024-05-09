@@ -90,7 +90,7 @@ module configAppSettings 'appservice-appsettings.bicep' = {
     name: appService.name
     appSettings: union(appSettings,
       {
-        APPINSIGHTS_ENABLED: string(!empty(applicationInsightsName))
+        APPLICATIONINSIGHTS_ENABLED: string(!empty(applicationInsightsName))
         AZURE_RESOURCE_GROUP: resourceGroup().name
         AZURE_SUBSCRIPTION_ID: subscription().subscriptionId
         SCM_DO_BUILD_DURING_DEPLOYMENT: string(scmDoBuildDuringDeployment)
@@ -98,8 +98,6 @@ module configAppSettings 'appservice-appsettings.bicep' = {
       },
       runtimeName == 'python' && appCommandLine == '' ? { PYTHON_ENABLE_GUNICORN_MULTIWORKERS: 'true' } : {},
       !empty(applicationInsightsName) ? { APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString } : {},
-      !empty(applicationInsightsName) ? { APPINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString } : {},
-      !empty(applicationInsightsName) ? { APPINSIGHTS_INSTRUMENTATIONKEY: applicationInsights.properties.InstrumentationKey } : {},
       !empty(keyVaultName) ? { AZURE_KEY_VAULT_ENDPOINT: keyVault.properties.vaultUri } : {})
   }
 }
