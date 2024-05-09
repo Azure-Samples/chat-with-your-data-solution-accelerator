@@ -2,9 +2,10 @@ import json
 import logging
 from os import path
 import requests
-from openai import AzureOpenAI
+from openai import AzureOpenAI, Stream
+from openai.types.chat import ChatCompletionChunk
 import mimetypes
-from flask import Flask, Response, request, jsonify
+from flask import Flask, Response, request, Request, jsonify
 from dotenv import load_dotenv
 import sys
 import functools
@@ -17,82 +18,8 @@ from azure.identity import DefaultAzureCredential
 logger = logging.getLogger(__name__)
 
 
-def prepare_body_headers_with_data(request, env_helper: EnvHelper):
-    request_messages = request.json["messages"]
-
-    body = {
-        "messages": request_messages,
-        "temperature": float(env_helper.AZURE_OPENAI_TEMPERATURE),
-        "max_tokens": int(env_helper.AZURE_OPENAI_MAX_TOKENS),
-        "top_p": float(env_helper.AZURE_OPENAI_TOP_P),
-        "stop": (
-            env_helper.AZURE_OPENAI_STOP_SEQUENCE.split("|")
-            if env_helper.AZURE_OPENAI_STOP_SEQUENCE
-            else None
-        ),
-        "stream": env_helper.SHOULD_STREAM,
-        "data_sources": [
-            {
-                "type": "azure_search",
-                "parameters": {
-                    # authentication is set below
-                    "endpoint": env_helper.AZURE_SEARCH_SERVICE,
-                    "index_name": env_helper.AZURE_SEARCH_INDEX,
-                    "fields_mapping": {
-                        "content_fields": (
-                            env_helper.AZURE_SEARCH_CONTENT_COLUMNS.split("|")
-                            if env_helper.AZURE_SEARCH_CONTENT_COLUMNS
-                            else []
-                        ),
-                        "title_field": env_helper.AZURE_SEARCH_TITLE_COLUMN or None,
-                        "url_field": env_helper.AZURE_SEARCH_URL_COLUMN or None,
-                        "filepath_field": (
-                            env_helper.AZURE_SEARCH_FILENAME_COLUMN or None
-                        ),
-                    },
-                    "filter": env_helper.AZURE_SEARCH_FILTER,
-                    "in_scope": env_helper.AZURE_SEARCH_ENABLE_IN_DOMAIN,
-                    "top_n_documents": env_helper.AZURE_SEARCH_TOP_K,
-                    "query_type": (
-                        "semantic"
-                        if env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH
-                        else "simple"
-                    ),
-                    "semantic_configuration": (
-                        env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
-                        if env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH
-                        and env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
-                        else ""
-                    ),
-                    "role_information": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE,
-                },
-            }
-        ],
-    }
-
-    headers = {
-        "Content-Type": "application/json",
-        "x-ms-useragent": "GitHubSampleWebApp/PublicAPI/1.0.0",
-    }
-
-    if env_helper.AZURE_AUTH_TYPE == "rbac":
-        body["data_sources"][0]["parameters"]["authentication"] = {
-            "type": "system_assigned_managed_identity"
-        }
-        headers["Authorization"] = f"Bearer {env_helper.AZURE_TOKEN_PROVIDER()}"
-    else:
-        body["data_sources"][0]["parameters"]["authentication"] = {
-            "type": "api_key",
-            "key": env_helper.AZURE_SEARCH_KEY,
-        }
-        headers["api-key"] = env_helper.AZURE_OPENAI_API_KEY
-
-    return body, headers
-
-
-def stream_with_data(body, headers, endpoint):
-    s = requests.Session()
-    response = {
+def stream_with_data(response: Stream[ChatCompletionChunk]):
+    response_obj = {
         "id": "",
         "model": "",
         "created": 0,
@@ -114,71 +41,133 @@ def stream_with_data(body, headers, endpoint):
             }
         ],
     }
-    try:
-        with s.post(endpoint, json=body, headers=headers, stream=True) as r:
-            for line in r.iter_lines(chunk_size=10):
-                if line:
-                    lineJson = json.loads(line.lstrip(b"data: ").decode("utf-8"))
-                    if "error" in lineJson:
-                        yield json.dumps(lineJson, ensure_ascii=False) + "\n"
-                        return
 
-                    if lineJson["choices"][0]["end_turn"]:
-                        response["choices"][0]["messages"][1]["end_turn"] = True
-                        yield json.dumps(response, ensure_ascii=False) + "\n"
-                        return
+    for line in response:
+        choice = line.choices[0]
 
-                    response["id"] = lineJson["id"]
-                    response["model"] = lineJson["model"]
-                    response["created"] = lineJson["created"]
-                    response["object"] = lineJson["object"]
+        if choice.model_extra["end_turn"]:
+            response_obj["choices"][0]["messages"][1]["end_turn"] = True
+            yield json.dumps(response_obj, ensure_ascii=False) + "\n"
+            return
 
-                    delta = lineJson["choices"][0]["delta"]
-                    role = delta.get("role")
+        response_obj["id"] = line.id
+        response_obj["model"] = line.model
+        response_obj["created"] = line.created
+        response_obj["object"] = line.object
 
-                    if role == "assistant":
-                        response["choices"][0]["messages"][0]["content"] = json.dumps(
-                            delta["context"],
-                            ensure_ascii=False,
-                        )
-                    else:
-                        response["choices"][0]["messages"][1]["content"] += delta[
-                            "content"
-                        ]
+        delta = choice.delta
+        role = delta.role
 
-                    yield json.dumps(response, ensure_ascii=False) + "\n"
-    except Exception as e:
-        yield json.dumps({"error": str(e)}, ensure_ascii=False) + "\n"
+        if role == "assistant":
+            response_obj["choices"][0]["messages"][0]["content"] = json.dumps(
+                delta.model_extra["context"],
+                ensure_ascii=False,
+            )
+        else:
+            response_obj["choices"][0]["messages"][1]["content"] += delta.content
+
+        yield json.dumps(response_obj, ensure_ascii=False) + "\n"
 
 
-def conversation_with_data(request, env_helper: EnvHelper):
-    body, headers = prepare_body_headers_with_data(request, env_helper)
-    endpoint = f"{env_helper.AZURE_OPENAI_ENDPOINT}openai/deployments/{env_helper.AZURE_OPENAI_MODEL}/chat/completions?api-version={env_helper.AZURE_OPENAI_API_VERSION}"
+def conversation_with_data(request: Request, env_helper: EnvHelper):
+    if env_helper.is_auth_type_keys():
+        openai_client = AzureOpenAI(
+            azure_endpoint=env_helper.AZURE_OPENAI_ENDPOINT,
+            api_version=env_helper.AZURE_OPENAI_API_VERSION,
+            api_key=env_helper.AZURE_OPENAI_API_KEY,
+        )
+    else:
+        openai_client = AzureOpenAI(
+            azure_endpoint=env_helper.AZURE_OPENAI_ENDPOINT,
+            api_version=env_helper.AZURE_OPENAI_API_VERSION,
+            azure_ad_token_provider=env_helper.AZURE_TOKEN_PROVIDER,
+        )
+
+    messages = request.json["messages"]
+
+    # Azure OpenAI takes the deployment name as the model name, "AZURE_OPENAI_MODEL" means deployment name.
+    response = openai_client.chat.completions.create(
+        model=env_helper.AZURE_OPENAI_MODEL,
+        messages=messages,
+        temperature=float(env_helper.AZURE_OPENAI_TEMPERATURE),
+        max_tokens=int(env_helper.AZURE_OPENAI_MAX_TOKENS),
+        top_p=float(env_helper.AZURE_OPENAI_TOP_P),
+        stop=(
+            env_helper.AZURE_OPENAI_STOP_SEQUENCE.split("|")
+            if env_helper.AZURE_OPENAI_STOP_SEQUENCE
+            else None
+        ),
+        stream=env_helper.SHOULD_STREAM,
+        extra_body={
+            "data_sources": [
+                {
+                    "type": "azure_search",
+                    "parameters": {
+                        "authentication": (
+                            {
+                                "type": "api_key",
+                                "key": env_helper.AZURE_SEARCH_KEY,
+                            }
+                            if env_helper.is_auth_type_keys()
+                            else {
+                                "type": "system_assigned_managed_identity",
+                            }
+                        ),
+                        "endpoint": env_helper.AZURE_SEARCH_SERVICE,
+                        "index_name": env_helper.AZURE_SEARCH_INDEX,
+                        "fields_mapping": {
+                            "content_fields": (
+                                env_helper.AZURE_SEARCH_CONTENT_COLUMNS.split("|")
+                                if env_helper.AZURE_SEARCH_CONTENT_COLUMNS
+                                else []
+                            ),
+                            "title_field": env_helper.AZURE_SEARCH_TITLE_COLUMN or None,
+                            "url_field": env_helper.AZURE_SEARCH_URL_COLUMN or None,
+                            "filepath_field": (
+                                env_helper.AZURE_SEARCH_FILENAME_COLUMN or None
+                            ),
+                        },
+                        "filter": env_helper.AZURE_SEARCH_FILTER,
+                        "in_scope": env_helper.AZURE_SEARCH_ENABLE_IN_DOMAIN,
+                        "top_n_documents": env_helper.AZURE_SEARCH_TOP_K,
+                        "query_type": (
+                            "semantic"
+                            if env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH
+                            else "simple"
+                        ),
+                        "semantic_configuration": (
+                            env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
+                            if env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH
+                            and env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
+                            else ""
+                        ),
+                        "role_information": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE,
+                    },
+                }
+            ]
+        },
+    )
 
     if not env_helper.SHOULD_STREAM:
-        r = requests.post(endpoint, headers=headers, json=body)
-        status_code = r.status_code
-        r = r.json()
-
-        response = {
-            "id": r["id"],
-            "model": r["model"],
-            "created": r["created"],
-            "object": r["object"],
+        response_obj = {
+            "id": response.id,
+            "model": response.model,
+            "created": response.created,
+            "object": response.object,
             "choices": [
                 {
                     "messages": [
                         {
                             "content": json.dumps(
-                                r["choices"][0]["message"]["context"],
+                                response.choices[0].message.model_extra["context"],
                                 ensure_ascii=False,
                             ),
                             "end_turn": False,
                             "role": "tool",
                         },
                         {
-                            "content": r["choices"][0]["message"]["content"],
                             "end_turn": True,
+                            "content": response.choices[0].message.content,
                             "role": "assistant",
                         },
                     ]
@@ -186,15 +175,15 @@ def conversation_with_data(request, env_helper: EnvHelper):
             ],
         }
 
-        return jsonify(response), status_code
+        return response_obj
     else:
         return Response(
-            stream_with_data(body, headers, endpoint),
+            stream_with_data(response),
             mimetype="application/json-lines",
         )
 
 
-def stream_without_data(response):
+def stream_without_data(response: Stream[ChatCompletionChunk]):
     responseText = ""
     for line in response:
         if not line.choices:
@@ -225,7 +214,7 @@ def get_orchestrator_config():
     return ConfigHelper.get_active_config_or_default().orchestrator
 
 
-def conversation_without_data(request, env_helper):
+def conversation_without_data(request: Request, env_helper: EnvHelper):
     if env_helper.AZURE_AUTH_TYPE == "rbac":
         openai_client = AzureOpenAI(
             azure_endpoint=env_helper.AZURE_OPENAI_ENDPOINT,
@@ -277,7 +266,6 @@ def conversation_without_data(request, env_helper):
                 }
             ],
         }
-
         return jsonify(response_obj), 200
     else:
         return Response(
