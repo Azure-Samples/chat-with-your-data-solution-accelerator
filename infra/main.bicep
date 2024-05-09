@@ -964,7 +964,6 @@ module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
   }
 }
 
-// TODO: Streamline to one key=value pair
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 
 output AZURE_BLOB_CONTAINER_NAME string = blobContainerName
