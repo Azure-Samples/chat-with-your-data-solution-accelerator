@@ -5,6 +5,7 @@ import sys
 import logging
 from batch.utilities.helpers.EnvHelper import EnvHelper
 from batch.utilities.search.Search import Search
+from batch.utilities.helpers.AzureBlobStorageClient import AzureBlobStorageClient
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
@@ -65,6 +66,9 @@ try:
                 files_to_delete = search_handler.delete_files(
                     selected_files,
                 )
+                # Delete from Storage
+                blob_client = AzureBlobStorageClient()
+                blob_client.delete_files(selected_files)
                 if len(files_to_delete) > 0:
                     st.success("Deleted files: " + str(files_to_delete))
 

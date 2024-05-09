@@ -168,7 +168,21 @@ class AzureBlobStorageClient:
         blob_client = self.blob_service_client.get_blob_client(
             container=self.container_name, blob=file_name
         )
-        blob_client.delete_blob()
+        if blob_client.exists():
+            blob_client.delete_blob()
+
+    def delete_files(self, files):
+        """
+        Deletes files from the Azure Blob Storage container.
+
+        Args:
+            files (list[str]): The names of the files to delete.
+
+        Returns:
+            None
+        """
+        for filename, ids in files.items():
+            self.delete_file(filename)
 
     def get_all_files(self):
         # Get all files in the container from Azure Blob Storage
