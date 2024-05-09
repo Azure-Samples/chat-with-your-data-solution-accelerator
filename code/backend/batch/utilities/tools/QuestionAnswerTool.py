@@ -1,5 +1,6 @@
 import json
 import logging
+import warnings
 
 from ..common.SourceDocument import SourceDocument
 from ..search.Search import Search
@@ -83,7 +84,7 @@ class QuestionAnswerTool(AnsweringToolBase):
             if all((few_shot_example.values())):
                 examples.append(few_shot_example)
             else:
-                logger.warning(
+                warnings.warn(
                     "Not all example fields are set in the config. Skipping few-shot example."
                 )
 
@@ -139,7 +140,7 @@ class QuestionAnswerTool(AnsweringToolBase):
                 question, chat_history, source_documents
             )
         else:
-            logger.warning(
+            warnings.warn(
                 "Azure OpenAI On Your Data prompt format is recommended and should be enabled in the Admin app.",
             )
             answering_prompt, input = self.generate_llm_chain(
