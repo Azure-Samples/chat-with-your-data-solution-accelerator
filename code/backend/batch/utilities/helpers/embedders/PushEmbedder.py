@@ -42,34 +42,25 @@ class PushEmbedder(EmbedderBase):
 
     def __embed(self, source_url: str, embedding_config: EmbeddingConfig):
         documents_to_upload: List[SourceDocument] = []
-        try:
-            if not embedding_config.use_advanced_image_processing:
-                documents: List[SourceDocument] = self.document_loading.load(
-                    source_url, embedding_config.loading
-                )
-                documents = self.document_chunking.chunk(
-                    documents, embedding_config.chunking
-                )
+        if not embedding_config.use_advanced_image_processing:
+            documents: List[SourceDocument] = self.document_loading.load(
+                source_url, embedding_config.loading
+            )
+            documents = self.document_chunking.chunk(
+                documents, embedding_config.chunking
+            )
 
-                for document in documents:
-                    documents_to_upload.append(
-                        self._convert_to_search_document(document)
-                    )
+            for document in documents:
+                documents_to_upload.append(self._convert_to_search_document(document))
 
-                response = (
-                    self.azure_search_helper.get_search_client().upload_documents(
-                        documents_to_upload
-                    )
-                )
-                if not all([r.succeeded for r in response]):
-                    raise Exception(response)
+            response = self.azure_search_helper.get_search_client().upload_documents(
+                documents_to_upload
+            )
+            if not all([r.succeeded for r in response]):
+                raise Exception(response)
 
-            else:
-                logger.warning("Advanced image processing is not supported yet")
-
-        except Exception as e:
-            logger.error(f"Error adding embeddings for {source_url}: {e}")
-            raise e
+        else:
+            logger.warning("Advanced image processing is not supported yet")
 
     def _convert_to_search_document(self, document: SourceDocument):
         embedded_content = self.llm_helper.generate_embeddings(document.content)
