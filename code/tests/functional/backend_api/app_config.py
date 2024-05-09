@@ -7,7 +7,6 @@ logger = logging.getLogger(__name__)
 class AppConfig:
     before_config: dict[str, str] = {}
     config: dict[str, str | None] = {
-        "APPINSIGHTS_CONNECTION_STRING": "",
         "APPINSIGHTS_ENABLED": "False",
         "AZURE_AUTH_TYPE": "keys",
         "AZURE_BLOB_ACCOUNT_KEY": "some-blob-account-key",
