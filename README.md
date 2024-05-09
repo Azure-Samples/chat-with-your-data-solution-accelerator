@@ -1,5 +1,6 @@
 ---
-page_type: sample
+name: Chat with your data - Solution accelerator (Python)
+description: Chat with your data using OpenAI and AI Search with Python.
 languages:
 - python
 - typescript
@@ -15,15 +16,39 @@ products:
 - azure-functions
 - azure-storage-accounts
 - azure-speech
+page_type: sample
 urlFragment: chat-with-your-data-solution-accelerator
-name: Chat with your data - Solution accelerator (Python)
-description: Chat with your data using OpenAI and AI Search with Python.
+
 ---
 <!-- YAML front-matter schema: https://review.learn.microsoft.com/en-us/help/contribute/samples/process/onboarding?branch=main#supported-metadata-fields-for-readmemd -->
 
 # Chat with your data - Solution accelerator
 
-[**USER STORY**](#user-story) | [**DEPLOY**](#Deploy) | [**SUPPORTING DOCUMENTATION**](#supporting-documentation) | [**CUSTOMER TRUTH**](#customer-truth)\
+<!--  [**USER STORY**](#user-story) | [**DEPLOY**](#Deploy) | [**SUPPORTING DOCUMENTATION**](#supporting-documentation) | [**CUSTOMER TRUTH**](#customer-truth)\ -->
+ ##### Table of Contents   
+ * [User story](#user-story)
+    + [About this repo](#about-this-repo)
+    + [Getting Support](#getting-support)
+    + [When should you use this repo](#when-should-you-use-this-repo)
+    + [Key features](#key-features)
+    + [Supported file types](#supported-file-types)
+    + [Target end users](#target-end-users)
+    + [Industry scenario](#industry-scenario)
+    + [Speech-to-text functionality](#speech-to-text-functionality)
+    + [Teams extension](#teams-extension)
+  * [Deploy](#deploy)
+    + [Pre-requisites](#pre-requisites)
+    + [Products used](#products-used)
+    + [Required licenses](#required-licenses)
+    + [Pricing Considerations](#pricing-considerations)
+    + [Deploy instructions](#deploy-instructions)
+    + [Testing the deployment](#testing-the-deployment)
+  * [Supporting documentation](#supporting-documentation)
+    + [Best practices](#best-practices)
+    + [Resource links](#resource-links)
+    + [Licensing](#licensing)
+  * [Customer truth](#customer-truth)
+  * [Disclaimers](#disclaimers) 
 \
 \
 ![User Story](/media/userStory.png)
@@ -34,7 +59,7 @@ Welcome to the *Chat with your data* Solution accelerator repository! The *Chat 
 
 ### About this repo
 
-This repository provides a template for setting up the solution accelerator, along with detailed instructions on how to use and customize it to fit your specific needs. It provides the following features:
+This repository provides an end-to-end solution for users who want to query their data with natural language. It includes a well designed ingestion mechanism for multiple file types, an easy deployment, and a support team for maintenance. The accelerator demonstrates both Push or Pull Ingestion; the choice of orchestration (Semantic Kernel or LangChain) and should be the minimum components needed to implement a RAG pattern. It is not intended to be put into Production as-is without experimentation or evaluation of your data. It provides the following features:
 
 * Chat with an Azure OpenAI model using your own data
 * Upload and process your documents
@@ -49,9 +74,11 @@ If you're facing issues with setting up or using Chat With Your Data, follow the
 ### When should you use this repo?
 
 If you need to customize your scenario beyond what [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data) offers out-of-the-box, use this repository.
+By default, this repo comes with one specific set of RAG configurations including but not limited to: chunk size, overlap, retrieval/search type and system prompt. It is important that you evaluate the retrieval/search and the generation of the answers for your data and tune these configurations accordingly before you use this repo in production. For a starting point to understand and perform RAG evaluations, we encourage you to look into the [RAG Experiment Accelerator](https://github.com/microsoft/rag-experiment-accelerator).
 
 The accelerator presented here provides several options, for example:
 * The ability to ground a model using both data and public web pages
+* A backend that mimics the [On Your Data](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/use-your-data) flow, with the ability to switch to a custom backend
 * Advanced prompt engineering capabilities
 * An admin site for ingesting/inspecting/configuring your dataset on the fly
 * Running a Retrieval Augmented Generation (RAG) solution locally
@@ -62,10 +89,12 @@ Here is a comparison table with a few features offered by Azure, an available Gi
 
 | Name	| Feature or Sample? |	What is it? | When to use? |
 | ---------|---------|---------|---------|
+|["Chat with your data" Solution Accelerator](https://aka.ms/ChatWithYourDataSolutionAccelerator) - (This repo)	| Azure sample | End-to-end baseline RAG pattern sample that uses Azure AI Search as a retriever.	| This sample should be used by Developers when the  RAG pattern implementations provided by Azure are not able to satisfy business requirements. This sample provides a means to customize the solution. Developers must add their own code to meet requirements, and adapt with best practices according to individual company policies. |
 |[Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data) | Azure feature | Azure OpenAI Service offers out-of-the-box, end-to-end RAG implementation that uses a REST API or the web-based interface in the Azure AI Studio to create a solution that connects to your data to enable an enhanced chat experience with Azure OpenAI ChatGPT models and Azure AI Search. | This should be the first option considered for developers that need an end-to-end solution for Azure OpenAI Service with an Azure AI Search retriever. Simply select supported data sources, that ChatGPT model in Azure OpenAI Service , and any other Azure resources needed to configure your enterprise application needs. |
 |[Azure Machine Learning prompt flow](https://learn.microsoft.com/azure/machine-learning/concept-retrieval-augmented-generation)	| Azure feature | RAG in Azure Machine Learning is enabled by integration with Azure OpenAI Service for large language models and vectorization. It includes support for Faiss and Azure AI Search as vector stores, as well as support for open-source offerings, tools, and frameworks such as LangChain for data chunking. Azure Machine Learning prompt flow offers the ability to test data generation, automate prompt creation, visualize prompt evaluation metrics, and integrate RAG workflows into MLOps using pipelines.  | When Developers need more control over processes involved in the development cycle of LLM-based AI applications, they should use Azure Machine Learning prompt flow to create executable flows and evaluate performance through large-scale testing. |
-|["Chat with your data" Solution Accelerator](https://aka.ms/ChatWithYourDataSolutionAccelerator) - (This repo)	| Azure sample | End-to-end baseline RAG pattern sample that uses Azure AI Search as a retriever.	| This sample should be used by Developers when the  RAG pattern implementations provided by Azure are not able to satisfy business requirements. This sample provides a means to customize the solution. Developers must add their own code to meet requirements, and adapt with best practices according to individual company policies. |
 |[ChatGPT + Enterprise data with Azure OpenAI and AI Search demo](https://github.com/Azure-Samples/azure-search-openai-demo) | Azure sample | RAG pattern demo that uses Azure AI Search as a retriever. | Developers who would like to use or present an end-to-end demonstration of the RAG pattern should use this sample. This includes the ability to deploy and test different retrieval modes, and prompts to support business use cases. |
+|[RAG Experiment Accelerator](https://github.com/microsoft/rag-experiment-accelerator) | Tool |The RAG Experiment Accelerator is a versatile tool that helps you conduct experiments and evaluations using Azure AI Search and RAG pattern. | RAG Experiment Accelerator is to make it easier and faster to run experiments and evaluations of search queries and quality of response from OpenAI. This tool is useful for researchers, data scientists, and developers who want to, Test the performance of different Search and OpenAI related hyperparameters. |
+
 
 ### Key features
 - **Private LLM access on your data**: Get all the benefits of ChatGPT on your private, unstructured data.
