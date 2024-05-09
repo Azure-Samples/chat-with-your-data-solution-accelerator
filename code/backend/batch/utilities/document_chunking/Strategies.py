@@ -1,4 +1,4 @@
-from .ChunkingStrategy import ChunkingStrategy
+from .chunking_strategy import ChunkingStrategy
 from .Layout import LayoutDocumentChunking
 from .Page import PageDocumentChunking
 from .FixedSizeOverlap import FixedSizeOverlapDocumentChunking
