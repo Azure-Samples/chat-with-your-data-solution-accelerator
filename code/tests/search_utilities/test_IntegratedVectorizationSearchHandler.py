@@ -100,6 +100,17 @@ def test_process_results(handler):
     assert data[0] == ["123", "some content"]
 
 
+def test_process_results_null(handler):
+    # given
+    results = []
+
+    # when
+    data = handler.process_results(results)
+
+    # then
+    assert len(data) == 0
+
+
 def test_delete_files(handler, search_client_mock):
     # given
     files = {"file1": ["1", "2"]}

@@ -30,6 +30,8 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
             )
 
     def process_results(self, results):
+        if results is None:
+            return []
         data = [
             [re.findall(r"\d+", result["chunk_id"])[-1], result["content"]]
             for result in results

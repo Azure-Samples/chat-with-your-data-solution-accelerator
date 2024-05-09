@@ -15,6 +15,8 @@ class AzureSearchHandler(SearchHandlerBase):
         )
 
     def process_results(self, results):
+        if results is None:
+            return []
         data = [
             [json.loads(result["metadata"])["chunk"], result["content"]]
             for result in results

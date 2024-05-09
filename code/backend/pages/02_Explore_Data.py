@@ -38,21 +38,13 @@ st.markdown(hide_table_row_index, unsafe_allow_html=True)
 try:
     search_handler = Search.get_search_handler(env_helper)
 
-    results = (
-        search_handler.search_client.search("*", facets=["title"])
-        if search_handler.search_client is not None
-        else None
-    )
-    unique_files = (
-        [filename["value"] for filename in results.get_facets()["title"]]
-        if results
-        else []
-    )
+    results = search_handler.search_with_facets("*", ["title"])
+    unique_files = search_handler.get_unique_files(results, "title")
     filename = st.selectbox("Select your file:", unique_files)
     st.write("Showing chunks for:", filename)
 
     results = search_handler.perform_search(filename)
-    data = search_handler.process_results(results) if results else []
+    data = search_handler.process_results(results)
     df = pd.DataFrame(data, columns=("Chunk", "Content")).sort_values(by=["Chunk"])
     st.table(df)
 
