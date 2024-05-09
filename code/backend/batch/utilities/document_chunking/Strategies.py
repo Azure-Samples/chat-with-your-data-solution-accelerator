@@ -1,5 +1,5 @@
 from .chunking_strategy import ChunkingStrategy
-from .Layout import LayoutDocumentChunking
+from .layout import LayoutDocumentChunking
 from .Page import PageDocumentChunking
 from .fixed_size_overlap import FixedSizeOverlapDocumentChunking
 from .Paragraph import ParagraphDocumentChunking
