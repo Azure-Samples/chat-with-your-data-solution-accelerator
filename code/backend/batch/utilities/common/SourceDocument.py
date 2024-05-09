@@ -3,6 +3,7 @@ import hashlib
 import json
 from urllib.parse import urlparse, quote
 from ..helpers.AzureBlobStorageClient import AzureBlobStorageClient
+from langchain.docstore.document import Document
 
 
 class SourceDocument:
@@ -80,8 +81,6 @@ class SourceDocument:
         )
 
     def convert_to_langchain_document(self):
-        from langchain.docstore.document import Document
-
         return Document(
             page_content=self.content,
             metadata={

@@ -17,7 +17,7 @@ from langchain_community.callbacks import get_openai_callback
 from langchain_core.documents import Document
 from langchain_core.messages import SystemMessage
 
-from ..helpers.ConfigHelper import ConfigHelper
+from ..helpers.config.ConfigHelper import ConfigHelper
 from ..helpers.LLMHelper import LLMHelper
 from ..helpers.EnvHelper import EnvHelper
 from ..common.Answer import Answer

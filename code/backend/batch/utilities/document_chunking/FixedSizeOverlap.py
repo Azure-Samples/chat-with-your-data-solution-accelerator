@@ -1,7 +1,7 @@
 from typing import List
 from .DocumentChunkingBase import DocumentChunkingBase
 from langchain.text_splitter import TokenTextSplitter
-from .Strategies import ChunkingSettings
+from .ChunkingStrategy import ChunkingSettings
 from ..common.SourceDocument import SourceDocument
 
 

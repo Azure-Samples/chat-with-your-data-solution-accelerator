@@ -63,6 +63,7 @@ To run the accelerator in local when the solution is secured by RBAC you need to
 
 ### Manually assign roles
 You need to assign the following roles to your `PRINCIPALID` (you can get your 'principal id' from Microsoft Entra ID):
+
 | Role | GUID |
 |----|----|
 |  Cognitive Services OpenAI Contributor | a001fd3d-188f-4b5d-821b-7da978bf7442 |
@@ -72,12 +73,7 @@ You need to assign the following roles to your `PRINCIPALID` (you can get your '
 | Reader | acdd72a7-3385-48ef-bd42-f606fba81ae7 |
 
 ### Programatically assign roles
-You can also update the `principalId` value with your own principalId in `deployment.bicep` file.
-
-Then deploy the bicep file using the below command:
-```shell
-az deployment group create --resource-group {your_resource_group} --template-file deployment.bicep --subscription {your_azure_subscription_id}
-```
+You can also update the `principalId` value with your own principalId in the `main.bicep` file.
 
 ### Authenticate using RBAC
 To authenticate using API Keys, update the value of `AZURE_AUTH_TYPE` to keys. For accessing using 'rbac', manually make changes by following the below steps:
@@ -190,6 +186,7 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 |AZURE_SEARCH_FIELDS_TAG|tag|Field from your Azure AI Search index that contains tags for the document. `tag` if you don't have a specific requirement.|
 |AZURE_SEARCH_FIELDS_METADATA|metadata|Field from your Azure AI Search index that contains metadata for the document. `metadata` if you don't have a specific requirement.|
 |AZURE_SEARCH_FILTER||Filter to apply to search queries.|
+|AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION ||Whether to use [Integrated Vectorization](https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-vectorization)|
 |AZURE_OPENAI_RESOURCE||the name of your Azure OpenAI resource|
 |AZURE_OPENAI_MODEL||The name of your model deployment|
 |AZURE_OPENAI_MODEL_NAME|gpt-35-turbo|The name of the model|
@@ -219,10 +216,8 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 
 ## Bicep
 
-A [Bicep file](./infra/main.bicep) is used to generate the [ARM template](./infra/main.json). You can deploy this accelerator by the following command
+A [Bicep file](./infra/main.bicep) is used to generate the [ARM template](./infra/main.json). You can deploy this accelerator by the following command if you do not want to use `azd`.
 
 ```sh
-RESOURCE_GROUP_NAME=cwyd
-az group create --location uksouth --resource-group $RESOURCE_GROUP_NAME
-az deployment group create --resource-group $RESOURCE_GROUP_NAME --template-file ./infra/main.bicep
+az deployment sub create --template-file ./infra/main.bicep --subscription {your_azure_subscription_id} --location {search_location}
  ```
