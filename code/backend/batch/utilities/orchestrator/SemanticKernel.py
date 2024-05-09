@@ -4,6 +4,8 @@ import logging
 from semantic_kernel import Kernel
 from semantic_kernel.connectors.ai.open_ai.utils import get_tool_call_object
 from semantic_kernel.contents import ChatHistory
+from semantic_kernel.contents.finish_reason import FinishReason
+from semantic_kernel.contents.chat_message_content import ChatMessageContent
 
 from ..common.Answer import Answer
 from ..helpers.LLMHelper import LLMHelper
@@ -63,7 +65,7 @@ When directly replying to the user, always reply in the language the user is spe
         for message in chat_history.copy():
             history.add_message(message)
 
-        result = (
+        result: ChatMessageContent = (
             await self.kernel.invoke(
                 function=orchestrate_function,
                 chat_history=history,
@@ -76,16 +78,16 @@ When directly replying to the user, always reply in the language the user is spe
             completion_tokens=result.metadata["usage"].completion_tokens,
         )
 
-        if result.tool_calls:
+        if result.finish_reason == FinishReason.TOOL_CALLS:
             logger.info("Semantic Kernel function call detected")
 
-            function_name = result.tool_calls[0].function.name
+            function_name = result.items[0].name
             logger.info(f"{function_name} function detected")
             function = self.kernel.get_function_from_fully_qualified_function_name(
                 function_name
             )
 
-            arguments = json.loads(result.tool_calls[0].function.arguments)
+            arguments = json.loads(result.items[0].arguments)
 
             answer: Answer = (
                 await self.kernel.invoke(function=function, **arguments)
@@ -102,7 +104,7 @@ When directly replying to the user, always reply in the language the user is spe
                 and "search_documents" in function_name
             ):
                 logger.debug("Running post answering prompt")
-                answer = (
+                answer: Answer = (
                     await self.kernel.invoke(
                         function_name="validate_answer",
                         plugin_name="PostAnswering",
