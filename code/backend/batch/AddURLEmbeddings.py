@@ -22,15 +22,13 @@ def add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
     # Get Url from request
     url = None
     try:
-        req_body = req.get_json()
-    except ValueError:
-        pass
-    else:
-        url = req_body.get("url")
+        url = req.get_json().get("url")
+    except Exception:
+        url = None
 
     if not url:
         return func.HttpResponse(
-            "Please pass a url on the query string or in the request body",
+            "Please pass a URL on the query string or in the request body",
             status_code=400,
         )
 
@@ -46,7 +44,13 @@ def process_url_contents_directly(url: str, env_helper: EnvHelper):
         embedder = EmbedderFactory.create(env_helper)
         embedder.embed_file(url, ".url")
     except Exception:
-        return func.HttpResponse(f"Error: {traceback.format_exc()}", status_code=500)
+        logger.error(
+            f"Error while processing contents of URL {url}: {traceback.format_exc()}"
+        )
+        return func.HttpResponse(
+            f"Unexpected error occurred while processing the contents of the URL {url}",
+            status_code=500,
+        )
 
     return func.HttpResponse(
         f"Embeddings added successfully for {url}", status_code=200
@@ -60,10 +64,13 @@ def download_url_and_upload_to_blob(url: str):
         with io.BytesIO(parsed_data.get_text().encode("utf-8")) as stream:
             blob_client = AzureBlobStorageClient()
             blob_client.upload_file(stream, url, metadata={"title": url})
-        return func.HttpResponse(f"Url {url} added to knowledge base", status_code=200)
+        return func.HttpResponse(f"URL {url} added to knowledge base", status_code=200)
 
     except Exception:
+        logger.error(
+            f"Error while adding URL {url} to the knowledge base: {traceback.format_exc()}"
+        )
         return func.HttpResponse(
-            f"Error: {traceback.format_exc()}. Exception occurred while adding {url} to the knowledge base.",
+            f"Error occurred while adding {url} to the knowledge base.",
             status_code=500,
         )
