@@ -137,12 +137,12 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_get_vector_dimensions(
                 "Api-Key": app_config.get("AZURE_OPENAI_API_KEY"),
             },
             query_string="api-version=2024-02-01",
-            times=3,
+            times=1,
         ),
     )
 
 
-def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question(
+def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question_to_search(
     app_url: str, app_config: AppConfig, httpserver: HTTPServer
 ):
     # when
@@ -158,7 +158,7 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question(
                 "input": [
                     [3923, 374, 279, 7438, 315, 2324, 30]
                 ],  # Embedding of "What is the meaning of life?"
-                "model": "text-embedding-ada-002",
+                "model": app_config.get("AZURE_OPENAI_EMBEDDING_MODEL"),
                 "encoding_format": "base64",
             },
             headers={
@@ -168,7 +168,38 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question(
                 "Api-Key": app_config.get("AZURE_OPENAI_API_KEY"),
             },
             query_string="api-version=2024-02-01",
-            times=2,  # once to use when quering search and once when adding to the conversation log
+            times=1,
+        ),
+    )
+
+
+def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question_to_store_in_conversation_log(
+    app_url: str, app_config: AppConfig, httpserver: HTTPServer
+):
+    # when
+    requests.post(f"{app_url}{path}", json=body)
+
+    # then
+    verify_request_made(
+        mock_httpserver=httpserver,
+        request_matcher=RequestMatcher(
+            path=f"/openai/deployments/{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}/embeddings",
+            method="POST",
+            json={
+                "input": [
+                    [3923, 374, 279, 7438, 315, 2324, 30]
+                ],  # Embedding of "What is the meaning of life?"
+                "model": "text-embedding-ada-002",  # this is hard coded in the langchain code base
+                "encoding_format": "base64",
+            },
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {app_config.get('AZURE_OPENAI_API_KEY')}",
+                "Api-Key": app_config.get("AZURE_OPENAI_API_KEY"),
+            },
+            query_string="api-version=2024-02-01",
+            times=1,
         ),
     )
 
@@ -290,7 +321,7 @@ def test_post_makes_correct_call_to_openai_chat_completions_with_functions(
     )
 
 
-def test_post_makes_correct_call_to_get_documents_search_index(
+def test_post_makes_correct_call_to_list_search_indexes(
     app_url: str, app_config: AppConfig, httpserver: HTTPServer
 ):
     # when
@@ -300,14 +331,14 @@ def test_post_makes_correct_call_to_get_documents_search_index(
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
-            path=f"/indexes('{app_config.get('AZURE_SEARCH_INDEX')}')",
+            path="/indexes",
             method="GET",
             headers={
                 "Accept": "application/json;odata.metadata=minimal",
                 "Api-Key": app_config.get("AZURE_SEARCH_KEY"),
             },
             query_string="api-version=2023-10-01-Preview",
-            times=2,
+            times=3,
         ),
     )
 
@@ -449,7 +480,7 @@ def test_post_makes_correct_call_to_create_documents_search_index(
                     ],
                 },
             },
-            times=2,
+            times=1,
         ),
     )
 
@@ -475,7 +506,7 @@ def test_post_makes_correct_call_to_search_documents_search_index(
                         "kind": "vector",
                         "k": int(app_config.get("AZURE_SEARCH_TOP_K")),
                         "fields": "content_vector",
-                        "vector": [0.9320719838142395, -0.3622731566429138],
+                        "vector": [0.018990106880664825, -0.0073809814639389515],
                     }
                 ],
             },
@@ -598,8 +629,8 @@ def test_post_returns_error_when_downstream_fails(
     httpserver.clear_all_handlers()  # Clear default successful responses
 
     httpserver.expect_request(
-        f"/openai/deployments/{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}/embeddings",
-        method="POST",
+        "/indexes",
+        method="GET",
     ).respond_with_json({}, status=500)
 
     # when

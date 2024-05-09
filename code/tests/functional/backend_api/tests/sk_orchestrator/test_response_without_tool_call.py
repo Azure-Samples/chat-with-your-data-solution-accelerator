@@ -260,8 +260,8 @@ def test_post_returns_error_when_downstream_fails(
     httpserver.clear_all_handlers()  # Clear default successful responses
 
     httpserver.expect_request(
-        f"/openai/deployments/{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}/embeddings",
-        method="POST",
+        "/indexes",
+        method="GET",
     ).respond_with_json({}, status=500)
 
     # when
