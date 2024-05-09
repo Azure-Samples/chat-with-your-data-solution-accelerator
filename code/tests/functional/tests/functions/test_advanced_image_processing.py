@@ -11,7 +11,7 @@ from backend.batch.utilities.helpers.config.config_helper import (
 )
 from pytest_httpserver import HTTPServer
 from tests.functional.app_config import AppConfig
-from tests.functional.request_matching import RequestMatcher, verify_request_made
+from tests.request_matching import RequestMatcher, verify_request_made
 
 sys.path.append(
     os.path.join(os.path.dirname(sys.path[0]), "..", "..", "backend", "batch")

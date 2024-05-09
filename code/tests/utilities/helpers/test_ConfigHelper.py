@@ -263,6 +263,37 @@ def test_save_config_as_active(
     )
 
 
+def test_save_config_as_active_validates_advanced_image_file_types_are_valid(
+    AzureBlobStorageClientMock: MagicMock,
+    config_dict: dict,
+):
+    # given
+    config_dict["document_processors"] = [
+        {
+            "document_type": "txt",
+            "chunking": {
+                "strategy": "layout",
+                "size": 500,
+                "overlap": 100,
+            },
+            "loading": {
+                "strategy": "web",
+            },
+            "use_advanced_image_processing": True,
+        }
+    ]
+
+    # when
+    with pytest.raises(Exception) as e:
+        ConfigHelper.save_config_as_active(config_dict)
+
+    # then
+    assert str(e.value) == (
+        "Advanced image processing is enabled for document type txt, but only ['jpeg', 'jpg', 'png', 'tiff', 'bmp'] files types are supported."
+    )
+    AzureBlobStorageClientMock.assert_not_called()
+
+
 def test_delete_config(AzureBlobStorageClientMock: MagicMock):
     # when
     ConfigHelper.delete_config()
@@ -360,6 +391,14 @@ def test_get_available_document_types_when_advanced_image_processing_enabled(
     assert sorted(document_types) == sorted(
         ["txt", "pdf", "url", "html", "md", "jpeg", "jpg", "png", "docx", "tiff", "bmp"]
     )
+
+
+def test_get_advanced_image_processing_image_types(config: Config):
+    # when
+    image_types = config.get_advanced_image_processing_image_types()
+
+    # then
+    assert sorted(image_types) == sorted(["jpeg", "jpg", "png", "tiff", "bmp"])
 
 
 def test_get_available_chunking_strategies(config: Config):

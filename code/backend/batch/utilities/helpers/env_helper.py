@@ -111,6 +111,9 @@ class EnvHelper:
         self.USE_ADVANCED_IMAGE_PROCESSING = self.get_env_var_bool(
             "USE_ADVANCED_IMAGE_PROCESSING", "False"
         )
+        self.AZURE_COMPUTER_VISION_ENDPOINT = os.getenv(
+            "AZURE_COMPUTER_VISION_ENDPOINT"
+        )
 
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
@@ -118,6 +121,7 @@ class EnvHelper:
             self.AZURE_SEARCH_KEY = None
             self.AZURE_OPENAI_API_KEY = ""
             self.AZURE_SPEECH_KEY = None
+            self.AZURE_COMPUTER_VISION_KEY = None
         else:
             self.AZURE_SEARCH_KEY = self.secretHelper.get_secret("AZURE_SEARCH_KEY")
             self.AZURE_OPENAI_API_KEY = self.secretHelper.get_secret(
@@ -125,6 +129,9 @@ class EnvHelper:
             )
             self.AZURE_SPEECH_KEY = self.secretHelper.get_secret(
                 "AZURE_SPEECH_SERVICE_KEY"
+            )
+            self.AZURE_COMPUTER_VISION_KEY = self.secretHelper.get_secret(
+                "AZURE_COMPUTER_VISION_KEY"
             )
 
         # Set env for Azure OpenAI

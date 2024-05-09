@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.27.1.19265",
-      "templateHash": "17426906878691848997"
+      "templateHash": "2976692086240061998"
     }
   },
   "parameters": {
@@ -1438,6 +1438,9 @@
           "speechServiceName": {
             "value": "[parameters('speechServiceName')]"
           },
+          "computerVisionName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.name.value]"
+          },
           "rgName": {
             "value": "[variables('rgName')]"
           }
@@ -1449,7 +1452,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.27.1.19265",
-              "templateHash": "6700778522040462677"
+              "templateHash": "3769272141523051550"
             }
           },
           "parameters": {
@@ -1485,6 +1488,10 @@
               "type": "string",
               "defaultValue": ""
             },
+            "computerVisionName": {
+              "type": "string",
+              "defaultValue": ""
+            },
             "storageAccountKeyName": {
               "type": "string",
               "defaultValue": "AZURE-STORAGE-ACCOUNT-KEY"
@@ -1508,6 +1515,10 @@
             "speechKeyName": {
               "type": "string",
               "defaultValue": "AZURE-SPEECH-KEY"
+            },
+            "computerVisionKeyName": {
+              "type": "string",
+              "defaultValue": "AZURE-COMPUTER-VISION-KEY"
             }
           },
           "resources": [
@@ -1558,6 +1569,14 @@
               "properties": {
                 "value": "[listKeys(resourceId(subscription().subscriptionId, parameters('rgName'), 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1]"
               }
+            },
+            {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2022-07-01",
+              "name": "[format('{0}/{1}', parameters('keyVaultName'), parameters('computerVisionKeyName'))]",
+              "properties": {
+                "value": "[listKeys(resourceId(subscription().subscriptionId, parameters('rgName'), 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1]"
+              }
             }
           ],
           "outputs": {
@@ -1584,11 +1603,16 @@
             "SPEECH_KEY_NAME": {
               "type": "string",
               "value": "[parameters('speechKeyName')]"
+            },
+            "COMPUTER_VISION_KEY_NAME": {
+              "type": "string",
+              "value": "[parameters('computerVisionKeyName')]"
             }
           }
         }
       },
       "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName'))]",
@@ -3837,6 +3861,7 @@
               "AZURE_SEARCH_DATASOURCE_NAME": "[parameters('azureSearchDatasource')]",
               "AZURE_SEARCH_INDEXER_NAME": "[parameters('azureSearchIndexer')]",
               "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
+              "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
               "BACKEND_URL": "[format('https://{0}.azurewebsites.net', parameters('functionName'))]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "FUNCTION_KEY": "[variables('clientKey')]",
@@ -4764,6 +4789,7 @@
               "AZURE_SEARCH_DATASOURCE_NAME": "[parameters('azureSearchDatasource')]",
               "AZURE_SEARCH_INDEXER_NAME": "[parameters('azureSearchIndexer')]",
               "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
+              "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
               "BACKEND_URL": "[format('https://{0}-docker.azurewebsites.net', parameters('functionName'))]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "FUNCTION_KEY": "[variables('clientKey')]",
@@ -7382,6 +7408,9 @@
           "speechServiceName": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('speechServiceName')), '2022-09-01').outputs.name.value]"
           },
+          "computerVisionName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.name.value]"
+          },
           "clientKey": {
             "value": "[variables('clientKey')]"
           },
@@ -7391,6 +7420,7 @@
           "searchKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SEARCH_KEY_NAME.value), createObject('value', ''))]",
           "contentSafetyKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.CONTENT_SAFETY_KEY_NAME.value), createObject('value', ''))]",
           "speechKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SPEECH_KEY_NAME.value), createObject('value', ''))]",
+          "computerVisionKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.COMPUTER_VISION_KEY_NAME.value), createObject('value', ''))]",
           "useKeyVault": {
             "value": "[parameters('useKeyVault')]"
           },
@@ -7413,6 +7443,8 @@
               "AZURE_SEARCH_DATASOURCE_NAME": "[parameters('azureSearchDatasource')]",
               "AZURE_SEARCH_INDEXER_NAME": "[parameters('azureSearchIndexer')]",
               "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
+              "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
+              "AZURE_COMPUTER_VISION_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
               "LOGLEVEL": "[parameters('logLevel')]"
@@ -7426,7 +7458,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.27.1.19265",
-              "templateHash": "7212582717200024100"
+              "templateHash": "3188820983633786286"
             }
           },
           "parameters": {
@@ -7491,6 +7523,10 @@
               "type": "string",
               "defaultValue": ""
             },
+            "computerVisionName": {
+              "type": "string",
+              "defaultValue": ""
+            },
             "useKeyVault": {
               "type": "bool"
             },
@@ -7507,6 +7543,10 @@
               "defaultValue": ""
             },
             "searchKeyName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "computerVisionKeyName": {
               "type": "string",
               "defaultValue": ""
             },
@@ -7597,7 +7637,7 @@
                     "value": "[parameters('dockerFullImageName')]"
                   },
                   "appSettings": {
-                    "value": "[union(parameters('appSettings'), createObject('WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'false', 'AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_ACCOUNT_KEY', if(parameters('useKeyVault'), parameters('storageAccountKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value), 'AZURE_FORM_RECOGNIZER_KEY', if(parameters('useKeyVault'), parameters('formRecognizerKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1)))]"
+                    "value": "[union(parameters('appSettings'), createObject('WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'false', 'AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_ACCOUNT_KEY', if(parameters('useKeyVault'), parameters('storageAccountKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value), 'AZURE_FORM_RECOGNIZER_KEY', if(parameters('useKeyVault'), parameters('formRecognizerKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(parameters('useKeyVault'), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
                   }
                 },
                 "template": {
@@ -8541,6 +8581,7 @@
         }
       },
       "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('hostingPlanName'))]",
@@ -8611,6 +8652,7 @@
           "searchKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SEARCH_KEY_NAME.value), createObject('value', ''))]",
           "contentSafetyKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.CONTENT_SAFETY_KEY_NAME.value), createObject('value', ''))]",
           "speechKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SPEECH_KEY_NAME.value), createObject('value', ''))]",
+          "computerVisionName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.COMPUTER_VISION_KEY_NAME.value), createObject('value', ''))]",
           "useKeyVault": {
             "value": "[parameters('useKeyVault')]"
           },
@@ -8633,6 +8675,8 @@
               "AZURE_SEARCH_DATASOURCE_NAME": "[parameters('azureSearchDatasource')]",
               "AZURE_SEARCH_INDEXER_NAME": "[parameters('azureSearchIndexer')]",
               "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
+              "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
+              "AZURE_COMPUTER_VISION_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
               "LOGLEVEL": "[parameters('logLevel')]"
@@ -8646,7 +8690,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.27.1.19265",
-              "templateHash": "7212582717200024100"
+              "templateHash": "3188820983633786286"
             }
           },
           "parameters": {
@@ -8711,6 +8755,10 @@
               "type": "string",
               "defaultValue": ""
             },
+            "computerVisionName": {
+              "type": "string",
+              "defaultValue": ""
+            },
             "useKeyVault": {
               "type": "bool"
             },
@@ -8727,6 +8775,10 @@
               "defaultValue": ""
             },
             "searchKeyName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "computerVisionKeyName": {
               "type": "string",
               "defaultValue": ""
             },
@@ -8817,7 +8869,7 @@
                     "value": "[parameters('dockerFullImageName')]"
                   },
                   "appSettings": {
-                    "value": "[union(parameters('appSettings'), createObject('WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'false', 'AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_ACCOUNT_KEY', if(parameters('useKeyVault'), parameters('storageAccountKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value), 'AZURE_FORM_RECOGNIZER_KEY', if(parameters('useKeyVault'), parameters('formRecognizerKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1)))]"
+                    "value": "[union(parameters('appSettings'), createObject('WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'false', 'AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_ACCOUNT_KEY', if(parameters('useKeyVault'), parameters('storageAccountKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value), 'AZURE_FORM_RECOGNIZER_KEY', if(parameters('useKeyVault'), parameters('formRecognizerKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(parameters('useKeyVault'), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
                   }
                 },
                 "template": {
@@ -9761,6 +9813,7 @@
         }
       },
       "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('hostingPlanName'))]",
@@ -10813,6 +10866,10 @@
     "AZURE_OPENAI_API_KEY": {
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.OPENAI_KEY_NAME.value, '')]"
+    },
+    "AZURE_COMPUTER_VISION_ENDPOINT": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value]"
     },
     "AZURE_RESOURCE_GROUP": {
       "type": "string",
