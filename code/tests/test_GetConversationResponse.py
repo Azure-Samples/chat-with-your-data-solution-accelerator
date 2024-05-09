@@ -51,3 +51,20 @@ async def test_get_conversation_response(mock_create_message_orchestrator, _):
     assert response_json["choices"] == [
         {"messages": ["You don't have any meetings today"]}
     ]
+
+
+@patch("backend.batch.GetConversationResponse.ConfigHelper")
+@patch("backend.batch.GetConversationResponse.Orchestrator")
+@pytest.mark.asyncio
+async def test_get_conversation_error(_, __):
+    mock_http_request = Mock()
+    mock_http_request.get_json.side_effect = Exception("Error")
+
+    response = await get_conversation_response.build().get_user_function()(
+        mock_http_request
+    )
+
+    assert response.status_code == 500
+
+    response_json = json.loads(response.get_body())
+    assert response_json == {"error": "Error"}

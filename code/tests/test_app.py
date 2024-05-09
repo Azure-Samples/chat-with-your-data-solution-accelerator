@@ -1,8 +1,7 @@
-import json
 import os
 from flask.testing import FlaskClient
 import pytest
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, patch, ANY
 from create_app import create_app
 
 AZURE_SPEECH_KEY = "mock-speech-key"
@@ -14,12 +13,22 @@ AZURE_OPENAI_SYSTEM_MESSAGE = "system-message"
 AZURE_OPENAI_API_VERSION = "mock-version"
 AZURE_OPENAI_API_KEY = "mock-api-key"
 AZURE_SEARCH_KEY = "mock-search-key"
+AZURE_SEARCH_INDEX = "mock-search-index"
+AZURE_SEARCH_SERVICE = "mock-search-service"
+AZURE_SEARCH_CONTENT_COLUMNS = "field1|field2"
+AZURE_SEARCH_TITLE_COLUMN = "title"
+AZURE_SEARCH_FILENAME_COLUMN = "filename"
+AZURE_SEARCH_URL_COLUMN = "url"
+AZURE_SEARCH_FILTER = "filter"
+AZURE_SEARCH_ENABLE_IN_DOMAIN = "true"
+AZURE_SEARCH_TOP_K = 5
+AZURE_SEARCH_USE_SEMANTIC_SEARCH = "true"
+AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = "test-config"
 AZURE_OPENAI_TEMPERATURE = "0.5"
 AZURE_OPENAI_MAX_TOKENS = "500"
 AZURE_OPENAI_TOP_P = "0.8"
 AZURE_OPENAI_STOP_SEQUENCE = "\n|STOP"
 AZURE_SPEECH_RECOGNIZER_LANGUAGES = ["en-US", "en-GB"]
-TOKEN = "mock-token"
 
 
 @pytest.fixture
@@ -46,9 +55,21 @@ def env_helper_mock():
         env_helper.AZURE_OPENAI_MAX_TOKENS = AZURE_OPENAI_MAX_TOKENS
         env_helper.AZURE_OPENAI_TOP_P = AZURE_OPENAI_TOP_P
         env_helper.AZURE_OPENAI_STOP_SEQUENCE = AZURE_OPENAI_STOP_SEQUENCE
+        env_helper.AZURE_SEARCH_INDEX = AZURE_SEARCH_INDEX
+        env_helper.AZURE_SEARCH_SERVICE = AZURE_SEARCH_SERVICE
+        env_helper.AZURE_SEARCH_CONTENT_COLUMNS = AZURE_SEARCH_CONTENT_COLUMNS
+        env_helper.AZURE_SEARCH_TITLE_COLUMN = AZURE_SEARCH_TITLE_COLUMN
+        env_helper.AZURE_SEARCH_FILENAME_COLUMN = AZURE_SEARCH_FILENAME_COLUMN
+        env_helper.AZURE_SEARCH_URL_COLUMN = AZURE_SEARCH_URL_COLUMN
+        env_helper.AZURE_SEARCH_FILTER = AZURE_SEARCH_FILTER
+        env_helper.AZURE_SEARCH_ENABLE_IN_DOMAIN = AZURE_SEARCH_ENABLE_IN_DOMAIN
+        env_helper.AZURE_SEARCH_TOP_K = AZURE_SEARCH_TOP_K
+        env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH = AZURE_SEARCH_USE_SEMANTIC_SEARCH
+        env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = (
+            AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
+        )
         env_helper.SHOULD_STREAM = True
-        env_helper.AZURE_AUTH_TYPE = "keys"
-        env_helper.AZURE_TOKEN_PROVIDER.return_value = TOKEN
+        env_helper.is_auth_type_keys.return_value = True
         env_helper.should_use_data.return_value = True
 
         yield env_helper
@@ -317,83 +338,6 @@ class TestConversationCustom:
         )
 
 
-class MockResponse:
-
-    def __init__(self, include_error=False):
-        self.include_error = include_error
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        return True
-
-    # Return a mock streamed response
-    def iter_lines(self, chunk_size=512):
-        assistant = {
-            "id": "response.id",
-            "model": "mock-model",
-            "created": 0,
-            "object": "response.object",
-            "choices": [
-                {
-                    "index": 0,
-                    "delta": {
-                        "role": "assistant",
-                        "context": {
-                            "citations": [
-                                {
-                                    "content": "content",
-                                    "title": "title",
-                                }
-                            ],
-                            "intent": "intent",
-                        },
-                    },
-                    "end_turn": False,
-                    "finish_reason": None,
-                }
-            ],
-        }
-
-        message = {
-            "id": "response.id",
-            "model": "mock-model",
-            "created": 0,
-            "object": "response.object",
-            "choices": [
-                {
-                    "delta": {"content": "A question\n?"},
-                    "end_turn": False,
-                    "finish_reason": None,
-                }
-            ],
-        }
-
-        end = {
-            "id": "response.id",
-            "model": "mock-model",
-            "created": 0,
-            "object": "response.object",
-            "choices": [{"delta": {}, "end_turn": True, "finish_reason": "stop"}],
-        }
-
-        if self.include_error:
-            assistant["error"] = "An error occurred\n"
-
-        response = [
-            bytes(f"data: {json.dumps(res)}", "utf-8")
-            for res in (assistant, message, end)
-        ]
-
-        # The streamed response has empty lines between each response, and a final message of "[DONE]"
-        response.insert(1, b"")
-        response.insert(3, b"")
-        response += [b"data: [DONE]"]
-
-        return response
-
-
 class TestConversationAzureByod:
     def setup_method(self):
         self.body = {
@@ -404,16 +348,102 @@ class TestConversationAzureByod:
                 {"role": "user", "content": "What is the meaning of life?"},
             ],
         }
+
         self.content = "mock content"
 
-    @patch("create_app.requests.Session")
+        self.mock_response = MagicMock(
+            id="response.id",
+            model="mock-model",
+            created=0,
+            object="response.object",
+            choices=[
+                MagicMock(
+                    message=MagicMock(
+                        content=self.content,
+                        model_extra={
+                            "context": {
+                                "citations": [
+                                    {
+                                        "content": "content",
+                                        "title": "title",
+                                    }
+                                ],
+                                "intent": "intent",
+                            }
+                        },
+                    )
+                )
+            ],
+        )
+
+        self.mock_streamed_response = [
+            MagicMock(
+                id="response.id",
+                model=AZURE_OPENAI_MODEL,
+                created=0,
+                object="response.object",
+                choices=[
+                    MagicMock(
+                        delta=MagicMock(
+                            role="assistant",
+                            model_extra={
+                                "context": {
+                                    "citations": [
+                                        {
+                                            "content": "content",
+                                            "title": "title",
+                                        }
+                                    ],
+                                    "intent": "intent",
+                                }
+                            },
+                        ),
+                        model_extra={
+                            "end_turn": False,
+                        },
+                    )
+                ],
+            ),
+            MagicMock(
+                id="response.id",
+                model=AZURE_OPENAI_MODEL,
+                created=0,
+                object="response.object",
+                choices=[
+                    MagicMock(
+                        delta=MagicMock(
+                            content="A question\n?",
+                        ),
+                        model_extra={
+                            "end_turn": False,
+                        },
+                    )
+                ],
+            ),
+            MagicMock(
+                id="response.id",
+                model=AZURE_OPENAI_MODEL,
+                created=0,
+                object="response.object",
+                choices=[
+                    MagicMock(
+                        model_extra={
+                            "end_turn": True,
+                        }
+                    )
+                ],
+            ),
+        ]
+
+    @patch("create_app.AzureOpenAI")
     def test_converstation_azure_byod_returns_correct_response_when_streaming_with_data_keys(
-        self, get_requests_session_mock, client
+        self, azure_openai_mock: MagicMock, client: FlaskClient
     ):
         # given
-        mock_session = get_requests_session_mock.return_value
-        response_mock = MockResponse()
-        mock_session.post = Mock(return_value=response_mock)
+        openai_client_mock = azure_openai_mock.return_value
+        openai_client_mock.chat.completions.create.return_value = (
+            self.mock_streamed_response
+        )
 
         # when
         response = client.post(
@@ -429,30 +459,68 @@ class TestConversationAzureByod:
         data = str(response.data, "utf-8")
         assert (
             data
-            == r"""{"id": "response.id", "model": "mock-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "", "end_turn": false, "role": "assistant"}]}]}
-{"id": "response.id", "model": "mock-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": false, "role": "assistant"}]}]}
-{"id": "response.id", "model": "mock-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": true, "role": "assistant"}]}]}
+            == r"""{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "", "end_turn": false, "role": "assistant"}]}]}
+{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": false, "role": "assistant"}]}]}
+{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": true, "role": "assistant"}]}]}
 """
         )
 
-        request_body = mock_session.post.call_args[1]["json"]
-        request_headers = mock_session.post.call_args[1]["headers"]
+        azure_openai_mock.assert_called_once_with(
+            azure_endpoint=AZURE_OPENAI_ENDPOINT,
+            api_version=AZURE_OPENAI_API_VERSION,
+            api_key=AZURE_OPENAI_API_KEY,
+        )
 
-        assert request_body["data_sources"][0]["parameters"]["authentication"] == {
-            "type": "api_key",
-            "key": AZURE_SEARCH_KEY,
-        }
-        assert request_headers["api-key"] == AZURE_OPENAI_API_KEY
+        openai_client_mock.chat.completions.create.assert_called_once_with(
+            model=AZURE_OPENAI_MODEL,
+            messages=self.body["messages"],
+            temperature=0.5,
+            max_tokens=500,
+            top_p=0.8,
+            stop=["\n", "STOP"],
+            stream=True,
+            extra_body={
+                "data_sources": [
+                    {
+                        "type": "azure_search",
+                        "parameters": {
+                            "authentication": {
+                                "type": "api_key",
+                                "key": AZURE_SEARCH_KEY,
+                            },
+                            "endpoint": AZURE_SEARCH_SERVICE,
+                            "index_name": AZURE_SEARCH_INDEX,
+                            "fields_mapping": {
+                                "content_fields": ["field1", "field2"],
+                                "title_field": AZURE_SEARCH_TITLE_COLUMN,
+                                "url_field": AZURE_SEARCH_URL_COLUMN,
+                                "filepath_field": AZURE_SEARCH_FILENAME_COLUMN,
+                            },
+                            "filter": AZURE_SEARCH_FILTER,
+                            "in_scope": AZURE_SEARCH_ENABLE_IN_DOMAIN,
+                            "top_n_documents": AZURE_SEARCH_TOP_K,
+                            "query_type": "semantic",
+                            "semantic_configuration": AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
+                            "role_information": AZURE_OPENAI_SYSTEM_MESSAGE,
+                        },
+                    }
+                ]
+            },
+        )
 
-    @patch("create_app.requests.Session")
+    @patch("create_app.AzureOpenAI")
     def test_converstation_azure_byod_returns_correct_response_when_streaming_with_data_rbac(
-        self, get_requests_session_mock, env_helper_mock, client
+        self,
+        azure_openai_mock: MagicMock,
+        env_helper_mock: MagicMock,
+        client: FlaskClient,
     ):
         # given
-        mock_session = get_requests_session_mock.return_value
-        response_mock = MockResponse()
-        mock_session.post = Mock(return_value=response_mock)
-        env_helper_mock.AZURE_AUTH_TYPE = "rbac"
+        env_helper_mock.is_auth_type_keys.return_value = False
+        openai_client_mock = azure_openai_mock.return_value
+        openai_client_mock.chat.completions.create.return_value = (
+            self.mock_streamed_response
+        )
 
         # when
         response = client.post(
@@ -468,42 +536,38 @@ class TestConversationAzureByod:
         data = str(response.data, "utf-8")
         assert (
             data
-            == r"""{"id": "response.id", "model": "mock-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "", "end_turn": false, "role": "assistant"}]}]}
-{"id": "response.id", "model": "mock-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": false, "role": "assistant"}]}]}
-{"id": "response.id", "model": "mock-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": true, "role": "assistant"}]}]}
+            == r"""{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "", "end_turn": false, "role": "assistant"}]}]}
+{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": false, "role": "assistant"}]}]}
+{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": true, "role": "assistant"}]}]}
 """
         )
 
-        request_body = mock_session.post.call_args[1]["json"]
-        request_headers = mock_session.post.call_args[1]["headers"]
+        azure_openai_mock.assert_called_once_with(
+            azure_endpoint=AZURE_OPENAI_ENDPOINT,
+            api_version=AZURE_OPENAI_API_VERSION,
+            azure_ad_token_provider=ANY,
+        )
 
-        assert request_body["data_sources"][0]["parameters"]["authentication"] == {
-            "type": "system_assigned_managed_identity"
+        kwargs = openai_client_mock.chat.completions.create.call_args.kwargs
+
+        assert kwargs["extra_body"]["data_sources"][0]["parameters"][
+            "authentication"
+        ] == {
+            "type": "system_assigned_managed_identity",
         }
-        assert request_headers["Authorization"] == f"Bearer {TOKEN}"
 
-    @patch("create_app.requests.post")
+    @patch("create_app.AzureOpenAI")
     def test_converstation_azure_byod_returns_correct_response_when_not_streaming_with_data(
-        self, post_mock, env_helper_mock, client
+        self,
+        azure_openai_mock: MagicMock,
+        env_helper_mock: MagicMock,
+        client: FlaskClient,
     ):
         # given
         env_helper_mock.SHOULD_STREAM = False
 
-        post_mock.return_value.status_code = 200
-        post_mock.return_value.json.return_value = {
-            "id": "response.id",
-            "model": "mock-model",
-            "created": 0,
-            "object": "response.object",
-            "choices": [
-                {
-                    "message": {
-                        "content": self.content,
-                        "context": {"context": "mock-context"},
-                    }
-                }
-            ],
-        }
+        openai_client_mock = azure_openai_mock.return_value
+        openai_client_mock.chat.completions.create.return_value = self.mock_response
 
         # when
         response = client.post(
@@ -523,7 +587,7 @@ class TestConversationAzureByod:
                 {
                     "messages": [
                         {
-                            "content": '{"context": "mock-context"}',
+                            "content": '{"citations": [{"content": "content", "title": "title"}], "intent": "intent"}',
                             "end_turn": False,
                             "role": "tool",
                         },
@@ -536,45 +600,6 @@ class TestConversationAzureByod:
                 }
             ],
         }
-
-    @patch("create_app.requests.Session")
-    def test_converstation_azure_byod_receives_error_from_search_when_streaming_with_data(
-        self, get_requests_session_mock, client
-    ):
-        # given
-        mock_session = get_requests_session_mock.return_value
-        response_mock = MockResponse(include_error=True)
-        mock_session.post = Mock(return_value=response_mock)
-
-        # when
-        response = client.post(
-            "/api/conversation/azure_byod",
-            headers={"content-type": "application/json"},
-            json=self.body,
-        )
-
-        # then
-        assert response.status_code == 200
-        assert b'"error": "An error occurred\\n"' in response.data
-
-    @patch("create_app.requests.Session")
-    def test_converstation_azure_byod_throws_exception_when_streaming_with_data(
-        self, get_requests_session_mock, client
-    ):
-        # given
-        mock_session = get_requests_session_mock.return_value
-        mock_session.post.side_effect = ValueError("Test exception")
-
-        # when
-        response = client.post(
-            "/api/conversation/azure_byod",
-            headers={"content-type": "application/json"},
-            json=self.body,
-        )
-
-        # then
-        assert response.status_code == 200
-        assert b'{"error": "Test exception"}\n' in response.data
 
     @patch("create_app.conversation_with_data")
     def test_converstation_azure_byod_returns_500_when_exception_occurs(
@@ -760,17 +785,15 @@ class TestConversationAzureByod:
             == '{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"role": "assistant", "content": "mock content"}]}]}\n'
         )
 
-    @patch("create_app.requests.Session")
+    @patch("create_app.AzureOpenAI")
     def test_converstation_azure_byod_uses_semantic_config(
-        self, get_requests_session_mock, env_helper_mock, client
+        self, azure_openai_mock: MagicMock, client: FlaskClient
     ):
         # given
-        mock_session = get_requests_session_mock.return_value
-        response_mock = MockResponse()
-        mock_session.post = Mock(return_value=response_mock)
-        env_helper_mock.SHOULD_STREAM = True
-        env_helper_mock.AZURE_SEARCH_USE_SEMANTIC_SEARCH = True
-        env_helper_mock.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = "test-config"
+        openai_client_mock = azure_openai_mock.return_value
+        openai_client_mock.chat.completions.create.return_value = (
+            self.mock_streamed_response
+        )
 
         # when
         response = client.post(
@@ -782,10 +805,15 @@ class TestConversationAzureByod:
         # then
         assert response.status_code == 200
 
-        request_body = mock_session.post.call_args[1]["json"]
+        kwargs = openai_client_mock.chat.completions.create.call_args.kwargs
 
-        assert request_body["data_sources"][0]["parameters"]["query_type"] == "semantic"
         assert (
-            request_body["data_sources"][0]["parameters"]["semantic_configuration"]
+            kwargs["extra_body"]["data_sources"][0]["parameters"]["query_type"]
+            == "semantic"
+        )
+        assert (
+            kwargs["extra_body"]["data_sources"][0]["parameters"][
+                "semantic_configuration"
+            ]
             == "test-config"
         )
