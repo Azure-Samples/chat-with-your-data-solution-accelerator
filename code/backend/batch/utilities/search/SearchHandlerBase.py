@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from ..helpers.EnvHelper import EnvHelper
 
+from ..common.SourceDocument import SourceDocument
+
 
 class SearchHandlerBase(ABC):
     def __init__(self, env_helper: EnvHelper):
@@ -42,9 +44,5 @@ class SearchHandlerBase(ABC):
         pass
 
     @abstractmethod
-    def query_search(self, question):
-        pass
-
-    @abstractmethod
-    def return_answer_source_documents(self, search_results):
+    def query_search(self, question) -> list[SourceDocument]:
         pass

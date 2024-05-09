@@ -1,5 +1,5 @@
 from openai import AzureOpenAI
-from typing import cast
+from typing import List, Union, cast
 from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
@@ -97,6 +97,15 @@ class LLMHelper:
                 chunk_size=1,
                 azure_ad_token_provider=self.token_provider,
             )
+
+    def generate_embeddings(self, input: Union[str, list[int]]) -> List[float]:
+        return (
+            self.openai_client.embeddings.create(
+                input=[input], model=self.embedding_model
+            )
+            .data[0]
+            .embedding
+        )
 
     def get_chat_completion_with_functions(
         self, messages: list[dict], functions: list[dict], function_call: str = "auto"
