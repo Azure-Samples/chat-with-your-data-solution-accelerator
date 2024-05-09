@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.26.170.59819",
-      "templateHash": "4288468819912019537"
+      "version": "0.27.1.19265",
+      "templateHash": "10902119105781571177"
     }
   },
   "parameters": {
@@ -597,8 +597,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "18407114162280426775"
+              "version": "0.27.1.19265",
+              "templateHash": "2948321361335204987"
             },
             "description": "Creates an Azure Key Vault."
           },
@@ -690,8 +690,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "10580067567296932781"
+              "version": "0.27.1.19265",
+              "templateHash": "12902207048115971201"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -847,8 +847,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "10580067567296932781"
+              "version": "0.27.1.19265",
+              "templateHash": "12902207048115971201"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -996,8 +996,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "2390256577307700589"
+              "version": "0.27.1.19265",
+              "templateHash": "16440196655390446916"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1067,8 +1067,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "2390256577307700589"
+              "version": "0.27.1.19265",
+              "templateHash": "16440196655390446916"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1138,8 +1138,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "2390256577307700589"
+              "version": "0.27.1.19265",
+              "templateHash": "16440196655390446916"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1209,8 +1209,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "2390256577307700589"
+              "version": "0.27.1.19265",
+              "templateHash": "16440196655390446916"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1284,8 +1284,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "10580067567296932781"
+              "version": "0.27.1.19265",
+              "templateHash": "12902207048115971201"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -1448,8 +1448,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "12714039581294574286"
+              "version": "0.27.1.19265",
+              "templateHash": "6700778522040462677"
             }
           },
           "parameters": {
@@ -1638,8 +1638,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "14026634614072620805"
+              "version": "0.27.1.19265",
+              "templateHash": "109530586617035708"
             },
             "description": "Creates an Azure AI Search instance."
           },
@@ -1807,8 +1807,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "6728315099548749563"
+              "version": "0.27.1.19265",
+              "templateHash": "3882056790487836425"
             },
             "description": "Creates an Azure App Service plan."
           },
@@ -1978,8 +1978,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "14642613133961389701"
+              "version": "0.27.1.19265",
+              "templateHash": "1163226522178490219"
             }
           },
           "parameters": {
@@ -2148,8 +2148,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "16814947130506798779"
+                      "version": "0.27.1.19265",
+                      "templateHash": "13528682982724980465"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -2366,7 +2366,7 @@
                             "value": "[parameters('name')]"
                           },
                           "appSettings": {
-                            "value": "[union(parameters('appSettings'), createObject('APPINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
+                            "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                           }
                         },
                         "template": {
@@ -2375,8 +2375,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.26.170.59819",
-                              "templateHash": "15901877046756643519"
+                              "version": "0.27.1.19265",
+                              "templateHash": "9730065891606131364"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -2453,8 +2453,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -2522,8 +2522,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -2591,8 +2591,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -2660,8 +2660,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -2726,8 +2726,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "7922086847377910894"
+                      "version": "0.27.1.19265",
+                      "templateHash": "6278079210023281106"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -2914,8 +2914,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "14642613133961389701"
+              "version": "0.27.1.19265",
+              "templateHash": "1163226522178490219"
             }
           },
           "parameters": {
@@ -3084,8 +3084,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "16814947130506798779"
+                      "version": "0.27.1.19265",
+                      "templateHash": "13528682982724980465"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -3302,7 +3302,7 @@
                             "value": "[parameters('name')]"
                           },
                           "appSettings": {
-                            "value": "[union(parameters('appSettings'), createObject('APPINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
+                            "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                           }
                         },
                         "template": {
@@ -3311,8 +3311,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.26.170.59819",
-                              "templateHash": "15901877046756643519"
+                              "version": "0.27.1.19265",
+                              "templateHash": "9730065891606131364"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -3389,8 +3389,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -3458,8 +3458,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -3527,8 +3527,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -3596,8 +3596,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -3662,8 +3662,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "7922086847377910894"
+                      "version": "0.27.1.19265",
+                      "templateHash": "6278079210023281106"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -3851,8 +3851,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "6350062594275183017"
+              "version": "0.27.1.19265",
+              "templateHash": "6071122860249879835"
             }
           },
           "parameters": {
@@ -4014,8 +4014,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "16814947130506798779"
+                      "version": "0.27.1.19265",
+                      "templateHash": "13528682982724980465"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -4232,7 +4232,7 @@
                             "value": "[parameters('name')]"
                           },
                           "appSettings": {
-                            "value": "[union(parameters('appSettings'), createObject('APPINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
+                            "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                           }
                         },
                         "template": {
@@ -4241,8 +4241,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.26.170.59819",
-                              "templateHash": "15901877046756643519"
+                              "version": "0.27.1.19265",
+                              "templateHash": "9730065891606131364"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -4319,8 +4319,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -4388,8 +4388,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -4457,8 +4457,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -4526,8 +4526,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -4592,8 +4592,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "7922086847377910894"
+                      "version": "0.27.1.19265",
+                      "templateHash": "6278079210023281106"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -4778,8 +4778,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "6350062594275183017"
+              "version": "0.27.1.19265",
+              "templateHash": "6071122860249879835"
             }
           },
           "parameters": {
@@ -4941,8 +4941,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "16814947130506798779"
+                      "version": "0.27.1.19265",
+                      "templateHash": "13528682982724980465"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -5159,7 +5159,7 @@
                             "value": "[parameters('name')]"
                           },
                           "appSettings": {
-                            "value": "[union(parameters('appSettings'), createObject('APPINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
+                            "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                           }
                         },
                         "template": {
@@ -5168,8 +5168,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.26.170.59819",
-                              "templateHash": "15901877046756643519"
+                              "version": "0.27.1.19265",
+                              "templateHash": "9730065891606131364"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -5246,8 +5246,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -5315,8 +5315,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -5384,8 +5384,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -5453,8 +5453,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -5519,8 +5519,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "7922086847377910894"
+                      "version": "0.27.1.19265",
+                      "templateHash": "6278079210023281106"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -5633,8 +5633,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "10048108379044846923"
+              "version": "0.27.1.19265",
+              "templateHash": "746484920101780722"
             },
             "description": "Creates an Application Insights instance and a Log Analytics workspace."
           },
@@ -5685,8 +5685,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "17101038721523251751"
+                      "version": "0.27.1.19265",
+                      "templateHash": "2707024492396982954"
                     },
                     "description": "Creates a Log Analytics workspace."
                   },
@@ -5766,8 +5766,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "5016503703443937813"
+                      "version": "0.27.1.19265",
+                      "templateHash": "6641653850884689274"
                     },
                     "description": "Creates an Application Insights instance based on an existing Log Analytics workspace."
                   },
@@ -5831,8 +5831,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.26.170.59819",
-                              "templateHash": "4596399009213720452"
+                              "version": "0.27.1.19265",
+                              "templateHash": "1759216242890853910"
                             },
                             "description": "Creates a dashboard for an Application Insights instance."
                           },
@@ -7162,8 +7162,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "2156600869334188821"
+              "version": "0.27.1.19265",
+              "templateHash": "5649433306021197168"
             }
           },
           "parameters": {
@@ -7245,8 +7245,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "10520241319603231084"
+                      "version": "0.27.1.19265",
+                      "templateHash": "2792566012892132891"
                     }
                   },
                   "parameters": {
@@ -7425,8 +7425,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "8686020307539198595"
+              "version": "0.27.1.19265",
+              "templateHash": "7212582717200024100"
             }
           },
           "parameters": {
@@ -7606,8 +7606,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "17970804602146615398"
+                      "version": "0.27.1.19265",
+                      "templateHash": "4546396046228166655"
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -7814,8 +7814,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.26.170.59819",
-                              "templateHash": "16814947130506798779"
+                              "version": "0.27.1.19265",
+                              "templateHash": "13528682982724980465"
                             },
                             "description": "Creates an Azure App Service in an existing Azure App Service plan."
                           },
@@ -8032,7 +8032,7 @@
                                     "value": "[parameters('name')]"
                                   },
                                   "appSettings": {
-                                    "value": "[union(parameters('appSettings'), createObject('APPINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
+                                    "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                                   }
                                 },
                                 "template": {
@@ -8041,8 +8041,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.26.170.59819",
-                                      "templateHash": "15901877046756643519"
+                                      "version": "0.27.1.19265",
+                                      "templateHash": "9730065891606131364"
                                     },
                                     "description": "Updates app settings for an Azure App Service."
                                   },
@@ -8137,8 +8137,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8206,8 +8206,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8275,8 +8275,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8344,8 +8344,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8413,8 +8413,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8479,8 +8479,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "7922086847377910894"
+                      "version": "0.27.1.19265",
+                      "templateHash": "6278079210023281106"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -8645,8 +8645,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "8686020307539198595"
+              "version": "0.27.1.19265",
+              "templateHash": "7212582717200024100"
             }
           },
           "parameters": {
@@ -8826,8 +8826,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "17970804602146615398"
+                      "version": "0.27.1.19265",
+                      "templateHash": "4546396046228166655"
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -9034,8 +9034,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.26.170.59819",
-                              "templateHash": "16814947130506798779"
+                              "version": "0.27.1.19265",
+                              "templateHash": "13528682982724980465"
                             },
                             "description": "Creates an Azure App Service in an existing Azure App Service plan."
                           },
@@ -9252,7 +9252,7 @@
                                     "value": "[parameters('name')]"
                                   },
                                   "appSettings": {
-                                    "value": "[union(parameters('appSettings'), createObject('APPINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').InstrumentationKey), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
+                                    "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                                   }
                                 },
                                 "template": {
@@ -9261,8 +9261,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.26.170.59819",
-                                      "templateHash": "15901877046756643519"
+                                      "version": "0.27.1.19265",
+                                      "templateHash": "9730065891606131364"
                                     },
                                     "description": "Updates app settings for an Azure App Service."
                                   },
@@ -9357,8 +9357,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -9426,8 +9426,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -9495,8 +9495,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -9564,8 +9564,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -9633,8 +9633,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "2390256577307700589"
+                      "version": "0.27.1.19265",
+                      "templateHash": "16440196655390446916"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -9699,8 +9699,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.26.170.59819",
-                      "templateHash": "7922086847377910894"
+                      "version": "0.27.1.19265",
+                      "templateHash": "6278079210023281106"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -9804,8 +9804,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "10580067567296932781"
+              "version": "0.27.1.19265",
+              "templateHash": "12902207048115971201"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -9955,8 +9955,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "10580067567296932781"
+              "version": "0.27.1.19265",
+              "templateHash": "12902207048115971201"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -10109,8 +10109,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "17903656266919316099"
+              "version": "0.27.1.19265",
+              "templateHash": "7008837948540418623"
             }
           },
           "parameters": {
@@ -10239,8 +10239,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "6920700803708650043"
+              "version": "0.27.1.19265",
+              "templateHash": "3554907224314175125"
             },
             "description": "Creates an Azure storage account."
           },
@@ -10464,8 +10464,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "2390256577307700589"
+              "version": "0.27.1.19265",
+              "templateHash": "16440196655390446916"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -10534,8 +10534,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "2390256577307700589"
+              "version": "0.27.1.19265",
+              "templateHash": "16440196655390446916"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -10604,8 +10604,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "2390256577307700589"
+              "version": "0.27.1.19265",
+              "templateHash": "16440196655390446916"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -10674,8 +10674,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.26.170.59819",
-              "templateHash": "2390256577307700589"
+              "version": "0.27.1.19265",
+              "templateHash": "16440196655390446916"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -10721,14 +10721,6 @@
     "APPLICATIONINSIGHTS_CONNECTION_STRING": {
       "type": "string",
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsConnectionString.value]"
-    },
-    "APPINSIGHTS_CONNECTION_STRING": {
-      "type": "string",
-      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsConnectionString.value]"
-    },
-    "APPINSIGHTS_INSTRUMENTATIONKEY": {
-      "type": "string",
-      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsInstrumentationKey.value]"
     },
     "AZURE_BLOB_CONTAINER_NAME": {
       "type": "string",
