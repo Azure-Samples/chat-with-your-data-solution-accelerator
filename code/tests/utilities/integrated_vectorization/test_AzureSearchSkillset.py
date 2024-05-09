@@ -54,7 +54,8 @@ def test_create_skillset_keys(
     search_indexer_client_mock: MagicMock,
 ):
     # given
-    azure_search_iv_skillset_helper = AzureSearchSkillset(env_helper_mock)
+    config = MagicMock()
+    azure_search_iv_skillset_helper = AzureSearchSkillset(env_helper_mock, config)
 
     # when
     create_or_update_skillset = azure_search_iv_skillset_helper.create_skillset()
@@ -71,9 +72,10 @@ def test_create_skillset_rbac(
     search_indexer_client_mock: MagicMock,
 ):
     # given
+    config = MagicMock()
     env_helper_mock.is_auth_type_keys.return_value = False
     env_helper_mock.AZURE_AUTH_TYPE = "rbac"
-    azure_search_iv_skillset_helper = AzureSearchSkillset(env_helper_mock)
+    azure_search_iv_skillset_helper = AzureSearchSkillset(env_helper_mock, config)
 
     # when
     create_or_update_skillset = azure_search_iv_skillset_helper.create_skillset()

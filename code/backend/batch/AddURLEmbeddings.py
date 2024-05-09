@@ -5,12 +5,9 @@ import traceback
 import azure.functions as func
 import requests
 from bs4 import BeautifulSoup
-
 from utilities.helpers.EnvHelper import EnvHelper
 from utilities.helpers.AzureBlobStorageClient import AzureBlobStorageClient
-from utilities.helpers.DocumentProcessorHelper import DocumentProcessor
-from utilities.helpers.ConfigHelper import ConfigHelper
-
+from utilities.helpers.embedders.EmbedderFactory import EmbedderFactory
 
 bp_add_url_embeddings = func.Blueprint()
 logger = logging.getLogger(__name__)
@@ -19,6 +16,7 @@ logger.setLevel(level=os.environ.get("LOGLEVEL", "INFO").upper())
 
 @bp_add_url_embeddings.route(route="AddURLEmbeddings")
 def add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
+    env_helper: EnvHelper = EnvHelper()
     logger.info("Python HTTP trigger function processed a request.")
 
     # Get Url from request
@@ -40,17 +38,13 @@ def add_url_embeddings(req: func.HttpRequest) -> func.HttpResponse:
     if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
         return download_url_and_upload_to_blob(url)
     else:
-        return process_url_contents_directly(url)
+        return process_url_contents_directly(url, env_helper)
 
 
-def process_url_contents_directly(url: str):
+def process_url_contents_directly(url: str, env_helper: EnvHelper):
     try:
-        config = ConfigHelper.get_active_config_or_default()
-        document_processor = DocumentProcessor()
-        processors = list(
-            filter(lambda x: x.document_type == "url", config.document_processors)
-        )
-        document_processor.process(source_url=url, processors=processors)
+        embedder = EmbedderFactory.create(env_helper)
+        embedder.embed_file(url, ".url")
     except Exception:
         return func.HttpResponse(f"Error: {traceback.format_exc()}", status_code=500)
 

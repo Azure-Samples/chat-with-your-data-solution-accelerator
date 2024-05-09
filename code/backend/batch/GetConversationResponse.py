@@ -5,7 +5,7 @@ import json
 
 from utilities.helpers.EnvHelper import EnvHelper
 from utilities.helpers.OrchestratorHelper import Orchestrator
-from utilities.helpers.ConfigHelper import ConfigHelper
+from utilities.helpers.config.ConfigHelper import ConfigHelper
 
 
 bp_get_conversation_response = func.Blueprint()

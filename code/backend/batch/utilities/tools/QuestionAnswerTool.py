@@ -17,7 +17,7 @@ from langchain_community.callbacks import get_openai_callback
 from langchain_core.documents import Document
 from langchain_core.messages import SystemMessage
 
-from ..helpers.ConfigHelper import ConfigHelper
+from ..helpers.config.ConfigHelper import ConfigHelper
 from ..helpers.LLMHelper import LLMHelper
 from ..helpers.EnvHelper import EnvHelper
 from ..common.Answer import Answer
@@ -129,7 +129,7 @@ class QuestionAnswerTool(AnsweringToolBase):
             "chat_history": chat_history,
         }
 
-    def answer_question(self, question: str, chat_history: list[dict], **kwargs: dict):
+    def answer_question(self, question: str, chat_history: list[dict], **kwargs):
         sources = Search.get_source_documents(self.search_handler, question)
 
         if self.config.prompts.use_on_your_data_format:

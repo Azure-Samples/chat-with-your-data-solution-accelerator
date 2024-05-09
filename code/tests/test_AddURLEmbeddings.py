@@ -10,7 +10,7 @@ from backend.batch.AddURLEmbeddings import add_url_embeddings  # noqa: E402
 
 
 @patch("backend.batch.AddURLEmbeddings.ConfigHelper")
-@patch("backend.batch.AddURLEmbeddings.DocumentProcessor")
+@patch("backend.batch.AddURLEmbeddings.EmbedderFactory")
 def test_add_url_embeddings(mock_document_processor: MagicMock, _):
     # given
     fake_request = func.HttpRequest(
@@ -48,7 +48,7 @@ def test_add_url_embeddings_returns_400_when_url_not_set():
 
 
 @patch("backend.batch.AddURLEmbeddings.ConfigHelper")
-@patch("backend.batch.AddURLEmbeddings.DocumentProcessor")
+@patch("backend.batch.AddURLEmbeddings.EmbedderFactory")
 def test_add_url_embeddings_returns_500_when_exception_occurs(
     mock_document_processor: MagicMock, _
 ):
