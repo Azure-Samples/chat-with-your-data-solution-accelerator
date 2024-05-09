@@ -6,6 +6,7 @@ on:
       - opened
       - edited
       - synchronize
+  merge_group:
 
 permissions:
   pull-requests: read
@@ -14,6 +15,7 @@ jobs:
   main:
     name: Validate PR title
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'merge_group' }}
     steps:
       - uses: amannn/action-semantic-pull-request@v5
         env:

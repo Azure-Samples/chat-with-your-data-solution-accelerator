@@ -1,6 +1,4 @@
-import io
 from os import path
-from bs4 import BeautifulSoup
 import streamlit as st
 import traceback
 import requests
@@ -31,7 +29,7 @@ mod_page_style = """
 st.markdown(mod_page_style, unsafe_allow_html=True)
 
 
-def remote_convert_files_and_add_embeddings(process_all=False):
+def remote_convert_files_and_add_embeddings():
     backend_url = urllib.parse.urljoin(
         env_helper.BACKEND_URL, "/api/BatchStartProcessing"
     )
@@ -39,8 +37,7 @@ def remote_convert_files_and_add_embeddings(process_all=False):
     if env_helper.FUNCTION_KEY is not None:
         params["code"] = env_helper.FUNCTION_KEY
         params["clientId"] = "clientKey"
-    if process_all:
-        params["process_all"] = "true"
+
     try:
         response = requests.post(backend_url, params=params)
         if response.status_code == 200:
@@ -53,30 +50,9 @@ def remote_convert_files_and_add_embeddings(process_all=False):
         st.error(traceback.format_exc())
 
 
-def add_urls(blob_client: AzureBlobStorageClient):
+def add_urls():
     urls = st.session_state["urls"].split("\n")
-    if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
-        download_url_and_upload_to_blob(blob_client, urls)
-    else:
-        add_url_embeddings(urls)
-
-
-def download_url_and_upload_to_blob(
-    blob_client: AzureBlobStorageClient, urls: list[str]
-):
-    for url in urls:
-        try:
-            response = requests.get(url)
-            parsed_data = BeautifulSoup(response.content, "html.parser")
-            with io.BytesIO(parsed_data.get_text().encode("utf-8")) as stream:
-                st.session_state["filename"] = url
-                st.session_state["file_url"] = blob_client.upload_file(
-                    stream, url, metadata={"title": url}
-                )
-            st.success(f"Url {url} added to knowledge base")
-        except Exception:
-            logger.error(traceback.format_exc())
-            st.error(f"Exception occurred while adding {url} to the knowledge base.")
+    add_url_embeddings(urls)
 
 
 def add_url_embeddings(urls: list[str]):
@@ -124,13 +100,10 @@ try:
                 )
 
         col1, col2, col3 = st.columns([2, 1, 2])
-        # with col1:
-        #     st.button("Process and ingest new files", on_click=remote_convert_files_and_add_embeddings)
         with col3:
             st.button(
                 "Reprocess all documents in the Azure Storage account",
                 on_click=remote_convert_files_and_add_embeddings,
-                args=(True,),
             )
 
     with st.expander("Add URLs to the knowledge base", expanded=True):
@@ -151,7 +124,7 @@ try:
             )
             st.button(
                 "Process and ingest web pages",
-                on_click=lambda: add_urls(blob_client),
+                on_click=add_urls,
                 key="add_url",
             )
 
