@@ -1,5 +1,5 @@
 from typing import List
-from .DocumentLoadingBase import DocumentLoadingBase
+from .document_loading_base import DocumentLoadingBase
 from ..helpers.AzureFormRecognizerHelper import AzureFormRecognizerClient
 from ..common.SourceDocument import SourceDocument
 
