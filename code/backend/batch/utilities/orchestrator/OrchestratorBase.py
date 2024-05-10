@@ -2,7 +2,6 @@ import logging
 from uuid import uuid4
 from typing import List, Optional
 from abc import ABC, abstractmethod
-from ..loggers.TokenLogger import TokenLogger
 from ..loggers.ConversationLogger import ConversationLogger
 from ..helpers.config.ConfigHelper import ConfigHelper
 from ..parser.OutputParserTool import OutputParserTool
@@ -18,7 +17,6 @@ class OrchestratorBase(ABC):
         self.message_id = str(uuid4())
         self.tokens = {"prompt": 0, "completion": 0, "total": 0}
         logger.debug(f"New message id: {self.message_id} with tokens {self.tokens}")
-        self.token_logger: TokenLogger = TokenLogger()
         self.conversation_logger: ConversationLogger = ConversationLogger()
         self.content_safety_checker = ContentSafetyChecker()
         self.output_parser = OutputParserTool()
@@ -80,7 +78,7 @@ class OrchestratorBase(ABC):
                 "completion_tokens": self.tokens["completion"],
                 "total_tokens": self.tokens["total"],
             }
-            self.token_logger.log("Conversation", custom_dimensions=custom_dimensions)
+            logger.info("Token Consumption", extra=custom_dimensions)
         if self.config.logging.log_user_interactions:
             self.conversation_logger.log(
                 messages=[

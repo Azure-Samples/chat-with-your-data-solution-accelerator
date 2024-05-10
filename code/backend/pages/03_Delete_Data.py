@@ -38,10 +38,9 @@ st.markdown(hide_table_row_index, unsafe_allow_html=True)
 
 try:
     search_handler = Search.get_search_handler(env_helper)
-    search_client = search_handler.search_client
 
     results = search_handler.get_files()
-    if results.get_count() == 0:
+    if results is None or results.get_count() == 0:
         st.info("No files to delete")
         st.stop()
     else:

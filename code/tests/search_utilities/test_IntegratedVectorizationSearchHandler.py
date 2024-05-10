@@ -4,7 +4,8 @@ from backend.batch.utilities.search.IntegratedVectorizationSearchHandler import 
     IntegratedVectorizationSearchHandler,
 )
 from azure.search.documents.models import VectorizableTextQuery
-from langchain_core.documents import Document
+
+from backend.batch.utilities.common.SourceDocument import SourceDocument
 
 
 @pytest.fixture
@@ -19,6 +20,22 @@ def env_helper_mock():
 
 
 @pytest.fixture
+def search_index_mock():
+    with patch.object(
+        IntegratedVectorizationSearchHandler, "_check_index_exists", return_value=True
+    ) as mock:
+        yield mock
+
+
+@pytest.fixture
+def search_index_does_not_exists_mock():
+    with patch.object(
+        IntegratedVectorizationSearchHandler, "_check_index_exists", return_value=False
+    ) as mock:
+        yield mock
+
+
+@pytest.fixture
 def search_client_mock():
     with patch(
         "backend.batch.utilities.search.IntegratedVectorizationSearchHandler.SearchClient"
@@ -27,7 +44,7 @@ def search_client_mock():
 
 
 @pytest.fixture
-def handler(env_helper_mock, search_client_mock):
+def handler(env_helper_mock, search_client_mock, search_index_mock):
     with patch(
         "backend.batch.utilities.search.IntegratedVectorizationSearchHandler.SearchClient",
         return_value=search_client_mock,
@@ -35,8 +52,27 @@ def handler(env_helper_mock, search_client_mock):
         return IntegratedVectorizationSearchHandler(env_helper_mock)
 
 
+@pytest.fixture
+def handler_index_does_not_exists(
+    env_helper_mock, search_client_mock, search_index_does_not_exists_mock
+):
+    with patch(
+        "backend.batch.utilities.search.IntegratedVectorizationSearchHandler.SearchClient",
+        return_value=search_client_mock,
+    ):
+        return IntegratedVectorizationSearchHandler(env_helper_mock)
+
+
+def test_create_search_client_index_does_not_exists(handler_index_does_not_exists):
+    assert handler_index_does_not_exists.create_search_client() is None
+
+
 def test_create_search_client(handler, search_client_mock):
     assert handler.create_search_client() == search_client_mock.return_value
+
+
+def test_perform_search_index_does_not_exists(handler_index_does_not_exists):
+    assert handler_index_does_not_exists.perform_search("testfile") is None
 
 
 def test_perform_search(handler, search_client_mock):
@@ -63,6 +99,17 @@ def test_process_results(handler):
 
     # then
     assert data[0] == ["123", "some content"]
+
+
+def test_process_results_null(handler):
+    # given
+    results = []
+
+    # when
+    data = handler.process_results(results)
+
+    # then
+    assert len(data) == 0
 
 
 def test_delete_files(handler, search_client_mock):
@@ -114,7 +161,7 @@ def test_get_files(handler, search_client_mock):
     )
 
 
-def test_query_search(handler, env_helper_mock):
+def test_query_search_performs_search(handler, env_helper_mock):
     # given
     question = "test question"
     vector_query = VectorizableTextQuery(
@@ -125,7 +172,7 @@ def test_query_search(handler, env_helper_mock):
     )
 
     # when
-    result = handler.query_search(question)
+    handler.query_search(question)
 
     # then
     handler.search_client.search.assert_called_once_with(
@@ -133,26 +180,48 @@ def test_query_search(handler, env_helper_mock):
         vector_queries=[vector_query],
         top=env_helper_mock.AZURE_SEARCH_TOP_K,
     )
-    assert result == handler.search_client.search.return_value
 
 
-def test_return_answer_source_documents(handler):
+def test_query_search_converts_results_to_source_documents(handler):
     # given
-    document = Document("mock content")
-    document.metadata = {
-        "id": "mock id",
-        "title": "mock title",
-        "source": "mock source",
-        "chunk_id": "abcd_page_1",
-    }
-    documents = [document]
+    question = "test question"
+
+    handler.search_client.search.return_value = [
+        {
+            "id": 1,
+            "content": "content1",
+            "title": "title1",
+            "source": "https://example.com/http://example.com",
+            "chunk_id": "chunk_id1",
+        },
+        {
+            "id": 2,
+            "content": "content2",
+            "title": "title2",
+            "source": "https://example.com",
+            "chunk_id": "chunk_id2",
+        },
+    ]
+
+    expected_results = [
+        SourceDocument(
+            id=1,
+            content="content1",
+            title="title1",
+            source="http://example.com",
+            chunk_id="chunk_id1",
+        ),
+        SourceDocument(
+            id=2,
+            content="content2",
+            title="title2",
+            source="https://example.com_SAS_TOKEN_PLACEHOLDER_",
+            chunk_id="chunk_id2",
+        ),
+    ]
+
     # when
-    source_documents = handler.return_answer_source_documents(documents)
+    actual_results = handler.query_search(question)
 
     # then
-    assert len(source_documents) == 1
-    assert source_documents[0].id == "mock id"
-    assert source_documents[0].content == "mock content"
-    assert source_documents[0].title == "mock title"
-    assert source_documents[0].source == "mock source"
-    assert source_documents[0].chunk_id == "abcd_page_1"
+    assert actual_results == expected_results
