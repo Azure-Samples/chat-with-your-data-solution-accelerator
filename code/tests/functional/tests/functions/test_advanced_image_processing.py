@@ -101,7 +101,7 @@ def test_metadata_is_updated_after_processing(
             headers={
                 "Authorization": ANY,
                 # Note: We cannot assert on this header, as the mock server
-                # drops requests containing underscores, although Azure Storage
+                # drops headers containing underscores, although Azure Storage
                 # accepts it
                 # "x-ms-meta-embeddings_added": "true"
             },
