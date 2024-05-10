@@ -43,11 +43,13 @@ def httpclient_ssl_context(ca):
 @pytest.fixture(scope="function", autouse=True)
 def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     httpserver.expect_request(
-        f"/{CONFIG_CONTAINER_NAME}/{CONFIG_FILE_NAME}", method="HEAD"
+        f"/{CONFIG_CONTAINER_NAME}/{CONFIG_FILE_NAME}",
+        method="HEAD",
     ).respond_with_data()
 
     httpserver.expect_request(
-        f"/{CONFIG_CONTAINER_NAME}/{CONFIG_FILE_NAME}", method="GET"
+        f"/{CONFIG_CONTAINER_NAME}/{CONFIG_FILE_NAME}",
+        method="GET",
     ).respond_with_json(
         {
             "prompts": {

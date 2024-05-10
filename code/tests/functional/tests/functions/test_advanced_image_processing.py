@@ -56,7 +56,8 @@ def message(app_config: AppConfig):
 @pytest.fixture(autouse=True)
 def setup_blob_metadata_mocking(httpserver: HTTPServer, app_config: AppConfig):
     httpserver.expect_request(
-        f"/{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}", method="HEAD"
+        f"/{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}",
+        method="HEAD",
     ).respond_with_data()
 
     httpserver.expect_request(
