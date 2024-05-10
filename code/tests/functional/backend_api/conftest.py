@@ -55,8 +55,6 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
         }
     )
 
-    prime_search_to_trigger_creation_of_index(httpserver, app_config)
-
     httpserver.expect_request(
         "/indexes",
         method="POST",
@@ -147,19 +145,3 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     yield
 
     httpserver.check()
-
-
-def prime_search_to_trigger_creation_of_index(
-    httpserver: HTTPServer, app_config: AppConfig
-):
-    # first request should return no indexes
-    httpserver.expect_oneshot_request(
-        "/indexes",
-        method="GET",
-    ).respond_with_json({"value": []})
-
-    # second request should return the index as it will have been "created"
-    httpserver.expect_request(
-        "/indexes",
-        method="GET",
-    ).respond_with_json({"value": [{"name": app_config.get("AZURE_SEARCH_INDEX")}]})
