@@ -161,12 +161,11 @@ class EnvHelper:
             "AZURE_FORM_RECOGNIZER_KEY"
         )
         # Azure App Insights
-        # APPINSIGHTS_ENABLED will be True when the application runs in App Service
-        self.APPINSIGHTS_ENABLED = self.get_env_var_bool("APPINSIGHTS_ENABLED", "False")
-
-        self.APPINSIGHTS_CONNECTION_STRING = os.getenv(
-            "APPINSIGHTS_CONNECTION_STRING", ""
+        # APPLICATIONINSIGHTS_ENABLED will be True when the application runs in App Service
+        self.APPLICATIONINSIGHTS_ENABLED = self.get_env_var_bool(
+            "APPLICATIONINSIGHTS_ENABLED", "False"
         )
+
         # Azure AI Content Safety
         self.AZURE_CONTENT_SAFETY_ENDPOINT = os.getenv(
             "AZURE_CONTENT_SAFETY_ENDPOINT", ""

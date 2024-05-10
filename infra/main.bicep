@@ -167,7 +167,7 @@ param computerVisionName string = 'computer-vision-${resourceToken}'
 param computerVisionSkuName string = 'S1'
 
 @description('Location of Computer Vision Resource (if useAdvancedImageProcessing=true)')
-@allowed([// List taken from https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/image-retrieval?tabs=python#prerequisites
+@allowed([ // List taken from https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/image-retrieval?tabs=python#prerequisites
   'eastus'
   'westus'
   'koreacentral'
@@ -964,10 +964,7 @@ module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
   }
 }
 
-// TODO: Streamline to one key=value pair
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
-output APPINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
-output APPINSIGHTS_INSTRUMENTATIONKEY string = monitoring.outputs.applicationInsightsInstrumentationKey
 
 output AZURE_BLOB_CONTAINER_NAME string = blobContainerName
 output AZURE_BLOB_ACCOUNT_NAME string = storageAccountName

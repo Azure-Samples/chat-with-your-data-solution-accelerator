@@ -4,6 +4,7 @@ from backend.batch.utilities.search.Search import Search
 from backend.batch.utilities.search.IntegratedVectorizationSearchHandler import (
     IntegratedVectorizationSearchHandler,
 )
+from backend.batch.utilities.common.SourceDocument import SourceDocument
 
 
 @pytest.fixture
@@ -25,9 +26,15 @@ def iv_search_handler_mock():
         yield mock
 
 
-def test_get_search_handler_integrated_vectorization(
-    env_helper_mock, iv_search_handler_mock
-):
+@pytest.fixture(autouse=True)
+def search_index_mock():
+    with patch.object(
+        IntegratedVectorizationSearchHandler, "_check_index_exists", return_value=True
+    ) as mock:
+        yield mock
+
+
+def test_get_search_handler_integrated_vectorization(env_helper_mock):
     # given
     env_helper_mock.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = True
 
@@ -38,65 +45,11 @@ def test_get_search_handler_integrated_vectorization(
     assert isinstance(search_handler, IntegratedVectorizationSearchHandler)
 
 
-@patch("backend.batch.utilities.search.Search")
-def test_get_source_documents_integrated_vectorization(search_handler_mock: MagicMock):
+def test_get_source_documents_integrated_vectorization(env_helper_mock):
     # given
     env_helper_mock.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = True
     question = "example question"
 
-    search_results = [
-        {
-            "id": 1,
-            "title": "Example Title 1",
-            "source": "https://example.com/1",
-            "chunk_id": "chunk1",
-        },
-        {
-            "id": 2,
-            "title": "Example Title 2",
-            "source": "https://example.com/2",
-            "chunk_id": "chunk2",
-        },
-    ]
-    search_handler_mock.query_search.return_value = search_results
-
-    # when
-    source_documents = Search.get_source_documents(search_handler_mock, question)
-
-    # then
-    assert len(source_documents) == len(search_results)
-
-
-@patch("backend.batch.utilities.search.Search")
-def test_get_source_documents_azure_search(search_handler_mock: MagicMock):
-    # given
-    question = "example question"
-
-    search_results = [
-        {
-            "id": 1,
-            "title": "Example Title 1",
-            "source": "https://example.com/1",
-            "chunk_id": "chunk1",
-        },
-        {
-            "id": 2,
-            "title": "Example Title 2",
-            "source": "https://example.com/2",
-            "chunk_id": "chunk2",
-        },
-    ]
-    search_handler_mock.query_search.return_value = search_results
-
-    # when
-    source_documents = Search.get_source_documents(search_handler_mock, question)
-
-    # then
-    assert len(source_documents) == len(search_results)
-
-
-def test_generate_source_documents():
-    # given
     search_results = [
         {
             "id": 1,
@@ -113,31 +66,61 @@ def test_generate_source_documents():
             "content": "mock content 2",
         },
     ]
+    search_handler_mock = Mock(spec=IntegratedVectorizationSearchHandler)
+    search_handler_mock.query_search.return_value = search_results
 
     # when
-    source_documents = Search.generate_source_documents(search_results)
+    source_documents = Search.get_source_documents(search_handler_mock, question)
 
     # then
     assert len(source_documents) == len(search_results)
 
 
-def test__extract_source_url_multiple_http():
+def test_get_source_documents_integrated_vectorization_no_results(env_helper_mock):
     # given
-    original_source = "https://example.com/http://example.com"
+    env_helper_mock.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = True
+    question = "example question"
+
+    search_results = []
+    search_handler_mock = Mock(spec=IntegratedVectorizationSearchHandler)
+    search_handler_mock.query_search.return_value = search_results
 
     # when
-    source_url = Search._extract_source_url(original_source)
+    source_documents = Search.get_source_documents(search_handler_mock, question)
 
     # then
-    assert source_url == "http://example.com"
+    assert len(source_documents) == len(search_results)
 
 
-def test__extract_source_url_single_http():
+@patch("backend.batch.utilities.search.Search")
+def test_get_source_documents_azure_search(search_handler_mock: MagicMock):
     # given
-    original_source = "https://example.com"
+    question = "example question"
+
+    expected_source_documents = [
+        SourceDocument(
+            id=1,
+            content="content1",
+            title="title1",
+            source="source1",
+            chunk="chunk1",
+            offset="offset1",
+            page_number="page_number1",
+        ),
+        SourceDocument(
+            id=2,
+            content="content2",
+            title="title2",
+            source="source2",
+            chunk="chunk2",
+            offset="offset2",
+            page_number="page_number2",
+        ),
+    ]
+    search_handler_mock.query_search.return_value = expected_source_documents
 
     # when
-    source_url = Search._extract_source_url(original_source)
+    actual_source_documents = Search.get_source_documents(search_handler_mock, question)
 
     # then
-    assert source_url == "https://example.com_SAS_TOKEN_PLACEHOLDER_"
+    assert len(actual_source_documents) == len(expected_source_documents)

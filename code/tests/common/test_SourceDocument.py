@@ -8,35 +8,6 @@ from backend.batch.utilities.common.SourceDocument import (
 )
 
 
-def test_convert_to_langchain_document():
-    # Given
-    source_document = SourceDocument(
-        id="1",
-        content="Some content",
-        title="A title",
-        source="A source",
-        chunk="A chunk",
-        offset="An offset",
-        page_number="1",
-        chunk_id="abcd",
-    )
-
-    # When
-    langchain_document = source_document.convert_to_langchain_document()
-
-    # Then
-    assert langchain_document.page_content == "Some content"
-    assert langchain_document.metadata == {
-        "id": "1",
-        "source": "A source",
-        "title": "A title",
-        "chunk": "A chunk",
-        "offset": "An offset",
-        "page_number": "1",
-        "chunk_id": "abcd",
-    }
-
-
 def test_get_filename():
     # Given
     source_document = SourceDocument(
