@@ -2,7 +2,7 @@ import json
 import pytest
 from unittest.mock import MagicMock, call, patch
 from backend.batch.utilities.helpers.embedders.PushEmbedder import PushEmbedder
-from backend.batch.utilities.document_chunking.ChunkingStrategy import ChunkingSettings
+from backend.batch.utilities.document_chunking.chunking_strategy import ChunkingSettings
 from backend.batch.utilities.document_loading import LoadingSettings
 from backend.batch.utilities.document_loading.Strategies import LoadingStrategy
 from backend.batch.utilities.common.SourceDocument import SourceDocument

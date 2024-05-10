@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from backend.batch.utilities.helpers.embedders.IntegratedVectorizationEmbedder import (
     IntegratedVectorizationEmbedder,
 )
-from backend.batch.utilities.document_chunking.ChunkingStrategy import ChunkingSettings
+from backend.batch.utilities.document_chunking.chunking_strategy import ChunkingSettings
 from backend.batch.utilities.document_loading import LoadingSettings
 from backend.batch.utilities.document_loading.Strategies import LoadingStrategy
 

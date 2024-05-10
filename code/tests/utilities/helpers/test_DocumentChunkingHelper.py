@@ -1,6 +1,6 @@
 from backend.batch.utilities.common.SourceDocument import SourceDocument
 from backend.batch.utilities.helpers.DocumentChunkingHelper import DocumentChunking
-from backend.batch.utilities.document_chunking.ChunkingStrategy import (
+from backend.batch.utilities.document_chunking.chunking_strategy import (
     ChunkingStrategy,
     ChunkingSettings,
 )

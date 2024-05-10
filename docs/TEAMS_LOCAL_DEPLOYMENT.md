@@ -82,7 +82,7 @@ Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.
 |AZURE_BLOB_CONTAINER_NAME||The name of the Container in the Azure Blob Storage for storing the original documents to be processed|
 |AZURE_FORM_RECOGNIZER_ENDPOINT||The name of the Azure Form Recognizer for extracting the text from the documents|
 |AZURE_FORM_RECOGNIZER_KEY||The key of the Azure Form Recognizer for extracting the text from the documents|
-|APPINSIGHTS_CONNECTION_STRING||The Application Insights connection string to store the application logs|
+|APPLICATIONINSIGHTS_CONNECTION_STRING||The Application Insights connection string to store the application logs|
 |ORCHESTRATION_STRATEGY | openai_function | Orchestration strategy. Use Azure OpenAI Functions (openai_function), Semantic Kernel (semantic_kernel) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select any strategy, if you are using a 0314 model version select "langchain". Note that both `openai_function` and `semantic_kernel` use OpenAI function calling. |
 |AZURE_CONTENT_SAFETY_ENDPOINT | | The endpoint of the Azure AI Content Safety service |
 |AZURE_CONTENT_SAFETY_KEY | | The key of the Azure AI Content Safety service|

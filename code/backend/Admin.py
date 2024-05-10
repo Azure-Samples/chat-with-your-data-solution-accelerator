@@ -12,7 +12,7 @@ logging.basicConfig(level=os.getenv("LOGLEVEL", "INFO").upper())
 logging.getLogger("azure").setLevel(os.environ.get("LOGLEVEL_AZURE", "WARN").upper())
 # We cannot use EnvHelper here as Application Insights needs to be configured first
 # for instrumentation to work correctly
-if os.getenv("APPINSIGHTS_ENABLED", "false").lower() == "true":
+if os.getenv("APPLICATIONINSIGHTS_ENABLED", "false").lower() == "true":
     configure_azure_monitor()
 
 logger = logging.getLogger(__name__)
