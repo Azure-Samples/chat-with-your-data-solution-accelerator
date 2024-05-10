@@ -63,6 +63,7 @@ This is a [specification](https://www.conventionalcommits.org/en/v1.0.0/) which 
   * ci: Changes to our CI configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs)
   * chore: Other changes that don't modify src or test files
   * revert: Reverts a previous commit
+  * !: A breaking change is indicated with a `!` after the listed prefixes above, e.g. `feat!`, `fix!`, `refactor!`, etc.
 
 
 # Semantic Versioning
