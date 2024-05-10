@@ -1,8 +1,8 @@
 from enum import Enum
-from .Layout import LayoutDocumentLoading
-from .Read import ReadDocumentLoading
-from .Web import WebDocumentLoading
-from .WordDocument import WordDocumentLoading
+from .layout import LayoutDocumentLoading
+from .read import ReadDocumentLoading
+from .web import WebDocumentLoading
+from .word_document import WordDocumentLoading
 
 
 class LoadingStrategy(Enum):

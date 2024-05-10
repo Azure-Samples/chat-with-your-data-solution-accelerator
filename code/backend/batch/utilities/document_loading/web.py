@@ -2,7 +2,7 @@ from typing import List
 import re
 from langchain.docstore.document import Document
 from langchain_community.document_loaders import WebBaseLoader
-from .DocumentLoadingBase import DocumentLoadingBase
+from .document_loading_base import DocumentLoadingBase
 from ..common.SourceDocument import SourceDocument
 
 
