@@ -14,9 +14,7 @@ from tests.functional.app_config import AppConfig
 from tests.functional.request_matching import RequestMatcher, verify_request_made
 
 sys.path.append(
-    os.path.join(
-        os.path.dirname(sys.path[0]), "..", "..", "..", "..", "backend", "batch"
-    )
+    os.path.join(os.path.dirname(sys.path[0]), "..", "..", "backend", "batch")
 )
 
 from backend.batch.BatchPushResults import batch_push_results  # noqa: E402
