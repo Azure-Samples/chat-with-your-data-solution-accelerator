@@ -1,8 +1,8 @@
 import pytest
 import requests
 from pytest_httpserver import HTTPServer
-from tests.functional.backend_api.app_config import AppConfig
-from tests.functional.backend_api.request_matching import (
+from tests.functional.app_config import AppConfig
+from tests.functional.request_matching import (
     RequestMatcher,
     verify_request_made,
 )

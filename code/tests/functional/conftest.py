@@ -1,7 +1,7 @@
 import ssl
 import pytest
 from pytest_httpserver import HTTPServer
-from tests.functional.backend_api.app_config import AppConfig
+from tests.functional.app_config import AppConfig
 import trustme
 
 
