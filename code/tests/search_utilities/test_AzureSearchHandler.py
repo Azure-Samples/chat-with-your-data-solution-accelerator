@@ -64,6 +64,17 @@ def test_process_results(handler):
     assert data[0] == [1, "Content 1"]
 
 
+def test_process_results_null(handler):
+    # given
+    results = []
+
+    # when
+    data = handler.process_results(results)
+
+    # then
+    assert len(data) == 0
+
+
 def test_delete_files(handler):
     # given
     files = {"file1": ["1", "2"]}

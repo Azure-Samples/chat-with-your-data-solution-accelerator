@@ -26,9 +26,15 @@ def iv_search_handler_mock():
         yield mock
 
 
-def test_get_search_handler_integrated_vectorization(
-    env_helper_mock, iv_search_handler_mock
-):
+@pytest.fixture(autouse=True)
+def search_index_mock():
+    with patch.object(
+        IntegratedVectorizationSearchHandler, "_check_index_exists", return_value=True
+    ) as mock:
+        yield mock
+
+
+def test_get_search_handler_integrated_vectorization(env_helper_mock):
     # given
     env_helper_mock.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = True
 
@@ -39,8 +45,7 @@ def test_get_search_handler_integrated_vectorization(
     assert isinstance(search_handler, IntegratedVectorizationSearchHandler)
 
 
-@patch("backend.batch.utilities.search.Search")
-def test_get_source_documents_integrated_vectorization(search_handler_mock: MagicMock):
+def test_get_source_documents_integrated_vectorization(env_helper_mock):
     # given
     env_helper_mock.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = True
     question = "example question"
@@ -51,14 +56,33 @@ def test_get_source_documents_integrated_vectorization(search_handler_mock: Magi
             "title": "Example Title 1",
             "source": "https://example.com/1",
             "chunk_id": "chunk1",
+            "content": "mock content 1",
         },
         {
             "id": 2,
             "title": "Example Title 2",
             "source": "https://example.com/2",
             "chunk_id": "chunk2",
+            "content": "mock content 2",
         },
     ]
+    search_handler_mock = Mock(spec=IntegratedVectorizationSearchHandler)
+    search_handler_mock.query_search.return_value = search_results
+
+    # when
+    source_documents = Search.get_source_documents(search_handler_mock, question)
+
+    # then
+    assert len(source_documents) == len(search_results)
+
+
+def test_get_source_documents_integrated_vectorization_no_results(env_helper_mock):
+    # given
+    env_helper_mock.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = True
+    question = "example question"
+
+    search_results = []
+    search_handler_mock = Mock(spec=IntegratedVectorizationSearchHandler)
     search_handler_mock.query_search.return_value = search_results
 
     # when

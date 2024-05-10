@@ -20,6 +20,22 @@ def env_helper_mock():
 
 
 @pytest.fixture
+def search_index_mock():
+    with patch.object(
+        IntegratedVectorizationSearchHandler, "_check_index_exists", return_value=True
+    ) as mock:
+        yield mock
+
+
+@pytest.fixture
+def search_index_does_not_exists_mock():
+    with patch.object(
+        IntegratedVectorizationSearchHandler, "_check_index_exists", return_value=False
+    ) as mock:
+        yield mock
+
+
+@pytest.fixture
 def search_client_mock():
     with patch(
         "backend.batch.utilities.search.IntegratedVectorizationSearchHandler.SearchClient"
@@ -28,7 +44,7 @@ def search_client_mock():
 
 
 @pytest.fixture
-def handler(env_helper_mock, search_client_mock):
+def handler(env_helper_mock, search_client_mock, search_index_mock):
     with patch(
         "backend.batch.utilities.search.IntegratedVectorizationSearchHandler.SearchClient",
         return_value=search_client_mock,
@@ -36,8 +52,27 @@ def handler(env_helper_mock, search_client_mock):
         return IntegratedVectorizationSearchHandler(env_helper_mock)
 
 
+@pytest.fixture
+def handler_index_does_not_exists(
+    env_helper_mock, search_client_mock, search_index_does_not_exists_mock
+):
+    with patch(
+        "backend.batch.utilities.search.IntegratedVectorizationSearchHandler.SearchClient",
+        return_value=search_client_mock,
+    ):
+        return IntegratedVectorizationSearchHandler(env_helper_mock)
+
+
+def test_create_search_client_index_does_not_exists(handler_index_does_not_exists):
+    assert handler_index_does_not_exists.create_search_client() is None
+
+
 def test_create_search_client(handler, search_client_mock):
     assert handler.create_search_client() == search_client_mock.return_value
+
+
+def test_perform_search_index_does_not_exists(handler_index_does_not_exists):
+    assert handler_index_does_not_exists.perform_search("testfile") is None
 
 
 def test_perform_search(handler, search_client_mock):
@@ -64,6 +99,17 @@ def test_process_results(handler):
 
     # then
     assert data[0] == ["123", "some content"]
+
+
+def test_process_results_null(handler):
+    # given
+    results = []
+
+    # when
+    data = handler.process_results(results)
+
+    # then
+    assert len(data) == 0
 
 
 def test_delete_files(handler, search_client_mock):
