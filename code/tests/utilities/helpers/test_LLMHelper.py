@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from backend.batch.utilities.helpers.LLMHelper import LLMHelper
+from backend.batch.utilities.helpers.llm_helper import LLMHelper
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
 from openai.types.create_embedding_response import CreateEmbeddingResponse
 from openai.types.embedding import Embedding

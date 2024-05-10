@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import ANY, MagicMock, patch
-from backend.batch.utilities.helpers.AzureSearchHelper import AzureSearchHelper
+from backend.batch.utilities.helpers.azure_search_helper import AzureSearchHelper
 from azure.search.documents.indexes.models import (
     ExhaustiveKnnAlgorithmConfiguration,
     ExhaustiveKnnParameters,

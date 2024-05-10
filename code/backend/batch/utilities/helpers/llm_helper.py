@@ -6,7 +6,7 @@ from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
 from semantic_kernel.connectors.ai.open_ai.prompt_execution_settings.azure_chat_prompt_execution_settings import (
     AzureChatPromptExecutionSettings,
 )
-from .EnvHelper import EnvHelper
+from .env_helper import EnvHelper
 
 
 class LLMHelper:

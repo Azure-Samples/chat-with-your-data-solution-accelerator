@@ -9,9 +9,9 @@ from flask import Flask, Response, request, Request, jsonify
 from dotenv import load_dotenv
 import sys
 import functools
-from backend.batch.utilities.helpers.EnvHelper import EnvHelper
-from backend.batch.utilities.helpers.OrchestratorHelper import Orchestrator
-from backend.batch.utilities.helpers.config.ConfigHelper import ConfigHelper
+from backend.batch.utilities.helpers.env_helper import EnvHelper
+from backend.batch.utilities.helpers.orchestrator_helper import Orchestrator
+from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
 from azure.identity import DefaultAzureCredential
 

@@ -1,12 +1,12 @@
 import json
 import pytest
 from unittest.mock import MagicMock, call, patch
-from backend.batch.utilities.helpers.embedders.PushEmbedder import PushEmbedder
+from backend.batch.utilities.helpers.embedders.push_embedder import PushEmbedder
 from backend.batch.utilities.document_chunking.chunking_strategy import ChunkingSettings
 from backend.batch.utilities.document_loading import LoadingSettings
 from backend.batch.utilities.document_loading.strategies import LoadingStrategy
 from backend.batch.utilities.common.SourceDocument import SourceDocument
-from backend.batch.utilities.helpers.config.EmbeddingConfig import EmbeddingConfig
+from backend.batch.utilities.helpers.config.embedding_config import EmbeddingConfig
 
 CHUNKING_SETTINGS = ChunkingSettings({"strategy": "layout", "size": 1, "overlap": 0})
 LOADING_SETTINGS = LoadingSettings({"strategy": LoadingStrategy.LAYOUT})

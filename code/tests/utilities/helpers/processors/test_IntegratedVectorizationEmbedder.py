@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from backend.batch.utilities.helpers.embedders.IntegratedVectorizationEmbedder import (
+from backend.batch.utilities.helpers.embedders.integrated_vectorization_embedder import (
     IntegratedVectorizationEmbedder,
 )
 from backend.batch.utilities.document_chunking.chunking_strategy import ChunkingSettings

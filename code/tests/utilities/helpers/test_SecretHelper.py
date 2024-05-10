@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 from pytest import MonkeyPatch
-from backend.batch.utilities.helpers.EnvHelper import SecretHelper
+from backend.batch.utilities.helpers.env_helper import SecretHelper
 
 
 def test_get_secret_returns_value_from_environment_variables(monkeypatch: MonkeyPatch):

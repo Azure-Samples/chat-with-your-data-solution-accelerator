@@ -2,17 +2,17 @@ import json
 import logging
 from typing import List
 
-from ...helpers.LLMHelper import LLMHelper
+from ...helpers.llm_helper import LLMHelper
 
-from ..AzureBlobStorageClient import AzureBlobStorageClient
+from ..azure_blob_storage_client import AzureBlobStorageClient
 
-from ..config.EmbeddingConfig import EmbeddingConfig
-from ..config.ConfigHelper import ConfigHelper
+from ..config.embedding_config import EmbeddingConfig
+from ..config.config_helper import ConfigHelper
 
-from .EmbedderBase import EmbedderBase
-from ..AzureSearchHelper import AzureSearchHelper
-from ..DocumentLoadingHelper import DocumentLoading
-from ..DocumentChunkingHelper import DocumentChunking
+from .embedder_base import EmbedderBase
+from ..azure_search_helper import AzureSearchHelper
+from ..document_loading_helper import DocumentLoading
+from ..document_chunking_helper import DocumentChunking
 from ...common.SourceDocument import SourceDocument
 
 logger = logging.getLogger(__name__)

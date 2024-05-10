@@ -1,4 +1,4 @@
-from ..helpers.AzureSearchHelper import AzureSearchHelper
+from ..helpers.azure_search_helper import AzureSearchHelper
 from datetime import datetime
 import json
 

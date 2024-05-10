@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import ANY, MagicMock, patch
-from backend.batch.utilities.helpers.AzureBlobStorageClient import (
+from backend.batch.utilities.helpers.azure_blob_storage_client import (
     AzureBlobStorageClient,
 )
 

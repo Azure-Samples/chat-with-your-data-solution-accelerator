@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from ..helpers.EnvHelper import EnvHelper
+from ..helpers.env_helper import EnvHelper
 
 from ..common.SourceDocument import SourceDocument
 
