@@ -25,7 +25,7 @@ urlFragment: chat-with-your-data-solution-accelerator
 # Chat with your data - Solution accelerator
 
 <!--  [**USER STORY**](#user-story) | [**DEPLOY**](#Deploy) | [**SUPPORTING DOCUMENTATION**](#supporting-documentation) | [**CUSTOMER TRUTH**](#customer-truth)\ -->
- ##### Table of Contents   
+ ##### Table of Contents
  * [User story](#user-story)
     + [About this repo](#about-this-repo)
     + [Getting Support](#getting-support)
@@ -48,7 +48,7 @@ urlFragment: chat-with-your-data-solution-accelerator
     + [Resource links](#resource-links)
     + [Licensing](#licensing)
   * [Customer truth](#customer-truth)
-  * [Disclaimers](#disclaimers) 
+  * [Disclaimers](#disclaimers)
 \
 \
 ![User Story](/media/userStory.png)
@@ -133,6 +133,9 @@ In this scenario, a financial advisor is preparing for a meeting with a potentia
 Now that the financial advisor is more informed about Woodgrove’s Emerging Markets Funds, they're better equipped to respond to questions about this fund from their client.
 
 Note: Some of the sample data included with this accelerator was generated using AI and is for illustrative purposes only.
+
+### Integrated Vectorization
+The Chat with your data accelerator supports [Integrated Vectorization](https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-vectorization), an Azure AI Search feature that pulls, processes and indexes data directly from Azure Storage. This greatly simplifies the code that needs to be maintained by developers deploying the accelerator since the chunking, vectorization and indexing of data is handled by Azure AI's built-in pull-indexers. Learn more about deploying with Integrated Vectorization [here](./docs/INTEGRATED_VECTORIZATION.md).
 
 ### Speech-to-text functionality
 Many users are used to the convenience of speech-to-text functionality in their consumer products. With hybrid work increasing, speech-to-text supports a more flexible way for users to chat with their data, whether they’re at their computer or on the go with their mobile device. The speech-to-text capability is combined with NLP capabilities to extract intent and context from spoken language, allowing the chatbot to understand and respond to user requests more intelligently.
