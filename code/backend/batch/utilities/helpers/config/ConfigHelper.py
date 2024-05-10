@@ -4,7 +4,7 @@ import logging
 from string import Template
 
 from ..AzureBlobStorageClient import AzureBlobStorageClient
-from ...document_chunking.ChunkingStrategy import ChunkingStrategy, ChunkingSettings
+from ...document_chunking.chunking_strategy import ChunkingStrategy, ChunkingSettings
 from ...document_loading import LoadingSettings, LoadingStrategy
 from .EmbeddingConfig import EmbeddingConfig
 from ...orchestrator.OrchestrationStrategy import OrchestrationStrategy

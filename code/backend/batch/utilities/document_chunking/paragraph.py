@@ -1,6 +1,6 @@
 from typing import List
-from .DocumentChunkingBase import DocumentChunkingBase
-from .ChunkingStrategy import ChunkingSettings
+from .document_chunking_base import DocumentChunkingBase
+from .chunking_strategy import ChunkingSettings
 from ..common.SourceDocument import SourceDocument
 
 

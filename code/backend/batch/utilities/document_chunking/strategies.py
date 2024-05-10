@@ -1,8 +1,8 @@
-from .ChunkingStrategy import ChunkingStrategy
-from .Layout import LayoutDocumentChunking
-from .Page import PageDocumentChunking
-from .FixedSizeOverlap import FixedSizeOverlapDocumentChunking
-from .Paragraph import ParagraphDocumentChunking
+from .chunking_strategy import ChunkingStrategy
+from .layout import LayoutDocumentChunking
+from .page import PageDocumentChunking
+from .fixed_size_overlap import FixedSizeOverlapDocumentChunking
+from .paragraph import ParagraphDocumentChunking
 
 
 def get_document_chunker(chunking_strategy: str):

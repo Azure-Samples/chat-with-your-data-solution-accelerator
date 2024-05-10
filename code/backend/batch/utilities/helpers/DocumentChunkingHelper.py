@@ -1,8 +1,8 @@
 from typing import List
 from langchain.docstore.document import Document
 
-from ..document_chunking.ChunkingStrategy import ChunkingSettings, ChunkingStrategy
-from ..document_chunking.Strategies import get_document_chunker
+from ..document_chunking.chunking_strategy import ChunkingSettings, ChunkingStrategy
+from ..document_chunking.strategies import get_document_chunker
 
 __all__ = ["ChunkingStrategy"]
 
