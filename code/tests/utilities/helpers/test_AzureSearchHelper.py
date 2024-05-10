@@ -1,7 +1,25 @@
 import pytest
 from unittest.mock import ANY, MagicMock, patch
 from backend.batch.utilities.helpers.AzureSearchHelper import AzureSearchHelper
-
+from azure.search.documents.indexes.models import (
+    ExhaustiveKnnAlgorithmConfiguration,
+    ExhaustiveKnnParameters,
+    HnswAlgorithmConfiguration,
+    HnswParameters,
+    SearchableField,
+    SearchField,
+    SearchFieldDataType,
+    SearchIndex,
+    SemanticConfiguration,
+    SemanticField,
+    SemanticPrioritizedFields,
+    SemanticSearch,
+    SimpleField,
+    VectorSearch,
+    VectorSearchAlgorithmKind,
+    VectorSearchAlgorithmMetric,
+    VectorSearchProfile,
+)
 
 AZURE_AUTH_TYPE = "keys"
 AZURE_SEARCH_KEY = "mock-key"
@@ -118,6 +136,116 @@ def test_returns_search_client(
 
 @patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchClient")
 @patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchIndexClient")
+def test_creates_search_index_if_not_exists(
+    search_index_client_mock: MagicMock, search_client_mock: MagicMock
+):
+    # given
+    search_index_client_mock.return_value.list_index_names.return_value = [
+        "some-irrelevant-index"
+    ]
+
+    fields = [
+        SimpleField(
+            name="id",
+            type=SearchFieldDataType.String,
+            key=True,
+            filterable=True,
+        ),
+        SearchableField(
+            name="content",
+            type=SearchFieldDataType.String,
+        ),
+        SearchField(
+            name="content_vector",
+            type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
+            searchable=True,
+            vector_search_dimensions=1536,
+            vector_search_profile_name="myHnswProfile",
+        ),
+        SearchableField(
+            name="metadata",
+            type=SearchFieldDataType.String,
+        ),
+        SearchableField(
+            name="title",
+            type=SearchFieldDataType.String,
+            facetable=True,
+            filterable=True,
+        ),
+        SearchableField(
+            name="source",
+            type=SearchFieldDataType.String,
+            filterable=True,
+        ),
+        SimpleField(
+            name="chunk",
+            type=SearchFieldDataType.Int32,
+            filterable=True,
+        ),
+        SimpleField(
+            name="offset",
+            type=SearchFieldDataType.Int32,
+            filterable=True,
+        ),
+    ]
+
+    expected_index = SearchIndex(
+        name=AZURE_SEARCH_INDEX,
+        fields=fields,
+        semantic_search=(
+            SemanticSearch(
+                configurations=[
+                    SemanticConfiguration(
+                        name=AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
+                        prioritized_fields=SemanticPrioritizedFields(
+                            title_field=None,
+                            content_fields=[SemanticField(field_name="content")],
+                        ),
+                    )
+                ]
+            )
+        ),
+        vector_search=VectorSearch(
+            algorithms=[
+                HnswAlgorithmConfiguration(
+                    name="default",
+                    parameters=HnswParameters(
+                        metric=VectorSearchAlgorithmMetric.COSINE
+                    ),
+                    kind=VectorSearchAlgorithmKind.HNSW,
+                ),
+                ExhaustiveKnnAlgorithmConfiguration(
+                    name="default_exhaustive_knn",
+                    kind=VectorSearchAlgorithmKind.EXHAUSTIVE_KNN,
+                    parameters=ExhaustiveKnnParameters(
+                        metric=VectorSearchAlgorithmMetric.COSINE
+                    ),
+                ),
+            ],
+            profiles=[
+                VectorSearchProfile(
+                    name="myHnswProfile",
+                    algorithm_configuration_name="default",
+                ),
+                VectorSearchProfile(
+                    name="myExhaustiveKnnProfile",
+                    algorithm_configuration_name="default_exhaustive_knn",
+                ),
+            ],
+        ),
+    )
+
+    # when
+    AzureSearchHelper().get_search_client()
+
+    # then
+    search_index_client_mock.return_value.create_index.assert_called_once_with(
+        expected_index
+    )
+
+
+@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchClient")
+@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchIndexClient")
 def test_does_not_create_search_index_if_it_exists(
     search_index_client_mock: MagicMock,
     search_client_mock: MagicMock,
@@ -128,10 +256,29 @@ def test_does_not_create_search_index_if_it_exists(
     ]
 
     # when
-    AzureSearchHelper()
+    azure_search_helper = AzureSearchHelper()
+    azure_search_helper.get_search_client()
 
     # then
     search_index_client_mock.return_value.create_index.assert_not_called()
+
+
+@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchClient")
+@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchIndexClient")
+def test_propogates_exceptions_when_creating_search_index(
+    search_index_client_mock: MagicMock,
+    search_client_mock: MagicMock,
+):
+    # given
+    expected_exception = Exception()
+    search_index_client_mock.return_value.create_index.side_effect = expected_exception
+
+    # when
+    with pytest.raises(Exception) as exc_info:
+        AzureSearchHelper().get_search_client()
+
+    # then
+    assert exc_info.value == expected_exception
 
 
 @patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchClient")
