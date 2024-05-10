@@ -19,6 +19,8 @@ sys.path.append(
 
 from backend.batch.BatchPushResults import batch_push_results  # noqa: E402
 
+pytestmark = pytest.mark.functional
+
 FILE_NAME = "image.jpg"
 
 
