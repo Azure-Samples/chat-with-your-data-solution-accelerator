@@ -14,6 +14,9 @@ def env_helper_mock():
         env_helper.AZURE_AUTH_TYPE = "keys"
         env_helper.AZURE_BLOB_ACCOUNT_NAME = "mock-account"
         env_helper.AZURE_BLOB_ACCOUNT_KEY = "mock-key"
+        env_helper.AZURE_STORAGE_ACCOUNT_ENDPOINT = (
+            f"https://{env_helper.AZURE_BLOB_ACCOUNT_NAME}.blob.core.windows.net/"
+        )
         env_helper.AZURE_BLOB_CONTAINER_NAME = "mock-container"
 
         yield env_helper
@@ -31,7 +34,7 @@ def BlobServiceClientMock():
 def test_file_exists(BlobServiceClientMock: MagicMock, exists: bool, expected: bool):
     # given
     client = AzureBlobStorageClient()
-    blob_service_client_mock = BlobServiceClientMock.from_connection_string.return_value
+    blob_service_client_mock = BlobServiceClientMock.return_value
     blob_client_mock = blob_service_client_mock.get_blob_client.return_value
     blob_client_mock.exists.return_value = exists
 
@@ -61,7 +64,7 @@ def test_upload_file(
 ):
     # given
     client = AzureBlobStorageClient()
-    blob_service_client_mock = BlobServiceClientMock.from_connection_string.return_value
+    blob_service_client_mock = BlobServiceClientMock.return_value
     blob_client_mock = blob_service_client_mock.get_blob_client.return_value
     blob_client_mock.url = "mock_url"
     generate_blob_sas_mock.return_value = "mock-sas"
@@ -97,7 +100,7 @@ def test_upload_file(
 def test_delete_file(BlobServiceClientMock: MagicMock):
     # given
     client = AzureBlobStorageClient()
-    blob_service_client_mock = BlobServiceClientMock.from_connection_string.return_value
+    blob_service_client_mock = BlobServiceClientMock.return_value
     blob_client_mock = blob_service_client_mock.get_blob_client.return_value
 
     # when
@@ -113,7 +116,7 @@ def test_delete_file(BlobServiceClientMock: MagicMock):
 def test_upsert_blob_metadata(BlobServiceClientMock: MagicMock):
     # given
     client = AzureBlobStorageClient()
-    blob_service_client_mock = BlobServiceClientMock.from_connection_string.return_value
+    blob_service_client_mock = BlobServiceClientMock.return_value
     blob_client_mock = blob_service_client_mock.get_blob_client.return_value
     blob_client_mock.get_blob_properties.return_value.metadata = {
         "other-key": "other-value",

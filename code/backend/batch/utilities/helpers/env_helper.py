@@ -153,6 +153,10 @@ class EnvHelper:
             "AZURE_BLOB_ACCOUNT_KEY"
         )
         self.AZURE_BLOB_CONTAINER_NAME = os.getenv("AZURE_BLOB_CONTAINER_NAME", "")
+        self.AZURE_STORAGE_ACCOUNT_ENDPOINT = os.getenv(
+            "AZURE_STORAGE_ACCOUNT_ENDPOINT",
+            f"https://{self.AZURE_BLOB_ACCOUNT_NAME}.blob.core.windows.net/",
+        )
         # Azure Form Recognizer
         self.AZURE_FORM_RECOGNIZER_ENDPOINT = os.getenv(
             "AZURE_FORM_RECOGNIZER_ENDPOINT", ""
