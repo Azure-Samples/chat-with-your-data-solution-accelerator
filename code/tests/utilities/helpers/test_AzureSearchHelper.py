@@ -32,7 +32,9 @@ AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = "mock-log-index"
 
 @pytest.fixture(autouse=True)
 def azure_search_mock():
-    with patch("backend.batch.utilities.helpers.azure_search_helper.AzureSearch") as mock:
+    with patch(
+        "backend.batch.utilities.helpers.azure_search_helper.AzureSearch"
+    ) as mock:
         yield mock
 
 
@@ -66,6 +68,13 @@ def env_helper_mock():
         env_helper.is_auth_type_keys.return_value = True
 
         yield env_helper
+
+
+@pytest.fixture(autouse=True)
+def reset_search_dimensions():
+    AzureSearchHelper._search_dimension = None
+    yield
+    AzureSearchHelper._search_dimension = None
 
 
 @patch("backend.batch.utilities.helpers.azure_search_helper.SearchClient")
