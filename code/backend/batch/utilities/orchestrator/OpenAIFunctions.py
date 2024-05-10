@@ -1,6 +1,9 @@
 from typing import List
 import json
 
+from ..common.SourceDocument import SourceDocument
+
+from ..helpers.EnvHelper import EnvHelper
 from .OrchestratorBase import OrchestratorBase
 from ..helpers.LLMHelper import LLMHelper
 from ..tools.PostPromptTool import PostPromptTool
@@ -9,6 +12,10 @@ from ..tools.TextProcessingTool import TextProcessingTool
 from ..tools.ContentSafetyChecker import ContentSafetyChecker
 from ..parser.OutputParserTool import OutputParserTool
 from ..common.Answer import Answer
+from ..helpers.PowerPointHelper import PowerPointHelper, ProjectPresentationData
+
+env_helper = EnvHelper()
+power_point_helper = PowerPointHelper()
 
 
 class OpenAIFunctionsOrchestrator(OrchestratorBase):
@@ -53,6 +60,57 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
                     "required": ["text", "operation"],
                 },
             },
+            {
+                "name": "create_presentation",
+                "description": "Creates PowerPoint presentation, based on projects information in context.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "presentations": {
+                            "type": "array",
+                            "description": "Array of presentation data, each item represents one project",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Name of the project.",
+                                    },
+                                    "overview": {
+                                        "type": "string",
+                                        "description": "Brief summary of the client's company, including public information.",
+                                    },
+                                    "challenges": {
+                                        "type": "string",
+                                        "description": "Consise description of the challenges the company faced and their business goals and needs. This may include issues like recruitment difficulties, market expansion, product failures, or the need for technological expertise.",
+                                    },
+                                    "technologies": {
+                                        "type": "string",
+                                        "description": "List of technologies used in the project, including programming languages, tools, and cloud platforms.",
+                                    },
+                                    "results": {
+                                        "type": "string",
+                                        "description": "Some briefly described examples of how Capgemini contributed to the client's business and helped achieve goals, ideally including quantifiable metrics.",
+                                    },
+                                    "solution": {
+                                        "type": "string",
+                                        "description": "Consise explanation of how Capgemini addressed the client's needs and assisted them in meeting their goals. This should highlight both business achievements and technical features implemented by our teams.",
+                                    },
+                                },
+                                "required": [
+                                    "name",
+                                    "overview",
+                                    "challenges",
+                                    "technologies",
+                                    "results",
+                                    "solution",
+                                ],
+                            },
+                        }
+                    },
+                    "required": ["presentations"],
+                },
+            },
         ]
 
     def orchestrate(
@@ -79,7 +137,7 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
         llm_helper = LLMHelper()
 
         system_message = """You help employees to navigate only private information sources, which encompass confidential company documents such as policies, project documentation, technical guides, how-to manuals, and other documentation typical of a large IT company.
-        ### IMPORTANT: Your top priority is to utilize the 'search_documents' function with the latest user inquiry for queries concerning these private sources
+        ### IMPORTANT: You must prioritize the function call over your general knowledge for any question by calling the search_documents function.
         ### Instructions for 'search_documents' function:
         1. **Focus on the Most Recent User Inquiry**: Always use the most recent user question as the sole context for the futher steps, we will address to this context as 'user question'. Ignore previous interactions or questions.
         2. **Analyze context**: Carefully read the 'user question' to grasp the intention clearly
@@ -89,8 +147,9 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
         4. **Extract 'keywords'**:
             - From the 'user question', identify and extract IT-related terms like domains, technologies, frameworks, approaches, testing strategies, etc. without assumptions. If no keywords are available in 'user question', pass an empty array
         
-        Call the 'text_processing' function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.
+        ### Call the 'text_processing' function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.
         When directly replying to the user, always reply in the language the user is speaking.
+        ### Call the 'create_presentation' function when the user requests to create presentation on the current context. All presentation related data must be consise.
         """
         # Create conversation history
         messages = [{"role": "system", "content": system_message}]
@@ -136,6 +195,56 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
                         prompt_tokens=answer.prompt_tokens,
                         completion_tokens=answer.completion_tokens,
                     )
+
+            elif result.choices[0].message.function_call.name == "create_presentation":
+                func_arguments = json.loads(
+                    result.choices[0].message.function_call.arguments
+                )
+                source_documents = []
+                citations = ""
+                presentatin_names = []
+
+                for index, presentation_item in enumerate(
+                    func_arguments["presentations"]
+                ):
+                    presentation_data = ProjectPresentationData(
+                        name=presentation_item["name"],
+                        overview=presentation_item["overview"],
+                        challenges=presentation_item["challenges"],
+                        technologies=presentation_item["technologies"],
+                        results=presentation_item["results"],
+                        solution=presentation_item["solution"],
+                    )
+                    created_presentation_url = (
+                        power_point_helper.create_project_presentation(
+                            projectData=presentation_data
+                        )
+                    )
+                    doc = SourceDocument(
+                        "",
+                        source=created_presentation_url,
+                        id=f"doc{index}",
+                        title=presentation_data.name,
+                    )
+                    citations += f"[doc{index}] "
+                    source_documents.append(doc)
+                    presentatin_names.append(presentation_data.name)
+
+                presentations_count = len(presentatin_names)
+                message = "Apologies for the inconvenience. I acknowledge the failure to create the presentation."
+                if presentations_count > 0:
+                    message = (
+                        f"Presentations for projects {', '.join(presentatin_names)} were successfully created."
+                        if presentations_count > 1
+                        else f"Presentation for project {presentatin_names[0]} was successfully created."
+                    )
+                    message += citations
+
+                answer = Answer(
+                    question=user_message,
+                    answer=message,
+                    source_documents=source_documents,
+                )
             elif result.choices[0].message.function_call.name == "text_processing":
                 text = json.loads(result.choices[0].message.function_call.arguments)[
                     "text"

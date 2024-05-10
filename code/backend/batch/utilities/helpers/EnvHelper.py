@@ -126,6 +126,9 @@ class EnvHelper:
             "AZURE_BLOB_ACCOUNT_KEY"
         )
         self.AZURE_BLOB_CONTAINER_NAME = os.getenv("AZURE_BLOB_CONTAINER_NAME", "")
+        self.AZURE_BLOB_PRESENTATIONS_CONTAINER_NAME = os.getenv(
+            "AZURE_BLOB_PRESENTATIONS_CONTAINER_NAME", ""
+        )
         # Azure Form Recognizer
         self.AZURE_FORM_RECOGNIZER_ENDPOINT = os.getenv(
             "AZURE_FORM_RECOGNIZER_ENDPOINT", ""

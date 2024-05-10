@@ -185,7 +185,7 @@ def _convert_source_documents_to_content(
     for source_document in source_documents:
         content["citations"].append(
             {
-                "content": source_document.get_markdown_url()
+                "content": source_document.source
                 + "\n\n\n"
                 + source_document.content,
                 "id": source_document.id,

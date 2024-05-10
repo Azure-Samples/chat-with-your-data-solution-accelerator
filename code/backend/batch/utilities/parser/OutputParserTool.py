@@ -64,7 +64,7 @@ class OutputParserTool(ParserBase):
             # Then update the citation object in the response, it needs to have filepath and chunk_id to render in the UI as a file
             messages[0]["content"]["citations"].append(
                 {
-                    "content": doc.get_markdown_url() + "\n\n\n" + doc.content,
+                    "content": doc.source + "\n\n\n" + doc.content,
                     "id": doc.id,
                     "chunk_id": doc.chunk,
                     "title": doc.title,
