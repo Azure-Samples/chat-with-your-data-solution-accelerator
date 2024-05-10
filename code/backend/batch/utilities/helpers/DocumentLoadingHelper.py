@@ -1,7 +1,7 @@
 from typing import List
 from langchain.docstore.document import Document
 from ..document_loading import LoadingSettings
-from ..document_loading.Strategies import get_document_loader
+from ..document_loading.strategies import get_document_loader
 
 
 class DocumentLoading:

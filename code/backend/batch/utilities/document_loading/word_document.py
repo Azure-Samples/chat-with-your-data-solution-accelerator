@@ -2,7 +2,7 @@ from typing import List
 from io import BytesIO
 from docx import Document
 import requests
-from .DocumentLoadingBase import DocumentLoadingBase
+from .document_loading_base import DocumentLoadingBase
 from ..common.SourceDocument import SourceDocument
 
 

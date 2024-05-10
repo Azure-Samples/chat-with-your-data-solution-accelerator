@@ -5,7 +5,7 @@ from backend.batch.utilities.helpers.embedders.IntegratedVectorizationEmbedder i
 )
 from backend.batch.utilities.document_chunking.chunking_strategy import ChunkingSettings
 from backend.batch.utilities.document_loading import LoadingSettings
-from backend.batch.utilities.document_loading.Strategies import LoadingStrategy
+from backend.batch.utilities.document_loading.strategies import LoadingStrategy
 
 AZURE_SEARCH_INDEXER_NAME = "mock-indexer-name"
 CHUNKING_SETTINGS = ChunkingSettings({"strategy": "layout", "size": 1, "overlap": 0})

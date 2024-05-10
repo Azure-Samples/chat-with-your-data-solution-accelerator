@@ -2,7 +2,7 @@ import os
 from typing import List
 import os.path
 import pkgutil
-from .Strategies import LoadingStrategy
+from .strategies import LoadingStrategy
 
 
 class LoadingSettings:
