@@ -80,4 +80,4 @@ The guidance states:
 
 ## What should I do if I introduce a breaking change?
 
-If you must introduce a breaking change, then the Pull Request should clearly indicate this using the `BREAKING CHANGE` prefix. This will correlate to a `major` semantic version increase.
+If you must introduce a breaking change, then the Pull Request should clearly indicate by adding a `!` to the prefix type, for example `feat!`, `fix!`, `refactor!`, etc. This will correlate to a `major` semantic version increase.
