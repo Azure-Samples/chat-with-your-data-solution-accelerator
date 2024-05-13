@@ -30,7 +30,6 @@ def app_config(make_httpserver, ca):
                 "AZURE_CONTENT_SAFETY_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
                 "AZURE_SPEECH_REGION_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
                 "AZURE_STORAGE_ACCOUNT_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
-                # TODO: Retrieve config from mocked storage with `orchestrator` set to `semantic_kernel`, instead of creating new server
                 "LOAD_CONFIG_FROM_BLOB_STORAGE": "False",
                 "ORCHESTRATION_STRATEGY": "semantic_kernel",
                 "SSL_CERT_FILE": ca_temp_path,
