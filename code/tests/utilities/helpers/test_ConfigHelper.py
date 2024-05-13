@@ -125,7 +125,9 @@ def blob_client_mock(config_dict: dict, AzureBlobStorageClientMock: MagicMock):
 
 @pytest.fixture(autouse=True)
 def env_helper_mock():
-    with patch("backend.batch.utilities.helpers.config.config_helper.EnvHelper") as mock:
+    with patch(
+        "backend.batch.utilities.helpers.config.config_helper.EnvHelper"
+    ) as mock:
         env_helper = mock.return_value
         env_helper.ORCHESTRATION_STRATEGY = "openai_function"
         env_helper.LOAD_CONFIG_FROM_BLOB_STORAGE = True
@@ -289,7 +291,7 @@ def test_save_config_as_active_validates_advanced_image_file_types_are_valid(
 
     # then
     assert str(e.value) == (
-        "Advanced image processing is enabled for document type txt, but only ['jpeg', 'jpg', 'png', 'tiff', 'bmp'] files types are supported."
+        "Advanced image processing has been enabled for document type txt, but only ['jpeg', 'jpg', 'png', 'tiff', 'bmp'] file types are supported."
     )
     AzureBlobStorageClientMock.assert_not_called()
 
