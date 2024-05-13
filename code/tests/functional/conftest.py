@@ -1,11 +1,9 @@
 import pytest
 from pytest_httpserver import HTTPServer
 from tests.functional.app_config import AppConfig
-from backend.batch.utilities.helpers.config.config_helper import (
-    CONFIG_CONTAINER_NAME,
-    CONFIG_FILE_NAME,
-)
 from tests.constants import (
+    AZURE_STORAGE_CONFIG_CONTAINER_NAME,
+    AZURE_STORAGE_CONFIG_FILE_NAME,
     COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
     COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
 )
@@ -14,12 +12,12 @@ from tests.constants import (
 @pytest.fixture(scope="function", autouse=True)
 def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     httpserver.expect_request(
-        f"/{CONFIG_CONTAINER_NAME}/{CONFIG_FILE_NAME}",
+        f"/{AZURE_STORAGE_CONFIG_CONTAINER_NAME}/{AZURE_STORAGE_CONFIG_FILE_NAME}",
         method="HEAD",
     ).respond_with_data()
 
     httpserver.expect_request(
-        f"/{CONFIG_CONTAINER_NAME}/{CONFIG_FILE_NAME}",
+        f"/{AZURE_STORAGE_CONFIG_CONTAINER_NAME}/{AZURE_STORAGE_CONFIG_FILE_NAME}",
         method="GET",
     ).respond_with_json(
         {
