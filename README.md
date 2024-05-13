@@ -14,6 +14,20 @@ products:
 - azure
 urlFragment: chat-with-your-data-solution-accelerator
 ---
+# Disclaimer:
+
+This repository is not a product from the Microsoft Product Group. Instead, it serves as an accelerator that Microsoft provides free of cost to our valued customers. As an open source software, it is available for use.
+
+Please note the following important points:
+
+Licensing: The repository is licensed under the MIT license. This means that you, the customer, are responsible for any code deployed in your environment. Microsoft Product Group is not liable for any issues arising from the use of this code.
+
+Not a Product: It’s essential to understand that this repository is not a product. It does not offer a turnkey solution. Instead, it provides tools and resources that can be customized to fit your specific needs.
+
+Environment Variability: Every environment is unique. Therefore, when deploying this solution, ensure that you adhere to your organization’s environment policies. Customization and configuration are necessary to align with your specific requirements.
+
+This repository is a valuable resource, but it requires thoughtful implementation and adaptation to your environment. If you have any questions or need further assistance, feel free to reach out.
+
 # Chat with your data - Solution accelerator
 
 [**USER STORY**](#user-story) | [**DEPLOY**](#Deploy) | [**SUPPORTING DOCUMENTATION**](#supporting-documentation) | [**CUSTOMER TRUTH**](#customer-truth)\
