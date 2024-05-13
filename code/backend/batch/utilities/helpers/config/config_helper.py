@@ -204,7 +204,7 @@ class ConfigHelper:
                 and unsupported_advanced_image_processing_file_type
             ):
                 raise Exception(
-                    f"Advanced image processing is enabled for document type {document_type}, but only {ADVANCED_IMAGE_PROCESSING_FILE_TYPES} files types are supported."
+                    f"Advanced image processing has been enabled for document type {document_type}, but only {ADVANCED_IMAGE_PROCESSING_FILE_TYPES} file types are supported."
                 )
 
     @staticmethod
