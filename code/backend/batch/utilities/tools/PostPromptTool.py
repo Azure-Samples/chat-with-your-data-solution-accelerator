@@ -2,8 +2,8 @@ from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 from langchain_community.callbacks import get_openai_callback
 from ..common.Answer import Answer
-from ..helpers.LLMHelper import LLMHelper
-from ..helpers.config.ConfigHelper import ConfigHelper
+from ..helpers.llm_helper import LLMHelper
+from ..helpers.config.config_helper import ConfigHelper
 
 
 class PostPromptTool:

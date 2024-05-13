@@ -8,7 +8,7 @@ from semantic_kernel.contents.finish_reason import FinishReason
 from semantic_kernel.contents.chat_message_content import ChatMessageContent
 
 from ..common.Answer import Answer
-from ..helpers.LLMHelper import LLMHelper
+from ..helpers.llm_helper import LLMHelper
 from ..plugins.ChatPlugin import ChatPlugin
 from ..plugins.PostAnsweringPlugin import PostAnsweringPlugin
 from .OrchestratorBase import OrchestratorBase

@@ -3,7 +3,7 @@ from uuid import uuid4
 from typing import List, Optional
 from abc import ABC, abstractmethod
 from ..loggers.ConversationLogger import ConversationLogger
-from ..helpers.config.ConfigHelper import ConfigHelper
+from ..helpers.config.config_helper import ConfigHelper
 from ..parser.OutputParserTool import OutputParserTool
 from ..tools.ContentSafetyChecker import ContentSafetyChecker
 

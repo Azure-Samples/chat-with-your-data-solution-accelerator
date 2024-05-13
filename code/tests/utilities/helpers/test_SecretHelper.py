@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 from pytest import MonkeyPatch
-from backend.batch.utilities.helpers.EnvHelper import SecretHelper
+from backend.batch.utilities.helpers.env_helper import SecretHelper
 
 
 def test_get_secret_returns_value_from_environment_variables(monkeypatch: MonkeyPatch):
@@ -17,7 +17,7 @@ def test_get_secret_returns_value_from_environment_variables(monkeypatch: Monkey
     assert actual_value == expected_value
 
 
-@patch("backend.batch.utilities.helpers.EnvHelper.SecretClient")
+@patch("backend.batch.utilities.helpers.env_helper.SecretClient")
 def test_get_secret_returns_value_from_secret_client_when_use_key_vault_is_true(
     secret_client: MagicMock, monkeypatch: MonkeyPatch
 ):

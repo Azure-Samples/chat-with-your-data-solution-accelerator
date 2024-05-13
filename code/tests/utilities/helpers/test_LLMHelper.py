@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from backend.batch.utilities.helpers.LLMHelper import LLMHelper
+from backend.batch.utilities.helpers.llm_helper import LLMHelper
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
 from openai.types.create_embedding_response import CreateEmbeddingResponse
 from openai.types.embedding import Embedding
@@ -17,7 +17,7 @@ AZURE_OPENAI_EMBEDDING_MODEL = "mock-embedding-model"
 
 @pytest.fixture(autouse=True)
 def env_helper_mock():
-    with patch("backend.batch.utilities.helpers.LLMHelper.EnvHelper") as mock:
+    with patch("backend.batch.utilities.helpers.llm_helper.EnvHelper") as mock:
         env_helper = mock.return_value
         env_helper.is_auth_type_keys.return_value = True
         env_helper.AZURE_OPENAI_ENDPOINT = AZURE_OPENAI_ENDPOINT
@@ -32,11 +32,11 @@ def env_helper_mock():
 
 @pytest.fixture(autouse=True)
 def azure_openai_mock():
-    with patch("backend.batch.utilities.helpers.LLMHelper.AzureOpenAI") as mock:
+    with patch("backend.batch.utilities.helpers.llm_helper.AzureOpenAI") as mock:
         yield mock
 
 
-@patch("backend.batch.utilities.helpers.LLMHelper.AzureChatCompletion")
+@patch("backend.batch.utilities.helpers.llm_helper.AzureChatCompletion")
 def test_get_sk_chat_completion_service_keys(AzureChatCompletionMock: MagicMock):
     # given
     llm_helper = LLMHelper()
@@ -54,7 +54,7 @@ def test_get_sk_chat_completion_service_keys(AzureChatCompletionMock: MagicMock)
     )
 
 
-@patch("backend.batch.utilities.helpers.LLMHelper.AzureChatCompletion")
+@patch("backend.batch.utilities.helpers.llm_helper.AzureChatCompletion")
 def test_get_sk_chat_completion_service_rbac(
     AzureChatCompletionMock: MagicMock, env_helper_mock: MagicMock
 ):
