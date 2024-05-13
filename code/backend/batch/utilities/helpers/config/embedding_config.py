@@ -1,5 +1,5 @@
-from ..DocumentLoadingHelper import LoadingSettings
-from ..DocumentChunkingHelper import ChunkingSettings
+from ..document_loading_helper import LoadingSettings
+from ..document_chunking_helper import ChunkingSettings
 
 
 class EmbeddingConfig(ChunkingSettings, LoadingSettings):

@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from backend.batch.utilities.helpers.embedders.IntegratedVectorizationEmbedder import (
+from backend.batch.utilities.helpers.embedders.integrated_vectorization_embedder import (
     IntegratedVectorizationEmbedder,
 )
 from backend.batch.utilities.document_chunking.chunking_strategy import ChunkingSettings
@@ -15,7 +15,7 @@ LOADING_SETTINGS = LoadingSettings({"strategy": LoadingStrategy.LAYOUT})
 @pytest.fixture(autouse=True)
 def env_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.embedders.IntegratedVectorizationEmbedder.EnvHelper"
+        "backend.batch.utilities.helpers.embedders.integrated_vectorization_embedder.EnvHelper"
     ) as mock:
         env_helper = mock.return_value
         env_helper.AZURE_SEARCH_INDEXER_NAME = AZURE_SEARCH_INDEXER_NAME
@@ -26,7 +26,7 @@ def env_helper_mock():
 @pytest.fixture(autouse=True)
 def llm_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.embedders.IntegratedVectorizationEmbedder.LLMHelper"
+        "backend.batch.utilities.helpers.embedders.integrated_vectorization_embedder.LLMHelper"
     ) as mock:
         llm_helper = mock.return_value
         llm_helper.get_embedding_model.return_value.embed_query.return_value = [
@@ -39,7 +39,7 @@ def llm_helper_mock():
 @pytest.fixture(autouse=True)
 def azure_search_iv_index_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.embedders.IntegratedVectorizationEmbedder.AzureSearchIndex"
+        "backend.batch.utilities.helpers.embedders.integrated_vectorization_embedder.AzureSearchIndex"
     ) as mock:
         yield mock
 
@@ -47,7 +47,7 @@ def azure_search_iv_index_helper_mock():
 @pytest.fixture(autouse=True)
 def azure_search_iv_datasource_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.embedders.IntegratedVectorizationEmbedder.AzureSearchDatasource"
+        "backend.batch.utilities.helpers.embedders.integrated_vectorization_embedder.AzureSearchDatasource"
     ) as mock:
         yield mock
 
@@ -55,7 +55,7 @@ def azure_search_iv_datasource_helper_mock():
 @pytest.fixture(autouse=True)
 def azure_search_iv_skillset_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.embedders.IntegratedVectorizationEmbedder.AzureSearchSkillset"
+        "backend.batch.utilities.helpers.embedders.integrated_vectorization_embedder.AzureSearchSkillset"
     ) as mock:
         yield mock
 
@@ -63,7 +63,7 @@ def azure_search_iv_skillset_helper_mock():
 @pytest.fixture(autouse=True)
 def azure_search_iv_indexer_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.embedders.IntegratedVectorizationEmbedder.AzureSearchIndexer"
+        "backend.batch.utilities.helpers.embedders.integrated_vectorization_embedder.AzureSearchIndexer"
     ) as mock:
         yield mock
 
@@ -71,7 +71,7 @@ def azure_search_iv_indexer_helper_mock():
 @pytest.fixture(autouse=True)
 def mock_config_helper():
     with patch(
-        "backend.batch.utilities.helpers.embedders.IntegratedVectorizationEmbedder.ConfigHelper"
+        "backend.batch.utilities.helpers.embedders.integrated_vectorization_embedder.ConfigHelper"
     ) as mock:
         config_helper = mock.get_active_config_or_default
         iv_config = config_helper.return_value.integrated_vectorization_config

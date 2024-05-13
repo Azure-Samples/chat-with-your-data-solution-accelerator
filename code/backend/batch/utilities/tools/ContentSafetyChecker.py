@@ -4,7 +4,7 @@ from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential
 from azure.core.exceptions import HttpResponseError
 from azure.ai.contentsafety.models import AnalyzeTextOptions
-from ..helpers.EnvHelper import EnvHelper
+from ..helpers.env_helper import EnvHelper
 from .AnswerProcessingBase import AnswerProcessingBase
 from ..common.Answer import Answer
 

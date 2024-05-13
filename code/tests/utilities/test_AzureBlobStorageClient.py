@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import ANY, MagicMock, patch
-from backend.batch.utilities.helpers.AzureBlobStorageClient import (
+from backend.batch.utilities.helpers.azure_blob_storage_client import (
     AzureBlobStorageClient,
 )
 
@@ -8,7 +8,7 @@ from backend.batch.utilities.helpers.AzureBlobStorageClient import (
 @pytest.fixture(autouse=True)
 def env_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.AzureBlobStorageClient.EnvHelper"
+        "backend.batch.utilities.helpers.azure_blob_storage_client.EnvHelper"
     ) as mock:
         env_helper = mock.return_value
         env_helper.AZURE_AUTH_TYPE = "keys"
@@ -22,7 +22,7 @@ def env_helper_mock():
 @pytest.fixture()
 def BlobServiceClientMock():
     with patch(
-        "backend.batch.utilities.helpers.AzureBlobStorageClient.BlobServiceClient"
+        "backend.batch.utilities.helpers.azure_blob_storage_client.BlobServiceClient"
     ) as mock:
         yield mock
 
@@ -46,8 +46,8 @@ def test_file_exists(BlobServiceClientMock: MagicMock, exists: bool, expected: b
     )
 
 
-@patch("backend.batch.utilities.helpers.AzureBlobStorageClient.generate_blob_sas")
-@patch("backend.batch.utilities.helpers.AzureBlobStorageClient.BlobServiceClient")
+@patch("backend.batch.utilities.helpers.azure_blob_storage_client.generate_blob_sas")
+@patch("backend.batch.utilities.helpers.azure_blob_storage_client.BlobServiceClient")
 @pytest.mark.parametrize(
     "content_type, expected_content_type, metadata",
     [("text/pdf", "text/pdf", {"title": "mock-file"}), (None, "text/plain", None)],
@@ -142,7 +142,7 @@ def test_upsert_blob_metadata(BlobServiceClientMock: MagicMock):
     )
 
 
-@patch("backend.batch.utilities.helpers.AzureBlobStorageClient.generate_blob_sas")
+@patch("backend.batch.utilities.helpers.azure_blob_storage_client.generate_blob_sas")
 def test_get_blob_sas(generate_blob_sas_mock: MagicMock):
     # given
     client = AzureBlobStorageClient()
@@ -167,7 +167,7 @@ def test_get_blob_sas(generate_blob_sas_mock: MagicMock):
     )
 
 
-@patch("backend.batch.utilities.helpers.AzureBlobStorageClient.generate_container_sas")
+@patch("backend.batch.utilities.helpers.azure_blob_storage_client.generate_container_sas")
 def test_get_container_sas(generate_container_sas_mock: MagicMock):
     # given
     client = AzureBlobStorageClient()

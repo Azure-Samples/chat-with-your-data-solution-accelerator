@@ -20,10 +20,10 @@ from azure.search.documents.indexes.models import (
     SemanticField,
     SearchIndex,
 )
-from ..helpers.EnvHelper import EnvHelper
+from ..helpers.env_helper import EnvHelper
 from azure.identity import DefaultAzureCredential
 from azure.core.credentials import AzureKeyCredential
-from ..helpers.LLMHelper import LLMHelper
+from ..helpers.llm_helper import LLMHelper
 
 logger = logging.getLogger(__name__)
 

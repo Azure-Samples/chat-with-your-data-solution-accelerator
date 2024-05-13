@@ -1,11 +1,11 @@
-from .EmbedderBase import EmbedderBase
-from ..EnvHelper import EnvHelper
-from ..LLMHelper import LLMHelper
+from .embedder_base import EmbedderBase
+from ..env_helper import EnvHelper
+from ..llm_helper import LLMHelper
 from ...integrated_vectorization.AzureSearchIndex import AzureSearchIndex
 from ...integrated_vectorization.AzureSearchIndexer import AzureSearchIndexer
 from ...integrated_vectorization.AzureSearchDatasource import AzureSearchDatasource
 from ...integrated_vectorization.AzureSearchSkillset import AzureSearchSkillset
-from ..config.ConfigHelper import ConfigHelper
+from ..config.config_helper import ConfigHelper
 import logging
 
 logger = logging.getLogger(__name__)

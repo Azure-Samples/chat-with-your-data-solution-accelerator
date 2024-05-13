@@ -1,12 +1,12 @@
 import json
 import pytest
 from unittest.mock import MagicMock, call, patch
-from backend.batch.utilities.helpers.embedders.PushEmbedder import PushEmbedder
+from backend.batch.utilities.helpers.embedders.push_embedder import PushEmbedder
 from backend.batch.utilities.document_chunking.chunking_strategy import ChunkingSettings
 from backend.batch.utilities.document_loading import LoadingSettings
 from backend.batch.utilities.document_loading.strategies import LoadingStrategy
 from backend.batch.utilities.common.SourceDocument import SourceDocument
-from backend.batch.utilities.helpers.config.EmbeddingConfig import EmbeddingConfig
+from backend.batch.utilities.helpers.config.embedding_config import EmbeddingConfig
 
 CHUNKING_SETTINGS = ChunkingSettings({"strategy": "layout", "size": 1, "overlap": 0})
 LOADING_SETTINGS = LoadingSettings({"strategy": LoadingStrategy.LAYOUT})
@@ -15,7 +15,7 @@ LOADING_SETTINGS = LoadingSettings({"strategy": LoadingStrategy.LAYOUT})
 @pytest.fixture(autouse=True)
 def llm_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.embedders.PushEmbedder.LLMHelper"
+        "backend.batch.utilities.helpers.embedders.push_embedder.LLMHelper"
     ) as mock:
         llm_helper = mock.return_value
         llm_helper.get_embedding_model.return_value.embed_query.return_value = [
@@ -28,7 +28,7 @@ def llm_helper_mock():
 @pytest.fixture(autouse=True)
 def azure_search_helper_mock():
     with patch(
-        "backend.batch.utilities.helpers.embedders.PushEmbedder.AzureSearchHelper"
+        "backend.batch.utilities.helpers.embedders.push_embedder.AzureSearchHelper"
     ) as mock:
         yield mock
 
@@ -36,7 +36,7 @@ def azure_search_helper_mock():
 @pytest.fixture(autouse=True)
 def mock_config_helper():
     with patch(
-        "backend.batch.utilities.helpers.embedders.PushEmbedder.ConfigHelper"
+        "backend.batch.utilities.helpers.embedders.push_embedder.ConfigHelper"
     ) as mock:
         config_helper = mock.get_active_config_or_default.return_value
         config_helper.document_processors = [
@@ -59,7 +59,7 @@ def mock_config_helper():
 @pytest.fixture(autouse=True)
 def document_loading_mock():
     with patch(
-        "backend.batch.utilities.helpers.embedders.PushEmbedder.DocumentLoading"
+        "backend.batch.utilities.helpers.embedders.push_embedder.DocumentLoading"
     ) as mock:
         expected_documents = [
             SourceDocument(content="some content", source="some source")
@@ -71,7 +71,7 @@ def document_loading_mock():
 @pytest.fixture(autouse=True)
 def document_chunking_mock():
     with patch(
-        "backend.batch.utilities.helpers.embedders.PushEmbedder.DocumentChunking"
+        "backend.batch.utilities.helpers.embedders.push_embedder.DocumentChunking"
     ) as mock:
         expected_chunked_documents = [
             SourceDocument(

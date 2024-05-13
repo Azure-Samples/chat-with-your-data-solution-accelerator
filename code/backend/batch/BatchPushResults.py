@@ -4,9 +4,9 @@ import json
 import azure.functions as func
 from urllib.parse import urlparse
 
-from utilities.helpers.AzureBlobStorageClient import AzureBlobStorageClient
-from utilities.helpers.EnvHelper import EnvHelper
-from utilities.helpers.embedders.EmbedderFactory import EmbedderFactory
+from utilities.helpers.azure_blob_storage_client import AzureBlobStorageClient
+from utilities.helpers.env_helper import EnvHelper
+from utilities.helpers.embedders.embedder_factory import EmbedderFactory
 
 bp_batch_push_results = func.Blueprint()
 logger = logging.getLogger(__name__)

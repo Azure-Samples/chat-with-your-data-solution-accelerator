@@ -10,7 +10,7 @@ from azure.storage.blob import (
 )
 from azure.storage.queue import QueueClient, BinaryBase64EncodePolicy
 import chardet
-from .EnvHelper import EnvHelper
+from .env_helper import EnvHelper
 from azure.identity import DefaultAzureCredential
 
 

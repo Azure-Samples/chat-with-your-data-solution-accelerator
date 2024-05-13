@@ -205,7 +205,7 @@ class TestConversationCustom:
 
     @patch("create_app.get_message_orchestrator")
     @patch(
-        "backend.batch.utilities.helpers.config.ConfigHelper.ConfigHelper.get_active_config_or_default"
+        "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
     )
     def test_converstation_custom_returns_correct_response(
         self,

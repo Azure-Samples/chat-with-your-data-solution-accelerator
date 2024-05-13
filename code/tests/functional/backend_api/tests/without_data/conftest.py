@@ -2,8 +2,8 @@ import logging
 import pytest
 from tests.functional.backend_api.app_config import AppConfig
 from tests.functional.backend_api.common import get_free_port, start_app
-from backend.batch.utilities.helpers.config.ConfigHelper import ConfigHelper
-from backend.batch.utilities.helpers.EnvHelper import EnvHelper
+from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
+from backend.batch.utilities.helpers.env_helper import EnvHelper
 
 logger = logging.getLogger(__name__)
 
