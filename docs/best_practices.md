@@ -1,6 +1,6 @@
 [Back to *Chat with your data* README](../README.md)
 
-![Supporting documentation](../media/supportingDocuments.png)
+![Supporting documentation](images/supportingDocuments.png)
 # Best practices
 
 **Evaluate your data first**
