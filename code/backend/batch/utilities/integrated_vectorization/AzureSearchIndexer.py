@@ -42,16 +42,14 @@ class AzureSearchIndexer:
         )
         return indexer_result
 
-    def reprocess_all(self, indexer_name: str):
-        reprocess_response = {"status": "success"}
-        if indexer_name in [name for name in self.indexer_client.get_indexer_names()]:
-            self.indexer_client.reset_indexer(indexer_name)
-            run_response = self.indexer_client.run_indexer(indexer_name)
-            logger.info(
-                f" {indexer_name} is created and running. If queries return no results, please wait a bit and try again."
-            )
-            return reprocess_response if run_response is None else {"status": "error"}
-        else:
-            logger.error(f"Indexer {indexer_name} not found.")
-            reprocess_response = {"status": "error"}
-            return reprocess_response
+    def run_indexer(self, indexer_name: str):
+        self.indexer_client.reset_indexer(indexer_name)
+        self.indexer_client.run_indexer(indexer_name)
+        logger.info(
+            f" {indexer_name} is created and running. If queries return no results, please wait a bit and try again."
+        )
+
+    def indexer_exists(self, indexer_name: str):
+        return indexer_name in [
+            name for name in self.indexer_client.get_indexer_names()
+        ]

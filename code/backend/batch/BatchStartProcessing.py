@@ -3,8 +3,10 @@ import logging
 import json
 import azure.functions as func
 
+from utilities.helpers.embedders.integrated_vectorization_embedder import (
+    IntegratedVectorizationEmbedder,
+)
 from utilities.helpers.env_helper import EnvHelper
-from utilities.integrated_vectorization.AzureSearchIndexer import AzureSearchIndexer
 from utilities.helpers.azure_blob_storage_client import (
     AzureBlobStorageClient,
     create_queue_client,
@@ -27,12 +29,7 @@ def batch_start_processing(req: func.HttpRequest) -> func.HttpResponse:
     files_data = list(map(lambda x: {"filename": x["filename"]}, files_data))
 
     if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
-        response = reprocess_integrated_vectorization()
-        if response["status"] == "error":
-            return func.HttpResponse(
-                "Error occured while reprocessing documents.",
-                status_code=500,
-            )
+        reprocess_integrated_vectorization()
     else:
         # Send a message to the queue for each file
         queue_client = create_queue_client()
@@ -46,6 +43,5 @@ def batch_start_processing(req: func.HttpRequest) -> func.HttpResponse:
 
 
 def reprocess_integrated_vectorization():
-    azure_search_indexer = AzureSearchIndexer(env_helper)
-    response = azure_search_indexer.reprocess_all(env_helper.AZURE_SEARCH_INDEXER_NAME)
-    return response
+    indexer_embedder = IntegratedVectorizationEmbedder(env_helper)
+    indexer_embedder.reprocess_all()
