@@ -8,6 +8,8 @@
 ## User story
 This extension enables users to experience Chat with your data within Teams, without having to switch platforms. It allows them to stay within their existing workflow and get the answers they need. Instead of building the Chat with your data solution accelerator from scratch within Teams, the same underlying backend used for the web application is leveraged within Teams.
 
+![Teams - Chat with your Data](../media/teams-cwyd.png)
+
 ## Deployment to Teams
 **IMPORTANT**: Before you proceed, installation and configuration of the [Chat with your data with speech-to-text deployment](../README.md) is required.
 
