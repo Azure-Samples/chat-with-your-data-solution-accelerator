@@ -1,6 +1,6 @@
 from typing import List
 from .document_loading_base import DocumentLoadingBase
-from ..helpers.AzureFormRecognizerHelper import AzureFormRecognizerClient
+from ..helpers.azure_form_recognizer_helper import AzureFormRecognizerClient
 from ..common.SourceDocument import SourceDocument
 
 

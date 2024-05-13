@@ -5,9 +5,9 @@ import requests
 import urllib.parse
 import sys
 import logging
-from batch.utilities.helpers.config.ConfigHelper import ConfigHelper
-from batch.utilities.helpers.EnvHelper import EnvHelper
-from batch.utilities.helpers.AzureBlobStorageClient import AzureBlobStorageClient
+from batch.utilities.helpers.config.config_helper import ConfigHelper
+from batch.utilities.helpers.env_helper import EnvHelper
+from batch.utilities.helpers.azure_blob_storage_client import AzureBlobStorageClient
 
 sys.path.append(path.join(path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()

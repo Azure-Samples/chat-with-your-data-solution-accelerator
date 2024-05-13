@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import ANY, MagicMock, patch
-from backend.batch.utilities.helpers.AzureSearchHelper import AzureSearchHelper
+from backend.batch.utilities.helpers.azure_search_helper import AzureSearchHelper
 from azure.search.documents.indexes.models import (
     ExhaustiveKnnAlgorithmConfiguration,
     ExhaustiveKnnParameters,
@@ -32,13 +32,13 @@ AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = "mock-log-index"
 
 @pytest.fixture(autouse=True)
 def azure_search_mock():
-    with patch("backend.batch.utilities.helpers.AzureSearchHelper.AzureSearch") as mock:
+    with patch("backend.batch.utilities.helpers.azure_search_helper.AzureSearch") as mock:
         yield mock
 
 
 @pytest.fixture(autouse=True)
 def llm_helper_mock():
-    with patch("backend.batch.utilities.helpers.AzureSearchHelper.LLMHelper") as mock:
+    with patch("backend.batch.utilities.helpers.azure_search_helper.LLMHelper") as mock:
         llm_helper = mock.return_value
         llm_helper.get_embedding_model.return_value.embed_query.return_value = [
             0
@@ -49,7 +49,7 @@ def llm_helper_mock():
 
 @pytest.fixture(autouse=True)
 def env_helper_mock():
-    with patch("backend.batch.utilities.helpers.AzureSearchHelper.EnvHelper") as mock:
+    with patch("backend.batch.utilities.helpers.azure_search_helper.EnvHelper") as mock:
         env_helper = mock.return_value
         env_helper.AZURE_AUTH_TYPE = AZURE_AUTH_TYPE
         env_helper.AZURE_SEARCH_KEY = AZURE_SEARCH_KEY
@@ -68,9 +68,9 @@ def env_helper_mock():
         yield env_helper
 
 
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchClient")
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchIndexClient")
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.AzureKeyCredential")
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchClient")
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchIndexClient")
+@patch("backend.batch.utilities.helpers.azure_search_helper.AzureKeyCredential")
 def test_creates_search_clients_with_keys(
     azure_key_credential_mock: MagicMock,
     search_index_client_mock: MagicMock,
@@ -91,9 +91,9 @@ def test_creates_search_clients_with_keys(
     )
 
 
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchClient")
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchIndexClient")
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.DefaultAzureCredential")
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchClient")
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchIndexClient")
+@patch("backend.batch.utilities.helpers.azure_search_helper.DefaultAzureCredential")
 def test_creates_search_clients_with_rabc(
     default_azure_credential_mock: MagicMock,
     search_index_client_mock: MagicMock,
@@ -119,8 +119,8 @@ def test_creates_search_clients_with_rabc(
     )
 
 
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchClient")
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchIndexClient")
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchClient")
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchIndexClient")
 def test_returns_search_client(
     search_index_client_mock: MagicMock, search_client_mock: MagicMock
 ):
@@ -134,8 +134,8 @@ def test_returns_search_client(
     assert search_client is search_client_mock.return_value
 
 
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchClient")
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchIndexClient")
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchClient")
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchIndexClient")
 def test_creates_search_index_if_not_exists(
     search_index_client_mock: MagicMock, search_client_mock: MagicMock
 ):
@@ -244,8 +244,8 @@ def test_creates_search_index_if_not_exists(
     )
 
 
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchClient")
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchIndexClient")
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchClient")
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchIndexClient")
 def test_does_not_create_search_index_if_it_exists(
     search_index_client_mock: MagicMock,
     search_client_mock: MagicMock,
@@ -262,8 +262,8 @@ def test_does_not_create_search_index_if_it_exists(
     search_index_client_mock.return_value.create_index.assert_not_called()
 
 
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchClient")
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchIndexClient")
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchClient")
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchIndexClient")
 def test_propogates_exceptions_when_creating_search_index(
     search_index_client_mock: MagicMock,
     search_client_mock: MagicMock,
@@ -280,8 +280,8 @@ def test_propogates_exceptions_when_creating_search_index(
     assert exc_info.value == expected_exception
 
 
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchClient")
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchIndexClient")
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchClient")
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchIndexClient")
 def test_get_conversation_logger_keys(
     search_index_client_mock: MagicMock,
     search_client_mock: MagicMock,
@@ -307,8 +307,8 @@ def test_get_conversation_logger_keys(
     )
 
 
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchClient")
-@patch("backend.batch.utilities.helpers.AzureSearchHelper.SearchIndexClient")
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchClient")
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchIndexClient")
 def test_get_conversation_logger_rbac(
     search_index_client_mock: MagicMock,
     search_client_mock: MagicMock,

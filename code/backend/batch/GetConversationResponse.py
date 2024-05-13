@@ -3,9 +3,9 @@ import azure.functions as func
 import logging
 import json
 
-from utilities.helpers.EnvHelper import EnvHelper
-from utilities.helpers.OrchestratorHelper import Orchestrator
-from utilities.helpers.config.ConfigHelper import ConfigHelper
+from utilities.helpers.env_helper import EnvHelper
+from utilities.helpers.orchestrator_helper import Orchestrator
+from utilities.helpers.config.config_helper import ConfigHelper
 
 
 bp_get_conversation_response = func.Blueprint()

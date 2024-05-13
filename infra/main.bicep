@@ -458,7 +458,7 @@ module hostingplan './core/host/appserviceplan.bicep' = {
       tier: skuTier
     }
     reserved: true
-    tags: { Automation: 'Ignore' }
+    tags: { CostControl: 'Ignore' }
   }
 }
 
@@ -965,7 +965,7 @@ module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
 }
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
-
+output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
 output AZURE_BLOB_CONTAINER_NAME string = blobContainerName
 output AZURE_BLOB_ACCOUNT_NAME string = storageAccountName
 output AZURE_BLOB_ACCOUNT_KEY string = useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
@@ -1013,7 +1013,6 @@ output AZURE_TENANT_ID string = tenant().tenantId
 output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
 output USE_KEY_VAULT bool = useKeyVault
-output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code' ? web.outputs.FRONTEND_API_URI : web_docker.outputs.FRONTEND_API_URI
 output ADMIN_WEBSITE_NAME string = hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_URI : adminweb_docker.outputs.WEBSITE_ADMIN_URI
 output LOGLEVEL string = logLevel

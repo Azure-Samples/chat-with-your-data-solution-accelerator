@@ -3,13 +3,13 @@ import json
 import logging
 from string import Template
 
-from ..AzureBlobStorageClient import AzureBlobStorageClient
+from ..azure_blob_storage_client import AzureBlobStorageClient
 from ...document_chunking.chunking_strategy import ChunkingStrategy, ChunkingSettings
 from ...document_loading import LoadingSettings, LoadingStrategy
-from .EmbeddingConfig import EmbeddingConfig
+from .embedding_config import EmbeddingConfig
 from ...orchestrator.OrchestrationStrategy import OrchestrationStrategy
 from ...orchestrator import OrchestrationSettings
-from ..EnvHelper import EnvHelper
+from ..env_helper import EnvHelper
 
 CONFIG_CONTAINER_NAME = "config"
 CONFIG_FILE_NAME = "active.json"

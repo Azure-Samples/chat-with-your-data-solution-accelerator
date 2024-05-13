@@ -3,7 +3,7 @@ import os
 import traceback
 import sys
 import pandas as pd
-from batch.utilities.helpers.EnvHelper import EnvHelper
+from batch.utilities.helpers.env_helper import EnvHelper
 from batch.utilities.search.Search import Search
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))

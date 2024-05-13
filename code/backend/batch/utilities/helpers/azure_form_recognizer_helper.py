@@ -3,7 +3,7 @@ from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.identity import DefaultAzureCredential
 import html
 import traceback
-from .EnvHelper import EnvHelper
+from .env_helper import EnvHelper
 
 
 class AzureFormRecognizerClient:

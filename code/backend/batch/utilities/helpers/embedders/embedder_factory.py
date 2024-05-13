@@ -1,7 +1,7 @@
-from ..EnvHelper import EnvHelper
-from ..AzureBlobStorageClient import AzureBlobStorageClient
-from .PushEmbedder import PushEmbedder
-from .IntegratedVectorizationEmbedder import (
+from ..env_helper import EnvHelper
+from ..azure_blob_storage_client import AzureBlobStorageClient
+from .push_embedder import PushEmbedder
+from .integrated_vectorization_embedder import (
     IntegratedVectorizationEmbedder,
 )
 

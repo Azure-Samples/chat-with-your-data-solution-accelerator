@@ -11,8 +11,8 @@ from azure.search.documents.indexes.models import (
     SearchIndexerSkillset,
 )
 from azure.search.documents.indexes import SearchIndexerClient
-from ..helpers.config.ConfigHelper import IntegratedVectorizationConfig
-from ..helpers.EnvHelper import EnvHelper
+from ..helpers.config.config_helper import IntegratedVectorizationConfig
+from ..helpers.env_helper import EnvHelper
 from azure.identity import DefaultAzureCredential
 from azure.core.credentials import AzureKeyCredential
 

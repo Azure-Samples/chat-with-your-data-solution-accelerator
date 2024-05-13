@@ -1,8 +1,8 @@
 import json
 import pytest
 from unittest.mock import patch, MagicMock
-from backend.batch.utilities.helpers.config.ConfigHelper import ConfigHelper, Config
-from backend.batch.utilities.helpers.config.EmbeddingConfig import EmbeddingConfig
+from backend.batch.utilities.helpers.config.config_helper import ConfigHelper, Config
+from backend.batch.utilities.helpers.config.embedding_config import EmbeddingConfig
 from backend.batch.utilities.document_chunking.chunking_strategy import ChunkingSettings
 from backend.batch.utilities.document_loading import LoadingSettings
 
@@ -110,7 +110,7 @@ def config(config_dict: dict):
 @pytest.fixture(autouse=True)
 def AzureBlobStorageClientMock():
     with patch(
-        "backend.batch.utilities.helpers.config.ConfigHelper.AzureBlobStorageClient"
+        "backend.batch.utilities.helpers.config.config_helper.AzureBlobStorageClient"
     ) as mock:
         yield mock
 
@@ -125,7 +125,7 @@ def blob_client_mock(config_dict: dict, AzureBlobStorageClientMock: MagicMock):
 
 @pytest.fixture(autouse=True)
 def env_helper_mock():
-    with patch("backend.batch.utilities.helpers.config.ConfigHelper.EnvHelper") as mock:
+    with patch("backend.batch.utilities.helpers.config.config_helper.EnvHelper") as mock:
         env_helper = mock.return_value
         env_helper.ORCHESTRATION_STRATEGY = "openai_function"
         env_helper.LOAD_CONFIG_FROM_BLOB_STORAGE = True
@@ -222,7 +222,7 @@ def test_get_config_from_azure(
 
 
 @patch(
-    "backend.batch.utilities.helpers.config.ConfigHelper.ConfigHelper.get_default_config"
+    "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_default_config"
 )
 def test_get_default_config_when_not_in_azure(
     get_default_config_mock: MagicMock,
@@ -396,7 +396,7 @@ def test_get_available_orchestration_strategies(config: Config):
 
 
 @patch(
-    "backend.batch.utilities.helpers.config.ConfigHelper.ConfigHelper.get_default_config"
+    "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_default_config"
 )
 def test_loading_old_config(
     get_default_config_mock: MagicMock,
@@ -421,7 +421,7 @@ def test_loading_old_config(
 
 
 @patch(
-    "backend.batch.utilities.helpers.config.ConfigHelper.ConfigHelper.get_default_config"
+    "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_default_config"
 )
 def test_loading_old_config_with_modified_prompt(
     get_default_config_mock: MagicMock,
