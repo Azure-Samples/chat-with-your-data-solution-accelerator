@@ -24,7 +24,7 @@ Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.
 ### Develop & run the Teams Frontend
 1. Open the “extensions/teams” folder with Visual Studio Code
 
-![Teams](/media/teams.png)
+![Teams](images/teams.png)
 
 2. Open the file env\\.env.local
 3. Locate the environment variable _AZURE_FUNCTION_URL_.
@@ -33,14 +33,14 @@ Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.
     ```env
     AZURE_FUNCTION_URL=http://localhost:7071/api/GetConversationResponse
     ```
-    ![Env](/media/teams-local-3.png)
+    ![Env](images/teams-local-3.png)
 
 5. Save the file.
 6. Select Teams Toolkit from the navigation panel.
 7. Verify your signed into O365 and Azure with sideloading enabled.
 8. Select the "play" button next to Local.
 
-![Teams Toolkit](/media/teams-local-2.png)
+![Teams Toolkit](images/teams-local-2.png)
 
 ## Environment variables
 
