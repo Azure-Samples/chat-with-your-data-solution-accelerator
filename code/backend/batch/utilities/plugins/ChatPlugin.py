@@ -21,7 +21,6 @@ class ChatPlugin:
             str, "A standalone question, converted from the chat history"
         ],
     ) -> Answer:
-        # TODO: Use Semantic Kernel to call LLM
         return QuestionAnswerTool().answer_question(
             question=question, chat_history=self.chat_history
         )
@@ -37,7 +36,6 @@ class ChatPlugin:
             "The operation to be performed on the text. Like Translate to Italian, Summarize, Paraphrase, etc. If a language is specified, return that as part of the operation. Preserve the operation name in the user language.",
         ],
     ) -> Answer:
-        # TODO: Use Semantic Kernel to call LLM
         return TextProcessingTool().answer_question(
             question=self.question,
             chat_history=self.chat_history,
