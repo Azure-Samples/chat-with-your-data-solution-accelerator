@@ -1,7 +1,7 @@
 import logging
 import pytest
-from tests.functional.backend_api.app_config import AppConfig
-from tests.functional.backend_api.common import get_free_port, start_app
+from tests.functional.app_config import AppConfig
+from tests.functional.tests.backend_api.common import get_free_port, start_app
 from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from backend.batch.utilities.helpers.env_helper import EnvHelper
 
@@ -25,10 +25,12 @@ def app_config(make_httpserver, ca):
     with ca.cert_pem.tempfile() as ca_temp_path:
         app_config = AppConfig(
             {
+                "AZURE_SEARCH_SERVICE": None,
+                "AZURE_SEARCH_INDEX": None,
+                "AZURE_SEARCH_KEY": None,
                 "AZURE_OPENAI_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
-                "AZURE_SEARCH_SERVICE": f"https://localhost:{make_httpserver.port}/",
                 "AZURE_CONTENT_SAFETY_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
-                "AZURE_SPEECH_REGION_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
+                "AZURE_STORAGE_ACCOUNT_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
                 "SSL_CERT_FILE": ca_temp_path,
                 "CURL_CA_BUNDLE": ca_temp_path,
             }

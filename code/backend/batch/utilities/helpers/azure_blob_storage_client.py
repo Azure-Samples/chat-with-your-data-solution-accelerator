@@ -8,6 +8,7 @@ from azure.storage.blob import (
     ContentSettings,
     UserDelegationKey,
 )
+from azure.core.credentials import AzureNamedKeyCredential
 from azure.storage.queue import QueueClient, BinaryBase64EncodePolicy
 import chardet
 from .env_helper import EnvHelper
@@ -48,38 +49,25 @@ class AzureBlobStorageClient:
         env_helper: EnvHelper = EnvHelper()
 
         self.auth_type = env_helper.AZURE_AUTH_TYPE
+        self.account_name = account_name or env_helper.AZURE_BLOB_ACCOUNT_NAME
+        self.container_name = container_name or env_helper.AZURE_BLOB_CONTAINER_NAME
+        self.endpoint = env_helper.AZURE_STORAGE_ACCOUNT_ENDPOINT
+
         if self.auth_type == "rbac":
-            self.account_name = (
-                account_name if account_name else env_helper.AZURE_BLOB_ACCOUNT_NAME
-            )
             self.account_key = None
-            self.container_name: str = (
-                container_name
-                if container_name
-                else env_helper.AZURE_BLOB_CONTAINER_NAME
-            )
             self.blob_service_client = BlobServiceClient(
-                account_url=f"https://{self.account_name}.blob.core.windows.net/",
-                credential=DefaultAzureCredential(),
+                account_url=self.endpoint, credential=DefaultAzureCredential()
             )
             self.user_delegation_key = self.request_user_delegation_key(
                 blob_service_client=self.blob_service_client
             )
         else:
-            self.account_name = (
-                account_name if account_name else env_helper.AZURE_BLOB_ACCOUNT_NAME
-            )
-            self.account_key = (
-                account_key if account_key else env_helper.AZURE_BLOB_ACCOUNT_KEY
-            )
-            self.connect_str = connection_string(self.account_name, self.account_key)
-            self.container_name: str = (
-                container_name
-                if container_name
-                else env_helper.AZURE_BLOB_CONTAINER_NAME
-            )
-            self.blob_service_client: BlobServiceClient = (
-                BlobServiceClient.from_connection_string(self.connect_str)
+            self.account_key = account_key or env_helper.AZURE_BLOB_ACCOUNT_KEY
+            self.blob_service_client = BlobServiceClient(
+                self.endpoint,
+                credential=AzureNamedKeyCredential(
+                    name=self.account_name, key=self.account_key
+                ),
             )
             self.user_delegation_key = None
 
@@ -202,7 +190,7 @@ class AzureBlobStorageClient:
                             if blob.metadata
                             else False
                         ),
-                        "fullpath": f"https://{self.account_name}.blob.core.windows.net/{self.container_name}/{blob.name}?{sas}",
+                        "fullpath": f"{self.endpoint}{self.container_name}/{blob.name}?{sas}",
                         "converted_filename": (
                             blob.metadata.get("converted_filename", "")
                             if blob.metadata
@@ -213,7 +201,7 @@ class AzureBlobStorageClient:
                 )
             else:
                 converted_files[blob.name] = (
-                    f"https://{self.account_name}.blob.core.windows.net/{self.container_name}/{blob.name}?{sas}"
+                    f"{self.endpoint}{self.container_name}/{blob.name}?{sas}"
                 )
 
         for file in files:
@@ -249,7 +237,7 @@ class AzureBlobStorageClient:
     def get_blob_sas(self, file_name):
         # Generate a SAS URL to the blob and return it
         return (
-            f"https://{self.account_name}.blob.core.windows.net/{self.container_name}/{file_name}"
+            f"{self.endpoint}{self.container_name}/{file_name}"
             + "?"
             + generate_blob_sas(
                 account_name=self.account_name,

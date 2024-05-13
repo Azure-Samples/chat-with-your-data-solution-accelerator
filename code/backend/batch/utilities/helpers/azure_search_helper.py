@@ -40,7 +40,6 @@ class AzureSearchHelper:
         search_credential = self._search_credential()
         self.search_client = self._create_search_client(search_credential)
         self.search_index_client = self._create_search_index_client(search_credential)
-        self.create_index()
 
     def _search_credential(self):
         if self.env_helper.is_auth_type_keys():

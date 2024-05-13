@@ -1,13 +1,14 @@
 import json
+import re
 import pytest
 from pytest_httpserver import HTTPServer
 import requests
 
-from tests.functional.backend_api.request_matching import (
+from tests.functional.request_matching import (
     RequestMatcher,
     verify_request_made,
 )
-from tests.functional.backend_api.app_config import AppConfig
+from tests.functional.app_config import AppConfig
 
 pytestmark = pytest.mark.functional
 
@@ -256,13 +257,9 @@ def test_post_makes_correct_call_to_store_conversation_in_search(
 def test_post_returns_error_when_downstream_fails(
     app_url: str, app_config: AppConfig, httpserver: HTTPServer
 ):
-    # given
-    httpserver.clear_all_handlers()  # Clear default successful responses
-
-    httpserver.expect_request(
-        "/indexes",
-        method="GET",
-    ).respond_with_json({}, status=500)
+    httpserver.expect_oneshot_request(
+        re.compile(".*"),
+    ).respond_with_json({}, status=403)
 
     # when
     response = requests.post(

@@ -32,7 +32,9 @@ AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = "mock-log-index"
 
 @pytest.fixture(autouse=True)
 def azure_search_mock():
-    with patch("backend.batch.utilities.helpers.azure_search_helper.AzureSearch") as mock:
+    with patch(
+        "backend.batch.utilities.helpers.azure_search_helper.AzureSearch"
+    ) as mock:
         yield mock
 
 
@@ -66,6 +68,13 @@ def env_helper_mock():
         env_helper.is_auth_type_keys.return_value = True
 
         yield env_helper
+
+
+@pytest.fixture(autouse=True)
+def reset_search_dimensions():
+    AzureSearchHelper._search_dimension = None
+    yield
+    AzureSearchHelper._search_dimension = None
 
 
 @patch("backend.batch.utilities.helpers.azure_search_helper.SearchClient")
@@ -236,7 +245,7 @@ def test_creates_search_index_if_not_exists(
     )
 
     # when
-    AzureSearchHelper()
+    AzureSearchHelper().get_search_client()
 
     # then
     search_index_client_mock.return_value.create_index.assert_called_once_with(
@@ -256,7 +265,8 @@ def test_does_not_create_search_index_if_it_exists(
     ]
 
     # when
-    AzureSearchHelper()
+    azure_search_helper = AzureSearchHelper()
+    azure_search_helper.get_search_client()
 
     # then
     search_index_client_mock.return_value.create_index.assert_not_called()
@@ -274,7 +284,7 @@ def test_propogates_exceptions_when_creating_search_index(
 
     # when
     with pytest.raises(Exception) as exc_info:
-        AzureSearchHelper()
+        AzureSearchHelper().get_search_client()
 
     # then
     assert exc_info.value == expected_exception
