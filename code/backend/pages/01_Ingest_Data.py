@@ -8,9 +8,6 @@ import logging
 from batch.utilities.helpers.config.config_helper import ConfigHelper
 from batch.utilities.helpers.env_helper import EnvHelper
 from batch.utilities.helpers.azure_blob_storage_client import AzureBlobStorageClient
-from batch.utilities.integrated_vectorization.AzureSearchIndexer import (
-    AzureSearchIndexer,
-)
 
 sys.path.append(path.join(path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
@@ -33,24 +30,6 @@ st.markdown(mod_page_style, unsafe_allow_html=True)
 
 
 def reprocess_all():
-    if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
-        reprocess_integrated_vectorization()
-    else:
-        remote_convert_files_and_add_embeddings()
-
-
-def reprocess_integrated_vectorization():
-    azure_search_indexer = AzureSearchIndexer(env_helper)
-    response = azure_search_indexer.reprocess_all(env_helper.AZURE_SEARCH_INDEXER_NAME)
-    if response["status"] == "success":
-        st.success(
-            "Please note this is an asynchronous process and may take a few minutes to complete."
-        )
-    else:
-        st.error("Error occured while reprocessing all documents")
-
-
-def remote_convert_files_and_add_embeddings():
     backend_url = urllib.parse.urljoin(
         env_helper.BACKEND_URL, "/api/BatchStartProcessing"
     )
