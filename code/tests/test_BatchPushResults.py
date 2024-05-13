@@ -1,3 +1,4 @@
+import json
 import sys
 import os
 import pytest
@@ -24,8 +25,8 @@ def test_get_file_name_from_message():
     mock_queue_message = QueueMessage(
         body='{"message": "test message", "filename": "test_filename.md"}'
     )
-
-    file_name = _get_file_name_from_message(mock_queue_message)
+    message_body = json.loads(mock_queue_message.get_body().decode("utf-8"))
+    file_name = _get_file_name_from_message(message_body)
 
     assert file_name == "test_filename.md"
 
@@ -34,8 +35,8 @@ def test_get_file_name_from_message_no_filename():
     mock_queue_message = QueueMessage(
         body='{"data": { "url": "test/test/test_filename.md"} }'
     )
-
-    file_name = _get_file_name_from_message(mock_queue_message)
+    message_body = json.loads(mock_queue_message.get_body().decode("utf-8"))
+    file_name = _get_file_name_from_message(message_body)
 
     assert file_name == "test_filename.md"
 

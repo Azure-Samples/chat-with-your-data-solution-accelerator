@@ -36,13 +36,36 @@ class SearchHandlerBase(ABC):
         pass
 
     @abstractmethod
-    def output_results(self, results, id_field):
+    def output_results(self, results):
         pass
 
     @abstractmethod
-    def delete_files(self, files, id_field):
+    def delete_files(self, files):
         pass
 
     @abstractmethod
     def query_search(self, question) -> list[SourceDocument]:
         pass
+
+    def delete_by_source(self, source) -> None:
+        if source is None:
+            return
+
+        documents = self._get_documents_by_source(source)
+        if documents is None:
+            return
+
+        results = self.output_results(documents)
+        files_to_dete = {filename: ids for filename, ids in results.items()}
+        self.delete_files(files_to_dete)
+
+    def _get_documents_by_source(self, source):
+        if source is None:
+            return None
+
+        return self.search_client.search(
+            "*",
+            select="id, title",
+            include_total_count=True,
+            filter=f"source eq '{source}'",
+        )
