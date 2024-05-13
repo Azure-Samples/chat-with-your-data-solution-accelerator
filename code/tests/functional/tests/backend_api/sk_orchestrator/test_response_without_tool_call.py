@@ -217,6 +217,7 @@ def test_post_makes_correct_call_to_openai_chat_completions(
                         },
                     },
                 ],
+                "tool_choice": "auto",
                 "top_p": 1.0,
             },
             headers={
