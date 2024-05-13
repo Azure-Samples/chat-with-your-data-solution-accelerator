@@ -1,7 +1,7 @@
 import logging
 from azure.search.documents.indexes.models import SearchIndexer, FieldMapping
 from azure.search.documents.indexes import SearchIndexerClient
-from ..helpers.EnvHelper import EnvHelper
+from ..helpers.env_helper import EnvHelper
 from azure.identity import DefaultAzureCredential
 from azure.core.credentials import AzureKeyCredential
 

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.27.1.19265",
-      "templateHash": "10902119105781571177"
+      "templateHash": "17426906878691848997"
     }
   },
   "parameters": {
@@ -1797,7 +1797,7 @@
           },
           "tags": {
             "value": {
-              "Automation": "Ignore"
+              "CostControl": "Ignore"
             }
           }
         },
@@ -10722,6 +10722,10 @@
       "type": "string",
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsConnectionString.value]"
     },
+    "AZURE_APP_SERVICE_HOSTING_MODEL": {
+      "type": "string",
+      "value": "[parameters('hostingModel')]"
+    },
     "AZURE_BLOB_CONTAINER_NAME": {
       "type": "string",
       "value": "[variables('blobContainerName')]"
@@ -10909,10 +10913,6 @@
     "USE_KEY_VAULT": {
       "type": "bool",
       "value": "[parameters('useKeyVault')]"
-    },
-    "AZURE_APP_SERVICE_HOSTING_MODEL": {
-      "type": "string",
-      "value": "[parameters('hostingModel')]"
     },
     "FRONTEND_WEBSITE_NAME": {
       "type": "string",

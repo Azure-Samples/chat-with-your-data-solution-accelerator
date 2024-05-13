@@ -1,5 +1,5 @@
 from typing import List
-from ..helpers.LLMHelper import LLMHelper
+from ..helpers.llm_helper import LLMHelper
 from .AnsweringToolBase import AnsweringToolBase
 from ..common.Answer import Answer
 

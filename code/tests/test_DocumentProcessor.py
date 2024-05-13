@@ -1,9 +1,9 @@
 import pytest
-from backend.batch.utilities.helpers.embedders.PushEmbedder import (
+from backend.batch.utilities.helpers.embedders.push_embedder import (
     PushEmbedder,
 )
-from backend.batch.utilities.helpers.config.ConfigHelper import ConfigHelper
-from backend.batch.utilities.helpers.AzureBlobStorageClient import (
+from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
+from backend.batch.utilities.helpers.azure_blob_storage_client import (
     AzureBlobStorageClient,
 )
 

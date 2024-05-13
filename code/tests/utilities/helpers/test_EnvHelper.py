@@ -1,6 +1,6 @@
 from pytest import MonkeyPatch
 import pytest
-from backend.batch.utilities.helpers.EnvHelper import EnvHelper
+from backend.batch.utilities.helpers.env_helper import EnvHelper
 
 
 @pytest.fixture(autouse=True)

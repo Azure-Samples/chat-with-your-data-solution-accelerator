@@ -1,7 +1,7 @@
 from typing import List
 from .SearchHandlerBase import SearchHandlerBase
-from ..helpers.LLMHelper import LLMHelper
-from ..helpers.AzureSearchHelper import AzureSearchHelper
+from ..helpers.llm_helper import LLMHelper
+from ..helpers.azure_search_helper import AzureSearchHelper
 from ..common.SourceDocument import SourceDocument
 import json
 from azure.search.documents.models import VectorizedQuery

@@ -3,7 +3,7 @@ from ..search.IntegratedVectorizationSearchHandler import (
     IntegratedVectorizationSearchHandler,
 )
 from ..common.SourceDocument import SourceDocument
-from ..helpers.EnvHelper import EnvHelper
+from ..helpers.env_helper import EnvHelper
 
 
 class Search:
