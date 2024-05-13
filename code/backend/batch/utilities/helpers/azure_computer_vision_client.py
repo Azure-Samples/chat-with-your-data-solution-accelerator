@@ -21,11 +21,12 @@ class AzureComputerVisionClient:
 
     def __init__(self, env_helper: EnvHelper) -> None:
         self.computer_vision_host = env_helper.AZURE_COMPUTER_VISION_ENDPOINT
+        self.computer_vision_timeout = env_helper.AZURE_COMPUTER_VISION_TIMEOUT
         self.computer_vision_key = env_helper.AZURE_COMPUTER_VISION_KEY
         self.use_keys = env_helper.is_auth_type_keys()
 
     def vectorize_image(self, image_url: str) -> List[float]:
-        logger.info("Making call to computer vision to vectorize image")
+        logger.info(f"Making call to computer vision to vectorize image: {image_url}")
         response = self.__make_request(image_url)
         self.__validate_response(response)
 
@@ -33,24 +34,28 @@ class AzureComputerVisionClient:
         return self.__get_vectors(response_json)
 
     def __make_request(self, image_url: str) -> Response:
-        headers = {}
-        if self.use_keys:
-            headers["Ocp-Apim-Subscription-Key"] = self.computer_vision_key
-        else:
-            token_provider = get_bearer_token_provider(
-                DefaultAzureCredential(), self.__TOKEN_SCOPE
-            )
-            headers["Authorization"] = "Bearer " + token_provider()
+        try:
+            headers = {}
+            if self.use_keys:
+                headers["Ocp-Apim-Subscription-Key"] = self.computer_vision_key
+            else:
+                token_provider = get_bearer_token_provider(
+                    DefaultAzureCredential(), self.__TOKEN_SCOPE
+                )
+                headers["Authorization"] = "Bearer " + token_provider()
 
-        return requests.post(
-            url=urljoin(self.computer_vision_host, self.__VECTORIZE_IMAGE_PATH),
-            params={
-                "api-version": self.__VECTORIZE_IMAGE_API_VERSION,
-                "model-version": self.__VECTORIZE_IMAGE_MODEL_VERSION,
-            },
-            json={"url": image_url},
-            headers=headers,
-        )
+            return requests.post(
+                url=urljoin(self.computer_vision_host, self.__VECTORIZE_IMAGE_PATH),
+                params={
+                    "api-version": self.__VECTORIZE_IMAGE_API_VERSION,
+                    "model-version": self.__VECTORIZE_IMAGE_MODEL_VERSION,
+                },
+                json={"url": image_url},
+                headers=headers,
+                timeout=self.computer_vision_timeout,
+            )
+        except Exception as e:
+            raise Exception("Call to vectorize image failed") from e
 
     def __validate_response(self, response: Response):
         if response.status_code != 200:

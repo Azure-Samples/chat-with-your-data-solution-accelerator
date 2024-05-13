@@ -115,6 +115,10 @@ class EnvHelper:
             "AZURE_COMPUTER_VISION_ENDPOINT"
         )
 
+        self.AZURE_COMPUTER_VISION_TIMEOUT = self.get_env_var_float(
+            "AZURE_COMPUTER_VISION_TIMEOUT", 30
+        )
+
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
         if self.AZURE_AUTH_TYPE == "rbac":
@@ -227,6 +231,9 @@ class EnvHelper:
 
     def get_env_var_array(self, var_name: str, default: str = ""):
         return os.getenv(var_name, default).split(",")
+
+    def get_env_var_float(self, var_name: str, default: int):
+        return float(os.getenv(var_name, default))
 
     def is_auth_type_keys(self):
         return self.AZURE_AUTH_TYPE == "keys"

@@ -5,6 +5,9 @@ from unittest.mock import MagicMock
 import pytest
 from pytest_httpserver import HTTPServer
 from trustme import CA
+import werkzeug
+import time
+from requests import ReadTimeout
 
 from backend.batch.utilities.helpers.azure_computer_vision_client import (
     AzureComputerVisionClient,
@@ -32,6 +35,7 @@ def env_helper_mock(httpserver: HTTPServer):
     env_helper_mock = MagicMock()
     env_helper_mock.AZURE_COMPUTER_VISION_ENDPOINT = httpserver.url_for("")
     env_helper_mock.AZURE_COMPUTER_VISION_KEY = AZURE_COMPUTER_VISION_KEY
+    env_helper_mock.AZURE_COMPUTER_VISION_TIMEOUT = 0.25
     env_helper_mock.is_auth_type_keys.return_value = True
     return env_helper_mock
 
@@ -136,6 +140,30 @@ def test_returns_image_vectors(
 
     # then
     assert actual_vectors == expected_vectors
+
+
+def test_vectorize_image_calls_computer_vision_SLOW(
+    httpserver: HTTPServer, azure_computer_vision_client: AzureComputerVisionClient
+):
+    # given
+    def handler(_) -> werkzeug.Response:
+        time.sleep(0.3)
+        return werkzeug.Response(
+            json.dumps({"modelVersion": "2022-04-11", "vector": [1.0, 2.0, 3.0]}),
+            status=200,
+        )
+
+    httpserver.expect_request(
+        COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
+        COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
+    ).respond_with_handler(handler)
+
+    # when
+    with pytest.raises(Exception) as exec_info:
+        azure_computer_vision_client.vectorize_image(IMAGE_URL)
+
+    assert exec_info.value.args[0] == "Call to vectorize image failed"
+    assert isinstance(exec_info.value.__cause__, ReadTimeout)
 
 
 def test_raises_exception_if_bad_response_code(
