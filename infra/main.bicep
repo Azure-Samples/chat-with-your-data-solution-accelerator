@@ -119,9 +119,10 @@ param azureOpenAIVisionModelVersion string = 'vision-preview'
 @description('Azure OpenAI Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIVisionModelCapacity int = 10
 
-@description('Orchestration strategy: openai_function or langchain str. If you use a old version of turbo (0301), plese select langchain')
+@description('Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain')
 @allowed([
   'openai_function'
+  'semantic_kernel'
   'langchain'
 ])
 param orchestrationStrategy string = 'openai_function'
