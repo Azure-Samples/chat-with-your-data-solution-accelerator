@@ -1,10 +1,11 @@
 import json
+from json import JSONDecodeError
 from unittest import mock
 from unittest.mock import MagicMock
 import pytest
 from pytest_httpserver import HTTPServer
 
-from backend.batch.utilities.helpers.AzureComputerVisionClient import (
+from backend.batch.utilities.helpers.azure_computer_vision_client import (
     AzureComputerVisionClient,
 )
 from tests.request_matching import RequestMatcher, verify_request_made
@@ -63,8 +64,17 @@ def test_vectorize_image_calls_computer_vision_with_key_based_authentication(
     )
 
 
+@mock.patch(
+    "backend.batch.utilities.helpers.azure_computer_vision_client.DefaultAzureCredential"
+)
+@mock.patch(
+    "backend.batch.utilities.helpers.azure_computer_vision_client.get_bearer_token_provider"
+)
 def test_vectorize_image_calls_computer_vision_with_rbac_based_authentication(
-    httpserver: HTTPServer, azure_computer_vision_client_rbac: AzureComputerVisionClient
+    mock_get_bearer_token_provider: MagicMock,
+    mock_default_azure_credential: MagicMock,
+    httpserver: HTTPServer,
+    azure_computer_vision_client_rbac: AzureComputerVisionClient,
 ):
     # given
     httpserver.expect_request(VECTORIZE_IMAGE_PATH, REQUEST_METHOD).respond_with_json(
@@ -72,36 +82,30 @@ def test_vectorize_image_calls_computer_vision_with_rbac_based_authentication(
     )
 
     # when
-    with mock.patch(
-        "backend.batch.utilities.helpers.AzureComputerVisionClient.DefaultAzureCredential"
-    ) as mock_default_azure_credential:
-        with mock.patch(
-            "backend.batch.utilities.helpers.AzureComputerVisionClient.get_bearer_token_provider"
-        ) as mock_get_bearer_token_provider:
-            mock_get_bearer_token_provider.return_value.return_value = "dummy token"
+    mock_get_bearer_token_provider.return_value.return_value = "dummy token"
 
-            azure_computer_vision_client_rbac.vectorize_image(IMAGE_URL)
+    azure_computer_vision_client_rbac.vectorize_image(IMAGE_URL)
 
-            # then
-            mock_default_azure_credential.assert_called_once()
-            mock_get_bearer_token_provider.assert_called_once_with(
-                mock_default_azure_credential.return_value,
-                "https://cognitiveservices.azure.com/.default",
-            )
+    # then
+    mock_default_azure_credential.assert_called_once()
+    mock_get_bearer_token_provider.assert_called_once_with(
+        mock_default_azure_credential.return_value,
+        "https://cognitiveservices.azure.com/.default",
+    )
 
-            verify_request_made(
-                httpserver,
-                RequestMatcher(
-                    path=VECTORIZE_IMAGE_PATH,
-                    method=REQUEST_METHOD,
-                    query_string="api-version=2024-02-01&model-version=2023-04-15",
-                    headers={
-                        "Content-Type": "application/json",
-                        "Authorization": "Bearer dummy token",
-                    },
-                    json={"url": IMAGE_URL},
-                ),
-            )
+    verify_request_made(
+        httpserver,
+        RequestMatcher(
+            path=VECTORIZE_IMAGE_PATH,
+            method=REQUEST_METHOD,
+            query_string="api-version=2024-02-01&model-version=2023-04-15",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer dummy token",
+            },
+            json={"url": IMAGE_URL},
+        ),
+    )
 
 
 def test_returns_image_vectors(
@@ -160,6 +164,7 @@ def test_raises_exception_if_non_json_response(
         exec_info.value.args[0]
         == f"Call to vectorize image returned malformed response body: {response_body}"
     )
+    assert isinstance(exec_info.value.__cause__, JSONDecodeError)
 
 
 def test_raises_exception_if_vector_not_in_response(

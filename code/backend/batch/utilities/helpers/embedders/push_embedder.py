@@ -4,7 +4,7 @@ from typing import List
 
 from ...helpers.llm_helper import LLMHelper
 from ...helpers.env_helper import EnvHelper
-from ...helpers.AzureComputerVisionClient import AzureComputerVisionClient
+from ..azure_computer_vision_client import AzureComputerVisionClient
 
 from ..azure_blob_storage_client import AzureBlobStorageClient
 

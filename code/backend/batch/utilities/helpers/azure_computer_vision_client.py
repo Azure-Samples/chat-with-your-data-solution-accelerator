@@ -61,10 +61,10 @@ class AzureComputerVisionClient:
     def __get_json_body(self, response: Response) -> dict:
         try:
             return response.json()
-        except Exception:
+        except Exception as e:
             raise Exception(
-                f"Call to vectorize image returned malformed response body: {response.text}"
-            )
+                f"Call to vectorize image returned malformed response body: {response.text}",
+            ) from e
 
     def __get_vectors(self, response_json: dict) -> List[float]:
         if self.__RESPONSE_VECTOR_KEY in response_json:
