@@ -92,7 +92,7 @@ Here is a comparison table with a few features offered by Azure, an available Gi
 
 ### Key features
 - **Private LLM access on your data**: Get all the benefits of ChatGPT on your private, unstructured data.
-- **Single application access to your full data set**: Minimize endpoints required to access internal company knowledgebases. Reuse the same backend with the [Teams Extension](docs/teams_extension.md)
+- **Single application access to your full data set**: Minimize endpoints required to access internal company knowledgebases. Reuse the same backend with the [Microsoft Teams Extension](docs/teams_extension.md)
 - **Natural language interaction with your unstructured data**: Use natural language to quickly find the answers you need and ask follow-up queries to get the supplemental details, including [Speech-to-text](docs/speech_to_text.md).
 - **Easy access to source documentation when querying**: Review referenced documents in the same chat window for additional context.
 - **Data upload**: Batch upload documents of [various file types](docs/supported_file_types.md)
