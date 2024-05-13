@@ -2,11 +2,11 @@ import pytest
 from pytest_httpserver import HTTPServer
 import requests
 
-from tests.functional.backend_api.request_matching import (
+from tests.functional.request_matching import (
     RequestMatcher,
     verify_request_made,
 )
-from tests.functional.backend_api.app_config import AppConfig
+from tests.functional.app_config import AppConfig
 
 pytestmark = pytest.mark.functional
 

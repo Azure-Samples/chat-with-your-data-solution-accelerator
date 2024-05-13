@@ -1,7 +1,7 @@
 import pytest
 import requests
 
-from tests.functional.backend_api.app_config import AppConfig
+from tests.functional.app_config import AppConfig
 
 pytestmark = pytest.mark.functional
 

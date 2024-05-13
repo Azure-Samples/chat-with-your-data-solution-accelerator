@@ -1,8 +1,8 @@
 import pytest
 import requests
 from pytest_httpserver import HTTPServer
-from tests.functional.backend_api.app_config import AppConfig
-from tests.functional.backend_api.request_matching import (
+from tests.functional.app_config import AppConfig
+from tests.functional.request_matching import (
     RequestMatcher,
     verify_request_made,
 )
@@ -45,10 +45,7 @@ def test_speech_service_called_correctly(
 
 
 def test_failure_fetching_speech_token(app_url: str, httpserver: HTTPServer):
-    # given
-    httpserver.clear_all_handlers()  # Clear default successful responses
-
-    httpserver.expect_request(
+    httpserver.expect_oneshot_request(
         "/sts/v1.0/issueToken",
         method="POST",
     ).respond_with_json({"error": "Bad request"}, status=400)

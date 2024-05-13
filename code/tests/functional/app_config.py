@@ -1,3 +1,4 @@
+import base64
 import logging
 import os
 
@@ -9,7 +10,9 @@ class AppConfig:
     config: dict[str, str | None] = {
         "APPLICATIONINSIGHTS_ENABLED": "False",
         "AZURE_AUTH_TYPE": "keys",
-        "AZURE_BLOB_ACCOUNT_KEY": "some-blob-account-key",
+        "AZURE_BLOB_ACCOUNT_KEY": str(
+            base64.b64encode(b"some-blob-account-key"), "utf-8"
+        ),
         "AZURE_BLOB_ACCOUNT_NAME": "some-blob-account-name",
         "AZURE_BLOB_CONTAINER_NAME": "some-blob-container-name",
         "AZURE_CONTENT_SAFETY_ENDPOINT": "some-content-safety-endpoint",
@@ -61,12 +64,12 @@ class AppConfig:
         "BACKEND_URL": "some-backend-url",
         "DOCUMENT_PROCESSING_QUEUE_NAME": "some-document-processing-queue-name",
         "FUNCTION_KEY": "some-function-key",
-        "LOAD_CONFIG_FROM_BLOB_STORAGE": "False",
+        "LOAD_CONFIG_FROM_BLOB_STORAGE": "True",
         "LOGLEVEL": "DEBUG",
         "ORCHESTRATION_STRATEGY": "openai_function",
         "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "en-US,es-ES",
         "TIKTOKEN_CACHE_DIR": f"{os.path.dirname(os.path.realpath(__file__))}/resources",
-        "USE_ADVANCED_IMAGE_PROCESSING": "False",
+        "USE_ADVANCED_IMAGE_PROCESSING": "True",
         "USE_KEY_VAULT": "False",
         # These values are set directly within EnvHelper, adding them here ensures
         # that they are removed from the environment when remove_from_environment() runs
