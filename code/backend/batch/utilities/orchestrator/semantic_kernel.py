@@ -9,8 +9,8 @@ from semantic_kernel.contents.chat_message_content import ChatMessageContent
 
 from ..common.Answer import Answer
 from ..helpers.llm_helper import LLMHelper
-from ..plugins.ChatPlugin import ChatPlugin
-from ..plugins.PostAnsweringPlugin import PostAnsweringPlugin
+from ..plugins.chat_plugin import ChatPlugin
+from ..plugins.post_answering_plugin import PostAnsweringPlugin
 from .orchestrator_base import OrchestratorBase
 
 logger = logging.getLogger(__name__)
