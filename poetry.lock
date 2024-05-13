@@ -5186,13 +5186,13 @@ test = ["array-api-strict", "asv", "gmpy2", "hypothesis (>=6.30)", "mpmath", "po
 
 [[package]]
 name = "semantic-kernel"
-version = "0.9.7b1"
+version = "0.9.8b1"
 description = "Semantic Kernel Python SDK"
 optional = false
 python-versions = "<3.13,>=3.10"
 files = [
-    {file = "semantic_kernel-0.9.7b1-py3-none-any.whl", hash = "sha256:11040170960f7ced95f9ecb3f1cf3ae46c05ea815bb01be09196aa5927ed1522"},
-    {file = "semantic_kernel-0.9.7b1.tar.gz", hash = "sha256:9bb273f1f4705b364ea28892e12384eff4213a715133dc4bf919461f44d318de"},
+    {file = "semantic_kernel-0.9.8b1-py3-none-any.whl", hash = "sha256:fd99595cd91690f4456a4073d3f05c1e497c83cd51b37ba6ffe5ce4c3cd801f0"},
+    {file = "semantic_kernel-0.9.8b1.tar.gz", hash = "sha256:fe38805c5375f416c11df5e5df7d8748892243ebae2a76d6ebf669f7774788d2"},
 ]
 
 [package.dependencies]
@@ -5222,14 +5222,14 @@ scipy = [
 ]
 
 [package.extras]
-all = ["azure-core (>=1.28.0,<2.0.0)", "azure-identity (>=1.13.0,<2.0.0)", "azure-search-documents (==11.6.0b1)", "chromadb (>=0.4.13,<0.5.0)", "google-generativeai (>=0.1)", "grpcio-status (>=1.53.0,<2.0.0)", "ipykernel (>=6.21.1,<7.0.0)", "milvus (>=2.2,<2.3)", "milvus (>=2.3,<2.3.8)", "pinecone-client (>=2.2.2,<3.0.0)", "psycopg[binary,pool] (>=3.1.9,<4.0.0)", "pyarrow (>=12.0.1,<16.0.0)", "pymilvus (>=2.2,<2.3)", "pymilvus (>=2.3,<2.3.8)", "qdrant-client (>=1.6,<2.0)", "qdrant-client (>=1.7)", "redis (>=4.6.0,<5.0.0)", "sentence-transformers (>=2.2.2,<3.0.0)", "torch (>=2.2.0,<3.0.0)", "transformers (>=4.28.1,<5.0.0)", "usearch (>=2.9,<3.0)", "weaviate-client (>=3.18,<5.0)"]
+all = ["azure-core (>=1.28.0,<2.0.0)", "azure-identity (>=1.13.0,<2.0.0)", "azure-search-documents (==11.6.0b1)", "chromadb (>=0.4.13,<0.5.0)", "google-generativeai (>=0.1)", "grpcio-status (>=1.53.0,<2.0.0)", "ipykernel (>=6.21.1,<7.0.0)", "milvus (>=2.2,<2.3)", "milvus (>=2.3,<2.3.8)", "pinecone-client (>=3.0.0)", "psycopg[binary,pool] (>=3.1.9,<4.0.0)", "pyarrow (>=12.0.1,<16.0.0)", "pymilvus (>=2.2,<2.3)", "pymilvus (>=2.3,<2.3.8)", "qdrant-client (>=1.6,<2.0)", "qdrant-client (>=1.7)", "redis (>=4.6.0,<5.0.0)", "sentence-transformers (>=2.2.2,<3.0.0)", "torch (>=2.2.0,<3.0.0)", "transformers (>=4.28.1,<5.0.0)", "usearch (>=2.9,<3.0)", "weaviate-client (>=3.18,<5.0)"]
 azure = ["azure-core (>=1.28.0,<2.0.0)", "azure-identity (>=1.13.0,<2.0.0)", "azure-search-documents (==11.6.0b1)"]
 chromadb = ["chromadb (>=0.4.13,<0.5.0)"]
 google = ["google-generativeai (>=0.1)", "grpcio-status (>=1.53.0,<2.0.0)"]
 hugging-face = ["sentence-transformers (>=2.2.2,<3.0.0)", "torch (>=2.2.0,<3.0.0)", "transformers (>=4.28.1,<5.0.0)"]
 milvus = ["milvus (>=2.2,<2.3)", "milvus (>=2.3,<2.3.8)", "pymilvus (>=2.2,<2.3)", "pymilvus (>=2.3,<2.3.8)"]
 notebooks = ["ipykernel (>=6.21.1,<7.0.0)"]
-pinecone = ["pinecone-client (>=2.2.2,<3.0.0)"]
+pinecone = ["pinecone-client (>=3.0.0)"]
 postgres = ["psycopg[binary,pool] (>=3.1.9,<4.0.0)"]
 qdrant = ["qdrant-client (>=1.6,<2.0)", "qdrant-client (>=1.7)"]
 redis = ["redis (>=4.6.0,<5.0.0)"]
@@ -6082,4 +6082,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "c30ce31ddb85e8a558b4c76b0ea13ed650d604c9e116cf48f850233590b2f0d8"
+content-hash = "f5dfc241c7dc2888abe754e47040de0961a77fcee1f9a84afb5d29026bc22cb2"
