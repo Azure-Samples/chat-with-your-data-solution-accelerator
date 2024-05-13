@@ -101,6 +101,7 @@ class AzureSearchHandler(SearchHandlerBase):
                     fields=self._VECTOR_FIELD,
                 )
             ],
+            query_type="simple",  # this is the default value
             filter=self.env_helper.AZURE_SEARCH_FILTER,
             top=self.env_helper.AZURE_SEARCH_TOP_K,
         )
