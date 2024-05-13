@@ -2,7 +2,7 @@ import ssl
 import pytest
 from pytest_httpserver import HTTPServer
 from tests.functional.app_config import AppConfig
-from backend.batch.utilities.helpers.config.ConfigHelper import (
+from backend.batch.utilities.helpers.config.config_helper import (
     CONFIG_CONTAINER_NAME,
     CONFIG_FILE_NAME,
 )

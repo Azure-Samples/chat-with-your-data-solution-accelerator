@@ -5,7 +5,7 @@ from unittest.mock import ANY
 
 from azure.functions import QueueMessage
 import pytest
-from backend.batch.utilities.helpers.config.ConfigHelper import (
+from backend.batch.utilities.helpers.config.config_helper import (
     CONFIG_CONTAINER_NAME,
     CONFIG_FILE_NAME,
 )
