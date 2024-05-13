@@ -245,7 +245,7 @@ def test_creates_search_index_if_not_exists(
     )
 
     # when
-    AzureSearchHelper()
+    AzureSearchHelper().get_search_client()
 
     # then
     search_index_client_mock.return_value.create_index.assert_called_once_with(
@@ -265,7 +265,8 @@ def test_does_not_create_search_index_if_it_exists(
     ]
 
     # when
-    AzureSearchHelper()
+    azure_search_helper = AzureSearchHelper()
+    azure_search_helper.get_search_client()
 
     # then
     search_index_client_mock.return_value.create_index.assert_not_called()
@@ -283,7 +284,7 @@ def test_propogates_exceptions_when_creating_search_index(
 
     # when
     with pytest.raises(Exception) as exc_info:
-        AzureSearchHelper()
+        AzureSearchHelper().get_search_client()
 
     # then
     assert exc_info.value == expected_exception
