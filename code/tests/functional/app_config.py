@@ -15,6 +15,7 @@ class AppConfig:
         ),
         "AZURE_BLOB_ACCOUNT_NAME": "some-blob-account-name",
         "AZURE_BLOB_CONTAINER_NAME": "some-blob-container-name",
+        "AZURE_COMPUTER_VISION_KEY": "some-computer-vision-key",
         "AZURE_CONTENT_SAFETY_ENDPOINT": "some-content-safety-endpoint",
         "AZURE_CONTENT_SAFETY_KEY": "some-content-safety-key",
         "AZURE_FORM_RECOGNIZER_ENDPOINT": "some-form-recognizer-endpoint",

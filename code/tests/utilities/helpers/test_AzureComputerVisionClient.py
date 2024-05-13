@@ -4,17 +4,27 @@ from unittest import mock
 from unittest.mock import MagicMock
 import pytest
 from pytest_httpserver import HTTPServer
+from trustme import CA
 
 from backend.batch.utilities.helpers.azure_computer_vision_client import (
     AzureComputerVisionClient,
 )
 from tests.request_matching import RequestMatcher, verify_request_made
-
+from tests.constants import (
+    COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
+    COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
+)
 
 IMAGE_URL = "some-image-url.jpg"
-VECTORIZE_IMAGE_PATH = "/computervision/retrieval:vectorizeImage"
-REQUEST_METHOD = "POST"
 AZURE_COMPUTER_VISION_KEY = "some-api-key"
+
+
+@pytest.fixture(autouse=True)
+def pytest_ssl(monkeypatch: pytest.MonkeyPatch, ca: CA):
+    with ca.cert_pem.tempfile() as ca_temp_path:
+        monkeypatch.setenv("SSL_CERT_FILE", ca_temp_path)
+        monkeypatch.setenv("CURL_CA_BUNDLE", ca_temp_path)
+        yield
 
 
 @pytest.fixture
@@ -41,9 +51,10 @@ def test_vectorize_image_calls_computer_vision_with_key_based_authentication(
     httpserver: HTTPServer, azure_computer_vision_client: AzureComputerVisionClient
 ):
     # given
-    httpserver.expect_request(VECTORIZE_IMAGE_PATH, REQUEST_METHOD).respond_with_json(
-        {"modelVersion": "2022-04-11", "vector": [1.0, 2.0, 3.0]}
-    )
+    httpserver.expect_request(
+        COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
+        COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
+    ).respond_with_json({"modelVersion": "2022-04-11", "vector": [1.0, 2.0, 3.0]})
 
     # when
     azure_computer_vision_client.vectorize_image(IMAGE_URL)
@@ -52,8 +63,8 @@ def test_vectorize_image_calls_computer_vision_with_key_based_authentication(
     verify_request_made(
         httpserver,
         RequestMatcher(
-            path=VECTORIZE_IMAGE_PATH,
-            method=REQUEST_METHOD,
+            path=COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
+            method=COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
             query_string="api-version=2024-02-01&model-version=2023-04-15",
             headers={
                 "Content-Type": "application/json",
@@ -77,9 +88,10 @@ def test_vectorize_image_calls_computer_vision_with_rbac_based_authentication(
     azure_computer_vision_client_rbac: AzureComputerVisionClient,
 ):
     # given
-    httpserver.expect_request(VECTORIZE_IMAGE_PATH, REQUEST_METHOD).respond_with_json(
-        {"modelVersion": "2022-04-11", "vector": [1.0, 2.0, 3.0]}
-    )
+    httpserver.expect_request(
+        COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
+        COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
+    ).respond_with_json({"modelVersion": "2022-04-11", "vector": [1.0, 2.0, 3.0]})
 
     # when
     mock_get_bearer_token_provider.return_value.return_value = "dummy token"
@@ -96,8 +108,8 @@ def test_vectorize_image_calls_computer_vision_with_rbac_based_authentication(
     verify_request_made(
         httpserver,
         RequestMatcher(
-            path=VECTORIZE_IMAGE_PATH,
-            method=REQUEST_METHOD,
+            path=COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
+            method=COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
             query_string="api-version=2024-02-01&model-version=2023-04-15",
             headers={
                 "Content-Type": "application/json",
@@ -114,9 +126,10 @@ def test_returns_image_vectors(
     # given
     expected_vectors = [1.0, 2.0, 3.0]
 
-    httpserver.expect_request(VECTORIZE_IMAGE_PATH, REQUEST_METHOD).respond_with_json(
-        {"modelVersion": "2022-04-11", "vector": expected_vectors}
-    )
+    httpserver.expect_request(
+        COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
+        COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
+    ).respond_with_json({"modelVersion": "2022-04-11", "vector": expected_vectors})
 
     # when
     actual_vectors = azure_computer_vision_client.vectorize_image(IMAGE_URL)
@@ -131,9 +144,10 @@ def test_raises_exception_if_bad_response_code(
     # given
     response_body = {"error": "computer says no"}
     response_status = 500
-    httpserver.expect_request(VECTORIZE_IMAGE_PATH, REQUEST_METHOD).respond_with_json(
-        response_body, status=response_status
-    )
+    httpserver.expect_request(
+        COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
+        COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
+    ).respond_with_json(response_body, status=response_status)
 
     # when
     with pytest.raises(Exception) as exec_info:
@@ -151,9 +165,10 @@ def test_raises_exception_if_non_json_response(
 ):
     # given
     response_body = "not json"
-    httpserver.expect_request(VECTORIZE_IMAGE_PATH, REQUEST_METHOD).respond_with_data(
-        response_body, status=200
-    )
+    httpserver.expect_request(
+        COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
+        COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
+    ).respond_with_data(response_body, status=200)
 
     # when
     with pytest.raises(Exception) as exec_info:
@@ -172,9 +187,10 @@ def test_raises_exception_if_vector_not_in_response(
 ):
     # given
     response_body = {"modelVersion": "2022-04-11"}
-    httpserver.expect_request(VECTORIZE_IMAGE_PATH, REQUEST_METHOD).respond_with_json(
-        response_body, status=200
-    )
+    httpserver.expect_request(
+        COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
+        COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
+    ).respond_with_json(response_body, status=200)
 
     # when
     with pytest.raises(Exception) as exec_info:
