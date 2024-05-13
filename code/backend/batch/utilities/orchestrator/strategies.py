@@ -1,7 +1,7 @@
-from .OrchestrationStrategy import OrchestrationStrategy
-from .OpenAIFunctions import OpenAIFunctionsOrchestrator
-from .LangChainAgent import LangChainAgent
-from .SemanticKernel import SemanticKernelOrchestrator
+from .orchestration_strategy import OrchestrationStrategy
+from .open_ai_functions import OpenAIFunctionsOrchestrator
+from .lang_chain_agent import LangChainAgent
+from .semantic_kernel import SemanticKernelOrchestrator
 
 
 def get_orchestrator(orchestration_strategy: str):

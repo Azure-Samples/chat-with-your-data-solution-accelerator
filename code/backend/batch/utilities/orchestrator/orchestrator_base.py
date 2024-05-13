@@ -4,7 +4,7 @@ from typing import List, Optional
 from abc import ABC, abstractmethod
 from ..loggers.ConversationLogger import ConversationLogger
 from ..helpers.config.config_helper import ConfigHelper
-from ..parser.OutputParserTool import OutputParserTool
+from ..parser.output_parser_tool import OutputParserTool
 from ..tools.ContentSafetyChecker import ContentSafetyChecker
 
 logger = logging.getLogger(__name__)
