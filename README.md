@@ -48,11 +48,11 @@ urlFragment: chat-with-your-data-solution-accelerator
   * [Disclaimers](#disclaimers)
 \
 \
-![User Story](/media/userStory.png)
+![User Story](/docs/images/userStory.png)
 ## User story
 Welcome to the *Chat with your data* Solution accelerator repository! The *Chat with your data* Solution accelerator is a powerful tool that combines the capabilities of Azure AI Search and Large Language Models (LLMs) to create a conversational search experience. This solution accelerator uses an Azure OpenAI GPT model and an Azure AI Search index generated from your data, which is integrated into a web application to provide a natural language interface, including [speech-to-text](docs/speech_to_text.md) functionality, for search queries. Users can drag and drop files, point to storage, and take care of technical setup to transform documents. Everything can be deployed in your own subscription to accelerate your use of this technology.
 
-![Solution Architecture - Chat with your data](/media/cwyd-solution-architecture.png)
+![Solution Architecture - Chat with your data](/docs/images/cwyd-solution-architecture.png)
 
 ### About this repo
 
@@ -117,7 +117,7 @@ Now that the financial advisor is more informed about Woodgrove’s Emerging Mar
 
 Note: Some of the sample data included with this accelerator was generated using AI and is for illustrative purposes only.
 
-![One-click Deploy](/media/oneClickDeploy.png)
+![One-click Deploy](/docs/images/oneClickDeploy.png)
 ## Deploy
 ### Pre-requisites
 - Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with owner access.
@@ -171,7 +171,7 @@ switch to a lower version. To find out which versions are supported in different
 
     Where `{RESOURCE_TOKEN}` is uniquely generated during deployment. This is a combination of your subscription and the name of the resource group. Then select **Ingest Data** and add your data. You can find sample data in the `/data` directory.
 
-    ![A screenshot of the admin site.](./media/admin-site.png)
+    ![A screenshot of the admin site.](./docs/images/admin-site.png)
 
 
 2. Navigate to the web app to start chatting on top of your data. The web app can be found at:
@@ -179,11 +179,11 @@ switch to a lower version. To find out which versions are supported in different
     `https://web-{RESOURCE_TOKEN}.azurewebsites.net/`
 
 
-    ![A screenshot of the chat app.](./media/web-unstructureddata.png)
+    ![A screenshot of the chat app.](./docs/images/web-unstructureddata.png)
 
 \
 \
-![Supporting documentation](/media/supportingDocuments.png)
+![Supporting documentation](/docs/images/supportingDocuments.png)
 ## Supporting documentation
 
 ### Resource links
