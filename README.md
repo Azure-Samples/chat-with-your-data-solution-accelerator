@@ -74,7 +74,7 @@ The accelerator presented here provides several options, for example:
 * A backend that mimics the [On Your Data](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/use-your-data) flow, with the ability to switch to a custom backend
 * Advanced prompt engineering capabilities
 * An admin site for ingesting/inspecting/configuring your dataset on the fly
-* Push or Pull model for data ingestion. See [here](./docs/integrated_vectorization.md) for more details
+* Push or Pull model for data ingestion:  See [integrated vectorization](./docs/integrated_vectorization.md) documentation for more details
 * Running a Retrieval Augmented Generation (RAG) solution locally
 
 *Have you seen [ChatGPT + Enterprise data with Azure OpenAI and AI Search demo](https://github.com/Azure-Samples/azure-search-openai-demo)? If you would like to experiment: Play with prompts, understanding RAG pattern different implementation approaches, see how different features interact with the RAG pattern and choose the best options for your RAG deployments, take a look at that repo.
