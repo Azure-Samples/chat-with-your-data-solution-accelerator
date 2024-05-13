@@ -114,9 +114,14 @@ class EnvHelper:
         self.AZURE_COMPUTER_VISION_ENDPOINT = os.getenv(
             "AZURE_COMPUTER_VISION_ENDPOINT"
         )
-
         self.AZURE_COMPUTER_VISION_TIMEOUT = self.get_env_var_float(
             "AZURE_COMPUTER_VISION_TIMEOUT", 30
+        )
+        self.AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION = os.getenv(
+            "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION", "2024-02-01"
+        )
+        self.AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION = os.getenv(
+            "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION", "2023-04-15"
         )
 
         # Initialize Azure keys based on authentication type and environment settings.

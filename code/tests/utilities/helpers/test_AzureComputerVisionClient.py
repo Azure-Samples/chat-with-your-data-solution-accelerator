@@ -36,6 +36,8 @@ def env_helper_mock(httpserver: HTTPServer):
     env_helper_mock.AZURE_COMPUTER_VISION_ENDPOINT = httpserver.url_for("")
     env_helper_mock.AZURE_COMPUTER_VISION_KEY = AZURE_COMPUTER_VISION_KEY
     env_helper_mock.AZURE_COMPUTER_VISION_TIMEOUT = 0.25
+    env_helper_mock.AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION = "2024-02-01"
+    env_helper_mock.AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION = "2023-04-15"
     env_helper_mock.is_auth_type_keys.return_value = True
     return env_helper_mock
 

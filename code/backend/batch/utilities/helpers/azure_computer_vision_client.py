@@ -15,15 +15,17 @@ class AzureComputerVisionClient:
 
     __TOKEN_SCOPE = "https://cognitiveservices.azure.com/.default"
     __VECTORIZE_IMAGE_PATH = "computervision/retrieval:vectorizeImage"
-    __VECTORIZE_IMAGE_API_VERSION = "2024-02-01"
-    __VECTORIZE_IMAGE_MODEL_VERSION = "2023-04-15"
     __RESPONSE_VECTOR_KEY = "vector"
 
     def __init__(self, env_helper: EnvHelper) -> None:
-        self.computer_vision_host = env_helper.AZURE_COMPUTER_VISION_ENDPOINT
-        self.computer_vision_timeout = env_helper.AZURE_COMPUTER_VISION_TIMEOUT
-        self.computer_vision_key = env_helper.AZURE_COMPUTER_VISION_KEY
+        self.host = env_helper.AZURE_COMPUTER_VISION_ENDPOINT
+        self.timeout = env_helper.AZURE_COMPUTER_VISION_TIMEOUT
+        self.key = env_helper.AZURE_COMPUTER_VISION_KEY
         self.use_keys = env_helper.is_auth_type_keys()
+        self.api_version = env_helper.AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION
+        self.model_version = (
+            env_helper.AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION
+        )
 
     def vectorize_image(self, image_url: str) -> List[float]:
         logger.info(f"Making call to computer vision to vectorize image: {image_url}")
@@ -37,7 +39,7 @@ class AzureComputerVisionClient:
         try:
             headers = {}
             if self.use_keys:
-                headers["Ocp-Apim-Subscription-Key"] = self.computer_vision_key
+                headers["Ocp-Apim-Subscription-Key"] = self.key
             else:
                 token_provider = get_bearer_token_provider(
                     DefaultAzureCredential(), self.__TOKEN_SCOPE
@@ -45,14 +47,14 @@ class AzureComputerVisionClient:
                 headers["Authorization"] = "Bearer " + token_provider()
 
             return requests.post(
-                url=urljoin(self.computer_vision_host, self.__VECTORIZE_IMAGE_PATH),
+                url=urljoin(self.host, self.__VECTORIZE_IMAGE_PATH),
                 params={
-                    "api-version": self.__VECTORIZE_IMAGE_API_VERSION,
-                    "model-version": self.__VECTORIZE_IMAGE_MODEL_VERSION,
+                    "api-version": self.api_version,
+                    "model-version": self.model_version,
                 },
                 json={"url": image_url},
                 headers=headers,
-                timeout=self.computer_vision_timeout,
+                timeout=self.timeout,
             )
         except Exception as e:
             raise Exception("Call to vectorize image failed") from e

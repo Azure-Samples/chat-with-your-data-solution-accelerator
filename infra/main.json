@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.27.1.19265",
-      "templateHash": "2976692086240061998"
+      "templateHash": "95501043309266990"
     }
   },
   "parameters": {
@@ -364,6 +364,20 @@
       ],
       "metadata": {
         "description": "Location of Computer Vision Resource (if useAdvancedImageProcessing=true)"
+      }
+    },
+    "computerVisionVectorizeImageApiVersion": {
+      "type": "string",
+      "defaultValue": "2024-02-01",
+      "metadata": {
+        "description": "Azure Computer Vision Vectorize Image API Version"
+      }
+    },
+    "computerVisionVectorizeImageModelVersion": {
+      "type": "string",
+      "defaultValue": "2023-04-15",
+      "metadata": {
+        "description": "Azure Computer Vision Vectorize Image Model Version"
       }
     },
     "azureAISearchName": {
@@ -7432,6 +7446,8 @@
             "value": {
               "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
               "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
+              "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION": "[parameters('computerVisionVectorizeImageApiVersion')]",
+              "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION": "[parameters('computerVisionVectorizeImageModelVersion')]",
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
@@ -8664,6 +8680,8 @@
             "value": {
               "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
               "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
+              "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION": "[parameters('computerVisionVectorizeImageApiVersion')]",
+              "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION": "[parameters('computerVisionVectorizeImageModelVersion')]",
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
@@ -10790,6 +10808,14 @@
     "AZURE_BLOB_ACCOUNT_KEY": {
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value, '')]"
+    },
+    "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION": {
+      "type": "string",
+      "value": "[parameters('computerVisionVectorizeImageApiVersion')]"
+    },
+    "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION": {
+      "type": "string",
+      "value": "[parameters('computerVisionVectorizeImageModelVersion')]"
     },
     "AZURE_CONTENT_SAFETY_ENDPOINT": {
       "type": "string",

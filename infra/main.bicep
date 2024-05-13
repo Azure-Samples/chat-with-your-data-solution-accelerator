@@ -180,6 +180,12 @@ param computerVisionSkuName string = 'S1'
 ])
 param computerVisionLocation string = useAdvancedImageProcessing ? location : ''
 
+@description('Azure Computer Vision Vectorize Image API Version')
+param computerVisionVectorizeImageApiVersion string = '2024-02-01'
+
+@description('Azure Computer Vision Vectorize Image Model Version')
+param computerVisionVectorizeImageModelVersion string ='2023-04-15'
+
 @description('Azure AI Search Resource')
 param azureAISearchName string = 'search-${resourceToken}'
 
@@ -792,6 +798,8 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_MODEL: azureOpenAIModel
@@ -842,6 +850,8 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_MODEL: azureOpenAIModel
@@ -980,6 +990,8 @@ output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
 output AZURE_BLOB_CONTAINER_NAME string = blobContainerName
 output AZURE_BLOB_ACCOUNT_NAME string = storageAccountName
 output AZURE_BLOB_ACCOUNT_KEY string = useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+output AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION string = computerVisionVectorizeImageApiVersion
+output AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION string = computerVisionVectorizeImageModelVersion
 output AZURE_CONTENT_SAFETY_ENDPOINT string = contentsafety.outputs.endpoint
 output AZURE_CONTENT_SAFETY_KEY string = useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
 output AZURE_FORM_RECOGNIZER_ENDPOINT string = formrecognizer.outputs.endpoint
