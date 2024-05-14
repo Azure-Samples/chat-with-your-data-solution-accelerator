@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import ANY, MagicMock, patch
-from backend.batch.utilities.integrated_vectorization.AzureSearchIndexer import (
+from backend.batch.utilities.integrated_vectorization.azure_search_indexer import (
     AzureSearchIndexer,
 )
 
@@ -13,7 +13,7 @@ AZURE_SEARCH_INDEX = "mock-index"
 @pytest.fixture(autouse=True)
 def env_helper_mock():
     with patch(
-        "backend.batch.utilities.integrated_vectorization.AzureSearchIndexer.EnvHelper"
+        "backend.batch.utilities.integrated_vectorization.azure_search_indexer.EnvHelper"
     ) as mock:
         env_helper = mock.return_value
         env_helper.AZURE_AUTH_TYPE = AZURE_AUTH_TYPE
@@ -27,7 +27,7 @@ def env_helper_mock():
 @pytest.fixture(autouse=True)
 def search_indexer_client_mock():
     with patch(
-        "backend.batch.utilities.integrated_vectorization.AzureSearchIndexer.SearchIndexerClient"
+        "backend.batch.utilities.integrated_vectorization.azure_search_indexer.SearchIndexerClient"
     ) as mock:
         yield mock
 
@@ -35,7 +35,7 @@ def search_indexer_client_mock():
 @pytest.fixture(autouse=True)
 def search_indexer_mock():
     with patch(
-        "backend.batch.utilities.integrated_vectorization.AzureSearchIndexer.SearchIndexer"
+        "backend.batch.utilities.integrated_vectorization.azure_search_indexer.SearchIndexer"
     ) as mock:
         yield mock
 
@@ -90,3 +90,43 @@ def test_create_or_update_indexer_rbac(
         data_source_name=env_helper_mock.AZURE_SEARCH_DATASOURCE_NAME,
         field_mappings=ANY,
     )
+
+
+def test_run_indexer(
+    env_helper_mock: MagicMock,
+    search_indexer_client_mock: MagicMock,
+    search_indexer_mock: MagicMock,
+):
+    # given
+    indexer_name = "indexer_name"
+    azure_search_indexer = AzureSearchIndexer(env_helper_mock)
+
+    # when
+    azure_search_indexer.run_indexer(indexer_name)
+
+    # then
+    azure_search_indexer.indexer_client.reset_indexer.assert_called_once_with(
+        indexer_name
+    )
+    azure_search_indexer.indexer_client.run_indexer.assert_called_once_with(
+        indexer_name
+    )
+
+
+def test_indexer_exists(
+    env_helper_mock: MagicMock,
+    search_indexer_client_mock: MagicMock,
+    search_indexer_mock: MagicMock,
+):
+    # given
+    indexer_name = "indexer_name"
+    azure_search_indexer = AzureSearchIndexer(env_helper_mock)
+    search_indexer_client_mock.return_value.get_indexer_names.return_value = [
+        "indexer_name"
+    ]
+
+    # when
+    result = azure_search_indexer.indexer_exists(indexer_name)
+
+    # then
+    assert result is True

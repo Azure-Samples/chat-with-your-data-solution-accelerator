@@ -1,8 +1,8 @@
-from ..search.AzureSearchHandler import AzureSearchHandler
-from ..search.IntegratedVectorizationSearchHandler import (
+from ..search.azure_search_handler import AzureSearchHandler
+from ..search.integrated_vectorization_search_handler import (
     IntegratedVectorizationSearchHandler,
 )
-from ..common.SourceDocument import SourceDocument
+from ..common.source_document import SourceDocument
 from ..helpers.env_helper import EnvHelper
 
 

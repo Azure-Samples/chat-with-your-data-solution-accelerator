@@ -1,10 +1,10 @@
 import pytest
 from unittest.mock import MagicMock, Mock, patch
-from backend.batch.utilities.search.AzureSearchHandler import AzureSearchHandler
+from backend.batch.utilities.search.azure_search_handler import AzureSearchHandler
 import json
 from azure.search.documents.models import VectorizedQuery
 
-from backend.batch.utilities.common.SourceDocument import SourceDocument
+from backend.batch.utilities.common.source_document import SourceDocument
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def env_helper_mock():
 @pytest.fixture
 def mock_search_client():
     with patch(
-        "backend.batch.utilities.search.AzureSearchHandler.AzureSearchHelper"
+        "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper"
     ) as mock:
         search_client = mock.return_value.get_search_client.return_value
         yield search_client
@@ -27,7 +27,7 @@ def mock_search_client():
 
 @pytest.fixture
 def mock_llm_helper():
-    with patch("backend.batch.utilities.search.AzureSearchHandler.LLMHelper") as mock:
+    with patch("backend.batch.utilities.search.azure_search_handler.LLMHelper") as mock:
         mock_llm_helper = mock.return_value
         yield mock_llm_helper
 
@@ -35,11 +35,11 @@ def mock_llm_helper():
 @pytest.fixture
 def handler(env_helper_mock, mock_search_client, mock_llm_helper):
     with patch(
-        "backend.batch.utilities.search.AzureSearchHandler.AzureSearchHelper",
+        "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper",
         return_value=mock_search_client,
     ):
         with patch(
-            "backend.batch.utilities.search.AzureSearchHandler.LLMHelper",
+            "backend.batch.utilities.search.azure_search_handler.LLMHelper",
             return_value=mock_llm_helper,
         ):
             return AzureSearchHandler(env_helper_mock)
@@ -126,7 +126,7 @@ def test_get_files(handler):
     )
 
 
-@patch("backend.batch.utilities.search.AzureSearchHandler.tiktoken")
+@patch("backend.batch.utilities.search.azure_search_handler.tiktoken")
 def test_query_search_uses_tiktoken_encoder(mock_tiktoken, handler, mock_llm_helper):
     # given
     question = "What is the answer?"
