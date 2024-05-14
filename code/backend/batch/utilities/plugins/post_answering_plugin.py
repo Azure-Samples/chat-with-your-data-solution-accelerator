@@ -1,8 +1,8 @@
 from semantic_kernel.functions import kernel_function
 from semantic_kernel.functions.kernel_arguments import KernelArguments
 
-from ..common.Answer import Answer
-from ..tools.PostPromptTool import PostPromptTool
+from ..common.answer import Answer
+from ..tools.post_prompt_tool import PostPromptTool
 
 
 class PostAnsweringPlugin:

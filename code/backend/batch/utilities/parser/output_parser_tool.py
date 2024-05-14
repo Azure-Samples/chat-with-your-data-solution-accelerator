@@ -3,7 +3,7 @@ import logging
 import re
 import json
 from .parser_base import ParserBase
-from ..common.SourceDocument import SourceDocument
+from ..common.source_document import SourceDocument
 
 logger = logging.getLogger(__name__)
 

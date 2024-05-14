@@ -1,10 +1,10 @@
 import pytest
 from unittest.mock import Mock, MagicMock, patch
-from backend.batch.utilities.search.Search import Search
-from backend.batch.utilities.search.IntegratedVectorizationSearchHandler import (
+from backend.batch.utilities.search.search import Search
+from backend.batch.utilities.search.integrated_vectorization_search_handler import (
     IntegratedVectorizationSearchHandler,
 )
-from backend.batch.utilities.common.SourceDocument import SourceDocument
+from backend.batch.utilities.common.source_document import SourceDocument
 
 
 @pytest.fixture
@@ -21,7 +21,7 @@ def env_helper_mock():
 @pytest.fixture(autouse=True)
 def iv_search_handler_mock():
     with patch(
-        "backend.batch.utilities.search.IntegratedVectorizationSearchHandler"
+        "backend.batch.utilities.search.integrated_vectorization_search_handler"
     ) as mock:
         yield mock
 
@@ -92,7 +92,7 @@ def test_get_source_documents_integrated_vectorization_no_results(env_helper_moc
     assert len(source_documents) == len(search_results)
 
 
-@patch("backend.batch.utilities.search.Search")
+@patch("backend.batch.utilities.search.search")
 def test_get_source_documents_azure_search(search_handler_mock: MagicMock):
     # given
     question = "example question"

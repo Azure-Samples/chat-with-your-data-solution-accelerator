@@ -5,12 +5,12 @@ from unittest.mock import call, patch, Mock
 
 sys.path.append(os.path.join(os.path.dirname(sys.path[0]), "backend", "batch"))
 
-from backend.batch.BatchStartProcessing import batch_start_processing  # noqa: E402
+from backend.batch.batch_start_processing import batch_start_processing  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
 def env_helper_mock():
-    with patch("backend.batch.BatchStartProcessing.EnvHelper") as mock:
+    with patch("backend.batch.batch_start_processing.EnvHelper") as mock:
         env_helper = mock.return_value
         env_helper.AZURE_SEARCH_INDEXER_NAME = "AZURE_SEARCH_INDEXER_NAME"
 
@@ -20,13 +20,13 @@ def env_helper_mock():
 @pytest.fixture(autouse=True)
 def mock_integrated_vectorization_embedder():
     with patch(
-        "backend.batch.BatchStartProcessing.IntegratedVectorizationEmbedder"
+        "backend.batch.batch_start_processing.IntegratedVectorizationEmbedder"
     ) as mock:
         yield mock
 
 
-@patch("backend.batch.BatchStartProcessing.create_queue_client")
-@patch("backend.batch.BatchStartProcessing.AzureBlobStorageClient")
+@patch("backend.batch.batch_start_processing.create_queue_client")
+@patch("backend.batch.batch_start_processing.AzureBlobStorageClient")
 def test_batch_start_processing_processes_all(
     mock_blob_storage_client, mock_create_queue_client, env_helper_mock
 ):
@@ -54,8 +54,8 @@ def test_batch_start_processing_processes_all(
     assert send_message_calls[1] == call(b'{"filename": "file_name_two"}')
 
 
-@patch("backend.batch.BatchStartProcessing.create_queue_client")
-@patch("backend.batch.BatchStartProcessing.AzureBlobStorageClient")
+@patch("backend.batch.batch_start_processing.create_queue_client")
+@patch("backend.batch.batch_start_processing.AzureBlobStorageClient")
 def test_batch_start_processing_processes_all_integrated_vectorization(
     mock_blob_storage_client,
     mock_create_queue_client,

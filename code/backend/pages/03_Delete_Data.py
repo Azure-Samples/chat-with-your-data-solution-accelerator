@@ -4,7 +4,7 @@ import traceback
 import sys
 import logging
 from batch.utilities.helpers.env_helper import EnvHelper
-from batch.utilities.search.Search import Search
+from batch.utilities.search.search import Search
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()

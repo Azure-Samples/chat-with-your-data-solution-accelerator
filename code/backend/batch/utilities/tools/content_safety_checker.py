@@ -5,8 +5,8 @@ from azure.identity import DefaultAzureCredential
 from azure.core.exceptions import HttpResponseError
 from azure.ai.contentsafety.models import AnalyzeTextOptions
 from ..helpers.env_helper import EnvHelper
-from .AnswerProcessingBase import AnswerProcessingBase
-from ..common.Answer import Answer
+from .answer_processing_base import AnswerProcessingBase
+from ..common.answer import Answer
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from backend.batch.utilities.integrated_vectorization.AzureSearchDatasource import (
+from backend.batch.utilities.integrated_vectorization.azure_search_datasource import (
     AzureSearchDatasource,
 )
 from azure.search.documents.indexes._generated.models import (
@@ -23,7 +23,7 @@ AZURE_RESOURCE_GROUP = "mock-resource-group"
 @pytest.fixture(autouse=True)
 def env_helper_mock():
     with patch(
-        "backend.batch.utilities.integrated_vectorization.AzureSearchDatasource.EnvHelper"
+        "backend.batch.utilities.integrated_vectorization.azure_search_datasource.EnvHelper"
     ) as mock:
         env_helper = mock.return_value
         env_helper.AZURE_AUTH_TYPE = AZURE_AUTH_TYPE
@@ -40,7 +40,7 @@ def env_helper_mock():
 @pytest.fixture(autouse=True)
 def search_indexer_client_mock():
     with patch(
-        "backend.batch.utilities.integrated_vectorization.AzureSearchDatasource.SearchIndexerClient"
+        "backend.batch.utilities.integrated_vectorization.azure_search_datasource.SearchIndexerClient"
     ) as mock:
         yield mock
 
@@ -48,7 +48,7 @@ def search_indexer_client_mock():
 @pytest.fixture(autouse=True)
 def search_indexer_data_container_mock():
     with patch(
-        "backend.batch.utilities.integrated_vectorization.AzureSearchDatasource.SearchIndexerDataContainer"
+        "backend.batch.utilities.integrated_vectorization.azure_search_datasource.SearchIndexerDataContainer"
     ) as mock:
         yield mock
 
@@ -56,7 +56,7 @@ def search_indexer_data_container_mock():
 @pytest.fixture(autouse=True)
 def search_indexer_datasource_connection_mock():
     with patch(
-        "backend.batch.utilities.integrated_vectorization.AzureSearchDatasource.SearchIndexerDataSourceConnection"
+        "backend.batch.utilities.integrated_vectorization.azure_search_datasource.SearchIndexerDataSourceConnection"
     ) as mock:
         yield mock
 

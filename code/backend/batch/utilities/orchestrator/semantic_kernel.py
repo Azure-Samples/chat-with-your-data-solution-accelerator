@@ -7,7 +7,7 @@ from semantic_kernel.contents import ChatHistory
 from semantic_kernel.contents.chat_message_content import ChatMessageContent
 from semantic_kernel.contents.finish_reason import FinishReason
 
-from ..common.Answer import Answer
+from ..common.answer import Answer
 from ..helpers.llm_helper import LLMHelper
 from ..plugins.chat_plugin import ChatPlugin
 from ..plugins.post_answering_plugin import PostAnsweringPlugin

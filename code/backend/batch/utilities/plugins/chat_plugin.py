@@ -2,9 +2,9 @@ from typing import Annotated
 
 from semantic_kernel.functions import kernel_function
 
-from ..common.Answer import Answer
-from ..tools.QuestionAnswerTool import QuestionAnswerTool
-from ..tools.TextProcessingTool import TextProcessingTool
+from ..common.answer import Answer
+from ..tools.question_answer_tool import QuestionAnswerTool
+from ..tools.text_processing_tool import TextProcessingTool
 
 
 class ChatPlugin:

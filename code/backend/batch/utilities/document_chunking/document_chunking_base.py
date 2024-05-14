@@ -1,7 +1,7 @@
 # Create an abstract class for document loading
 from typing import List
 from abc import ABC, abstractmethod
-from ..common.SourceDocument import SourceDocument
+from ..common.source_document import SourceDocument
 from .chunking_strategy import ChunkingSettings
 
 

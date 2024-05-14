@@ -1,11 +1,11 @@
 from typing import List
-from .SearchHandlerBase import SearchHandlerBase
+from .search_handler_base import SearchHandlerBase
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.models import VectorizableTextQuery
 from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential
-from ..common.SourceDocument import SourceDocument
+from ..common.source_document import SourceDocument
 import re
 
 

@@ -1,7 +1,7 @@
 # Create an abstract class for parser
 from abc import ABC, abstractmethod
 from typing import List
-from ..common.SourceDocument import SourceDocument
+from ..common.source_document import SourceDocument
 
 
 class ParserBase(ABC):
