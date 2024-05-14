@@ -7,8 +7,8 @@ sys.path.append(os.path.join(os.path.dirname(sys.path[0]), "backend", "batch"))
 from backend.batch.batch_start_processing import batch_start_processing  # noqa: E402
 
 
-@patch("backend.batch.BatchStartProcessing.create_queue_client")
-@patch("backend.batch.BatchStartProcessing.AzureBlobStorageClient")
+@patch("backend.batch.batch_start_processing.create_queue_client")
+@patch("backend.batch.batch_start_processing.AzureBlobStorageClient")
 def test_batch_start_processing_processes_all(
     mock_blob_storage_client, mock_create_queue_client
 ):

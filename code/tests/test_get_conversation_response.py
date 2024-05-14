@@ -11,8 +11,8 @@ from backend.batch.get_conversation_response import (  # noqa: E402
 )
 
 
-@patch("backend.batch.GetConversationResponse.ConfigHelper")
-@patch("backend.batch.GetConversationResponse.Orchestrator")
+@patch("backend.batch.get_conversation_response.ConfigHelper")
+@patch("backend.batch.get_conversation_response.Orchestrator")
 @pytest.mark.asyncio
 async def test_get_conversation_response(mock_create_message_orchestrator, _):
     mock_http_request = Mock()
@@ -53,8 +53,8 @@ async def test_get_conversation_response(mock_create_message_orchestrator, _):
     ]
 
 
-@patch("backend.batch.GetConversationResponse.ConfigHelper")
-@patch("backend.batch.GetConversationResponse.Orchestrator")
+@patch("backend.batch.get_conversation_response.ConfigHelper")
+@patch("backend.batch.get_conversation_response.Orchestrator")
 @pytest.mark.asyncio
 async def test_get_conversation_error(_, __):
     mock_http_request = Mock()
