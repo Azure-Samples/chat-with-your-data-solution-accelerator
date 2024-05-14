@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/compare/v1.0.0...v1.1.0) (2024-05-14)
+
+
+### Features
+
+* [IV] Reprocess All documents functionality  ([#870](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/870)) ([89e328b](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/commit/89e328b9aceb00cc3f92eb9179947239a931f909))
+
 ## 1.0.0 (2024-05-14)
 
 
