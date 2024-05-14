@@ -1,16 +1,16 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from backend.batch.utilities.orchestrator.OpenAIFunctions import (
+from backend.batch.utilities.orchestrator.open_ai_functions import (
     OpenAIFunctionsOrchestrator,
 )
-from backend.batch.utilities.parser.OutputParserTool import OutputParserTool
+from backend.batch.utilities.parser.output_parser_tool import OutputParserTool
 
 
 @pytest.fixture(autouse=True)
 def llm_helper_mock():
     with patch(
-        "backend.batch.utilities.orchestrator.OpenAIFunctions.LLMHelper"
+        "backend.batch.utilities.orchestrator.open_ai_functions.LLMHelper"
     ) as mock:
         llm_helper = mock.return_value
 
@@ -20,7 +20,7 @@ def llm_helper_mock():
 @pytest.fixture()
 def orchestrator():
     with patch(
-        "backend.batch.utilities.orchestrator.OpenAIFunctions.OrchestratorBase.__init__"
+        "backend.batch.utilities.orchestrator.open_ai_functions.OrchestratorBase.__init__"
     ):
         orchestrator = OpenAIFunctionsOrchestrator()
 

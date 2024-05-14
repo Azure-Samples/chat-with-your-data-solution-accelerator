@@ -2,11 +2,11 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 from backend.batch.utilities.common.Answer import Answer
-from backend.batch.utilities.plugins.ChatPlugin import ChatPlugin
+from backend.batch.utilities.plugins.chat_plugin import ChatPlugin
 from semantic_kernel import Kernel
 
 
-@patch("backend.batch.utilities.plugins.ChatPlugin.QuestionAnswerTool")
+@patch("backend.batch.utilities.plugins.chat_plugin.QuestionAnswerTool")
 @pytest.mark.asyncio
 async def test_search_documents(QuestionAnswerToolMock: MagicMock):
     # given
@@ -40,7 +40,7 @@ async def test_search_documents(QuestionAnswerToolMock: MagicMock):
     )
 
 
-@patch("backend.batch.utilities.plugins.ChatPlugin.TextProcessingTool")
+@patch("backend.batch.utilities.plugins.chat_plugin.TextProcessingTool")
 @pytest.mark.asyncio
 async def test_text_processing(TextProcessingToolMock: MagicMock):
     # given

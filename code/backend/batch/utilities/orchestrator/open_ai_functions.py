@@ -2,7 +2,7 @@ import logging
 from typing import List
 import json
 
-from .OrchestratorBase import OrchestratorBase
+from .orchestrator_base import OrchestratorBase
 from ..helpers.llm_helper import LLMHelper
 from ..tools.PostPromptTool import PostPromptTool
 from ..tools.QuestionAnswerTool import QuestionAnswerTool

@@ -119,7 +119,11 @@ def test_post_makes_correct_call_to_azure_openai(
                             "filter": app_config.get("AZURE_SEARCH_FILTER"),
                             "in_scope": True,
                             "top_n_documents": 5,
-                            "query_type": "simple",
+                            "embedding_dependency": {
+                                "type": "deployment_name",
+                                "deployment_name": "some-embedding-model",
+                            },
+                            "query_type": "vector_simple_hybrid",
                             "semantic_configuration": "",
                             "role_information": "You are an AI assistant that helps people find information.",
                             "authentication": {

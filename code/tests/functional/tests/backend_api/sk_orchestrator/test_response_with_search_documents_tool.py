@@ -186,6 +186,7 @@ def test_post_makes_correct_call_to_get_search_documents(
             method="POST",
             json={
                 "filter": app_config.get("AZURE_SEARCH_FILTER"),
+                "queryType": "simple",
                 "search": "What is the meaning of life?",
                 "top": int(app_config.get("AZURE_SEARCH_TOP_K")),
                 "vectorQueries": [

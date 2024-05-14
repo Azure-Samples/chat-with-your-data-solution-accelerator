@@ -7,7 +7,7 @@ from ..azure_blob_storage_client import AzureBlobStorageClient
 from ...document_chunking.chunking_strategy import ChunkingStrategy, ChunkingSettings
 from ...document_loading import LoadingSettings, LoadingStrategy
 from .embedding_config import EmbeddingConfig
-from ...orchestrator.OrchestrationStrategy import OrchestrationStrategy
+from ...orchestrator.orchestration_strategy import OrchestrationStrategy
 from ...orchestrator import OrchestrationSettings
 from ..env_helper import EnvHelper
 

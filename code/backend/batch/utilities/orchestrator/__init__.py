@@ -2,7 +2,7 @@ import os
 from typing import List
 import os.path
 import pkgutil
-from .OrchestrationStrategy import OrchestrationStrategy
+from .orchestration_strategy import OrchestrationStrategy
 
 
 class OrchestrationSettings:

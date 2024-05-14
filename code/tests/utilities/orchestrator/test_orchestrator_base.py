@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from backend.batch.utilities.orchestrator.OrchestratorBase import OrchestratorBase
+from backend.batch.utilities.orchestrator.orchestrator_base import OrchestratorBase
 
 
 class MockOrchestrator(OrchestratorBase):
@@ -14,7 +14,7 @@ class MockOrchestrator(OrchestratorBase):
 @pytest.fixture(autouse=True)
 def config_mock():
     with patch(
-        "backend.batch.utilities.orchestrator.OrchestratorBase.ConfigHelper"
+        "backend.batch.utilities.orchestrator.orchestrator_base.ConfigHelper"
     ) as mock:
         config = mock.get_active_config_or_default.return_value
         yield config
@@ -23,7 +23,7 @@ def config_mock():
 @pytest.fixture(autouse=True)
 def conversation_logger_mock():
     with patch(
-        "backend.batch.utilities.orchestrator.OrchestratorBase.ConversationLogger"
+        "backend.batch.utilities.orchestrator.orchestrator_base.ConversationLogger"
     ) as mock:
         conversation_logger = mock.return_value
         yield conversation_logger
@@ -32,7 +32,7 @@ def conversation_logger_mock():
 @pytest.fixture(autouse=True)
 def content_safety_checker_mock():
     with patch(
-        "backend.batch.utilities.orchestrator.OrchestratorBase.ContentSafetyChecker"
+        "backend.batch.utilities.orchestrator.orchestrator_base.ContentSafetyChecker"
     ) as mock:
         content_safety_checker = mock.return_value
         yield content_safety_checker
