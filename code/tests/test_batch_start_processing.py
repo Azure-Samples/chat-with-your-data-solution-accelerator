@@ -10,7 +10,7 @@ from backend.batch.batch_start_processing import batch_start_processing  # noqa:
 
 @pytest.fixture(autouse=True)
 def env_helper_mock():
-    with patch("backend.batch.BatchStartProcessing.EnvHelper") as mock:
+    with patch("backend.batch.batch_start_processing.EnvHelper") as mock:
         env_helper = mock.return_value
         env_helper.AZURE_SEARCH_INDEXER_NAME = "AZURE_SEARCH_INDEXER_NAME"
 
