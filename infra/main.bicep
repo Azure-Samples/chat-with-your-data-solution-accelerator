@@ -524,6 +524,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SPEECH_SERVICE_REGION: location
       AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      CHAT_CONVERSATION_TYPE: chatConversationType
       LOGLEVEL: logLevel
     }
   }
@@ -589,6 +590,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SPEECH_SERVICE_REGION: location
       AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      CHAT_CONVERSATION_TYPE: chatConversationType
       LOGLEVEL: logLevel
     }
   }
@@ -655,6 +657,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      CHAT_CONVERSATION_TYPE: chatConversationType
       LOGLEVEL: logLevel
     }
   }
@@ -720,6 +723,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      CHAT_CONVERSATION_TYPE: chatConversationType
       LOGLEVEL: logLevel
     }
   }
@@ -800,6 +804,7 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      CHAT_CONVERSATION_TYPE: chatConversationType
       LOGLEVEL: logLevel
     }
   }
@@ -847,6 +852,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      CHAT_CONVERSATION_TYPE: chatConversationType
       LOGLEVEL: logLevel
     }
   }
@@ -1017,3 +1023,4 @@ output USE_KEY_VAULT bool = useKeyVault
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code' ? web.outputs.FRONTEND_API_URI : web_docker.outputs.FRONTEND_API_URI
 output ADMIN_WEBSITE_NAME string = hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_URI : adminweb_docker.outputs.WEBSITE_ADMIN_URI
 output LOGLEVEL string = logLevel
+output CHAT_CONVERSATION_TYPE string = chatConversationType
