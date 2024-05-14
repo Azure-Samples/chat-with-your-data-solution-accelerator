@@ -1,8 +1,6 @@
 import pytest
 from unittest.mock import Mock, MagicMock, patch
-from backend.batch.utilities.search.search import (
-    Search,
-)
+from backend.batch.utilities.search.search import Search
 from backend.batch.utilities.search.integrated_vectorization_search_handler import (
     IntegratedVectorizationSearchHandler,
 )
