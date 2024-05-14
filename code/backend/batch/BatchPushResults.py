@@ -41,7 +41,6 @@ def batch_push_results(msg: func.QueueMessage) -> None:
         _process_document_deleted_event(message_body)
 
     else:
-        logger.error("Unknown event type received: %s", event_type)
         raise NotImplementedError(f"Unknown event type received: {event_type}")
 
 
