@@ -130,10 +130,14 @@ def conversation_with_data(request: Request, env_helper: EnvHelper):
                         "filter": env_helper.AZURE_SEARCH_FILTER,
                         "in_scope": env_helper.AZURE_SEARCH_ENABLE_IN_DOMAIN,
                         "top_n_documents": env_helper.AZURE_SEARCH_TOP_K,
+                        "embedding_dependency": {
+                            "type": "deployment_name",
+                            "deployment_name": env_helper.AZURE_OPENAI_EMBEDDING_MODEL,
+                        },
                         "query_type": (
-                            "semantic"
+                            "vector_semantic_hybrid"
                             if env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH
-                            else "simple"
+                            else "vector_simple_hybrid"
                         ),
                         "semantic_configuration": (
                             env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
