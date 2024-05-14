@@ -16,7 +16,7 @@ class IntegratedVectorizationEmbedder(EmbedderBase):
         self.env_helper = env_helper
         self.llm_helper: LLMHelper = LLMHelper()
 
-    def embed_file(self, source_url: str, file_name: str):
+    def embed_file(self, source_url: str, file_name: str = None):
         self.process_using_integrated_vectorization(source_url=source_url)
 
     def process_using_integrated_vectorization(self, source_url: str):
@@ -39,3 +39,10 @@ class IntegratedVectorizationEmbedder(EmbedderBase):
         except Exception as e:
             logger.error(f"Error processing {source_url}: {e}")
             raise e
+
+    def reprocess_all(self):
+        search_indexer = AzureSearchIndexer(self.env_helper)
+        if search_indexer.indexer_exists(self.env_helper.AZURE_SEARCH_INDEXER_NAME):
+            search_indexer.run_indexer(self.env_helper.AZURE_SEARCH_INDEXER_NAME)
+        else:
+            self.process_using_integrated_vectorization(source_url="all")

@@ -2,7 +2,7 @@ import json
 
 from typing import List
 
-from backend.batch.utilities.parser.OutputParserTool import OutputParserTool
+from backend.batch.utilities.parser.output_parser_tool import OutputParserTool
 from backend.batch.utilities.common.SourceDocument import SourceDocument
 
 

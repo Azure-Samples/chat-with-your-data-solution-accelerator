@@ -40,7 +40,7 @@ unittest-frontend: build-frontend ## 🧪 Unit test the Frontend webapp
 
 functionaltest: ## 🧪 Run the functional tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@ poetry run pytest -m "functional"
+	@poetry run pytest code/tests/functional -m "functional"
 
 uitest: ## 🧪 Run the ui tests in headless mode
 	@echo -e "\e[34m$@\e[0m" || true

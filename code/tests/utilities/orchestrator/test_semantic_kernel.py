@@ -2,10 +2,10 @@ from unittest.mock import ANY, AsyncMock, MagicMock, call, patch
 
 import pytest
 from backend.batch.utilities.common.Answer import Answer
-from backend.batch.utilities.orchestrator.SemanticKernel import (
+from backend.batch.utilities.orchestrator.semantic_kernel import (
     SemanticKernelOrchestrator,
 )
-from backend.batch.utilities.parser.OutputParserTool import OutputParserTool
+from backend.batch.utilities.parser.output_parser_tool import OutputParserTool
 from semantic_kernel import Kernel
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
 from semantic_kernel.connectors.ai.function_call_behavior import EnabledFunctions
@@ -31,7 +31,7 @@ chat_message_default_content = ChatMessageContent(
 
 @pytest.fixture(autouse=True)
 def llm_helper_mock():
-    with patch("backend.batch.utilities.orchestrator.SemanticKernel.LLMHelper") as mock:
+    with patch("backend.batch.utilities.orchestrator.semantic_kernel.LLMHelper") as mock:
         llm_helper = mock.return_value
 
         llm_helper.get_sk_chat_completion_service.return_value = AzureChatCompletion(
@@ -53,7 +53,7 @@ def llm_helper_mock():
 @pytest.fixture()
 def orchestrator():
     with patch(
-        "backend.batch.utilities.orchestrator.SemanticKernel.OrchestratorBase.__init__"
+        "backend.batch.utilities.orchestrator.semantic_kernel.OrchestratorBase.__init__"
     ):
         orchestrator = SemanticKernelOrchestrator()
 

@@ -164,6 +164,7 @@ def test_query_search_performs_hybrid_search(handler, mock_llm_helper):
                 fields="content_vector",
             )
         ],
+        query_type="simple",
         filter=handler.env_helper.AZURE_SEARCH_FILTER,
         top=handler.env_helper.AZURE_SEARCH_TOP_K,
     )
