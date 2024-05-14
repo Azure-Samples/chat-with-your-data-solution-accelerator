@@ -9,6 +9,7 @@ AZURE_SPEECH_SERVICE_REGION = "mock-speech-service-region"
 AZURE_SPEECH_REGION_ENDPOINT = "mock-speech-region-endpoint"
 AZURE_OPENAI_ENDPOINT = "mock-openai-endpoint"
 AZURE_OPENAI_MODEL = "mock-openai-model"
+AZURE_OPENAI_EMBEDDING_MODEL = "mock-openai-embedding-model"
 AZURE_OPENAI_SYSTEM_MESSAGE = "system-message"
 AZURE_OPENAI_API_VERSION = "mock-version"
 AZURE_OPENAI_API_KEY = "mock-api-key"
@@ -47,6 +48,7 @@ def env_helper_mock():
         env_helper.AZURE_SPEECH_REGION_ENDPOINT = AZURE_SPEECH_REGION_ENDPOINT
         env_helper.AZURE_OPENAI_ENDPOINT = AZURE_OPENAI_ENDPOINT
         env_helper.AZURE_OPENAI_MODEL = AZURE_OPENAI_MODEL
+        env_helper.AZURE_OPENAI_EMBEDDING_MODEL = AZURE_OPENAI_EMBEDDING_MODEL
         env_helper.AZURE_OPENAI_SYSTEM_MESSAGE = AZURE_OPENAI_SYSTEM_MESSAGE
         env_helper.AZURE_OPENAI_API_VERSION = AZURE_OPENAI_API_VERSION
         env_helper.AZURE_OPENAI_API_KEY = AZURE_OPENAI_API_KEY
@@ -499,7 +501,11 @@ class TestConversationAzureByod:
                             "filter": AZURE_SEARCH_FILTER,
                             "in_scope": AZURE_SEARCH_ENABLE_IN_DOMAIN,
                             "top_n_documents": AZURE_SEARCH_TOP_K,
-                            "query_type": "semantic",
+                            "embedding_dependency": {
+                                "type": "deployment_name",
+                                "deployment_name": AZURE_OPENAI_EMBEDDING_MODEL,
+                            },
+                            "query_type": "vector_semantic_hybrid",
                             "semantic_configuration": AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
                             "role_information": AZURE_OPENAI_SYSTEM_MESSAGE,
                         },
@@ -809,7 +815,7 @@ class TestConversationAzureByod:
 
         assert (
             kwargs["extra_body"]["data_sources"][0]["parameters"]["query_type"]
-            == "semantic"
+            == "vector_semantic_hybrid"
         )
         assert (
             kwargs["extra_body"]["data_sources"][0]["parameters"][
