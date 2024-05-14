@@ -1,7 +1,11 @@
 import ssl
 import pytest
 from pytest_httpserver import HTTPServer
-from tests.functional.backend_api.app_config import AppConfig
+from tests.functional.app_config import AppConfig
+from backend.batch.utilities.helpers.config.config_helper import (
+    CONFIG_CONTAINER_NAME,
+    CONFIG_FILE_NAME,
+)
 import trustme
 
 
@@ -38,6 +42,91 @@ def httpclient_ssl_context(ca):
 
 @pytest.fixture(scope="function", autouse=True)
 def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
+    httpserver.expect_request(
+        f"/{CONFIG_CONTAINER_NAME}/{CONFIG_FILE_NAME}",
+        method="HEAD",
+    ).respond_with_data()
+
+    httpserver.expect_request(
+        f"/{CONFIG_CONTAINER_NAME}/{CONFIG_FILE_NAME}",
+        method="GET",
+    ).respond_with_json(
+        {
+            "prompts": {
+                "condense_question_prompt": "",
+                "answering_system_prompt": "system prompt",
+                "answering_user_prompt": "## Retrieved Documents\n{sources}\n\n## User Question\n{question}",
+                "use_on_your_data_format": True,
+                "post_answering_prompt": "post answering prompt",
+                "enable_post_answering_prompt": False,
+                "enable_content_safety": True,
+            },
+            "messages": {"post_answering_filter": "post answering filer"},
+            "example": {
+                "documents": '{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}',
+                "user_question": "user question",
+                "answer": "answer",
+            },
+            "document_processors": [
+                {
+                    "document_type": "pdf",
+                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+                    "loading": {"strategy": "layout"},
+                    "use_advanced_image_processing": False,
+                },
+                {
+                    "document_type": "txt",
+                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+                    "loading": {"strategy": "web"},
+                    "use_advanced_image_processing": False,
+                },
+                {
+                    "document_type": "url",
+                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+                    "loading": {"strategy": "web"},
+                    "use_advanced_image_processing": False,
+                },
+                {
+                    "document_type": "md",
+                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+                    "loading": {"strategy": "web"},
+                    "use_advanced_image_processing": False,
+                },
+                {
+                    "document_type": "html",
+                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+                    "loading": {"strategy": "web"},
+                    "use_advanced_image_processing": False,
+                },
+                {
+                    "document_type": "docx",
+                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+                    "loading": {"strategy": "docx"},
+                    "use_advanced_image_processing": False,
+                },
+                {
+                    "document_type": "jpg",
+                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+                    "loading": {"strategy": "layout"},
+                    "use_advanced_image_processing": True,
+                },
+                {
+                    "document_type": "png",
+                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+                    "loading": {"strategy": "layout"},
+                    "use_advanced_image_processing": False,
+                },
+            ],
+            "logging": {"log_user_interactions": True, "log_tokens": True},
+            "orchestrator": {"strategy": "openai_function"},
+            "integrated_vectorization_config": None,
+        },
+        headers={
+            "Content-Type": "application/json",
+            "Content-Range": "bytes 0-12882/12883",
+        },
+    )
+
     httpserver.expect_request(
         f"/openai/deployments/{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}/embeddings",
         method="POST",

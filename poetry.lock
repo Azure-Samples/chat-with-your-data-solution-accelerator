@@ -549,43 +549,43 @@ isodate = ">=0.6.0"
 
 [[package]]
 name = "azure-storage-blob"
-version = "12.19.1"
+version = "12.20.0"
 description = "Microsoft Azure Blob Storage Client Library for Python"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "azure-storage-blob-12.19.1.tar.gz", hash = "sha256:13e16ba42fc54ac2c7e8f976062173a5c82b9ec0594728e134aac372965a11b0"},
-    {file = "azure_storage_blob-12.19.1-py3-none-any.whl", hash = "sha256:c5530dc51c21c9564e4eb706cd499befca8819b10dd89716d3fc90d747556243"},
+    {file = "azure-storage-blob-12.20.0.tar.gz", hash = "sha256:eeb91256e41d4b5b9bad6a87fd0a8ade07dd58aa52344e2c8d2746e27a017d3b"},
+    {file = "azure_storage_blob-12.20.0-py3-none-any.whl", hash = "sha256:de6b3bf3a90e9341a6bcb96a2ebe981dffff993e9045818f6549afea827a52a9"},
 ]
 
 [package.dependencies]
-azure-core = ">=1.28.0,<2.0.0"
+azure-core = ">=1.28.0"
 cryptography = ">=2.1.4"
 isodate = ">=0.6.1"
-typing-extensions = ">=4.3.0"
+typing-extensions = ">=4.6.0"
 
 [package.extras]
-aio = ["azure-core[aio] (>=1.28.0,<2.0.0)"]
+aio = ["azure-core[aio] (>=1.28.0)"]
 
 [[package]]
 name = "azure-storage-queue"
-version = "12.9.0"
+version = "12.10.0"
 description = "Microsoft Azure Azure Queue Storage Client Library for Python"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "azure-storage-queue-12.9.0.tar.gz", hash = "sha256:98101b0e17da0d470cf5700b6c40cfe74439ec3c9c76cf38398096e7371b9d1b"},
-    {file = "azure_storage_queue-12.9.0-py3-none-any.whl", hash = "sha256:67857d102e5baeded46a1911a750bbcee28a3db61a82809e2a1082f280b9fddb"},
+    {file = "azure-storage-queue-12.10.0.tar.gz", hash = "sha256:767ba3d5cccdb4f70974e5ce61d164c7ab74732cfb2b441dd8737669a2116da8"},
+    {file = "azure_storage_queue-12.10.0-py3-none-any.whl", hash = "sha256:aaa1d82c1414d9b771196599134cf5031d61fc169222913c3fdcf6bcfdb8252a"},
 ]
 
 [package.dependencies]
-azure-core = ">=1.28.0,<2.0.0"
+azure-core = ">=1.28.0"
 cryptography = ">=2.1.4"
 isodate = ">=0.6.1"
-typing-extensions = ">=4.3.0"
+typing-extensions = ">=4.6.0"
 
 [package.extras]
-aio = ["azure-core[aio] (>=1.28.0,<2.0.0)"]
+aio = ["azure-core[aio] (>=1.28.0)"]
 
 [[package]]
 name = "babel"
@@ -2257,19 +2257,19 @@ text-helpers = ["chardet (>=5.1.0,<6.0.0)"]
 
 [[package]]
 name = "langchain-community"
-version = "0.0.37"
+version = "0.0.38"
 description = "Community contributed LangChain integrations."
 optional = false
 python-versions = "<4.0,>=3.8.1"
 files = [
-    {file = "langchain_community-0.0.37-py3-none-any.whl", hash = "sha256:52e8557602dc099c2e236ec8a0599a956e2f08cfeb61e501815f5ec2d8545747"},
-    {file = "langchain_community-0.0.37.tar.gz", hash = "sha256:db2b5829bb20bc5b04c126b69143dbc31a880e949e94110c236b2c176906889f"},
+    {file = "langchain_community-0.0.38-py3-none-any.whl", hash = "sha256:ecb48660a70a08c90229be46b0cc5f6bc9f38f2833ee44c57dfab9bf3a2c121a"},
+    {file = "langchain_community-0.0.38.tar.gz", hash = "sha256:127fc4b75bc67b62fe827c66c02e715a730fef8fe69bd2023d466bab06b5810d"},
 ]
 
 [package.dependencies]
 aiohttp = ">=3.8.3,<4.0.0"
 dataclasses-json = ">=0.5.7,<0.7"
-langchain-core = ">=0.1.51,<0.2.0"
+langchain-core = ">=0.1.52,<0.2.0"
 langsmith = ">=0.1.0,<0.2.0"
 numpy = ">=1,<2"
 PyYAML = ">=5.3"
@@ -2497,7 +2497,6 @@ files = [
     {file = "lxml-5.2.1-cp37-cp37m-musllinux_1_2_x86_64.whl", hash = "sha256:9e2addd2d1866fe112bc6f80117bcc6bc25191c5ed1bfbcf9f1386a884252ae8"},
     {file = "lxml-5.2.1-cp37-cp37m-win32.whl", hash = "sha256:f51969bac61441fd31f028d7b3b45962f3ecebf691a510495e5d2cd8c8092dbd"},
     {file = "lxml-5.2.1-cp37-cp37m-win_amd64.whl", hash = "sha256:b0b58fbfa1bf7367dde8a557994e3b1637294be6cf2169810375caf8571a085c"},
-    {file = "lxml-5.2.1-cp38-cp38-macosx_10_9_universal2.whl", hash = "sha256:3e183c6e3298a2ed5af9d7a356ea823bccaab4ec2349dc9ed83999fd289d14d5"},
     {file = "lxml-5.2.1-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:804f74efe22b6a227306dd890eecc4f8c59ff25ca35f1f14e7482bbce96ef10b"},
     {file = "lxml-5.2.1-cp38-cp38-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:08802f0c56ed150cc6885ae0788a321b73505d2263ee56dad84d200cab11c07a"},
     {file = "lxml-5.2.1-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0f8c09ed18ecb4ebf23e02b8e7a22a05d6411911e6fabef3a36e4f371f4f2585"},
@@ -3140,13 +3139,13 @@ signedtoken = ["cryptography (>=3.0.0)", "pyjwt (>=2.0.0,<3)"]
 
 [[package]]
 name = "openai"
-version = "1.26.0"
+version = "1.28.1"
 description = "The official Python library for the openai API"
 optional = false
 python-versions = ">=3.7.1"
 files = [
-    {file = "openai-1.26.0-py3-none-any.whl", hash = "sha256:884ced523fb0225780f8b0e0ed6f7e014049c32d049a41ad0ac962869f1055d1"},
-    {file = "openai-1.26.0.tar.gz", hash = "sha256:642e857b60855702ee6ff665e8fa80946164f77b92e58fd24e01b545685b8405"},
+    {file = "openai-1.28.1-py3-none-any.whl", hash = "sha256:943e0d0d587b9a62f99bd3acbaf479ae5362986e5fff013f57b5b7bde85cce93"},
+    {file = "openai-1.28.1.tar.gz", hash = "sha256:8a3adbba16882434768d76fd3129fcc9b40ace98f8d55a6ddacfc05c4096ac30"},
 ]
 
 [package.dependencies]
@@ -3916,13 +3915,13 @@ ssv = ["swagger-spec-validator (>=2.4,<3.0)"]
 
 [[package]]
 name = "pre-commit"
-version = "3.7.0"
+version = "3.7.1"
 description = "A framework for managing and maintaining multi-language pre-commit hooks."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "pre_commit-3.7.0-py2.py3-none-any.whl", hash = "sha256:5eae9e10c2b5ac51577c3452ec0a490455c45a0533f7960f993a0d01e59decab"},
-    {file = "pre_commit-3.7.0.tar.gz", hash = "sha256:e209d61b8acdcf742404408531f0c37d49d2c734fd7cff2d6076083d191cb060"},
+    {file = "pre_commit-3.7.1-py2.py3-none-any.whl", hash = "sha256:fae36fd1d7ad7d6a5a1c0b0d5adb2ed1a3bda5a21bf6c3e5372073d7a11cd4c5"},
+    {file = "pre_commit-3.7.1.tar.gz", hash = "sha256:8ca3ad567bc78a4972a3f1a477e94a79d4597e8140a6e0b651c5e33899c3654a"},
 ]
 
 [package.dependencies]
@@ -5187,13 +5186,13 @@ test = ["array-api-strict", "asv", "gmpy2", "hypothesis (>=6.30)", "mpmath", "po
 
 [[package]]
 name = "semantic-kernel"
-version = "0.9.7b1"
+version = "0.9.8b1"
 description = "Semantic Kernel Python SDK"
 optional = false
 python-versions = "<3.13,>=3.10"
 files = [
-    {file = "semantic_kernel-0.9.7b1-py3-none-any.whl", hash = "sha256:11040170960f7ced95f9ecb3f1cf3ae46c05ea815bb01be09196aa5927ed1522"},
-    {file = "semantic_kernel-0.9.7b1.tar.gz", hash = "sha256:9bb273f1f4705b364ea28892e12384eff4213a715133dc4bf919461f44d318de"},
+    {file = "semantic_kernel-0.9.8b1-py3-none-any.whl", hash = "sha256:fd99595cd91690f4456a4073d3f05c1e497c83cd51b37ba6ffe5ce4c3cd801f0"},
+    {file = "semantic_kernel-0.9.8b1.tar.gz", hash = "sha256:fe38805c5375f416c11df5e5df7d8748892243ebae2a76d6ebf669f7774788d2"},
 ]
 
 [package.dependencies]
@@ -5223,14 +5222,14 @@ scipy = [
 ]
 
 [package.extras]
-all = ["azure-core (>=1.28.0,<2.0.0)", "azure-identity (>=1.13.0,<2.0.0)", "azure-search-documents (==11.6.0b1)", "chromadb (>=0.4.13,<0.5.0)", "google-generativeai (>=0.1)", "grpcio-status (>=1.53.0,<2.0.0)", "ipykernel (>=6.21.1,<7.0.0)", "milvus (>=2.2,<2.3)", "milvus (>=2.3,<2.3.8)", "pinecone-client (>=2.2.2,<3.0.0)", "psycopg[binary,pool] (>=3.1.9,<4.0.0)", "pyarrow (>=12.0.1,<16.0.0)", "pymilvus (>=2.2,<2.3)", "pymilvus (>=2.3,<2.3.8)", "qdrant-client (>=1.6,<2.0)", "qdrant-client (>=1.7)", "redis (>=4.6.0,<5.0.0)", "sentence-transformers (>=2.2.2,<3.0.0)", "torch (>=2.2.0,<3.0.0)", "transformers (>=4.28.1,<5.0.0)", "usearch (>=2.9,<3.0)", "weaviate-client (>=3.18,<5.0)"]
+all = ["azure-core (>=1.28.0,<2.0.0)", "azure-identity (>=1.13.0,<2.0.0)", "azure-search-documents (==11.6.0b1)", "chromadb (>=0.4.13,<0.5.0)", "google-generativeai (>=0.1)", "grpcio-status (>=1.53.0,<2.0.0)", "ipykernel (>=6.21.1,<7.0.0)", "milvus (>=2.2,<2.3)", "milvus (>=2.3,<2.3.8)", "pinecone-client (>=3.0.0)", "psycopg[binary,pool] (>=3.1.9,<4.0.0)", "pyarrow (>=12.0.1,<16.0.0)", "pymilvus (>=2.2,<2.3)", "pymilvus (>=2.3,<2.3.8)", "qdrant-client (>=1.6,<2.0)", "qdrant-client (>=1.7)", "redis (>=4.6.0,<5.0.0)", "sentence-transformers (>=2.2.2,<3.0.0)", "torch (>=2.2.0,<3.0.0)", "transformers (>=4.28.1,<5.0.0)", "usearch (>=2.9,<3.0)", "weaviate-client (>=3.18,<5.0)"]
 azure = ["azure-core (>=1.28.0,<2.0.0)", "azure-identity (>=1.13.0,<2.0.0)", "azure-search-documents (==11.6.0b1)"]
 chromadb = ["chromadb (>=0.4.13,<0.5.0)"]
 google = ["google-generativeai (>=0.1)", "grpcio-status (>=1.53.0,<2.0.0)"]
 hugging-face = ["sentence-transformers (>=2.2.2,<3.0.0)", "torch (>=2.2.0,<3.0.0)", "transformers (>=4.28.1,<5.0.0)"]
 milvus = ["milvus (>=2.2,<2.3)", "milvus (>=2.3,<2.3.8)", "pymilvus (>=2.2,<2.3)", "pymilvus (>=2.3,<2.3.8)"]
 notebooks = ["ipykernel (>=6.21.1,<7.0.0)"]
-pinecone = ["pinecone-client (>=2.2.2,<3.0.0)"]
+pinecone = ["pinecone-client (>=3.0.0)"]
 postgres = ["psycopg[binary,pool] (>=3.1.9,<4.0.0)"]
 qdrant = ["qdrant-client (>=1.6,<2.0)", "qdrant-client (>=1.7)"]
 redis = ["redis (>=4.6.0,<5.0.0)"]
@@ -6083,4 +6082,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "fef8af409488bb3c0b34669a86e343af62b2fd7603364d452aed756152fc26b0"
+content-hash = "f5dfc241c7dc2888abe754e47040de0961a77fcee1f9a84afb5d29026bc22cb2"
