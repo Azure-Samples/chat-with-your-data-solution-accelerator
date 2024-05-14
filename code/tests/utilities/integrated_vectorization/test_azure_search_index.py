@@ -18,7 +18,7 @@ AZURE_SEARCH_INDEX = "mock-index"
 @pytest.fixture(autouse=True)
 def env_helper_mock():
     with patch(
-        "backend.batch.utilities.integrated_vectorization.AzureSearchIndex.EnvHelper"
+        "backend.batch.utilities.integrated_vectorization.azure_search_index.EnvHelper"
     ) as mock:
         env_helper = mock.return_value
         env_helper.AZURE_AUTH_TYPE = AZURE_AUTH_TYPE
@@ -32,7 +32,7 @@ def env_helper_mock():
 @pytest.fixture(autouse=True)
 def llm_helper_mock():
     with patch(
-        "backend.batch.utilities.integrated_vectorization.AzureSearchIndex.LLMHelper"
+        "backend.batch.utilities.integrated_vectorization.azure_search_index.LLMHelper"
     ) as mock:
         llm_helper = mock.return_value
         llm_helper.get_embedding_model.return_value.embed_query.return_value = [
@@ -45,7 +45,7 @@ def llm_helper_mock():
 @pytest.fixture(autouse=True)
 def search_index_client_mock():
     with patch(
-        "backend.batch.utilities.integrated_vectorization.AzureSearchIndex.SearchIndexClient"
+        "backend.batch.utilities.integrated_vectorization.azure_search_index.SearchIndexClient"
     ) as mock:
         indexer_client = mock.return_value
         indexer_client.create_or_update_index.return_value = SearchIndex(

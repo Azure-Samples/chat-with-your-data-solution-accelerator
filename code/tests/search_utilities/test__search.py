@@ -21,7 +21,7 @@ def env_helper_mock():
 @pytest.fixture(autouse=True)
 def iv_search_handler_mock():
     with patch(
-        "backend.batch.utilities.search.IntegratedVectorizationSearchHandler"
+        "backend.batch.utilities.search.integrated_vectorization_search_handler"
     ) as mock:
         yield mock
 
