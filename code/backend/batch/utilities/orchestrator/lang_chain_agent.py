@@ -6,7 +6,7 @@ from langchain.agents import ZeroShotAgent, AgentExecutor
 from langchain.chains import LLMChain
 from langchain_community.callbacks import get_openai_callback
 
-from .OrchestratorBase import OrchestratorBase
+from .orchestrator_base import OrchestratorBase
 from ..helpers.llm_helper import LLMHelper
 from ..tools.PostPromptTool import PostPromptTool
 from ..tools.QuestionAnswerTool import QuestionAnswerTool

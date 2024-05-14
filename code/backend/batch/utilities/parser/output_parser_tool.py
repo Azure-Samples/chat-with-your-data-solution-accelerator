@@ -2,7 +2,7 @@ from typing import List
 import logging
 import re
 import json
-from .ParserBase import ParserBase
+from .parser_base import ParserBase
 from ..common.SourceDocument import SourceDocument
 
 logger = logging.getLogger(__name__)

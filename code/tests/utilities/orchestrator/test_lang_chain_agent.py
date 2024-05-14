@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 import pytest
 
-from backend.batch.utilities.orchestrator.LangChainAgent import LangChainAgent
+from backend.batch.utilities.orchestrator.lang_chain_agent import LangChainAgent
 from backend.batch.utilities.common.Answer import Answer
 
 
@@ -69,8 +69,8 @@ def test_run_text_processing_tool_returns_answer_json():
     )
 
 
-@patch("backend.batch.utilities.orchestrator.LangChainAgent.ZeroShotAgent")
-@patch("backend.batch.utilities.orchestrator.LangChainAgent.LLMChain")
+@patch("backend.batch.utilities.orchestrator.lang_chain_agent.ZeroShotAgent")
+@patch("backend.batch.utilities.orchestrator.lang_chain_agent.LLMChain")
 @patch("langchain.agents.AgentExecutor.from_agent_and_tools")
 @pytest.mark.asyncio
 async def test_orchestrate_langchain_to_orchestrate_chat(
@@ -100,8 +100,8 @@ async def test_orchestrate_langchain_to_orchestrate_chat(
     )
 
 
-@patch("backend.batch.utilities.orchestrator.LangChainAgent.ZeroShotAgent")
-@patch("backend.batch.utilities.orchestrator.LangChainAgent.LLMChain")
+@patch("backend.batch.utilities.orchestrator.lang_chain_agent.ZeroShotAgent")
+@patch("backend.batch.utilities.orchestrator.lang_chain_agent.LLMChain")
 @patch("langchain.agents.AgentExecutor.from_agent_and_tools")
 @pytest.mark.asyncio
 async def test_orchestrate_returns_error_message_on_Exception(
