@@ -15,12 +15,12 @@ from utilities.helpers.azure_blob_storage_client import (
 bp_batch_start_processing = func.Blueprint()
 logger = logging.getLogger(__name__)
 logger.setLevel(level=os.environ.get("LOGLEVEL", "INFO").upper())
-env_helper: EnvHelper = EnvHelper()
 
 
 @bp_batch_start_processing.route(route="BatchStartProcessing")
 def batch_start_processing(req: func.HttpRequest) -> func.HttpResponse:
     logger.info("Requested to start processing all documents received")
+    env_helper: EnvHelper = EnvHelper()
     # Set up Blob Storage Client
     azure_blob_storage_client = AzureBlobStorageClient()
     # Get all files from Blob Storage
@@ -29,7 +29,7 @@ def batch_start_processing(req: func.HttpRequest) -> func.HttpResponse:
     files_data = list(map(lambda x: {"filename": x["filename"]}, files_data))
 
     if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
-        reprocess_integrated_vectorization()
+        reprocess_integrated_vectorization(env_helper)
     else:
         # Send a message to the queue for each file
         queue_client = create_queue_client()
@@ -42,6 +42,6 @@ def batch_start_processing(req: func.HttpRequest) -> func.HttpResponse:
     )
 
 
-def reprocess_integrated_vectorization():
+def reprocess_integrated_vectorization(env_helper: EnvHelper):
     indexer_embedder = IntegratedVectorizationEmbedder(env_helper)
     indexer_embedder.reprocess_all()
