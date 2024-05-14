@@ -57,7 +57,7 @@ class AzureComputerVisionClient:
                 timeout=self.timeout,
             )
         except Exception as e:
-            raise Exception("Call to vectorize image failed") from e
+            raise Exception(f"Call to vectorize image failed: {image_url}") from e
 
     def __validate_response(self, response: Response):
         if response.status_code != 200:

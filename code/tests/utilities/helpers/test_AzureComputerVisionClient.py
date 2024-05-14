@@ -155,7 +155,7 @@ def test_returns_image_vectors(
     assert actual_vectors == expected_vectors
 
 
-def test_vectorize_image_calls_computer_vision_SLOW(
+def test_vectorize_image_calls_computer_vision_timeout(
     httpserver: HTTPServer, azure_computer_vision_client: AzureComputerVisionClient
 ):
     # given
@@ -175,7 +175,7 @@ def test_vectorize_image_calls_computer_vision_SLOW(
     with pytest.raises(Exception) as exec_info:
         azure_computer_vision_client.vectorize_image(IMAGE_URL)
 
-    assert exec_info.value.args[0] == "Call to vectorize image failed"
+    assert exec_info.value.args[0] == "Call to vectorize image failed: " + IMAGE_URL
     assert isinstance(exec_info.value.__cause__, ReadTimeout)
 
 
