@@ -2,11 +2,11 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 from backend.batch.utilities.common.Answer import Answer
-from backend.batch.utilities.plugins.PostAnsweringPlugin import PostAnsweringPlugin
+from backend.batch.utilities.plugins.post_answering_plugin import PostAnsweringPlugin
 from semantic_kernel import Kernel
 
 
-@patch("backend.batch.utilities.plugins.PostAnsweringPlugin.PostPromptTool")
+@patch("backend.batch.utilities.plugins.post_answering_plugin.PostPromptTool")
 @pytest.mark.asyncio
 async def test_validate_answer(PostPromptToolMock: MagicMock):
     # given
