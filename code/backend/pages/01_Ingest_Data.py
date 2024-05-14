@@ -29,7 +29,7 @@ mod_page_style = """
 st.markdown(mod_page_style, unsafe_allow_html=True)
 
 
-def remote_convert_files_and_add_embeddings():
+def reprocess_all():
     backend_url = urllib.parse.urljoin(
         env_helper.BACKEND_URL, "/api/BatchStartProcessing"
     )
@@ -103,7 +103,7 @@ try:
         with col3:
             st.button(
                 "Reprocess all documents in the Azure Storage account",
-                on_click=remote_convert_files_and_add_embeddings,
+                on_click=reprocess_all,
             )
 
     with st.expander("Add URLs to the knowledge base", expanded=True):

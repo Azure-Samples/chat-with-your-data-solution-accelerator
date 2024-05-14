@@ -42,9 +42,14 @@ class AzureSearchIndexer:
         )
         return indexer_result
 
-    # To be updated for 'Reprocess All'
     def run_indexer(self, indexer_name: str):
+        self.indexer_client.reset_indexer(indexer_name)
         self.indexer_client.run_indexer(indexer_name)
         logger.info(
             f" {indexer_name} is created and running. If queries return no results, please wait a bit and try again."
         )
+
+    def indexer_exists(self, indexer_name: str):
+        return indexer_name in [
+            name for name in self.indexer_client.get_indexer_names()
+        ]
