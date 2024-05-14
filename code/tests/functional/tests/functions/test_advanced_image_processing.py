@@ -17,7 +17,7 @@ sys.path.append(
     os.path.join(os.path.dirname(sys.path[0]), "..", "..", "backend", "batch")
 )
 
-from backend.batch.BatchPushResults import batch_push_results  # noqa: E402
+from backend.batch.batch_push_results import batch_push_results  # noqa: E402
 
 pytestmark = pytest.mark.functional
 

@@ -7,7 +7,7 @@ from azure.functions import QueueMessage
 
 sys.path.append(os.path.join(os.path.dirname(sys.path[0]), "backend", "batch"))
 
-from backend.batch.BatchPushResults import (  # noqa: E402
+from backend.batch.batch_push_results import (  # noqa: E402
     batch_push_results,
     _get_file_name_from_message,
 )
@@ -15,7 +15,7 @@ from backend.batch.BatchPushResults import (  # noqa: E402
 
 @pytest.fixture(autouse=True)
 def get_processor_handler_mock():
-    with patch("backend.batch.BatchPushResults.EmbedderFactory.create") as mock:
+    with patch("backend.batch.batch_push_results.EmbedderFactory.create") as mock:
         processor_handler = mock.return_value
         yield processor_handler
 
@@ -40,8 +40,8 @@ def test_get_file_name_from_message_no_filename():
     assert file_name == "test_filename.md"
 
 
-@patch("backend.batch.BatchPushResults.EnvHelper")
-@patch("backend.batch.BatchPushResults.AzureBlobStorageClient")
+@patch("backend.batch.batch_push_results.EnvHelper")
+@patch("backend.batch.batch_push_results.AzureBlobStorageClient")
 def test_batch_push_results(
     mock_azure_blob_storage_client, mock_env_helper, get_processor_handler_mock
 ):

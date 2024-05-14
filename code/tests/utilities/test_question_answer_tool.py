@@ -2,15 +2,15 @@ import json
 from unittest.mock import MagicMock, patch
 
 import pytest
-from backend.batch.utilities.common.Answer import Answer
-from backend.batch.utilities.tools.QuestionAnswerTool import QuestionAnswerTool
+from backend.batch.utilities.common.answer import Answer
+from backend.batch.utilities.tools.question_answer_tool import QuestionAnswerTool
 from langchain_core.documents import Document
-from backend.batch.utilities.common.SourceDocument import SourceDocument
+from backend.batch.utilities.common.source_document import SourceDocument
 
 
 @pytest.fixture(autouse=True)
 def config_mock():
-    with patch("backend.batch.utilities.tools.QuestionAnswerTool.ConfigHelper") as mock:
+    with patch("backend.batch.utilities.tools.question_answer_tool.ConfigHelper") as mock:
         config = mock.get_active_config_or_default.return_value
         config.prompts.answering_system_prompt = "mock answering system prompt"
         config.prompts.answering_user_prompt = (
@@ -31,7 +31,7 @@ def config_mock():
 
 @pytest.fixture(autouse=True)
 def env_helper_mock():
-    with patch("backend.batch.utilities.tools.QuestionAnswerTool.EnvHelper") as mock:
+    with patch("backend.batch.utilities.tools.question_answer_tool.EnvHelper") as mock:
         env_helper = mock.return_value
         env_helper.AZURE_OPENAI_SYSTEM_MESSAGE = "mock azure openai system message"
         env_helper.AZURE_SEARCH_TOP_K = 1
@@ -43,13 +43,13 @@ def env_helper_mock():
 
 @pytest.fixture(autouse=True)
 def LLMHelperMock():
-    with patch("backend.batch.utilities.tools.QuestionAnswerTool.LLMHelper") as mock:
+    with patch("backend.batch.utilities.tools.question_answer_tool.LLMHelper") as mock:
         yield mock
 
 
 @pytest.fixture(autouse=True)
 def LLMChainMock():
-    with patch("backend.batch.utilities.tools.QuestionAnswerTool.LLMChain") as mock:
+    with patch("backend.batch.utilities.tools.question_answer_tool.LLMChain") as mock:
         mock.return_value.return_value = {"text": "mock content"}
 
         yield mock
@@ -58,7 +58,7 @@ def LLMChainMock():
 @pytest.fixture(autouse=True)
 def get_openai_callback_mock():
     with patch(
-        "backend.batch.utilities.tools.QuestionAnswerTool.get_openai_callback"
+        "backend.batch.utilities.tools.question_answer_tool.get_openai_callback"
     ) as mock:
         yield mock
 
@@ -66,7 +66,7 @@ def get_openai_callback_mock():
 @pytest.fixture(autouse=True)
 def get_search_handler_mock():
     with patch(
-        "backend.batch.utilities.tools.QuestionAnswerTool.Search.get_search_handler"
+        "backend.batch.utilities.tools.question_answer_tool.Search.get_search_handler"
     ) as mock:
         search_handler = mock.return_value
 
@@ -76,7 +76,7 @@ def get_search_handler_mock():
 @pytest.fixture(autouse=True)
 def get_source_documents_mock():
     with patch(
-        "backend.batch.utilities.tools.QuestionAnswerTool.Search.get_source_documents"
+        "backend.batch.utilities.tools.question_answer_tool.Search.get_source_documents"
     ) as mock:
         source_documents = mock.return_value
         yield source_documents
@@ -85,7 +85,7 @@ def get_source_documents_mock():
 @pytest.fixture(autouse=True)
 def get_source_documents_yield():
     with patch(
-        "backend.batch.utilities.tools.QuestionAnswerTool.Search.get_source_documents"
+        "backend.batch.utilities.tools.question_answer_tool.Search.get_source_documents"
     ) as mock:
         documents = [
             SourceDocument(

@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import ANY, MagicMock, patch
-from backend.batch.utilities.integrated_vectorization.AzureSearchIndexer import (
+from backend.batch.utilities.integrated_vectorization.azure_search_indexer import (
     AzureSearchIndexer,
 )
 
@@ -13,7 +13,7 @@ AZURE_SEARCH_INDEX = "mock-index"
 @pytest.fixture(autouse=True)
 def env_helper_mock():
     with patch(
-        "backend.batch.utilities.integrated_vectorization.AzureSearchIndexer.EnvHelper"
+        "backend.batch.utilities.integrated_vectorization.azure_search_indexer.EnvHelper"
     ) as mock:
         env_helper = mock.return_value
         env_helper.AZURE_AUTH_TYPE = AZURE_AUTH_TYPE
@@ -27,7 +27,7 @@ def env_helper_mock():
 @pytest.fixture(autouse=True)
 def search_indexer_client_mock():
     with patch(
-        "backend.batch.utilities.integrated_vectorization.AzureSearchIndexer.SearchIndexerClient"
+        "backend.batch.utilities.integrated_vectorization.azure_search_indexer.SearchIndexerClient"
     ) as mock:
         yield mock
 
@@ -35,7 +35,7 @@ def search_indexer_client_mock():
 @pytest.fixture(autouse=True)
 def search_indexer_mock():
     with patch(
-        "backend.batch.utilities.integrated_vectorization.AzureSearchIndexer.SearchIndexer"
+        "backend.batch.utilities.integrated_vectorization.azure_search_indexer.SearchIndexer"
     ) as mock:
         yield mock
 
