@@ -2,10 +2,10 @@ import json
 import logging
 
 from semantic_kernel import Kernel
-from semantic_kernel.connectors.ai.open_ai.utils import get_tool_call_object
+from semantic_kernel.connectors.ai.function_call_behavior import FunctionCallBehavior
 from semantic_kernel.contents import ChatHistory
-from semantic_kernel.contents.finish_reason import FinishReason
 from semantic_kernel.contents.chat_message_content import ChatMessageContent
+from semantic_kernel.contents.finish_reason import FinishReason
 
 from ..common.Answer import Answer
 from ..helpers.llm_helper import LLMHelper
@@ -49,8 +49,8 @@ When directly replying to the user, always reply in the language the user is spe
         )
 
         settings = self.llm_helper.get_sk_service_settings(self.chat_service)
-        settings.tools = get_tool_call_object(
-            kernel=self.kernel, filter={"include_plugin": ["Chat"]}
+        settings.function_call_behavior = FunctionCallBehavior.EnableFunctions(
+            filters={"included_plugins": ["Chat"]}
         )
 
         orchestrate_function = self.kernel.add_function(
