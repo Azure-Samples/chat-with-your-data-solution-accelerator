@@ -1,7 +1,7 @@
 from unittest.mock import patch, MagicMock
 
 import pytest
-from backend.batch.utilities.common.Answer import Answer
+from backend.batch.utilities.common.answer import Answer
 from backend.batch.utilities.plugins.post_answering_plugin import PostAnsweringPlugin
 from semantic_kernel import Kernel
 

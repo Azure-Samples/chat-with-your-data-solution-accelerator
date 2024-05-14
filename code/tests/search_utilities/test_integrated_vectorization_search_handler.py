@@ -1,11 +1,11 @@
 import pytest
 from unittest.mock import Mock, patch
-from backend.batch.utilities.search.IntegratedVectorizationSearchHandler import (
+from backend.batch.utilities.search.integrated_vectorization_search_handler import (
     IntegratedVectorizationSearchHandler,
 )
 from azure.search.documents.models import VectorizableTextQuery
 
-from backend.batch.utilities.common.SourceDocument import SourceDocument
+from backend.batch.utilities.common.source_document import SourceDocument
 
 
 @pytest.fixture
@@ -38,7 +38,7 @@ def search_index_does_not_exists_mock():
 @pytest.fixture
 def search_client_mock():
     with patch(
-        "backend.batch.utilities.search.IntegratedVectorizationSearchHandler.SearchClient"
+        "backend.batch.utilities.search.integrated_vectorization_search_handler.SearchClient"
     ) as mock:
         yield mock
 
@@ -46,7 +46,7 @@ def search_client_mock():
 @pytest.fixture
 def handler(env_helper_mock, search_client_mock, search_index_mock):
     with patch(
-        "backend.batch.utilities.search.IntegratedVectorizationSearchHandler.SearchClient",
+        "backend.batch.utilities.search.integrated_vectorization_search_handler.SearchClient",
         return_value=search_client_mock,
     ):
         return IntegratedVectorizationSearchHandler(env_helper_mock)
@@ -57,7 +57,7 @@ def handler_index_does_not_exists(
     env_helper_mock, search_client_mock, search_index_does_not_exists_mock
 ):
     with patch(
-        "backend.batch.utilities.search.IntegratedVectorizationSearchHandler.SearchClient",
+        "backend.batch.utilities.search.integrated_vectorization_search_handler.SearchClient",
         return_value=search_client_mock,
     ):
         return IntegratedVectorizationSearchHandler(env_helper_mock)

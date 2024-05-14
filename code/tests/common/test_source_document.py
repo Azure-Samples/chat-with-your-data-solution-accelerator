@@ -1,7 +1,7 @@
 import hashlib
 from unittest.mock import patch
 from urllib.parse import urlparse
-from backend.batch.utilities.common.SourceDocument import (
+from backend.batch.utilities.common.source_document import (
     SourceDocument,
     SourceDocumentDecoder,
     SourceDocumentEncoder,
@@ -27,7 +27,7 @@ def test_get_filename():
     assert filename == "file"
 
 
-@patch("backend.batch.utilities.common.SourceDocument.AzureBlobStorageClient")
+@patch("backend.batch.utilities.common.source_document.AzureBlobStorageClient")
 def test_get_markdown_url(azure_blob_service_mock):
     # Given
     azure_blob_service_mock().get_container_sas.return_value = "_12345"

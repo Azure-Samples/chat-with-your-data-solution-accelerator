@@ -1,7 +1,7 @@
 from typing import List
 from .document_chunking_base import DocumentChunkingBase
 from .chunking_strategy import ChunkingSettings
-from ..common.SourceDocument import SourceDocument
+from ..common.source_document import SourceDocument
 
 
 class ParagraphDocumentChunking(DocumentChunkingBase):

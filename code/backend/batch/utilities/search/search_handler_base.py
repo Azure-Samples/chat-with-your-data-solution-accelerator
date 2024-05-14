@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from ..helpers.env_helper import EnvHelper
 
-from ..common.SourceDocument import SourceDocument
+from ..common.source_document import SourceDocument
 
 
 class SearchHandlerBase(ABC):

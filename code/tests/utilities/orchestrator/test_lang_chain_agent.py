@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from backend.batch.utilities.orchestrator.lang_chain_agent import LangChainAgent
-from backend.batch.utilities.common.Answer import Answer
+from backend.batch.utilities.common.answer import Answer
 
 
 class LangChainAgentNoInit(LangChainAgent):

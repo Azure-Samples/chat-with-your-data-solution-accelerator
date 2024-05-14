@@ -2,9 +2,9 @@ import json
 import logging
 import warnings
 
-from ..common.SourceDocument import SourceDocument
-from ..search.Search import Search
-from .AnsweringToolBase import AnsweringToolBase
+from ..common.source_document import SourceDocument
+from ..search.search import Search
+from .answering_tool_base import AnsweringToolBase
 
 from langchain.chains.llm import LLMChain
 from langchain.prompts import (
@@ -21,7 +21,7 @@ from langchain_core.messages import SystemMessage
 from ..helpers.config.config_helper import ConfigHelper
 from ..helpers.llm_helper import LLMHelper
 from ..helpers.env_helper import EnvHelper
-from ..common.Answer import Answer
+from ..common.answer import Answer
 
 logger = logging.getLogger(__name__)
 

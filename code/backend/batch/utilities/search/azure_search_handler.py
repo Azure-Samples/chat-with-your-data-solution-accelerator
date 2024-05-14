@@ -1,8 +1,8 @@
 from typing import List
-from .SearchHandlerBase import SearchHandlerBase
+from .search_handler_base import SearchHandlerBase
 from ..helpers.llm_helper import LLMHelper
 from ..helpers.azure_search_helper import AzureSearchHelper
-from ..common.SourceDocument import SourceDocument
+from ..common.source_document import SourceDocument
 import json
 from azure.search.documents.models import VectorizedQuery
 import tiktoken

@@ -1,6 +1,6 @@
 import json
 from typing import List, Optional
-from .SourceDocument import SourceDocument
+from .source_document import SourceDocument
 
 
 class Answer:
