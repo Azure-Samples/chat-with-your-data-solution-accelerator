@@ -28,7 +28,7 @@ def _get_file_name_from_message(message_body: any) -> str:
 )
 def batch_push_results(msg: func.QueueMessage) -> None:
     message_body = json.loads(msg.get_body().decode("utf-8"))
-    logger.info("Process Document Event queue function triggered: %s", message_body)
+    logger.debug("Process Document Event queue function triggered: %s", message_body)
 
     event_type = message_body.get("eventType", "")
     # We handle "" in this scenario for backwards compatibility
