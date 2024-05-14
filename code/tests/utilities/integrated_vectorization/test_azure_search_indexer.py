@@ -90,3 +90,43 @@ def test_create_or_update_indexer_rbac(
         data_source_name=env_helper_mock.AZURE_SEARCH_DATASOURCE_NAME,
         field_mappings=ANY,
     )
+
+
+def test_run_indexer(
+    env_helper_mock: MagicMock,
+    search_indexer_client_mock: MagicMock,
+    search_indexer_mock: MagicMock,
+):
+    # given
+    indexer_name = "indexer_name"
+    azure_search_indexer = AzureSearchIndexer(env_helper_mock)
+
+    # when
+    azure_search_indexer.run_indexer(indexer_name)
+
+    # then
+    azure_search_indexer.indexer_client.reset_indexer.assert_called_once_with(
+        indexer_name
+    )
+    azure_search_indexer.indexer_client.run_indexer.assert_called_once_with(
+        indexer_name
+    )
+
+
+def test_indexer_exists(
+    env_helper_mock: MagicMock,
+    search_indexer_client_mock: MagicMock,
+    search_indexer_mock: MagicMock,
+):
+    # given
+    indexer_name = "indexer_name"
+    azure_search_indexer = AzureSearchIndexer(env_helper_mock)
+    search_indexer_client_mock.return_value.get_indexer_names.return_value = [
+        "indexer_name"
+    ]
+
+    # when
+    result = azure_search_indexer.indexer_exists(indexer_name)
+
+    # then
+    assert result is True

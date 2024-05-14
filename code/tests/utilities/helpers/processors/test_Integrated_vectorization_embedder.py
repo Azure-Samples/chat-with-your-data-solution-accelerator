@@ -119,3 +119,48 @@ def test_process_using_integrated_vectorization(
         azure_search_iv_skillset_helper_mock.return_value.create_skillset.return_value.skills
         is not None
     )
+
+
+def test_reprocess_all_runs_indexer_when_indexer_exists(
+    env_helper_mock: MagicMock,
+    llm_helper_mock: MagicMock,
+    azure_search_iv_index_helper_mock: MagicMock,
+    azure_search_iv_datasource_helper_mock: MagicMock,
+    azure_search_iv_skillset_helper_mock: MagicMock,
+    azure_search_iv_indexer_helper_mock: MagicMock,
+    mock_config_helper,
+):
+    # Given
+    azure_search_iv_indexer_helper_mock.indexer_exists.return_value = True
+    azure_search_iv_indexer_helper_mock.run_indexer.return_value = "Indexer result"
+
+    # When
+    embedder = IntegratedVectorizationEmbedder(env_helper_mock)
+    embedder.reprocess_all()
+
+    # Then
+    azure_search_iv_indexer_helper_mock.return_value.run_indexer.assert_called_once_with(
+        env_helper_mock.AZURE_SEARCH_INDEXER_NAME
+    )
+    azure_search_iv_indexer_helper_mock.return_value.create_or_update_indexer.assert_not_called()
+
+
+def test_reprocess_all_calls_process_using_integrated_vectorization_when_indexer_does_not_exist(
+    env_helper_mock: MagicMock,
+    llm_helper_mock: MagicMock,
+    azure_search_iv_index_helper_mock: MagicMock,
+    azure_search_iv_datasource_helper_mock: MagicMock,
+    azure_search_iv_skillset_helper_mock: MagicMock,
+    azure_search_iv_indexer_helper_mock: MagicMock,
+    mock_config_helper,
+):
+    # Given
+    azure_search_iv_indexer_helper_mock.return_value.indexer_exists.return_value = False
+
+    # When
+    embedder = IntegratedVectorizationEmbedder(env_helper_mock)
+    embedder.reprocess_all()
+
+    # Then
+    azure_search_iv_indexer_helper_mock.return_value.run_indexer.assert_not_called()
+    azure_search_iv_indexer_helper_mock.return_value.create_or_update_indexer.assert_called_once()
