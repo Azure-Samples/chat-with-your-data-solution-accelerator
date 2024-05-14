@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from backend.batch.utilities.integrated_vectorization.AzureSearchSkillset import (
+from backend.batch.utilities.integrated_vectorization.azure_search_skillset import (
     AzureSearchSkillset,
 )
 from azure.search.documents.indexes.models import (

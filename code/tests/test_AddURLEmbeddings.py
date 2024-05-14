@@ -6,7 +6,7 @@ import azure.functions as func
 
 sys.path.append(os.path.join(os.path.dirname(sys.path[0]), "backend", "batch"))
 
-from backend.batch.AddURLEmbeddings import add_url_embeddings  # noqa: E402
+from backend.batch.add_url_embeddings import add_url_embeddings  # noqa: E402
 
 
 @patch("backend.batch.AddURLEmbeddings.EmbedderFactory")

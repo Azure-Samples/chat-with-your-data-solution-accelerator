@@ -2,10 +2,10 @@ import logging
 from uuid import uuid4
 from typing import List, Optional
 from abc import ABC, abstractmethod
-from ..loggers.ConversationLogger import ConversationLogger
+from ..loggers.conversation_logger import ConversationLogger
 from ..helpers.config.config_helper import ConfigHelper
 from ..parser.output_parser_tool import OutputParserTool
-from ..tools.ContentSafetyChecker import ContentSafetyChecker
+from ..tools.content_safety_checker import ContentSafetyChecker
 
 logger = logging.getLogger(__name__)
 

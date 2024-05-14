@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import ANY, MagicMock, patch
-from backend.batch.utilities.integrated_vectorization.AzureSearchIndexer import (
+from backend.batch.utilities.integrated_vectorization.azure_search_indexer import (
     AzureSearchIndexer,
 )
 

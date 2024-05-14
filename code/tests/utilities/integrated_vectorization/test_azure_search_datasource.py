@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from backend.batch.utilities.integrated_vectorization.AzureSearchDatasource import (
+from backend.batch.utilities.integrated_vectorization.azure_search_datasource import (
     AzureSearchDatasource,
 )
 from azure.search.documents.indexes._generated.models import (

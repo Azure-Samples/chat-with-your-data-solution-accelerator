@@ -13,7 +13,7 @@ from .embedder_base import EmbedderBase
 from ..azure_search_helper import AzureSearchHelper
 from ..document_loading_helper import DocumentLoading
 from ..document_chunking_helper import DocumentChunking
-from ...common.SourceDocument import SourceDocument
+from ...common.source_document import SourceDocument
 
 logger = logging.getLogger(__name__)
 

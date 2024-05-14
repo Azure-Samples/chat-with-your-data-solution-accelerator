@@ -1,11 +1,11 @@
 import pytest
 from unittest.mock import Mock, patch
-from backend.batch.utilities.search.IntegratedVectorizationSearchHandler import (
+from backend.batch.utilities.search.integrated_vectorization_search_handler import (
     IntegratedVectorizationSearchHandler,
 )
 from azure.search.documents.models import VectorizableTextQuery
 
-from backend.batch.utilities.common.SourceDocument import SourceDocument
+from backend.batch.utilities.common.source_document import SourceDocument
 
 
 @pytest.fixture

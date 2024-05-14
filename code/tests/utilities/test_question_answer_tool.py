@@ -2,10 +2,10 @@ import json
 from unittest.mock import MagicMock, patch
 
 import pytest
-from backend.batch.utilities.common.Answer import Answer
-from backend.batch.utilities.tools.QuestionAnswerTool import QuestionAnswerTool
+from backend.batch.utilities.common.answer import Answer
+from backend.batch.utilities.tools.question_answer_tool import QuestionAnswerTool
 from langchain_core.documents import Document
-from backend.batch.utilities.common.SourceDocument import SourceDocument
+from backend.batch.utilities.common.source_document import SourceDocument
 
 
 @pytest.fixture(autouse=True)

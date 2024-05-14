@@ -1,6 +1,6 @@
 # Create an abstract class for tool
 from abc import ABC, abstractmethod
-from ..common.Answer import Answer
+from ..common.answer import Answer
 
 
 class AnswerProcessingBase(ABC):

@@ -1,10 +1,10 @@
 from .embedder_base import EmbedderBase
 from ..env_helper import EnvHelper
 from ..llm_helper import LLMHelper
-from ...integrated_vectorization.AzureSearchIndex import AzureSearchIndex
-from ...integrated_vectorization.AzureSearchIndexer import AzureSearchIndexer
-from ...integrated_vectorization.AzureSearchDatasource import AzureSearchDatasource
-from ...integrated_vectorization.AzureSearchSkillset import AzureSearchSkillset
+from ...integrated_vectorization.azure_search_index import AzureSearchIndex
+from ...integrated_vectorization.azure_search_indexer import AzureSearchIndexer
+from ...integrated_vectorization.azure_search_datasource import AzureSearchDatasource
+from ...integrated_vectorization.azure_search_skillset import AzureSearchSkillset
 from ..config.config_helper import ConfigHelper
 import logging
 

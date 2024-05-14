@@ -1,7 +1,7 @@
 # Create an abstract class for tool
 from abc import ABC, abstractmethod
 from typing import List
-from ..common.Answer import Answer
+from ..common.answer import Answer
 
 
 class AnsweringToolBase(ABC):

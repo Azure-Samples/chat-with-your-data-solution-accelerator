@@ -1,10 +1,10 @@
 import pytest
 from unittest.mock import MagicMock, Mock, patch
-from backend.batch.utilities.search.AzureSearchHandler import AzureSearchHandler
+from backend.batch.utilities.search.azure_search_handler import AzureSearchHandler
 import json
 from azure.search.documents.models import VectorizedQuery
 
-from backend.batch.utilities.common.SourceDocument import SourceDocument
+from backend.batch.utilities.common.source_document import SourceDocument
 
 
 @pytest.fixture

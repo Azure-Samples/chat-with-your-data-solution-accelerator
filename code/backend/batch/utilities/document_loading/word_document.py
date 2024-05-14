@@ -3,7 +3,7 @@ from io import BytesIO
 from docx import Document
 import requests
 from .document_loading_base import DocumentLoadingBase
-from ..common.SourceDocument import SourceDocument
+from ..common.source_document import SourceDocument
 
 
 class WordDocumentLoading(DocumentLoadingBase):

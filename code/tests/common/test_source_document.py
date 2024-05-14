@@ -1,7 +1,7 @@
 import hashlib
 from unittest.mock import patch
 from urllib.parse import urlparse
-from backend.batch.utilities.common.SourceDocument import (
+from backend.batch.utilities.common.source_document import (
     SourceDocument,
     SourceDocumentDecoder,
     SourceDocumentEncoder,

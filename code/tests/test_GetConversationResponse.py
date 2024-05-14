@@ -6,7 +6,7 @@ import json
 
 sys.path.append(os.path.join(os.path.dirname(sys.path[0]), "backend", "batch"))
 
-from backend.batch.GetConversationResponse import (  # noqa: E402
+from backend.batch.get_conversation_response import (  # noqa: E402
     get_conversation_response,
 )
 
