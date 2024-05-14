@@ -18,6 +18,17 @@ from tests.constants import (
     COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
 )
 
+
+# These tests utilize `pytest_httpserver` to mock the Azure Computer Vision API. This is instead of mocking the requests
+# library directly, like other client classes. The reasons for doing this are:
+# 1. This gives us complete confidence that the requests library works as we expect it to, for example parsing of bad
+# json.
+# 2. It allows us to test the actual HTTP request that is being made to the Azure Computer Vision API.
+# 3. If we need to change which http library we are using, there should be minimal changes required to the tests.
+#
+# If and when the Azure Computer Vision Python SDK starts to support the `vectorizeImage` and `vectorizeText` endpoints,
+# and we switch to it, we should consider switching back to convential test mocking.
+
 IMAGE_URL = "some-image-url.jpg"
 AZURE_COMPUTER_VISION_KEY = "some-api-key"
 
