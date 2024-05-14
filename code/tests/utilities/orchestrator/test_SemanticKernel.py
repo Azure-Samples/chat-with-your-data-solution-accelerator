@@ -8,6 +8,7 @@ from backend.batch.utilities.orchestrator.SemanticKernel import (
 from backend.batch.utilities.parser.OutputParserTool import OutputParserTool
 from semantic_kernel import Kernel
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
+from semantic_kernel.connectors.ai.function_call_behavior import EnabledFunctions
 from semantic_kernel.connectors.ai.open_ai.prompt_execution_settings.azure_chat_prompt_execution_settings import (
     AzureChatPromptExecutionSettings,
 )
@@ -163,7 +164,7 @@ async def test_chat_plugin_added(
 
 
 @pytest.mark.asyncio
-async def test_openai_functions_included(
+async def test_kernel_function_call_behavior(
     orchestrator: SemanticKernelOrchestrator,
 ):
     # given
@@ -175,48 +176,15 @@ async def test_openai_functions_included(
         await orchestrator.orchestrate("question", [])
 
     # then
-    tools = kernel_mock.add_function.call_args.kwargs["prompt_execution_settings"].tools
+    function_call_behavior: EnabledFunctions = (
+        kernel_mock.add_function.call_args.kwargs[
+            "prompt_execution_settings"
+        ].function_call_behavior
+    )
 
-    assert tools == [
-        {
-            "type": "function",
-            "function": {
-                "name": "Chat-search_documents",
-                "description": "Provide answers to any fact question coming from users.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "question": {
-                            "description": "A standalone question, converted from the chat history",
-                            "type": "string",
-                        }
-                    },
-                    "required": ["question"],
-                },
-            },
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "Chat-text_processing",
-                "description": "Useful when you want to apply a transformation on the text, like translate, summarize, rephrase and so on.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "text": {
-                            "description": "The text to be processed",
-                            "type": "string",
-                        },
-                        "operation": {
-                            "description": "The operation to be performed on the text. Like Translate to Italian, Summarize, Paraphrase, etc. If a language is specified, return that as part of the operation. Preserve the operation name in the user language.",
-                            "type": "string",
-                        },
-                    },
-                    "required": ["text", "operation"],
-                },
-            },
-        },
-    ]
+    assert function_call_behavior.auto_invoke_kernel_functions is False
+    assert function_call_behavior.enable_kernel_functions is True
+    assert function_call_behavior.filters == {"included_plugins": ["Chat"]}
 
 
 @pytest.mark.asyncio
