@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.27.1.19265",
-      "templateHash": "95501043309266990"
+      "templateHash": "2759743932205000425"
     }
   },
   "parameters": {
@@ -255,10 +255,11 @@
       "defaultValue": "openai_function",
       "allowedValues": [
         "openai_function",
+        "semantic_kernel",
         "langchain"
       ],
       "metadata": {
-        "description": "Orchestration strategy: openai_function or langchain str. If you use a old version of turbo (0301), plese select langchain"
+        "description": "Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain"
       }
     },
     "azureOpenAITemperature": {
