@@ -12,7 +12,14 @@ param storageAccountName string
 
 // Runtime Properties
 @allowed([
-  'dotnet', 'dotnetcore', 'dotnet-isolated', 'node', 'python', 'java', 'powershell', 'custom'
+  'dotnet'
+  'dotnetcore'
+  'dotnet-isolated'
+  'node'
+  'python'
+  'java'
+  'powershell'
+  'custom'
 ])
 param runtimeName string
 param runtimeNameAndVersion string = '${runtimeName}|${runtimeVersion}'
@@ -20,7 +27,10 @@ param runtimeVersion string
 
 // Function Settings
 @allowed([
-  '~4', '~3', '~2', '~1'
+  '~4'
+  '~3'
+  '~2'
+  '~1'
 ])
 param extensionVersion string = '~4'
 
@@ -54,7 +64,8 @@ module functions 'appservice.bicep' = {
     appCommandLine: useDocker ? '' : appCommandLine
     applicationInsightsName: applicationInsightsName
     appServicePlanId: appServicePlanId
-    appSettings: union(appSettings,
+    appSettings: union(
+      appSettings,
       {
         AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
         FUNCTIONS_EXTENSION_VERSION: extensionVersion
