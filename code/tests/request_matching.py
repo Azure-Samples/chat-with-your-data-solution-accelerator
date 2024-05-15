@@ -30,7 +30,9 @@ class RequestMatcher:
         return f"Path: {self.path}, Method: {self.method}, JSON: {self.json}, Headers: {self.headers}, Query String: {self.query_string}, Times: {self.times}"
 
 
-def verify_request_made(mock_httpserver: HTTPServer, request_matcher: RequestMatcher):
+def verify_request_made(
+    mock_httpserver: HTTPServer, request_matcher: RequestMatcher
+) -> list[Request]:
     requests_log = mock_httpserver.log
 
     similar_requests = []
@@ -71,6 +73,7 @@ def verify_request_made(mock_httpserver: HTTPServer, request_matcher: RequestMat
             error_message += "\n--- Similar Request End"
 
     assert len(matching_requests) == request_matcher.times, error_message
+    return matching_requests
 
 
 def contains_all_headers(request_matcher: RequestMatcher, request: Request):

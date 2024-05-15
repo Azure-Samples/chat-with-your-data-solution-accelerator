@@ -13,6 +13,7 @@ from ..env_helper import EnvHelper
 
 CONFIG_CONTAINER_NAME = "config"
 CONFIG_FILE_NAME = "active.json"
+ADVANCED_IMAGE_PROCESSING_FILE_TYPES = ["jpeg", "jpg", "png", "tiff", "bmp"]
 logger = logging.getLogger(__name__)
 
 
@@ -54,8 +55,8 @@ class Config:
             else None
         )
 
-    def get_available_document_types(self):
-        document_types = [
+    def get_available_document_types(self) -> list[str]:
+        document_types = {
             "txt",
             "pdf",
             "url",
@@ -65,11 +66,14 @@ class Config:
             "jpg",
             "png",
             "docx",
-        ]
+        }
         if self.env_helper.USE_ADVANCED_IMAGE_PROCESSING:
-            document_types.extend(["tiff", "bmp"])
+            document_types.update(ADVANCED_IMAGE_PROCESSING_FILE_TYPES)
 
         return sorted(document_types)
+
+    def get_advanced_image_processing_image_types(self):
+        return ADVANCED_IMAGE_PROCESSING_FILE_TYPES
 
     def get_available_chunking_strategies(self):
         return [c.value for c in ChunkingStrategy]
@@ -180,12 +184,28 @@ class ConfigHelper:
 
     @staticmethod
     def save_config_as_active(config):
+        ConfigHelper.validate_config(config)
         blob_client = AzureBlobStorageClient(container_name=CONFIG_CONTAINER_NAME)
         blob_client = blob_client.upload_file(
             json.dumps(config, indent=2),
             CONFIG_FILE_NAME,
             content_type="application/json",
         )
+
+    @staticmethod
+    def validate_config(config: dict):
+        for document_processor in config.get("document_processors"):
+            document_type = document_processor.get("document_type")
+            unsupported_advanced_image_processing_file_type = (
+                document_type not in ADVANCED_IMAGE_PROCESSING_FILE_TYPES
+            )
+            if (
+                document_processor.get("use_advanced_image_processing")
+                and unsupported_advanced_image_processing_file_type
+            ):
+                raise Exception(
+                    f"Advanced image processing has been enabled for document type {document_type}, but only {ADVANCED_IMAGE_PROCESSING_FILE_TYPES} file types are supported."
+                )
 
     @staticmethod
     def get_default_config():
