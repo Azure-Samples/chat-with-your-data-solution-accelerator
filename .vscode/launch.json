@@ -15,7 +15,7 @@
             "module": "streamlit",
             "args": [
                 "run",
-                "admin.py"
+                "Admin.py"
             ],
             "cwd": "${workspaceFolder}/code/backend",
             "preLaunchTask": "poetry install",
