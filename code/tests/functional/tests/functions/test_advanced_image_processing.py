@@ -5,13 +5,15 @@ from unittest.mock import ANY
 
 from azure.functions import QueueMessage
 import pytest
-from backend.batch.utilities.helpers.config.config_helper import (
-    CONFIG_CONTAINER_NAME,
-    CONFIG_FILE_NAME,
-)
 from pytest_httpserver import HTTPServer
 from tests.functional.app_config import AppConfig
-from tests.functional.request_matching import RequestMatcher, verify_request_made
+from tests.request_matching import RequestMatcher, verify_request_made
+from tests.constants import (
+    AZURE_STORAGE_CONFIG_FILE_NAME,
+    AZURE_STORAGE_CONFIG_CONTAINER_NAME,
+    COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
+    COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
+)
 
 sys.path.append(
     os.path.join(os.path.dirname(sys.path[0]), "..", "..", "backend", "batch")
@@ -78,13 +80,41 @@ def test_config_file_is_retrieved_from_storage(
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
-            path=f"/{CONFIG_CONTAINER_NAME}/{CONFIG_FILE_NAME}",
+            path=f"/{AZURE_STORAGE_CONFIG_CONTAINER_NAME}/{AZURE_STORAGE_CONFIG_FILE_NAME}",
             method="GET",
             headers={
                 "Authorization": ANY,
             },
             times=1,
         ),
+    )
+
+
+def test_image_passed_to_computer_vision_to_generate_image_embeddings(
+    message: QueueMessage, httpserver: HTTPServer, app_config: AppConfig
+):
+    # when
+    batch_push_results.build().get_user_function()(message)
+
+    # then
+    request = verify_request_made(
+        httpserver,
+        RequestMatcher(
+            path=COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
+            method=COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
+            query_string="api-version=2024-02-01&model-version=2023-04-15",
+            headers={
+                "Content-Type": "application/json",
+                "Ocp-Apim-Subscription-Key": app_config.get(
+                    "AZURE_COMPUTER_VISION_KEY"
+                ),
+            },
+            times=1,
+        ),
+    )[0]
+
+    assert request.get_json()["url"].startswith(
+        f"{app_config.get('AZURE_COMPUTER_VISION_ENDPOINT')}{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}"
     )
 
 
