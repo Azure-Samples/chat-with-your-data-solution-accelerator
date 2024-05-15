@@ -13,7 +13,7 @@ for ARG in $@; do
         TEMPLATES+=(${ARG#-f=})
     else
     # Otherwise, it is a file that has been edited
-        az bicep format --insert-final-newline -f $ARG &
+        az bicep format -f $ARG &
         FILES+=($ARG)
     fi
 done

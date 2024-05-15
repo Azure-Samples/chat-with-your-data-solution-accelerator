@@ -42,17 +42,87 @@ module function '../core/host/functions.bicep' = {
     runtimeVersion: runtimeVersion
     dockerFullImageName: dockerFullImageName
     appSettings: union(appSettings, {
-        WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
-        AZURE_AUTH_TYPE: authType
-        USE_KEY_VAULT: useKeyVault ? useKeyVault : ''
-        AZURE_OPENAI_API_KEY: useKeyVault ? openAIKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', azureOpenAIName), '2023-05-01').key1
-        AZURE_SEARCH_KEY: useKeyVault ? searchKeyName : listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', azureAISearchName), '2021-04-01-preview').primaryKey
-        AZURE_BLOB_ACCOUNT_KEY: useKeyVault ? storageAccountKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', storageAccountName), '2021-09-01').keys[0].value
-        AZURE_FORM_RECOGNIZER_KEY: useKeyVault ? formRecognizerKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', formRecognizerName), '2023-05-01').key1
-        AZURE_CONTENT_SAFETY_KEY: useKeyVault ? contentSafetyKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', contentSafetyName), '2023-05-01').key1
-        AZURE_SPEECH_SERVICE_KEY: useKeyVault ? speechKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', speechServiceName), '2023-05-01').key1
-        AZURE_COMPUTER_VISION_KEY: (useKeyVault || computerVisionName == '') ? computerVisionKeyName : listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', computerVisionName), '2023-05-01').key1
-      })
+      WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
+      AZURE_AUTH_TYPE: authType
+      USE_KEY_VAULT: useKeyVault ? useKeyVault : ''
+      AZURE_OPENAI_API_KEY: useKeyVault
+        ? openAIKeyName
+        : listKeys(
+            resourceId(
+              subscription().subscriptionId,
+              resourceGroup().name,
+              'Microsoft.CognitiveServices/accounts',
+              azureOpenAIName
+            ),
+            '2023-05-01'
+          ).key1
+      AZURE_SEARCH_KEY: useKeyVault
+        ? searchKeyName
+        : listAdminKeys(
+            resourceId(
+              subscription().subscriptionId,
+              resourceGroup().name,
+              'Microsoft.Search/searchServices',
+              azureAISearchName
+            ),
+            '2021-04-01-preview'
+          ).primaryKey
+      AZURE_BLOB_ACCOUNT_KEY: useKeyVault
+        ? storageAccountKeyName
+        : listKeys(
+            resourceId(
+              subscription().subscriptionId,
+              resourceGroup().name,
+              'Microsoft.Storage/storageAccounts',
+              storageAccountName
+            ),
+            '2021-09-01'
+          ).keys[0].value
+      AZURE_FORM_RECOGNIZER_KEY: useKeyVault
+        ? formRecognizerKeyName
+        : listKeys(
+            resourceId(
+              subscription().subscriptionId,
+              resourceGroup().name,
+              'Microsoft.CognitiveServices/accounts',
+              formRecognizerName
+            ),
+            '2023-05-01'
+          ).key1
+      AZURE_CONTENT_SAFETY_KEY: useKeyVault
+        ? contentSafetyKeyName
+        : listKeys(
+            resourceId(
+              subscription().subscriptionId,
+              resourceGroup().name,
+              'Microsoft.CognitiveServices/accounts',
+              contentSafetyName
+            ),
+            '2023-05-01'
+          ).key1
+      AZURE_SPEECH_SERVICE_KEY: useKeyVault
+        ? speechKeyName
+        : listKeys(
+            resourceId(
+              subscription().subscriptionId,
+              resourceGroup().name,
+              'Microsoft.CognitiveServices/accounts',
+              speechServiceName
+            ),
+            '2023-05-01'
+          ).key1
+      AZURE_COMPUTER_VISION_KEY: (useKeyVault || computerVisionName == '')
+        ? computerVisionKeyName
+        : listKeys(
+            resourceId(
+              subscription().subscriptionId,
+              resourceGroup().name,
+              'Microsoft.CognitiveServices/accounts',
+              computerVisionName
+            ),
+            '2023-05-01'
+          ).key1
+    })
   }
 }
 
