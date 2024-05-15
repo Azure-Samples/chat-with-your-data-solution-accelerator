@@ -63,11 +63,11 @@ resource speechKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   }
 }
 
-resource computerVisionKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+resource computerVisionKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if (computerVisionName != '') {
   parent: keyVault
   name: computerVisionKeyName
   properties: {
-    value: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', computerVisionName), '2023-05-01').key1
+    value: computerVisionName != '' ? listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', computerVisionName), '2023-05-01').key1 : ''
   }
 }
 
@@ -81,4 +81,4 @@ output SEARCH_KEY_NAME string = searchKeySecret.name
 output OPENAI_KEY_NAME string = openAIKeySecret.name
 output STORAGE_ACCOUNT_KEY_NAME string = storageAccountKeySecret.name
 output SPEECH_KEY_NAME string = speechKeySecret.name
-output COMPUTER_VISION_KEY_NAME string = computerVisionKeySecret.name
+output COMPUTER_VISION_KEY_NAME string = computerVisionName != '' ? computerVisionKeySecret.name : ''
