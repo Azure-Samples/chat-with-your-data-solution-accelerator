@@ -14,14 +14,38 @@ var wookbookContents = loadTextContent('../workbooks/workbook.json')
 var wookbookContentsSubReplaced = replace(wookbookContents, '{subscription-id}', subscription().id)
 var wookbookContentsRGReplaced = replace(wookbookContentsSubReplaced, '{resource-group}', resourceGroup().name)
 var wookbookContentsAppServicePlanReplaced = replace(wookbookContentsRGReplaced, '{app-service-plan}', hostingPlanName)
-var wookbookContentsBackendAppServiceReplaced = replace(wookbookContentsAppServicePlanReplaced, '{backend-app-service}', functionName)
-var wookbookContentsWebAppServiceReplaced = replace(wookbookContentsBackendAppServiceReplaced, '{web-app-service}', websiteName)
-var wookbookContentsAdminAppServiceReplaced = replace(wookbookContentsWebAppServiceReplaced, '{admin-app-service}', adminWebsiteName)
-var wookbookContentsEventGridReplaced = replace(wookbookContentsAdminAppServiceReplaced, '{event-grid}', eventGridSystemTopicName)
-var wookbookContentsLogAnalyticsReplaced = replace(wookbookContentsEventGridReplaced, '{log-analytics}', logAnalyticsName)
+var wookbookContentsBackendAppServiceReplaced = replace(
+  wookbookContentsAppServicePlanReplaced,
+  '{backend-app-service}',
+  functionName
+)
+var wookbookContentsWebAppServiceReplaced = replace(
+  wookbookContentsBackendAppServiceReplaced,
+  '{web-app-service}',
+  websiteName
+)
+var wookbookContentsAdminAppServiceReplaced = replace(
+  wookbookContentsWebAppServiceReplaced,
+  '{admin-app-service}',
+  adminWebsiteName
+)
+var wookbookContentsEventGridReplaced = replace(
+  wookbookContentsAdminAppServiceReplaced,
+  '{event-grid}',
+  eventGridSystemTopicName
+)
+var wookbookContentsLogAnalyticsReplaced = replace(
+  wookbookContentsEventGridReplaced,
+  '{log-analytics}',
+  logAnalyticsName
+)
 var wookbookContentsOpenAIReplaced = replace(wookbookContentsLogAnalyticsReplaced, '{open-ai}', azureOpenAIResourceName)
 var wookbookContentsAISearchReplaced = replace(wookbookContentsOpenAIReplaced, '{ai-search}', azureAISearchName)
-var wookbookContentsStorageAccountReplaced = replace(wookbookContentsAISearchReplaced, '{storage-account}', storageAccountName)
+var wookbookContentsStorageAccountReplaced = replace(
+  wookbookContentsAISearchReplaced,
+  '{storage-account}',
+  storageAccountName
+)
 
 module cwydsa_workbook '../core/monitor/workbook.bicep' = {
   name: workbookDisplayName
