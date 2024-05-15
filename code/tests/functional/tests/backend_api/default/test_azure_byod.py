@@ -4,7 +4,7 @@ from pytest_httpserver import HTTPServer
 import requests
 from string import Template
 
-from tests.functional.request_matching import (
+from tests.request_matching import (
     RequestMatcher,
     verify_request_made,
 )

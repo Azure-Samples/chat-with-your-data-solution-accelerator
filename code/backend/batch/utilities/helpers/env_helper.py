@@ -111,6 +111,18 @@ class EnvHelper:
         self.USE_ADVANCED_IMAGE_PROCESSING = self.get_env_var_bool(
             "USE_ADVANCED_IMAGE_PROCESSING", "False"
         )
+        self.AZURE_COMPUTER_VISION_ENDPOINT = os.getenv(
+            "AZURE_COMPUTER_VISION_ENDPOINT"
+        )
+        self.AZURE_COMPUTER_VISION_TIMEOUT = self.get_env_var_float(
+            "AZURE_COMPUTER_VISION_TIMEOUT", 30
+        )
+        self.AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION = os.getenv(
+            "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION", "2024-02-01"
+        )
+        self.AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION = os.getenv(
+            "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION", "2023-04-15"
+        )
 
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
@@ -118,6 +130,7 @@ class EnvHelper:
             self.AZURE_SEARCH_KEY = None
             self.AZURE_OPENAI_API_KEY = ""
             self.AZURE_SPEECH_KEY = None
+            self.AZURE_COMPUTER_VISION_KEY = None
         else:
             self.AZURE_SEARCH_KEY = self.secretHelper.get_secret("AZURE_SEARCH_KEY")
             self.AZURE_OPENAI_API_KEY = self.secretHelper.get_secret(
@@ -125,6 +138,9 @@ class EnvHelper:
             )
             self.AZURE_SPEECH_KEY = self.secretHelper.get_secret(
                 "AZURE_SPEECH_SERVICE_KEY"
+            )
+            self.AZURE_COMPUTER_VISION_KEY = self.secretHelper.get_secret(
+                "AZURE_COMPUTER_VISION_KEY"
             )
 
         # Set env for Azure OpenAI
@@ -220,6 +236,9 @@ class EnvHelper:
 
     def get_env_var_array(self, var_name: str, default: str = ""):
         return os.getenv(var_name, default).split(",")
+
+    def get_env_var_float(self, var_name: str, default: int):
+        return float(os.getenv(var_name, default))
 
     def is_auth_type_keys(self):
         return self.AZURE_AUTH_TYPE == "keys"

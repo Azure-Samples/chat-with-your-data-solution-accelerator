@@ -2,7 +2,7 @@ import pytest
 import requests
 from pytest_httpserver import HTTPServer
 from tests.functional.app_config import AppConfig
-from tests.functional.request_matching import (
+from tests.request_matching import (
     RequestMatcher,
     verify_request_made,
 )

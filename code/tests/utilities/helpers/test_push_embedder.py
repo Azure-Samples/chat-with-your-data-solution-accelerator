@@ -53,6 +53,11 @@ def mock_config_helper():
                 use_advanced_image_processing=False,
             ),
         ]
+        config_helper.get_advanced_image_processing_image_types.return_value = {
+            "jpeg",
+            "jpg",
+            "png",
+        }
         yield config_helper
 
 
@@ -99,11 +104,19 @@ def document_chunking_mock():
         yield mock
 
 
-def test_embed_file_use_advanced_image_processing_skips_processing(
+@pytest.fixture(autouse=True)
+def azure_computer_vision_mock():
+    with patch(
+        "backend.batch.utilities.helpers.embedders.push_embedder.AzureComputerVisionClient"
+    ) as mock:
+        yield mock
+
+
+def test_embed_file_advanced_image_processing_skips_document_processing(
     azure_search_helper_mock,
 ):
     # given
-    push_embedder = PushEmbedder(MagicMock())
+    push_embedder = PushEmbedder(MagicMock(), MagicMock())
 
     # when
     push_embedder.embed_file("some-url", "some-file-name.jpg")
@@ -112,9 +125,49 @@ def test_embed_file_use_advanced_image_processing_skips_processing(
     azure_search_helper_mock.return_value.get_search_client.assert_not_called()
 
 
+def test_embed_file_advanced_image_processing_vectorizes_image(
+    azure_computer_vision_mock,
+):
+    # given
+    push_embedder = PushEmbedder(MagicMock(), MagicMock())
+    source_url = "http://localhost:8080/some-file-name.jpg"
+
+    # when
+    push_embedder.embed_file(source_url, "some-file-name.jpg")
+
+    # then
+    azure_computer_vision_mock.return_value.vectorize_image.assert_called_once_with(
+        source_url
+    )
+
+
+def test_embed_file_use_advanced_image_processing_does_not_vectorize_image_if_unsupported(
+    azure_computer_vision_mock, mock_config_helper, azure_search_helper_mock
+):
+    # given
+    mock_config_helper.document_processors = [
+        EmbeddingConfig(
+            "txt",
+            CHUNKING_SETTINGS,
+            LOADING_SETTINGS,
+            use_advanced_image_processing=True,
+        ),
+    ]
+
+    push_embedder = PushEmbedder(MagicMock(), MagicMock())
+    source_url = "http://localhost:8080/some-file-name.txt"
+
+    # when
+    push_embedder.embed_file(source_url, "some-file-name.txt")
+
+    # then
+    azure_computer_vision_mock.return_value.vectorize_image.assert_not_called()
+    azure_search_helper_mock.return_value.get_search_client.assert_called_once()
+
+
 def test_embed_file_loads_documents(document_loading_mock):
     # given
-    push_embedder = PushEmbedder(MagicMock())
+    push_embedder = PushEmbedder(MagicMock(), MagicMock())
     source_url = "some-url"
 
     # when
@@ -131,7 +184,7 @@ def test_embed_file_loads_documents(document_loading_mock):
 
 def test_embed_file_chunks_documents(document_loading_mock, document_chunking_mock):
     # given
-    push_embedder = PushEmbedder(MagicMock())
+    push_embedder = PushEmbedder(MagicMock(), MagicMock())
 
     # when
     push_embedder.embed_file(
@@ -147,7 +200,7 @@ def test_embed_file_chunks_documents(document_loading_mock, document_chunking_mo
 
 def test_embed_file_generates_embeddings_for_documents(llm_helper_mock):
     # given
-    push_embedder = PushEmbedder(MagicMock())
+    push_embedder = PushEmbedder(MagicMock(), MagicMock())
 
     # when
     push_embedder.embed_file(
@@ -167,7 +220,7 @@ def test_embed_file_stores_documents_in_search_index(
     azure_search_helper_mock,
 ):
     # given
-    push_embedder = PushEmbedder(MagicMock())
+    push_embedder = PushEmbedder(MagicMock(), MagicMock())
 
     # when
     push_embedder.embed_file(
@@ -227,7 +280,7 @@ def test_embed_file_raises_exception_on_failure(
     azure_search_helper_mock,
 ):
     # given
-    push_embedder = PushEmbedder(MagicMock())
+    push_embedder = PushEmbedder(MagicMock(), MagicMock())
 
     successful_indexing_result = MagicMock()
     successful_indexing_result.succeeded = True

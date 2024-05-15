@@ -1,54 +1,23 @@
-import ssl
 import pytest
 from pytest_httpserver import HTTPServer
 from tests.functional.app_config import AppConfig
-from backend.batch.utilities.helpers.config.config_helper import (
-    CONFIG_CONTAINER_NAME,
-    CONFIG_FILE_NAME,
+from tests.constants import (
+    AZURE_STORAGE_CONFIG_CONTAINER_NAME,
+    AZURE_STORAGE_CONFIG_FILE_NAME,
+    COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
+    COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
 )
-import trustme
-
-
-@pytest.fixture(scope="session")
-def ca():
-    """
-    This fixture is required to run the http mock server with SSL.
-    https://pytest-httpserver.readthedocs.io/en/latest/howto.html#running-an-https-server
-    """
-    return trustme.CA()
-
-
-@pytest.fixture(scope="session")
-def httpserver_ssl_context(ca):
-    """
-    This fixture is required to run the http mock server with SSL.
-    https://pytest-httpserver.readthedocs.io/en/latest/howto.html#running-an-https-server
-    """
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    localhost_cert = ca.issue_cert("localhost")
-    localhost_cert.configure_cert(context)
-    return context
-
-
-@pytest.fixture(scope="session")
-def httpclient_ssl_context(ca):
-    """
-    This fixture is required to run the http mock server with SSL.
-    https://pytest-httpserver.readthedocs.io/en/latest/howto.html#running-an-https-server
-    """
-    with ca.cert_pem.tempfile() as ca_temp_path:
-        return ssl.create_default_context(cafile=ca_temp_path)
 
 
 @pytest.fixture(scope="function", autouse=True)
 def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     httpserver.expect_request(
-        f"/{CONFIG_CONTAINER_NAME}/{CONFIG_FILE_NAME}",
+        f"/{AZURE_STORAGE_CONFIG_CONTAINER_NAME}/{AZURE_STORAGE_CONFIG_FILE_NAME}",
         method="HEAD",
     ).respond_with_data()
 
     httpserver.expect_request(
-        f"/{CONFIG_CONTAINER_NAME}/{CONFIG_FILE_NAME}",
+        f"/{AZURE_STORAGE_CONFIG_CONTAINER_NAME}/{AZURE_STORAGE_CONFIG_FILE_NAME}",
         method="GET",
     ).respond_with_json(
         {
@@ -232,6 +201,11 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
         "/sts/v1.0/issueToken",
         method="POST",
     ).respond_with_data("speech-token")
+
+    httpserver.expect_request(
+        COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
+        COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
+    ).respond_with_json({"modelVersion": "2022-04-11", "vector": [1.0, 2.0, 3.0]})
 
     yield
 
