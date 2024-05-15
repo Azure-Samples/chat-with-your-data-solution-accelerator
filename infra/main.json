@@ -3927,7 +3927,7 @@
             },
             "appCommandLine": {
               "type": "string",
-              "defaultValue": "python -m streamlit run Admin.py --server.port 8000 --server.address 0.0.0.0 --server.enableXsrfProtection false"
+              "defaultValue": "python -m streamlit run admin.py --server.port 8000 --server.address 0.0.0.0 --server.enableXsrfProtection false"
             },
             "runtimeName": {
               "type": "string",
@@ -4855,7 +4855,7 @@
             },
             "appCommandLine": {
               "type": "string",
-              "defaultValue": "python -m streamlit run Admin.py --server.port 8000 --server.address 0.0.0.0 --server.enableXsrfProtection false"
+              "defaultValue": "python -m streamlit run admin.py --server.port 8000 --server.address 0.0.0.0 --server.enableXsrfProtection false"
             },
             "runtimeName": {
               "type": "string",

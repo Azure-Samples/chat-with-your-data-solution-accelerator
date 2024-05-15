@@ -9,4 +9,4 @@ COPY ./code/backend/batch/utilities /usr/local/src/myscripts/utilities
 WORKDIR /usr/local/src/myscripts/admin
 ENV PYTHONPATH "${PYTHONPATH}:/usr/local/src/myscripts/"
 EXPOSE 80
-CMD ["streamlit", "run", "Admin.py", "--server.port", "80", "--server.enableXsrfProtection", "false"]
+CMD ["streamlit", "run", "admin.py", "--server.port", "80", "--server.enableXsrfProtection", "false"]

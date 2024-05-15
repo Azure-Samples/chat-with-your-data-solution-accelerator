@@ -6,7 +6,7 @@ param formRecognizerName string = ''
 param contentSafetyName string = ''
 param allowedOrigins array = []
 param appServicePlanId string
-param appCommandLine string = 'python -m streamlit run Admin.py --server.port 8000 --server.address 0.0.0.0 --server.enableXsrfProtection false'
+param appCommandLine string = 'python -m streamlit run admin.py --server.port 8000 --server.address 0.0.0.0 --server.enableXsrfProtection false'
 param runtimeName string = 'python'
 param runtimeVersion string = ''
 param applicationInsightsName string = ''
