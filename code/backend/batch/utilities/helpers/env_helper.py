@@ -203,6 +203,10 @@ class EnvHelper:
         self.ORCHESTRATION_STRATEGY = os.getenv(
             "ORCHESTRATION_STRATEGY", "openai_function"
         )
+        # Conversation Type - which chooses between custom or byod
+        self.CHAT_CONVERSATION_TYPE = os.getenv(
+            "CHAT_CONVERSATION_TYPE", "custom"
+        )
         # Speech Service
         self.AZURE_SPEECH_SERVICE_NAME = os.getenv("AZURE_SPEECH_SERVICE_NAME", "")
         self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")
