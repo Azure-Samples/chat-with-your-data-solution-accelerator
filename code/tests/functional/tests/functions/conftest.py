@@ -19,6 +19,7 @@ def app_config(make_httpserver, ca):
                 "AZURE_SPEECH_REGION_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
                 "AZURE_STORAGE_ACCOUNT_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
                 "AZURE_COMPUTER_VISION_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
+                "USE_ADVANCED_IMAGE_PROCESSING": "True",
                 "SSL_CERT_FILE": ca_temp_path,
                 "CURL_CA_BUNDLE": ca_temp_path,
             }
