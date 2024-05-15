@@ -384,6 +384,14 @@ def create_app():
                 500,
             )
 
+    @app.route("/api/conversation", methods=["POST"])
+    async def conversation():
+        conversation_type = env_helper.CHAT_CONVERSATION_TYPE
+        if conversation_type == 'custom':
+            return conversation_custom()
+        else:
+            return conversation_azure_byod()
+
     @app.route("/api/speech", methods=["GET"])
     def speech_config():
         try:

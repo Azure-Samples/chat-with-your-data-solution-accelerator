@@ -664,8 +664,6 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       BACKEND_URL: 'https://${functionName}.azurewebsites.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       FUNCTION_KEY: clientKey
-      ORCHESTRATION_STRATEGY: orchestrationStrategy
-      CHAT_CONVERSATION_TYPE: chatConversationType
       LOGLEVEL: logLevel
     }
   }
@@ -732,7 +730,6 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
-      CHAT_CONVERSATION_TYPE: chatConversationType
       LOGLEVEL: logLevel
     }
   }
@@ -819,7 +816,6 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
       AZURE_COMPUTER_VISION_ENDPOINT: computerVision.outputs.endpoint
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
-      CHAT_CONVERSATION_TYPE: chatConversationType
       LOGLEVEL: logLevel
     }
   }
@@ -872,7 +868,6 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
       AZURE_COMPUTER_VISION_ENDPOINT: computerVision.outputs.endpoint
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
-      CHAT_CONVERSATION_TYPE: chatConversationType
       LOGLEVEL: logLevel
     }
   }
