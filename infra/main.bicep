@@ -168,7 +168,8 @@ param computerVisionName string = 'computer-vision-${resourceToken}'
 param computerVisionSkuName string = 'S1'
 
 @description('Location of Computer Vision Resource (if useAdvancedImageProcessing=true)')
-@allowed([ // List taken from https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/image-retrieval?tabs=python#prerequisites
+@allowed([
+  // List taken from https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/image-retrieval?tabs=python#prerequisites
   'eastus'
   'westus'
   'koreacentral'
@@ -184,7 +185,7 @@ param computerVisionLocation string = useAdvancedImageProcessing ? location : ''
 param computerVisionVectorizeImageApiVersion string = '2024-02-01'
 
 @description('Azure Computer Vision Vectorize Image Model Version')
-param computerVisionVectorizeImageModelVersion string ='2023-04-15'
+param computerVisionVectorizeImageModelVersion string = '2023-04-15'
 
 @description('Azure AI Search Resource')
 param azureAISearchName string = 'search-${resourceToken}'
@@ -318,20 +319,25 @@ var defaultOpenAiDeployments = [
   }
 ]
 
-var openAiDeployments = concat(defaultOpenAiDeployments, useAdvancedImageProcessing ? [
-    {
-      name: azureOpenAIVisionModel
-      model: {
-        format: 'OpenAI'
-        name: azureOpenAIVisionModelName
-        version: azureOpenAIVisionModelVersion
-      }
-      sku: {
-        name: 'Standard'
-        capacity: azureOpenAIVisionModelCapacity
-      }
-    }
-  ] : [])
+var openAiDeployments = concat(
+  defaultOpenAiDeployments,
+  useAdvancedImageProcessing
+    ? [
+        {
+          name: azureOpenAIVisionModel
+          model: {
+            format: 'OpenAI'
+            name: azureOpenAIVisionModelName
+            version: azureOpenAIVisionModelVersion
+          }
+          sku: {
+            name: 'Standard'
+            capacity: azureOpenAIVisionModelCapacity
+          }
+        }
+      ]
+    : []
+)
 
 module openai 'core/ai/cognitiveservices.bicep' = {
   name: azureOpenAIResourceName
@@ -757,7 +763,9 @@ module workbook './app/workbook.bicep' = {
     hostingPlanName: hostingplan.outputs.name
     functionName: hostingModel == 'container' ? function_docker.outputs.functionName : function.outputs.functionName
     websiteName: hostingModel == 'container' ? web_docker.outputs.FRONTEND_API_NAME : web.outputs.FRONTEND_API_NAME
-    adminWebsiteName: hostingModel == 'container' ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME : adminweb.outputs.WEBSITE_ADMIN_NAME
+    adminWebsiteName: hostingModel == 'container'
+      ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME
+      : adminweb.outputs.WEBSITE_ADMIN_NAME
     eventGridSystemTopicName: eventgrid.outputs.name
     logAnalyticsName: monitoring.outputs.logAnalyticsWorkspaceName
     azureOpenAIResourceName: openai.outputs.name
@@ -916,10 +924,12 @@ module storage 'core/storage/storage-account.bicep' = {
     sku: {
       name: 'Standard_GRS'
     }
-    deleteRetentionPolicy: azureSearchUseIntegratedVectorization ? {
-      enabled: true
-      days: 7
-    } : {}
+    deleteRetentionPolicy: azureSearchUseIntegratedVectorization
+      ? {
+          enabled: true
+          days: 7
+        }
+      : {}
     containers: [
       {
         name: blobContainerName
@@ -1039,6 +1049,10 @@ output AZURE_TENANT_ID string = tenant().tenantId
 output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
 output USE_KEY_VAULT bool = useKeyVault
-output FRONTEND_WEBSITE_NAME string = hostingModel == 'code' ? web.outputs.FRONTEND_API_URI : web_docker.outputs.FRONTEND_API_URI
-output ADMIN_WEBSITE_NAME string = hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_URI : adminweb_docker.outputs.WEBSITE_ADMIN_URI
+output FRONTEND_WEBSITE_NAME string = hostingModel == 'code'
+  ? web.outputs.FRONTEND_API_URI
+  : web_docker.outputs.FRONTEND_API_URI
+output ADMIN_WEBSITE_NAME string = hostingModel == 'code'
+  ? adminweb.outputs.WEBSITE_ADMIN_URI
+  : adminweb_docker.outputs.WEBSITE_ADMIN_URI
 output LOGLEVEL string = logLevel
