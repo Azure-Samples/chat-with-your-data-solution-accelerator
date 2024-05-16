@@ -1,20 +1,20 @@
 import os
 import logging
 import json
-import azure.functions as func
 from urllib.parse import urlparse
+import azure.functions as func
 
 from utilities.helpers.azure_blob_storage_client import AzureBlobStorageClient
 from utilities.helpers.env_helper import EnvHelper
 from utilities.helpers.embedders.embedder_factory import EmbedderFactory
+from utilities.search.search import Search
 
 bp_batch_push_results = func.Blueprint()
 logger = logging.getLogger(__name__)
 logger.setLevel(level=os.environ.get("LOGLEVEL", "INFO").upper())
 
 
-def _get_file_name_from_message(msg: func.QueueMessage) -> str:
-    message_body = json.loads(msg.get_body().decode("utf-8"))
+def _get_file_name_from_message(message_body) -> str:
     return message_body.get(
         "filename",
         "/".join(
@@ -27,21 +27,37 @@ def _get_file_name_from_message(msg: func.QueueMessage) -> str:
     arg_name="msg", queue_name="doc-processing", connection="AzureWebJobsStorage"
 )
 def batch_push_results(msg: func.QueueMessage) -> None:
-    do_batch_push_results(msg)
+    message_body = json.loads(msg.get_body().decode("utf-8"))
+    logger.debug("Process Document Event queue function triggered: %s", message_body)
+
+    event_type = message_body.get("eventType", "")
+    # We handle "" in this scenario for backwards compatibility
+    # This function is primarily triggered by an Event Grid queue message from the blob storage
+    # However, it can also be triggered using a legacy schema from BatchStartProcessing
+    if event_type in ("", "Microsoft.Storage.BlobCreated"):
+        _process_document_created_event(message_body)
+
+    elif event_type == "Microsoft.Storage.BlobDeleted":
+        _process_document_deleted_event(message_body)
+
+    else:
+        raise NotImplementedError(f"Unknown event type received: {event_type}")
 
 
-def do_batch_push_results(msg: func.QueueMessage) -> None:
+def _process_document_created_event(message_body) -> None:
     env_helper: EnvHelper = EnvHelper()
-    logger.info(
-        "Python queue trigger function processed a queue item: %s",
-        msg.get_body().decode("utf-8"),
-    )
 
     blob_client = AzureBlobStorageClient()
-    # Get the file name from the message
-    file_name = _get_file_name_from_message(msg)
-    # Generate the SAS URL for the file
+    file_name = _get_file_name_from_message(message_body)
     file_sas = blob_client.get_blob_sas(file_name)
-    # Process the file
+
     embedder = EmbedderFactory.create(env_helper)
     embedder.embed_file(file_sas, file_name)
+
+
+def _process_document_deleted_event(message_body) -> None:
+    env_helper: EnvHelper = EnvHelper()
+    search_handler = Search.get_search_handler(env_helper)
+
+    blob_url = message_body.get("data", {}).get("url", "")
+    search_handler.delete_by_source(f"{blob_url}_SAS_TOKEN_PLACEHOLDER_")
