@@ -6,6 +6,7 @@ pip install poetry
 
 # https://pypi.org/project/poetry-plugin-export/
 pip install poetry-plugin-export
+poetry config virtualenvs.in-project true
 poetry config warnings.export false
 
 poetry install --with dev
