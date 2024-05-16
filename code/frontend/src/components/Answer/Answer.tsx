@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useBoolean } from "@fluentui/react-hooks"
-import { FontIcon, Stack, Text } from "@fluentui/react";
+import { FontIcon, Stack, Text, DefaultButton } from "@fluentui/react";
 
 import styles from "./Answer.module.css";
 
@@ -68,6 +68,8 @@ export const Answer = ({
         };
     }, []);
 
+    console.log('answer', answer);
+
     return (
         <>
             <Stack className={styles.answerContainer} id={messageBoxId}>
@@ -93,19 +95,36 @@ export const Answer = ({
                                 >
                                 <span>{parsedAnswer.citations.length > 1 ? parsedAnswer.citations.length + " references" : "1 reference"}</span>
                                 </Text>
-                                <FontIcon className={styles.accordionIcon}
-                                onClick={handleChevronClick} iconName={chevronIsExpanded ? 'ChevronDown' : 'ChevronRight'}
+                                <FontIcon className={styles.accordionIcon} onClick={handleChevronClick} iconName={chevronIsExpanded ? 'ChevronDown' : 'ChevronRight'}
                                 />
                             </Stack>
-                            
                         </Stack>
                     </Stack.Item>
                 )}
                 
                 </Stack>
                 {chevronIsExpanded && 
-                    <div style={{ marginTop: 8, display: "flex", flexDirection: "column", height: "100%", gap: "4px", maxWidth: "100%" }}>
+                    <div className={styles.chevronContainer}>
                         {parsedAnswer.citations.map((citation, idx) => {
+                            if (citation.url?.includes('.blob.core.windows.net/presentations/')) {
+                                const downloadFile = () => {
+                                    const linkRegex = /\(([^)]+)\)/;
+                                    const matches = citation.url?.match(linkRegex);
+                                    const link = matches ? matches[1] : '';
+                                    window.open(link);
+                                }
+                                return (
+                                    <DefaultButton
+                                        key={idx}
+                                        text={createCitationFilepath(citation, idx, true)}
+                                        iconProps={{ iconName: 'Download' }}
+                                        title={createCitationFilepath(citation, idx, true)}
+                                        onClick={downloadFile}
+                                        className={styles.downloadButton}
+                                    />
+                                )
+                            }
+
                             return (
                                 <span title={createCitationFilepath(citation, ++idx)} key={idx} onClick={() => onCitationClicked(citation)} className={styles.citationContainer}>
                                     <div className={styles.citation}>{idx}</div>

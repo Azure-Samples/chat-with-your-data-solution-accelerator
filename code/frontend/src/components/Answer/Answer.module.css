@@ -177,6 +177,20 @@ sup {
     line-height: 10px;
 }
 
+.chevronContainer { 
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 4px;
+    max-width: 100%;
+}
+
+.downloadButton { 
+    border: 1px solid #0078D4;
+    color: #0078D4;
+    background-color: transparent;
+} 
 
 @media (max-width: 500px) {
     .answerFooter {
