@@ -1,8 +1,8 @@
 import os
 import logging
 import json
-import azure.functions as func
 from urllib.parse import urlparse
+import azure.functions as func
 
 from utilities.helpers.azure_blob_storage_client import AzureBlobStorageClient
 from utilities.helpers.env_helper import EnvHelper
