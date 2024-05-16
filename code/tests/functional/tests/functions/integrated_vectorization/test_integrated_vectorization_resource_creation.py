@@ -14,7 +14,7 @@ from tests.constants import (
 )
 
 sys.path.append(
-    os.path.join(os.path.dirname(sys.path[0]), "..", "..", "backend", "batch")
+    os.path.join(os.path.dirname(sys.path[0]), "..", "..", "..", "backend", "batch")
 )
 
 from backend.batch.batch_push_results import batch_push_results  # noqa: E402
@@ -129,6 +129,148 @@ def test_integrated_vectorization_index_created(
         request_matcher=RequestMatcher(
             path=f"/indexes('{app_config.get('AZURE_SEARCH_INDEX')}')",
             method="PUT",
+            json={
+                "name": f"{app_config.get('AZURE_SEARCH_INDEX')}",
+                "fields": [
+                    {
+                        "name": "id",
+                        "type": "Edm.String",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": False,
+                        "filterable": True,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "content",
+                        "type": "Edm.String",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": True,
+                        "filterable": False,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "content_vector",
+                        "type": "Collection(Edm.Single)",
+                        "dimensions": 2,
+                        "vectorSearchProfile": "myHnswProfile",
+                    },
+                    {
+                        "name": "metadata",
+                        "type": "Edm.String",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": True,
+                        "filterable": False,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "title",
+                        "type": "Edm.String",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": True,
+                        "filterable": True,
+                        "sortable": False,
+                        "facetable": True,
+                    },
+                    {
+                        "name": "source",
+                        "type": "Edm.String",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": True,
+                        "filterable": True,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "chunk",
+                        "type": "Edm.Int32",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": False,
+                        "filterable": True,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "offset",
+                        "type": "Edm.Int32",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": False,
+                        "filterable": True,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "chunk_id",
+                        "type": "Edm.String",
+                        "key": True,
+                        "filterable": True,
+                        "sortable": True,
+                        "facetable": True,
+                        "analyzer": "keyword",
+                    },
+                ],
+                "semantic": {
+                    "configurations": [
+                        {
+                            "name": f"{app_config.get('AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG')}",
+                            "prioritizedFields": {
+                                "prioritizedContentFields": [{"fieldName": "content"}]
+                            },
+                        }
+                    ]
+                },
+                "vectorSearch": {
+                    "profiles": [
+                        {
+                            "name": "myHnswProfile",
+                            "algorithm": "myHnsw",
+                            "vectorizer": "myOpenAI",
+                        },
+                        {
+                            "name": "myExhaustiveKnnProfile",
+                            "algorithm": "myExhaustiveKnn",
+                            "vectorizer": "myOpenAI",
+                        },
+                    ],
+                    "algorithms": [
+                        {
+                            "name": "myHnsw",
+                            "kind": "hnsw",
+                            "hnswParameters": {
+                                "m": 4,
+                                "efConstruction": 400,
+                                "efSearch": 500,
+                                "metric": "cosine",
+                            },
+                        },
+                        {
+                            "name": "myExhaustiveKnn",
+                            "kind": "exhaustiveKnn",
+                            "exhaustiveKnnParameters": {"metric": "cosine"},
+                        },
+                    ],
+                    "vectorizers": [
+                        {
+                            "name": "myOpenAI",
+                            "kind": "azureOpenAI",
+                            "azureOpenAIParameters": {
+                                "resourceUri": f"https://localhost:{httpserver.port}/",
+                                "deploymentId": f"{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}",
+                                "apiKey": f"{app_config.get('AZURE_OPENAI_API_KEY')}",
+                            },
+                        }
+                    ],
+                },
+            },
             query_string="api-version=2023-10-01-Preview",
             times=1,
         ),
