@@ -217,8 +217,8 @@ class ConfigHelper:
 
             config_file_path = os.path.join(os.path.dirname(__file__), "default.json")
 
-            with open(config_file_path) as f:
-                logger.info(f"Loading default config from {config_file_path}")
+            with open(config_file_path, encoding="utf-8") as f:
+                logger.info("Loading default config from %s", config_file_path)
                 ConfigHelper._default_config = json.loads(
                     Template(f.read()).substitute(
                         ORCHESTRATION_STRATEGY=env_helper.ORCHESTRATION_STRATEGY
