@@ -28,6 +28,7 @@ AZURE_SEARCH_INDEX = "mock-index"
 AZURE_SEARCH_USE_SEMANTIC_SEARCH = False
 AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = "default"
 AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = "mock-log-index"
+USE_ADVANCED_IMAGE_PROCESSING = False
 
 
 @pytest.fixture(autouse=True)
@@ -65,6 +66,7 @@ def env_helper_mock():
             AZURE_SEARCH_CONVERSATIONS_LOG_INDEX
         )
 
+        env_helper.USE_ADVANCED_IMAGE_PROCESSING = USE_ADVANCED_IMAGE_PROCESSING
         env_helper.is_auth_type_keys.return_value = True
 
         yield env_helper
@@ -250,6 +252,38 @@ def test_creates_search_index_if_not_exists(
     # then
     search_index_client_mock.return_value.create_index.assert_called_once_with(
         expected_index
+    )
+
+
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchClient")
+@patch("backend.batch.utilities.helpers.azure_search_helper.SearchIndexClient")
+def test_creates_search_index_with_image_embeddings_when_advanced_image_processing_enabled(
+    search_index_client_mock: MagicMock,
+    search_client_mock: MagicMock,
+    env_helper_mock: MagicMock,
+):
+    # given
+    env_helper_mock.USE_ADVANCED_IMAGE_PROCESSING = True
+    search_index_client_mock.return_value.list_index_names.return_value = [
+        "some-irrelevant-index"
+    ]
+
+    expected_image_vector_field = SearchField(
+        name="image_vector",
+        type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
+        searchable=True,
+        vector_search_dimensions=1024,
+        vector_search_profile_name="myHnswProfile",
+    )
+
+    # when
+    AzureSearchHelper().get_search_client()
+
+    # then
+    search_index_client_mock.return_value.create_index.assert_called_once()
+    assert (
+        expected_image_vector_field
+        in search_index_client_mock.return_value.create_index.call_args.args[0].fields
     )
 
 

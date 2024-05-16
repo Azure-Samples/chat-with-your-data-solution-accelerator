@@ -207,6 +207,22 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
         COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
     ).respond_with_json({"modelVersion": "2022-04-11", "vector": [1.0, 2.0, 3.0]})
 
+    httpserver.expect_request(
+        f"/indexes('{app_config.get('AZURE_SEARCH_INDEX')}')/docs/search.index",
+        method="POST",
+    ).respond_with_json(
+        {
+            "value": [
+                {
+                    "key": "some-key",
+                    "status": True,
+                    "errorMessage": None,
+                    "statusCode": 201,
+                }
+            ]
+        }
+    )
+
     yield
 
     httpserver.check()
