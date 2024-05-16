@@ -219,6 +219,10 @@ class AzureSearchHelper:
                 name="metadata",
                 type=SearchFieldDataType.String,
             ),
+            SearchableField(
+                name="feedback",
+                type=SearchFieldDataType.String,
+            ),
             SimpleField(
                 name="type",
                 type=SearchFieldDataType.String,

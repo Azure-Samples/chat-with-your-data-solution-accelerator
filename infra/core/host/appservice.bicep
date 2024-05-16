@@ -98,18 +98,17 @@ module configAppSettings 'appservice-appsettings.bicep' = {
     appSettings: union(
       appSettings,
       {
-        APPLICATIONINSIGHTS_ENABLED: string(!empty(applicationInsightsName))
+        APPINSIGHTS_ENABLED: string(!empty(applicationInsightsName))
         AZURE_RESOURCE_GROUP: resourceGroup().name
         AZURE_SUBSCRIPTION_ID: subscription().subscriptionId
         SCM_DO_BUILD_DURING_DEPLOYMENT: string(scmDoBuildDuringDeployment)
         ENABLE_ORYX_BUILD: string(enableOryxBuild)
       },
       runtimeName == 'python' && appCommandLine == '' ? { PYTHON_ENABLE_GUNICORN_MULTIWORKERS: 'true' } : {},
-      !empty(applicationInsightsName)
-        ? { APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString }
-        : {},
-      !empty(keyVaultName) ? { AZURE_KEY_VAULT_ENDPOINT: keyVault.properties.vaultUri } : {}
-    )
+      !empty(applicationInsightsName) ? { APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString } : {},
+      !empty(applicationInsightsName) ? { APPINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString } : {},
+      !empty(applicationInsightsName) ? { APPINSIGHTS_INSTRUMENTATIONKEY: applicationInsights.properties.InstrumentationKey } : {},
+      !empty(keyVaultName) ? { AZURE_KEY_VAULT_ENDPOINT: keyVault.properties.vaultUri } : {})
   }
 }
 

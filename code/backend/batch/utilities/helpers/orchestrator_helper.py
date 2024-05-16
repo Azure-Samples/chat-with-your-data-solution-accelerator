@@ -13,6 +13,7 @@ class Orchestrator:
 
     async def handle_message(
         self,
+        user_id: str,
         user_message: str,
         chat_history: List[dict],
         conversation_id: str,
@@ -20,10 +21,13 @@ class Orchestrator:
         **kwargs: dict,
     ) -> dict:
         orchestrator = get_orchestrator(orchestrator.strategy.value)
+        print(
+            f"handle_message called with user_id={user_id}, conversation_id={conversation_id}, user_message={user_message}, chat_history={chat_history}, kwargs={kwargs}"
+        )
         if orchestrator is None:
             raise Exception(
                 f"Unknown orchestration strategy: {orchestrator.strategy.value}"
             )
         return await orchestrator.handle_message(
-            user_message, chat_history, conversation_id
+            user_id, user_message, chat_history, conversation_id, **kwargs
         )

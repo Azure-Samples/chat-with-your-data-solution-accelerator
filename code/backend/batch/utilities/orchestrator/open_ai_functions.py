@@ -51,7 +51,12 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
         ]
 
     async def orchestrate(
-        self, user_message: str, chat_history: List[dict], **kwargs: dict
+        self,
+        user_id: str,
+        user_message: str,
+        chat_history: List[dict],
+        conversation_id: str,
+        **kwargs: dict,
     ) -> list[dict]:
         # Call Content Safety tool
         if self.config.prompts.enable_content_safety:
@@ -69,7 +74,14 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
         # Create conversation history
         messages = [{"role": "system", "content": system_message}]
         for message in chat_history:
-            messages.append({"role": message["role"], "content": message["content"]})
+            messages.append(
+                {
+                    "user_id": user_id,
+                    "conversation_id": conversation_id,
+                    "role": message["role"],
+                    "content": message["content"],
+                }
+            )
         messages.append({"role": "user", "content": user_message})
 
         result = llm_helper.get_chat_completion_with_functions(

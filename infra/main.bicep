@@ -5,13 +5,15 @@ targetScope = 'subscription'
 @description('Name of the the environment which is used to generate a short unique hash used in all resources.')
 param environmentName string
 
-param resourceToken string = toLower(uniqueString(subscription().id, environmentName, location))
+param contentSafetyLocation string = 'canadaeast'
+param oaiLocation string = 'eastus'
+// param resourceToken string = toLower(uniqueString(subscription().id, environmentName, location))
 
 @description('Location for all resources.')
 param location string
 
 @description('Name of App Service plan')
-param hostingPlanName string = 'hosting-plan-${resourceToken}'
+param hostingPlanName string = 'host-teams-accelerator-canadacentral-001'
 
 @description('The pricing tier for the App Service plan')
 @allowed([
@@ -43,16 +45,16 @@ param hostingPlanSku string = 'B3'
 param skuTier string = 'Basic'
 
 @description('Name of Web App')
-param websiteName string = 'web-${resourceToken}'
+param websiteName string = 'as-teams-accelerator-canadacentral-001'
 
 @description('Name of Admin Web App')
-param adminWebsiteName string = '${websiteName}-admin'
+param adminWebsiteName string = 'ADMIN-as-teams-accelerator-canadacentral-001'
 
 @description('Name of Application Insights')
-param applicationInsightsName string = 'appinsights-${resourceToken}'
+param applicationInsightsName string = 'appi-teams-accelerator-canadacentral-001'
 
 @description('Name of the Workbook')
-param workbookDisplayName string = 'workbook-${resourceToken}'
+param workbookDisplayName string = 'wb-teams-accelerator-canadacentral-001'
 
 @description('Use semantic search')
 param azureSearchUseSemanticSearch string = 'false'
@@ -64,7 +66,7 @@ param azureSearchSemanticSearchConfig string = 'default'
 param azureSearchIndexIsPrechunked string = 'false'
 
 @description('Top K results')
-param azureSearchTopK string = '5'
+param azureSearchTopK string = '10'
 
 @description('Enable in domain')
 param azureSearchEnableInDomain string = 'false'
@@ -84,11 +86,14 @@ param azureSearchTitleColumn string = 'title'
 @description('Url column')
 param azureSearchUrlColumn string = 'url'
 
-@description('Use Azure Search Integrated Vectorization')
+@description('Use Azure Search Integrated Vectorization (Not yet implemented)')
+@allowed([
+  false
+])
 param azureSearchUseIntegratedVectorization bool = false
 
 @description('Name of Azure OpenAI Resource')
-param azureOpenAIResourceName string = 'openai-${resourceToken}'
+param azureOpenAIResourceName string = 'oai-teams-accelerator-canadacentral-001'
 
 @description('Name of Azure OpenAI Resource SKU')
 param azureOpenAISkuName string = 'S0'
@@ -108,33 +113,33 @@ param azureOpenAIModelCapacity int = 30
 param useAdvancedImageProcessing bool = false
 
 @description('Azure OpenAI Vision Model Deployment Name')
-param azureOpenAIVisionModel string = 'gpt-4'
+
+param azureOpenAIVisionModel string = 'gpt-35-turbo-16k'
 
 @description('Azure OpenAI Vision Model Name')
-param azureOpenAIVisionModelName string = 'gpt-4'
+param azureOpenAIVisionModelName string = 'gpt-35-turbo-16k'
 
 @description('Azure OpenAI Vision Model Version')
-param azureOpenAIVisionModelVersion string = 'vision-preview'
+param azureOpenAIVisionModelVersion string = '0613'
 
 @description('Azure OpenAI Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIVisionModelCapacity int = 10
 
-@description('Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain')
+@description('Orchestration strategy: openai_function or langchain str. If you use a old version of turbo (0301), plese select langchain')
 @allowed([
   'openai_function'
-  'semantic_kernel'
   'langchain'
 ])
 param orchestrationStrategy string = 'openai_function'
 
 @description('Azure OpenAI Temperature')
-param azureOpenAITemperature string = '0'
+param azureOpenAITemperature string = '0.2'
 
 @description('Azure OpenAI Top P')
 param azureOpenAITopP string = '1'
 
 @description('Azure OpenAI Max Tokens')
-param azureOpenAIMaxTokens string = '1000'
+param azureOpenAIMaxTokens string = '6000'
 
 @description('Azure OpenAI Stop Sequence')
 param azureOpenAIStopSequence string = '\n'
@@ -158,7 +163,7 @@ param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
 param azureOpenAIEmbeddingModelCapacity int = 30
 
 @description('Name of Computer Vision Resource (if useAdvancedImageProcessing=true)')
-param computerVisionName string = 'computer-vision-${resourceToken}'
+param computerVisionName string = 'cv-teams-accelerator-canadacentral-001'
 
 @description('Name of Computer Vision Resource SKU (if useAdvancedImageProcessing=true)')
 @allowed([
@@ -168,8 +173,7 @@ param computerVisionName string = 'computer-vision-${resourceToken}'
 param computerVisionSkuName string = 'S1'
 
 @description('Location of Computer Vision Resource (if useAdvancedImageProcessing=true)')
-@allowed([
-  // List taken from https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/image-retrieval?tabs=python#prerequisites
+@allowed([// List taken from https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/image-retrieval?tabs=python#prerequisites
   'eastus'
   'westus'
   'koreacentral'
@@ -181,14 +185,8 @@ param computerVisionSkuName string = 'S1'
 ])
 param computerVisionLocation string = useAdvancedImageProcessing ? location : ''
 
-@description('Azure Computer Vision Vectorize Image API Version')
-param computerVisionVectorizeImageApiVersion string = '2024-02-01'
-
-@description('Azure Computer Vision Vectorize Image Model Version')
-param computerVisionVectorizeImageModelVersion string = '2023-04-15'
-
 @description('Azure AI Search Resource')
-param azureAISearchName string = 'search-${resourceToken}'
+param azureAISearchName string = 'srch-teams-accelerator-canadacentral-001'
 
 @description('The SKU of the search service you want to create. E.g. free or standard')
 @allowed([
@@ -201,34 +199,28 @@ param azureAISearchName string = 'search-${resourceToken}'
 param azureSearchSku string = 'standard'
 
 @description('Azure AI Search Index')
-param azureSearchIndex string = 'index-${resourceToken}'
-
-@description('Azure AI Search Indexer')
-param azureSearchIndexer string = 'indexer-${resourceToken}'
-
-@description('Azure AI Search Datasource')
-param azureSearchDatasource string = 'datasource-${resourceToken}'
+param azureSearchIndex string = 'idx-teams-accelerator-canadacentral-002'
 
 @description('Azure AI Search Conversation Log Index')
 param azureSearchConversationLogIndex string = 'conversations'
 
 @description('Name of Storage Account')
-param storageAccountName string = 'str${resourceToken}'
+param storageAccountName string = 'stteamsaccelerator'
 
 @description('Name of Function App for Batch document processing')
-param functionName string = 'backend-${resourceToken}'
+param functionName string = 'func-teams-accelerator-canadacentral-001'
 
 @description('Azure Form Recognizer Name')
-param formRecognizerName string = 'formrecog-${resourceToken}'
+param formRecognizerName string = 'di-teams-accelerator-canadacentral-001'
 
 @description('Azure Content Safety Name')
-param contentSafetyName string = 'contentsafety-${resourceToken}'
+param contentSafetyName string = 'cs-teams-accelerator-canadacentral-001'
 
 @description('Azure Speech Service Name')
-param speechServiceName string = 'speech-${resourceToken}'
+param speechServiceName string = 'spch-teams-accelerator-canadacentral-001'
 
 @description('Log Analytics Name')
-param logAnalyticsName string = 'la-${resourceToken}'
+param logAnalyticsName string = 'log-teams-accelerator-canadacentral-001'
 
 param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'
@@ -251,7 +243,7 @@ param authType string = 'keys'
   'code'
   'container'
 ])
-param hostingModel string = 'container'
+param hostingModel string = 'code'
 
 @allowed([
   'CRITICAL'
@@ -266,12 +258,13 @@ param logLevel string = 'INFO'
 param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
 
 var blobContainerName = 'documents'
+
 var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
 var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
 var rgName = 'rg-${environmentName}'
-var keyVaultName = 'kv-${resourceToken}'
+var keyVaultName = 'kv-teams-accelerator-001'
 
 // Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
@@ -344,7 +337,7 @@ module openai 'core/ai/cognitiveservices.bicep' = {
   scope: rg
   params: {
     name: azureOpenAIResourceName
-    location: location
+    location: oaiLocation
     tags: tags
     sku: {
       name: azureOpenAISkuName
@@ -436,7 +429,6 @@ module storekeys './app/storekeys.bicep' = if (useKeyVault) {
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
     speechServiceName: speechServiceName
-    computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     rgName: rgName
   }
 }
@@ -472,7 +464,7 @@ module hostingplan './core/host/appserviceplan.bicep' = {
       tier: skuTier
     }
     reserved: true
-    tags: { CostControl: 'Ignore' }
+    tags: { Automation: 'Ignore' }
   }
 }
 
@@ -532,10 +524,9 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
-      AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
+      SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
     }
@@ -597,10 +588,9 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
-      AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
+      SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
     }
@@ -661,10 +651,6 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
       BACKEND_URL: 'https://${functionName}.azurewebsites.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       FUNCTION_KEY: clientKey
@@ -727,10 +713,6 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
       BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       FUNCTION_KEY: clientKey
@@ -791,7 +773,6 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
     speechServiceName: speechService.outputs.name
-    computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     clientKey: clientKey
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
     storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
@@ -799,15 +780,12 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-    computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_MODEL: azureOpenAIModel
@@ -816,11 +794,6 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_SEARCH_INDEX: azureSearchIndex
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
@@ -844,7 +817,6 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
     speechServiceName: speechService.outputs.name
-    computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     clientKey: clientKey
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
     storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
@@ -852,15 +824,12 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-    computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_MODEL: azureOpenAIModel
@@ -869,11 +838,6 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_SEARCH_INDEX: azureSearchIndex
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
@@ -897,7 +861,7 @@ module contentsafety 'core/ai/cognitiveservices.bicep' = {
   scope: rg
   params: {
     name: contentSafetyName
-    location: location
+    location: contentSafetyLocation
     tags: tags
     kind: 'ContentSafety'
   }
@@ -996,15 +960,14 @@ module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
   }
 }
 
+// TODO: Streamline to one key=value pair
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
-output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
+output APPINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
+output APPINSIGHTS_INSTRUMENTATIONKEY string = monitoring.outputs.applicationInsightsInstrumentationKey
+
 output AZURE_BLOB_CONTAINER_NAME string = blobContainerName
 output AZURE_BLOB_ACCOUNT_NAME string = storageAccountName
 output AZURE_BLOB_ACCOUNT_KEY string = useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-output AZURE_COMPUTER_VISION_ENDPOINT string = useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
-output AZURE_COMPUTER_VISION_KEY string = useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
-output AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION string = computerVisionVectorizeImageApiVersion
-output AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION string = computerVisionVectorizeImageModelVersion
 output AZURE_CONTENT_SAFETY_ENDPOINT string = contentsafety.outputs.endpoint
 output AZURE_CONTENT_SAFETY_KEY string = useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
 output AZURE_FORM_RECOGNIZER_ENDPOINT string = formrecognizer.outputs.endpoint
@@ -1039,20 +1002,17 @@ output AZURE_SEARCH_TITLE_COLUMN string = azureSearchTitleColumn
 output AZURE_SEARCH_URL_COLUMN string = azureSearchUrlColumn
 output AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION bool = azureSearchUseIntegratedVectorization
 output AZURE_SEARCH_INDEX string = azureSearchIndex
-output AZURE_SEARCH_INDEXER_NAME string = azureSearchIndexer
-output AZURE_SEARCH_DATASOURCE_NAME string = azureSearchDatasource
+// output AZURE_SEARCH_INDEXER_NAME string = azureSearchIndexer
+// output AZURE_SEARCH_DATASOURCE_NAME string = azureSearchDatasource
 output AZURE_SPEECH_SERVICE_NAME string = speechServiceName
 output AZURE_SPEECH_SERVICE_REGION string = location
 output AZURE_SPEECH_SERVICE_KEY string = useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-output AZURE_SPEECH_RECOGNIZER_LANGUAGES string = recognizedLanguages
 output AZURE_TENANT_ID string = tenant().tenantId
 output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
 output USE_KEY_VAULT bool = useKeyVault
-output FRONTEND_WEBSITE_NAME string = hostingModel == 'code'
-  ? web.outputs.FRONTEND_API_URI
-  : web_docker.outputs.FRONTEND_API_URI
-output ADMIN_WEBSITE_NAME string = hostingModel == 'code'
-  ? adminweb.outputs.WEBSITE_ADMIN_URI
-  : adminweb_docker.outputs.WEBSITE_ADMIN_URI
+output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
+output FRONTEND_WEBSITE_NAME string = hostingModel == 'code' ? web.outputs.FRONTEND_API_URI : web_docker.outputs.FRONTEND_API_URI
+output ADMIN_WEBSITE_NAME string = hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_URI : adminweb_docker.outputs.WEBSITE_ADMIN_URI
+output SPEECH_RECOGNIZER_LANGUAGES string = recognizedLanguages
 output LOGLEVEL string = logLevel

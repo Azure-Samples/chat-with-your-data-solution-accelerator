@@ -28,7 +28,11 @@ class OrchestratorBase(ABC):
 
     @abstractmethod
     async def orchestrate(
-        self, user_message: str, chat_history: List[dict], **kwargs: dict
+        self,
+        user_message: str,
+        chat_history: List[dict],
+        conversation_id: str,
+        **kwargs: dict,
     ) -> list[dict]:
         pass
 
@@ -64,14 +68,18 @@ class OrchestratorBase(ABC):
 
     async def handle_message(
         self,
+        user_id: str,
         user_message: str,
         chat_history: List[dict],
-        conversation_id: Optional[str],
+        conversation_id: str,
         **kwargs: Optional[dict],
     ) -> dict:
-        result = await self.orchestrate(user_message, chat_history, **kwargs)
+        result = await self.orchestrate(
+            user_id, user_message, chat_history, conversation_id, **kwargs
+        )
         if self.config.logging.log_tokens:
             custom_dimensions = {
+                "user_id": user_id,
                 "conversation_id": conversation_id,
                 "message_id": self.message_id,
                 "prompt_tokens": self.tokens["prompt"],
@@ -83,6 +91,7 @@ class OrchestratorBase(ABC):
             self.conversation_logger.log(
                 messages=[
                     {
+                        "user_id": user_id,
                         "role": "user",
                         "content": user_message,
                         "conversation_id": conversation_id,

@@ -18,6 +18,7 @@ param speechServiceName string = ''
 param appSettings object = {}
 param useKeyVault bool
 param openAIKeyName string = ''
+@secure()
 param storageAccountKeyName string = ''
 param formRecognizerKeyName string = ''
 param searchKeyName string = ''

@@ -6,14 +6,12 @@ param rgName string = ''
 param formRecognizerName string = ''
 param contentSafetyName string = ''
 param speechServiceName string = ''
-param computerVisionName string = ''
 param storageAccountKeyName string = 'AZURE-STORAGE-ACCOUNT-KEY'
 param openAIKeyName string = 'AZURE-OPENAI-API-KEY'
 param searchKeyName string = 'AZURE-SEARCH-KEY'
 param formRecognizerKeyName string = 'AZURE-FORM-RECOGNIZER-KEY'
 param contentSafetyKeyName string = 'AZURE-CONTENT-SAFETY-KEY'
 param speechKeyName string = 'AZURE-SPEECH-KEY'
-param computerVisionKeyName string = 'AZURE-COMPUTER-VISION-KEY'
 
 resource storageAccountKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: keyVault
@@ -104,4 +102,3 @@ output SEARCH_KEY_NAME string = searchKeySecret.name
 output OPENAI_KEY_NAME string = openAIKeySecret.name
 output STORAGE_ACCOUNT_KEY_NAME string = storageAccountKeySecret.name
 output SPEECH_KEY_NAME string = speechKeySecret.name
-output COMPUTER_VISION_KEY_NAME string = computerVisionName != '' ? computerVisionKeySecret.name : ''

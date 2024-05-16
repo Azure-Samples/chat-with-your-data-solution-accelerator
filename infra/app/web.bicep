@@ -6,7 +6,7 @@ param appCommandLine string = ''
 param appServicePlanId string
 param applicationInsightsName string = ''
 param runtimeName string = 'python'
-param runtimeVersion string = ''
+param runtimeVersion string = '3.11'
 param keyVaultName string = ''
 param azureOpenAIName string = ''
 param azureAISearchName string = ''
@@ -18,6 +18,7 @@ param speechServiceName string = ''
 param appSettings object = {}
 param useKeyVault bool
 param openAIKeyName string = ''
+@secure()
 param storageAccountKeyName string = ''
 param formRecognizerKeyName string = ''
 param searchKeyName string = ''
@@ -114,16 +115,6 @@ module web '../core/host/appservice.bicep' = {
     dockerFullImageName: dockerFullImageName
     scmDoBuildDuringDeployment: useDocker ? false : true
     healthCheckPath: healthCheckPath
-  }
-}
-
-// Storage Blob Data Contributor
-module storageBlobRoleWeb '../core/security/role.bicep' = if (authType == 'rbac') {
-  name: 'storage-blob-role-web'
-  params: {
-    principalId: web.outputs.identityPrincipalId
-    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-    principalType: 'ServicePrincipal'
   }
 }
 
