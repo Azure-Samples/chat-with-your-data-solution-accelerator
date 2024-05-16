@@ -333,7 +333,6 @@ def create_app():
     def health():
         return "OK"
 
-    @app.route("/api/conversation/azure_byod", methods=["POST"])
     def conversation_azure_byod():
         try:
             if env_helper.should_use_data():
@@ -354,7 +353,6 @@ def create_app():
                 500,
             )
 
-    @app.route("/api/conversation/custom", methods=["POST"])
     async def conversation_custom():
         message_orchestrator = get_message_orchestrator()
 

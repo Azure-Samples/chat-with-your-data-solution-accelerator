@@ -262,6 +262,17 @@
         "description": "Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain"
       }
     },
+    "chatConversationType": {
+      "type": "string",
+      "defaultValue": "custom",
+      "allowedValues": [
+        "custom",
+        "byod"
+      ],
+      "metadata": {
+        "description": "Chat conversation type: custom or byod."
+      }
+    },
     "azureOpenAITemperature": {
       "type": "string",
       "defaultValue": "0",
@@ -2006,6 +2017,7 @@
               "AZURE_SPEECH_SERVICE_REGION": "[parameters('location')]",
               "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "[parameters('recognizedLanguages')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
+              "CHAT_CONVERSATION_TYPE": "[parameters('chatConversationType')]",
               "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
@@ -3881,7 +3893,6 @@
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "FUNCTION_KEY": "[variables('clientKey')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "CHAT_CONVERSATION_TYPE": "[parameters('chatConversationType')]",
               "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
@@ -4810,7 +4821,6 @@
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "FUNCTION_KEY": "[variables('clientKey')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "CHAT_CONVERSATION_TYPE": "[parameters('chatConversationType')]",
               "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
@@ -7464,7 +7474,6 @@
               "AZURE_COMPUTER_VISION_ENDPOINT": "[if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, '')]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "CHAT_CONVERSATION_TYPE": "[parameters('chatConversationType')]",
               "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
@@ -8700,7 +8709,6 @@
               "AZURE_COMPUTER_VISION_ENDPOINT": "[if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, '')]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "CHAT_CONVERSATION_TYPE": "[parameters('chatConversationType')]",
               "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
