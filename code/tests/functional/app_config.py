@@ -68,7 +68,7 @@ class AppConfig:
         "LOAD_CONFIG_FROM_BLOB_STORAGE": "True",
         "LOGLEVEL": "DEBUG",
         "ORCHESTRATION_STRATEGY": "openai_function",
-        "CHAT_CONVERSATION_TYPE": "custom",
+        "CONVERSATION_FLOW": "custom",
         "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "en-US,es-ES",
         "TIKTOKEN_CACHE_DIR": f"{os.path.dirname(os.path.realpath(__file__))}/resources",
         "USE_ADVANCED_IMAGE_PROCESSING": "False",

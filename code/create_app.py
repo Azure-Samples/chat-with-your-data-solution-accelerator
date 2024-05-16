@@ -401,8 +401,8 @@ def create_app():
 
     @app.route("/api/conversation", methods=["POST"])
     async def conversation():
-        conversation_type = env_helper.CHAT_CONVERSATION_TYPE
-        if conversation_type == 'custom':
+        conversation_flow = env_helper.CONVERSATION_FLOW
+        if conversation_flow == 'custom':
             return conversation_custom()
         else:
             return conversation_azure_byod()
