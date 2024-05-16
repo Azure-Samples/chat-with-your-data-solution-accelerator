@@ -61,7 +61,7 @@ class PushEmbedder(EmbedderBase):
         ):
             logger.warning("Advanced image processing is not supported yet")
 
-            caption = self.generate_image_caption(source_url)
+            caption = self.__generate_image_caption(source_url)
             caption_vector = self.llm_helper.generate_embeddings(caption)
 
             image_vector = self.azure_computer_vision_client.vectorize_image(source_url)
@@ -88,7 +88,7 @@ class PushEmbedder(EmbedderBase):
             logger.error("Failed to upload documents to search index")
             raise Exception(response)
 
-    def generate_image_caption(self, source_url):
+    def __generate_image_caption(self, source_url):
         model = self.env_helper.AZURE_OPENAI_VISION_MODEL
         caption_system_message = """You are an assistant that generates rich descriptions of images.
 You need to be accurate in the information you extract and detailed in the descriptons you generate.
@@ -144,8 +144,8 @@ If the image is mostly text, use OCR to extract the text as it is displayed in t
         self,
         source_url: str,
         image_vector: List[float],
-        content: str = "",
-        content_vector: List[float] = [],
+        content: str,
+        content_vector: List[float],
     ):
         parsed_url = urlparse(source_url)
 
