@@ -90,7 +90,7 @@ class PushEmbedder(EmbedderBase):
 
     def generate_image_caption(self, source_url):
         model = self.env_helper.AZURE_OPENAI_VISION_MODEL
-        caption_system_message = """You are a assistant that generates rich descriptions of images.
+        caption_system_message = """You are an assistant that generates rich descriptions of images.
 You need to be accurate in the information you extract and detailed in the descriptons you generate.
 Do not abbreviate anything and do not shorten sentances. Explain the image completely.
 If you are provided with an image of a flow chart, describe the flow chart in detail.

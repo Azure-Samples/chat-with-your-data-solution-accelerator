@@ -151,7 +151,7 @@ def test_embed_file_advanced_image_processing_uses_vision_model_for_captioning(
         [
             {
                 "role": "system",
-                "content": """You are a assistant that generates rich descriptions of images.
+                "content": """You are an assistant that generates rich descriptions of images.
 You need to be accurate in the information you extract and detailed in the descriptons you generate.
 Do not abbreviate anything and do not shorten sentances. Explain the image completely.
 If you are provided with an image of a flow chart, describe the flow chart in detail.
