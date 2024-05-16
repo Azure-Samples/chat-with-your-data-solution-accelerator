@@ -1,14 +1,19 @@
-import streamlit as st
+"""
+This module contains the code for the Admin app of the Chat with your data Solution Accelerator.
+"""
+
 import os
 import logging
 import sys
+import streamlit as st
 from azure.monitor.opentelemetry import configure_azure_monitor
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 logging.captureWarnings(True)
 logging.basicConfig(level=os.getenv("LOGLEVEL", "INFO").upper())
-# Raising the azure log level to WARN as it is too verbose - https://github.com/Azure/azure-sdk-for-python/issues/9422
+# Raising the azure log level to WARN as it is too verbose
+# https://github.com/Azure/azure-sdk-for-python/issues/9422
 logging.getLogger("azure").setLevel(os.environ.get("LOGLEVEL_AZURE", "WARN").upper())
 # We cannot use EnvHelper here as Application Insights needs to be configured first
 # for instrumentation to work correctly
@@ -26,14 +31,14 @@ st.set_page_config(
     menu_items=None,
 )
 
-mod_page_style = """
+MOD_PAGE_STYLE = """
             <style>
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
             </style>
             """
-st.markdown(mod_page_style, unsafe_allow_html=True)
+st.markdown(MOD_PAGE_STYLE, unsafe_allow_html=True)
 
 
 col1, col2, col3 = st.columns([1, 2, 1])
