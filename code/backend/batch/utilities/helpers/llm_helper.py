@@ -29,6 +29,7 @@ class LLMHelper:
             )
 
         self.llm_model = self.env_helper.AZURE_OPENAI_MODEL
+        self.llm_vision_model = self.env_helper.AZURE_OPENAI_VISION_MODEL
         self.llm_max_tokens = (
             self.env_helper.AZURE_OPENAI_MAX_TOKENS
             if self.env_helper.AZURE_OPENAI_MAX_TOKENS != ""
@@ -117,9 +118,9 @@ class LLMHelper:
             function_call=function_call,
         )
 
-    def get_chat_completion(self, messages: list[dict]):
+    def get_chat_completion(self, messages: list[dict], model: str | None = None):
         return self.openai_client.chat.completions.create(
-            model=self.llm_model,
+            model=model or self.llm_model,
             messages=messages,
         )
 

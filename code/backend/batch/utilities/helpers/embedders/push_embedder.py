@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 class PushEmbedder(EmbedderBase):
     def __init__(self, blob_client: AzureBlobStorageClient, env_helper: EnvHelper):
+        self.env_helper = env_helper
         self.llm_helper = LLMHelper()
         self.azure_search_helper = AzureSearchHelper()
         self.azure_computer_vision_client = AzureComputerVisionClient(env_helper)
@@ -62,6 +63,28 @@ class PushEmbedder(EmbedderBase):
             image_vectors = self.azure_computer_vision_client.vectorize_image(
                 source_url
             )
+
+            model = self.env_helper.AZURE_OPENAI_VISION_MODEL
+            caption_system_message = """You are a assistant that generates rich descriptions of images.
+You need to be accurate in the information you extract and detailed in the descriptons you generate.
+Do not abbreviate anything and do not shorten sentances. Explain the image completely.
+If you are provided with an image of a flow chart, describe the flow chart in detail.
+If the image is mostly text, use OCR to extract the text as it is displayed in the image."""
+
+            messages = [
+                {"role": "system", "content": caption_system_message},
+                {
+                    "role": "user",
+                    "content": [
+                        {"text": "Describe this image in detail", "type": "text"},
+                        {"image_url": source_url, "type": "image_url"},
+                    ],
+                },
+            ]
+
+            response = self.llm_helper.get_chat_completion(messages, model)
+
+            # Remember to limit size of caption
 
             documents_to_upload.append(
                 self.__create_image_document(source_url, image_vectors)
