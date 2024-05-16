@@ -379,9 +379,11 @@ try:
             ),
         }
         ConfigHelper.save_config_as_active(current_config)
-        st.success("Configuration saved successfully!")
+        st.success(
+            "Configuration saved successfully! Please restart the chat service for these changes to take effect."
+        )
 
-    with st.popover(":red[Reset confiiguration to defaults]"):
+    with st.popover(":red[Reset configuration to defaults]"):
         st.write(
             "**Resetting the configuration cannot be reversed, proceed with caution!**"
         )

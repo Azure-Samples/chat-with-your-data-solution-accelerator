@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import functools
 from string import Template
 
 from ..azure_blob_storage_client import AzureBlobStorageClient
@@ -164,6 +165,7 @@ class ConfigHelper:
             ]
 
     @staticmethod
+    @functools.cache
     def get_active_config_or_default():
         env_helper = EnvHelper()
         config = ConfigHelper.get_default_config()
@@ -191,6 +193,7 @@ class ConfigHelper:
             CONFIG_FILE_NAME,
             content_type="application/json",
         )
+        ConfigHelper.get_active_config_or_default.cache_clear()
 
     @staticmethod
     def validate_config(config: dict):
@@ -229,6 +232,7 @@ class ConfigHelper:
     @staticmethod
     def clear_config():
         ConfigHelper._default_config = None
+        ConfigHelper.get_active_config_or_default.cache_clear()
 
     @staticmethod
     def _append_advanced_image_processors():

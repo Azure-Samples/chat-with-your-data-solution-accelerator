@@ -139,6 +139,7 @@ def env_helper_mock():
 @pytest.fixture(autouse=True)
 def reset_default_config():
     ConfigHelper._default_config = None
+    ConfigHelper.get_active_config_or_default.cache_clear()
     yield
     ConfigHelper._default_config = None
 
