@@ -670,6 +670,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       BACKEND_URL: 'https://${functionName}.azurewebsites.net'
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       FUNCTION_KEY: clientKey
+      ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
     }
   }
