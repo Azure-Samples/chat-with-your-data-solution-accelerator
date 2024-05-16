@@ -55,9 +55,8 @@ class SearchHandlerBase(ABC):
         if documents is None:
             return
 
-        results = self.output_results(documents)
-        files_to_dete = {filename: ids for filename, ids in results.items()}
-        self.delete_files(files_to_dete)
+        files_to_delete = self.output_results(documents)
+        self.delete_files(files_to_delete)
 
     def _get_documents_by_source(self, source):
         if source is None:

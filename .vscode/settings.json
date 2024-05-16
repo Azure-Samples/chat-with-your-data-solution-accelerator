@@ -4,6 +4,7 @@
     "azureFunctions.scmDoBuildDuringDeployment": true,
     "azureFunctions.projectLanguage": "Python",
     "azureFunctions.projectRuntime": "~4",
+    "azureFunctions.pythonVenv": "${workspaceFolder}/.venv",
     "debug.internalConsoleOptions": "neverOpen",
     "azureFunctions.projectLanguageModel": 2,
     "files.insertFinalNewline": true,
