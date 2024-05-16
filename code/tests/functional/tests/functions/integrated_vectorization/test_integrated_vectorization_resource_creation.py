@@ -150,6 +150,17 @@ def test_integrated_vectorization_datasouce_created(
         request_matcher=RequestMatcher(
             path=f"/datasources('{app_config.get('AZURE_SEARCH_DATASOURCE_NAME')}')",
             method="PUT",
+            json={
+                "name": app_config.get("AZURE_SEARCH_DATASOURCE_NAME"),
+                "type": "azureblob",
+                "credentials": {
+                    "connectionString": f"DefaultEndpointsProtocol=https;AccountName={app_config.get('AZURE_BLOB_ACCOUNT_NAME')};AccountKey=c29tZS1ibG9iLWFjY291bnQta2V5;EndpointSuffix=core.windows.net"
+                },
+                "container": {"name": f"{app_config.get('AZURE_BLOB_CONTAINER_NAME')}"},
+                "dataDeletionDetectionPolicy": {
+                    "@odata.type": "#Microsoft.Azure.Search.NativeBlobSoftDeleteDeletionDetectionPolicy"
+                },
+            },
             query_string="api-version=2023-10-01-Preview",
             times=1,
         ),
