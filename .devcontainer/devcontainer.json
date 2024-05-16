@@ -28,6 +28,7 @@
 				"ms-python.python",
 				"ms-python.black-formatter",
 				"ms-python.vscode-pylance",
+				"ms-python.pylint",
 				"ms-toolsai.jupyter",
 				"ms-vscode.vscode-node-azure-pack",
 				"TeamsDevApp.ms-teams-vscode-extension",
