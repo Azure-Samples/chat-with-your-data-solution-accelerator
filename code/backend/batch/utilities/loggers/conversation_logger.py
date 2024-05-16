@@ -17,6 +17,7 @@ class ConversationLogger:
         for message in messages:
             if message["role"] == "user":
                 metadata["type"] = message["role"]
+                metadata["user_id"] = message["user_id"]
                 metadata["conversation_id"] = message.get("conversation_id")
                 metadata["created_at"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
                 metadata["updated_at"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -34,7 +35,6 @@ class ConversationLogger:
             metadata["conversation_id"] = None
         for message in messages:
             if message["role"] == "assistant":
-                metadata["user_id"] = message.get("user_id")
                 metadata["type"] = message["role"]
                 metadata["created_at"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
                 metadata["updated_at"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")

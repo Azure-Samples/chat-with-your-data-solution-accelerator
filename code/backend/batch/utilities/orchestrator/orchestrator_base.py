@@ -29,6 +29,7 @@ class OrchestratorBase(ABC):
     @abstractmethod
     async def orchestrate(
         self,
+        user_id: str,
         user_message: str,
         chat_history: List[dict],
         conversation_id: str,
