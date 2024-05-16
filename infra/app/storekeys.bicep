@@ -17,7 +17,10 @@ resource storageAccountKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' 
   parent: keyVault
   name: storageAccountKeyName
   properties: {
-    value: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.Storage/storageAccounts', storageAccountName), '2021-09-01').keys[0].value
+    value: listKeys(
+      resourceId(subscription().subscriptionId, rgName, 'Microsoft.Storage/storageAccounts', storageAccountName),
+      '2021-09-01'
+    ).keys[0].value
   }
 }
 
@@ -25,7 +28,10 @@ resource openAIKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: keyVault
   name: openAIKeyName
   properties: {
-    value: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', azureOpenAIName), '2023-05-01').key1
+    value: listKeys(
+      resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', azureOpenAIName),
+      '2023-05-01'
+    ).key1
   }
 }
 
@@ -33,7 +39,10 @@ resource searchKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: keyVault
   name: searchKeyName
   properties: {
-    value: listAdminKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.Search/searchServices', azureAISearchName), '2021-04-01-preview').primaryKey
+    value: listAdminKeys(
+      resourceId(subscription().subscriptionId, rgName, 'Microsoft.Search/searchServices', azureAISearchName),
+      '2021-04-01-preview'
+    ).primaryKey
   }
 }
 
@@ -41,7 +50,10 @@ resource formRecognizerKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' 
   parent: keyVault
   name: formRecognizerKeyName
   properties: {
-    value: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', formRecognizerName), '2023-05-01').key1
+    value: listKeys(
+      resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', formRecognizerName),
+      '2023-05-01'
+    ).key1
   }
 }
 
@@ -49,7 +61,10 @@ resource contentSafetyKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' =
   parent: keyVault
   name: contentSafetyKeyName
   properties: {
-    value: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', contentSafetyName), '2023-05-01').key1
+    value: listKeys(
+      resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', contentSafetyName),
+      '2023-05-01'
+    ).key1
   }
 }
 
@@ -57,7 +72,23 @@ resource speechKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: keyVault
   name: speechKeyName
   properties: {
-    value: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', speechServiceName), '2023-05-01').key1
+    value: listKeys(
+      resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', speechServiceName),
+      '2023-05-01'
+    ).key1
+  }
+}
+
+resource computerVisionKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if (computerVisionName != '') {
+  parent: keyVault
+  name: computerVisionKeyName
+  properties: {
+    value: computerVisionName != ''
+      ? listKeys(
+          resourceId(subscription().subscriptionId, rgName, 'Microsoft.CognitiveServices/accounts', computerVisionName),
+          '2023-05-01'
+        ).key1
+      : ''
   }
 }
 

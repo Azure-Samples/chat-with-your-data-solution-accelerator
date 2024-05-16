@@ -21,4 +21,5 @@
     "python.testing.cwd": "${workspaceFolder}/code",
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
+    "pylint.path" : [ "${interpreter}", "-m", "pylint" ]
 }

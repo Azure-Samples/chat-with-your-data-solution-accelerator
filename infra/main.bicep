@@ -113,6 +113,7 @@ param azureOpenAIModelCapacity int = 30
 param useAdvancedImageProcessing bool = false
 
 @description('Azure OpenAI Vision Model Deployment Name')
+
 param azureOpenAIVisionModel string = 'gpt-35-turbo-16k'
 
 @description('Azure OpenAI Vision Model Name')
@@ -311,20 +312,25 @@ var defaultOpenAiDeployments = [
   }
 ]
 
-var openAiDeployments = concat(defaultOpenAiDeployments, useAdvancedImageProcessing ? [
-    {
-      name: azureOpenAIVisionModel
-      model: {
-        format: 'OpenAI'
-        name: azureOpenAIVisionModelName
-        version: azureOpenAIVisionModelVersion
-      }
-      sku: {
-        name: 'Standard'
-        capacity: azureOpenAIVisionModelCapacity
-      }
-    }
-  ] : [])
+var openAiDeployments = concat(
+  defaultOpenAiDeployments,
+  useAdvancedImageProcessing
+    ? [
+        {
+          name: azureOpenAIVisionModel
+          model: {
+            format: 'OpenAI'
+            name: azureOpenAIVisionModelName
+            version: azureOpenAIVisionModelVersion
+          }
+          sku: {
+            name: 'Standard'
+            capacity: azureOpenAIVisionModelCapacity
+          }
+        }
+      ]
+    : []
+)
 
 module openai 'core/ai/cognitiveservices.bicep' = {
   name: azureOpenAIResourceName
@@ -739,7 +745,9 @@ module workbook './app/workbook.bicep' = {
     hostingPlanName: hostingplan.outputs.name
     functionName: hostingModel == 'container' ? function_docker.outputs.functionName : function.outputs.functionName
     websiteName: hostingModel == 'container' ? web_docker.outputs.FRONTEND_API_NAME : web.outputs.FRONTEND_API_NAME
-    adminWebsiteName: hostingModel == 'container' ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME : adminweb.outputs.WEBSITE_ADMIN_NAME
+    adminWebsiteName: hostingModel == 'container'
+      ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME
+      : adminweb.outputs.WEBSITE_ADMIN_NAME
     eventGridSystemTopicName: eventgrid.outputs.name
     logAnalyticsName: monitoring.outputs.logAnalyticsWorkspaceName
     azureOpenAIResourceName: openai.outputs.name
@@ -880,10 +888,12 @@ module storage 'core/storage/storage-account.bicep' = {
     sku: {
       name: 'Standard_GRS'
     }
-    deleteRetentionPolicy: azureSearchUseIntegratedVectorization ? {
-      enabled: true
-      days: 7
-    } : {}
+    deleteRetentionPolicy: azureSearchUseIntegratedVectorization
+      ? {
+          enabled: true
+          days: 7
+        }
+      : {}
     containers: [
       {
         name: blobContainerName

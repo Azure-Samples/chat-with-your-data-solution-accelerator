@@ -1,3 +1,4 @@
+import hashlib
 import json
 import pytest
 from unittest.mock import MagicMock, call, patch
@@ -21,8 +22,13 @@ def llm_helper_mock():
         llm_helper.get_embedding_model.return_value.embed_query.return_value = [
             0
         ] * 1536
+        mock_completion = llm_helper.get_chat_completion.return_value
+        choice = MagicMock()
+        choice.message.content = "This is a caption for an image"
+        mock_completion.choices = [choice]
+
         llm_helper.generate_embeddings.return_value = [123]
-        yield mock
+        yield llm_helper
 
 
 @pytest.fixture(autouse=True)
@@ -112,19 +118,6 @@ def azure_computer_vision_mock():
         yield mock
 
 
-def test_embed_file_advanced_image_processing_skips_document_processing(
-    azure_search_helper_mock,
-):
-    # given
-    push_embedder = PushEmbedder(MagicMock(), MagicMock())
-
-    # when
-    push_embedder.embed_file("some-url", "some-file-name.jpg")
-
-    # then
-    azure_search_helper_mock.return_value.get_search_client.assert_not_called()
-
-
 def test_embed_file_advanced_image_processing_vectorizes_image(
     azure_computer_vision_mock,
 ):
@@ -139,6 +132,117 @@ def test_embed_file_advanced_image_processing_vectorizes_image(
     azure_computer_vision_mock.return_value.vectorize_image.assert_called_once_with(
         source_url
     )
+
+
+def test_embed_file_advanced_image_processing_uses_vision_model_for_captioning(
+    llm_helper_mock,
+):
+    # given
+    env_helper_mock = MagicMock()
+    env_helper_mock.AZURE_OPENAI_VISION_MODEL = "gpt-4"
+    push_embedder = PushEmbedder(MagicMock(), env_helper_mock)
+    source_url = "http://localhost:8080/some-file-name.jpg"
+
+    # when
+    push_embedder.embed_file(source_url, "some-file-name.jpg")
+
+    # then
+    llm_helper_mock.get_chat_completion.assert_called_once_with(
+        [
+            {
+                "role": "system",
+                "content": """You are an assistant that generates rich descriptions of images.
+You need to be accurate in the information you extract and detailed in the descriptons you generate.
+Do not abbreviate anything and do not shorten sentances. Explain the image completely.
+If you are provided with an image of a flow chart, describe the flow chart in detail.
+If the image is mostly text, use OCR to extract the text as it is displayed in the image.""",
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "text": "Describe this image in detail. Limit the response to 500 words.",
+                        "type": "text",
+                    },
+                    {"image_url": source_url, "type": "image_url"},
+                ],
+            },
+        ],
+        env_helper_mock.AZURE_OPENAI_VISION_MODEL,
+    )
+
+
+def test_embed_file_advanced_image_processing_stores_embeddings_in_search_index(
+    llm_helper_mock,
+    azure_computer_vision_mock,
+    azure_search_helper_mock: MagicMock,
+):
+    # given
+    push_embedder = PushEmbedder(MagicMock(), MagicMock())
+    storage_container = "some-container"
+    file_name = "some-file-name.jpg"
+    host_path = (
+        f"http://localhost.blob.core.windows.net/{storage_container}/{file_name}"
+    )
+    source_url = f"{host_path}?some-query=param"
+    image_embeddings = [1.0, 2.0, 3.0]
+    azure_computer_vision_mock.return_value.vectorize_image.return_value = (
+        image_embeddings
+    )
+
+    # when
+    push_embedder.embed_file(source_url, "some-file-name.jpg")
+
+    # then
+    hash_key = hashlib.sha1(f"{host_path}_1".encode("utf-8")).hexdigest()
+    expected_id = f"doc_{hash_key}"
+
+    llm_helper_mock.generate_embeddings.assert_called_once_with(
+        "This is a caption for an image"
+    )
+
+    azure_search_helper_mock.return_value.get_search_client.return_value.upload_documents.assert_called_once_with(
+        [
+            {
+                "id": expected_id,
+                "content": "This is a caption for an image",
+                "content_vector": [123],
+                "image_vector": image_embeddings,
+                "metadata": json.dumps(
+                    {
+                        "id": expected_id,
+                        "title": f"/{storage_container}/{file_name}",
+                        "source": f"{host_path}_SAS_TOKEN_PLACEHOLDER_",
+                    }
+                ),
+                "title": f"/{storage_container}/{file_name}",
+                "source": f"{host_path}_SAS_TOKEN_PLACEHOLDER_",
+            },
+        ]
+    )
+
+
+def test_embed_file_advanced_image_processing_raises_exception_on_failure(
+    azure_search_helper_mock,
+):
+    # given
+    push_embedder = PushEmbedder(MagicMock(), MagicMock())
+
+    successful_indexing_result = MagicMock()
+    successful_indexing_result.succeeded = True
+    failed_indexing_result = MagicMock()
+    failed_indexing_result.succeeded = False
+    azure_search_helper_mock.return_value.get_search_client.return_value.upload_documents.return_value = [
+        successful_indexing_result,
+        failed_indexing_result,
+    ]
+
+    # when + then
+    with pytest.raises(Exception):
+        push_embedder.embed_file(
+            "some-url",
+            "some-file-name.jpg",
+        )
 
 
 def test_embed_file_use_advanced_image_processing_does_not_vectorize_image_if_unsupported(
@@ -209,7 +313,7 @@ def test_embed_file_generates_embeddings_for_documents(llm_helper_mock):
     )
 
     # then
-    llm_helper_mock.return_value.generate_embeddings.assert_has_calls(
+    llm_helper_mock.generate_embeddings.assert_has_calls(
         [call("some content"), call("some other content")]
     )
 
@@ -217,7 +321,7 @@ def test_embed_file_generates_embeddings_for_documents(llm_helper_mock):
 def test_embed_file_stores_documents_in_search_index(
     document_chunking_mock,
     llm_helper_mock,
-    azure_search_helper_mock,
+    azure_search_helper_mock: MagicMock,
 ):
     # given
     push_embedder = PushEmbedder(MagicMock(), MagicMock())
@@ -235,7 +339,7 @@ def test_embed_file_stores_documents_in_search_index(
             {
                 "id": expected_chunked_documents[0].id,
                 "content": expected_chunked_documents[0].content,
-                "content_vector": llm_helper_mock.return_value.generate_embeddings.return_value,
+                "content_vector": llm_helper_mock.generate_embeddings.return_value,
                 "metadata": json.dumps(
                     {
                         "id": expected_chunked_documents[0].id,
@@ -255,7 +359,7 @@ def test_embed_file_stores_documents_in_search_index(
             {
                 "id": expected_chunked_documents[1].id,
                 "content": expected_chunked_documents[1].content,
-                "content_vector": llm_helper_mock.return_value.generate_embeddings.return_value,
+                "content_vector": llm_helper_mock.generate_embeddings.return_value,
                 "metadata": json.dumps(
                     {
                         "id": expected_chunked_documents[1].id,
@@ -282,10 +386,8 @@ def test_embed_file_raises_exception_on_failure(
     # given
     push_embedder = PushEmbedder(MagicMock(), MagicMock())
 
-    successful_indexing_result = MagicMock()
-    successful_indexing_result.succeeded = True
-    failed_indexing_result = MagicMock()
-    failed_indexing_result.succeeded = False
+    successful_indexing_result = MagicMock(succeeded=True)
+    failed_indexing_result = MagicMock(succeeded=False)
     azure_search_helper_mock.return_value.get_search_client.return_value.upload_documents.return_value = [
         successful_indexing_result,
         failed_indexing_result,

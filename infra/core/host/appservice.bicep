@@ -11,7 +11,14 @@ param managedIdentity bool = !empty(keyVaultName)
 
 // Runtime Properties
 @allowed([
-  'dotnet', 'dotnetcore', 'dotnet-isolated', 'node', 'python', 'java', 'powershell', 'custom'
+  'dotnet'
+  'dotnetcore'
+  'dotnet-isolated'
+  'node'
+  'python'
+  'java'
+  'powershell'
+  'custom'
 ])
 param runtimeName string
 param runtimeNameAndVersion string = '${runtimeName}|${runtimeVersion}'
@@ -58,7 +65,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
       functionAppScaleLimit: functionAppScaleLimit != -1 ? functionAppScaleLimit : null
       healthCheckPath: healthCheckPath
       cors: {
-        allowedOrigins: union([ 'https://portal.azure.com', 'https://ms.portal.azure.com' ], allowedOrigins)
+        allowedOrigins: union(['https://portal.azure.com', 'https://ms.portal.azure.com'], allowedOrigins)
       }
     }
     clientAffinityEnabled: clientAffinityEnabled
@@ -88,7 +95,8 @@ module configAppSettings 'appservice-appsettings.bicep' = {
   name: '${name}-appSettings'
   params: {
     name: appService.name
-    appSettings: union(appSettings,
+    appSettings: union(
+      appSettings,
       {
         APPINSIGHTS_ENABLED: string(!empty(applicationInsightsName))
         AZURE_RESOURCE_GROUP: resourceGroup().name
@@ -114,7 +122,7 @@ resource configLogs 'Microsoft.Web/sites/config@2022-03-01' = {
     failedRequestsTracing: { enabled: true }
     httpLogs: { fileSystem: { enabled: true, retentionInDays: 1, retentionInMb: 35 } }
   }
-  dependsOn: [ configAppSettings ]
+  dependsOn: [configAppSettings]
 }
 
 resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = if (!(empty(keyVaultName))) {

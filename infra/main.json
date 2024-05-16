@@ -231,7 +231,9 @@
     },
     "azureOpenAIVisionModel": {
       "type": "string",
+
       "defaultValue": "gpt-35-turbo-16k",
+
       "metadata": {
         "description": "Azure OpenAI Vision Model Deployment Name"
       }

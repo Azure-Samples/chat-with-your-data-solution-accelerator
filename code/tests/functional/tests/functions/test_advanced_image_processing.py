@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import sys
@@ -102,6 +103,9 @@ def test_image_passed_to_computer_vision_to_generate_image_embeddings(
         RequestMatcher(
             path=COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
             method=COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
+            json={
+                "url": ANY,
+            },
             query_string="api-version=2024-02-01&model-version=2023-04-15",
             headers={
                 "Content-Type": "application/json",
@@ -114,7 +118,87 @@ def test_image_passed_to_computer_vision_to_generate_image_embeddings(
     )[0]
 
     assert request.get_json()["url"].startswith(
-        f"{app_config.get('AZURE_COMPUTER_VISION_ENDPOINT')}{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}"
+        f"{app_config.get('AZURE_STORAGE_ACCOUNT_ENDPOINT')}{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}"
+    )
+
+
+def test_image_passed_to_llm_to_generate_caption(
+    message: QueueMessage, httpserver: HTTPServer, app_config: AppConfig
+):
+    # when
+    batch_push_results.build().get_user_function()(message)
+
+    # then
+    request = verify_request_made(
+        mock_httpserver=httpserver,
+        request_matcher=RequestMatcher(
+            path=f"/openai/deployments/{app_config.get('AZURE_OPENAI_VISION_MODEL')}/chat/completions",
+            method="POST",
+            json={
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": """You are an assistant that generates rich descriptions of images.
+You need to be accurate in the information you extract and detailed in the descriptons you generate.
+Do not abbreviate anything and do not shorten sentances. Explain the image completely.
+If you are provided with an image of a flow chart, describe the flow chart in detail.
+If the image is mostly text, use OCR to extract the text as it is displayed in the image.""",
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "text": "Describe this image in detail. Limit the response to 500 words.",
+                                "type": "text",
+                            },
+                            {"image_url": ANY, "type": "image_url"},
+                        ],
+                    },
+                ],
+                "model": app_config.get("AZURE_OPENAI_VISION_MODEL"),
+            },
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {app_config.get('AZURE_OPENAI_API_KEY')}",
+                "Api-Key": app_config.get("AZURE_OPENAI_API_KEY"),
+            },
+            query_string="api-version=2024-02-01",
+            times=1,
+        ),
+    )[0]
+
+    assert request.get_json()["messages"][1]["content"][1]["image_url"].startswith(
+        f"{app_config.get('AZURE_STORAGE_ACCOUNT_ENDPOINT')}{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}"
+    )
+
+
+def test_embeddings_generated_for_caption(
+    message: QueueMessage, httpserver: HTTPServer, app_config: AppConfig
+):
+    # when
+    batch_push_results.build().get_user_function()(message)
+
+    # then
+    verify_request_made(
+        mock_httpserver=httpserver,
+        request_matcher=RequestMatcher(
+            path=f"/openai/deployments/{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}/embeddings",
+            method="POST",
+            json={
+                "input": ["This is a caption for the image"],
+                "model": app_config.get("AZURE_OPENAI_EMBEDDING_MODEL"),
+                "encoding_format": "base64",
+            },
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {app_config.get('AZURE_OPENAI_API_KEY')}",
+                "Api-Key": app_config.get("AZURE_OPENAI_API_KEY"),
+            },
+            query_string="api-version=2024-02-01",
+            times=1,
+        ),
     )
 
 
@@ -138,6 +222,229 @@ def test_metadata_is_updated_after_processing(
                 # "x-ms-meta-embeddings_added": "true"
             },
             query_string="comp=metadata",
+            times=1,
+        ),
+    )
+
+
+def test_makes_correct_call_to_list_search_indexes(
+    message: QueueMessage, httpserver: HTTPServer, app_config: AppConfig
+):
+    # when
+    batch_push_results.build().get_user_function()(message)
+
+    # then
+    verify_request_made(
+        mock_httpserver=httpserver,
+        request_matcher=RequestMatcher(
+            path="/indexes",
+            method="GET",
+            headers={
+                "Accept": "application/json;odata.metadata=minimal",
+                "Api-Key": app_config.get("AZURE_SEARCH_KEY"),
+            },
+            query_string="api-version=2023-10-01-Preview",
+            times=1,
+        ),
+    )
+
+
+def test_makes_correct_call_to_create_documents_search_index(
+    message: QueueMessage, httpserver: HTTPServer, app_config: AppConfig
+):
+    # when
+    batch_push_results.build().get_user_function()(message)
+
+    # then
+    verify_request_made(
+        mock_httpserver=httpserver,
+        request_matcher=RequestMatcher(
+            path="/indexes",
+            method="POST",
+            headers={
+                "Accept": "application/json;odata.metadata=minimal",
+                "Api-Key": app_config.get("AZURE_SEARCH_KEY"),
+            },
+            query_string="api-version=2023-10-01-Preview",
+            json={
+                "name": app_config.get("AZURE_SEARCH_INDEX"),
+                "fields": [
+                    {
+                        "name": "id",
+                        "type": "Edm.String",
+                        "key": True,
+                        "retrievable": True,
+                        "searchable": False,
+                        "filterable": True,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "content",
+                        "type": "Edm.String",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": True,
+                        "filterable": False,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "content_vector",
+                        "type": "Collection(Edm.Single)",
+                        "searchable": True,
+                        "dimensions": 2,
+                        "vectorSearchProfile": "myHnswProfile",
+                    },
+                    {
+                        "name": "metadata",
+                        "type": "Edm.String",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": True,
+                        "filterable": False,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "title",
+                        "type": "Edm.String",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": True,
+                        "filterable": True,
+                        "sortable": False,
+                        "facetable": True,
+                    },
+                    {
+                        "name": "source",
+                        "type": "Edm.String",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": True,
+                        "filterable": True,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "chunk",
+                        "type": "Edm.Int32",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": False,
+                        "filterable": True,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "offset",
+                        "type": "Edm.Int32",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": False,
+                        "filterable": True,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "image_vector",
+                        "type": "Collection(Edm.Single)",
+                        "searchable": True,
+                        "dimensions": 1024,
+                        "vectorSearchProfile": "myHnswProfile",
+                    },
+                ],
+                "semantic": {
+                    "configurations": [
+                        {
+                            "name": app_config.get(
+                                "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG"
+                            ),
+                            "prioritizedFields": {
+                                "prioritizedContentFields": [{"fieldName": "content"}]
+                            },
+                        }
+                    ]
+                },
+                "vectorSearch": {
+                    "profiles": [
+                        {"name": "myHnswProfile", "algorithm": "default"},
+                        {
+                            "name": "myExhaustiveKnnProfile",
+                            "algorithm": "default_exhaustive_knn",
+                        },
+                    ],
+                    "algorithms": [
+                        {
+                            "name": "default",
+                            "kind": "hnsw",
+                            "hnswParameters": {
+                                "m": 4,
+                                "efConstruction": 400,
+                                "efSearch": 500,
+                                "metric": "cosine",
+                            },
+                        },
+                        {
+                            "name": "default_exhaustive_knn",
+                            "kind": "exhaustiveKnn",
+                            "exhaustiveKnnParameters": {"metric": "cosine"},
+                        },
+                    ],
+                },
+            },
+            times=1,
+        ),
+    )
+
+
+def test_makes_correct_call_to_store_documents_in_search_index(
+    message: QueueMessage, httpserver: HTTPServer, app_config: AppConfig
+):
+    # when
+    batch_push_results.build().get_user_function()(message)
+
+    # then
+    expected_file_path = f"{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}"
+    expected_source_url = (
+        f"{app_config.get('AZURE_STORAGE_ACCOUNT_ENDPOINT')}{expected_file_path}"
+    )
+    hash_key = hashlib.sha1(f"{expected_source_url}_1".encode("utf-8")).hexdigest()
+    expected_id = f"doc_{hash_key}"
+    verify_request_made(
+        mock_httpserver=httpserver,
+        request_matcher=RequestMatcher(
+            path=f"/indexes('{app_config.get('AZURE_SEARCH_INDEX')}')/docs/search.index",
+            method="POST",
+            headers={
+                "Accept": "application/json;odata.metadata=none",
+                "Content-Type": "application/json",
+                "Api-Key": app_config.get("AZURE_SEARCH_KEY"),
+            },
+            query_string="api-version=2023-10-01-Preview",
+            json={
+                "value": [
+                    {
+                        "id": expected_id,
+                        "content": "This is a caption for the image",
+                        "content_vector": [
+                            0.018990106880664825,
+                            -0.0073809814639389515,
+                        ],
+                        "image_vector": [1.0, 2.0, 3.0],
+                        "metadata": json.dumps(
+                            {
+                                "id": expected_id,
+                                "title": f"/{expected_file_path}",
+                                "source": expected_source_url,
+                            }
+                        ),
+                        "title": f"/{expected_file_path}",
+                        "source": expected_source_url,
+                        "@search.action": "upload",
+                    }
+                ]
+            },
             times=1,
         ),
     )

@@ -28,6 +28,7 @@ class AppConfig:
         "AZURE_OPENAI_MAX_TOKENS": "1000",
         "AZURE_OPENAI_MODEL": "some-openai-model",
         "AZURE_OPENAI_MODEL_NAME": "some-openai-model-name",
+        "AZURE_OPENAI_VISION_MODEL": "some-openai-vision-model",
         "AZURE_OPENAI_RESOURCE": "some-openai-resource",
         "AZURE_OPENAI_STREAM": "True",
         "AZURE_OPENAI_STOP_SEQUENCE": "",
@@ -70,7 +71,7 @@ class AppConfig:
         "ORCHESTRATION_STRATEGY": "openai_function",
         "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "en-US,es-ES",
         "TIKTOKEN_CACHE_DIR": f"{os.path.dirname(os.path.realpath(__file__))}/resources",
-        "USE_ADVANCED_IMAGE_PROCESSING": "True",
+        "USE_ADVANCED_IMAGE_PROCESSING": "False",
         "USE_KEY_VAULT": "False",
         # These values are set directly within EnvHelper, adding them here ensures
         # that they are removed from the environment when remove_from_environment() runs
