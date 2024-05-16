@@ -108,7 +108,7 @@ param azureOpenAIModelCapacity int = 30
 param useAdvancedImageProcessing bool = false
 
 @description('Azure OpenAI Vision Model Deployment Name')
-param azureOpenAIVisionModel string = 'gpt-4-vision'
+param azureOpenAIVisionModel string = 'gpt-4'
 
 @description('Azure OpenAI Vision Model Name')
 param azureOpenAIVisionModelName string = 'gpt-4'

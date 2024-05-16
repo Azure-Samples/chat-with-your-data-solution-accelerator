@@ -28,6 +28,7 @@ class AppConfig:
         "AZURE_OPENAI_MAX_TOKENS": "1000",
         "AZURE_OPENAI_MODEL": "some-openai-model",
         "AZURE_OPENAI_MODEL_NAME": "some-openai-model-name",
+        "AZURE_OPENAI_VISION_MODEL": "some-openai-vision-model",
         "AZURE_OPENAI_RESOURCE": "some-openai-resource",
         "AZURE_OPENAI_STREAM": "True",
         "AZURE_OPENAI_STOP_SEQUENCE": "",

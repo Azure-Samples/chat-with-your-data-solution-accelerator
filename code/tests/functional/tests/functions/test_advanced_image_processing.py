@@ -103,6 +103,9 @@ def test_image_passed_to_computer_vision_to_generate_image_embeddings(
         RequestMatcher(
             path=COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
             method=COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
+            json={
+                "url": ANY,
+            },
             query_string="api-version=2024-02-01&model-version=2023-04-15",
             headers={
                 "Content-Type": "application/json",
@@ -115,7 +118,87 @@ def test_image_passed_to_computer_vision_to_generate_image_embeddings(
     )[0]
 
     assert request.get_json()["url"].startswith(
-        f"{app_config.get('AZURE_COMPUTER_VISION_ENDPOINT')}{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}"
+        f"{app_config.get('AZURE_STORAGE_ACCOUNT_ENDPOINT')}{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}"
+    )
+
+
+def test_image_passed_to_llm_to_generate_caption(
+    message: QueueMessage, httpserver: HTTPServer, app_config: AppConfig
+):
+    # when
+    batch_push_results.build().get_user_function()(message)
+
+    # then
+    request = verify_request_made(
+        mock_httpserver=httpserver,
+        request_matcher=RequestMatcher(
+            path=f"/openai/deployments/{app_config.get('AZURE_OPENAI_VISION_MODEL')}/chat/completions",
+            method="POST",
+            json={
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": """You are an assistant that generates rich descriptions of images.
+You need to be accurate in the information you extract and detailed in the descriptons you generate.
+Do not abbreviate anything and do not shorten sentances. Explain the image completely.
+If you are provided with an image of a flow chart, describe the flow chart in detail.
+If the image is mostly text, use OCR to extract the text as it is displayed in the image.""",
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "text": "Describe this image in detail. Limit the response to 500 words.",
+                                "type": "text",
+                            },
+                            {"image_url": ANY, "type": "image_url"},
+                        ],
+                    },
+                ],
+                "model": app_config.get("AZURE_OPENAI_VISION_MODEL"),
+            },
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {app_config.get('AZURE_OPENAI_API_KEY')}",
+                "Api-Key": app_config.get("AZURE_OPENAI_API_KEY"),
+            },
+            query_string="api-version=2024-02-01",
+            times=1,
+        ),
+    )[0]
+
+    assert request.get_json()["messages"][1]["content"][1]["image_url"].startswith(
+        f"{app_config.get('AZURE_STORAGE_ACCOUNT_ENDPOINT')}{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}"
+    )
+
+
+def test_embeddings_generated_for_caption(
+    message: QueueMessage, httpserver: HTTPServer, app_config: AppConfig
+):
+    # when
+    batch_push_results.build().get_user_function()(message)
+
+    # then
+    verify_request_made(
+        mock_httpserver=httpserver,
+        request_matcher=RequestMatcher(
+            path=f"/openai/deployments/{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}/embeddings",
+            method="POST",
+            json={
+                "input": ["This is a caption for the image"],
+                "model": app_config.get("AZURE_OPENAI_EMBEDDING_MODEL"),
+                "encoding_format": "base64",
+            },
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {app_config.get('AZURE_OPENAI_API_KEY')}",
+                "Api-Key": app_config.get("AZURE_OPENAI_API_KEY"),
+            },
+            query_string="api-version=2024-02-01",
+            times=1,
+        ),
     )
 
 
@@ -343,8 +426,11 @@ def test_makes_correct_call_to_store_documents_in_search_index(
                 "value": [
                     {
                         "id": expected_id,
-                        "content": "",
-                        "content_vector": [],
+                        "content": "This is a caption for the image",
+                        "content_vector": [
+                            0.018990106880664825,
+                            -0.0073809814639389515,
+                        ],
                         "image_vector": [1.0, 2.0, 3.0],
                         "metadata": json.dumps(
                             {
