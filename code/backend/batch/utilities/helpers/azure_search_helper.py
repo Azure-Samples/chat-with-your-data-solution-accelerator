@@ -121,6 +121,18 @@ class AzureSearchHelper:
             ),
         ]
 
+        if self.env_helper.USE_ADVANCED_IMAGE_PROCESSING:
+            logger.info("Adding image_vector field to index")
+            fields.append(
+                SearchField(
+                    name="image_vector",
+                    type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
+                    searchable=True,
+                    vector_search_dimensions=1024,
+                    vector_search_profile_name="myHnswProfile",
+                ),
+            )
+
         index = SearchIndex(
             name=self.env_helper.AZURE_SEARCH_INDEX,
             fields=fields,
