@@ -2,6 +2,7 @@ import os
 import azure.functions as func
 import logging
 import json
+import uuid
 
 from utilities.helpers.env_helper import EnvHelper
 from utilities.helpers.orchestrator_helper import Orchestrator
@@ -28,6 +29,9 @@ async def do_get_conversation_response(req: func.HttpRequest) -> func.HttpRespon
         req_body = req.get_json()
         user_message = req_body["messages"][-1]["content"]
         conversation_id = req_body["conversation_id"]
+        if conversation_id == "" or not conversation_id:
+            conversation_id = str(uuid.uuid4())
+
         user_assistant_messages = list(
             filter(
                 lambda x: x["role"] in ("user", "assistant"), req_body["messages"][0:-1]
@@ -44,6 +48,7 @@ async def do_get_conversation_response(req: func.HttpRequest) -> func.HttpRespon
                 )
 
         messages = await message_orchestrator.handle_message(
+            user_id="user_id",
             user_message=user_message,
             chat_history=chat_history,
             conversation_id=conversation_id,
@@ -51,7 +56,7 @@ async def do_get_conversation_response(req: func.HttpRequest) -> func.HttpRespon
         )
 
         response_obj = {
-            "id": "response.id",
+            "id": str(uuid.uuid4()),
             "model": env_helper.AZURE_OPENAI_MODEL,
             "created": "response.created",
             "object": "response.object",

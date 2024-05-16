@@ -1,6 +1,7 @@
 import os
 import logging
 import threading
+from .system_message import system_message
 from dotenv import load_dotenv
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.keyvault.secrets import SecretClient
@@ -90,10 +91,11 @@ class EnvHelper:
         self.AZURE_OPENAI_TOP_P = os.getenv("AZURE_OPENAI_TOP_P", "1.0")
         self.AZURE_OPENAI_MAX_TOKENS = os.getenv("AZURE_OPENAI_MAX_TOKENS", "1000")
         self.AZURE_OPENAI_STOP_SEQUENCE = os.getenv("AZURE_OPENAI_STOP_SEQUENCE", "")
-        self.AZURE_OPENAI_SYSTEM_MESSAGE = os.getenv(
-            "AZURE_OPENAI_SYSTEM_MESSAGE",
-            "You are an AI assistant that helps people find information.",
-        )
+        # self.AZURE_OPENAI_SYSTEM_MESSAGE = os.getenv(
+        #     "AZURE_OPENAI_SYSTEM_MESSAGE",
+        #     "You are an AI assistant that helps people find information.",
+        # )
+        self.AZURE_OPENAI_SYSTEM_MESSAGE = system_message
         self.AZURE_OPENAI_API_VERSION = os.getenv(
             "AZURE_OPENAI_API_VERSION", "2024-02-01"
         )

@@ -18,6 +18,7 @@ param speechServiceName string = ''
 param appSettings object = {}
 param useKeyVault bool
 param openAIKeyName string = ''
+@secure()
 param storageAccountKeyName string = ''
 param formRecognizerKeyName string = ''
 param searchKeyName string = ''
@@ -38,7 +39,7 @@ module adminweb '../core/host/appservice.bicep' = {
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
     keyVaultName: keyVaultName
-    dockerFullImageName: dockerFullImageName 
+    dockerFullImageName: dockerFullImageName
     scmDoBuildDuringDeployment: useDocker ? false : true
     applicationInsightsName: applicationInsightsName
     appServicePlanId: appServicePlanId

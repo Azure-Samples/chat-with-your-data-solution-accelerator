@@ -34,6 +34,7 @@ class ConversationLogger:
             metadata["conversation_id"] = None
         for message in messages:
             if message["role"] == "assistant":
+                metadata["user_id"] = message.get("user_id")
                 metadata["type"] = message["role"]
                 metadata["created_at"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
                 metadata["updated_at"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
