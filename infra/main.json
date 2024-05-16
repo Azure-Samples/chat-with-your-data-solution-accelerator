@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.27.1.19265",
-      "templateHash": "13373198886203455254"
+      "templateHash": "9021391279672164541"
     }
   },
   "parameters": {
@@ -224,7 +224,7 @@
     },
     "azureOpenAIVisionModel": {
       "type": "string",
-      "defaultValue": "gpt-4-vision",
+      "defaultValue": "gpt-4",
       "metadata": {
         "description": "Azure OpenAI Vision Model Deployment Name"
       }
