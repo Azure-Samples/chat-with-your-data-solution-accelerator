@@ -1,6 +1,8 @@
+import hashlib
 import json
 import logging
 from typing import List
+from urllib.parse import urlparse
 
 from ...helpers.llm_helper import LLMHelper
 from ...helpers.env_helper import EnvHelper
@@ -61,7 +63,10 @@ class PushEmbedder(EmbedderBase):
                 source_url
             )
             logger.info("Image vectors: " + str(image_vectors))
-            # Coming soon, storing the image embeddings in Azure Search
+
+            documents_to_upload.append(
+                self.__create_image_document(source_url, image_vectors)
+            )
         else:
             documents: List[SourceDocument] = self.document_loading.load(
                 source_url, embedding_config.loading
@@ -71,15 +76,16 @@ class PushEmbedder(EmbedderBase):
             )
 
             for document in documents:
-                documents_to_upload.append(self._convert_to_search_document(document))
+                documents_to_upload.append(self.__convert_to_search_document(document))
 
-            response = self.azure_search_helper.get_search_client().upload_documents(
-                documents_to_upload
-            )
-            if not all([r.succeeded for r in response]):
-                raise Exception(response)
+        response = self.azure_search_helper.get_search_client().upload_documents(
+            documents_to_upload
+        )
+        if not all([r.succeeded for r in response]):
+            logger.error("Failed to upload documents to search index")
+            raise Exception(response)
 
-    def _convert_to_search_document(self, document: SourceDocument):
+    def __convert_to_search_document(self, document: SourceDocument):
         embedded_content = self.llm_helper.generate_embeddings(document.content)
         metadata = {
             "id": document.id,
@@ -99,4 +105,38 @@ class PushEmbedder(EmbedderBase):
             "source": document.source,
             "chunk": document.chunk,
             "offset": document.offset,
+        }
+
+    def __generate_document_id(self, source_url: str) -> str:
+        hash_key = hashlib.sha1(f"{source_url}_1".encode("utf-8")).hexdigest()
+        return f"doc_{hash_key}"
+
+    def __create_image_document(self, source_url: str, image_vectors: List[float]):
+        parsed_url = urlparse(source_url)
+
+        file_url = parsed_url.scheme + "://" + parsed_url.netloc + parsed_url.path
+        document_id = self.__generate_document_id(file_url)
+        filename = parsed_url.path
+
+        sas_placeholder = (
+            "_SAS_TOKEN_PLACEHOLDER_"
+            if parsed_url.netloc
+            and parsed_url.netloc.endswith(".blob.core.windows.net")
+            else ""
+        )
+
+        return {
+            "id": document_id,
+            "content": "",
+            "content_vector": [],
+            "image_vector": image_vectors,
+            "metadata": json.dumps(
+                {
+                    "id": document_id,
+                    "title": filename,
+                    "source": file_url + sas_placeholder,
+                }
+            ),
+            "title": filename,
+            "source": file_url + sas_placeholder,
         }
