@@ -1,3 +1,5 @@
+version = "1.1.0"
+
 [tool.poetry]
 name = "chat-with-your-data-solution-accelerator"
 version = "0.1.0"

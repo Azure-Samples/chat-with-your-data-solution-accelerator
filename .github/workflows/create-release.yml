@@ -25,6 +25,7 @@ jobs:
           output-file: 'CHANGELOG.md'
           git-user-name: 'github-actions[bot]'
           git-user-email: 'github-actions[bot]@users.noreply.github.com'
+          version-file: './pyproject.toml'
 
       - name: Create Release
         uses: actions/create-release@v1
