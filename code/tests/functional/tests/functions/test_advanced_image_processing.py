@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import sys
@@ -138,6 +139,226 @@ def test_metadata_is_updated_after_processing(
                 # "x-ms-meta-embeddings_added": "true"
             },
             query_string="comp=metadata",
+            times=1,
+        ),
+    )
+
+
+def test_makes_correct_call_to_list_search_indexes(
+    message: QueueMessage, httpserver: HTTPServer, app_config: AppConfig
+):
+    # when
+    batch_push_results.build().get_user_function()(message)
+
+    # then
+    verify_request_made(
+        mock_httpserver=httpserver,
+        request_matcher=RequestMatcher(
+            path="/indexes",
+            method="GET",
+            headers={
+                "Accept": "application/json;odata.metadata=minimal",
+                "Api-Key": app_config.get("AZURE_SEARCH_KEY"),
+            },
+            query_string="api-version=2023-10-01-Preview",
+            times=1,
+        ),
+    )
+
+
+def test_makes_correct_call_to_create_documents_search_index(
+    message: QueueMessage, httpserver: HTTPServer, app_config: AppConfig
+):
+    # when
+    batch_push_results.build().get_user_function()(message)
+
+    # then
+    verify_request_made(
+        mock_httpserver=httpserver,
+        request_matcher=RequestMatcher(
+            path="/indexes",
+            method="POST",
+            headers={
+                "Accept": "application/json;odata.metadata=minimal",
+                "Api-Key": app_config.get("AZURE_SEARCH_KEY"),
+            },
+            query_string="api-version=2023-10-01-Preview",
+            json={
+                "name": app_config.get("AZURE_SEARCH_INDEX"),
+                "fields": [
+                    {
+                        "name": "id",
+                        "type": "Edm.String",
+                        "key": True,
+                        "retrievable": True,
+                        "searchable": False,
+                        "filterable": True,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "content",
+                        "type": "Edm.String",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": True,
+                        "filterable": False,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "content_vector",
+                        "type": "Collection(Edm.Single)",
+                        "searchable": True,
+                        "dimensions": 2,
+                        "vectorSearchProfile": "myHnswProfile",
+                    },
+                    {
+                        "name": "metadata",
+                        "type": "Edm.String",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": True,
+                        "filterable": False,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "title",
+                        "type": "Edm.String",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": True,
+                        "filterable": True,
+                        "sortable": False,
+                        "facetable": True,
+                    },
+                    {
+                        "name": "source",
+                        "type": "Edm.String",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": True,
+                        "filterable": True,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "chunk",
+                        "type": "Edm.Int32",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": False,
+                        "filterable": True,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "offset",
+                        "type": "Edm.Int32",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": False,
+                        "filterable": True,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "image_vector",
+                        "type": "Collection(Edm.Single)",
+                        "searchable": True,
+                        "dimensions": 1024,
+                        "vectorSearchProfile": "myHnswProfile",
+                    },
+                ],
+                "semantic": {
+                    "configurations": [
+                        {
+                            "name": app_config.get(
+                                "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG"
+                            ),
+                            "prioritizedFields": {
+                                "prioritizedContentFields": [{"fieldName": "content"}]
+                            },
+                        }
+                    ]
+                },
+                "vectorSearch": {
+                    "profiles": [
+                        {"name": "myHnswProfile", "algorithm": "default"},
+                        {
+                            "name": "myExhaustiveKnnProfile",
+                            "algorithm": "default_exhaustive_knn",
+                        },
+                    ],
+                    "algorithms": [
+                        {
+                            "name": "default",
+                            "kind": "hnsw",
+                            "hnswParameters": {
+                                "m": 4,
+                                "efConstruction": 400,
+                                "efSearch": 500,
+                                "metric": "cosine",
+                            },
+                        },
+                        {
+                            "name": "default_exhaustive_knn",
+                            "kind": "exhaustiveKnn",
+                            "exhaustiveKnnParameters": {"metric": "cosine"},
+                        },
+                    ],
+                },
+            },
+            times=1,
+        ),
+    )
+
+
+def test_makes_correct_call_to_store_documents_in_search_index(
+    message: QueueMessage, httpserver: HTTPServer, app_config: AppConfig
+):
+    # when
+    batch_push_results.build().get_user_function()(message)
+
+    # then
+    expected_file_path = f"{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}"
+    expected_source_url = (
+        f"{app_config.get('AZURE_STORAGE_ACCOUNT_ENDPOINT')}{expected_file_path}"
+    )
+    hash_key = hashlib.sha1(f"{expected_source_url}_1".encode("utf-8")).hexdigest()
+    expected_id = f"doc_{hash_key}"
+    verify_request_made(
+        mock_httpserver=httpserver,
+        request_matcher=RequestMatcher(
+            path=f"/indexes('{app_config.get('AZURE_SEARCH_INDEX')}')/docs/search.index",
+            method="POST",
+            headers={
+                "Accept": "application/json;odata.metadata=none",
+                "Content-Type": "application/json",
+                "Api-Key": app_config.get("AZURE_SEARCH_KEY"),
+            },
+            query_string="api-version=2023-10-01-Preview",
+            json={
+                "value": [
+                    {
+                        "id": expected_id,
+                        "content": "",
+                        "content_vector": [],
+                        "image_vector": [1.0, 2.0, 3.0],
+                        "metadata": json.dumps(
+                            {
+                                "id": expected_id,
+                                "title": f"/{expected_file_path}",
+                                "source": expected_source_url,
+                            }
+                        ),
+                        "title": f"/{expected_file_path}",
+                        "source": expected_source_url,
+                        "@search.action": "upload",
+                    }
+                ]
+            },
             times=1,
         ),
     )

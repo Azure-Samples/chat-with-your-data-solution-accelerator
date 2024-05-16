@@ -1,3 +1,4 @@
+import hashlib
 import json
 import pytest
 from unittest.mock import MagicMock, call, patch
@@ -112,19 +113,6 @@ def azure_computer_vision_mock():
         yield mock
 
 
-def test_embed_file_advanced_image_processing_skips_document_processing(
-    azure_search_helper_mock,
-):
-    # given
-    push_embedder = PushEmbedder(MagicMock(), MagicMock())
-
-    # when
-    push_embedder.embed_file("some-url", "some-file-name.jpg")
-
-    # then
-    azure_search_helper_mock.return_value.get_search_client.assert_not_called()
-
-
 def test_embed_file_advanced_image_processing_vectorizes_image(
     azure_computer_vision_mock,
 ):
@@ -139,6 +127,74 @@ def test_embed_file_advanced_image_processing_vectorizes_image(
     azure_computer_vision_mock.return_value.vectorize_image.assert_called_once_with(
         source_url
     )
+
+
+def test_embed_file_advanced_image_processing_stores_embeddings_in_search_index(
+    azure_computer_vision_mock,
+    azure_search_helper_mock: MagicMock,
+):
+    # given
+    push_embedder = PushEmbedder(MagicMock(), MagicMock())
+    storage_container = "some-container"
+    file_name = "some-file-name.jpg"
+    host_path = (
+        f"http://localhost.blob.core.windows.net/{storage_container}/{file_name}"
+    )
+    source_url = f"{host_path}?some-query=param"
+    image_embeddings = [1.0, 2.0, 3.0]
+    azure_computer_vision_mock.return_value.vectorize_image.return_value = (
+        image_embeddings
+    )
+
+    # when
+    push_embedder.embed_file(source_url, "some-file-name.jpg")
+
+    # then
+    hash_key = hashlib.sha1(f"{host_path}_1".encode("utf-8")).hexdigest()
+    expected_id = f"doc_{hash_key}"
+
+    azure_search_helper_mock.return_value.get_search_client.return_value.upload_documents.assert_called_once_with(
+        [
+            {
+                "id": expected_id,
+                "content": "",
+                "content_vector": [],
+                "image_vector": image_embeddings,
+                "metadata": json.dumps(
+                    {
+                        "id": expected_id,
+                        "title": f"/{storage_container}/{file_name}",
+                        "source": f"{host_path}_SAS_TOKEN_PLACEHOLDER_",
+                    }
+                ),
+                "title": f"/{storage_container}/{file_name}",
+                "source": f"{host_path}_SAS_TOKEN_PLACEHOLDER_",
+            },
+        ]
+    )
+
+
+def test_embed_file_advanced_image_processing_raises_exception_on_failure(
+    azure_search_helper_mock,
+):
+    # given
+    push_embedder = PushEmbedder(MagicMock(), MagicMock())
+
+    successful_indexing_result = MagicMock()
+    successful_indexing_result.succeeded = True
+    failed_indexing_result = MagicMock()
+    failed_indexing_result.succeeded = False
+    azure_search_helper_mock.return_value.get_search_client.return_value.upload_documents.return_value = [
+        successful_indexing_result,
+        failed_indexing_result,
+    ]
+
+    # when + then
+    with pytest.raises(Exception):
+        push_embedder.embed_file(
+            "some-url",
+            "some-file-name.jpg",
+        )
 
 
 def test_embed_file_use_advanced_image_processing_does_not_vectorize_image_if_unsupported(
@@ -217,7 +273,7 @@ def test_embed_file_generates_embeddings_for_documents(llm_helper_mock):
 def test_embed_file_stores_documents_in_search_index(
     document_chunking_mock,
     llm_helper_mock,
-    azure_search_helper_mock,
+    azure_search_helper_mock: MagicMock,
 ):
     # given
     push_embedder = PushEmbedder(MagicMock(), MagicMock())
