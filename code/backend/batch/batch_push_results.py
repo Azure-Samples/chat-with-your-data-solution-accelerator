@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(level=os.environ.get("LOGLEVEL", "INFO").upper())
 
 
-def _get_file_name_from_message(message_body: any) -> str:
+def _get_file_name_from_message(message_body) -> str:
     return message_body.get(
         "filename",
         "/".join(
@@ -44,7 +44,7 @@ def batch_push_results(msg: func.QueueMessage) -> None:
         raise NotImplementedError(f"Unknown event type received: {event_type}")
 
 
-def _process_document_created_event(message_body: any) -> None:
+def _process_document_created_event(message_body) -> None:
     env_helper: EnvHelper = EnvHelper()
 
     blob_client = AzureBlobStorageClient()
@@ -55,7 +55,7 @@ def _process_document_created_event(message_body: any) -> None:
     embedder.embed_file(file_sas, file_name)
 
 
-def _process_document_deleted_event(message_body: any) -> None:
+def _process_document_deleted_event(message_body) -> None:
     env_helper: EnvHelper = EnvHelper()
     search_handler = Search.get_search_handler(env_helper)
 
