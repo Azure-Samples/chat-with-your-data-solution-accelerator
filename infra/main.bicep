@@ -127,6 +127,13 @@ param azureOpenAIVisionModelCapacity int = 10
 ])
 param orchestrationStrategy string = 'openai_function'
 
+@description('Chat conversation type: custom or byod.')
+@allowed([
+  'custom'
+  'byod'
+])
+param chatConversationType string = 'custom'
+
 @description('Azure OpenAI Temperature')
 param azureOpenAITemperature string = '0'
 
