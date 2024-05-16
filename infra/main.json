@@ -262,7 +262,7 @@
         "description": "Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain"
       }
     },
-    "chatConversationType": {
+    "conversationFlow": {
       "type": "string",
       "defaultValue": "custom",
       "allowedValues": [
@@ -2017,7 +2017,7 @@
               "AZURE_SPEECH_SERVICE_REGION": "[parameters('location')]",
               "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "[parameters('recognizedLanguages')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "CHAT_CONVERSATION_TYPE": "[parameters('chatConversationType')]",
+              "CONVERSATION_FLOW": "[parameters('conversationFlow')]",
               "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
@@ -2954,7 +2954,7 @@
               "AZURE_SPEECH_SERVICE_REGION": "[parameters('location')]",
               "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "[parameters('recognizedLanguages')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "CHAT_CONVERSATION_TYPE": "[parameters('chatConversationType')]",
+              "CONVERSATION_FLOW": "[parameters('conversationFlow')]",
               "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
@@ -11025,9 +11025,9 @@
       "type": "string",
       "value": "[parameters('logLevel')]"
     },
-    "CHAT_CONVERSATION_TYPE": {
+    "CONVERSATION_FLOW": {
       "type": "string",
-      "value": "[parameters('chatConversationType')]"
+      "value": "[parameters('conversationFlow')]"
     }
   }
 }
