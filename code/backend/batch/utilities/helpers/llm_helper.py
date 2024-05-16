@@ -29,7 +29,6 @@ class LLMHelper:
             )
 
         self.llm_model = self.env_helper.AZURE_OPENAI_MODEL
-        self.llm_vision_model = self.env_helper.AZURE_OPENAI_VISION_MODEL
         self.llm_max_tokens = (
             self.env_helper.AZURE_OPENAI_MAX_TOKENS
             if self.env_helper.AZURE_OPENAI_MAX_TOKENS != ""
