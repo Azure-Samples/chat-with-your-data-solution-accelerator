@@ -31,7 +31,8 @@ async def do_get_conversation_response(req: func.HttpRequest) -> func.HttpRespon
         conversation_id = req_body["conversation_id"]
         if conversation_id == "" or not conversation_id:
             conversation_id = str(uuid.uuid4())
-
+        user_id = req_body["user_id"]
+        print(f"User ID: {user_id}")
         user_assistant_messages = list(
             filter(
                 lambda x: x["role"] in ("user", "assistant"), req_body["messages"][0:-1]
@@ -48,7 +49,7 @@ async def do_get_conversation_response(req: func.HttpRequest) -> func.HttpRespon
                 )
 
         messages = await message_orchestrator.handle_message(
-            user_id="user_id",
+            user_id=user_id,
             user_message=user_message,
             chat_history=chat_history,
             conversation_id=conversation_id,
