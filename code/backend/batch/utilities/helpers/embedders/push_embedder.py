@@ -62,7 +62,6 @@ class PushEmbedder(EmbedderBase):
             image_vectors = self.azure_computer_vision_client.vectorize_image(
                 source_url
             )
-            logger.info("Image vectors: " + str(image_vectors))
 
             documents_to_upload.append(
                 self.__create_image_document(source_url, image_vectors)

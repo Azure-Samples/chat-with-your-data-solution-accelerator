@@ -338,10 +338,8 @@ def test_embed_file_raises_exception_on_failure(
     # given
     push_embedder = PushEmbedder(MagicMock(), MagicMock())
 
-    successful_indexing_result = MagicMock()
-    successful_indexing_result.succeeded = True
-    failed_indexing_result = MagicMock()
-    failed_indexing_result.succeeded = False
+    successful_indexing_result = MagicMock(succeeded=True)
+    failed_indexing_result = MagicMock(succeeded=False)
     azure_search_helper_mock.return_value.get_search_client.return_value.upload_documents.return_value = [
         successful_indexing_result,
         failed_indexing_result,
