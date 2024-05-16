@@ -19,8 +19,6 @@ def app_config(make_httpserver, ca):
                 "AZURE_SPEECH_REGION_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
                 "AZURE_STORAGE_ACCOUNT_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
                 "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "True",
-                # "AZURE_BLOB_CONTAINER_NAME": "documents",
-                # "AZURE_BLOB_ACCOUNT_NAME": "account",
                 "SSL_CERT_FILE": ca_temp_path,
                 "CURL_CA_BUNDLE": ca_temp_path,
             }
