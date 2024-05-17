@@ -10,7 +10,9 @@ from backend.batch.utilities.common.source_document import SourceDocument
 
 @pytest.fixture(autouse=True)
 def config_mock():
-    with patch("backend.batch.utilities.tools.question_answer_tool.ConfigHelper") as mock:
+    with patch(
+        "backend.batch.utilities.tools.question_answer_tool.ConfigHelper"
+    ) as mock:
         config = mock.get_active_config_or_default.return_value
         config.prompts.answering_system_prompt = "mock answering system prompt"
         config.prompts.answering_user_prompt = (
