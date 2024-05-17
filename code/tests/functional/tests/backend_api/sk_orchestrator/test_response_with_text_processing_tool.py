@@ -174,6 +174,7 @@ def test_post_makes_correct_call_to_openai_chat_completions_in_text_processing_t
                     },
                 ],
                 "model": app_config.get("AZURE_OPENAI_MODEL"),
+                "max_tokens": int(app_config.get("AZURE_OPENAI_MAX_TOKENS")),
             },
             headers={
                 "Accept": "application/json",
