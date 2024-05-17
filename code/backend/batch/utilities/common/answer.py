@@ -18,6 +18,18 @@ class Answer:
         self.prompt_tokens = prompt_tokens
         self.completion_tokens = completion_tokens
 
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, Answer):
+            return False
+
+        return (
+            self.question == value.question
+            and self.answer == value.answer
+            and self.source_documents == value.source_documents
+            and self.prompt_tokens == value.prompt_tokens
+            and self.completion_tokens == value.completion_tokens
+        )
+
     def to_json(self):
         return json.dumps(self, cls=AnswerEncoder)
 
