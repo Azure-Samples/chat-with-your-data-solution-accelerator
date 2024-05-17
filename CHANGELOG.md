@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.2.0](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/compare/v1.1.0...v1.2.0) (2024-05-17)
+
+
+### Features
+
+* Generate and add image captions to search index when image is ingested.  ([#928](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/928)) ([b8e34aa](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/commit/b8e34aabd1effb41109e71822e59b1f2aa9ad220))
+* Generate embeddings for images ([#892](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/892)) ([a96bde6](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/commit/a96bde6616e33d41a796cfb4a2c2e7705b8369ce))
+* Remove LangChain from post prompt tool ([#937](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/937)) ([21064e7](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/commit/21064e7ca1215c395f3d14619b3a90abf75b96c7))
+* Store image embeddings in search index ([#921](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/921)) ([f903af9](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/commit/f903af95536e59f4f3c47d7ffe1902d0df183ac4))
+
+
+### Bug Fixes
+
+* Add `max_tokens` to chat completions ([#934](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/934)) ([392d437](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/commit/392d43742e7302234236df95476cd2819a094d00))
+* Error viewing images in Explore Data page ([#936](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/936)) ([0d12d63](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/commit/0d12d6340bb32ca58c220520470165c9f8009939))
+* Fix computer vision for deployments ([#919](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/919)) ([548a767](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/commit/548a7670363a5e7ae369fe518ff2c64441138ee6))
+* Fix generate_arm_templates.sh script, reformat all Bicep files ([#922](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/922)) ([8c46627](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/commit/8c46627299e7a13f802879c9dcde7ef2f4cf8262))
+* handle BlobDelete event type in `batch_push_results` ([#893](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/893)) ([f27b68e](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/commit/f27b68effadfaf7cc1d79c1d852d306a806ad74e))
+* Keep the Admin.py as uppercase naming to allow the streamlit pick it as is. ([#912](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/912)) ([4150955](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/commit/4150955afb7dbdaeffb9ab55e0dc0f4fdf24cfe1))
+* Revert linting bug ([#932](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues/932)) ([d4e417a](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/commit/d4e417ae5c98e3fe04b3dace75bd92182ecc199a))
+
 ## [1.1.0](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/compare/v1.0.0...v1.1.0) (2024-05-14)
 
 
