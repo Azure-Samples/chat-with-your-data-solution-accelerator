@@ -1,15 +1,11 @@
 import logging
 import pytest
-import sys
-import os
+
 from tests.functional.app_config import AppConfig
 from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from backend.batch.utilities.helpers.env_helper import EnvHelper
 
 logger = logging.getLogger(__name__)
-sys.path.append(
-    os.path.join(os.path.dirname(sys.path[0]), "..", "..", "..", "backend", "batch")
-)
 
 
 @pytest.fixture(scope="package")
@@ -32,7 +28,7 @@ def app_config(make_httpserver, ca):
         yield app_config
 
 
-@pytest.fixture(scope="package")
+@pytest.fixture(scope="package", autouse=True)
 def manage_app(app_config: AppConfig):
     app_config.apply_to_environment()
     EnvHelper.clear_instance()

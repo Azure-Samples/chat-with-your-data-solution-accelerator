@@ -17,7 +17,7 @@ from tests.constants import (
 )
 
 sys.path.append(
-    os.path.join(os.path.dirname(sys.path[0]), "..", "..", "backend", "batch")
+    os.path.join(os.path.dirname(sys.path[0]), "..", "..", "..", "backend", "batch")
 )
 
 from backend.batch.batch_push_results import batch_push_results  # noqa: E402
