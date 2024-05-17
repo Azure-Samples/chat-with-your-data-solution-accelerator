@@ -104,11 +104,13 @@ class QuestionAnswerTool(AnsweringToolBase):
                     sources=few_shot_example["sources"],
                     question=few_shot_example["question"],
                 ),
-                "role": "user",
+                "name": "example_user",
+                "role": "system",
             },
             {
                 "content": few_shot_example["answer"],
-                "role": "assistant",
+                "name": "example_assistant",
+                "role": "system",
             },
             {
                 "content": self.env_helper.AZURE_OPENAI_SYSTEM_MESSAGE,

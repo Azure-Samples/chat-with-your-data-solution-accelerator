@@ -542,11 +542,13 @@ def test_post_makes_correct_call_to_openai_chat_completions_with_documents(
                     },
                     {
                         "content": '## Retrieved Documents\n{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}\n\n## User Question\nuser question',
-                        "role": "user",
+                        "name": "example_user",
+                        "role": "system",
                     },
                     {
                         "content": "answer",
-                        "role": "assistant",
+                        "name": "example_assistant",
+                        "role": "system",
                     },
                     {
                         "content": "You are an AI assistant that helps people find information.",
