@@ -1,6 +1,7 @@
 import logging
 import pytest
 from tests.functional.app_config import AppConfig
+
 from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from backend.batch.utilities.helpers.env_helper import EnvHelper
 

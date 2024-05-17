@@ -3,11 +3,11 @@ import logging
 import json
 import azure.functions as func
 
-from utilities.helpers.embedders.integrated_vectorization_embedder import (
+from .utilities.helpers.embedders.integrated_vectorization_embedder import (
     IntegratedVectorizationEmbedder,
 )
-from utilities.helpers.env_helper import EnvHelper
-from utilities.helpers.azure_blob_storage_client import (
+from .utilities.helpers.env_helper import EnvHelper
+from .utilities.helpers.azure_blob_storage_client import (
     AzureBlobStorageClient,
     create_queue_client,
 )

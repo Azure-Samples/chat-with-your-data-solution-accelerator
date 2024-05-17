@@ -1,6 +1,4 @@
 import json
-import os
-import sys
 from unittest.mock import ANY
 
 from azure.functions import QueueMessage
@@ -12,12 +10,7 @@ from tests.constants import (
     AZURE_STORAGE_CONFIG_FILE_NAME,
     AZURE_STORAGE_CONFIG_CONTAINER_NAME,
 )
-
-sys.path.append(
-    os.path.join(os.path.dirname(sys.path[0]), "..", "..", "..", "backend", "batch")
-)
-
-from backend.batch.batch_push_results import batch_push_results  # noqa: E402
+from backend.batch.batch_push_results import batch_push_results
 
 pytestmark = pytest.mark.functional
 
