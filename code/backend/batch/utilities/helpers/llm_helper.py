@@ -30,7 +30,7 @@ class LLMHelper:
 
         self.llm_model = self.env_helper.AZURE_OPENAI_MODEL
         self.llm_max_tokens = (
-            self.env_helper.AZURE_OPENAI_MAX_TOKENS
+            int(self.env_helper.AZURE_OPENAI_MAX_TOKENS)
             if self.env_helper.AZURE_OPENAI_MAX_TOKENS != ""
             else None
         )
@@ -121,6 +121,7 @@ class LLMHelper:
         return self.openai_client.chat.completions.create(
             model=model or self.llm_model,
             messages=messages,
+            max_tokens=self.llm_max_tokens,
         )
 
     def get_sk_chat_completion_service(self, service_id: str):
