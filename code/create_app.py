@@ -326,8 +326,8 @@ def create_app():
 
     @app.route("/", defaults={"path": "index.html"})
     @app.route("/<path:path>")
-    def static_file(file_path):
-        return app.send_static_file(file_path)
+    def static_file(path):
+        return app.send_static_file(path)
 
     @app.route("/api/health", methods=["GET"])
     def health():
