@@ -29,8 +29,9 @@ class AzureSearchHandler(SearchHandlerBase):
         if results is None:
             return []
         data = [
-            [json.loads(result["metadata"])["chunk"], result["content"]]
-            for result in results
+            # Note that images uploaded with advanced image processing do not have a chunk ID
+            [json.loads(result["metadata"]).get("chunk", i), result["content"]]
+            for i, result in enumerate(results)
         ]
         return data
 

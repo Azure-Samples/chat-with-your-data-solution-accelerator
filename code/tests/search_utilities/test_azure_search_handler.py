@@ -64,6 +64,20 @@ def test_process_results(handler):
     assert data[0] == [1, "Content 1"]
 
 
+def test_process_results_without_chunk(handler):
+    # given
+    results = [
+        {"metadata": "{}", "content": "Content 1"},
+        {"metadata": "{}", "content": "Content 2"},
+    ]
+
+    # when
+    data = handler.process_results(results)
+
+    # then
+    assert data == [[0, "Content 1"], [1, "Content 2"]]
+
+
 def test_process_results_null(handler):
     # given
     results = []

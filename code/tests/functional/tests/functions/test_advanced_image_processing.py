@@ -156,6 +156,7 @@ If the image is mostly text, use OCR to extract the text as it is displayed in t
                     },
                 ],
                 "model": app_config.get("AZURE_OPENAI_VISION_MODEL"),
+                "max_tokens": int(app_config.get("AZURE_OPENAI_MAX_TOKENS")),
             },
             headers={
                 "Accept": "application/json",
