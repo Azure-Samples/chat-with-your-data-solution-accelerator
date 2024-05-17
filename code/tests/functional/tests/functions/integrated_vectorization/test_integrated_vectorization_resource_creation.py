@@ -97,7 +97,7 @@ def test_integrated_vectorization_datasouce_created(
                 "name": app_config.get("AZURE_SEARCH_DATASOURCE_NAME"),
                 "type": "azureblob",
                 "credentials": {
-                    "connectionString": f"DefaultEndpointsProtocol=https;AccountName={app_config.get('AZURE_BLOB_ACCOUNT_NAME')};AccountKey=c29tZS1ibG9iLWFjY291bnQta2V5;EndpointSuffix=core.windows.net"
+                    "connectionString": f"DefaultEndpointsProtocol=https;AccountName={app_config.get('AZURE_BLOB_ACCOUNT_NAME')};AccountKey={app_config.get('AZURE_BLOB_ACCOUNT_KEY')};EndpointSuffix=core.windows.net"
                 },
                 "container": {"name": f"{app_config.get('AZURE_BLOB_CONTAINER_NAME')}"},
                 "dataDeletionDetectionPolicy": {
