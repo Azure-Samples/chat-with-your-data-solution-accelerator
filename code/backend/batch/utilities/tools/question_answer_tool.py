@@ -78,7 +78,23 @@ class QuestionAnswerTool(AnsweringToolBase):
 
         if any(few_shot_example.values()):
             if all((few_shot_example.values())):
-                examples.append(few_shot_example)
+                examples.append(
+                    {
+                        "content": self.config.prompts.answering_user_prompt.format(
+                            sources=few_shot_example["sources"],
+                            question=few_shot_example["question"],
+                        ),
+                        "name": "example_user",
+                        "role": "system",
+                    }
+                )
+                examples.append(
+                    {
+                        "content": few_shot_example["answer"],
+                        "name": "example_assistant",
+                        "role": "system",
+                    }
+                )
             else:
                 warnings.warn(
                     "Not all example fields are set in the config. Skipping few-shot example."
@@ -99,19 +115,7 @@ class QuestionAnswerTool(AnsweringToolBase):
                 "content": self.config.prompts.answering_system_prompt,
                 "role": "system",
             },
-            {
-                "content": self.config.prompts.answering_user_prompt.format(
-                    sources=few_shot_example["sources"],
-                    question=few_shot_example["question"],
-                ),
-                "name": "example_user",
-                "role": "system",
-            },
-            {
-                "content": few_shot_example["answer"],
-                "name": "example_assistant",
-                "role": "system",
-            },
+            *examples,
             {
                 "content": self.env_helper.AZURE_OPENAI_SYSTEM_MESSAGE,
                 "role": "system",
