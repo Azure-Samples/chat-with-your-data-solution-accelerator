@@ -113,8 +113,6 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
         }
     )
 
-    prime_search_to_trigger_creation_of_index(httpserver, app_config)
-
     httpserver.expect_request(
         "/indexes",
         method="POST",
@@ -201,30 +199,6 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     )
 
     httpserver.expect_request(
-        f"/indexes('{app_config.get('AZURE_SEARCH_INDEX')}')/docs/search.post.search",
-        method="POST",
-    ).respond_with_json(
-        {
-            "value": [
-                {
-                    "@search.score": 0.02916666865348816,
-                    "id": "doc_1",
-                    "content": "content",
-                    "content_vector": [
-                        -0.012909674,
-                        0.00838491,
-                    ],
-                    "metadata": '{"id": "doc_1", "source": "https://source", "title": "/documents/doc.pdf", "chunk": 95, "offset": 202738, "page_number": null}',
-                    "title": "/documents/doc.pdf",
-                    "source": "https://source",
-                    "chunk": 95,
-                    "offset": 202738,
-                }
-            ]
-        }
-    )
-
-    httpserver.expect_request(
         "/sts/v1.0/issueToken",
         method="POST",
     ).respond_with_data("speech-token")
@@ -302,6 +276,7 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     httpserver.check()
 
 
+@pytest.fixture(scope="function", autouse=True)
 def prime_search_to_trigger_creation_of_index(
     httpserver: HTTPServer, app_config: AppConfig
 ):
@@ -316,3 +291,27 @@ def prime_search_to_trigger_creation_of_index(
         "/indexes",
         method="GET",
     ).respond_with_json({"value": [{"name": app_config.get("AZURE_SEARCH_INDEX")}]})
+
+    httpserver.expect_request(
+        f"/indexes('{app_config.get('AZURE_SEARCH_INDEX')}')/docs/search.post.search",
+        method="POST",
+    ).respond_with_json(
+        {
+            "value": [
+                {
+                    "@search.score": 0.02916666865348816,
+                    "id": "doc_1",
+                    "content": "content",
+                    "content_vector": [
+                        -0.012909674,
+                        0.00838491,
+                    ],
+                    "metadata": '{"id": "doc_1", "source": "https://source", "title": "/documents/doc.pdf", "chunk": 95, "offset": 202738, "page_number": null}',
+                    "title": "/documents/doc.pdf",
+                    "source": "https://source",
+                    "chunk": 95,
+                    "offset": 202738,
+                }
+            ]
+        }
+    )
