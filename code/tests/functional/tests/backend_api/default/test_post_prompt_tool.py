@@ -286,11 +286,8 @@ def test_post_makes_correct_call_to_openai_from_post_prompt_tool(
                         "role": "user",
                     }
                 ],
-                "model": "gpt-3.5-turbo",
+                "model": app_config.get("AZURE_OPENAI_MODEL"),
                 "max_tokens": int(app_config.get("AZURE_OPENAI_MAX_TOKENS")),
-                "n": 1,
-                "stream": False,
-                "temperature": 0.0,
             },
             headers={
                 "Accept": "application/json",
