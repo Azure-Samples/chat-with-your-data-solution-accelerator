@@ -1,0 +1,23 @@
+[
+  {
+    "chat_input": "How can I create one using azureml sdk V2?",
+    "chat_history": [
+      {
+        "inputs": {
+          "chat_input": "Hi"
+        },
+        "outputs": {
+          "chat_output": "Hello! How can I assist you today?"
+        }
+      },
+      {
+        "inputs": {
+          "chat_input": "What is Azure compute instance?"
+        },
+        "outputs": {
+          "chat_output": "An Azure Machine Learning compute instance is a fully managed cloud-based workstation for data scientists. It provides a pre-configured and managed development environment in the cloud for machine learning. Compute instances can also be used as a compute target for training and inferencing for development and testing purposes. They have a job queue, run jobs securely in a virtual network environment, and can run multiple small jobs in parallel. Additionally, compute instances support single-node multi-GPU distributed training jobs."
+        }
+      }
+    ]
+  }
+]

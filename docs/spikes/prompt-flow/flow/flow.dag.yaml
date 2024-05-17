@@ -1,0 +1,111 @@
+id: bring_your_own_data_chat_qna
+name: Bring Your Own Data Chat QnA
+inputs:
+  chat_history:
+    type: list
+    default:
+    - inputs:
+        chat_input: Hi
+      outputs:
+        chat_output: Hello! How can I assist you today?
+    - inputs:
+        chat_input: What is Azure compute instance?
+      outputs:
+        chat_output: An Azure Machine Learning compute instance is a fully managed
+          cloud-based workstation for data scientists. It provides a
+          pre-configured and managed development environment in the cloud for
+          machine learning. Compute instances can also be used as a compute
+          target for training and inferencing for development and testing
+          purposes. They have a job queue, run jobs securely in a virtual
+          network environment, and can run multiple small jobs in parallel.
+          Additionally, compute instances support single-node multi-GPU
+          distributed training jobs.
+    is_chat_input: false
+    is_chat_history: true
+  chat_input:
+    type: string
+    default: How can I create one using azureml sdk V2?
+    is_chat_input: true
+outputs:
+  chat_output:
+    type: string
+    reference: ${chat_with_context.output}
+    is_chat_output: true
+nodes:
+- name: lookup
+  type: python
+  source:
+    type: package
+    tool: promptflow_vectordb.tool.common_index_lookup.search
+  inputs:
+    mlindex_content: >
+      embeddings:
+        api_base: https://openai-4s7kvgy5vqvme.openai.azure.com/
+        api_type: azure
+        api_version: '2024-02-01'
+        batch_size: '1'
+        connection:
+          id: /subscriptions/b34abd92-4a19-4242-941a-a797bc861e37/resourceGroups/rg-cwyd-pf/providers/Microsoft.MachineLearningServices/workspaces/cwyd-aml/connections/openai_connection
+        connection_type: workspace_connection
+        deployment: text-embedding-ada-002
+        dimension: 1536
+        kind: open_ai
+        model: text-embedding-ada-002
+        schema_version: '2'
+      index:
+        api_version: '2023-11-01'
+        connection:
+          id: /subscriptions/b34abd92-4a19-4242-941a-a797bc861e37/resourceGroups/rg-cwyd-pf/providers/Microsoft.MachineLearningServices/workspaces/cwyd-aml/connections/aisearch_connection
+        connection_type: workspace_connection
+        endpoint: https://search-4s7kvgy5vqvme.search.windows.net
+        engine: azure-sdk
+        field_mapping:
+          content: content
+          embedding: content_vector
+          metadata: metadata
+        index: index-4s7kvgy5vqvme
+        kind: acs
+        semantic_configuration_name: default
+    queries: ${inputs.chat_input}
+    query_type: Hybrid (vector + keyword)
+    top_k: 2
+  use_variants: false
+- name: generate_prompt_context
+  type: python
+  source:
+    type: code
+    path: generate_prompt_context.py
+  inputs:
+    search_result: ${lookup.output}
+  use_variants: false
+- name: Prompt_variants
+  type: prompt
+  source:
+    type: code
+    path: Prompt_variants.jinja2
+  inputs:
+    chat_history: ${inputs.chat_history}
+    chat_input: ${inputs.chat_input}
+    contexts: ${generate_prompt_context.output}
+  use_variants: false
+- name: chat_with_context
+  type: llm
+  source:
+    type: code
+    path: chat_with_context.jinja2
+  inputs:
+    deployment_name: gpt-35-turbo-16k
+    temperature: 0
+    top_p: 1
+    max_tokens: 1000
+    presence_penalty: 0
+    frequency_penalty: 0
+    prompt_text: ${Prompt_variants.output}
+  provider: AzureOpenAI
+  connection: openai_connection
+  api: chat
+  module: promptflow.tools.aoai
+  use_variants: false
+node_variants: {}
+environment:
+  python_requirements_txt: requirements.txt

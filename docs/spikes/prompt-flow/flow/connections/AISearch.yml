@@ -1,0 +1,6 @@
+$schema: https://azuremlschemas.azureedge.net/promptflow/latest/CognitiveSearchConnection.schema.json
+name: aisearch_connection
+type: cognitive_search
+api_key:  ${env:AISEARCH_CONNECTION_API_KEY}
+api_base: "https://search-4s7kvgy5vqvme.search.windows.net"
+api_version: "2023-03-15-preview"
