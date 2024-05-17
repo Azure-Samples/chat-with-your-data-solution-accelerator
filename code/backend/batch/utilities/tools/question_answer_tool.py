@@ -145,9 +145,7 @@ class QuestionAnswerTool(AnsweringToolBase):
 
         llm_helper = LLMHelper()
 
-        response = llm_helper.get_chat_completion(
-            messages, temperature=float(self.env_helper.AZURE_OPENAI_TEMPERATURE)
-        )
+        response = llm_helper.get_chat_completion(messages, temperature=0)
 
         answer = response.choices[0].message.content
         logger.debug(f"Answer: {answer}")

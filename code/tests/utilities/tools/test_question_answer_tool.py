@@ -36,7 +36,6 @@ def env_helper_mock():
     with patch("backend.batch.utilities.tools.question_answer_tool.EnvHelper") as mock:
         env_helper = mock.return_value
         env_helper.AZURE_OPENAI_SYSTEM_MESSAGE = "mock azure openai system message"
-        env_helper.AZURE_OPENAI_TEMPERATURE = "0.0"
         env_helper.AZURE_SEARCH_TOP_K = 1
         env_helper.AZURE_SEARCH_FILTER = "mock filter"
         env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = False
@@ -164,7 +163,7 @@ def test_correct_prompt_with_few_shot_example(llm_helper_mock: MagicMock):
                 "role": "user",
             },
         ],
-        temperature=0.0,
+        temperature=0,
     )
 
 
@@ -192,7 +191,7 @@ def test_correct_prompt_without_few_shot_example(
                 "role": "user",
             },
         ],
-        temperature=0.0,
+        temperature=0,
     )
 
 
@@ -231,7 +230,7 @@ def test_correct_prompt_with_few_shot_example_and_chat_history(
                 "role": "user",
             },
         ],
-        temperature=0.0,
+        temperature=0,
     )
 
 
@@ -261,7 +260,7 @@ def test_non_on_your_data_prompt_correct(
                 "role": "user",
             },
         ],
-        temperature=0.0,
+        temperature=0,
     )
 
 
