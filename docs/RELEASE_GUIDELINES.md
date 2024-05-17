@@ -12,42 +12,29 @@ This repository uses GitHub's in-built [Releases](https://docs.github.com/en/rep
 
 # Automated releases
 
-In order to automate the generation of a changelog, the creation of a release, and the bumping of a version number, we use [Release Please](https://github.com/googleapis/release-please).
+In order to automate the generation of a changelog, the creation of a release, and the bumping of a version number, we use the [Conventional Changelog Action](https://github.com/TriPSs/conventional-changelog-action).
 
 It works by inferring from the commit history what changes have been made, and hence what version should be assigned. This is why it is important for Pull Request titles to adhere to the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification, which many repositories use. This convention uses types such as `docs`, `fix`, `feat`, etc to label commits and PRs.
 
 From these, the [semantic version](https://semver.org/) of a release can be identified. For example a release which consists of a PR which adds a feature (`feat`) would result in an increment of the Minor part of the semantic version, e.g. 1.1.0 -> 1.2.0.
 
-Using Release Please takes much of the manual work out of creating a release, requiring only an approval from a maintainer to approve the release.
+Using the Conventional Changelog Action along with GitHub Releases takes all of the manual work out of creating a release.
 
-# Release Please Action
+# Conventional Changelog Action
 
 ## Usage
 
-We use the [Release Please](https://github.com/google-github-actions/release-please-action) GitHub Action, which you can find in `./github/workflows/release-please.yml`.
+We use the [Conventional Changelog](https://github.com/TriPSs/conventional-changelog-action) GitHub Action, which you can find in `./github/workflows/create-release.yml`.
 
-Once a PR is merged, the Action will automatically run and update a Release PR. It will automatically create the changelog and version number of the release. If subsequent PRs are merged, the Release PR will update to reflect these new changes. Once ready, the release PR can be merged and the main page of the repository will be updated with the new release.
+Once a PR is merged to `main`, the Action will automatically run. It will automatically generate a changelog, and if that changelog is empty, then no release is made. This would be the case for merges to `main` that include `docs`, `chore`, etc.
+
+Once a merge to `main` is completed that would result in a major/minor/patch version increase (such as `feat`, `fix`, etc.) then a changelog will be generated, and this will trigger a release to be published automatically with the appropriate version number.
+
+The workflow is configured so that the `CHANGELOG.md` is continuously updated. The Action by default uses the `package.json` version, which it also automatically updates.
 
 ## Security
 
-Due to the restrictions on this repository, and the inability to enable Actions to create pull requests, this workflow uses a personal access token.
-
-You can generate a personal access token by going to your [profile](https://github.com/settings/profile) > Developer settings > Personal access tokens.
-
-- Token name: `RELEASE_PLEASE_TOKEN`
-- Expiration: `90 days`
-- Resource Owner: `Azure-Samples`
-- Repository access: `Only select repositories` > `chat-with-your-data-solution-accelerator`
-
-The personal access token must be regenerated every 90 days. It must have the following permissions in order for the GitHub Action to be able to create a release pull request:
-- Actions: `Read and write`
-- Contents: `Read and write`
-- Merge queues: `Read and write`
-- Metadata: `Read-only`
-- Pull requests: `Read and write`
-- Workflows: `Read and write`
-
-Once the personal access token has been generated, it should be stored in the repository Settings, under Security > Secrets and Variables > Actions > RELEASE_PLEASE_TOKEN.
+The GitHub Action to create the release requires only the GitHub token, as this has sufficient permissions for it to checkout main (and read the commit history) and to create a release for the repository.
 
 # Conventional Commits
 

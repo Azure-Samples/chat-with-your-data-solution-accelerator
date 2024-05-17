@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "chat-with-your-data-solution-accelerator"
-version = "0.1.0"
+version = "1.1.0"
 description = "Chat with your data solution accelerator"
 authors = []
 readme = "README.md"
