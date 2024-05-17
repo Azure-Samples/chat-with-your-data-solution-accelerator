@@ -117,9 +117,9 @@ class LLMHelper:
             function_call=function_call,
         )
 
-    def get_chat_completion(self, messages: list[dict]):
+    def get_chat_completion(self, messages: list[dict], model: str | None = None):
         return self.openai_client.chat.completions.create(
-            model=self.llm_model,
+            model=model or self.llm_model,
             messages=messages,
         )
 
