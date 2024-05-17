@@ -17,86 +17,6 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     ).respond_with_data()
 
     httpserver.expect_request(
-        f"/{AZURE_STORAGE_CONFIG_CONTAINER_NAME}/{AZURE_STORAGE_CONFIG_FILE_NAME}",
-        method="GET",
-    ).respond_with_json(
-        {
-            "prompts": {
-                "condense_question_prompt": "",
-                "answering_system_prompt": "system prompt",
-                "answering_user_prompt": "## Retrieved Documents\n{sources}\n\n## User Question\n{question}",
-                "use_on_your_data_format": True,
-                "post_answering_prompt": "post answering prompt",
-                "enable_post_answering_prompt": False,
-                "enable_content_safety": True,
-            },
-            "messages": {"post_answering_filter": "post answering filer"},
-            "example": {
-                "documents": '{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}',
-                "user_question": "user question",
-                "answer": "answer",
-            },
-            "document_processors": [
-                {
-                    "document_type": "pdf",
-                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
-                    "loading": {"strategy": "layout"},
-                    "use_advanced_image_processing": False,
-                },
-                {
-                    "document_type": "txt",
-                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
-                    "loading": {"strategy": "web"},
-                    "use_advanced_image_processing": False,
-                },
-                {
-                    "document_type": "url",
-                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
-                    "loading": {"strategy": "web"},
-                    "use_advanced_image_processing": False,
-                },
-                {
-                    "document_type": "md",
-                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
-                    "loading": {"strategy": "web"},
-                    "use_advanced_image_processing": False,
-                },
-                {
-                    "document_type": "html",
-                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
-                    "loading": {"strategy": "web"},
-                    "use_advanced_image_processing": False,
-                },
-                {
-                    "document_type": "docx",
-                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
-                    "loading": {"strategy": "docx"},
-                    "use_advanced_image_processing": False,
-                },
-                {
-                    "document_type": "jpg",
-                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
-                    "loading": {"strategy": "layout"},
-                    "use_advanced_image_processing": True,
-                },
-                {
-                    "document_type": "png",
-                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
-                    "loading": {"strategy": "layout"},
-                    "use_advanced_image_processing": False,
-                },
-            ],
-            "logging": {"log_user_interactions": True, "log_tokens": True},
-            "orchestrator": {"strategy": "openai_function"},
-            "integrated_vectorization_config": None,
-        },
-        headers={
-            "Content-Type": "application/json",
-            "Content-Range": "bytes 0-12882/12883",
-        },
-    )
-
-    httpserver.expect_request(
         f"/openai/deployments/{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}/embeddings",
         method="POST",
     ).respond_with_json(
@@ -269,3 +189,87 @@ def prime_search_to_trigger_creation_of_index(
         "/indexes",
         method="GET",
     ).respond_with_json({"value": [{"name": app_config.get("AZURE_SEARCH_INDEX")}]})
+
+
+# This fixture can be overriden
+@pytest.fixture(autouse=True)
+def setup_config_mocking(httpserver: HTTPServer):
+    httpserver.expect_request(
+        f"/{AZURE_STORAGE_CONFIG_CONTAINER_NAME}/{AZURE_STORAGE_CONFIG_FILE_NAME}",
+        method="GET",
+    ).respond_with_json(
+        {
+            "prompts": {
+                "condense_question_prompt": "",
+                "answering_system_prompt": "system prompt",
+                "answering_user_prompt": "## Retrieved Documents\n{sources}\n\n## User Question\n{question}",
+                "use_on_your_data_format": True,
+                "post_answering_prompt": "post answering prompt\n{question}\n{answer}\n{sources}",
+                "enable_post_answering_prompt": False,
+                "enable_content_safety": True,
+            },
+            "messages": {"post_answering_filter": "post answering filter"},
+            "example": {
+                "documents": '{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}',
+                "user_question": "user question",
+                "answer": "answer",
+            },
+            "document_processors": [
+                {
+                    "document_type": "pdf",
+                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+                    "loading": {"strategy": "layout"},
+                    "use_advanced_image_processing": False,
+                },
+                {
+                    "document_type": "txt",
+                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+                    "loading": {"strategy": "web"},
+                    "use_advanced_image_processing": False,
+                },
+                {
+                    "document_type": "url",
+                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+                    "loading": {"strategy": "web"},
+                    "use_advanced_image_processing": False,
+                },
+                {
+                    "document_type": "md",
+                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+                    "loading": {"strategy": "web"},
+                    "use_advanced_image_processing": False,
+                },
+                {
+                    "document_type": "html",
+                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+                    "loading": {"strategy": "web"},
+                    "use_advanced_image_processing": False,
+                },
+                {
+                    "document_type": "docx",
+                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+                    "loading": {"strategy": "docx"},
+                    "use_advanced_image_processing": False,
+                },
+                {
+                    "document_type": "jpg",
+                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+                    "loading": {"strategy": "layout"},
+                    "use_advanced_image_processing": True,
+                },
+                {
+                    "document_type": "png",
+                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+                    "loading": {"strategy": "layout"},
+                    "use_advanced_image_processing": False,
+                },
+            ],
+            "logging": {"log_user_interactions": True, "log_tokens": True},
+            "orchestrator": {"strategy": "openai_function"},
+            "integrated_vectorization_config": None,
+        },
+        headers={
+            "Content-Type": "application/json",
+            "Content-Range": "bytes 0-12882/12883",
+        },
+    )
