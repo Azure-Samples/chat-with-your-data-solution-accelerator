@@ -118,16 +118,13 @@ class LLMHelper:
         )
 
     def get_chat_completion(
-        self,
-        messages: list[dict],
-        model: str | None = None,
-        temperature: float | None = None,
+        self, messages: list[dict], model: str | None = None, **kwargs
     ):
         return self.openai_client.chat.completions.create(
             model=model or self.llm_model,
             messages=messages,
             max_tokens=self.llm_max_tokens,
-            **({"temperature": temperature} if temperature is not None else {})
+            **kwargs
         )
 
     def get_sk_chat_completion_service(self, service_id: str):
