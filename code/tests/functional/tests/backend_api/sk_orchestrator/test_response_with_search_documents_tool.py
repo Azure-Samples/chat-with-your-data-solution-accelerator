@@ -249,6 +249,7 @@ def test_post_makes_correct_call_to_openai_chat_completions_in_question_answer_t
                 ],
                 "model": app_config.get("AZURE_OPENAI_MODEL"),
                 "max_tokens": int(app_config.get("AZURE_OPENAI_MAX_TOKENS")),
+                "temperature": float(app_config.get("AZURE_OPENAI_TEMPERATURE")),
             },
             headers={
                 "Accept": "application/json",
