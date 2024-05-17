@@ -27,6 +27,8 @@ jobs:
           git-user-name: 'github-actions[bot]'
           git-user-email: 'github-actions[bot]@users.noreply.github.com'
           version-file: './pyproject.toml'
+          version-path: 'tool.poetry.version'
+
 
       - name: Create Release
         uses: actions/create-release@v1
