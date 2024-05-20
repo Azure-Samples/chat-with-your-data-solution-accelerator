@@ -7,6 +7,7 @@ from tests.functional.app_config import AppConfig
 sys.path.append(
     os.path.join(os.path.dirname(sys.path[0]), "..", "..", "..", "backend", "batch")
 )
+# The below imports are needed due to the sys.path.append above as the backend function is not aware of the folders outside of the function
 from utilities.helpers.config.config_helper import ConfigHelper  # noqa: E402
 from utilities.helpers.env_helper import EnvHelper  # noqa: E402
 

@@ -145,7 +145,7 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     )
 
     httpserver.expect_request(
-        f"/datasources('{app_config.get('AZURE_SEARCH_DATASOURCE_NAME')}')",  # ?api-version=2023-10-01-Preview",
+        f"/datasources('{app_config.get('AZURE_SEARCH_DATASOURCE_NAME')}')",
         method="PUT",
     ).respond_with_json({}, status=201)
 
