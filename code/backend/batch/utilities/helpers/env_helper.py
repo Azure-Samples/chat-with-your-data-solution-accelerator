@@ -15,8 +15,9 @@ class EnvHelper:
     def __new__(cls):
         with cls._lock:
             if cls._instance is None:
-                cls._instance = super(EnvHelper, cls).__new__(cls)
-                cls._instance.__load_config()
+                instance = super(EnvHelper, cls).__new__(cls)
+                instance.__load_config()
+                cls._instance = instance
             return cls._instance
 
     def __load_config(self, **kwargs) -> None:
