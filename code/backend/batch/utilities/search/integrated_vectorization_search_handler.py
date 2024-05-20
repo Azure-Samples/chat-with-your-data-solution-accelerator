@@ -81,7 +81,7 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
         vector_query = VectorizableTextQuery(
             text=question,
             k_nearest_neighbors=self.env_helper.AZURE_SEARCH_TOP_K,
-            fields="content_vector",
+            fields=self._VECTOR_FIELD,
             exhaustive=True,
         )
         return self.search_client.search(
@@ -94,7 +94,7 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
         vector_query = VectorizableTextQuery(
             text=question,
             k_nearest_neighbors=self.env_helper.AZURE_SEARCH_TOP_K,
-            fields="content_vector",
+            fields=self._VECTOR_FIELD,
             exhaustive=True,
         )
         return self.search_client.search(

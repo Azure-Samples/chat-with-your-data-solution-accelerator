@@ -1,6 +1,7 @@
 from typing import List
 from .search_handler_base import SearchHandlerBase
 from ..helpers.llm_helper import LLMHelper
+from ..helpers.azure_computer_vision_client import AzureComputerVisionClient
 from ..helpers.azure_search_helper import AzureSearchHelper
 from ..common.source_document import SourceDocument
 import json
@@ -9,13 +10,12 @@ import tiktoken
 
 
 class AzureSearchHandler(SearchHandlerBase):
-
     _ENCODER_NAME = "cl100k_base"
-    _VECTOR_FIELD = "content_vector"
 
     def __init__(self, env_helper):
         super().__init__(env_helper)
         self.llm_helper = LLMHelper()
+        self.azure_computer_vision_client = AzureComputerVisionClient(env_helper)
 
     def create_search_client(self):
         return AzureSearchHelper().get_search_client()
@@ -66,14 +66,31 @@ class AzureSearchHandler(SearchHandlerBase):
     def query_search(self, question) -> List[SourceDocument]:
         encoding = tiktoken.get_encoding(self._ENCODER_NAME)
         tokenised_question = encoding.encode(question)
-        if self.env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH:
-            results = self._semantic_search(question, tokenised_question)
+
+        if self.env_helper.USE_ADVANCED_IMAGE_PROCESSING:
+            vectorized_question = self.azure_computer_vision_client.vectorize_text(
+                question
+            )
         else:
-            results = self._hybrid_search(question, tokenised_question)
+            vectorized_question = None
+
+        if self.env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH:
+            results = self._semantic_search(
+                question, tokenised_question, vectorized_question
+            )
+        else:
+            results = self._hybrid_search(
+                question, tokenised_question, vectorized_question
+            )
 
         return self._convert_to_source_documents(results)
 
-    def _semantic_search(self, question: str, tokenised_question: list[int]):
+    def _semantic_search(
+        self,
+        question: str,
+        tokenised_question: list[int],
+        vectorized_question: list[float] | None,
+    ):
         return self.search_client.search(
             search_text=question,
             vector_queries=[
@@ -81,7 +98,18 @@ class AzureSearchHandler(SearchHandlerBase):
                     vector=self.llm_helper.generate_embeddings(tokenised_question),
                     k_nearest_neighbors=self.env_helper.AZURE_SEARCH_TOP_K,
                     fields=self._VECTOR_FIELD,
-                )
+                ),
+                *(
+                    [
+                        VectorizedQuery(
+                            vector=vectorized_question,
+                            k_nearest_neighbors=self.env_helper.AZURE_SEARCH_TOP_K,
+                            fields=self._IMAGE_VECTOR_FIELD,
+                        )
+                    ]
+                    if vectorized_question is not None
+                    else []
+                ),
             ],
             filter=self.env_helper.AZURE_SEARCH_FILTER,
             query_type="semantic",
@@ -91,7 +119,12 @@ class AzureSearchHandler(SearchHandlerBase):
             top=self.env_helper.AZURE_SEARCH_TOP_K,
         )
 
-    def _hybrid_search(self, question: str, tokenised_question: list[int]):
+    def _hybrid_search(
+        self,
+        question: str,
+        tokenised_question: list[int],
+        vectorized_question: list[float] | None,
+    ):
         return self.search_client.search(
             search_text=question,
             vector_queries=[
@@ -100,7 +133,18 @@ class AzureSearchHandler(SearchHandlerBase):
                     k_nearest_neighbors=self.env_helper.AZURE_SEARCH_TOP_K,
                     filter=self.env_helper.AZURE_SEARCH_FILTER,
                     fields=self._VECTOR_FIELD,
-                )
+                ),
+                *(
+                    [
+                        VectorizedQuery(
+                            vector=vectorized_question,
+                            k_nearest_neighbors=self.env_helper.AZURE_SEARCH_TOP_K,
+                            fields=self._IMAGE_VECTOR_FIELD,
+                        )
+                    ]
+                    if vectorized_question is not None
+                    else []
+                ),
             ],
             query_type="simple",  # this is the default value
             filter=self.env_helper.AZURE_SEARCH_FILTER,
