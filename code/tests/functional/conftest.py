@@ -170,6 +170,53 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
         }
     )
 
+    httpserver.expect_request(
+        f"/datasources('{app_config.get('AZURE_SEARCH_DATASOURCE_NAME')}')",
+        method="PUT",
+    ).respond_with_json({}, status=201)
+
+    httpserver.expect_request(
+        f"/indexes('{app_config.get('AZURE_SEARCH_INDEX')}')",
+        method="PUT",
+    ).respond_with_json({}, status=201)
+
+    httpserver.expect_request(
+        f"/skillsets('{app_config.get('AZURE_SEARCH_INDEX')}-skillset')",
+        method="PUT",
+    ).respond_with_json(
+        {
+            "name": f"{app_config.get('AZURE_SEARCH_INDEX')}-skillset",
+            "description": "Extract entities, detect language and extract key-phrases",
+            "skills": [
+                {
+                    "@odata.type": "#Microsoft.Skills.Text.SplitSkill",
+                    "name": "#3",
+                    "description": None,
+                    "context": None,
+                    "inputs": [
+                        {"name": "text", "source": "/document/content"},
+                        {"name": "languageCode", "source": "/document/languageCode"},
+                    ],
+                    "outputs": [{"name": "textItems", "targetName": "pages"}],
+                    "defaultLanguageCode": None,
+                    "textSplitMode": "pages",
+                    "maximumPageLength": 4000,
+                },
+            ],
+        },
+        status=201,
+    )
+
+    httpserver.expect_request(
+        f"/indexers('{app_config.get('AZURE_SEARCH_INDEXER_NAME')}')",
+        method="PUT",
+    ).respond_with_json({}, status=201)
+
+    httpserver.expect_request(
+        f"/indexers('{app_config.get('AZURE_SEARCH_INDEXER_NAME')}')/search.run",
+        method="POST",
+    ).respond_with_json({}, status=202)
+
     yield
 
     httpserver.check()

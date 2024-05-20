@@ -1,8 +1,15 @@
 import logging
+import os
+import sys
 import pytest
 from tests.functional.app_config import AppConfig
-from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
-from backend.batch.utilities.helpers.env_helper import EnvHelper
+
+sys.path.append(
+    os.path.join(os.path.dirname(sys.path[0]), "..", "..", "..", "backend", "batch")
+)
+# The below imports are needed due to the sys.path.append above as the backend function is not aware of the folders outside of the function
+from utilities.helpers.config.config_helper import ConfigHelper  # noqa: E402
+from utilities.helpers.env_helper import EnvHelper  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
