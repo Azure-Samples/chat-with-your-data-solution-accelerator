@@ -4225,6 +4225,25 @@ files = [
 typing-extensions = ">=4.6.0,<4.7.0 || >4.7.0"
 
 [[package]]
+name = "pydantic-settings"
+version = "2.2.1"
+description = "Settings management using Pydantic"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "pydantic_settings-2.2.1-py3-none-any.whl", hash = "sha256:0235391d26db4d2190cb9b31051c4b46882d28a51533f97440867f012d4da091"},
+    {file = "pydantic_settings-2.2.1.tar.gz", hash = "sha256:00b9f6a5e95553590434c0fa01ead0b216c3e10bc54ae02e37f359948643c5ed"},
+]
+
+[package.dependencies]
+pydantic = ">=2.3.0"
+python-dotenv = ">=0.21.0"
+
+[package.extras]
+toml = ["tomli (>=2.0.1)"]
+yaml = ["pyyaml (>=6.0.1)"]
+
+[[package]]
 name = "pydeck"
 version = "0.8.0"
 description = "Widget for deck.gl maps"
@@ -5185,13 +5204,13 @@ test = ["array-api-strict", "asv", "gmpy2", "hypothesis (>=6.30)", "mpmath", "po
 
 [[package]]
 name = "semantic-kernel"
-version = "0.9.8b1"
+version = "1.0.0rc1"
 description = "Semantic Kernel Python SDK"
 optional = false
 python-versions = "<3.13,>=3.10"
 files = [
-    {file = "semantic_kernel-0.9.8b1-py3-none-any.whl", hash = "sha256:fd99595cd91690f4456a4073d3f05c1e497c83cd51b37ba6ffe5ce4c3cd801f0"},
-    {file = "semantic_kernel-0.9.8b1.tar.gz", hash = "sha256:fe38805c5375f416c11df5e5df7d8748892243ebae2a76d6ebf669f7774788d2"},
+    {file = "semantic_kernel-1.0.0rc1-py3-none-any.whl", hash = "sha256:5ab611447aae300081907d9e14077cb734c4504d8f4a5bd048290a92ce4558de"},
+    {file = "semantic_kernel-1.0.0rc1.tar.gz", hash = "sha256:86e8f4cbb72a1ba23b5f729603d62b3af9ca944bbf5c14a1d86631ec80d4544c"},
 ]
 
 [package.dependencies]
@@ -5213,7 +5232,7 @@ openapi_core = ">=0.18,<0.20"
 prance = ">=23.6.21.0,<24.0.0.0"
 pybars4 = ">=0.9.13,<0.10.0"
 pydantic = ">=2,<3"
-python-dotenv = ">=1.0.1,<2.0.0"
+pydantic-settings = ">=2.2.1,<3.0.0"
 regex = ">=2023.6.3,<2024.0.0"
 scipy = [
     {version = ">=1.5.0", markers = "python_version < \"3.12\""},
@@ -6081,4 +6100,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "8ce599d2fa28ca5cb9b09fcedc8b84937f506d8d33a60da406f1174bbb147108"
+content-hash = "589a00df08febf155356b0b59052d7a1c0363e8c8fb3b6b9fb5f4e17cfccdba5"
