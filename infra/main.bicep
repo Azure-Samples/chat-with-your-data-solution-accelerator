@@ -281,17 +281,16 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 }
 
 // Store secrets in a keyvault
-module keyvault './core/security/keyvault.bicep' =
-  if (useKeyVault || authType == 'rbac') {
-    name: 'keyvault'
-    scope: rg
-    params: {
-      name: keyVaultName
-      location: location
-      tags: tags
-      principalId: principalId
-    }
+module keyvault './core/security/keyvault.bicep' = if (useKeyVault || authType == 'rbac') {
+  name: 'keyvault'
+  scope: rg
+  params: {
+    name: keyVaultName
+    location: location
+    tags: tags
+    principalId: principalId
   }
+}
 
 var defaultOpenAiDeployments = [
   {
@@ -355,68 +354,63 @@ module openai 'core/ai/cognitiveservices.bicep' = {
   }
 }
 
-module computerVision 'core/ai/cognitiveservices.bicep' =
-  if (useAdvancedImageProcessing) {
-    name: 'computerVision'
-    scope: rg
-    params: {
-      name: computerVisionName
-      kind: 'ComputerVision'
-      location: computerVisionLocation
-      tags: tags
-      sku: {
-        name: computerVisionSkuName
-      }
+module computerVision 'core/ai/cognitiveservices.bicep' = if (useAdvancedImageProcessing) {
+  name: 'computerVision'
+  scope: rg
+  params: {
+    name: computerVisionName
+    kind: 'ComputerVision'
+    location: computerVisionLocation
+    tags: tags
+    sku: {
+      name: computerVisionSkuName
     }
   }
+}
 
 // Search Index Data Reader
-module searchIndexRoleOpenai 'core/security/role.bicep' =
-  if (authType == 'rbac') {
-    scope: rg
-    name: 'search-index-role-openai'
-    params: {
-      principalId: openai.outputs.identityPrincipalId
-      roleDefinitionId: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
-      principalType: 'ServicePrincipal'
-    }
+module searchIndexRoleOpenai 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'search-index-role-openai'
+  params: {
+    principalId: openai.outputs.identityPrincipalId
+    roleDefinitionId: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
+    principalType: 'ServicePrincipal'
   }
+}
 
 // Search Service Contributor
-module searchServiceRoleOpenai 'core/security/role.bicep' =
-  if (authType == 'rbac') {
-    scope: rg
-    name: 'search-service-role-openai'
-    params: {
-      principalId: openai.outputs.identityPrincipalId
-      roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
-      principalType: 'ServicePrincipal'
-    }
+module searchServiceRoleOpenai 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'search-service-role-openai'
+  params: {
+    principalId: openai.outputs.identityPrincipalId
+    roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+    principalType: 'ServicePrincipal'
   }
+}
 
 // Storage Blob Data Reader
-module blobDataReaderRoleSearch 'core/security/role.bicep' =
-  if (authType == 'rbac') {
-    scope: rg
-    name: 'blob-data-reader-role-search'
-    params: {
-      principalId: search.outputs.identityPrincipalId
-      roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
-      principalType: 'ServicePrincipal'
-    }
+module blobDataReaderRoleSearch 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'blob-data-reader-role-search'
+  params: {
+    principalId: search.outputs.identityPrincipalId
+    roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
+    principalType: 'ServicePrincipal'
   }
+}
 
 // Cognitive Services OpenAI User
-module openAiRoleSearchService 'core/security/role.bicep' =
-  if (authType == 'rbac') {
-    scope: rg
-    name: 'openai-role-searchservice'
-    params: {
-      principalId: search.outputs.identityPrincipalId
-      roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
-      principalType: 'ServicePrincipal'
-    }
+module openAiRoleSearchService 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'openai-role-searchservice'
+  params: {
+    principalId: search.outputs.identityPrincipalId
+    roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+    principalType: 'ServicePrincipal'
   }
+}
 
 module speechService 'core/ai/cognitiveservices.bicep' = {
   scope: rg
@@ -431,22 +425,21 @@ module speechService 'core/ai/cognitiveservices.bicep' = {
   }
 }
 
-module storekeys './app/storekeys.bicep' =
-  if (useKeyVault) {
-    name: 'storekeys'
-    scope: rg
-    params: {
-      keyVaultName: keyVaultName
-      azureOpenAIName: openai.outputs.name
-      azureAISearchName: search.outputs.name
-      storageAccountName: storage.outputs.name
-      formRecognizerName: formrecognizer.outputs.name
-      contentSafetyName: contentsafety.outputs.name
-      speechServiceName: speechServiceName
-      computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
-      rgName: rgName
-    }
+module storekeys './app/storekeys.bicep' = if (useKeyVault) {
+  name: 'storekeys'
+  scope: rg
+  params: {
+    keyVaultName: keyVaultName
+    azureOpenAIName: openai.outputs.name
+    azureAISearchName: search.outputs.name
+    storageAccountName: storage.outputs.name
+    formRecognizerName: formrecognizer.outputs.name
+    contentSafetyName: contentsafety.outputs.name
+    speechServiceName: speechServiceName
+    computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
+    rgName: rgName
   }
+}
 
 module search './core/search/search-services.bicep' = {
   name: azureAISearchName
@@ -484,273 +477,269 @@ module hostingplan './core/host/appserviceplan.bicep' = {
   }
 }
 
-module web './app/web.bicep' =
-  if (hostingModel == 'code') {
+module web './app/web.bicep' = if (hostingModel == 'code') {
+  name: websiteName
+  scope: rg
+  params: {
     name: websiteName
-    scope: rg
-    params: {
-      name: websiteName
-      location: location
-      tags: union(tags, { 'azd-service-name': 'web' })
-      runtimeName: 'python'
-      runtimeVersion: '3.11'
-      appServicePlanId: hostingplan.outputs.name
-      applicationInsightsName: monitoring.outputs.applicationInsightsName
-      healthCheckPath: '/api/health'
-      azureOpenAIName: openai.outputs.name
-      azureAISearchName: search.outputs.name
-      storageAccountName: storage.outputs.name
-      formRecognizerName: formrecognizer.outputs.name
-      contentSafetyName: contentsafety.outputs.name
-      speechServiceName: speechService.outputs.name
-      openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-      storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-      formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-      searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
-      contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-      speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-      useKeyVault: useKeyVault
-      keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-      authType: authType
-      appSettings: {
-        AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-        AZURE_BLOB_CONTAINER_NAME: blobContainerName
-        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-        AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-        AZURE_OPENAI_MODEL: azureOpenAIModel
-        AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
-        AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
-        AZURE_OPENAI_TOP_P: azureOpenAITopP
-        AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
-        AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
-        AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-        AZURE_OPENAI_STREAM: azureOpenAIStream
-        AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-        AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
-        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-        AZURE_SEARCH_INDEX: azureSearchIndex
-        AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
-        AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
-        AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
-        AZURE_SEARCH_TOP_K: azureSearchTopK
-        AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
-        AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
-        AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
-        AZURE_SEARCH_FILTER: azureSearchFilter
-        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-        AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-        AZURE_SPEECH_SERVICE_NAME: speechServiceName
-        AZURE_SPEECH_SERVICE_REGION: location
-        AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
-        ORCHESTRATION_STRATEGY: orchestrationStrategy
-        LOGLEVEL: logLevel
-      }
+    location: location
+    tags: union(tags, { 'azd-service-name': 'web' })
+    runtimeName: 'python'
+    runtimeVersion: '3.11'
+    appServicePlanId: hostingplan.outputs.name
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    healthCheckPath: '/api/health'
+    azureOpenAIName: openai.outputs.name
+    azureAISearchName: search.outputs.name
+    storageAccountName: storage.outputs.name
+    formRecognizerName: formrecognizer.outputs.name
+    contentSafetyName: contentsafety.outputs.name
+    speechServiceName: speechService.outputs.name
+    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
+    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
+    useKeyVault: useKeyVault
+    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
+    authType: authType
+    appSettings: {
+      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
+      AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
+      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+      AZURE_OPENAI_MODEL: azureOpenAIModel
+      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
+      AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
+      AZURE_OPENAI_TOP_P: azureOpenAITopP
+      AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
+      AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
+      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_OPENAI_STREAM: azureOpenAIStream
+      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+      AZURE_SEARCH_INDEX: azureSearchIndex
+      AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
+      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+      AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+      AZURE_SEARCH_TOP_K: azureSearchTopK
+      AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+      AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
+      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+      AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+      AZURE_SPEECH_SERVICE_NAME: speechServiceName
+      AZURE_SPEECH_SERVICE_REGION: location
+      AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
+      ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
+}
 
-module web_docker './app/web.bicep' =
-  if (hostingModel == 'container') {
+module web_docker './app/web.bicep' = if (hostingModel == 'container') {
+  name: '${websiteName}-docker'
+  scope: rg
+  params: {
     name: '${websiteName}-docker'
-    scope: rg
-    params: {
-      name: '${websiteName}-docker'
-      location: location
-      tags: union(tags, { 'azd-service-name': 'web-docker' })
-      dockerFullImageName: 'fruoccopublic.azurecr.io/rag-webapp'
-      appServicePlanId: hostingplan.outputs.name
-      applicationInsightsName: monitoring.outputs.applicationInsightsName
-      healthCheckPath: '/api/health'
-      azureOpenAIName: openai.outputs.name
-      azureAISearchName: search.outputs.name
-      storageAccountName: storage.outputs.name
-      formRecognizerName: formrecognizer.outputs.name
-      contentSafetyName: contentsafety.outputs.name
-      speechServiceName: speechService.outputs.name
-      openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-      storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-      formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-      searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
-      contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-      speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-      useKeyVault: useKeyVault
-      keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-      authType: authType
-      appSettings: {
-        AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-        AZURE_BLOB_CONTAINER_NAME: blobContainerName
-        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-        AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-        AZURE_OPENAI_MODEL: azureOpenAIModel
-        AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
-        AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
-        AZURE_OPENAI_TOP_P: azureOpenAITopP
-        AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
-        AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
-        AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-        AZURE_OPENAI_STREAM: azureOpenAIStream
-        AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-        AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
-        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-        AZURE_SEARCH_INDEX: azureSearchIndex
-        AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
-        AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
-        AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
-        AZURE_SEARCH_TOP_K: azureSearchTopK
-        AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
-        AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
-        AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
-        AZURE_SEARCH_FILTER: azureSearchFilter
-        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-        AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-        AZURE_SPEECH_SERVICE_NAME: speechServiceName
-        AZURE_SPEECH_SERVICE_REGION: location
-        AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
-        ORCHESTRATION_STRATEGY: orchestrationStrategy
-        LOGLEVEL: logLevel
-      }
+    location: location
+    tags: union(tags, { 'azd-service-name': 'web-docker' })
+    dockerFullImageName: 'fruoccopublic.azurecr.io/rag-webapp'
+    appServicePlanId: hostingplan.outputs.name
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    healthCheckPath: '/api/health'
+    azureOpenAIName: openai.outputs.name
+    azureAISearchName: search.outputs.name
+    storageAccountName: storage.outputs.name
+    formRecognizerName: formrecognizer.outputs.name
+    contentSafetyName: contentsafety.outputs.name
+    speechServiceName: speechService.outputs.name
+    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
+    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
+    useKeyVault: useKeyVault
+    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
+    authType: authType
+    appSettings: {
+      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
+      AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
+      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+      AZURE_OPENAI_MODEL: azureOpenAIModel
+      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
+      AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
+      AZURE_OPENAI_TOP_P: azureOpenAITopP
+      AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
+      AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
+      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_OPENAI_STREAM: azureOpenAIStream
+      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+      AZURE_SEARCH_INDEX: azureSearchIndex
+      AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
+      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+      AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+      AZURE_SEARCH_TOP_K: azureSearchTopK
+      AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+      AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
+      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+      AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+      AZURE_SPEECH_SERVICE_NAME: speechServiceName
+      AZURE_SPEECH_SERVICE_REGION: location
+      AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
+      ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
+}
 
-module adminweb './app/adminweb.bicep' =
-  if (hostingModel == 'code') {
+module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
+  name: adminWebsiteName
+  scope: rg
+  params: {
     name: adminWebsiteName
-    scope: rg
-    params: {
-      name: adminWebsiteName
-      location: location
-      tags: union(tags, { 'azd-service-name': 'adminweb' })
-      runtimeName: 'python'
-      runtimeVersion: '3.11'
-      appServicePlanId: hostingplan.outputs.name
-      applicationInsightsName: monitoring.outputs.applicationInsightsName
-      azureOpenAIName: openai.outputs.name
-      azureAISearchName: search.outputs.name
-      storageAccountName: storage.outputs.name
-      formRecognizerName: formrecognizer.outputs.name
-      contentSafetyName: contentsafety.outputs.name
-      speechServiceName: speechService.outputs.name
-      openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-      storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-      formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-      searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
-      contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-      speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-      useKeyVault: useKeyVault
-      keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-      authType: authType
-      appSettings: {
-        AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-        AZURE_BLOB_CONTAINER_NAME: blobContainerName
-        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-        AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-        AZURE_OPENAI_MODEL: azureOpenAIModel
-        AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
-        AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
-        AZURE_OPENAI_TOP_P: azureOpenAITopP
-        AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
-        AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
-        AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-        AZURE_OPENAI_STREAM: azureOpenAIStream
-        AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-        AZURE_SEARCH_INDEX: azureSearchIndex
-        AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
-        AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
-        AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
-        AZURE_SEARCH_TOP_K: azureSearchTopK
-        AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
-        AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
-        AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
-        AZURE_SEARCH_FILTER: azureSearchFilter
-        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-        AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-        AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-        AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-        BACKEND_URL: 'https://${functionName}.azurewebsites.net'
-        DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-        FUNCTION_KEY: clientKey
-        ORCHESTRATION_STRATEGY: orchestrationStrategy
-        LOGLEVEL: logLevel
-      }
+    location: location
+    tags: union(tags, { 'azd-service-name': 'adminweb' })
+    runtimeName: 'python'
+    runtimeVersion: '3.11'
+    appServicePlanId: hostingplan.outputs.name
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    azureOpenAIName: openai.outputs.name
+    azureAISearchName: search.outputs.name
+    storageAccountName: storage.outputs.name
+    formRecognizerName: formrecognizer.outputs.name
+    contentSafetyName: contentsafety.outputs.name
+    speechServiceName: speechService.outputs.name
+    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
+    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
+    useKeyVault: useKeyVault
+    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
+    authType: authType
+    appSettings: {
+      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
+      AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
+      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+      AZURE_OPENAI_MODEL: azureOpenAIModel
+      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
+      AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
+      AZURE_OPENAI_TOP_P: azureOpenAITopP
+      AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
+      AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
+      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_OPENAI_STREAM: azureOpenAIStream
+      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
+      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+      AZURE_SEARCH_INDEX: azureSearchIndex
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+      AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+      AZURE_SEARCH_TOP_K: azureSearchTopK
+      AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+      AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
+      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+      AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+      BACKEND_URL: 'https://${functionName}.azurewebsites.net'
+      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+      FUNCTION_KEY: clientKey
+      ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
+}
 
-module adminweb_docker './app/adminweb.bicep' =
-  if (hostingModel == 'container') {
+module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container') {
+  name: '${adminWebsiteName}-docker'
+  scope: rg
+  params: {
     name: '${adminWebsiteName}-docker'
-    scope: rg
-    params: {
-      name: '${adminWebsiteName}-docker'
-      location: location
-      tags: union(tags, { 'azd-service-name': 'adminweb-docker' })
-      dockerFullImageName: 'fruoccopublic.azurecr.io/rag-adminwebapp'
-      appServicePlanId: hostingplan.outputs.name
-      applicationInsightsName: monitoring.outputs.applicationInsightsName
-      azureOpenAIName: openai.outputs.name
-      azureAISearchName: search.outputs.name
-      storageAccountName: storage.outputs.name
-      formRecognizerName: formrecognizer.outputs.name
-      contentSafetyName: contentsafety.outputs.name
-      speechServiceName: speechService.outputs.name
-      openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-      storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-      formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-      searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
-      contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-      speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-      useKeyVault: useKeyVault
-      keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-      authType: authType
-      appSettings: {
-        AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-        AZURE_BLOB_CONTAINER_NAME: blobContainerName
-        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-        AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-        AZURE_OPENAI_MODEL: azureOpenAIModel
-        AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
-        AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
-        AZURE_OPENAI_TOP_P: azureOpenAITopP
-        AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
-        AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
-        AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-        AZURE_OPENAI_STREAM: azureOpenAIStream
-        AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-        AZURE_SEARCH_INDEX: azureSearchIndex
-        AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
-        AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
-        AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
-        AZURE_SEARCH_TOP_K: azureSearchTopK
-        AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
-        AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
-        AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
-        AZURE_SEARCH_FILTER: azureSearchFilter
-        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-        AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-        AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-        AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-        BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
-        DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-        FUNCTION_KEY: clientKey
-        ORCHESTRATION_STRATEGY: orchestrationStrategy
-        LOGLEVEL: logLevel
-      }
+    location: location
+    tags: union(tags, { 'azd-service-name': 'adminweb-docker' })
+    dockerFullImageName: 'fruoccopublic.azurecr.io/rag-adminwebapp'
+    appServicePlanId: hostingplan.outputs.name
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    azureOpenAIName: openai.outputs.name
+    azureAISearchName: search.outputs.name
+    storageAccountName: storage.outputs.name
+    formRecognizerName: formrecognizer.outputs.name
+    contentSafetyName: contentsafety.outputs.name
+    speechServiceName: speechService.outputs.name
+    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
+    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
+    useKeyVault: useKeyVault
+    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
+    authType: authType
+    appSettings: {
+      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
+      AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
+      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+      AZURE_OPENAI_MODEL: azureOpenAIModel
+      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
+      AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
+      AZURE_OPENAI_TOP_P: azureOpenAITopP
+      AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
+      AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
+      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_OPENAI_STREAM: azureOpenAIStream
+      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
+      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+      AZURE_SEARCH_INDEX: azureSearchIndex
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+      AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+      AZURE_SEARCH_TOP_K: azureSearchTopK
+      AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+      AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+      AZURE_SEARCH_FILTER: azureSearchFilter
+      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+      AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+      BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
+      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+      FUNCTION_KEY: clientKey
+      ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
+}
 
 module monitoring './core/monitor/monitoring.bicep' = {
   name: 'monitoring'
@@ -786,114 +775,112 @@ module workbook './app/workbook.bicep' = {
   }
 }
 
-module function './app/function.bicep' =
-  if (hostingModel == 'code') {
+module function './app/function.bicep' = if (hostingModel == 'code') {
+  name: functionName
+  scope: rg
+  params: {
     name: functionName
-    scope: rg
-    params: {
-      name: functionName
-      location: location
-      tags: union(tags, { 'azd-service-name': 'function' })
-      runtimeName: 'python'
-      runtimeVersion: '3.11'
-      appServicePlanId: hostingplan.outputs.name
-      applicationInsightsName: monitoring.outputs.applicationInsightsName
-      azureOpenAIName: openai.outputs.name
-      azureAISearchName: search.outputs.name
-      storageAccountName: storage.outputs.name
-      formRecognizerName: formrecognizer.outputs.name
-      contentSafetyName: contentsafety.outputs.name
-      speechServiceName: speechService.outputs.name
-      computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
-      clientKey: clientKey
-      openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-      storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-      formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-      searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
-      contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-      speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-      computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
-      useKeyVault: useKeyVault
-      keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-      authType: authType
-      appSettings: {
-        AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-        AZURE_BLOB_CONTAINER_NAME: blobContainerName
-        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
-        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-        AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-        AZURE_OPENAI_MODEL: azureOpenAIModel
-        AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-        AZURE_SEARCH_INDEX: azureSearchIndex
-        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-        AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-        AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
-        DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-        ORCHESTRATION_STRATEGY: orchestrationStrategy
-        LOGLEVEL: logLevel
-      }
+    location: location
+    tags: union(tags, { 'azd-service-name': 'function' })
+    runtimeName: 'python'
+    runtimeVersion: '3.11'
+    appServicePlanId: hostingplan.outputs.name
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    azureOpenAIName: openai.outputs.name
+    azureAISearchName: search.outputs.name
+    storageAccountName: storage.outputs.name
+    formRecognizerName: formrecognizer.outputs.name
+    contentSafetyName: contentsafety.outputs.name
+    speechServiceName: speechService.outputs.name
+    computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
+    clientKey: clientKey
+    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
+    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
+    computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
+    useKeyVault: useKeyVault
+    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
+    authType: authType
+    appSettings: {
+      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
+      AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
+      AZURE_OPENAI_MODEL: azureOpenAIModel
+      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
+      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_SEARCH_INDEX: azureSearchIndex
+      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+      ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
+}
 
-module function_docker './app/function.bicep' =
-  if (hostingModel == 'container') {
+module function_docker './app/function.bicep' = if (hostingModel == 'container') {
+  name: '${functionName}-docker'
+  scope: rg
+  params: {
     name: '${functionName}-docker'
-    scope: rg
-    params: {
-      name: '${functionName}-docker'
-      location: location
-      tags: union(tags, { 'azd-service-name': 'function-docker' })
-      dockerFullImageName: 'fruoccopublic.azurecr.io/rag-backend'
-      appServicePlanId: hostingplan.outputs.name
-      applicationInsightsName: monitoring.outputs.applicationInsightsName
-      azureOpenAIName: openai.outputs.name
-      azureAISearchName: search.outputs.name
-      storageAccountName: storage.outputs.name
-      formRecognizerName: formrecognizer.outputs.name
-      contentSafetyName: contentsafety.outputs.name
-      speechServiceName: speechService.outputs.name
-      computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
-      clientKey: clientKey
-      openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-      storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-      formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-      searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
-      contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-      speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-      computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
-      useKeyVault: useKeyVault
-      keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-      authType: authType
-      appSettings: {
-        AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-        AZURE_BLOB_CONTAINER_NAME: blobContainerName
-        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
-        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-        AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-        AZURE_OPENAI_MODEL: azureOpenAIModel
-        AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-        AZURE_SEARCH_INDEX: azureSearchIndex
-        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-        AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-        AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
-        DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-        ORCHESTRATION_STRATEGY: orchestrationStrategy
-        LOGLEVEL: logLevel
-      }
+    location: location
+    tags: union(tags, { 'azd-service-name': 'function-docker' })
+    dockerFullImageName: 'fruoccopublic.azurecr.io/rag-backend'
+    appServicePlanId: hostingplan.outputs.name
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    azureOpenAIName: openai.outputs.name
+    azureAISearchName: search.outputs.name
+    storageAccountName: storage.outputs.name
+    formRecognizerName: formrecognizer.outputs.name
+    contentSafetyName: contentsafety.outputs.name
+    speechServiceName: speechService.outputs.name
+    computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
+    clientKey: clientKey
+    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
+    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
+    computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
+    useKeyVault: useKeyVault
+    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
+    authType: authType
+    appSettings: {
+      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
+      AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
+      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
+      AZURE_OPENAI_MODEL: azureOpenAIModel
+      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
+      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_SEARCH_INDEX: azureSearchIndex
+      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+      ORCHESTRATION_STRATEGY: orchestrationStrategy
+      LOGLEVEL: logLevel
     }
   }
+}
 
 module formrecognizer 'core/ai/cognitiveservices.bicep' = {
   name: formRecognizerName
@@ -967,52 +954,48 @@ module storage 'core/storage/storage-account.bicep' = {
 
 // USER ROLES
 // Storage Blob Data Contributor
-module storageRoleUser 'core/security/role.bicep' =
-  if (authType == 'rbac') {
-    scope: rg
-    name: 'storage-role-user'
-    params: {
-      principalId: principalId
-      roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-      principalType: 'User'
-    }
+module storageRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'storage-role-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    principalType: 'User'
   }
+}
 
 // Cognitive Services User
-module openaiRoleUser 'core/security/role.bicep' =
-  if (authType == 'rbac') {
-    scope: rg
-    name: 'openai-role-user'
-    params: {
-      principalId: principalId
-      roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
-      principalType: 'User'
-    }
+module openaiRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'openai-role-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+    principalType: 'User'
   }
+}
 
 // Contributor
-module openaiRoleUserContributor 'core/security/role.bicep' =
-  if (authType == 'rbac') {
-    scope: rg
-    name: 'openai-role-user-contributor'
-    params: {
-      principalId: principalId
-      roleDefinitionId: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
-      principalType: 'User'
-    }
+module openaiRoleUserContributor 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'openai-role-user-contributor'
+  params: {
+    principalId: principalId
+    roleDefinitionId: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
+    principalType: 'User'
   }
+}
 
 // Search Index Data Contributor
-module searchRoleUser 'core/security/role.bicep' =
-  if (authType == 'rbac') {
-    scope: rg
-    name: 'search-role-user'
-    params: {
-      principalId: principalId
-      roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
-      principalType: 'User'
-    }
+module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
+  scope: rg
+  name: 'search-role-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+    principalType: 'User'
   }
+}
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
