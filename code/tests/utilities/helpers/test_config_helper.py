@@ -142,6 +142,7 @@ def reset_default_config():
     ConfigHelper.get_active_config_or_default.cache_clear()
     yield
     ConfigHelper._default_config = None
+    ConfigHelper.get_active_config_or_default.cache_clear()
 
 
 def test_active_config_or_default_is_cached(env_helper_mock: MagicMock):
