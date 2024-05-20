@@ -68,8 +68,6 @@ export const Answer = ({
         };
     }, []);
 
-    console.log('answer', answer);
-
     return (
         <>
             <Stack className={styles.answerContainer} id={messageBoxId}>
@@ -108,10 +106,7 @@ export const Answer = ({
                         {parsedAnswer.citations.map((citation, idx) => {
                             if (citation.url?.includes('.blob.core.windows.net/presentations/')) {
                                 const downloadFile = () => {
-                                    const linkRegex = /\(([^)]+)\)/;
-                                    const matches = citation.url?.match(linkRegex);
-                                    const link = matches ? matches[1] : '';
-                                    window.open(link);
+                                    window.open(citation.content);
                                 }
                                 return (
                                     <DefaultButton
