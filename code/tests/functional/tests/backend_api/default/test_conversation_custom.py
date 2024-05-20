@@ -542,11 +542,13 @@ def test_post_makes_correct_call_to_openai_chat_completions_with_documents(
                     },
                     {
                         "content": '## Retrieved Documents\n{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}\n\n## User Question\nuser question',
-                        "role": "user",
+                        "name": "example_user",
+                        "role": "system",
                     },
                     {
                         "content": "answer",
-                        "role": "assistant",
+                        "name": "example_assistant",
+                        "role": "system",
                     },
                     {
                         "content": "You are an AI assistant that helps people find information.",
@@ -559,11 +561,9 @@ def test_post_makes_correct_call_to_openai_chat_completions_with_documents(
                         "role": "user",
                     },
                 ],
-                "model": "gpt-3.5-turbo",  # This is hardcoded in LangChain
+                "model": app_config.get("AZURE_OPENAI_MODEL"),
                 "max_tokens": int(app_config.get("AZURE_OPENAI_MAX_TOKENS")),
-                "n": 1,
-                "stream": False,
-                "temperature": float(app_config.get("AZURE_OPENAI_TEMPERATURE")),
+                "temperature": 0,
             },
             headers={
                 "Accept": "application/json",

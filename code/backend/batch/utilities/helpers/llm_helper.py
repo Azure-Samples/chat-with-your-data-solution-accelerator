@@ -117,11 +117,14 @@ class LLMHelper:
             function_call=function_call,
         )
 
-    def get_chat_completion(self, messages: list[dict], model: str | None = None):
+    def get_chat_completion(
+        self, messages: list[dict], model: str | None = None, **kwargs
+    ):
         return self.openai_client.chat.completions.create(
             model=model or self.llm_model,
             messages=messages,
             max_tokens=self.llm_max_tokens,
+            **kwargs
         )
 
     def get_sk_chat_completion_service(self, service_id: str):
