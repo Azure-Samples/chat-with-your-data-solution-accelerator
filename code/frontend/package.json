@@ -12,7 +12,7 @@
     "dependencies": {
         "@babel/traverse": "^7.24.5",
         "@fluentui/react": "^8.118.1",
-        "@fluentui/react-icons": "^2.0.239",
+        "@fluentui/react-icons": "^2.0.240",
         "@fortawesome/fontawesome-svg-core": "^6.5.2",
         "@fortawesome/free-solid-svg-icons": "^6.5.2",
         "@fortawesome/react-fontawesome": "github:fortawesome/react-fontawesome",
