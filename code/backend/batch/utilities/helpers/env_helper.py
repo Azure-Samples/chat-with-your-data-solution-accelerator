@@ -36,8 +36,8 @@ class EnvHelper:
         # Azure Search
         self.AZURE_SEARCH_SERVICE = os.getenv("AZURE_SEARCH_SERVICE", "")
         self.AZURE_SEARCH_INDEX = os.getenv("AZURE_SEARCH_INDEX", "")
-        self.AZURE_SEARCH_USE_SEMANTIC_SEARCH = (
-            os.getenv("AZURE_SEARCH_USE_SEMANTIC_SEARCH", "False").lower() == "true"
+        self.AZURE_SEARCH_USE_SEMANTIC_SEARCH = self.get_env_var_bool(
+            "AZURE_SEARCH_USE_SEMANTIC_SEARCH", "False"
         )
         self.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = os.getenv(
             "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG", "default"
