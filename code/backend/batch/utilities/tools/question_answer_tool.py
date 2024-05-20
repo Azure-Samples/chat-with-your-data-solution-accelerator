@@ -2,26 +2,13 @@ import json
 import logging
 import warnings
 
+from ..common.answer import Answer
 from ..common.source_document import SourceDocument
+from ..helpers.config.config_helper import ConfigHelper
+from ..helpers.env_helper import EnvHelper
+from ..helpers.llm_helper import LLMHelper
 from ..search.search import Search
 from .answering_tool_base import AnsweringToolBase
-
-from langchain.chains.llm import LLMChain
-from langchain.prompts import (
-    AIMessagePromptTemplate,
-    ChatPromptTemplate,
-    FewShotChatMessagePromptTemplate,
-    HumanMessagePromptTemplate,
-    MessagesPlaceholder,
-    PromptTemplate,
-)
-from langchain_community.callbacks import get_openai_callback
-from langchain_core.messages import SystemMessage
-
-from ..helpers.config.config_helper import ConfigHelper
-from ..helpers.llm_helper import LLMHelper
-from ..helpers.env_helper import EnvHelper
-from ..common.answer import Answer
 
 logger = logging.getLogger(__name__)
 
@@ -46,27 +33,36 @@ class QuestionAnswerTool(AnsweringToolBase):
         except json.JSONDecodeError:
             return obj
 
-    def generate_llm_chain(self, question: str, sources: list[dict]):
-        answering_prompt = PromptTemplate(
-            template=self.config.prompts.answering_user_prompt,
-            input_variables=["question", "sources"],
-        )
+    @staticmethod
+    def clean_chat_history(chat_history: list[dict]) -> list[dict]:
+        return [
+            {
+                "content": message["content"],
+                "role": message["role"],
+            }
+            for message in chat_history
+        ]
 
+    def generate_messages(self, question: str, sources: list[SourceDocument]):
         sources_text = "\n\n".join(
             [f"[doc{i+1}]: {source.content}" for i, source in enumerate(sources)]
         )
 
-        return answering_prompt, {
-            "sources": sources_text,
-            "question": question,
-        }
+        return [
+            {
+                "content": self.config.prompts.answering_user_prompt.format(
+                    question=question, sources=sources_text
+                ),
+                "role": "user",
+            },
+        ]
 
-    def generate_on_your_data_llm_chain(
+    def generate_on_your_data_messages(
         self,
         question: str,
         chat_history: list[dict],
         sources: list[SourceDocument],
-    ):
+    ) -> list[dict]:
         examples = []
 
         few_shot_example = {
@@ -82,37 +78,27 @@ class QuestionAnswerTool(AnsweringToolBase):
 
         if any(few_shot_example.values()):
             if all((few_shot_example.values())):
-                examples.append(few_shot_example)
+                examples.append(
+                    {
+                        "content": self.config.prompts.answering_user_prompt.format(
+                            sources=few_shot_example["sources"],
+                            question=few_shot_example["question"],
+                        ),
+                        "name": "example_user",
+                        "role": "system",
+                    }
+                )
+                examples.append(
+                    {
+                        "content": few_shot_example["answer"],
+                        "name": "example_assistant",
+                        "role": "system",
+                    }
+                )
             else:
                 warnings.warn(
                     "Not all example fields are set in the config. Skipping few-shot example."
                 )
-
-        example_prompt = ChatPromptTemplate.from_messages(
-            [
-                HumanMessagePromptTemplate.from_template(
-                    self.config.prompts.answering_user_prompt
-                ),
-                AIMessagePromptTemplate.from_template("{answer}"),
-            ]
-        )
-
-        few_shot_prompt = FewShotChatMessagePromptTemplate(
-            example_prompt=example_prompt,
-            examples=examples,
-        )
-
-        answering_prompt = ChatPromptTemplate.from_messages(
-            [
-                SystemMessage(content=self.config.prompts.answering_system_prompt),
-                few_shot_prompt,
-                SystemMessage(content=self.env_helper.AZURE_OPENAI_SYSTEM_MESSAGE),
-                MessagesPlaceholder("chat_history"),
-                HumanMessagePromptTemplate.from_template(
-                    self.config.prompts.answering_user_prompt
-                ),
-            ]
-        )
 
         documents = json.dumps(
             {
@@ -124,39 +110,44 @@ class QuestionAnswerTool(AnsweringToolBase):
             separators=(",", ":"),
         )
 
-        return answering_prompt, {
-            "sources": documents,
-            "question": question,
-            "chat_history": chat_history,
-        }
+        return [
+            {
+                "content": self.config.prompts.answering_system_prompt,
+                "role": "system",
+            },
+            *examples,
+            {
+                "content": self.env_helper.AZURE_OPENAI_SYSTEM_MESSAGE,
+                "role": "system",
+            },
+            *QuestionAnswerTool.clean_chat_history(chat_history),
+            {
+                "content": self.config.prompts.answering_user_prompt.format(
+                    sources=documents,
+                    question=question,
+                ),
+                "role": "user",
+            },
+        ]
 
-    def answer_question(
-        self, question: str, chat_history: list[SourceDocument], **kwargs
-    ):
+    def answer_question(self, question: str, chat_history: list[dict], **kwargs):
         source_documents = Search.get_source_documents(self.search_handler, question)
 
         if self.config.prompts.use_on_your_data_format:
-            answering_prompt, input = self.generate_on_your_data_llm_chain(
+            messages = self.generate_on_your_data_messages(
                 question, chat_history, source_documents
             )
         else:
             warnings.warn(
                 "Azure OpenAI On Your Data prompt format is recommended and should be enabled in the Admin app.",
             )
-            answering_prompt, input = self.generate_llm_chain(
-                question, source_documents
-            )
+            messages = self.generate_messages(question, source_documents)
 
         llm_helper = LLMHelper()
 
-        answer_generator = LLMChain(
-            llm=llm_helper.get_llm(), prompt=answering_prompt, verbose=self.verbose
-        )
+        response = llm_helper.get_chat_completion(messages, temperature=0)
 
-        with get_openai_callback() as cb:
-            result = answer_generator(input)
-
-        answer = result["text"]
+        answer = response.choices[0].message.content
         logger.debug(f"Answer: {answer}")
 
         # Generate Answer Object
@@ -164,7 +155,7 @@ class QuestionAnswerTool(AnsweringToolBase):
             question=question,
             answer=answer,
             source_documents=source_documents,
-            prompt_tokens=cb.prompt_tokens,
-            completion_tokens=cb.completion_tokens,
+            prompt_tokens=response.usage.prompt_tokens,
+            completion_tokens=response.usage.completion_tokens,
         )
         return clean_answer
