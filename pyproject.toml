@@ -48,7 +48,7 @@ pre-commit = "3.7.1"
 pytest_httpserver = "1.0.10"
 trustme = "1.1.0"
 jupyter = "1.0.0"
-pytest-asyncio = "^0.23.6"
+pytest-asyncio = "^0.23.7"
 
 [tool.coverage.run]
 omit = [
