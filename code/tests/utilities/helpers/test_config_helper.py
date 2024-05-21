@@ -133,19 +133,33 @@ def env_helper_mock():
         env_helper.LOAD_CONFIG_FROM_BLOB_STORAGE = True
         env_helper.USE_ADVANCED_IMAGE_PROCESSING = False
 
-        yield env_helper
+        yield mock
 
 
 @pytest.fixture(autouse=True)
 def reset_default_config():
     ConfigHelper._default_config = None
+    ConfigHelper.get_active_config_or_default.cache_clear()
     yield
     ConfigHelper._default_config = None
+    ConfigHelper.get_active_config_or_default.cache_clear()
+
+
+def test_active_config_or_default_is_cached(env_helper_mock: MagicMock):
+    # when
+    active_config_one = ConfigHelper.get_active_config_or_default()
+    active_config_two = ConfigHelper.get_active_config_or_default()
+
+    # then
+    assert active_config_one is active_config_two
+
+    # We should have called EnvHelper three times for each call to get_active_config_or_default
+    assert env_helper_mock.call_count == 3
 
 
 def test_default_config(env_helper_mock: MagicMock):
     # when
-    env_helper_mock.ORCHESTRATION_STRATEGY = "mock-strategy"
+    env_helper_mock.return_value.ORCHESTRATION_STRATEGY = "mock-strategy"
     default_config = ConfigHelper.get_default_config()
 
     # then
@@ -163,7 +177,7 @@ def test_default_config_is_cached():
 
 def test_default_config_when_use_advanced_image_processing(env_helper_mock):
     # given
-    env_helper_mock.USE_ADVANCED_IMAGE_PROCESSING = True
+    env_helper_mock.return_value.USE_ADVANCED_IMAGE_PROCESSING = True
 
     # when
     config = ConfigHelper.get_default_config()
@@ -384,7 +398,7 @@ def test_get_available_document_types_when_advanced_image_processing_enabled(
     config: Config, env_helper_mock: MagicMock
 ):
     # given
-    env_helper_mock.USE_ADVANCED_IMAGE_PROCESSING = True
+    env_helper_mock.return_value.USE_ADVANCED_IMAGE_PROCESSING = True
 
     # when
     document_types = config.get_available_document_types()
