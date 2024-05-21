@@ -1,5 +1,6 @@
 import logging
 import pytest
+from pytest_httpserver import HTTPServer
 from tests.functional.app_config import AppConfig
 from tests.functional.tests.backend_api.common import get_free_port, start_app
 from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
@@ -30,6 +31,8 @@ def app_config(make_httpserver, ca):
                 "AZURE_CONTENT_SAFETY_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
                 "AZURE_SPEECH_REGION_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
                 "AZURE_STORAGE_ACCOUNT_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
+                "LOAD_CONFIG_FROM_BLOB_STORAGE": "False",
+                "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "True",
                 "SSL_CERT_FILE": ca_temp_path,
                 "CURL_CA_BUNDLE": ca_temp_path,
             }
@@ -50,9 +53,36 @@ def manage_app(app_port: int, app_config: AppConfig):
     ConfigHelper.clear_config()
 
 
-@pytest.fixture(autouse=True)
-def reset_default_config():
-    """
-    Reset the default config after each test
-    """
-    ConfigHelper.clear_config()
+@pytest.fixture(scope="function", autouse=True)
+def prime_search_to_trigger_creation_of_index(
+    httpserver: HTTPServer, app_config: AppConfig
+):
+    httpserver.expect_request(
+        "/indexes",
+        method="GET",
+    ).respond_with_json({"value": [{"name": app_config.get("AZURE_SEARCH_INDEX")}]})
+
+    httpserver.expect_request(
+        f"/indexes('{app_config.get('AZURE_SEARCH_INDEX')}')/docs/search.post.search",
+        method="POST",
+    ).respond_with_json(
+        {
+            "value": [
+                {
+                    "@search.score": 0.8008686,
+                    "id": "aHR0cHM6Ly9zdHJ2bzRoNWZheWthd3NnLmJsb2IuY29yZS53aW5kb3dzLm5ldC9kb2N1bWVudHMvQmVuZWZpdF9PcHRpb25zLnBkZg2",
+                    "content": "content",
+                    "content_vector": [
+                        -0.012909674,
+                        0.00838491,
+                    ],
+                    "metadata": None,
+                    "title": "doc.pdf",
+                    "source": "https://source",
+                    "chunk": None,
+                    "offset": None,
+                    "chunk_id": "31e6a74d1340_aHR0cHM6Ly9zdHJ2bzRoNWZheWthd3NnLmJsb2IuY29yZS53aW5kb3dzLm5ldC9kb2N1bWVudHMvQmVuZWZpdF9PcHRpb25zLnBkZg2_pages_6",
+                }
+            ]
+        }
+    )

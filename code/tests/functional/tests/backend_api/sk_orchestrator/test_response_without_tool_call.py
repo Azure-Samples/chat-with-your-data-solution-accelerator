@@ -176,7 +176,7 @@ def test_post_makes_correct_call_to_openai_chat_completions(
                 "n": 1,
                 "presence_penalty": 0.0,
                 "stream": False,
-                "temperature": float(app_config.get("AZURE_OPENAI_TEMPERATURE")),
+                "temperature": 0.0,
                 "tools": [
                     {
                         "type": "function",

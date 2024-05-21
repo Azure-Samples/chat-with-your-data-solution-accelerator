@@ -1,6 +1,8 @@
 import pytest
 from pytest_httpserver import HTTPServer
 import requests
+import json
+import re
 
 from tests.request_matching import (
     RequestMatcher,
@@ -28,48 +30,28 @@ def completions_mocking(httpserver: HTTPServer, app_config: AppConfig):
         method="POST",
     ).respond_with_json(
         {
+            "id": "chatcmpl-6v7mkQj980V1yBec6ETrKPRqFjNw9",
+            "object": "chat.completion",
+            "created": 1679072642,
+            "model": app_config.get("AZURE_OPENAI_MODEL"),
+            "usage": {
+                "prompt_tokens": 58,
+                "completion_tokens": 68,
+                "total_tokens": 126,
+            },
             "choices": [
                 {
-                    "content_filter_results": {},
-                    "finish_reason": "tool_calls",
-                    "index": 0,
                     "message": {
-                        "content": None,
                         "role": "assistant",
-                        "tool_calls": [
-                            {
-                                "function": {
-                                    "arguments": '{"question":"What is the meaning of life?"}',
-                                    "name": "Chat-search_documents",
-                                },
-                                "id": "call_9ZgrCHgwHooEPFSoNpH81RBm",
-                                "type": "function",
-                            }
-                        ],
+                        "function_call": {
+                            "name": "search_documents",
+                            "arguments": '{"question": "What is the meaning of life?"}',
+                        },
                     },
+                    "finish_reason": "function_call",
+                    "index": 0,
                 }
             ],
-            "created": 1714576877,
-            "id": "chatcmpl-9K63hMvVH1DyQJqqM7rFE4oRPFCeR",
-            "model": app_config.get("AZURE_OPENAI_MODEL"),
-            "object": "chat.completion",
-            "prompt_filter_results": [
-                {
-                    "prompt_index": 0,
-                    "content_filter_results": {
-                        "hate": {"filtered": False, "severity": "safe"},
-                        "self_harm": {"filtered": False, "severity": "safe"},
-                        "sexual": {"filtered": False, "severity": "safe"},
-                        "violence": {"filtered": False, "severity": "safe"},
-                    },
-                }
-            ],
-            "system_fingerprint": "fp_2f57f81c11",
-            "usage": {
-                "completion_tokens": 21,
-                "prompt_tokens": 256,
-                "total_tokens": 277,
-            },
         }
     )
 
@@ -78,43 +60,25 @@ def completions_mocking(httpserver: HTTPServer, app_config: AppConfig):
         method="POST",
     ).respond_with_json(
         {
+            "id": "chatcmpl-6v7mkQj980V1yBec6ETrKPRqFjNw9",
+            "object": "chat.completion",
+            "created": 1679072642,
+            "model": "gpt-35-turbo",
+            "usage": {
+                "prompt_tokens": 40,
+                "completion_tokens": 50,
+                "total_tokens": 90,
+            },
             "choices": [
                 {
-                    "content_filter_results": {
-                        "hate": {"filtered": False, "severity": "safe"},
-                        "self_harm": {"filtered": False, "severity": "safe"},
-                        "sexual": {"filtered": False, "severity": "safe"},
-                        "violence": {"filtered": False, "severity": "safe"},
+                    "message": {
+                        "role": "assistant",
+                        "content": "42 is the meaning of life",
                     },
                     "finish_reason": "stop",
                     "index": 0,
-                    "message": {
-                        "content": "42 is the meaning of life[doc1].",
-                        "role": "assistant",
-                    },
                 }
             ],
-            "created": 1714576891,
-            "id": "chatcmpl-9K63vDGs3slJFynnpi2K6RcVPwgrT",
-            "model": app_config.get("AZURE_OPENAI_MODEL"),
-            "object": "chat.completion",
-            "prompt_filter_results": [
-                {
-                    "prompt_index": 0,
-                    "content_filter_results": {
-                        "hate": {"filtered": False, "severity": "safe"},
-                        "self_harm": {"filtered": False, "severity": "safe"},
-                        "sexual": {"filtered": False, "severity": "safe"},
-                        "violence": {"filtered": False, "severity": "safe"},
-                    },
-                }
-            ],
-            "system_fingerprint": "fp_2f57f81c11",
-            "usage": {
-                "completion_tokens": 101,
-                "prompt_tokens": 4288,
-                "total_tokens": 4389,
-            },
         }
     )
 
@@ -130,12 +94,12 @@ def test_post_responds_successfully(app_url: str, app_config: AppConfig):
             {
                 "messages": [
                     {
-                        "content": r'{"citations": [{"content": "[/documents/doc.pdf](https://source)\n\n\ncontent", "id": "doc_1", "chunk_id": 95, "title": "/documents/doc.pdf", "filepath": "source", "url": "[/documents/doc.pdf](https://source)", "metadata": {"offset": 202738, "source": "https://source", "markdown_url": "[/documents/doc.pdf](https://source)", "title": "/documents/doc.pdf", "original_url": "https://source", "chunk": 95, "key": "doc_1", "filename": "source"}}], "intent": "What is the meaning of life?"}',
+                        "content": '{"citations": [], "intent": "What is the meaning of life?"}',
                         "end_turn": False,
                         "role": "tool",
                     },
                     {
-                        "content": "42 is the meaning of life[doc1].",
+                        "content": "42 is the meaning of life",
                         "end_turn": True,
                         "role": "assistant",
                     },
@@ -150,7 +114,29 @@ def test_post_responds_successfully(app_url: str, app_config: AppConfig):
     assert response.headers["Content-Type"] == "application/json"
 
 
-def test_post_makes_correct_call_to_list_search_index(
+def test_post_makes_correct_call_to_get_conversation_log_search_index(
+    app_url: str, app_config: AppConfig, httpserver: HTTPServer
+):
+    # when
+    requests.post(f"{app_url}{path}", json=body)
+
+    # then
+    verify_request_made(
+        mock_httpserver=httpserver,
+        request_matcher=RequestMatcher(
+            path=f"/indexes('{app_config.get('AZURE_SEARCH_CONVERSATIONS_LOG_INDEX')}')",
+            method="GET",
+            headers={
+                "Accept": "application/json;odata.metadata=minimal",
+                "Api-Key": app_config.get("AZURE_SEARCH_KEY"),
+            },
+            query_string="api-version=2023-10-01-Preview",
+            times=1,
+        ),
+    )
+
+
+def test_post_makes_correct_call_to_list_search_indexes(
     app_url: str, app_config: AppConfig, httpserver: HTTPServer
 ):
     # when
@@ -167,12 +153,12 @@ def test_post_makes_correct_call_to_list_search_index(
                 "Api-Key": app_config.get("AZURE_SEARCH_KEY"),
             },
             query_string="api-version=2023-10-01-Preview",
-            times=1,
+            times=2,
         ),
     )
 
 
-def test_post_makes_correct_call_to_get_search_documents(
+def test_post_makes_correct_call_to_search_documents_search_index(
     app_url: str, app_config: AppConfig, httpserver: HTTPServer
 ):
     # when
@@ -185,16 +171,15 @@ def test_post_makes_correct_call_to_get_search_documents(
             path=f"/indexes('{app_config.get('AZURE_SEARCH_INDEX')}')/docs/search.post.search",
             method="POST",
             json={
-                "filter": app_config.get("AZURE_SEARCH_FILTER"),
-                "queryType": "simple",
                 "search": "What is the meaning of life?",
                 "top": int(app_config.get("AZURE_SEARCH_TOP_K")),
                 "vectorQueries": [
                     {
-                        "kind": "vector",
+                        "kind": "text",
                         "k": int(app_config.get("AZURE_SEARCH_TOP_K")),
                         "fields": "content_vector",
-                        "vector": [0.018990106880664825, -0.0073809814639389515],
+                        "exhaustive": True,
+                        "text": "What is the meaning of life?",
                     }
                 ],
             },
@@ -261,3 +246,31 @@ def test_post_makes_correct_call_to_openai_chat_completions_in_question_answer_t
             times=1,
         ),
     )
+
+
+def test_post_returns_error_when_downstream_fails(
+    app_url: str, app_config: AppConfig, httpserver: HTTPServer
+):
+    httpserver.expect_oneshot_request(
+        re.compile(".*"),
+    ).respond_with_json({}, status=403)
+
+    # when
+    response = requests.post(
+        f"{app_url}/api/conversation/custom",
+        json={
+            "conversation_id": "123",
+            "messages": [
+                {"role": "user", "content": "Hello"},
+                {"role": "assistant", "content": "Hi, how can I help?"},
+                {"role": "user", "content": "What is the meaning of life?"},
+            ],
+        },
+    )
+
+    # then
+    assert response.status_code == 500
+    assert response.headers["Content-Type"] == "application/json"
+    assert json.loads(response.text) == {
+        "error": "Exception in /api/conversation/custom. See log for more details."
+    }

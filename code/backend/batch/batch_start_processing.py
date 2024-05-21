@@ -2,7 +2,6 @@ import os
 import logging
 import json
 import azure.functions as func
-
 from utilities.helpers.embedders.integrated_vectorization_embedder import (
     IntegratedVectorizationEmbedder,
 )

@@ -1,14 +1,8 @@
 import json
-import sys
-import os
 import pytest
 from unittest.mock import patch
 from azure.functions import QueueMessage
-
-
-sys.path.append(os.path.join(os.path.dirname(sys.path[0]), "backend", "batch"))
-
-from backend.batch.batch_push_results import (  # noqa: E402
+from backend.batch.batch_push_results import (
     batch_push_results,
     _get_file_name_from_message,
 )

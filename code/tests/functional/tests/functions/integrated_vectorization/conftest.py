@@ -1,22 +1,18 @@
 import logging
+import os
+import sys
 import pytest
+
 from tests.functional.app_config import AppConfig
-from tests.functional.tests.backend_api.common import get_free_port, start_app
-from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
-from backend.batch.utilities.helpers.env_helper import EnvHelper
+
+sys.path.append(
+    os.path.join(os.path.dirname(sys.path[0]), "..", "..", "..", "backend", "batch")
+)
+# The below imports are needed due to the sys.path.append above as the backend function is not aware of the folders outside of the function
+from utilities.helpers.config.config_helper import ConfigHelper  # noqa: E402
+from utilities.helpers.env_helper import EnvHelper  # noqa: E402
 
 logger = logging.getLogger(__name__)
-
-
-@pytest.fixture(scope="package")
-def app_port() -> int:
-    logger.info("Getting free port")
-    return get_free_port()
-
-
-@pytest.fixture(scope="package")
-def app_url(app_port: int) -> str:
-    return f"http://localhost:{app_port}"
 
 
 @pytest.fixture(scope="package")
@@ -30,6 +26,7 @@ def app_config(make_httpserver, ca):
                 "AZURE_CONTENT_SAFETY_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
                 "AZURE_SPEECH_REGION_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
                 "AZURE_STORAGE_ACCOUNT_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
+                "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "True",
                 "SSL_CERT_FILE": ca_temp_path,
                 "CURL_CA_BUNDLE": ca_temp_path,
             }
@@ -39,20 +36,11 @@ def app_config(make_httpserver, ca):
 
 
 @pytest.fixture(scope="package", autouse=True)
-def manage_app(app_port: int, app_config: AppConfig):
+def manage_app(app_config: AppConfig):
     app_config.apply_to_environment()
     EnvHelper.clear_instance()
     ConfigHelper.clear_config()
-    start_app(app_port)
     yield
     app_config.remove_from_environment()
     EnvHelper.clear_instance()
-    ConfigHelper.clear_config()
-
-
-@pytest.fixture(autouse=True)
-def reset_default_config():
-    """
-    Reset the default config after each test
-    """
     ConfigHelper.clear_config()
