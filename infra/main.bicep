@@ -55,7 +55,7 @@ param applicationInsightsName string = 'appinsights-${resourceToken}'
 param workbookDisplayName string = 'workbook-${resourceToken}'
 
 @description('Use semantic search')
-param azureSearchUseSemanticSearch string = 'false'
+param azureSearchUseSemanticSearch bool = false
 
 @description('Semantic search config')
 param azureSearchSemanticSearchConfig string = 'default'
@@ -458,6 +458,7 @@ module search './core/search/search-services.bicep' = {
         aadAuthFailureMode: 'http403'
       }
     }
+    semanticSearch: azureSearchUseSemanticSearch ? 'free' : null
   }
 }
 
@@ -1027,7 +1028,7 @@ output AZURE_OPENAI_API_KEY string = useKeyVault ? storekeys.outputs.OPENAI_KEY_
 output AZURE_RESOURCE_GROUP string = rgName
 output AZURE_SEARCH_KEY string = useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
 output AZURE_SEARCH_SERVICE string = search.outputs.endpoint
-output AZURE_SEARCH_USE_SEMANTIC_SEARCH string = azureSearchUseSemanticSearch
+output AZURE_SEARCH_USE_SEMANTIC_SEARCH bool = azureSearchUseSemanticSearch
 output AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG string = azureSearchSemanticSearchConfig
 output AZURE_SEARCH_INDEX_IS_PRECHUNKED string = azureSearchIndexIsPrechunked
 output AZURE_SEARCH_TOP_K string = azureSearchTopK

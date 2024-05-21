@@ -209,7 +209,7 @@ def test_query_search_performs_semantic_search(
         ],
         filter=handler.env_helper.AZURE_SEARCH_FILTER,
         query_type="semantic",
-        semantic_configuration_name=handler.env_helper.AZURE_SEARCH_SEMANTIC_CONFIG_NAME,
+        semantic_configuration_name=handler.env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
         query_caption="extractive",
         query_answer="extractive",
         top=handler.env_helper.AZURE_SEARCH_TOP_K,

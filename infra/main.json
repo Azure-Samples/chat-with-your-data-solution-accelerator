@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.27.1.19265",
-      "templateHash": "9021391279672164541"
+      "templateHash": "5735866947841378196"
     }
   },
   "parameters": {
@@ -100,8 +100,8 @@
       }
     },
     "azureSearchUseSemanticSearch": {
-      "type": "string",
-      "defaultValue": "false",
+      "type": "bool",
+      "defaultValue": false,
       "metadata": {
         "description": "Use semantic search"
       }
@@ -1668,7 +1668,8 @@
                 "aadAuthFailureMode": "http403"
               }
             }
-          }
+          },
+          "semanticSearch": "[if(parameters('azureSearchUseSemanticSearch'), createObject('value', 'free'), createObject('value', null()))]"
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -10913,7 +10914,7 @@
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureAISearchName')), '2022-09-01').outputs.endpoint.value]"
     },
     "AZURE_SEARCH_USE_SEMANTIC_SEARCH": {
-      "type": "string",
+      "type": "bool",
       "value": "[parameters('azureSearchUseSemanticSearch')]"
     },
     "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG": {
