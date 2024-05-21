@@ -71,18 +71,42 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
 
     def query_search(self, question) -> List[SourceDocument]:
         if self._check_index_exists():
-            vector_query = VectorizableTextQuery(
-                text=question,
-                k_nearest_neighbors=self.env_helper.AZURE_SEARCH_TOP_K,
-                fields="content_vector",
-                exhaustive=True,
-            )
-            search_results = self.search_client.search(
-                search_text=question,
-                vector_queries=[vector_query],
-                top=self.env_helper.AZURE_SEARCH_TOP_K,
-            )
+            if self.env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH:
+                search_results = self._semantic_search(question)
+            else:
+                search_results = self._hybrid_search(question)
             return self._convert_to_source_documents(search_results)
+
+    def _hybrid_search(self, question: str):
+        vector_query = VectorizableTextQuery(
+            text=question,
+            k_nearest_neighbors=self.env_helper.AZURE_SEARCH_TOP_K,
+            fields="content_vector",
+            exhaustive=True,
+        )
+        return self.search_client.search(
+            search_text=question,
+            vector_queries=[vector_query],
+            top=self.env_helper.AZURE_SEARCH_TOP_K,
+        )
+
+    def _semantic_search(self, question: str):
+        vector_query = VectorizableTextQuery(
+            text=question,
+            k_nearest_neighbors=self.env_helper.AZURE_SEARCH_TOP_K,
+            fields="content_vector",
+            exhaustive=True,
+        )
+        return self.search_client.search(
+            search_text=question,
+            vector_queries=[vector_query],
+            filter=self.env_helper.AZURE_SEARCH_FILTER,
+            query_type="semantic",
+            semantic_configuration_name=self.env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
+            query_caption="extractive",
+            query_answer="extractive",
+            top=self.env_helper.AZURE_SEARCH_TOP_K,
+        )
 
     def _convert_to_source_documents(self, search_results) -> List[SourceDocument]:
         source_documents = []

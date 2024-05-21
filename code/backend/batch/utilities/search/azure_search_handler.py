@@ -85,7 +85,7 @@ class AzureSearchHandler(SearchHandlerBase):
             ],
             filter=self.env_helper.AZURE_SEARCH_FILTER,
             query_type="semantic",
-            semantic_configuration_name=self.env_helper.AZURE_SEARCH_SEMANTIC_CONFIG_NAME,
+            semantic_configuration_name=self.env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
             query_caption="extractive",
             query_answer="extractive",
             top=self.env_helper.AZURE_SEARCH_TOP_K,
