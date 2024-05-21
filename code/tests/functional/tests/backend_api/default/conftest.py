@@ -48,3 +48,11 @@ def manage_app(app_port: int, app_config: AppConfig):
     app_config.remove_from_environment()
     EnvHelper.clear_instance()
     ConfigHelper.clear_config()
+
+
+@pytest.fixture(autouse=True)
+def reset_default_config():
+    """
+    Reset the default config after each test
+    """
+    ConfigHelper.clear_config()
