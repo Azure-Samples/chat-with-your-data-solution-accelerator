@@ -15,8 +15,9 @@ class EnvHelper:
     def __new__(cls):
         with cls._lock:
             if cls._instance is None:
-                cls._instance = super(EnvHelper, cls).__new__(cls)
-                cls._instance.__load_config()
+                instance = super(EnvHelper, cls).__new__(cls)
+                instance.__load_config()
+                cls._instance = instance
             return cls._instance
 
     def __load_config(self, **kwargs) -> None:
@@ -36,8 +37,8 @@ class EnvHelper:
         # Azure Search
         self.AZURE_SEARCH_SERVICE = os.getenv("AZURE_SEARCH_SERVICE", "")
         self.AZURE_SEARCH_INDEX = os.getenv("AZURE_SEARCH_INDEX", "")
-        self.AZURE_SEARCH_USE_SEMANTIC_SEARCH = (
-            os.getenv("AZURE_SEARCH_USE_SEMANTIC_SEARCH", "False").lower() == "true"
+        self.AZURE_SEARCH_USE_SEMANTIC_SEARCH = self.get_env_var_bool(
+            "AZURE_SEARCH_USE_SEMANTIC_SEARCH", "False"
         )
         self.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = os.getenv(
             "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG", "default"
@@ -204,9 +205,7 @@ class EnvHelper:
             "ORCHESTRATION_STRATEGY", "openai_function"
         )
         # Conversation Type - which chooses between custom or byod
-        self.CONVERSATION_FLOW = os.getenv(
-            "CONVERSATION_FLOW", "custom"
-        )
+        self.CONVERSATION_FLOW = os.getenv("CONVERSATION_FLOW", "custom")
         # Speech Service
         self.AZURE_SPEECH_SERVICE_NAME = os.getenv("AZURE_SPEECH_SERVICE_NAME", "")
         self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")
