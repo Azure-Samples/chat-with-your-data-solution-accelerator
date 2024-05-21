@@ -1,7 +1,11 @@
+"""
+This module tests the entry point for the application.
+"""
+
 import os
-from flask.testing import FlaskClient
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch, ANY
+import pytest
+from flask.testing import FlaskClient
 from create_app import create_app
 
 AZURE_SPEECH_KEY = "mock-speech-key"
@@ -9,6 +13,7 @@ AZURE_SPEECH_SERVICE_REGION = "mock-speech-service-region"
 AZURE_SPEECH_REGION_ENDPOINT = "mock-speech-region-endpoint"
 AZURE_OPENAI_ENDPOINT = "mock-openai-endpoint"
 AZURE_OPENAI_MODEL = "mock-openai-model"
+AZURE_OPENAI_EMBEDDING_MODEL = "mock-openai-embedding-model"
 AZURE_OPENAI_SYSTEM_MESSAGE = "system-message"
 AZURE_OPENAI_API_VERSION = "mock-version"
 AZURE_OPENAI_API_KEY = "mock-api-key"
@@ -33,11 +38,13 @@ AZURE_SPEECH_RECOGNIZER_LANGUAGES = ["en-US", "en-GB"]
 
 @pytest.fixture
 def client():
+    """Create a test client for the app."""
     return create_app().test_client()
 
 
 @pytest.fixture(autouse=True)
 def env_helper_mock():
+    """Mock the environment variables for the tests."""
     with patch("create_app.EnvHelper") as mock:
         env_helper = mock.return_value
 
@@ -47,6 +54,7 @@ def env_helper_mock():
         env_helper.AZURE_SPEECH_REGION_ENDPOINT = AZURE_SPEECH_REGION_ENDPOINT
         env_helper.AZURE_OPENAI_ENDPOINT = AZURE_OPENAI_ENDPOINT
         env_helper.AZURE_OPENAI_MODEL = AZURE_OPENAI_MODEL
+        env_helper.AZURE_OPENAI_EMBEDDING_MODEL = AZURE_OPENAI_EMBEDDING_MODEL
         env_helper.AZURE_OPENAI_SYSTEM_MESSAGE = AZURE_OPENAI_SYSTEM_MESSAGE
         env_helper.AZURE_OPENAI_API_VERSION = AZURE_OPENAI_API_VERSION
         env_helper.AZURE_OPENAI_API_KEY = AZURE_OPENAI_API_KEY
@@ -80,6 +88,7 @@ class TestSpeechToken:
     def test_returns_speech_token_using_keys(
         self, requests: MagicMock, client: FlaskClient
     ):
+        """Test that the speech token is returned correctly when using keys."""
         # given
         mock_response: MagicMock = requests.post.return_value
         mock_response.text = "speech-token"
@@ -101,6 +110,7 @@ class TestSpeechToken:
             headers={
                 "Ocp-Apim-Subscription-Key": AZURE_SPEECH_KEY,
             },
+            timeout=5,
         )
 
     @patch("create_app.CognitiveServicesManagementClient")
@@ -112,6 +122,7 @@ class TestSpeechToken:
         env_helper_mock: MagicMock,
         client: FlaskClient,
     ):
+        """Test that the speech token is returned correctly when using RBAC."""
         # given
         env_helper_mock.AZURE_SPEECH_KEY = None
 
@@ -142,12 +153,14 @@ class TestSpeechToken:
             headers={
                 "Ocp-Apim-Subscription-Key": "mock-key1",
             },
+            timeout=5,
         )
 
     @patch("create_app.requests")
     def test_error_when_cannot_retrieve_speech_token(
         self, requests: MagicMock, client: FlaskClient
     ):
+        """Test that an error is returned when the speech token cannot be retrieved."""
         # given
         mock_response: MagicMock = requests.post.return_value
         mock_response.text = "error"
@@ -164,6 +177,7 @@ class TestSpeechToken:
     def test_error_when_unexpected_error_occurs(
         self, requests: MagicMock, client: FlaskClient
     ):
+        """Test that an error is returned when an unexpected error occurs."""
         # given
         requests.post.side_effect = Exception("An error occurred")
 
@@ -175,7 +189,10 @@ class TestSpeechToken:
 
 
 class TestConfig:
+    """Test the config endpoint."""
+
     def test_health(self, client):
+        """Test that the health endpoint returns OK."""
         response = client.get("/api/health")
 
         assert response.status_code == 200
@@ -183,7 +200,10 @@ class TestConfig:
 
 
 class TestConversationCustom:
+    """Test the custom conversation endpoint."""
+
     def setup_method(self):
+        """Set up the test data."""
         self.orchestrator_config = {"strategy": "langchain"}
         self.messages = [
             {
@@ -205,15 +225,16 @@ class TestConversationCustom:
 
     @patch("create_app.get_message_orchestrator")
     @patch(
-        "backend.batch.utilities.helpers.config.ConfigHelper.ConfigHelper.get_active_config_or_default"
+        "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
     )
-    def test_converstation_custom_returns_correct_response(
+    def test_conversation_custom_returns_correct_response(
         self,
         get_active_config_or_default_mock,
         get_message_orchestrator_mock,
         env_helper_mock,
         client,
     ):
+        """Test that the custom conversation endpoint returns the correct response."""
         # given
         get_active_config_or_default_mock.return_value.orchestrator.return_value = (
             self.orchestrator_config
@@ -244,12 +265,13 @@ class TestConversationCustom:
 
     @patch("create_app.get_message_orchestrator")
     @patch("create_app.get_orchestrator_config")
-    def test_converstation_custom_calls_message_orchestrator_correctly(
+    def test_conversation_custom_calls_message_orchestrator_correctly(
         self,
         get_orchestrator_config_mock,
         get_message_orchestrator_mock,
         client,
     ):
+        """Test that the custom conversation endpoint calls the message orchestrator correctly."""
         # given
         get_orchestrator_config_mock.return_value = self.orchestrator_config
 
@@ -275,9 +297,10 @@ class TestConversationCustom:
         )
 
     @patch("create_app.get_orchestrator_config")
-    def test_converstation_custom_returns_error_resonse_on_exception(
+    def test_conversaation_custom_returns_error_response_on_exception(
         self, get_orchestrator_config_mock, client
     ):
+        """Test that an error response is returned when an exception occurs."""
         # given
         get_orchestrator_config_mock.side_effect = Exception("An error occurred")
 
@@ -296,7 +319,7 @@ class TestConversationCustom:
 
     @patch("create_app.get_message_orchestrator")
     @patch("create_app.get_orchestrator_config")
-    def test_converstation_custom_allows_multiple_messages_from_user(
+    def test_conversation_custom_allows_multiple_messages_from_user(
         self, get_orchestrator_config_mock, get_message_orchestrator_mock, client
     ):
         """This can happen if there was an error getting a response from the assistant for the previous user message."""
@@ -340,6 +363,7 @@ class TestConversationCustom:
 
 class TestConversationAzureByod:
     def setup_method(self):
+        """Set up the test data."""
         self.body = {
             "conversation_id": "123",
             "messages": [
@@ -436,9 +460,10 @@ class TestConversationAzureByod:
         ]
 
     @patch("create_app.AzureOpenAI")
-    def test_converstation_azure_byod_returns_correct_response_when_streaming_with_data_keys(
+    def test_conversation_azure_byod_returns_correct_response_when_streaming_with_data_keys(
         self, azure_openai_mock: MagicMock, client: FlaskClient
     ):
+        """Test that the Azure BYOD conversation endpoint returns the correct response."""
         # given
         openai_client_mock = azure_openai_mock.return_value
         openai_client_mock.chat.completions.create.return_value = (
@@ -499,7 +524,11 @@ class TestConversationAzureByod:
                             "filter": AZURE_SEARCH_FILTER,
                             "in_scope": AZURE_SEARCH_ENABLE_IN_DOMAIN,
                             "top_n_documents": AZURE_SEARCH_TOP_K,
-                            "query_type": "semantic",
+                            "embedding_dependency": {
+                                "type": "deployment_name",
+                                "deployment_name": AZURE_OPENAI_EMBEDDING_MODEL,
+                            },
+                            "query_type": "vector_semantic_hybrid",
                             "semantic_configuration": AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
                             "role_information": AZURE_OPENAI_SYSTEM_MESSAGE,
                         },
@@ -509,12 +538,13 @@ class TestConversationAzureByod:
         )
 
     @patch("create_app.AzureOpenAI")
-    def test_converstation_azure_byod_returns_correct_response_when_streaming_with_data_rbac(
+    def test_conversation_azure_byod_returns_correct_response_when_streaming_with_data_rbac(
         self,
         azure_openai_mock: MagicMock,
         env_helper_mock: MagicMock,
         client: FlaskClient,
     ):
+        """Test that the Azure BYOD conversation endpoint returns the correct response."""
         # given
         env_helper_mock.is_auth_type_keys.return_value = False
         openai_client_mock = azure_openai_mock.return_value
@@ -557,12 +587,13 @@ class TestConversationAzureByod:
         }
 
     @patch("create_app.AzureOpenAI")
-    def test_converstation_azure_byod_returns_correct_response_when_not_streaming_with_data(
+    def test_conversation_azure_byod_returns_correct_response_when_not_streaming_with_data(
         self,
         azure_openai_mock: MagicMock,
         env_helper_mock: MagicMock,
         client: FlaskClient,
     ):
+        """Test that the Azure BYOD conversation endpoint returns the correct response."""
         # given
         env_helper_mock.SHOULD_STREAM = False
 
@@ -602,9 +633,10 @@ class TestConversationAzureByod:
         }
 
     @patch("create_app.conversation_with_data")
-    def test_converstation_azure_byod_returns_500_when_exception_occurs(
+    def test_conversation_azure_byod_returns_500_when_exception_occurs(
         self, conversation_with_data_mock, client
     ):
+        """Test that an error response is returned when an exception occurs."""
         # given
         conversation_with_data_mock.side_effect = Exception("Test exception")
 
@@ -622,9 +654,10 @@ class TestConversationAzureByod:
         }
 
     @patch("create_app.AzureOpenAI")
-    def test_converstation_azure_byod_returns_correct_response_when_not_streaming_without_data_keys(
+    def test_conversation_azure_byod_returns_correct_response_when_not_streaming_without_data_keys(
         self, azure_openai_mock, env_helper_mock, client
     ):
+        """Test that the Azure BYOD conversation endpoint returns the correct response."""
         # given
         env_helper_mock.should_use_data.return_value = False
         env_helper_mock.SHOULD_STREAM = False
@@ -685,9 +718,10 @@ class TestConversationAzureByod:
         )
 
     @patch("create_app.AzureOpenAI")
-    def test_converstation_azure_byod_returns_correct_response_when_not_streaming_without_data_rbac(
+    def test_conversation_azure_byod_returns_correct_response_when_not_streaming_without_data_rbac(
         self, azure_openai_mock, env_helper_mock, client
     ):
+        """Test that the Azure BYOD conversation endpoint returns the correct response."""
         # given
         env_helper_mock.should_use_data.return_value = False
         env_helper_mock.SHOULD_STREAM = False
@@ -750,9 +784,10 @@ class TestConversationAzureByod:
         )
 
     @patch("create_app.AzureOpenAI")
-    def test_converstation_azure_byod_returns_correct_response_when_streaming_without_data(
+    def test_conversation_azure_byod_returns_correct_response_when_streaming_without_data(
         self, azure_openai_mock, env_helper_mock, client
     ):
+        """Test that the Azure BYOD conversation endpoint returns the correct response."""
         # given
         env_helper_mock.should_use_data.return_value = False
 
@@ -786,9 +821,10 @@ class TestConversationAzureByod:
         )
 
     @patch("create_app.AzureOpenAI")
-    def test_converstation_azure_byod_uses_semantic_config(
+    def test_conversation_azure_byod_uses_semantic_config(
         self, azure_openai_mock: MagicMock, client: FlaskClient
     ):
+        """Test that the Azure BYOD conversation endpoint uses the semantic configuration."""
         # given
         openai_client_mock = azure_openai_mock.return_value
         openai_client_mock.chat.completions.create.return_value = (
@@ -809,7 +845,7 @@ class TestConversationAzureByod:
 
         assert (
             kwargs["extra_body"]["data_sources"][0]["parameters"]["query_type"]
-            == "semantic"
+            == "vector_semantic_hybrid"
         )
         assert (
             kwargs["extra_body"]["data_sources"][0]["parameters"][

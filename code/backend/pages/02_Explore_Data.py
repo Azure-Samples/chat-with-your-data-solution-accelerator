@@ -3,8 +3,8 @@ import os
 import traceback
 import sys
 import pandas as pd
-from batch.utilities.helpers.EnvHelper import EnvHelper
-from batch.utilities.search.Search import Search
+from batch.utilities.helpers.env_helper import EnvHelper
+from batch.utilities.search.search import Search
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
@@ -38,8 +38,8 @@ st.markdown(hide_table_row_index, unsafe_allow_html=True)
 try:
     search_handler = Search.get_search_handler(env_helper)
 
-    results = search_handler.search_client.search("*", facets=["title"])
-    unique_files = [filename["value"] for filename in results.get_facets()["title"]]
+    results = search_handler.search_with_facets("*", ["title"])
+    unique_files = search_handler.get_unique_files(results, "title")
     filename = st.selectbox("Select your file:", unique_files)
     st.write("Showing chunks for:", filename)
 

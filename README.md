@@ -24,18 +24,14 @@ urlFragment: chat-with-your-data-solution-accelerator
 
 # Chat with your data - Solution accelerator
 
-<!--  [**USER STORY**](#user-story) | [**DEPLOY**](#Deploy) | [**SUPPORTING DOCUMENTATION**](#supporting-documentation) | [**CUSTOMER TRUTH**](#customer-truth)\ -->
- ##### Table of Contents   
+
+ ##### Table of Contents
  * [User story](#user-story)
     + [About this repo](#about-this-repo)
-    + [Getting Support](#getting-support)
     + [When should you use this repo](#when-should-you-use-this-repo)
     + [Key features](#key-features)
-    + [Supported file types](#supported-file-types)
     + [Target end users](#target-end-users)
     + [Industry scenario](#industry-scenario)
-    + [Speech-to-text functionality](#speech-to-text-functionality)
-    + [Teams extension](#teams-extension)
   * [Deploy](#deploy)
     + [Pre-requisites](#pre-requisites)
     + [Products used](#products-used)
@@ -44,18 +40,19 @@ urlFragment: chat-with-your-data-solution-accelerator
     + [Deploy instructions](#deploy-instructions)
     + [Testing the deployment](#testing-the-deployment)
   * [Supporting documentation](#supporting-documentation)
-    + [Best practices](#best-practices)
+    + [Best practices](docs/best_practices.md)
+    + [Getting Support](SUPPORT.md)
     + [Resource links](#resource-links)
     + [Licensing](#licensing)
-  * [Customer truth](#customer-truth)
-  * [Disclaimers](#disclaimers) 
+  * [Customer truth](docs/customer_truth.md)
+  * [Disclaimers](#disclaimers)
 \
 \
-![User Story](/media/userStory.png)
+![User Story](/docs/images/userStory.png)
 ## User story
-Welcome to the *Chat with your data* Solution accelerator repository! The *Chat with your data* Solution accelerator is a powerful tool that combines the capabilities of Azure AI Search and Large Language Models (LLMs) to create a conversational search experience. This solution accelerator uses an Azure OpenAI GPT model and an Azure AI Search index generated from your data, which is integrated into a web application to provide a natural language interface, including speech-to-text functionality, for search queries. Users can drag and drop files, point to storage, and take care of technical setup to transform documents. There is a web app that users can create in their own subscription with security and authentication.
+Welcome to the *Chat with your data* Solution accelerator repository! The *Chat with your data* Solution accelerator is a powerful tool that combines the capabilities of Azure AI Search and Large Language Models (LLMs) to create a conversational search experience. This solution accelerator uses an Azure OpenAI GPT model and an Azure AI Search index generated from your data, which is integrated into a web application to provide a natural language interface, including [speech-to-text](docs/speech_to_text.md) functionality, for search queries. Users can drag and drop files, point to storage, and take care of technical setup to transform documents. Everything can be deployed in your own subscription to accelerate your use of this technology.
 
-![Solution Architecture - Chat with your data](/media/cwyd-solution-architecture.png)
+![Solution Architecture - Chat with your data](/docs/images/cwyd-solution-architecture.png)
 
 ### About this repo
 
@@ -67,10 +64,6 @@ This repository provides an end-to-end solution for users who want to query thei
 * Easy prompt configuration
 * Multiple chunking strategies
 
-### Getting Support
-
-If you're facing issues with setting up or using Chat With Your Data, follow the instructions [here](SUPPORT.md) to get support.
-
 ### When should you use this repo?
 
 If you need to customize your scenario beyond what [Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data) offers out-of-the-box, use this repository.
@@ -81,6 +74,7 @@ The accelerator presented here provides several options, for example:
 * A backend that mimics the [On Your Data](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/use-your-data) flow, with the ability to switch to a custom backend
 * Advanced prompt engineering capabilities
 * An admin site for ingesting/inspecting/configuring your dataset on the fly
+* Push or Pull model for data ingestion:  See [integrated vectorization](./docs/integrated_vectorization.md) documentation for more details
 * Running a Retrieval Augmented Generation (RAG) solution locally
 
 *Have you seen [ChatGPT + Enterprise data with Azure OpenAI and AI Search demo](https://github.com/Azure-Samples/azure-search-openai-demo)? If you would like to experiment: Play with prompts, understanding RAG pattern different implementation approaches, see how different features interact with the RAG pattern and choose the best options for your RAG deployments, take a look at that repo.
@@ -98,25 +92,14 @@ Here is a comparison table with a few features offered by Azure, an available Gi
 
 ### Key features
 - **Private LLM access on your data**: Get all the benefits of ChatGPT on your private, unstructured data.
-- **Single application access to your full data set**: Minimize endpoints required to access internal company knowledgebases
-- **Natural language interaction with your unstructured data**: Use natural language to quickly find the answers you need and ask follow-up queries to get the supplemental details.
+- **Single application access to your full data set**: Minimize endpoints required to access internal company knowledgebases. Reuse the same backend with the [Microsoft Teams Extension](docs/teams_extension.md)
+- **Natural language interaction with your unstructured data**: Use natural language to quickly find the answers you need and ask follow-up queries to get the supplemental details, including [Speech-to-text](docs/speech_to_text.md).
 - **Easy access to source documentation when querying**: Review referenced documents in the same chat window for additional context.
-- **Data upload**: Batch upload documents
+- **Data upload**: Batch upload documents of [various file types](docs/supported_file_types.md)
 - **Accessible orchestration**: Prompt and document configuration (prompt engineering, document processing, and data retrieval)
 
-**Note**: The current model allows users to ask questions about unstructured data, such as PDF, text, and docx files.
 
-### Supported file types
-
-Out-of-the-box, you can upload the following file types:
-* PDF
-* JPEG
-* JPG
-* PNG
-* TXT
-* HTML
-* MD (Markdown)
-* DOCX
+**Note**: The current model allows users to ask questions about unstructured data, such as PDF, text, and docx files. See the [supported file types](docs/supported_file_types.md).
 
 ### Target end users
 Company personnel (employees, executives) looking to research against internal unstructured company data would leverage this accelerator using natural language to find what they need quickly.
@@ -134,22 +117,7 @@ Now that the financial advisor is more informed about Woodgrove’s Emerging Mar
 
 Note: Some of the sample data included with this accelerator was generated using AI and is for illustrative purposes only.
 
-### Speech-to-text functionality
-Many users are used to the convenience of speech-to-text functionality in their consumer products. With hybrid work increasing, speech-to-text supports a more flexible way for users to chat with their data, whether they’re at their computer or on the go with their mobile device. The speech-to-text capability is combined with NLP capabilities to extract intent and context from spoken language, allowing the chatbot to understand and respond to user requests more intelligently.
-
-![Web - Chat with unstructured data](/media/web-unstructureddata.png)Chat with your unstructured data
-
-![Web - Get responses using natural language](/media/web-nlu.png)Get responses using natural language
-
-### [Teams extension](./docs/TEAMS_EXTENSION.md)
-By bringing the Chat with your data experience into Teams, users can stay within their current workflow and get the answers they need without switching platforms. Rather than building the Chat with your data accelerator within Teams from scratch, the same underlying backend used for the web application is leveraged within Teams.
-
-Learn more about deploying the Teams extension [here](./docs/TEAMS_EXTENSION.md).
-
-![Teams - Chat with your Data](/media/teams-cwyd.png)
-\
-\
-![One-click Deploy](/media/oneClickDeploy.png)
+![One-click Deploy](/docs/images/oneClickDeploy.png)
 ## Deploy
 ### Pre-requisites
 - Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with owner access.
@@ -203,7 +171,7 @@ switch to a lower version. To find out which versions are supported in different
 
     Where `{RESOURCE_TOKEN}` is uniquely generated during deployment. This is a combination of your subscription and the name of the resource group. Then select **Ingest Data** and add your data. You can find sample data in the `/data` directory.
 
-    ![A screenshot of the admin site.](./media/admin-site.png)
+    ![A screenshot of the admin site.](./docs/images/admin-site.png)
 
 
 2. Navigate to the web app to start chatting on top of your data. The web app can be found at:
@@ -211,69 +179,12 @@ switch to a lower version. To find out which versions are supported in different
     `https://web-{RESOURCE_TOKEN}.azurewebsites.net/`
 
 
-    ![A screenshot of the chat app.](./media/web-unstructureddata.png)
+    ![A screenshot of the chat app.](./docs/images/web-unstructureddata.png)
 
 \
 \
-![Supporting documentation](/media/supportingDocuments.png)
+![Supporting documentation](/docs/images/supportingDocuments.png)
 ## Supporting documentation
-
-### Best practices
-**Access to documents**
-
- Only upload data that can be accessed by any user of the application. Anyone who uses the application should also have clearance for any data that is uploaded to the application.
-
-**Depth of responses**
-
-The more limited the data set, the broader the questions should be. If the data in the repo is limited, the depth of information in the LLM response you can get with follow up questions may be limited. For more depth in your response, increase the data available for the LLM to access.
-
-**Response consistency**
-
- Consider tuning the configuration of prompts to the level of precision required.  The more precision desired, the harder it may be to generate a response.
-
-**Numerical queries**
-
- The accelerator is optimized to summarize unstructured data, such as PDFs or text files. The ChatGPT 3.5 Turbo model used by the accelerator is not currently optimized to handle queries about specific numerical data. The ChatGPT 4 model may be better able to handle numerical queries.
-
-**Use your own judgement**
-
- AI-generated content may be incorrect and should be reviewed before usage.
-
-**Azure AI Search used as retriever in RAG**
-
-Azure AI Search, when used as a retriever in the Retrieval-Augmented Generation (RAG) pattern, plays a key role in fetching relevant information from a large corpus of data. The RAG pattern involves two key steps: retrieval of documents and generation of responses. Azure AI Search, in the retrieval phase, filters and ranks the most relevant documents from the dataset based on a given query.
-
-The importance of optimizing data in the index for relevance lies in the fact that the quality of retrieved documents directly impacts the generation phase. The more relevant the retrieved documents are, the more accurate and pertinent the generated responses will be.
-
-Azure AI Search allows for fine-tuning the relevance of search results through features such as [scoring profiles](https://learn.microsoft.com/azure/search/index-add-scoring-profiles), which assign weights to different fields, [Lucene's powerful full-text search capabilities](https://learn.microsoft.com/azure/search/query-lucene-syntax), [vector search](https://learn.microsoft.com/azure/search/vector-search-overview) for similarity search, multi-modal search, recommendations, [hybrid search](https://learn.microsoft.com/azure/search/hybrid-search-overview) and [semantic search](https://learn.microsoft.com/azure/search/search-get-started-semantic) to use AI from Microsoft to rescore search results and moving results that have more semantic relevance to the top of the list. By leveraging these features, one can ensure that the most relevant documents are retrieved first, thereby improving the overall effectiveness of the RAG pattern.
-
-Moreover, optimizing the data in the index also enhances the efficiency, the speed of the retrieval process and increases relevance which is an integral part of the RAG pattern.
-
-**Azure AI Search**
-
-- Consider switching security keys and using [RBAC](https://learn.microsoft.com/azure/search/search-security-rbac) instead for authentication.
-- Consider setting up a [firewall](https://learn.microsoft.com/azure/search/service-configure-firewall), [private endpoints](https://learn.microsoft.com/azure/search/service-create-private-endpoint) for inbound connections and [shared private links](https://learn.microsoft.com/azure/search/search-indexer-howto-access-trusted-service-exception) for [built-in pull indexers](https://learn.microsoft.com/en-us/azure/search/search-indexer-overview).
-- For the best results, prepare your index data and consider [analyzers](https://learn.microsoft.com/azure/search/search-analyzers).
-- Analyze your [resource capacity needs](https://learn.microsoft.com/azure/search/search-capacity-planning).
-
-**Before deploying Azure RAG implementations to production**
-
-- Follow the best practices described in [Azure Well-Architected-Framework](https://learn.microsoft.com/azure/well-architected/).
-- Understand the [Retrieval Augmented Generation (RAG) in Azure AI Search](https://learn.microsoft.com/en-us/azure/search/retrieval-augmented-generation-overview).
-- Understand the [functionality and configuration that would adapt better to your solution](https://techcommunity.microsoft.com/t5/azure-ai-services-blog/azure-cognitive-search-outperforming-vector-search-with-hybrid/ba-p/3929167) and test with your own data for optimal retrieval.
-- Experiment with different options, define the prompts that are optimal for your needs and find ways to implement functionality tailored to your business needs with [this demo](https://github.com/Azure-Samples/azure-search-openai-demo), so you can then adapt to the accelerator.
-- Follow the [Responsible AI best practices](https://www.microsoft.com/en-us/ai/tools-practices).
-- Understand the [levels of access of your users and application](https://techcommunity.microsoft.com/t5/azure-ai-services-blog/access-control-in-generative-ai-applications-with-azure/ba-p/3956408).
-
-**Chunking: Importance for RAG and strategies implemented as part of this repo**
-
-Chunking is essential for managing large data sets, optimizing relevance, preserving context, integrating workflows, and enhancing the user experience. See [How to chunk documents](https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-chunk-documents) for more information.
-
-These are the chunking strategy options you can choose from:
-- **Layout**: An AI approach to determine a good chunking strategy.
--  **Page**: This strategy involves breaking down long documents into pages.
-- **Fixed-Size Overlap**: This strategy involves defining a fixed size that’s sufficient for semantically meaningful paragraphs (for example, 250 words) and allows for some overlap (for example, 10-25% of the content). This usually helps creating good inputs for embedding vector models. Overlapping a small amount of text between chunks can help preserve the semantic context.
--  **Paragraph**: This strategy allows breaking down a difficult text into more manageable pieces and rewrite these “chunks” with a summarization of all of them.
 
 ### Resource links
 
@@ -293,11 +204,6 @@ This solution accelerator deploys the following resources. It's critical to comp
 This repository is licensed under the [MIT License](LICENSE.md).
 
 The data set under the /data folder is licensed under the [CDLA-Permissive-2 License](CDLA-Permissive-2.md).
-\
-\
-![Customer truth](/media/customerTruth.png)
-## Customer truth
-Customer stories coming soon. For early access, contact: fabrizio.ruocco@microsoft.com
 
 ## Disclaimers
 This Software requires the use of third-party components which are governed by separate proprietary or open-source licenses as identified below, and you must comply with the terms of each applicable license in order to use the Software. You acknowledge and agree that this license does not grant you a license or other right to use any such third-party proprietary or open-source components.

@@ -3,9 +3,9 @@ import os
 import traceback
 import sys
 import logging
-from batch.utilities.helpers.EnvHelper import EnvHelper
-from batch.utilities.search.Search import Search
-from batch.utilities.helpers.AzureBlobStorageClient import AzureBlobStorageClient
+from batch.utilities.helpers.env_helper import EnvHelper
+from batch.utilities.search.search import Search
+from batch.utilities.helpers.azure_blob_storage_client import AzureBlobStorageClient
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
@@ -39,10 +39,9 @@ st.markdown(hide_table_row_index, unsafe_allow_html=True)
 
 try:
     search_handler = Search.get_search_handler(env_helper)
-    search_client = search_handler.search_client
 
     results = search_handler.get_files()
-    if results.get_count() == 0:
+    if results is None or results.get_count() == 0:
         st.info("No files to delete")
         st.stop()
     else:

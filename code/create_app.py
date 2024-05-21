@@ -1,17 +1,21 @@
+"""
+This module creates a Flask app that serves the web interface for the chatbot.
+"""
+
+import functools
 import json
 import logging
+import mimetypes
 from os import path
+import sys
 import requests
 from openai import AzureOpenAI, Stream
 from openai.types.chat import ChatCompletionChunk
-import mimetypes
 from flask import Flask, Response, request, Request, jsonify
 from dotenv import load_dotenv
-import sys
-import functools
-from backend.batch.utilities.helpers.EnvHelper import EnvHelper
-from backend.batch.utilities.helpers.OrchestratorHelper import Orchestrator
-from backend.batch.utilities.helpers.config.ConfigHelper import ConfigHelper
+from backend.batch.utilities.helpers.env_helper import EnvHelper
+from backend.batch.utilities.helpers.orchestrator_helper import Orchestrator
+from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
 from azure.identity import DefaultAzureCredential
 
@@ -19,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def stream_with_data(response: Stream[ChatCompletionChunk]):
+    """This function streams the response from Azure OpenAI with data."""
     response_obj = {
         "id": "",
         "model": "",
@@ -69,7 +74,8 @@ def stream_with_data(response: Stream[ChatCompletionChunk]):
         yield json.dumps(response_obj, ensure_ascii=False) + "\n"
 
 
-def conversation_with_data(request: Request, env_helper: EnvHelper):
+def conversation_with_data(conversation: Request, env_helper: EnvHelper):
+    """This function streams the response from Azure OpenAI with data."""
     if env_helper.is_auth_type_keys():
         openai_client = AzureOpenAI(
             azure_endpoint=env_helper.AZURE_OPENAI_ENDPOINT,
@@ -83,9 +89,10 @@ def conversation_with_data(request: Request, env_helper: EnvHelper):
             azure_ad_token_provider=env_helper.AZURE_TOKEN_PROVIDER,
         )
 
-    messages = request.json["messages"]
+    messages = conversation.json["messages"]
 
-    # Azure OpenAI takes the deployment name as the model name, "AZURE_OPENAI_MODEL" means deployment name.
+    # Azure OpenAI takes the deployment name as the model name, "AZURE_OPENAI_MODEL" means
+    # deployment name.
     response = openai_client.chat.completions.create(
         model=env_helper.AZURE_OPENAI_MODEL,
         messages=messages,
@@ -130,10 +137,14 @@ def conversation_with_data(request: Request, env_helper: EnvHelper):
                         "filter": env_helper.AZURE_SEARCH_FILTER,
                         "in_scope": env_helper.AZURE_SEARCH_ENABLE_IN_DOMAIN,
                         "top_n_documents": env_helper.AZURE_SEARCH_TOP_K,
+                        "embedding_dependency": {
+                            "type": "deployment_name",
+                            "deployment_name": env_helper.AZURE_OPENAI_EMBEDDING_MODEL,
+                        },
                         "query_type": (
-                            "semantic"
+                            "vector_semantic_hybrid"
                             if env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH
-                            else "simple"
+                            else "vector_simple_hybrid"
                         ),
                         "semantic_configuration": (
                             env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
@@ -176,45 +187,51 @@ def conversation_with_data(request: Request, env_helper: EnvHelper):
         }
 
         return response_obj
-    else:
-        return Response(
-            stream_with_data(response),
-            mimetype="application/json-lines",
-        )
+
+    return Response(
+        stream_with_data(response),
+        mimetype="application/json-lines",
+    )
 
 
 def stream_without_data(response: Stream[ChatCompletionChunk]):
-    responseText = ""
+    """This function streams the response from Azure OpenAI without data."""
+    response_text = ""
     for line in response:
         if not line.choices:
             continue
 
-        deltaText = line.choices[0].delta.content
+        delta_text = line.choices[0].delta.content
 
-        if deltaText is None:
+        if delta_text is None:
             return
 
-        responseText += deltaText
+        response_text += delta_text
 
         response_obj = {
             "id": line.id,
             "model": line.model,
             "created": line.created,
             "object": line.object,
-            "choices": [{"messages": [{"role": "assistant", "content": responseText}]}],
+            "choices": [
+                {"messages": [{"role": "assistant", "content": response_text}]}
+            ],
         }
         yield json.dumps(response_obj, ensure_ascii=False) + "\n"
 
 
 def get_message_orchestrator():
+    """This function gets the message orchestrator."""
     return Orchestrator()
 
 
 def get_orchestrator_config():
+    """This function gets the orchestrator configuration."""
     return ConfigHelper.get_active_config_or_default().orchestrator
 
 
-def conversation_without_data(request: Request, env_helper: EnvHelper):
+def conversation_without_data(conversation: Request, env_helper: EnvHelper):
+    """This function streams the response from Azure OpenAI without data."""
     if env_helper.AZURE_AUTH_TYPE == "rbac":
         openai_client = AzureOpenAI(
             azure_endpoint=env_helper.AZURE_OPENAI_ENDPOINT,
@@ -228,13 +245,14 @@ def conversation_without_data(request: Request, env_helper: EnvHelper):
             api_key=env_helper.AZURE_OPENAI_API_KEY,
         )
 
-    request_messages = request.json["messages"]
+    request_messages = conversation.json["messages"]
     messages = [{"role": "system", "content": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE}]
 
     for message in request_messages:
         messages.append({"role": message["role"], "content": message["content"]})
 
-    # Azure Open AI takes the deployment name as the model name, "AZURE_OPENAI_MODEL" means deployment name.
+    # Azure Open AI takes the deployment name as the model name, "AZURE_OPENAI_MODEL" means
+    # deployment name.
     response = openai_client.chat.completions.create(
         model=env_helper.AZURE_OPENAI_MODEL,
         messages=messages,
@@ -267,10 +285,8 @@ def conversation_without_data(request: Request, env_helper: EnvHelper):
             ],
         }
         return jsonify(response_obj), 200
-    else:
-        return Response(
-            stream_without_data(response), mimetype="application/json-lines"
-        )
+
+    return Response(stream_without_data(response), mimetype="application/json-lines")
 
 
 @functools.cache
@@ -292,6 +308,7 @@ def get_speech_key(env_helper: EnvHelper):
 
 
 def create_app():
+    """This function creates the Flask app."""
     # Fixing MIME types for static files under Windows
     mimetypes.add_type("application/javascript", ".js")
     mimetypes.add_type("text/css", ".css")
@@ -324,9 +341,9 @@ def create_app():
             else:
                 return conversation_without_data(request, env_helper)
         except Exception as e:
-            errorMessage = str(e)
+            error_message = str(e)
             logger.exception(
-                f"Exception in /api/conversation/azure_byod | {errorMessage}"
+                "Exception in /api/conversation/azure_byod | %s", error_message
             )
             return (
                 jsonify(
@@ -369,8 +386,10 @@ def create_app():
             return jsonify(response_obj), 200
 
         except Exception as e:
-            errorMessage = str(e)
-            logger.exception(f"Exception in /api/conversation/custom | {errorMessage}")
+            error_message = str(e)
+            logger.exception(
+                "Exception in /api/conversation/custom | %s", error_message
+            )
             return (
                 jsonify(
                     {
@@ -382,6 +401,7 @@ def create_app():
 
     @app.route("/api/speech", methods=["GET"])
     def speech_config():
+        """Get the speech config for Azure Speech."""
         try:
             speech_key = env_helper.AZURE_SPEECH_KEY or get_speech_key(env_helper)
 
@@ -390,6 +410,7 @@ def create_app():
                 headers={
                     "Ocp-Apim-Subscription-Key": speech_key,
                 },
+                timeout=5,
             )
 
             if response.status_code == 200:
@@ -399,10 +420,10 @@ def create_app():
                     "languages": env_helper.AZURE_SPEECH_RECOGNIZER_LANGUAGES,
                 }
 
-            logger.error(f"Failed to get speech config: {response.text}")
+            logger.error("Failed to get speech config: %s", response.text)
             return {"error": "Failed to get speech config"}, response.status_code
         except Exception as e:
-            logger.exception(f"Exception in /api/speech | {str(e)}")
+            logger.exception("Exception in /api/speech | %s", str(e))
 
             return {"error": "Failed to get speech config"}, 500
 

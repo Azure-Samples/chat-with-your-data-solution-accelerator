@@ -1,11 +1,11 @@
-import streamlit as st
+import os
+import sys
+import traceback
 import json
 import jsonschema
-import os
-import traceback
-import sys
-from batch.utilities.helpers.EnvHelper import EnvHelper
-from batch.utilities.helpers.config.ConfigHelper import ConfigHelper
+import streamlit as st
+from batch.utilities.helpers.env_helper import EnvHelper
+from batch.utilities.helpers.config.config_helper import ConfigHelper
 from azure.core.exceptions import ResourceNotFoundError
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -18,14 +18,14 @@ st.set_page_config(
     menu_items=None,
 )
 
-mod_page_style = """
+MOD_PAGE_STYLE = """
             <style>
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
             </style>
             """
-st.markdown(mod_page_style, unsafe_allow_html=True)
+st.markdown(MOD_PAGE_STYLE, unsafe_allow_html=True)
 
 config = ConfigHelper.get_active_config_or_default()
 
@@ -379,9 +379,11 @@ try:
             ),
         }
         ConfigHelper.save_config_as_active(current_config)
-        st.success("Configuration saved successfully!")
+        st.success(
+            "Configuration saved successfully! Please restart the chat service for these changes to take effect."
+        )
 
-    with st.popover(":red[Reset confiiguration to defaults]"):
+    with st.popover(":red[Reset configuration to defaults]"):
         st.write(
             "**Resetting the configuration cannot be reversed, proceed with caution!**"
         )

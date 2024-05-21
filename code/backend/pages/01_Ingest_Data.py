@@ -5,9 +5,9 @@ import requests
 import urllib.parse
 import sys
 import logging
-from batch.utilities.helpers.config.ConfigHelper import ConfigHelper
-from batch.utilities.helpers.EnvHelper import EnvHelper
-from batch.utilities.helpers.AzureBlobStorageClient import AzureBlobStorageClient
+from batch.utilities.helpers.config.config_helper import ConfigHelper
+from batch.utilities.helpers.env_helper import EnvHelper
+from batch.utilities.helpers.azure_blob_storage_client import AzureBlobStorageClient
 
 sys.path.append(path.join(path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
@@ -29,7 +29,7 @@ mod_page_style = """
 st.markdown(mod_page_style, unsafe_allow_html=True)
 
 
-def remote_convert_files_and_add_embeddings():
+def reprocess_all():
     backend_url = urllib.parse.urljoin(
         env_helper.BACKEND_URL, "/api/BatchStartProcessing"
     )
@@ -103,7 +103,7 @@ try:
         with col3:
             st.button(
                 "Reprocess all documents in the Azure Storage account",
-                on_click=remote_convert_files_and_add_embeddings,
+                on_click=reprocess_all,
             )
 
     with st.expander("Add URLs to the knowledge base", expanded=True):
