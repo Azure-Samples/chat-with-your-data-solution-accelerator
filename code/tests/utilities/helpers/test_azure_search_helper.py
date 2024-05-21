@@ -30,6 +30,9 @@ AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = "default"
 AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = "mock-log-index"
 USE_ADVANCED_IMAGE_PROCESSING = False
 
+SEARCH_EMBEDDINGS = [0, 0, 0, 0]
+IMAGE_SEARCH_EMBEDDINGS = [0, 0, 0]
+
 
 @pytest.fixture(autouse=True)
 def azure_search_mock():
@@ -43,9 +46,9 @@ def azure_search_mock():
 def llm_helper_mock():
     with patch("backend.batch.utilities.helpers.azure_search_helper.LLMHelper") as mock:
         llm_helper = mock.return_value
-        llm_helper.get_embedding_model.return_value.embed_query.return_value = [
-            0
-        ] * 1536
+        llm_helper.get_embedding_model.return_value.embed_query.return_value = (
+            SEARCH_EMBEDDINGS
+        )
 
         yield llm_helper
 
@@ -75,8 +78,21 @@ def env_helper_mock():
 @pytest.fixture(autouse=True)
 def reset_search_dimensions():
     AzureSearchHelper._search_dimension = None
+    AzureSearchHelper._image_search_dimension = None
     yield
     AzureSearchHelper._search_dimension = None
+    AzureSearchHelper._image_search_dimension = None
+
+
+@pytest.fixture(autouse=True)
+def azure_computer_vision_client_mock():
+    with patch(
+        "backend.batch.utilities.helpers.azure_search_helper.AzureComputerVisionClient"
+    ) as mock:
+        client = mock.return_value
+        client.vectorize_text.return_value = IMAGE_SEARCH_EMBEDDINGS
+
+        yield client
 
 
 @patch("backend.batch.utilities.helpers.azure_search_helper.SearchClient")
@@ -170,7 +186,7 @@ def test_creates_search_index_if_not_exists(
             name="content_vector",
             type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
             searchable=True,
-            vector_search_dimensions=1536,
+            vector_search_dimensions=len(SEARCH_EMBEDDINGS),
             vector_search_profile_name="myHnswProfile",
         ),
         SearchableField(
@@ -272,7 +288,7 @@ def test_creates_search_index_with_image_embeddings_when_advanced_image_processi
         name="image_vector",
         type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
         searchable=True,
-        vector_search_dimensions=1024,
+        vector_search_dimensions=len(IMAGE_SEARCH_EMBEDDINGS),
         vector_search_profile_name="myHnswProfile",
     )
 

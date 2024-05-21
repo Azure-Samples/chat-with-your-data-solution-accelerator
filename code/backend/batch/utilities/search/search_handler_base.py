@@ -1,10 +1,13 @@
 from abc import ABC, abstractmethod
 from ..helpers.env_helper import EnvHelper
-
 from ..common.source_document import SourceDocument
+from azure.search.documents import SearchClient
 
 
 class SearchHandlerBase(ABC):
+    _VECTOR_FIELD = "content_vector"
+    _IMAGE_VECTOR_FIELD = "image_vector"
+
     def __init__(self, env_helper: EnvHelper):
         self.env_helper = env_helper
         self.search_client = self.create_search_client()
@@ -20,7 +23,7 @@ class SearchHandlerBase(ABC):
         return []
 
     @abstractmethod
-    def create_search_client(self):
+    def create_search_client(self) -> SearchClient:
         pass
 
     @abstractmethod
