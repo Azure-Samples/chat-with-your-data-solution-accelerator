@@ -402,10 +402,19 @@ def create_app():
     @app.route("/api/conversation", methods=["POST"])
     async def conversation():
         conversation_flow = env_helper.CONVERSATION_FLOW
-        if conversation_flow == 'custom':
-            return conversation_custom()
-        else:
+        if conversation_flow == "custom":
+            return await conversation_custom()
+        elif conversation_flow == "byod":
             return conversation_azure_byod()
+        else:
+            return (
+                jsonify(
+                    {
+                        "error": "Invalid conversation flow configured. Value can only be 'custom' or 'byod'."
+                    }
+                ),
+                500,
+            )
 
     @app.route("/api/speech", methods=["GET"])
     def speech_config():
