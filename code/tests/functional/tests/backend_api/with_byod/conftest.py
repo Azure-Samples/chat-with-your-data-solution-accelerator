@@ -32,7 +32,7 @@ def app_config(make_httpserver, ca):
                 "AZURE_STORAGE_ACCOUNT_ENDPOINT": f"https://localhost:{make_httpserver.port}/",
                 "SSL_CERT_FILE": ca_temp_path,
                 "CURL_CA_BUNDLE": ca_temp_path,
-                "CONVERSATION_FLOW": "custom",
+                "CONVERSATION_FLOW": "byod",
             }
         )
         logger.info(f"Created app config: {app_config.get_all()}")
