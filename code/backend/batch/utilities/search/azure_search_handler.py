@@ -52,16 +52,16 @@ class AzureSearchHandler(SearchHandlerBase):
 
         return files
 
-    def delete_files(self, files):
-        ids_to_delete = []
-        files_to_delete = []
+    # def delete_files(self, files):
+    # ids_to_delete = []
+    # files_to_delete = []
 
-        for filename, ids in files.items():
-            files_to_delete.append(filename)
-            ids_to_delete += [{"id": id} for id in ids]
-        self.search_client.delete_documents(ids_to_delete)
+    # for filename, ids in files.items():
+    #     files_to_delete.append(filename)
+    #     ids_to_delete += [{"id": id} for id in ids]
+    # self.search_client.delete_documents(ids_to_delete)
 
-        return ", ".join(files_to_delete)
+    # return ", ".join(files_to_delete)
 
     def query_search(self, question) -> List[SourceDocument]:
         encoding = tiktoken.get_encoding(self._ENCODER_NAME)

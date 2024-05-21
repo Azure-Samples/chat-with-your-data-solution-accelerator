@@ -57,17 +57,19 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
 
         return files
 
-    def delete_files(self, files):
-        ids_to_delete = []
-        files_to_delete = []
+    # def delete_files(self, files):
+    # ids_to_delete = []
+    # files_to_delete = []
 
-        for filename, ids in files.items():
-            files_to_delete.append(filename)
-            ids_to_delete += [{"chunk_id": id} for id in ids]
+    # for filename, ids in files.items():
+    #     files_to_delete.append(filename)
+    #     ids_to_delete += [{"chunk_id": id} for id in ids]
 
-        self.search_client.delete_documents(ids_to_delete)
+    # blob_client = AzureBlobStorageClient()
+    # blob_client.delete_files(selected_files)
+    # self.search_client.delete_documents(ids_to_delete)
 
-        return ", ".join(files_to_delete)
+    # return ", ".join(files_to_delete)
 
     def query_search(self, question) -> List[SourceDocument]:
         if self._check_index_exists():

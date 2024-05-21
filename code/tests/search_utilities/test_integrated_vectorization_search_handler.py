@@ -44,6 +44,14 @@ def search_client_mock():
 
 
 @pytest.fixture
+def blob_service_client_mock():
+    with patch(
+        "backend.batch.utilities.search.search_handler_base.AzureBlobStorageClient"
+    ) as mock:
+        yield mock
+
+
+@pytest.fixture
 def handler(env_helper_mock, search_client_mock, search_index_mock):
     with patch(
         "backend.batch.utilities.search.integrated_vectorization_search_handler.SearchClient",
@@ -112,7 +120,7 @@ def test_process_results_null(handler):
     assert len(data) == 0
 
 
-def test_delete_files(handler, search_client_mock):
+def test_delete_files(handler, search_client_mock, blob_service_client_mock):
     # given
     files = {"file1": ["1", "2"]}
 
@@ -121,7 +129,8 @@ def test_delete_files(handler, search_client_mock):
 
     # then
     assert result == "file1"
-    search_client_mock.delete_documents.assert_called_once()
+    blob_service_client_mock.return_value.delete_files.assert_called_once_with(files)
+    # search_client_mock.delete_documents.assert_called_once()
 
 
 def test_output_results(handler):

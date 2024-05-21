@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+
+from ..helpers.azure_blob_storage_client import AzureBlobStorageClient
 from ..helpers.env_helper import EnvHelper
 from ..common.source_document import SourceDocument
 from azure.search.documents import SearchClient
@@ -42,9 +44,13 @@ class SearchHandlerBase(ABC):
     def output_results(self, results):
         pass
 
-    @abstractmethod
     def delete_files(self, files):
-        pass
+        files_to_delete = []
+        blob_client = AzureBlobStorageClient()
+        blob_client.delete_files(files)
+        for filename, ids in files.items():
+            files_to_delete.append(filename)
+        return ", ".join(files_to_delete)
 
     @abstractmethod
     def query_search(self, question) -> list[SourceDocument]:
