@@ -368,6 +368,25 @@ class TestConversationCustom:
             orchestrator=self.orchestrator_config,
         )
 
+    def test_conversation_returns_error_response_on_incorrect_conversation_flow_input(
+        self, env_helper_mock, client
+    ):
+        # given
+        env_helper_mock.CONVERSATION_FLOW = "bob"
+
+        # when
+        response = client.post(
+            "/api/conversation",
+            headers={"content-type": "application/json"},
+            json=self.body,
+        )
+
+        # then
+        assert response.status_code == 500
+        assert response.json == {
+            "error": "Invalid conversation flow configured. Value can only be 'custom' or 'byod'."
+        }
+
 
 class TestConversationAzureByod:
     def setup_method(self):
