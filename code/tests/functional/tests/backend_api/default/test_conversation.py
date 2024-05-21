@@ -441,6 +441,13 @@ def test_post_makes_correct_call_to_create_documents_search_index(
                         "sortable": False,
                         "facetable": False,
                     },
+                    {
+                        "name": "image_vector",
+                        "type": "Collection(Edm.Single)",
+                        "searchable": True,
+                        "dimensions": 3,
+                        "vectorSearchProfile": "myHnswProfile",
+                    },
                 ],
                 "semantic": {
                     "configurations": [
@@ -509,7 +516,13 @@ def test_post_makes_correct_call_to_search_documents_search_index(
                         "k": int(app_config.get("AZURE_SEARCH_TOP_K")),
                         "fields": "content_vector",
                         "vector": [0.018990106880664825, -0.0073809814639389515],
-                    }
+                    },
+                    {
+                        "kind": "vector",
+                        "k": int(app_config.get("AZURE_SEARCH_TOP_K")),
+                        "fields": "image_vector",
+                        "vector": [1.0, 2.0, 3.0],
+                    },
                 ],
             },
             headers={
