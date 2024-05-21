@@ -333,7 +333,6 @@ def create_app():
     def health():
         return "OK"
 
-    @app.route("/api/conversation/azure_byod", methods=["POST"])
     def conversation_azure_byod():
         try:
             if env_helper.should_use_data():
@@ -342,19 +341,16 @@ def create_app():
                 return conversation_without_data(request, env_helper)
         except Exception as e:
             error_message = str(e)
-            logger.exception(
-                "Exception in /api/conversation/azure_byod | %s", error_message
-            )
+            logger.exception("Exception in /api/conversation | %s", error_message)
             return (
                 jsonify(
                     {
-                        "error": "Exception in /api/conversation/azure_byod. See log for more details."
+                        "error": "Exception in /api/conversation. See log for more details."
                     }
                 ),
                 500,
             )
 
-    @app.route("/api/conversation/custom", methods=["POST"])
     async def conversation_custom():
         message_orchestrator = get_message_orchestrator()
 
@@ -387,13 +383,11 @@ def create_app():
 
         except Exception as e:
             error_message = str(e)
-            logger.exception(
-                "Exception in /api/conversation/custom | %s", error_message
-            )
+            logger.exception("Exception in /api/conversation | %s", error_message)
             return (
                 jsonify(
                     {
-                        "error": "Exception in /api/conversation/custom. See log for more details."
+                        "error": "Exception in /api/conversation. See log for more details."
                     }
                 ),
                 500,
