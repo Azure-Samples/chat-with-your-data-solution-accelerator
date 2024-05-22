@@ -2,7 +2,6 @@ import json
 import logging
 import warnings
 
-
 from ..common.answer import Answer
 from ..common.source_document import SourceDocument
 from ..helpers.azure_blob_storage_client import AzureBlobStorageClient
