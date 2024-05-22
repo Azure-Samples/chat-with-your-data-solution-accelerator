@@ -61,20 +61,20 @@ The Azure Developer CLI (`azd`) is a developer-centric command-line interface (C
 
 1. Log in to Azure using `azd`:
 
-  ```
-  azd auth login
-  ```
+    ```
+    azd auth login
+    ```
 
 1. Execute the `azd init` command to initialize the environment and enter the solution accelerator name when prompted:
 
-  ```
-  azd init -t chat-with-your-data-solution-accelerator
-  ```
+    ```
+    azd init -t chat-with-your-data-solution-accelerator
+    ```
 
 1. Run `azd up` to provision all the resources to Azure and deploy the code to those resources.
 
-  ```
-  azd up
-  ```
+    ```
+    azd up
+    ```
 
-  > Select your desired `subscription` and `location`. Wait a moment for the resource deployment to complete, click the website endpoint and you will see the web app page.
+    > Select your desired `subscription` and `location`. Wait a moment for the resource deployment to complete, click the website endpoint and you will see the web app page.
