@@ -3,6 +3,7 @@ on:
     workflows: ["CI"]
     types:
       - completed
+  merge_group:
 
 permissions:
   contents: write
@@ -18,24 +19,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Conventional Changelog Action
-        id: changelog
-        uses: TriPSs/conventional-changelog-action@v5
+      - uses: codfish/semantic-release-action@v3
+        id: semantic
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          output-file: 'CHANGELOG.md'
-          git-user-name: 'github-actions[bot]'
-          git-user-email: 'github-actions[bot]@users.noreply.github.com'
-          version-file: './pyproject.toml'
-          version-path: 'tool.poetry.version'
-
-
-      - name: Create Release
-        uses: actions/create-release@v1
-        if: ${{ steps.changelog.outputs.skipped == 'false' }}
+          tag-format: 'v${version}'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.changelog.outputs.tag }}
-          release_name: ${{ steps.changelog.outputs.tag }}
-          body: ${{ steps.changelog.outputs.clean_changelog }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: echo ${{ steps.semantic.outputs.release-version }}
+
+      - run: echo "$OUTPUTS"
+        env:
+          OUTPUTS: ${{ toJson(steps.semantic.outputs) }}
