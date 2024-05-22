@@ -129,6 +129,9 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
                                 if env_helper.AZURE_SEARCH_CONTENT_COLUMNS
                                 else []
                             ),
+                            "vector_fields": [
+                                env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMNS
+                            ],
                             "title_field": env_helper.AZURE_SEARCH_TITLE_COLUMN or None,
                             "url_field": env_helper.AZURE_SEARCH_URL_COLUMN or None,
                             "filepath_field": (

@@ -72,6 +72,9 @@ param azureSearchEnableInDomain string = 'false'
 @description('Content columns')
 param azureSearchContentColumns string = 'content'
 
+@description('Vector columns')
+param azureSearchVectorColumns string = 'content_vector'
+
 @description('Filename column')
 param azureSearchFilenameColumn string = 'filename'
 
@@ -541,6 +544,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_TOP_K: azureSearchTopK
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
@@ -613,6 +617,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SEARCH_TOP_K: azureSearchTopK
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
@@ -684,6 +689,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_TOP_K: azureSearchTopK
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
@@ -755,6 +761,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       AZURE_SEARCH_TOP_K: azureSearchTopK
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
@@ -1065,6 +1072,7 @@ output AZURE_SEARCH_INDEX_IS_PRECHUNKED string = azureSearchIndexIsPrechunked
 output AZURE_SEARCH_TOP_K string = azureSearchTopK
 output AZURE_SEARCH_ENABLE_IN_DOMAIN string = azureSearchEnableInDomain
 output AZURE_SEARCH_CONTENT_COLUMNS string = azureSearchContentColumns
+output AZURE_SEARCH_CONTENT_VECTOR_COLUMNS string = azureSearchVectorColumns
 output AZURE_SEARCH_FILENAME_COLUMN string = azureSearchFilenameColumn
 output AZURE_SEARCH_FILTER string = azureSearchFilter
 output AZURE_SEARCH_TITLE_COLUMN string = azureSearchTitleColumn
