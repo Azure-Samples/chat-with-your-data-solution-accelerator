@@ -1,6 +1,7 @@
 import base64
 import logging
 import os
+from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,7 @@ class AppConfig:
         "LOAD_CONFIG_FROM_BLOB_STORAGE": "True",
         "LOGLEVEL": "DEBUG",
         "ORCHESTRATION_STRATEGY": "openai_function",
+        "CONVERSATION_FLOW": ConversationFlow.CUSTOM.value,
         "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "en-US,es-ES",
         "TIKTOKEN_CACHE_DIR": f"{os.path.dirname(os.path.realpath(__file__))}/resources",
         "USE_ADVANCED_IMAGE_PROCESSING": "False",
