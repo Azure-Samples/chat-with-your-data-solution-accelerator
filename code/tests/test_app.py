@@ -2,10 +2,10 @@
 This module tests the entry point for the application.
 """
 
-import os
 from unittest.mock import AsyncMock, MagicMock, patch, ANY
 import pytest
 from flask.testing import FlaskClient
+from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
 from create_app import create_app
 
 AZURE_SPEECH_KEY = "mock-speech-key"
@@ -79,6 +79,7 @@ def env_helper_mock():
         env_helper.SHOULD_STREAM = True
         env_helper.is_auth_type_keys.return_value = True
         env_helper.should_use_data.return_value = True
+        env_helper.CONVERSATION_FLOW = ConversationFlow.CUSTOM.value
 
         yield env_helper
 
@@ -248,7 +249,7 @@ class TestConversationCustom:
 
         # when
         response = client.post(
-            "/api/conversation/custom",
+            "/api/conversation",
             headers={"content-type": "application/json"},
             json=self.body,
         )
@@ -269,6 +270,7 @@ class TestConversationCustom:
         self,
         get_orchestrator_config_mock,
         get_message_orchestrator_mock,
+        env_helper_mock,
         client,
     ):
         """Test that the custom conversation endpoint calls the message orchestrator correctly."""
@@ -279,11 +281,11 @@ class TestConversationCustom:
         message_orchestrator_mock.handle_message.return_value = self.messages
         get_message_orchestrator_mock.return_value = message_orchestrator_mock
 
-        os.environ["AZURE_OPENAI_MODEL"] = self.openai_model
+        env_helper_mock.AZURE_OPENAI_MODEL = self.openai_model
 
         # when
         client.post(
-            "/api/conversation/custom",
+            "/api/conversation",
             headers={"content-type": "application/json"},
             json=self.body,
         )
@@ -298,7 +300,7 @@ class TestConversationCustom:
 
     @patch("create_app.get_orchestrator_config")
     def test_conversaation_custom_returns_error_response_on_exception(
-        self, get_orchestrator_config_mock, client
+        self, get_orchestrator_config_mock, env_helper_mock, client
     ):
         """Test that an error response is returned when an exception occurs."""
         # given
@@ -306,7 +308,7 @@ class TestConversationCustom:
 
         # when
         response = client.post(
-            "/api/conversation/custom",
+            "/api/conversation",
             headers={"content-type": "application/json"},
             json=self.body,
         )
@@ -314,13 +316,17 @@ class TestConversationCustom:
         # then
         assert response.status_code == 500
         assert response.json == {
-            "error": "Exception in /api/conversation/custom. See log for more details."
+            "error": "Exception in /api/conversation. See log for more details."
         }
 
     @patch("create_app.get_message_orchestrator")
     @patch("create_app.get_orchestrator_config")
     def test_conversation_custom_allows_multiple_messages_from_user(
-        self, get_orchestrator_config_mock, get_message_orchestrator_mock, client
+        self,
+        get_orchestrator_config_mock,
+        get_message_orchestrator_mock,
+        env_helper_mock,
+        client,
     ):
         """This can happen if there was an error getting a response from the assistant for the previous user message."""
 
@@ -346,7 +352,7 @@ class TestConversationCustom:
 
         # when
         response = client.post(
-            "/api/conversation/custom",
+            "/api/conversation",
             headers={"content-type": "application/json"},
             json=body,
         )
@@ -359,6 +365,25 @@ class TestConversationCustom:
             conversation_id=body["conversation_id"],
             orchestrator=self.orchestrator_config,
         )
+
+    def test_conversation_returns_error_response_on_incorrect_conversation_flow_input(
+        self, env_helper_mock, client
+    ):
+        # given
+        env_helper_mock.CONVERSATION_FLOW = "bob"
+
+        # when
+        response = client.post(
+            "/api/conversation",
+            headers={"content-type": "application/json"},
+            json=self.body,
+        )
+
+        # then
+        assert response.status_code == 500
+        assert response.json == {
+            "error": "Invalid conversation flow configured. Value can only be 'custom' or 'byod'."
+        }
 
 
 class TestConversationAzureByod:
@@ -461,7 +486,10 @@ class TestConversationAzureByod:
 
     @patch("create_app.AzureOpenAI")
     def test_conversation_azure_byod_returns_correct_response_when_streaming_with_data_keys(
-        self, azure_openai_mock: MagicMock, client: FlaskClient
+        self,
+        azure_openai_mock: MagicMock,
+        env_helper_mock: MagicMock,
+        client: FlaskClient,
     ):
         """Test that the Azure BYOD conversation endpoint returns the correct response."""
         # given
@@ -470,9 +498,11 @@ class TestConversationAzureByod:
             self.mock_streamed_response
         )
 
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
+
         # when
         response = client.post(
-            "/api/conversation/azure_byod",
+            "/api/conversation",
             headers={"content-type": "application/json"},
             json=self.body,
         )
@@ -547,6 +577,7 @@ class TestConversationAzureByod:
         """Test that the Azure BYOD conversation endpoint returns the correct response."""
         # given
         env_helper_mock.is_auth_type_keys.return_value = False
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
         openai_client_mock = azure_openai_mock.return_value
         openai_client_mock.chat.completions.create.return_value = (
             self.mock_streamed_response
@@ -554,7 +585,7 @@ class TestConversationAzureByod:
 
         # when
         response = client.post(
-            "/api/conversation/azure_byod",
+            "/api/conversation",
             headers={"content-type": "application/json"},
             json=self.body,
         )
@@ -596,13 +627,14 @@ class TestConversationAzureByod:
         """Test that the Azure BYOD conversation endpoint returns the correct response."""
         # given
         env_helper_mock.SHOULD_STREAM = False
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
 
         openai_client_mock = azure_openai_mock.return_value
         openai_client_mock.chat.completions.create.return_value = self.mock_response
 
         # when
         response = client.post(
-            "/api/conversation/azure_byod",
+            "/api/conversation",
             headers={"content-type": "application/json"},
             json=self.body,
         )
@@ -634,15 +666,16 @@ class TestConversationAzureByod:
 
     @patch("create_app.conversation_with_data")
     def test_conversation_azure_byod_returns_500_when_exception_occurs(
-        self, conversation_with_data_mock, client
+        self, conversation_with_data_mock, env_helper_mock, client
     ):
         """Test that an error response is returned when an exception occurs."""
         # given
         conversation_with_data_mock.side_effect = Exception("Test exception")
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
 
         # when
         response = client.post(
-            "/api/conversation/azure_byod",
+            "/api/conversation",
             headers={"content-type": "application/json"},
             json=self.body,
         )
@@ -650,7 +683,7 @@ class TestConversationAzureByod:
         # then
         assert response.status_code == 500
         assert response.json == {
-            "error": "Exception in /api/conversation/azure_byod. See log for more details."
+            "error": "Exception in /api/conversation. See log for more details."
         }
 
     @patch("create_app.AzureOpenAI")
@@ -661,6 +694,7 @@ class TestConversationAzureByod:
         # given
         env_helper_mock.should_use_data.return_value = False
         env_helper_mock.SHOULD_STREAM = False
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
 
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
@@ -676,7 +710,7 @@ class TestConversationAzureByod:
 
         # when
         response = client.post(
-            "/api/conversation/azure_byod",
+            "/api/conversation",
             headers={"content-type": "application/json"},
             json=self.body,
         )
@@ -727,6 +761,7 @@ class TestConversationAzureByod:
         env_helper_mock.SHOULD_STREAM = False
         env_helper_mock.AZURE_AUTH_TYPE = "rbac"
         env_helper_mock.AZURE_OPENAI_STOP_SEQUENCE = ""
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
 
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
@@ -742,7 +777,7 @@ class TestConversationAzureByod:
 
         # when
         response = client.post(
-            "/api/conversation/azure_byod",
+            "/api/conversation",
             headers={"content-type": "application/json"},
             json=self.body,
         )
@@ -790,6 +825,7 @@ class TestConversationAzureByod:
         """Test that the Azure BYOD conversation endpoint returns the correct response."""
         # given
         env_helper_mock.should_use_data.return_value = False
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
 
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
@@ -806,7 +842,7 @@ class TestConversationAzureByod:
 
         # when
         response = client.post(
-            "/api/conversation/azure_byod",
+            "/api/conversation",
             headers={"content-type": "application/json"},
             json=self.body,
         )
@@ -822,7 +858,10 @@ class TestConversationAzureByod:
 
     @patch("create_app.AzureOpenAI")
     def test_conversation_azure_byod_uses_semantic_config(
-        self, azure_openai_mock: MagicMock, client: FlaskClient
+        self,
+        azure_openai_mock: MagicMock,
+        env_helper_mock: MagicMock,
+        client: FlaskClient,
     ):
         """Test that the Azure BYOD conversation endpoint uses the semantic configuration."""
         # given
@@ -830,10 +869,11 @@ class TestConversationAzureByod:
         openai_client_mock.chat.completions.create.return_value = (
             self.mock_streamed_response
         )
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
 
         # when
         response = client.post(
-            "/api/conversation/azure_byod",
+            "/api/conversation",
             headers={"content-type": "application/json"},
             json=self.body,
         )

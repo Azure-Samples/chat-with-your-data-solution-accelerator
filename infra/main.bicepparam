@@ -17,6 +17,7 @@ param azureSearchUseSemanticSearch = bool(readEnvironmentVariable('AZURE_SEARCH_
 param orchestrationStrategy = readEnvironmentVariable('ORCHESTRATION_STRATEGY', 'openai_function')
 param logLevel = readEnvironmentVariable('LOGLEVEL', 'INFO')
 param recognizedLanguages = readEnvironmentVariable('AZURE_SPEECH_RECOGNIZER_LANGUAGES', 'en-US,fr-FR,de-DE,it-IT')
+param conversationFlow = readEnvironmentVariable('CONVERSATION_FLOW', 'custom')
 
 // OpenAI parameters
 param azureOpenAIApiVersion = readEnvironmentVariable('AZURE_OPENAI_API_VERSION', '2024-02-01')

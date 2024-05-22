@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.27.1.19265",
-      "templateHash": "11889969251281398200"
+      "templateHash": "6490847733397864992"
     }
   },
   "parameters": {
@@ -260,6 +260,17 @@
       ],
       "metadata": {
         "description": "Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain"
+      }
+    },
+    "conversationFlow": {
+      "type": "string",
+      "defaultValue": "custom",
+      "allowedValues": [
+        "custom",
+        "byod"
+      ],
+      "metadata": {
+        "description": "Chat conversation type: custom or byod."
       }
     },
     "azureOpenAITemperature": {
@@ -2013,6 +2024,7 @@
               "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "[parameters('recognizedLanguages')]",
               "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
+              "CONVERSATION_FLOW": "[parameters('conversationFlow')]",
               "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
@@ -2964,6 +2976,7 @@
               "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "[parameters('recognizedLanguages')]",
               "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
+              "CONVERSATION_FLOW": "[parameters('conversationFlow')]",
               "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
@@ -11070,6 +11083,10 @@
     "LOGLEVEL": {
       "type": "string",
       "value": "[parameters('logLevel')]"
+    },
+    "CONVERSATION_FLOW": {
+      "type": "string",
+      "value": "[parameters('conversationFlow')]"
     }
   }
 }
