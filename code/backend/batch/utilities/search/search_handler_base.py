@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 
-from ..helpers.azure_blob_storage_client import AzureBlobStorageClient
 from ..helpers.env_helper import EnvHelper
 from ..common.source_document import SourceDocument
 from azure.search.documents import SearchClient
@@ -37,20 +36,22 @@ class SearchHandlerBase(ABC):
         pass
 
     @abstractmethod
-    def get_files(self):
+    def get_files(self, filter: str | None = None):
         pass
 
     @abstractmethod
     def output_results(self, results):
         pass
 
+    @abstractmethod
     def delete_files(self, files):
-        files_to_delete = []
-        blob_client = AzureBlobStorageClient()
-        blob_client.delete_files(files)
-        for filename, ids in files.items():
-            files_to_delete.append(filename)
-        return ", ".join(files_to_delete)
+        # files_to_delete = []
+        # blob_client = AzureBlobStorageClient()
+        # blob_client.delete_files(files)
+        # for filename, ids in files.items():
+        #     files_to_delete.append(filename)
+        # return ", ".join(files_to_delete)
+        pass
 
     @abstractmethod
     def query_search(self, question) -> list[SourceDocument]:
@@ -71,9 +72,19 @@ class SearchHandlerBase(ABC):
         if source is None:
             return None
 
-        return self.search_client.search(
-            "*",
-            select="id, title",
-            include_total_count=True,
-            filter=f"source eq '{source}'",
-        )
+        print(source)
+        source_filter = f"source eq '{source}'"
+        return self.get_files(filter=source_filter)
+        # if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+        #     return self.search_client.search(
+        #         "*",
+        #         select="id, chunk_id, title",
+        #         include_total_count=True,
+        #         filter=f"source eq '{source}'",
+        #     )
+        # return self.search_client.search(
+        #     "*",
+        #     select="id, title",
+        #     include_total_count=True,
+        #     filter=f"source eq '{source}'",
+        # )

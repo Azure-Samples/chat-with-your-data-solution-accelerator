@@ -1,4 +1,5 @@
 from typing import List
+
 from .search_handler_base import SearchHandlerBase
 from ..helpers.llm_helper import LLMHelper
 from ..helpers.azure_computer_vision_client import AzureComputerVisionClient
@@ -35,9 +36,9 @@ class AzureSearchHandler(SearchHandlerBase):
         ]
         return data
 
-    def get_files(self):
+    def get_files(self, filter: str | None = None):
         return self.search_client.search(
-            "*", select="id, title", include_total_count=True
+            "*", select="id, title", include_total_count=True, filter=filter
         )
 
     def output_results(self, results):
@@ -52,16 +53,18 @@ class AzureSearchHandler(SearchHandlerBase):
 
         return files
 
-    # def delete_files(self, files):
-    # ids_to_delete = []
-    # files_to_delete = []
+    def delete_files(self, files):
+        ids_to_delete = []
+        files_to_delete = []
 
-    # for filename, ids in files.items():
-    #     files_to_delete.append(filename)
-    #     ids_to_delete += [{"id": id} for id in ids]
-    # self.search_client.delete_documents(ids_to_delete)
+        for filename, ids in files.items():
+            files_to_delete.append(filename)
+            ids_to_delete += [{"id": id} for id in ids]
+        self.search_client.delete_documents(ids_to_delete)
 
-    # return ", ".join(files_to_delete)
+        # blob_client = AzureBlobStorageClient()
+        # blob_client.delete_files(files)
+        return ", ".join(files_to_delete)
 
     def query_search(self, question) -> List[SourceDocument]:
         encoding = tiktoken.get_encoding(self._ENCODER_NAME)

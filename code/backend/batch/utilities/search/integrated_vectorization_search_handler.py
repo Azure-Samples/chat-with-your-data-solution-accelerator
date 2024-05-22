@@ -1,4 +1,5 @@
 from typing import List
+
 from .search_handler_base import SearchHandlerBase
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
@@ -39,10 +40,13 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
         ]
         return data
 
-    def get_files(self):
+    def get_files(self, filter: str | None = None):
         if self._check_index_exists():
             return self.search_client.search(
-                "*", select="id, chunk_id, title", include_total_count=True
+                "*",
+                select="id, chunk_id, title",
+                include_total_count=True,
+                filter=filter,
             )
 
     def output_results(self, results):
@@ -57,19 +61,19 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
 
         return files
 
-    # def delete_files(self, files):
-    # ids_to_delete = []
-    # files_to_delete = []
+    def delete_files(self, files):
+        ids_to_delete = []
+        files_to_delete = []
 
-    # for filename, ids in files.items():
-    #     files_to_delete.append(filename)
-    #     ids_to_delete += [{"chunk_id": id} for id in ids]
+        for filename, ids in files.items():
+            files_to_delete.append(filename)
+            ids_to_delete += [{"chunk_id": id} for id in ids]
 
-    # blob_client = AzureBlobStorageClient()
-    # blob_client.delete_files(selected_files)
-    # self.search_client.delete_documents(ids_to_delete)
+        self.search_client.delete_documents(ids_to_delete)
+        # blob_client = AzureBlobStorageClient()
+        # blob_client.delete_files(files)
 
-    # return ", ".join(files_to_delete)
+        return ", ".join(files_to_delete)
 
     def query_search(self, question) -> List[SourceDocument]:
         if self._check_index_exists():
