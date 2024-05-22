@@ -22,3 +22,11 @@ repos:
         require_serial: true
         args: # Bicep files that we want to generate ARM templates from
           - -f=./infra/main.bicep
+  - repo: local
+    hooks:
+      - id: snake_case
+        name: snake_case
+        description: Check for snake_case in Python files
+        entry: ./scripts/pre-commit/case-checker.sh
+        language: script
+        
