@@ -60,6 +60,6 @@ Pros:
     - When introducing automated versioning, there are a few things we need to consider:
         - **major/minor/patch** versions: Each release is tagged with a semantic version which is based on the change included (e.g. breaking change, feature, bug fix).
         - **Changelog**: A changelog must be included which details the changes that are included in the release.
-    - The [**conventional-changelog-action**](https://github.com/TriPSs/conventional-changelog-action) GitHub Action automates releases. It looks at commit messages to automatically generate the version number and to generate the changelog.
+    - The [**semantic-release-action**](https://github.com/codfish/semantic-release-action?tab=readme-ov-file#semantic-release-action) GitHub Action automates releases. It looks at commit messages to automatically generate the version number and to generate the changelog.
         - It uses [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/), meaning we'd need to follow a convention of labelling PRs with `fix`/`feat`/`BREAKING CHANGE`, etc, in order to be picked up by the release generator. It uses these labels to create the correct version.
         - As a consequence, current dependabot PRs would not trigger a release PR. These would be in main until an automatic or manual release was triggered.
