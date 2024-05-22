@@ -77,8 +77,8 @@ jobs:
           fi
 
           echo "MIN_COVERAGE=$MIN_COVERAGE" >> "$GITHUB_OUTPUT"
-      - name: Run Unit tests
-        run: make unittest optional_args="--junitxml=coverage-junit.xml --cov=. --cov-report xml:coverage.xml --cov-fail-under ${{ steps.coverage-value.outputs.MIN_COVERAGE }}"
+      - name: Run Python Tests
+        run: make python-test optional_args="--junitxml=coverage-junit.xml --cov=. --cov-report xml:coverage.xml --cov-fail-under ${{ steps.coverage-value.outputs.MIN_COVERAGE }}"
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
@@ -87,8 +87,6 @@ jobs:
             coverage-junit.xml
             coverage.xml
           if-no-files-found: error
-      - name: Run Functional tests
-        run: make functionaltest
       - name: Setup node
         uses: actions/setup-node@v4
         with:
