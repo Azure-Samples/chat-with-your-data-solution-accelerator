@@ -38,6 +38,7 @@ urlFragment: chat-with-your-data-solution-accelerator
     + [Required licenses](#required-licenses)
     + [Pricing Considerations](#pricing-considerations)
     + [Deploy instructions](#deploy-instructions)
+    + [Deploying with existing Azure resources](docs/deploy_existing.md)
     + [Testing the deployment](#testing-the-deployment)
   * [Supporting documentation](#supporting-documentation)
     + [Best practices](docs/best_practices.md)
