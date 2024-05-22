@@ -1,5 +1,6 @@
 import logging
 import pytest
+from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
 from tests.functional.app_config import AppConfig
 from tests.functional.tests.backend_api.common import get_free_port, start_app
 from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
@@ -34,6 +35,7 @@ def app_config(make_httpserver, ca):
                 "USE_ADVANCED_IMAGE_PROCESSING": "True",
                 "SSL_CERT_FILE": ca_temp_path,
                 "CURL_CA_BUNDLE": ca_temp_path,
+                "CONVERSATION_FLOW": ConversationFlow.CUSTOM.value,
             }
         )
         logger.info(f"Created app config: {app_config.get_all()}")

@@ -127,6 +127,13 @@ param azureOpenAIVisionModelCapacity int = 10
 ])
 param orchestrationStrategy string = 'openai_function'
 
+@description('Chat conversation type: custom or byod.')
+@allowed([
+  'custom'
+  'byod'
+])
+param conversationFlow string = 'custom'
+
 @description('Azure OpenAI Temperature')
 param azureOpenAITemperature string = '0'
 
@@ -544,6 +551,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      CONVERSATION_FLOW: conversationFlow
       LOGLEVEL: logLevel
     }
   }
@@ -615,6 +623,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      CONVERSATION_FLOW: conversationFlow
       LOGLEVEL: logLevel
     }
   }
@@ -1079,3 +1088,4 @@ output ADMIN_WEBSITE_NAME string = hostingModel == 'code'
   ? adminweb.outputs.WEBSITE_ADMIN_URI
   : adminweb_docker.outputs.WEBSITE_ADMIN_URI
 output LOGLEVEL string = logLevel
+output CONVERSATION_FLOW string = conversationFlow
