@@ -120,7 +120,7 @@ def test_process_results_null(handler):
     assert len(data) == 0
 
 
-def test_delete_files(handler, search_client_mock, blob_service_client_mock):
+def test_delete_files(handler, search_client_mock):
     # given
     files = {"file1": ["1", "2"]}
 
@@ -129,8 +129,8 @@ def test_delete_files(handler, search_client_mock, blob_service_client_mock):
 
     # then
     assert result == "file1"
-    blob_service_client_mock.return_value.delete_files.assert_called_once_with(files)
-    # search_client_mock.delete_documents.assert_called_once()
+    # blob_service_client_mock.return_value.delete_files.assert_called_once_with(files)
+    search_client_mock.delete_documents.assert_called_once()
 
 
 def test_output_results(handler):
@@ -263,3 +263,33 @@ def test_query_search_converts_results_to_source_documents(handler):
 
     # then
     assert actual_results == expected_results
+
+
+def test_delete_from_index(
+    env_helper_mock, handler, search_client_mock, blob_service_client_mock
+):
+    # given
+    env_helper_mock.AZURE_BLOB_CONTAINER_NAME = "documents"
+    blob_url = "https://example.com/documents/file1.txt"
+    title = "file1.txt"
+    documents = [
+        {"chunk_id": "123_chunk", "title": title},
+        {"chunk_id": "789_chunk", "title": title},
+    ]
+    search_client_mock.search.return_value = documents
+    files_to_delete = {"file1.txt": ["123_chunk", "789_chunk"]}
+    ids_to_delete = []
+    for filename, ids in files_to_delete.items():
+        ids_to_delete += [{"chunk_id": id} for id in ids]
+
+    # when
+    handler.delete_from_index(blob_url)
+
+    # then
+    search_client_mock.search.assert_called_once_with(
+        "*",
+        select="id, chunk_id, title",
+        include_total_count=True,
+        filter=f"title eq '{title}'",
+    )
+    search_client_mock.delete_documents.assert_called_once_with(ids_to_delete)

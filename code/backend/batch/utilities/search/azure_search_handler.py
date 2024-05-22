@@ -36,9 +36,9 @@ class AzureSearchHandler(SearchHandlerBase):
         ]
         return data
 
-    def get_files(self, filter: str | None = None):
+    def get_files(self):
         return self.search_client.search(
-            "*", select="id, title", include_total_count=True, filter=filter
+            "*", select="id, title", include_total_count=True
         )
 
     def output_results(self, results):
@@ -62,9 +62,17 @@ class AzureSearchHandler(SearchHandlerBase):
             ids_to_delete += [{"id": id} for id in ids]
         self.search_client.delete_documents(ids_to_delete)
 
-        # blob_client = AzureBlobStorageClient()
-        # blob_client.delete_files(files)
         return ", ".join(files_to_delete)
+
+    def delete_from_index(self, blob_url):
+        documents = self.search_client.search(
+            "*",
+            select="id, title",
+            include_total_count=True,
+            filter=f"source eq '{blob_url}_SAS_TOKEN_PLACEHOLDER_'",
+        )
+        files_to_delete = self.output_results(documents)
+        self.delete_files(files_to_delete)
 
     def query_search(self, question) -> List[SourceDocument]:
         encoding = tiktoken.get_encoding(self._ENCODER_NAME)

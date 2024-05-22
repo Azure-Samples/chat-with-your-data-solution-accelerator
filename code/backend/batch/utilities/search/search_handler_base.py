@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from ..helpers.azure_blob_storage_client import AzureBlobStorageClient
 from ..helpers.env_helper import EnvHelper
 from ..common.source_document import SourceDocument
 from azure.search.documents import SearchClient
@@ -23,6 +24,12 @@ class SearchHandlerBase(ABC):
             return [facet["value"] for facet in results.get_facets()[facet_key]]
         return []
 
+    def delete_from_storage(self, selected_files: any):
+        blob_client = AzureBlobStorageClient()
+        blob_client.delete_files(
+            selected_files, self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
+        )
+
     @abstractmethod
     def create_search_client(self) -> SearchClient:
         pass
@@ -36,7 +43,7 @@ class SearchHandlerBase(ABC):
         pass
 
     @abstractmethod
-    def get_files(self, filter: str | None = None):
+    def get_files(self):
         pass
 
     @abstractmethod
@@ -45,46 +52,12 @@ class SearchHandlerBase(ABC):
 
     @abstractmethod
     def delete_files(self, files):
-        # files_to_delete = []
-        # blob_client = AzureBlobStorageClient()
-        # blob_client.delete_files(files)
-        # for filename, ids in files.items():
-        #     files_to_delete.append(filename)
-        # return ", ".join(files_to_delete)
         pass
 
     @abstractmethod
     def query_search(self, question) -> list[SourceDocument]:
         pass
 
-    def delete_by_source(self, source) -> None:
-        if source is None:
-            return
-
-        documents = self._get_documents_by_source(source)
-        if documents is None:
-            return
-
-        files_to_delete = self.output_results(documents)
-        self.delete_files(files_to_delete)
-
-    def _get_documents_by_source(self, source):
-        if source is None:
-            return None
-
-        print(source)
-        source_filter = f"source eq '{source}'"
-        return self.get_files(filter=source_filter)
-        # if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
-        #     return self.search_client.search(
-        #         "*",
-        #         select="id, chunk_id, title",
-        #         include_total_count=True,
-        #         filter=f"source eq '{source}'",
-        #     )
-        # return self.search_client.search(
-        #     "*",
-        #     select="id, title",
-        #     include_total_count=True,
-        #     filter=f"source eq '{source}'",
-        # )
+    @abstractmethod
+    def delete_from_index(self, blob_url) -> None:
+        pass

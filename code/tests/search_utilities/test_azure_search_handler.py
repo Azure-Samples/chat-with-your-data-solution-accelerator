@@ -110,7 +110,7 @@ def test_process_results_null(handler):
     assert len(data) == 0
 
 
-def test_delete_files(handler, mock_blob_client):
+def test_delete_files(handler):
     # given
     files = {"file1": ["1", "2"]}
 
@@ -119,8 +119,7 @@ def test_delete_files(handler, mock_blob_client):
 
     # then
     assert result == "file1"
-    mock_blob_client.delete_files.assert_called_once_with(files)
-    # handler.search_client.delete_documents.assert_called_once()
+    handler.search_client.delete_documents.assert_called_once()
 
 
 def test_output_results(handler):
@@ -373,3 +372,33 @@ def test_semantic_search_with_advanced_image_processing(
         query_answer="extractive",
         top=handler.env_helper.AZURE_SEARCH_TOP_K,
     )
+
+
+def test_delete_from_index(handler, mock_search_client, mock_blob_client):
+    # given
+    blob_url = "https://example.com/blob"
+    filter_value = f"source eq '{blob_url}_SAS_TOKEN_PLACEHOLDER_'"
+    documents = [
+        {"id": 1, "title": "file1"},
+        {"id": 2, "title": "file2"},
+        {"id": 3, "title": "file1"},
+        {"id": 4, "title": "file3"},
+    ]
+    handler.search_client.search.return_value = documents
+    files_to_delete = {
+        "file1": [1, 3],
+        "file2": [2],
+        "file3": [4],
+    }
+    ids_to_delete = []
+    for filename, ids in files_to_delete.items():
+        ids_to_delete += [{"id": id} for id in ids]
+
+    # when
+    handler.delete_from_index(blob_url)
+
+    # then
+    handler.search_client.search.assert_called_once_with(
+        "*", select="id, title", include_total_count=True, filter=filter_value
+    )
+    handler.search_client.delete_documents.assert_called_once_with(ids_to_delete)
