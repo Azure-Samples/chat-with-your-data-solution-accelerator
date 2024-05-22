@@ -5,6 +5,7 @@ This module tests the entry point for the application.
 from unittest.mock import AsyncMock, MagicMock, patch, ANY
 import pytest
 from flask.testing import FlaskClient
+from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
 from create_app import create_app
 
 AZURE_SPEECH_KEY = "mock-speech-key"
@@ -78,6 +79,7 @@ def env_helper_mock():
         env_helper.SHOULD_STREAM = True
         env_helper.is_auth_type_keys.return_value = True
         env_helper.should_use_data.return_value = True
+        env_helper.CONVERSATION_FLOW = ConversationFlow.CUSTOM.value
 
         yield env_helper
 
@@ -244,7 +246,6 @@ class TestConversationCustom:
         get_message_orchestrator_mock.return_value = message_orchestrator_mock
 
         env_helper_mock.AZURE_OPENAI_MODEL = self.openai_model
-        env_helper_mock.CONVERSATION_FLOW = "custom"
 
         # when
         response = client.post(
@@ -281,7 +282,6 @@ class TestConversationCustom:
         get_message_orchestrator_mock.return_value = message_orchestrator_mock
 
         env_helper_mock.AZURE_OPENAI_MODEL = self.openai_model
-        env_helper_mock.CONVERSATION_FLOW = "custom"
 
         # when
         client.post(
@@ -305,7 +305,6 @@ class TestConversationCustom:
         """Test that an error response is returned when an exception occurs."""
         # given
         get_orchestrator_config_mock.side_effect = Exception("An error occurred")
-        env_helper_mock.CONVERSATION_FLOW = "custom"
 
         # when
         response = client.post(
@@ -333,7 +332,6 @@ class TestConversationCustom:
 
         # given
         get_orchestrator_config_mock.return_value = self.orchestrator_config
-        env_helper_mock.CONVERSATION_FLOW = "custom"
 
         message_orchestrator_mock = AsyncMock()
         message_orchestrator_mock.handle_message.return_value = self.messages
@@ -500,7 +498,7 @@ class TestConversationAzureByod:
             self.mock_streamed_response
         )
 
-        env_helper_mock.CONVERSATION_FLOW = "byod"
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
 
         # when
         response = client.post(
@@ -579,7 +577,7 @@ class TestConversationAzureByod:
         """Test that the Azure BYOD conversation endpoint returns the correct response."""
         # given
         env_helper_mock.is_auth_type_keys.return_value = False
-        env_helper_mock.CONVERSATION_FLOW = "byod"
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
         openai_client_mock = azure_openai_mock.return_value
         openai_client_mock.chat.completions.create.return_value = (
             self.mock_streamed_response
@@ -629,7 +627,7 @@ class TestConversationAzureByod:
         """Test that the Azure BYOD conversation endpoint returns the correct response."""
         # given
         env_helper_mock.SHOULD_STREAM = False
-        env_helper_mock.CONVERSATION_FLOW = "byod"
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
 
         openai_client_mock = azure_openai_mock.return_value
         openai_client_mock.chat.completions.create.return_value = self.mock_response
@@ -673,7 +671,7 @@ class TestConversationAzureByod:
         """Test that an error response is returned when an exception occurs."""
         # given
         conversation_with_data_mock.side_effect = Exception("Test exception")
-        env_helper_mock.CONVERSATION_FLOW = "byod"
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
 
         # when
         response = client.post(
@@ -696,7 +694,7 @@ class TestConversationAzureByod:
         # given
         env_helper_mock.should_use_data.return_value = False
         env_helper_mock.SHOULD_STREAM = False
-        env_helper_mock.CONVERSATION_FLOW = "byod"
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
 
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
@@ -763,7 +761,7 @@ class TestConversationAzureByod:
         env_helper_mock.SHOULD_STREAM = False
         env_helper_mock.AZURE_AUTH_TYPE = "rbac"
         env_helper_mock.AZURE_OPENAI_STOP_SEQUENCE = ""
-        env_helper_mock.CONVERSATION_FLOW = "byod"
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
 
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
@@ -827,7 +825,7 @@ class TestConversationAzureByod:
         """Test that the Azure BYOD conversation endpoint returns the correct response."""
         # given
         env_helper_mock.should_use_data.return_value = False
-        env_helper_mock.CONVERSATION_FLOW = "byod"
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
 
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
@@ -871,7 +869,7 @@ class TestConversationAzureByod:
         openai_client_mock.chat.completions.create.return_value = (
             self.mock_streamed_response
         )
-        env_helper_mock.CONVERSATION_FLOW = "byod"
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
 
         # when
         response = client.post(

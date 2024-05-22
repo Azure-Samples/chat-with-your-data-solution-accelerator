@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from backend.batch.utilities.helpers.env_helper import EnvHelper
 from backend.batch.utilities.helpers.orchestrator_helper import Orchestrator
 from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
+from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
 from azure.identity import DefaultAzureCredential
 
@@ -396,9 +397,9 @@ def create_app():
     @app.route("/api/conversation", methods=["POST"])
     async def conversation():
         conversation_flow = env_helper.CONVERSATION_FLOW
-        if conversation_flow == "custom":
+        if conversation_flow == ConversationFlow.CUSTOM.value:
             return await conversation_custom()
-        elif conversation_flow == "byod":
+        elif conversation_flow == ConversationFlow.BYOD.value:
             return conversation_azure_byod()
         else:
             return (
