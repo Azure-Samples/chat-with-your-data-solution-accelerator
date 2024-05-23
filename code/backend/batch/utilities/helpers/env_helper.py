@@ -4,7 +4,7 @@ import threading
 from dotenv import load_dotenv
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.keyvault.secrets import SecretClient
-from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
+from .config.conversation_flow import ConversationFlow
 
 logger = logging.getLogger(__name__)
 
