@@ -30,6 +30,10 @@ build-frontend: ## 🏗️ Build the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
 	@cd code/frontend && npm install && npm run build
 
+python-test: ## 🧪 Run Python unit + functional tests
+	@echo -e "\e[34m$@\e[0m" || true
+	@poetry run pytest -m "not azure" $(optional_args)
+
 unittest: ## 🧪 Run the unit tests
 	@echo -e "\e[34m$@\e[0m" || true
 	@poetry run pytest -m "not azure and not functional" $(optional_args)

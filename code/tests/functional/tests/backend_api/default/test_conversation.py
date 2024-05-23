@@ -12,7 +12,7 @@ from tests.functional.app_config import AppConfig
 
 pytestmark = pytest.mark.functional
 
-path = "/api/conversation/custom"
+path = "/api/conversation"
 body = {
     "conversation_id": "123",
     "messages": [
@@ -441,6 +441,13 @@ def test_post_makes_correct_call_to_create_documents_search_index(
                         "sortable": False,
                         "facetable": False,
                     },
+                    {
+                        "name": "image_vector",
+                        "type": "Collection(Edm.Single)",
+                        "searchable": True,
+                        "dimensions": 3,
+                        "vectorSearchProfile": "myHnswProfile",
+                    },
                 ],
                 "semantic": {
                     "configurations": [
@@ -509,7 +516,13 @@ def test_post_makes_correct_call_to_search_documents_search_index(
                         "k": int(app_config.get("AZURE_SEARCH_TOP_K")),
                         "fields": "content_vector",
                         "vector": [0.018990106880664825, -0.0073809814639389515],
-                    }
+                    },
+                    {
+                        "kind": "vector",
+                        "k": int(app_config.get("AZURE_SEARCH_TOP_K")),
+                        "fields": "image_vector",
+                        "vector": [1.0, 2.0, 3.0],
+                    },
                 ],
             },
             headers={
@@ -633,7 +646,7 @@ def test_post_returns_error_when_downstream_fails(
 
     # when
     response = requests.post(
-        f"{app_url}/api/conversation/custom",
+        f"{app_url}/api/conversation",
         json={
             "conversation_id": "123",
             "messages": [
@@ -648,5 +661,5 @@ def test_post_returns_error_when_downstream_fails(
     assert response.status_code == 500
     assert response.headers["Content-Type"] == "application/json"
     assert json.loads(response.text) == {
-        "error": "Exception in /api/conversation/custom. See log for more details."
+        "error": "Exception in /api/conversation. See log for more details."
     }
