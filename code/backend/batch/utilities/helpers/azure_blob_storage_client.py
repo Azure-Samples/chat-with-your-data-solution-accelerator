@@ -159,7 +159,7 @@ class AzureBlobStorageClient:
         if blob_client.exists():
             blob_client.delete_blob()
 
-    def delete_files(self, files, isIntegratedVectorization: bool):
+    def delete_files(self, files, integrated_vectorization: bool):
         """
         Deletes files from the Azure Blob Storage container.
 
@@ -170,7 +170,7 @@ class AzureBlobStorageClient:
             None
         """
         for filename, ids in files.items():
-            if not isIntegratedVectorization:
+            if not integrated_vectorization:
                 filename = filename.split("/")[-1]
             self.delete_file(filename)
 
