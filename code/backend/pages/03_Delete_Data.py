@@ -68,7 +68,7 @@ try:
                 )
                 if len(selected_files) > 0:
                     st.success(
-                        "Deleted files from storage. Deleting from index is an asynchronous process and may take a few minutes to complete."
+                        "Deleted files from storage. Deleting from the index is an asynchronous process and may take a few minutes to complete."
                         + ", ".join([name for name, ids in selected_files.items()])
                     )
 
