@@ -64,15 +64,13 @@ class AzureSearchHandler(SearchHandlerBase):
 
         return ", ".join(files_to_delete)
 
-    def delete_from_index(self, blob_url):
-        documents = self.search_client.search(
+    def search_by_blob_url(self, blob_url):
+        return self.search_client.search(
             "*",
             select="id, title",
             include_total_count=True,
             filter=f"source eq '{blob_url}_SAS_TOKEN_PLACEHOLDER_'",
         )
-        files_to_delete = self.output_results(documents)
-        self.delete_files(files_to_delete)
 
     def query_search(self, question) -> List[SourceDocument]:
         encoding = tiktoken.get_encoding(self._ENCODER_NAME)

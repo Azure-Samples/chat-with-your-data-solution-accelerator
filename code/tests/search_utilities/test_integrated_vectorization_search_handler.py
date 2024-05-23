@@ -44,14 +44,6 @@ def search_client_mock():
 
 
 @pytest.fixture
-def blob_service_client_mock():
-    with patch(
-        "backend.batch.utilities.search.search_handler_base.AzureBlobStorageClient"
-    ) as mock:
-        yield mock
-
-
-@pytest.fixture
 def handler(env_helper_mock, search_client_mock, search_index_mock):
     with patch(
         "backend.batch.utilities.search.integrated_vectorization_search_handler.SearchClient",
@@ -264,9 +256,7 @@ def test_query_search_converts_results_to_source_documents(handler):
     assert actual_results == expected_results
 
 
-def test_delete_from_index(
-    env_helper_mock, handler, search_client_mock, blob_service_client_mock
-):
+def test_delete_from_index(env_helper_mock, handler, search_client_mock):
     # given
     env_helper_mock.AZURE_BLOB_CONTAINER_NAME = "documents"
     blob_url = "https://example.com/documents/file1.txt"
@@ -276,10 +266,7 @@ def test_delete_from_index(
         {"chunk_id": "789_chunk", "title": title},
     ]
     search_client_mock.search.return_value = documents
-    files_to_delete = {"file1.txt": ["123_chunk", "789_chunk"]}
-    ids_to_delete = []
-    for filename, ids in files_to_delete.items():
-        ids_to_delete += [{"chunk_id": id} for id in ids]
+    ids_to_delete = [{"chunk_id": "123_chunk"}, {"chunk_id": "789_chunk"}]
 
     # when
     handler.delete_from_index(blob_url)

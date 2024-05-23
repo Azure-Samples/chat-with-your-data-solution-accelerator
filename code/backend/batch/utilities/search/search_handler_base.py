@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from ..helpers.azure_blob_storage_client import AzureBlobStorageClient
 from ..helpers.env_helper import EnvHelper
 from ..common.source_document import SourceDocument
 from azure.search.documents import SearchClient
@@ -23,11 +22,10 @@ class SearchHandlerBase(ABC):
             return [facet["value"] for facet in results.get_facets()[facet_key]]
         return []
 
-    def delete_from_storage(self, selected_files: any):
-        blob_client = AzureBlobStorageClient()
-        blob_client.delete_files(
-            selected_files, self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
-        )
+    def delete_from_index(self, blob_url) -> None:
+        documents = self.search_by_blob_url(blob_url)
+        files_to_delete = self.output_results(documents)
+        self.delete_files(files_to_delete)
 
     @abstractmethod
     def create_search_client(self) -> SearchClient:
@@ -58,5 +56,5 @@ class SearchHandlerBase(ABC):
         pass
 
     @abstractmethod
-    def delete_from_index(self, blob_url) -> None:
+    def search_by_blob_url(self, blob_url):
         pass
