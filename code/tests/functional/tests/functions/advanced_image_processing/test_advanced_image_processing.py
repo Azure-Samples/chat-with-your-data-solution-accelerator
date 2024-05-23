@@ -66,7 +66,7 @@ def setup_blob_metadata_mocking(httpserver: HTTPServer, app_config: AppConfig):
 
 @pytest.fixture(autouse=True)
 def setup_caption_response(httpserver: HTTPServer, app_config: AppConfig):
-    httpserver.expect_request(
+    httpserver.expect_oneshot_request(
         f"/openai/deployments/{app_config.get('AZURE_OPENAI_VISION_MODEL')}/chat/completions",
         method="POST",
     ).respond_with_json(

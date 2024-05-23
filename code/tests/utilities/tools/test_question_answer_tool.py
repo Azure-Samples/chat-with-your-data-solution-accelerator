@@ -39,6 +39,7 @@ def env_helper_mock():
         env_helper.AZURE_SEARCH_TOP_K = 1
         env_helper.AZURE_SEARCH_FILTER = "mock filter"
         env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = False
+        env_helper.USE_ADVANCED_IMAGE_PROCESSING = False
 
         yield env_helper
 
@@ -159,10 +160,16 @@ def test_correct_prompt_with_few_shot_example(llm_helper_mock: MagicMock):
             },
             {"content": "mock azure openai system message", "role": "system"},
             {
-                "content": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}},{"[doc2]":{"content":"mock content 2"}}]}, Question: mock question',
+                "content": [
+                    {
+                        "type": "text",
+                        "text": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}},{"[doc2]":{"content":"mock content 2"}}]}, Question: mock question',
+                    }
+                ],
                 "role": "user",
             },
         ],
+        model=None,
         temperature=0,
     )
 
@@ -187,10 +194,16 @@ def test_correct_prompt_without_few_shot_example(
             {"content": "mock answering system prompt", "role": "system"},
             {"content": "mock azure openai system message", "role": "system"},
             {
-                "content": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}},{"[doc2]":{"content":"mock content 2"}}]}, Question: mock question',
+                "content": [
+                    {
+                        "type": "text",
+                        "text": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}},{"[doc2]":{"content":"mock content 2"}}]}, Question: mock question',
+                    }
+                ],
                 "role": "user",
             },
         ],
+        model=None,
         temperature=0,
     )
 
@@ -226,10 +239,16 @@ def test_correct_prompt_with_few_shot_example_and_chat_history(
             {"role": "user", "content": "Hello"},
             {"role": "assistant", "content": "Hi, how can I help?"},
             {
-                "content": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}},{"[doc2]":{"content":"mock content 2"}}]}, Question: mock question',
+                "content": [
+                    {
+                        "type": "text",
+                        "text": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}},{"[doc2]":{"content":"mock content 2"}}]}, Question: mock question',
+                    }
+                ],
                 "role": "user",
             },
         ],
+        model=None,
         temperature=0,
     )
 
@@ -260,6 +279,7 @@ def test_non_on_your_data_prompt_correct(
                 "role": "user",
             },
         ],
+        model=None,
         temperature=0,
     )
 
