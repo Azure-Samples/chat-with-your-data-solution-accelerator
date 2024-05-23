@@ -61,7 +61,6 @@ try:
                 st.info("No files selected")
                 st.stop()
             else:
-                # Delete from Storage
                 deleted_files = search_handler.delete_from_storage(selected_files)
                 if len(selected_files) > 0:
                     st.success(

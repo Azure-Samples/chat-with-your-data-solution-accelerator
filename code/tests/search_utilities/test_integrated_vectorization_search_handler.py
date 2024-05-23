@@ -129,7 +129,6 @@ def test_delete_files(handler, search_client_mock):
 
     # then
     assert result == "file1"
-    # blob_service_client_mock.return_value.delete_files.assert_called_once_with(files)
     search_client_mock.delete_documents.assert_called_once()
 
 

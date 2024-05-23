@@ -1,5 +1,4 @@
 from typing import List
-
 from .search_handler_base import SearchHandlerBase
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
@@ -79,8 +78,6 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
             ids_to_delete += [{"chunk_id": id} for id in ids]
 
         self.search_client.delete_documents(ids_to_delete)
-        # blob_client = AzureBlobStorageClient()
-        # blob_client.delete_files(files)
 
         return ", ".join(files_to_delete)
 

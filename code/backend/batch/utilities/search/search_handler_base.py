@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-
 from ..helpers.azure_blob_storage_client import AzureBlobStorageClient
 from ..helpers.env_helper import EnvHelper
 from ..common.source_document import SourceDocument
