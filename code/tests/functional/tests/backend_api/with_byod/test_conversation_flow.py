@@ -112,6 +112,11 @@ def test_post_makes_correct_call_to_azure_openai(
                             "index_name": app_config.get("AZURE_SEARCH_INDEX"),
                             "fields_mapping": {
                                 "content_fields": ["content"],
+                                "vector_fields": [
+                                    app_config.get(
+                                        "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS"
+                                    )
+                                ],
                                 "title_field": "title",
                                 "url_field": "url",
                                 "filepath_field": "filepath",

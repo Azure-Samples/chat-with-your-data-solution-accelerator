@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.27.1.19265",
-      "templateHash": "6490847733397864992"
+      "templateHash": "6027201902589320671"
     }
   },
   "parameters": {
@@ -139,6 +139,13 @@
       "defaultValue": "content",
       "metadata": {
         "description": "Content columns"
+      }
+    },
+    "azureSearchVectorColumns": {
+      "type": "string",
+      "defaultValue": "content_vector",
+      "metadata": {
+        "description": "Vector columns"
       }
     },
     "azureSearchFilenameColumn": {
@@ -2014,6 +2021,7 @@
               "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
               "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
+              "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS": "[parameters('azureSearchVectorColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
               "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
@@ -2966,6 +2974,7 @@
               "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
               "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
+              "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS": "[parameters('azureSearchVectorColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
               "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
@@ -3917,6 +3926,7 @@
               "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
               "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
+              "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS": "[parameters('azureSearchVectorColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
               "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
@@ -4859,6 +4869,7 @@
               "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
               "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
+              "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS": "[parameters('azureSearchVectorColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
               "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
@@ -11007,6 +11018,10 @@
     "AZURE_SEARCH_CONTENT_COLUMNS": {
       "type": "string",
       "value": "[parameters('azureSearchContentColumns')]"
+    },
+    "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS": {
+      "type": "string",
+      "value": "[parameters('azureSearchVectorColumns')]"
     },
     "AZURE_SEARCH_FILENAME_COLUMN": {
       "type": "string",
