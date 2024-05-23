@@ -30,7 +30,9 @@ Once a PR is merged to `main`, the Action will automatically run. It will automa
 
 Once a merge to `main` is completed that would result in a major/minor/patch version increase (such as `feat`, `fix`, etc.) then a changelog will be generated, and this will trigger a release to be published automatically with the appropriate version number.
 
-The workflow is configured so that the `CHANGELOG.md` is continuously updated. The Action by default uses the `package.json` version, which it also automatically updates.
+By default, `semantic-release` only includes `fix`, `feat`, and `perf` commit types in the release. Our project includes all commit types in their release notes, while still using `semantic-release`'s commit analyzer to only create releases for `fix`, `feat`, and `perf` commits.
+
+Note that, it is not possible to automate the update of a `CHANGELOG` as this would require the GitHub token to have permissions to push commits to the repository, which cannot be enabled.
 
 ## Security
 
