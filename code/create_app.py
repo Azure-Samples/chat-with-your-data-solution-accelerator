@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from backend.batch.utilities.helpers.env_helper import EnvHelper
 from backend.batch.utilities.helpers.orchestrator_helper import Orchestrator
 from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
+from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
 from azure.identity import DefaultAzureCredential
 
@@ -128,6 +129,9 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
                                 if env_helper.AZURE_SEARCH_CONTENT_COLUMNS
                                 else []
                             ),
+                            "vector_fields": [
+                                env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMNS
+                            ],
                             "title_field": env_helper.AZURE_SEARCH_TITLE_COLUMN or None,
                             "url_field": env_helper.AZURE_SEARCH_URL_COLUMN or None,
                             "filepath_field": (
@@ -333,7 +337,6 @@ def create_app():
     def health():
         return "OK"
 
-    @app.route("/api/conversation/azure_byod", methods=["POST"])
     def conversation_azure_byod():
         try:
             if env_helper.should_use_data():
@@ -342,19 +345,16 @@ def create_app():
                 return conversation_without_data(request, env_helper)
         except Exception as e:
             error_message = str(e)
-            logger.exception(
-                "Exception in /api/conversation/azure_byod | %s", error_message
-            )
+            logger.exception("Exception in /api/conversation | %s", error_message)
             return (
                 jsonify(
                     {
-                        "error": "Exception in /api/conversation/azure_byod. See log for more details."
+                        "error": "Exception in /api/conversation. See log for more details."
                     }
                 ),
                 500,
             )
 
-    @app.route("/api/conversation/custom", methods=["POST"])
     async def conversation_custom():
         message_orchestrator = get_message_orchestrator()
 
@@ -387,13 +387,28 @@ def create_app():
 
         except Exception as e:
             error_message = str(e)
-            logger.exception(
-                "Exception in /api/conversation/custom | %s", error_message
-            )
+            logger.exception("Exception in /api/conversation | %s", error_message)
             return (
                 jsonify(
                     {
-                        "error": "Exception in /api/conversation/custom. See log for more details."
+                        "error": "Exception in /api/conversation. See log for more details."
+                    }
+                ),
+                500,
+            )
+
+    @app.route("/api/conversation", methods=["POST"])
+    async def conversation():
+        conversation_flow = env_helper.CONVERSATION_FLOW
+        if conversation_flow == ConversationFlow.CUSTOM.value:
+            return await conversation_custom()
+        elif conversation_flow == ConversationFlow.BYOD.value:
+            return conversation_azure_byod()
+        else:
+            return (
+                jsonify(
+                    {
+                        "error": "Invalid conversation flow configured. Value can only be 'custom' or 'byod'."
                     }
                 ),
                 500,

@@ -13,7 +13,7 @@ from tests.request_matching import RequestMatcher, verify_request_made
 
 pytestmark = pytest.mark.functional
 
-path = "/api/conversation/custom"
+path = "/api/conversation"
 body = {
     "conversation_id": "123",
     "messages": [

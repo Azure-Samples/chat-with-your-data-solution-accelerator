@@ -72,6 +72,9 @@ param azureSearchEnableInDomain string = 'false'
 @description('Content columns')
 param azureSearchContentColumns string = 'content'
 
+@description('Vector columns')
+param azureSearchVectorColumns string = 'content_vector'
+
 @description('Filename column')
 param azureSearchFilenameColumn string = 'filename'
 
@@ -126,6 +129,13 @@ param azureOpenAIVisionModelCapacity int = 10
   'langchain'
 ])
 param orchestrationStrategy string = 'openai_function'
+
+@description('Chat conversation type: custom or byod.')
+@allowed([
+  'custom'
+  'byod'
+])
+param conversationFlow string = 'custom'
 
 @description('Azure OpenAI Temperature')
 param azureOpenAITemperature string = '0'
@@ -534,6 +544,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_TOP_K: azureSearchTopK
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
@@ -544,6 +555,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      CONVERSATION_FLOW: conversationFlow
       LOGLEVEL: logLevel
     }
   }
@@ -605,6 +617,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SEARCH_TOP_K: azureSearchTopK
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
@@ -615,6 +628,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      CONVERSATION_FLOW: conversationFlow
       LOGLEVEL: logLevel
     }
   }
@@ -675,6 +689,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_TOP_K: azureSearchTopK
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
@@ -746,6 +761,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       AZURE_SEARCH_TOP_K: azureSearchTopK
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
@@ -1056,6 +1072,7 @@ output AZURE_SEARCH_INDEX_IS_PRECHUNKED string = azureSearchIndexIsPrechunked
 output AZURE_SEARCH_TOP_K string = azureSearchTopK
 output AZURE_SEARCH_ENABLE_IN_DOMAIN string = azureSearchEnableInDomain
 output AZURE_SEARCH_CONTENT_COLUMNS string = azureSearchContentColumns
+output AZURE_SEARCH_CONTENT_VECTOR_COLUMNS string = azureSearchVectorColumns
 output AZURE_SEARCH_FILENAME_COLUMN string = azureSearchFilenameColumn
 output AZURE_SEARCH_FILTER string = azureSearchFilter
 output AZURE_SEARCH_TITLE_COLUMN string = azureSearchTitleColumn
@@ -1079,3 +1096,4 @@ output ADMIN_WEBSITE_NAME string = hostingModel == 'code'
   ? adminweb.outputs.WEBSITE_ADMIN_URI
   : adminweb_docker.outputs.WEBSITE_ADMIN_URI
 output LOGLEVEL string = logLevel
+output CONVERSATION_FLOW string = conversationFlow
