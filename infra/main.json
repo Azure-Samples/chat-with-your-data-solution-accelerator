@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.27.1.19265",
-      "templateHash": "11889969251281398200"
+      "templateHash": "6027201902589320671"
     }
   },
   "parameters": {
@@ -141,6 +141,13 @@
         "description": "Content columns"
       }
     },
+    "azureSearchVectorColumns": {
+      "type": "string",
+      "defaultValue": "content_vector",
+      "metadata": {
+        "description": "Vector columns"
+      }
+    },
     "azureSearchFilenameColumn": {
       "type": "string",
       "defaultValue": "filename",
@@ -260,6 +267,17 @@
       ],
       "metadata": {
         "description": "Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain"
+      }
+    },
+    "conversationFlow": {
+      "type": "string",
+      "defaultValue": "custom",
+      "allowedValues": [
+        "custom",
+        "byod"
+      ],
+      "metadata": {
+        "description": "Chat conversation type: custom or byod."
       }
     },
     "azureOpenAITemperature": {
@@ -2003,6 +2021,7 @@
               "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
               "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
+              "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS": "[parameters('azureSearchVectorColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
               "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
@@ -2013,6 +2032,7 @@
               "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "[parameters('recognizedLanguages')]",
               "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
+              "CONVERSATION_FLOW": "[parameters('conversationFlow')]",
               "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
@@ -2954,6 +2974,7 @@
               "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
               "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
+              "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS": "[parameters('azureSearchVectorColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
               "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
@@ -2964,6 +2985,7 @@
               "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "[parameters('recognizedLanguages')]",
               "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
+              "CONVERSATION_FLOW": "[parameters('conversationFlow')]",
               "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
@@ -3904,6 +3926,7 @@
               "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
               "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
+              "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS": "[parameters('azureSearchVectorColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
               "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
@@ -4846,6 +4869,7 @@
               "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
               "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
+              "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS": "[parameters('azureSearchVectorColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
               "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
@@ -10995,6 +11019,10 @@
       "type": "string",
       "value": "[parameters('azureSearchContentColumns')]"
     },
+    "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS": {
+      "type": "string",
+      "value": "[parameters('azureSearchVectorColumns')]"
+    },
     "AZURE_SEARCH_FILENAME_COLUMN": {
       "type": "string",
       "value": "[parameters('azureSearchFilenameColumn')]"
@@ -11070,6 +11098,10 @@
     "LOGLEVEL": {
       "type": "string",
       "value": "[parameters('logLevel')]"
+    },
+    "CONVERSATION_FLOW": {
+      "type": "string",
+      "value": "[parameters('conversationFlow')]"
     }
   }
 }
