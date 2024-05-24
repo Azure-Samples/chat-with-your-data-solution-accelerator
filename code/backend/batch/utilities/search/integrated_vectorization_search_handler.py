@@ -57,6 +57,16 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
 
         return files
 
+    def search_by_blob_url(self, blob_url: str):
+        if self._check_index_exists():
+            title = blob_url.split(f"{self.env_helper.AZURE_BLOB_CONTAINER_NAME}/")[1]
+            return self.search_client.search(
+                "*",
+                select="id, chunk_id, title",
+                include_total_count=True,
+                filter=f"title eq '{title}'",
+            )
+
     def delete_files(self, files):
         ids_to_delete = []
         files_to_delete = []
