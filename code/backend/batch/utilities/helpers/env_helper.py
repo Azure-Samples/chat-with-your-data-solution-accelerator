@@ -114,6 +114,9 @@ class EnvHelper:
         self.USE_ADVANCED_IMAGE_PROCESSING = self.get_env_var_bool(
             "USE_ADVANCED_IMAGE_PROCESSING", "False"
         )
+        self.ADVANCED_IMAGE_PROCESSING_MAX_IMAGES = int(
+            os.getenv("ADVANCED_IMAGE_PROCESSING_MAX_IMAGES", "1")
+        )
         self.AZURE_COMPUTER_VISION_ENDPOINT = os.getenv(
             "AZURE_COMPUTER_VISION_ENDPOINT"
         )
