@@ -13,6 +13,7 @@ from openai import AzureOpenAI, Stream
 from openai.types.chat import ChatCompletionChunk
 from flask import Flask, Response, request, Request, jsonify
 from flask import render_template, send_from_directory
+from flasgger import Swagger
 from dotenv import load_dotenv
 from backend.batch.utilities.helpers.env_helper import EnvHelper
 from backend.batch.utilities.helpers.orchestrator_helper import Orchestrator
@@ -22,6 +23,7 @@ from azure.identity import DefaultAzureCredential
 
 logger = logging.getLogger(__name__)
 
+logging.info(f"ENV: {EnvHelper.check_env()}")
 
 def stream_with_data(response: Stream[ChatCompletionChunk]):
     """This function streams the response from Azure OpenAI with data."""
@@ -325,17 +327,91 @@ def create_app():
 
     logger.debug("Starting web app")
 
+    template = {
+        "swagger": "2.0",
+        "info": {
+            "title": "OpenAI BYOD API",
+            "description": "This API was developed using Python Flask, which provides an interface for the Calab.ai BYOD (Bring Your Own Data) OpenAI Chat solution messages with the topics via HTTP endpoints.",
+            "version": "1.0"
+        }
+    }
+    app.config['SWAGGER'] = {
+        'title': 'OpenAI BYOD API',
+        'uiversion': 3,
+        'template': './templates/flasgger/index.html',
+        'specs_route': '/swagger/',
+        'specs': [
+            {
+                'endpoint': 'specs',
+                'route': '/specs',
+                'rule_filter': lambda rule: True,
+                'model_filter': lambda tag: True,
+            }
+        ],
+        'favicon': '/favicon.png',
+    }
+    Swagger(app, template=template)
+
     @app.route("/", defaults={"path": "index.html"})
     @app.route("/<path:path>")
     def static_file(path):
         return app.send_static_file(path)
 
+    # Create route for favicon access
+    @app.route("/favicon.png")
+    def favicon():
+        return send_from_directory("templates/static", "favicon_64x64.png")
+
     @app.route("/api/health", methods=["GET"])
     def health():
+        """
+        This function returns the health status of the API.
+        ---
+        tags:
+          - health
+        responses:
+          200:
+            description: OK
+            examples:
+              application/json: { "message": "OK" }
+        """
         return "OK"
 
     @app.route("/api/conversation/azure_byod", methods=["POST"])
     def conversation_azure_byod():
+        """
+        Azure BYOD (Bring Your Own Data) conversation endpoint.
+        ---
+        tags:
+          - conversation
+        parameters:
+          - in: body
+            name: body
+            required: true
+            schema:
+              type: object
+              properties:
+                messages:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                      content:
+                        type: string
+                conversation_id:
+                  type: string
+        responses:
+          200:
+            description: OK
+            examples:
+              application/json: {"id": "response.id", "model": "response.model", "created": "response.created", "object": "response.object", "choices": [{"messages": [{"content": "response.choices[0].message.content", "end_turn": true, "role": "assistant"}]}]}
+          500:
+            description: Internal Server Error
+            examples:
+              application/json: {"error": "Exception in /api/conversation/azure_byod. See log for more details."}
+        """
         try:
             if env_helper.should_use_data():
                 return conversation_with_data(request, env_helper)
@@ -357,6 +433,39 @@ def create_app():
 
     @app.route("/api/conversation/custom", methods=["POST"])
     async def conversation_custom():
+        """
+        Custom conversation endpoint.
+        ---
+        tags:
+          - conversation
+        parameters:
+          - in: body
+            name: body
+            required: true
+            schema:
+              type: object
+              properties:
+                messages:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                      content:
+                        type: string
+                conversation_id:
+                  type: string
+        responses:
+          200:
+            description: OK
+            examples:
+              application/json: {"id": "response.id", "model": "response.model", "created": "response.created", "object": "response.object", "choices": [{"messages": [{"content": "response.choices[0].message.content", "end_turn": true, "role": "assistant"}]}]}
+          500:
+            description: Internal Server Error
+            examples:
+              application/json: {"error": "Exception in /api/conversation/custom. See log for more details."}
+        """
         message_orchestrator = get_message_orchestrator()
 
         try:
@@ -402,7 +511,21 @@ def create_app():
 
     @app.route("/api/speech", methods=["GET"])
     def speech_config():
-        """Get the speech config for Azure Speech."""
+        """
+        Get the speech config for Azure Speech.
+        ---
+        tags:
+          - speech
+        responses:
+          200:
+            description: OK
+            examples:
+              application/json: {"token": "response.text", "region": "env_helper.AZURE_SPEECH_SERVICE_REGION", "languages": "env_helper.AZURE_SPEECH_RECOGNIZER_LANGUAGES"}
+          500:
+            description: Internal Server Error
+            examples:
+              application/json: {"error": "Failed to get speech config"}
+        """
         try:
             speech_key = env_helper.AZURE_SPEECH_KEY or get_speech_key(env_helper)
 
