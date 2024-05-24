@@ -5,6 +5,7 @@ import sys
 import logging
 from batch.utilities.helpers.env_helper import EnvHelper
 from batch.utilities.search.search import Search
+from batch.utilities.helpers.azure_blob_storage_client import AzureBlobStorageClient
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
@@ -61,11 +62,15 @@ try:
                 st.info("No files selected")
                 st.stop()
             else:
-                files_to_delete = search_handler.delete_files(
-                    selected_files,
+                blob_client = AzureBlobStorageClient()
+                blob_client.delete_files(
+                    selected_files, env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
                 )
-                if len(files_to_delete) > 0:
-                    st.success("Deleted files: " + str(files_to_delete))
+                if len(selected_files) > 0:
+                    st.success(
+                        "Deleted files from storage. Deleting from the index is an asynchronous process and may take a few minutes to complete."
+                        + ", ".join([name for name, ids in selected_files.items()])
+                    )
 
 except Exception:
     logger.error(traceback.format_exc())

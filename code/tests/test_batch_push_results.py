@@ -123,6 +123,6 @@ def test_batch_push_results_with_blob_deleted_event_uses_search_to_delete_with_s
     )
 
     batch_push_results.build().get_user_function()(mock_queue_message)
-    mock_get_search_handler.delete_by_source.assert_called_once_with(
-        "https://test.test/test/test_filename.pdf_SAS_TOKEN_PLACEHOLDER_"
+    mock_get_search_handler.delete_from_index.assert_called_once_with(
+        "https://test.test/test/test_filename.pdf"
     )
