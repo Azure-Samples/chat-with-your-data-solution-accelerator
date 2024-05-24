@@ -45,10 +45,10 @@ export const Answer = ({
         if (citation.filepath && citation.chunk_id != null) {
             if (truncate && citation.filepath.length > filePathTruncationLimit) {
                 const citationLength = citation.filepath.length;
-                citationFilename = `${citation.filepath.substring(0, 20)}...${citation.filepath.substring(citationLength -20)} - Part ${parseInt(citation.chunk_id) + 1}`;
+                citationFilename = `${citation.filepath.substring(0, 20)}...${citation.filepath.substring(citationLength -20)} - Part ${citation.chunk_id}`;
             }
             else {
-                citationFilename = `${citation.filepath} - Part ${parseInt(citation.chunk_id) + 1}`;
+                citationFilename = `${citation.filepath} - Part ${citation.chunk_id}`;
             }
         }
         else {
@@ -97,13 +97,13 @@ export const Answer = ({
                                 onClick={handleChevronClick} iconName={chevronIsExpanded ? 'ChevronDown' : 'ChevronRight'}
                                 />
                             </Stack>
-                            
+
                         </Stack>
                     </Stack.Item>
                 )}
-                
+
                 </Stack>
-                {chevronIsExpanded && 
+                {chevronIsExpanded &&
                     <div style={{ marginTop: 8, display: "flex", flexDirection: "column", height: "100%", gap: "4px", maxWidth: "100%" }}>
                         {parsedAnswer.citations.map((citation, idx) => {
                             return (
