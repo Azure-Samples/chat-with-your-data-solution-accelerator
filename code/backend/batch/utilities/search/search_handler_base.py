@@ -24,6 +24,8 @@ class SearchHandlerBase(ABC):
 
     def delete_from_index(self, blob_url) -> None:
         documents = self.search_by_blob_url(blob_url)
+        if documents is None or documents.get_count() == 0:
+            return
         files_to_delete = self.output_results(documents)
         self.delete_files(files_to_delete)
 
