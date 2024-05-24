@@ -14,6 +14,7 @@ from openai import AzureOpenAI, Stream, APIStatusError
 from openai.types.chat import ChatCompletionChunk
 from flask import Flask, Response, request, Request, jsonify
 from flask import render_template, send_from_directory
+from flasgger import Swagger
 from dotenv import load_dotenv
 from urllib.parse import quote
 from backend.batch.utilities.helpers.env_helper import EnvHelper
@@ -32,6 +33,7 @@ ERROR_429_MESSAGE = "We're currently experiencing a high number of requests for 
 ERROR_GENERIC_MESSAGE = "An error occurred. Please try again. If the problem persists, please contact the site administrator."
 logger = logging.getLogger(__name__)
 
+logging.info(f"ENV: {EnvHelper.check_env()}")
 
 def get_markdown_url(source, title, container_sas):
     """Get Markdown URL for a citation"""
