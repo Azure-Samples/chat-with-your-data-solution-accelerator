@@ -27,6 +27,7 @@ def config_mock():
         )
         config.example.user_question = "mock example user question"
         config.example.answer = "mock example answer"
+        config.get_advanced_image_processing_image_types.return_value = ["jpg", "png"]
 
         yield config
 
@@ -39,6 +40,8 @@ def env_helper_mock():
         env_helper.AZURE_SEARCH_TOP_K = 1
         env_helper.AZURE_SEARCH_FILTER = "mock filter"
         env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = False
+        env_helper.USE_ADVANCED_IMAGE_PROCESSING = False
+        env_helper.AZURE_OPENAI_VISION_MODEL = "mock vision model"
 
         yield env_helper
 
@@ -56,6 +59,17 @@ def llm_helper_mock():
         llm_helper.get_chat_completion.return_value.usage.completion_tokens = 50
 
         yield llm_helper
+
+
+@pytest.fixture(autouse=True)
+def azure_blob_service_mock():
+    with patch(
+        "backend.batch.utilities.tools.question_answer_tool.AzureBlobStorageClient"
+    ) as mock:
+        blob_helper = mock.return_value
+        blob_helper.get_container_sas.return_value = "mock sas"
+
+        yield blob_helper
 
 
 @pytest.fixture(autouse=True)
@@ -86,8 +100,8 @@ def source_documents_mock():
             SourceDocument(
                 id="mock id 2",
                 content="mock content 2",
-                title="mock title 2",
-                source="mock source 2",
+                title="mock title 2.jpg",
+                source="mock source 2_SAS_TOKEN_PLACEHOLDER_",
                 chunk_id="mock chunk id 2",
             ),
         ]
@@ -159,10 +173,16 @@ def test_correct_prompt_with_few_shot_example(llm_helper_mock: MagicMock):
             },
             {"content": "mock azure openai system message", "role": "system"},
             {
-                "content": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}},{"[doc2]":{"content":"mock content 2"}}]}, Question: mock question',
+                "content": [
+                    {
+                        "type": "text",
+                        "text": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}},{"[doc2]":{"content":"mock content 2"}}]}, Question: mock question',
+                    }
+                ],
                 "role": "user",
             },
         ],
+        model=None,
         temperature=0,
     )
 
@@ -187,10 +207,16 @@ def test_correct_prompt_without_few_shot_example(
             {"content": "mock answering system prompt", "role": "system"},
             {"content": "mock azure openai system message", "role": "system"},
             {
-                "content": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}},{"[doc2]":{"content":"mock content 2"}}]}, Question: mock question',
+                "content": [
+                    {
+                        "type": "text",
+                        "text": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}},{"[doc2]":{"content":"mock content 2"}}]}, Question: mock question',
+                    }
+                ],
                 "role": "user",
             },
         ],
+        model=None,
         temperature=0,
     )
 
@@ -226,10 +252,16 @@ def test_correct_prompt_with_few_shot_example_and_chat_history(
             {"role": "user", "content": "Hello"},
             {"role": "assistant", "content": "Hi, how can I help?"},
             {
-                "content": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}},{"[doc2]":{"content":"mock content 2"}}]}, Question: mock question',
+                "content": [
+                    {
+                        "type": "text",
+                        "text": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}},{"[doc2]":{"content":"mock content 2"}}]}, Question: mock question',
+                    }
+                ],
                 "role": "user",
             },
         ],
+        model=None,
         temperature=0,
     )
 
@@ -260,6 +292,7 @@ def test_non_on_your_data_prompt_correct(
                 "role": "user",
             },
         ],
+        model=None,
         temperature=0,
     )
 
@@ -274,3 +307,46 @@ def test_json_remove_whitespace(input: str, expected: str):
 
     # then
     assert result == expected
+
+
+def test_use_advanced_vision_processing(env_helper_mock, llm_helper_mock):
+    # given
+    env_helper_mock.USE_ADVANCED_IMAGE_PROCESSING = True
+    tool = QuestionAnswerTool()
+
+    # when
+    answer = tool.answer_question("mock question", [])
+
+    # then
+    llm_helper_mock.get_chat_completion.assert_called_once_with(
+        [
+            {"content": "mock answering system prompt", "role": "system"},
+            {
+                "content": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock example content"}}]}, Question: mock example user question',
+                "name": "example_user",
+                "role": "system",
+            },
+            {
+                "content": "mock example answer",
+                "name": "example_assistant",
+                "role": "system",
+            },
+            {"content": "mock azure openai system message", "role": "system"},
+            {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}},{"[doc2]":{"content":"mock content 2"}}]}, Question: mock question',
+                    },
+                    {"type": "image_url", "image_url": "mock source 2mock sas"},
+                ],
+                "role": "user",
+            },
+        ],
+        model="mock vision model",
+        temperature=0,
+    )
+
+    assert isinstance(answer, Answer)
+    assert answer.question == "mock question"
+    assert answer.answer == "mock content"

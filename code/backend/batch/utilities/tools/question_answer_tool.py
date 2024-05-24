@@ -4,11 +4,13 @@ import warnings
 
 from ..common.answer import Answer
 from ..common.source_document import SourceDocument
+from ..helpers.azure_blob_storage_client import AzureBlobStorageClient
 from ..helpers.config.config_helper import ConfigHelper
 from ..helpers.env_helper import EnvHelper
 from ..helpers.llm_helper import LLMHelper
 from ..search.search import Search
 from .answering_tool_base import AnsweringToolBase
+from openai.types.chat import ChatCompletion
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +64,7 @@ class QuestionAnswerTool(AnsweringToolBase):
         question: str,
         chat_history: list[dict],
         sources: list[SourceDocument],
+        image_urls: list[str] = [],
     ) -> list[dict]:
         examples = []
 
@@ -122,10 +125,24 @@ class QuestionAnswerTool(AnsweringToolBase):
             },
             *QuestionAnswerTool.clean_chat_history(chat_history),
             {
-                "content": self.config.prompts.answering_user_prompt.format(
-                    sources=documents,
-                    question=question,
-                ),
+                "content": [
+                    {
+                        "type": "text",
+                        "text": self.config.prompts.answering_user_prompt.format(
+                            sources=documents,
+                            question=question,
+                        ),
+                    },
+                    *(
+                        [
+                            {
+                                "type": "image_url",
+                                "image_url": image_url,
+                            }
+                            for image_url in image_urls
+                        ]
+                    ),
+                ],
                 "role": "user",
             },
         ]
@@ -133,9 +150,16 @@ class QuestionAnswerTool(AnsweringToolBase):
     def answer_question(self, question: str, chat_history: list[dict], **kwargs):
         source_documents = Search.get_source_documents(self.search_handler, question)
 
+        if self.env_helper.USE_ADVANCED_IMAGE_PROCESSING:
+            image_urls = self.create_image_url_list(source_documents)
+        else:
+            image_urls = []
+
+        model = self.env_helper.AZURE_OPENAI_VISION_MODEL if image_urls else None
+
         if self.config.prompts.use_on_your_data_format:
             messages = self.generate_on_your_data_messages(
-                question, chat_history, source_documents
+                question, chat_history, source_documents, image_urls
             )
         else:
             warnings.warn(
@@ -145,8 +169,33 @@ class QuestionAnswerTool(AnsweringToolBase):
 
         llm_helper = LLMHelper()
 
-        response = llm_helper.get_chat_completion(messages, temperature=0)
+        response = llm_helper.get_chat_completion(messages, model=model, temperature=0)
+        clean_answer = self.format_answer_from_response(
+            response, question, source_documents
+        )
 
+        return clean_answer
+
+    def create_image_url_list(self, source_documents):
+        image_types = self.config.get_advanced_image_processing_image_types()
+
+        blob_client = AzureBlobStorageClient()
+        container_sas = blob_client.get_container_sas()
+
+        image_urls = [
+            doc.source.replace("_SAS_TOKEN_PLACEHOLDER_", container_sas)
+            for doc in source_documents
+            if doc.title is not None and doc.title.split(".")[-1] in image_types
+        ]
+
+        return image_urls
+
+    def format_answer_from_response(
+        self,
+        response: ChatCompletion,
+        question: str,
+        source_documents: list[SourceDocument],
+    ):
         answer = response.choices[0].message.content
         logger.debug(f"Answer: {answer}")
 
@@ -158,4 +207,5 @@ class QuestionAnswerTool(AnsweringToolBase):
             prompt_tokens=response.usage.prompt_tokens,
             completion_tokens=response.usage.completion_tokens,
         )
+
         return clean_answer
