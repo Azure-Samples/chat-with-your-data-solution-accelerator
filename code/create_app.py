@@ -14,7 +14,6 @@ from openai import AzureOpenAI, Stream, APIStatusError
 from openai.types.chat import ChatCompletionChunk
 from flask import Flask, Response, request, Request, jsonify
 from flask import render_template, send_from_directory
-from flasgger import Swagger
 from dotenv import load_dotenv
 from urllib.parse import quote
 from backend.batch.utilities.helpers.env_helper import EnvHelper
