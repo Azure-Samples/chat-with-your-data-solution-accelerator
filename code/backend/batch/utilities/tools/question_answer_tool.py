@@ -179,20 +179,14 @@ class QuestionAnswerTool(AnsweringToolBase):
     def create_image_url_list(self, source_documents):
         image_types = self.config.get_advanced_image_processing_image_types()
 
-        image_documents = []
-
-        for doc in source_documents:
-            if doc.title is not None and doc.title.split(".")[-1] in image_types:
-                image_documents.append(doc)
-
         blob_client = AzureBlobStorageClient()
         container_sas = blob_client.get_container_sas()
 
-        image_urls = []
-        for doc in image_documents:
-            image_urls.append(
-                doc.source.replace("_SAS_TOKEN_PLACEHOLDER_", container_sas)
-            )
+        image_urls = [
+            doc.source.replace("_SAS_TOKEN_PLACEHOLDER_", container_sas)
+            for doc in source_documents
+            if doc.title is not None and doc.title.split(".")[-1] in image_types
+        ]
 
         return image_urls
 
