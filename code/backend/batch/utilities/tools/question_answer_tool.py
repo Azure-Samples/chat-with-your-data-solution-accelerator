@@ -151,11 +151,11 @@ class QuestionAnswerTool(AnsweringToolBase):
         source_documents = Search.get_source_documents(self.search_handler, question)
 
         if self.env_helper.USE_ADVANCED_IMAGE_PROCESSING:
-            model = self.env_helper.AZURE_OPENAI_VISION_MODEL
             image_urls = self.create_image_url_list(source_documents)
         else:
-            model = None
             image_urls = []
+
+        model = self.env_helper.AZURE_OPENAI_VISION_MODEL if image_urls else None
 
         if self.config.prompts.use_on_your_data_format:
             messages = self.generate_on_your_data_messages(

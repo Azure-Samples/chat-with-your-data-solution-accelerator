@@ -545,7 +545,7 @@ def test_post_makes_correct_call_to_openai_chat_completions_with_documents(
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
-            path=f"/openai/deployments/{app_config.get('AZURE_OPENAI_VISION_MODEL')}/chat/completions",
+            path=f"/openai/deployments/{app_config.get('AZURE_OPENAI_MODEL')}/chat/completions",
             method="POST",
             json={
                 "messages": [
@@ -579,7 +579,7 @@ def test_post_makes_correct_call_to_openai_chat_completions_with_documents(
                         "role": "user",
                     },
                 ],
-                "model": app_config.get("AZURE_OPENAI_VISION_MODEL"),
+                "model": app_config.get("AZURE_OPENAI_MODEL"),
                 "max_tokens": int(app_config.get("AZURE_OPENAI_MAX_TOKENS")),
                 "temperature": 0,
             },
