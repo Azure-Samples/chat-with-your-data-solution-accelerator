@@ -12,6 +12,7 @@ import requests
 from openai import AzureOpenAI, Stream
 from openai.types.chat import ChatCompletionChunk
 from flask import Flask, Response, request, Request, jsonify
+from flask import render_template, send_from_directory
 from dotenv import load_dotenv
 from backend.batch.utilities.helpers.env_helper import EnvHelper
 from backend.batch.utilities.helpers.orchestrator_helper import Orchestrator
