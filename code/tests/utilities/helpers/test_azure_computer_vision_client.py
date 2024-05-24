@@ -16,6 +16,8 @@ from tests.request_matching import RequestMatcher, verify_request_made
 from tests.constants import (
     COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
     COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
+    COMPUTER_VISION_VECTORIZE_TEXT_PATH,
+    COMPUTER_VISION_VECTORIZE_TEXT_REQUEST_METHOD,
 )
 
 
@@ -30,6 +32,7 @@ from tests.constants import (
 # and we switch to it, we should consider switching back to convential test mocking.
 
 IMAGE_URL = "some-image-url.jpg"
+TEXT = "some text"
 AZURE_COMPUTER_VISION_KEY = "some-api-key"
 
 
@@ -155,6 +158,24 @@ def test_returns_image_vectors(
     assert actual_vectors == expected_vectors
 
 
+def test_returns_text_vectors(
+    httpserver: HTTPServer, azure_computer_vision_client: AzureComputerVisionClient
+):
+    # given
+    expected_vectors = [3.0, 2.0, 1.0]
+
+    httpserver.expect_request(
+        COMPUTER_VISION_VECTORIZE_TEXT_PATH,
+        COMPUTER_VISION_VECTORIZE_TEXT_REQUEST_METHOD,
+    ).respond_with_json({"modelVersion": "2022-04-11", "vector": expected_vectors})
+
+    # when
+    actual_vectors = azure_computer_vision_client.vectorize_text(TEXT)
+
+    # then
+    assert actual_vectors == expected_vectors
+
+
 def test_vectorize_image_calls_computer_vision_timeout(
     httpserver: HTTPServer, azure_computer_vision_client: AzureComputerVisionClient
 ):
@@ -175,7 +196,7 @@ def test_vectorize_image_calls_computer_vision_timeout(
     with pytest.raises(Exception) as exec_info:
         azure_computer_vision_client.vectorize_image(IMAGE_URL)
 
-    assert exec_info.value.args[0] == "Call to vectorize image failed: " + IMAGE_URL
+    assert exec_info.value.args[0] == "Call to Azure Computer Vision failed"
     assert isinstance(exec_info.value.__cause__, ReadTimeout)
 
 
@@ -197,7 +218,7 @@ def test_raises_exception_if_bad_response_code(
     # then
     assert (
         exec_info.value.args[0]
-        == f"Call to vectorize image failed with status: {response_status} body: {json.dumps(response_body, indent=4)}"
+        == f"Call to Azure Computer Vision failed with status: {response_status}, body: {json.dumps(response_body, indent=4)}"
     )
 
 
@@ -218,7 +239,7 @@ def test_raises_exception_if_non_json_response(
     # then
     assert (
         exec_info.value.args[0]
-        == f"Call to vectorize image returned malformed response body: {response_body}"
+        == f"Call to Azure Computer Vision returned malformed response body: {response_body}"
     )
     assert isinstance(exec_info.value.__cause__, JSONDecodeError)
 
@@ -240,5 +261,5 @@ def test_raises_exception_if_vector_not_in_response(
     # then
     assert (
         exec_info.value.args[0]
-        == f"Call to vectorize image returned no vector: {response_body}"
+        == f"Call to Azure Computer Vision returned no vector: {response_body}"
     )

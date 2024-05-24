@@ -161,9 +161,10 @@ def test_get_files(handler, search_client_mock):
     )
 
 
-def test_query_search_performs_search(handler, env_helper_mock):
+def test_query_search_performs_search_hybrid(handler, env_helper_mock):
     # given
     question = "test question"
+    env_helper_mock.AZURE_SEARCH_USE_SEMANTIC_SEARCH = False
     vector_query = VectorizableTextQuery(
         text=question,
         k_nearest_neighbors=env_helper_mock.AZURE_SEARCH_TOP_K,
@@ -178,6 +179,34 @@ def test_query_search_performs_search(handler, env_helper_mock):
     handler.search_client.search.assert_called_once_with(
         search_text=question,
         vector_queries=[vector_query],
+        top=env_helper_mock.AZURE_SEARCH_TOP_K,
+    )
+
+
+def test_query_search_performs_search_semantic(handler, env_helper_mock):
+    # given
+    question = "test question"
+    env_helper_mock.AZURE_SEARCH_USE_SEMANTIC_SEARCH = True
+    env_helper_mock.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = "some-semantic-config"
+    vector_query = VectorizableTextQuery(
+        text=question,
+        k_nearest_neighbors=env_helper_mock.AZURE_SEARCH_TOP_K,
+        fields="content_vector",
+        exhaustive=True,
+    )
+
+    # when
+    handler.query_search(question)
+
+    # then
+    handler.search_client.search.assert_called_once_with(
+        search_text=question,
+        vector_queries=[vector_query],
+        filter=env_helper_mock.AZURE_SEARCH_FILTER,
+        query_type="semantic",
+        semantic_configuration_name=env_helper_mock.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
+        query_caption="extractive",
+        query_answer="extractive",
         top=env_helper_mock.AZURE_SEARCH_TOP_K,
     )
 

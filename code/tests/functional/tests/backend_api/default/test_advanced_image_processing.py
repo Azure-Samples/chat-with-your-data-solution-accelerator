@@ -1,12 +1,12 @@
 import pytest
-from pytest_httpserver import HTTPServer
 import requests
-
-from tests.request_matching import (
-    RequestMatcher,
-    verify_request_made,
+from pytest_httpserver import HTTPServer
+from tests.constants import (
+    COMPUTER_VISION_VECTORIZE_TEXT_PATH,
+    COMPUTER_VISION_VECTORIZE_TEXT_REQUEST_METHOD,
 )
 from tests.functional.app_config import AppConfig
+from tests.request_matching import RequestMatcher, verify_request_made
 
 pytestmark = pytest.mark.functional
 
@@ -16,7 +16,7 @@ body = {
     "messages": [
         {"role": "user", "content": "Hello"},
         {"role": "assistant", "content": "Hi, how can I help?"},
-        {"role": "user", "content": "What is the meaning of life, in uppercase?"},
+        {"role": "user", "content": "What is the meaning of life?"},
     ],
 }
 
@@ -31,21 +31,15 @@ def completions_mocking(httpserver: HTTPServer, app_config: AppConfig):
             "choices": [
                 {
                     "content_filter_results": {},
-                    "finish_reason": "tool_calls",
+                    "finish_reason": "function_call",
                     "index": 0,
                     "message": {
                         "content": None,
                         "role": "assistant",
-                        "tool_calls": [
-                            {
-                                "function": {
-                                    "arguments": '{"text":"What is the meaning of life?","operation":"Convert to Uppercase"}',
-                                    "name": "Chat-text_processing",
-                                },
-                                "id": "call_9ZgrCHgwHooEPFSoNpH81RBm",
-                                "type": "function",
-                            }
-                        ],
+                        "function_call": {
+                            "arguments": '{"question":"What is the meaning of life?"}',
+                            "name": "search_documents",
+                        },
                     },
                 }
             ],
@@ -89,7 +83,7 @@ def completions_mocking(httpserver: HTTPServer, app_config: AppConfig):
                     "finish_reason": "stop",
                     "index": 0,
                     "message": {
-                        "content": "WHAT IS THE MEANING OF LIFE?",
+                        "content": "42 is the meaning of life[doc1].",
                         "role": "assistant",
                     },
                 }
@@ -130,12 +124,12 @@ def test_post_responds_successfully(app_url: str, app_config: AppConfig):
             {
                 "messages": [
                     {
-                        "content": '{"citations": [], "intent": "What is the meaning of life, in uppercase?"}',
+                        "content": r'{"citations": [{"content": "[/documents/doc.pdf](https://source)\n\n\ncontent", "id": "doc_1", "chunk_id": 95, "title": "/documents/doc.pdf", "filepath": "source", "url": "[/documents/doc.pdf](https://source)", "metadata": {"offset": 202738, "source": "https://source", "markdown_url": "[/documents/doc.pdf](https://source)", "title": "/documents/doc.pdf", "original_url": "https://source", "chunk": 95, "key": "doc_1", "filename": "source"}}], "intent": "What is the meaning of life?"}',
                         "end_turn": False,
                         "role": "tool",
                     },
                     {
-                        "content": "WHAT IS THE MEANING OF LIFE?",
+                        "content": "42 is the meaning of life[doc1].",
                         "end_turn": True,
                         "role": "assistant",
                     },
@@ -150,56 +144,28 @@ def test_post_responds_successfully(app_url: str, app_config: AppConfig):
     assert response.headers["Content-Type"] == "application/json"
 
 
-def test_post_makes_correct_call_to_openai_chat_completions_in_text_processing_tool(
-    app_url: str, app_config: AppConfig, httpserver: HTTPServer
+def test_text_passed_to_computer_vision_to_generate_text_embeddings(
+    app_url: str, httpserver: HTTPServer, app_config: AppConfig
 ):
     # when
     requests.post(f"{app_url}{path}", json=body)
 
     # then
     verify_request_made(
-        mock_httpserver=httpserver,
-        request_matcher=RequestMatcher(
-            path=f"/openai/deployments/{app_config.get('AZURE_OPENAI_MODEL')}/chat/completions",
-            method="POST",
+        httpserver,
+        RequestMatcher(
+            path=COMPUTER_VISION_VECTORIZE_TEXT_PATH,
+            method=COMPUTER_VISION_VECTORIZE_TEXT_REQUEST_METHOD,
             json={
-                "messages": [
-                    {
-                        "content": "You are an AI assistant for the user.",
-                        "role": "system",
-                    },
-                    {
-                        "content": "Convert to Uppercase the following TEXT: What is the meaning of life?",
-                        "role": "user",
-                    },
-                ],
-                "model": app_config.get("AZURE_OPENAI_MODEL"),
-                "max_tokens": int(app_config.get("AZURE_OPENAI_MAX_TOKENS")),
+                "text": "What is the meaning of life?",
             },
+            query_string="api-version=2024-02-01&model-version=2023-04-15",
             headers={
-                "Accept": "application/json",
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {app_config.get('AZURE_OPENAI_API_KEY')}",
-                "Api-Key": app_config.get("AZURE_OPENAI_API_KEY"),
+                "Ocp-Apim-Subscription-Key": app_config.get(
+                    "AZURE_COMPUTER_VISION_KEY"
+                ),
             },
-            query_string="api-version=2024-02-01",
             times=1,
-        ),
-    )
-
-
-def test_post_does_not_call_azure_search(
-    app_url: str, app_config: AppConfig, httpserver: HTTPServer
-):
-    # when
-    requests.post(f"{app_url}{path}", json=body)
-
-    # then
-    verify_request_made(
-        mock_httpserver=httpserver,
-        request_matcher=RequestMatcher(
-            path=f"/indexes('{app_config.get('AZURE_SEARCH_INDEX')}')/docs/search.post.search",
-            method="POST",
-            times=0,
         ),
     )

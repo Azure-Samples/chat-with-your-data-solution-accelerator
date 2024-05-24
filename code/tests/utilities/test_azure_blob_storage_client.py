@@ -170,7 +170,9 @@ def test_get_blob_sas(generate_blob_sas_mock: MagicMock):
     )
 
 
-@patch("backend.batch.utilities.helpers.azure_blob_storage_client.generate_container_sas")
+@patch(
+    "backend.batch.utilities.helpers.azure_blob_storage_client.generate_container_sas"
+)
 def test_get_container_sas(generate_container_sas_mock: MagicMock):
     # given
     client = AzureBlobStorageClient()
