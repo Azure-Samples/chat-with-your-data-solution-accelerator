@@ -18,35 +18,10 @@ If you are unable to run this accelerator using a DevContainer or in GitHub Code
 
 ## Setup
 
-1. Configure your Python environment:
+1. Review the contents of [.devcontainer/setupEnv.sh](../.devcontainer/setupEnv.sh) and then run it:
 
     ```bash
-    pip install --upgrade pip
-
-    pip install poetry
-
-    # https://pypi.org/project/poetry-plugin-export/
-    pip install poetry-plugin-export
-
-    poetry env use python3.11
-
-    poetry config warnings.export false
-
-    poetry install --with dev
-    ```
-
-1. Install `pre-commit` Git hooks:
-
-    ```bash
-    poetry run pre-commit install
-    ```
-
-1. Install Node.js dependencies:
-
-    ```bash
-    (cd ./code/frontend; npm install)
-
-    (cd ./tests/integration/ui; npm install)
+    .devcontainer/setupEnv.sh
     ```
 
 1. Select the Python interpreter in Visual Studio Code:
