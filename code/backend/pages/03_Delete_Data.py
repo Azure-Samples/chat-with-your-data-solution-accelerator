@@ -62,15 +62,15 @@ try:
                 st.info("No files selected")
                 st.stop()
             else:
+                files_to_delete = search_handler.delete_files(
+                    selected_files,
+                )
                 blob_client = AzureBlobStorageClient()
                 blob_client.delete_files(
                     selected_files, env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
                 )
-                if len(selected_files) > 0:
-                    st.success(
-                        "Deleted files from storage. Deleting from the index is an asynchronous process and may take a few minutes to complete."
-                        + ", ".join([name for name, ids in selected_files.items()])
-                    )
+                if len(files_to_delete) > 0:
+                    st.success("Deleted files: " + str(files_to_delete))
 
 except Exception:
     logger.error(traceback.format_exc())

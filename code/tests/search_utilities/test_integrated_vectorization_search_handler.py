@@ -1,9 +1,10 @@
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from backend.batch.utilities.search.integrated_vectorization_search_handler import (
     IntegratedVectorizationSearchHandler,
 )
 from azure.search.documents.models import VectorizableTextQuery
+from azure.search.documents import SearchItemPaged
 
 from backend.batch.utilities.common.source_document import SourceDocument
 
@@ -261,12 +262,20 @@ def test_delete_from_index(env_helper_mock, handler, search_client_mock):
     env_helper_mock.AZURE_BLOB_CONTAINER_NAME = "documents"
     blob_url = "https://example.com/documents/file1.txt"
     title = "file1.txt"
-    documents = [
-        {"chunk_id": "123_chunk", "title": title},
-        {"chunk_id": "789_chunk", "title": title},
-    ]
+    documents = Mock(
+        SearchItemPaged(
+            [
+                {"chunk_id": "123_chunk", "title": title},
+                {"chunk_id": "789_chunk", "title": title},
+            ]
+        )
+    )
     search_client_mock.search.return_value = documents
+    documents.get_count.return_value = 2
     ids_to_delete = [{"chunk_id": "123_chunk"}, {"chunk_id": "789_chunk"}]
+    handler.output_results = MagicMock(
+        return_value={"file1.txt": ["123_chunk", "789_chunk"]}
+    )
 
     # when
     handler.delete_from_index(blob_url)
