@@ -60,4 +60,4 @@ def _process_document_deleted_event(message_body) -> None:
     search_handler = Search.get_search_handler(env_helper)
 
     blob_url = message_body.get("data", {}).get("url", "")
-    search_handler.delete_by_source(f"{blob_url}_SAS_TOKEN_PLACEHOLDER_")
+    search_handler.delete_from_index(blob_url)

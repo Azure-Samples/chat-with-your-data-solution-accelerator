@@ -22,6 +22,11 @@ class SearchHandlerBase(ABC):
             return [facet["value"] for facet in results.get_facets()[facet_key]]
         return []
 
+    def delete_from_index(self, blob_url) -> None:
+        documents = self.search_by_blob_url(blob_url)
+        files_to_delete = self.output_results(documents)
+        self.delete_files(files_to_delete)
+
     @abstractmethod
     def create_search_client(self) -> SearchClient:
         pass
@@ -50,24 +55,6 @@ class SearchHandlerBase(ABC):
     def query_search(self, question) -> list[SourceDocument]:
         pass
 
-    def delete_by_source(self, source) -> None:
-        if source is None:
-            return
-
-        documents = self._get_documents_by_source(source)
-        if documents is None:
-            return
-
-        files_to_delete = self.output_results(documents)
-        self.delete_files(files_to_delete)
-
-    def _get_documents_by_source(self, source):
-        if source is None:
-            return None
-
-        return self.search_client.search(
-            "*",
-            select="id, title",
-            include_total_count=True,
-            filter=f"source eq '{source}'",
-        )
+    @abstractmethod
+    def search_by_blob_url(self, blob_url):
+        pass
