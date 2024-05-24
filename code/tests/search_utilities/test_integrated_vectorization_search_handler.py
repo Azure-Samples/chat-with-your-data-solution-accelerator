@@ -254,3 +254,28 @@ def test_query_search_converts_results_to_source_documents(handler):
 
     # then
     assert actual_results == expected_results
+
+
+def test_delete_from_index(env_helper_mock, handler, search_client_mock):
+    # given
+    env_helper_mock.AZURE_BLOB_CONTAINER_NAME = "documents"
+    blob_url = "https://example.com/documents/file1.txt"
+    title = "file1.txt"
+    documents = [
+        {"chunk_id": "123_chunk", "title": title},
+        {"chunk_id": "789_chunk", "title": title},
+    ]
+    search_client_mock.search.return_value = documents
+    ids_to_delete = [{"chunk_id": "123_chunk"}, {"chunk_id": "789_chunk"}]
+
+    # when
+    handler.delete_from_index(blob_url)
+
+    # then
+    search_client_mock.search.assert_called_once_with(
+        "*",
+        select="id, chunk_id, title",
+        include_total_count=True,
+        filter=f"title eq '{title}'",
+    )
+    search_client_mock.delete_documents.assert_called_once_with(ids_to_delete)
