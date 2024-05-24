@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, Mock, patch
 from backend.batch.utilities.search.azure_search_handler import AzureSearchHandler
 import json
 from azure.search.documents.models import VectorizedQuery
-
+from azure.search.documents import SearchItemPaged
 from backend.batch.utilities.common.source_document import SourceDocument
 
 
@@ -369,14 +369,23 @@ def test_delete_from_index(handler, mock_search_client):
     # given
     blob_url = "https://example.com/blob"
     filter_value = f"source eq '{blob_url}_SAS_TOKEN_PLACEHOLDER_'"
-    documents = [
-        {"id": 1, "title": "file1"},
-        {"id": 2, "title": "file2"},
-        {"id": 3, "title": "file1"},
-        {"id": 4, "title": "file3"},
-    ]
+    documents = Mock(
+        SearchItemPaged(
+            [
+                {"id": 1, "title": "file1"},
+                {"id": 2, "title": "file2"},
+                {"id": 3, "title": "file1"},
+                {"id": 4, "title": "file3"},
+            ]
+        )
+    )
+
     handler.search_client.search.return_value = documents
+    documents.get_count.return_value = 4
     ids_to_delete = [{"id": 1}, {"id": 3}, {"id": 2}, {"id": 4}]
+    handler.output_results = MagicMock(
+        return_value={"file1": [1, 3], "file2": [2], "file3": [4]}
+    )
 
     # when
     handler.delete_from_index(blob_url)
