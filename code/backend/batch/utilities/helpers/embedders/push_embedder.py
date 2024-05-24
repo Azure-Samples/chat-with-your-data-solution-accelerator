@@ -59,8 +59,6 @@ class PushEmbedder(EmbedderBase):
             and file_extension
             in self.config.get_advanced_image_processing_image_types()
         ):
-            logger.warning("Advanced image processing is not supported yet")
-
             caption = self.__generate_image_caption(source_url)
             caption_vector = self.llm_helper.generate_embeddings(caption)
 

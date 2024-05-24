@@ -31,7 +31,9 @@ chat_message_default_content = ChatMessageContent(
 
 @pytest.fixture(autouse=True)
 def llm_helper_mock():
-    with patch("backend.batch.utilities.orchestrator.semantic_kernel.LLMHelper") as mock:
+    with patch(
+        "backend.batch.utilities.orchestrator.semantic_kernel.LLMHelper"
+    ) as mock:
         llm_helper = mock.return_value
 
         llm_helper.get_sk_chat_completion_service.return_value = AzureChatCompletion(

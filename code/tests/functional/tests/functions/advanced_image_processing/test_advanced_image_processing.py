@@ -344,7 +344,7 @@ def test_makes_correct_call_to_create_documents_search_index(
                         "name": "image_vector",
                         "type": "Collection(Edm.Single)",
                         "searchable": True,
-                        "dimensions": 1024,
+                        "dimensions": 3,
                         "vectorSearchProfile": "myHnswProfile",
                     },
                 ],

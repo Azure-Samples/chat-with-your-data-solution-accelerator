@@ -21,7 +21,7 @@ import { multiLingualSpeechRecognizer } from "../../util/SpeechToText";
 import {
   ChatMessage,
   ConversationRequest,
-  customConversationApi,
+  callConversationApi,
   Citation,
   ToolMessageContent,
   ChatResponse,
@@ -75,7 +75,7 @@ const Chat = () => {
 
     let result = {} as ChatResponse;
     try {
-      const response = await customConversationApi(
+      const response = await callConversationApi(
         request,
         abortController.signal
       );

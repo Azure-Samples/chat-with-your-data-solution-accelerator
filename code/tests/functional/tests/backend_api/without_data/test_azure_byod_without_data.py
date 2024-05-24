@@ -12,7 +12,7 @@ from tests.functional.app_config import AppConfig
 
 pytestmark = pytest.mark.functional
 
-path = "/api/conversation/azure_byod"
+path = "/api/conversation"
 body = {
     "conversation_id": "123",
     "messages": [

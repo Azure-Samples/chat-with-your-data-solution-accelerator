@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from pytest import MonkeyPatch
 import pytest
 from backend.batch.utilities.helpers.env_helper import EnvHelper
@@ -140,3 +141,16 @@ def test_use_advanced_image_processing(monkeypatch: MonkeyPatch, value, expected
 
     # then
     assert actual_use_advanced_image_processing == expected
+
+
+@patch(
+    "backend.batch.utilities.helpers.env_helper.os.getenv",
+    side_effect=Exception("Some error"),
+)
+def test_env_helper_not_created_if_error_occurs(_):
+    # when
+    with pytest.raises(Exception):
+        EnvHelper()
+
+    # then
+    assert EnvHelper._instance is None
