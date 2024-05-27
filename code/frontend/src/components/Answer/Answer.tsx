@@ -57,10 +57,10 @@ export const Answer = ({
             const uniqueChunkID = getUniqueChunkID(parseInt(citation.chunk_id));
             if (truncate && citation.filepath.length > filePathTruncationLimit) {
                 const citationLength = citation.filepath.length;
-                citationFilename = `${citation.filepath.substring(0, 20)}...${citation.filepath.substring(citationLength -20)} - Part ${uniqueChunkID + 1}`;
+                citationFilename = `${citation.filepath.substring(0, 20)}...${citation.filepath.substring(citationLength -20)} - Part ${citation.chunk_id}`;
             }
             else {
-                citationFilename = `${citation.filepath} - Part ${uniqueChunkID + 1}`;
+                citationFilename = `${citation.filepath} - Part ${citation.chunk_id}`;
             }
         }
         else {
