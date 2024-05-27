@@ -39,22 +39,10 @@ export const Answer = ({
         setChevronIsExpanded(isRefAccordionOpen);
     }, [isRefAccordionOpen]);
 
-    const usedChunkIds = new Set<number>();
-
-    const getUniqueChunkID = (chunk_id: number): number =>{
-        let uniqueID=chunk_id;
-        while(usedChunkIds.has(uniqueID)){
-            break
-        }
-        usedChunkIds.add(uniqueID);
-        return uniqueID;
-    }
-
     const createCitationFilepath = (citation: Citation, index: number, truncate: boolean = false) => {
         let citationFilename = "";
 
         if (citation.filepath && citation.chunk_id != null) {
-            const uniqueChunkID = getUniqueChunkID(parseInt(citation.chunk_id));
             if (truncate && citation.filepath.length > filePathTruncationLimit) {
                 const citationLength = citation.filepath.length;
                 citationFilename = `${citation.filepath.substring(0, 20)}...${citation.filepath.substring(citationLength -20)} - Part ${citation.chunk_id}`;
