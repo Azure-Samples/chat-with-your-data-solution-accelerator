@@ -130,7 +130,10 @@ const Chat = () => {
 
     return abortController.abort();
   };
-  let recognizedTextBuffer = '';
+    // Buffer to store recognized text
+    let recognizedTextBuffer = "";
+    let currentSentence = "";
+
   const startSpeechRecognition = async () => {
     if (!isRecognizing) {
       setIsRecognizing(true);
@@ -138,28 +141,26 @@ const Chat = () => {
       recognizerRef.current = await multiLingualSpeechRecognizer(); // Store the recognizer in the ref
       recognizerRef.current.recognized = (s, e) => {
         if (e.result.reason === ResultReason.RecognizedSpeech) {
-          const recognized = e.result.text;
-          recognizedTextBuffer += recognized;
-          // document.getElementById('outputElement').value =  recognizedTextBuffer.trim();
-          // document.getElementById("outputElement").setText( recognizedTextBuffer.trim());
-          setUserMessage(recognizedTextBuffer.trim());
-          setRecognizedText(recognizedTextBuffer.trim());
+          let recognizedText = e.result.text.trim();
+
+          // Append current sentence to buffer if it's not empty
+          if (currentSentence) {
+              recognizedTextBuffer += ` ${currentSentence.trim()}`;
+              currentSentence = "";
+          }
+
+          // Start new sentence
+          currentSentence += ` ${recognizedText}`;
+
+          //set text in textarea
+           setUserMessage((recognizedTextBuffer + currentSentence).trim());
+           setRecognizedText((recognizedTextBuffer + currentSentence).trim());
+
         }
-        // if (e.result.reason === ResultReason.RecognizedSpeech) {
-        //     console.log(`Recognized: ${e.result.text}`);
-        //     const recognized = e.result.text;
-        //     setUserMessage(recognized);
-        //       setRecognizedText(recognized);
-        // } else if (e.result.reason === ResultReason.NoMatch) {
-        //     console.error("No speech could be recognized.");
-        // } else if (e.result.reason === ResultReason.Canceled) {
-        //     console.error(`Recognition was canceled. Error details: ${e.result.errorDetails}`);
-        // }
       };
 
       recognizerRef.current.startContinuousRecognitionAsync(
         () => {
-            console.log("Recognition started");
             setIsRecognizing(true);
             setIsListening(true);
         },
