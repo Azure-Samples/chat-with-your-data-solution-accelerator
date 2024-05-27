@@ -6,6 +6,8 @@ from tests.constants import (
     AZURE_STORAGE_CONFIG_FILE_NAME,
     COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
     COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
+    COMPUTER_VISION_VECTORIZE_TEXT_PATH,
+    COMPUTER_VISION_VECTORIZE_TEXT_REQUEST_METHOD,
 )
 
 
@@ -126,6 +128,11 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     httpserver.expect_request(
         COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
         COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
+    ).respond_with_json({"modelVersion": "2022-04-11", "vector": [1.0, 2.0, 3.0]})
+
+    httpserver.expect_request(
+        COMPUTER_VISION_VECTORIZE_TEXT_PATH,
+        COMPUTER_VISION_VECTORIZE_TEXT_REQUEST_METHOD,
     ).respond_with_json({"modelVersion": "2022-04-11", "vector": [1.0, 2.0, 3.0]})
 
     httpserver.expect_request(

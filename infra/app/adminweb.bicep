@@ -14,6 +14,7 @@ param keyVaultName string = ''
 param azureOpenAIName string = ''
 param azureAISearchName string = ''
 param speechServiceName string = ''
+param computerVisionName string = ''
 @secure()
 param appSettings object = {}
 param useKeyVault bool
@@ -21,6 +22,7 @@ param openAIKeyName string = ''
 param storageAccountKeyName string = ''
 param formRecognizerKeyName string = ''
 param searchKeyName string = ''
+param computerVisionKeyName string = ''
 param contentSafetyKeyName string = ''
 param speechKeyName string = ''
 param authType string
@@ -108,6 +110,17 @@ module adminweb '../core/host/appservice.bicep' = {
               resourceGroup().name,
               'Microsoft.CognitiveServices/accounts',
               speechServiceName
+            ),
+            '2023-05-01'
+          ).key1
+      AZURE_COMPUTER_VISION_KEY: (useKeyVault || computerVisionName == '')
+        ? computerVisionKeyName
+        : listKeys(
+            resourceId(
+              subscription().subscriptionId,
+              resourceGroup().name,
+              'Microsoft.CognitiveServices/accounts',
+              computerVisionName
             ),
             '2023-05-01'
           ).key1

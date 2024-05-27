@@ -24,6 +24,8 @@ from azure.search.documents.indexes.models import (
     VectorSearchAlgorithmMetric,
     VectorSearchProfile,
 )
+
+from ..helpers.azure_computer_vision_client import AzureComputerVisionClient
 from .llm_helper import LLMHelper
 from .env_helper import EnvHelper
 
@@ -32,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 class AzureSearchHelper:
     _search_dimension: int | None = None
+    _image_search_dimension: int | None = None
 
     def __init__(self):
         self.llm_helper = LLMHelper()
@@ -40,6 +43,7 @@ class AzureSearchHelper:
         search_credential = self._search_credential()
         self.search_client = self._create_search_client(search_credential)
         self.search_index_client = self._create_search_index_client(search_credential)
+        self.azure_computer_vision_client = AzureComputerVisionClient(self.env_helper)
 
     def _search_credential(self):
         if self.env_helper.is_auth_type_keys():
@@ -74,6 +78,14 @@ class AzureSearchHelper:
                 self.llm_helper.get_embedding_model().embed_query("Text")
             )
         return AzureSearchHelper._search_dimension
+
+    @property
+    def image_search_dimensions(self) -> int:
+        if AzureSearchHelper._image_search_dimension is None:
+            AzureSearchHelper._image_search_dimension = len(
+                self.azure_computer_vision_client.vectorize_text("Text")
+            )
+        return AzureSearchHelper._image_search_dimension
 
     def create_index(self):
         fields = [
@@ -128,7 +140,7 @@ class AzureSearchHelper:
                     name="image_vector",
                     type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
                     searchable=True,
-                    vector_search_dimensions=1024,
+                    vector_search_dimensions=self.image_search_dimensions,
                     vector_search_profile_name="myHnswProfile",
                 ),
             )

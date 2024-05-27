@@ -55,7 +55,7 @@ param applicationInsightsName string = 'appinsights-${resourceToken}'
 param workbookDisplayName string = 'workbook-${resourceToken}'
 
 @description('Use semantic search')
-param azureSearchUseSemanticSearch string = 'false'
+param azureSearchUseSemanticSearch bool = false
 
 @description('Semantic search config')
 param azureSearchSemanticSearchConfig string = 'default'
@@ -71,6 +71,9 @@ param azureSearchEnableInDomain string = 'false'
 
 @description('Content columns')
 param azureSearchContentColumns string = 'content'
+
+@description('Vector columns')
+param azureSearchVectorColumns string = 'content_vector'
 
 @description('Filename column')
 param azureSearchFilenameColumn string = 'filename'
@@ -126,6 +129,13 @@ param azureOpenAIVisionModelCapacity int = 10
   'langchain'
 ])
 param orchestrationStrategy string = 'openai_function'
+
+@description('Chat conversation type: custom or byod.')
+@allowed([
+  'custom'
+  'byod'
+])
+param conversationFlow string = 'custom'
 
 @description('Azure OpenAI Temperature')
 param azureOpenAITemperature string = '0'
@@ -458,6 +468,7 @@ module search './core/search/search-services.bicep' = {
         aadAuthFailureMode: 'http403'
       }
     }
+    semanticSearch: azureSearchUseSemanticSearch ? 'free' : null
   }
 }
 
@@ -494,18 +505,23 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
     speechServiceName: speechService.outputs.name
+    computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
     storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
     formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
+    computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
@@ -528,6 +544,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_TOP_K: azureSearchTopK
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
@@ -536,7 +553,9 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
       AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
+      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      CONVERSATION_FLOW: conversationFlow
       LOGLEVEL: logLevel
     }
   }
@@ -559,10 +578,12 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
     speechServiceName: speechService.outputs.name
+    computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
     storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
     formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     useKeyVault: useKeyVault
@@ -571,6 +592,9 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
@@ -593,6 +617,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SEARCH_TOP_K: azureSearchTopK
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
@@ -601,7 +626,9 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SPEECH_SERVICE_NAME: speechServiceName
       AZURE_SPEECH_SERVICE_REGION: location
       AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
+      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
       ORCHESTRATION_STRATEGY: orchestrationStrategy
+      CONVERSATION_FLOW: conversationFlow
       LOGLEVEL: logLevel
     }
   }
@@ -624,10 +651,12 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
     speechServiceName: speechService.outputs.name
+    computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
     storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
     formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     useKeyVault: useKeyVault
@@ -636,6 +665,9 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
@@ -657,6 +689,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_TOP_K: azureSearchTopK
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
@@ -690,18 +723,23 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
     speechServiceName: speechService.outputs.name
+    computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
     storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
     formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
+    computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
@@ -723,6 +761,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       AZURE_SEARCH_TOP_K: azureSearchTopK
       AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
       AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumns
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumns
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
@@ -806,6 +845,7 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
@@ -820,7 +860,6 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
       USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
@@ -859,6 +898,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     appSettings: {
       AZURE_BLOB_ACCOUNT_NAME: storageAccountName
       AZURE_BLOB_CONTAINER_NAME: blobContainerName
+      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
@@ -873,7 +913,6 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
       AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
       USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
@@ -1027,12 +1066,13 @@ output AZURE_OPENAI_API_KEY string = useKeyVault ? storekeys.outputs.OPENAI_KEY_
 output AZURE_RESOURCE_GROUP string = rgName
 output AZURE_SEARCH_KEY string = useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
 output AZURE_SEARCH_SERVICE string = search.outputs.endpoint
-output AZURE_SEARCH_USE_SEMANTIC_SEARCH string = azureSearchUseSemanticSearch
+output AZURE_SEARCH_USE_SEMANTIC_SEARCH bool = azureSearchUseSemanticSearch
 output AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG string = azureSearchSemanticSearchConfig
 output AZURE_SEARCH_INDEX_IS_PRECHUNKED string = azureSearchIndexIsPrechunked
 output AZURE_SEARCH_TOP_K string = azureSearchTopK
 output AZURE_SEARCH_ENABLE_IN_DOMAIN string = azureSearchEnableInDomain
 output AZURE_SEARCH_CONTENT_COLUMNS string = azureSearchContentColumns
+output AZURE_SEARCH_CONTENT_VECTOR_COLUMNS string = azureSearchVectorColumns
 output AZURE_SEARCH_FILENAME_COLUMN string = azureSearchFilenameColumn
 output AZURE_SEARCH_FILTER string = azureSearchFilter
 output AZURE_SEARCH_TITLE_COLUMN string = azureSearchTitleColumn
@@ -1056,3 +1096,4 @@ output ADMIN_WEBSITE_NAME string = hostingModel == 'code'
   ? adminweb.outputs.WEBSITE_ADMIN_URI
   : adminweb_docker.outputs.WEBSITE_ADMIN_URI
 output LOGLEVEL string = logLevel
+output CONVERSATION_FLOW string = conversationFlow
