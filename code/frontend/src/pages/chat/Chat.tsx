@@ -130,25 +130,48 @@ const Chat = () => {
 
     return abortController.abort();
   };
-
+  let recognizedTextBuffer = '';
   const startSpeechRecognition = async () => {
     if (!isRecognizing) {
       setIsRecognizing(true);
 
       recognizerRef.current = await multiLingualSpeechRecognizer(); // Store the recognizer in the ref
-      
       recognizerRef.current.recognized = (s, e) => {
         if (e.result.reason === ResultReason.RecognizedSpeech) {
           const recognized = e.result.text;
-          setUserMessage(recognized);
-          setRecognizedText(recognized);
+          recognizedTextBuffer += recognized;
+          // document.getElementById('outputElement').value =  recognizedTextBuffer.trim();
+          // document.getElementById("outputElement").setText( recognizedTextBuffer.trim());
+          setUserMessage(recognizedTextBuffer.trim());
+          setRecognizedText(recognizedTextBuffer.trim());
         }
+        // if (e.result.reason === ResultReason.RecognizedSpeech) {
+        //     console.log(`Recognized: ${e.result.text}`);
+        //     const recognized = e.result.text;
+        //     setUserMessage(recognized);
+        //       setRecognizedText(recognized);
+        // } else if (e.result.reason === ResultReason.NoMatch) {
+        //     console.error("No speech could be recognized.");
+        // } else if (e.result.reason === ResultReason.Canceled) {
+        //     console.error(`Recognition was canceled. Error details: ${e.result.errorDetails}`);
+        // }
       };
 
-      recognizerRef.current.startContinuousRecognitionAsync(() => {
-        setIsRecognizing(true);
-        setIsListening(true);
-      });
+      recognizerRef.current.startContinuousRecognitionAsync(
+        () => {
+            console.log("Recognition started");
+            setIsRecognizing(true);
+            setIsListening(true);
+        },
+        error => {
+            console.error(`Error starting recognition: ${error}`);
+        }
+    );
+
+    recognizerRef.current.recognizing = (s, e) => {
+      console.log(`Recognizing: ${e.result.text}`);
+    };
+
     }
   };
 
