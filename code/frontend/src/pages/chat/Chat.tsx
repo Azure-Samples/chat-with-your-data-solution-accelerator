@@ -137,25 +137,20 @@ const Chat = () => {
   const startSpeechRecognition = async () => {
     if (!isRecognizing) {
       setIsRecognizing(true);
-
       recognizerRef.current = await multiLingualSpeechRecognizer(); // Store the recognizer in the ref
       recognizerRef.current.recognized = (s, e) => {
         if (e.result.reason === ResultReason.RecognizedSpeech) {
           let recognizedText = e.result.text.trim();
-
           // Append current sentence to buffer if it's not empty
           if (currentSentence) {
               recognizedTextBuffer += ` ${currentSentence.trim()}`;
               currentSentence = "";
           }
-
           // Start new sentence
           currentSentence += ` ${recognizedText}`;
-
           //set text in textarea
            setUserMessage((recognizedTextBuffer + currentSentence).trim());
            setRecognizedText((recognizedTextBuffer + currentSentence).trim());
-
         }
       };
 
@@ -168,11 +163,6 @@ const Chat = () => {
             console.error(`Error starting recognition: ${error}`);
         }
     );
-
-    recognizerRef.current.recognizing = (s, e) => {
-      console.log(`Recognizing: ${e.result.text}`);
-    };
-
     }
   };
 
