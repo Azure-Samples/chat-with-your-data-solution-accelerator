@@ -64,6 +64,36 @@ def setup_blob_metadata_mocking(httpserver: HTTPServer, app_config: AppConfig):
     ).respond_with_data()
 
 
+@pytest.fixture(autouse=True)
+def setup_caption_response(httpserver: HTTPServer, app_config: AppConfig):
+    httpserver.expect_oneshot_request(
+        f"/openai/deployments/{app_config.get('AZURE_OPENAI_VISION_MODEL')}/chat/completions",
+        method="POST",
+    ).respond_with_json(
+        {
+            "id": "chatcmpl-6v7mkQj980V1yBec6ETrKPRqFjNw9",
+            "object": "chat.completion",
+            "created": 1679072642,
+            "model": app_config.get("AZURE_OPENAI_VISION_MODEL"),
+            "usage": {
+                "prompt_tokens": 58,
+                "completion_tokens": 68,
+                "total_tokens": 126,
+            },
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": "This is a caption for the image",
+                    },
+                    "finish_reason": "stop",
+                    "index": 0,
+                }
+            ],
+        }
+    )
+
+
 def test_config_file_is_retrieved_from_storage(
     message: QueueMessage, httpserver: HTTPServer, app_config: AppConfig
 ):
