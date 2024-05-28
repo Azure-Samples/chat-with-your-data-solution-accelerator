@@ -1,6 +1,6 @@
 from typing import List
-from langchain.docstore.document import Document
 
+from ..common.source_document import SourceDocument
 from ..document_chunking.chunking_strategy import ChunkingSettings, ChunkingStrategy
 from ..document_chunking.strategies import get_document_chunker
 
@@ -12,8 +12,8 @@ class DocumentChunking:
         pass
 
     def chunk(
-        self, documents: List[Document], chunking: ChunkingSettings
-    ) -> List[Document]:
+        self, documents: List[SourceDocument], chunking: ChunkingSettings
+    ) -> List[SourceDocument]:
         chunker = get_document_chunker(chunking.chunking_strategy.value)
         if chunker is None:
             raise Exception(

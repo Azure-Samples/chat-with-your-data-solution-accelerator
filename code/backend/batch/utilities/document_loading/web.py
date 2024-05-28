@@ -1,6 +1,5 @@
 from typing import List
 import re
-from langchain.docstore.document import Document
 from langchain_community.document_loaders import WebBaseLoader
 from .document_loading_base import DocumentLoadingBase
 from ..common.source_document import SourceDocument
@@ -11,7 +10,7 @@ class WebDocumentLoading(DocumentLoadingBase):
         super().__init__()
 
     def load(self, document_url: str) -> List[SourceDocument]:
-        documents: List[Document] = WebBaseLoader(document_url).load()
+        documents = WebBaseLoader(document_url).load()
         for document in documents:
             document.page_content = re.sub("\n{3,}", "\n\n", document.page_content)
             # Remove half non-ascii character from start/end of doc content
