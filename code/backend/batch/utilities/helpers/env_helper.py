@@ -48,7 +48,7 @@ class EnvHelper:
             "AZURE_SEARCH_INDEX_IS_PRECHUNKED", ""
         )
         self.AZURE_SEARCH_FILTER = os.getenv("AZURE_SEARCH_FILTER", "")
-        self.AZURE_SEARCH_TOP_K = int(os.getenv("AZURE_SEARCH_TOP_K", "5"))
+        self.AZURE_SEARCH_TOP_K = self.get_env_var_int("AZURE_SEARCH_TOP_K", 5)
         self.AZURE_SEARCH_ENABLE_IN_DOMAIN = (
             os.getenv("AZURE_SEARCH_ENABLE_IN_DOMAIN", "true").lower() == "true"
         )
@@ -114,8 +114,8 @@ class EnvHelper:
         self.USE_ADVANCED_IMAGE_PROCESSING = self.get_env_var_bool(
             "USE_ADVANCED_IMAGE_PROCESSING", "False"
         )
-        self.ADVANCED_IMAGE_PROCESSING_MAX_IMAGES = int(
-            os.getenv("ADVANCED_IMAGE_PROCESSING_MAX_IMAGES", "1")
+        self.ADVANCED_IMAGE_PROCESSING_MAX_IMAGES = self.get_env_var_int(
+            "ADVANCED_IMAGE_PROCESSING_MAX_IMAGES", 1
         )
         self.AZURE_COMPUTER_VISION_ENDPOINT = os.getenv(
             "AZURE_COMPUTER_VISION_ENDPOINT"
@@ -247,7 +247,10 @@ class EnvHelper:
     def get_env_var_array(self, var_name: str, default: str = ""):
         return os.getenv(var_name, default).split(",")
 
-    def get_env_var_float(self, var_name: str, default: int):
+    def get_env_var_int(self, var_name: str, default: int):
+        return int(os.getenv(var_name, default))
+
+    def get_env_var_float(self, var_name: str, default: float):
         return float(os.getenv(var_name, default))
 
     def is_auth_type_keys(self):
