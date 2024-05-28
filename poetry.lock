@@ -5203,27 +5203,27 @@ test = ["array-api-strict", "asv", "gmpy2", "hypothesis (>=6.30)", "mpmath", "po
 
 [[package]]
 name = "semantic-kernel"
-version = "1.0.0rc1"
+version = "1.0.2"
 description = "Semantic Kernel Python SDK"
 optional = false
 python-versions = "<3.13,>=3.10"
 files = [
-    {file = "semantic_kernel-1.0.0rc1-py3-none-any.whl", hash = "sha256:5ab611447aae300081907d9e14077cb734c4504d8f4a5bd048290a92ce4558de"},
-    {file = "semantic_kernel-1.0.0rc1.tar.gz", hash = "sha256:86e8f4cbb72a1ba23b5f729603d62b3af9ca944bbf5c14a1d86631ec80d4544c"},
+    {file = "semantic_kernel-1.0.2-py3-none-any.whl", hash = "sha256:bcbb5b31cc9bbeb5b27c7544c0994ea7a214da2e50461f0ee000b5649e7defde"},
+    {file = "semantic_kernel-1.0.2.tar.gz", hash = "sha256:08772007d03c385961bede61ea9d7108bf173f674e1aba887bc7586229dbd11d"},
 ]
 
 [package.dependencies]
 aiohttp = ">=3.8,<4.0"
 defusedxml = ">=0.7.1,<0.8.0"
 grpcio = [
-    {version = ">=1.50.0", markers = "python_version >= \"3.9\" and python_version < \"3.12\""},
+    {version = ">=1.50.0", markers = "python_version < \"3.12\""},
     {version = ">=1.60.0", markers = "python_version >= \"3.12\""},
 ]
 jinja2 = ">=3.1.3,<4.0.0"
 motor = ">=3.3.2,<4.0.0"
 nest-asyncio = ">=1.6.0,<2.0.0"
 numpy = [
-    {version = ">=1.25", markers = "python_version >= \"3.9\" and python_version < \"3.12\""},
+    {version = ">=1.25", markers = "python_version < \"3.12\""},
     {version = ">=1.26", markers = "python_version >= \"3.12\""},
 ]
 openai = ">=1.0"
@@ -5239,16 +5239,16 @@ scipy = [
 ]
 
 [package.extras]
-all = ["azure-core (>=1.28.0,<2.0.0)", "azure-identity (>=1.13.0,<2.0.0)", "azure-search-documents (==11.6.0b1)", "chromadb (>=0.4.13,<0.5.0)", "google-generativeai (>=0.1)", "grpcio-status (>=1.53.0,<2.0.0)", "ipykernel (>=6.21.1,<7.0.0)", "milvus (>=2.2,<2.3)", "milvus (>=2.3,<2.3.8)", "pinecone-client (>=3.0.0)", "psycopg[binary,pool] (>=3.1.9,<4.0.0)", "pyarrow (>=12.0.1,<16.0.0)", "pymilvus (>=2.2,<2.3)", "pymilvus (>=2.3,<2.3.8)", "qdrant-client (>=1.6,<2.0)", "qdrant-client (>=1.7)", "redis (>=4.6.0,<5.0.0)", "sentence-transformers (>=2.2.2,<3.0.0)", "torch (>=2.2.0,<3.0.0)", "transformers (>=4.28.1,<5.0.0)", "usearch (>=2.9,<3.0)", "weaviate-client (>=3.18,<5.0)"]
-azure = ["azure-core (>=1.28.0,<2.0.0)", "azure-identity (>=1.13.0,<2.0.0)", "azure-search-documents (==11.6.0b1)"]
+all = ["azure-core (>=1.28.0,<2.0.0)", "azure-cosmos (>=4.7.0,<5.0.0)", "azure-identity (>=1.13.0,<2.0.0)", "azure-search-documents (==11.6.0b4)", "chromadb (>=0.4.13,<0.5.0)", "google-generativeai (>=0.1)", "grpcio-status (>=1.53.0,<2.0.0)", "ipykernel (>=6.21.1,<7.0.0)", "milvus (>=2.3,<2.3.8)", "pinecone-client (>=3.0.0)", "psycopg[binary,pool] (>=3.1.9,<4.0.0)", "pyarrow (>=12.0.1,<16.0.0)", "pymilvus (>=2.3,<2.3.8)", "qdrant-client (>=1.9,<2.0)", "redis (>=4.6.0,<5.0.0)", "sentence-transformers (>=2.2.2,<3.0.0)", "torch (>=2.2.0,<3.0.0)", "transformers (>=4.28.1,<5.0.0)", "usearch (>=2.9,<3.0)", "weaviate-client (>=3.18,<5.0)"]
+azure = ["azure-core (>=1.28.0,<2.0.0)", "azure-cosmos (>=4.7.0,<5.0.0)", "azure-identity (>=1.13.0,<2.0.0)", "azure-search-documents (==11.6.0b4)"]
 chromadb = ["chromadb (>=0.4.13,<0.5.0)"]
 google = ["google-generativeai (>=0.1)", "grpcio-status (>=1.53.0,<2.0.0)"]
 hugging-face = ["sentence-transformers (>=2.2.2,<3.0.0)", "torch (>=2.2.0,<3.0.0)", "transformers (>=4.28.1,<5.0.0)"]
-milvus = ["milvus (>=2.2,<2.3)", "milvus (>=2.3,<2.3.8)", "pymilvus (>=2.2,<2.3)", "pymilvus (>=2.3,<2.3.8)"]
+milvus = ["milvus (>=2.3,<2.3.8)", "pymilvus (>=2.3,<2.3.8)"]
 notebooks = ["ipykernel (>=6.21.1,<7.0.0)"]
 pinecone = ["pinecone-client (>=3.0.0)"]
 postgres = ["psycopg[binary,pool] (>=3.1.9,<4.0.0)"]
-qdrant = ["qdrant-client (>=1.6,<2.0)", "qdrant-client (>=1.7)"]
+qdrant = ["qdrant-client (>=1.9,<2.0)"]
 redis = ["redis (>=4.6.0,<5.0.0)"]
 usearch = ["pyarrow (>=12.0.1,<16.0.0)", "usearch (>=2.9,<3.0)"]
 weaviate = ["weaviate-client (>=3.18,<5.0)"]
@@ -6099,4 +6099,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "bb6cda0295e42f4e467fcf729c76638e4c0ae3bd39d8cd8af744cb5f13d7147b"
+content-hash = "0eb57d399941c77ac918387704eb13d21680b410d1cd488f50474e52a29ee383"
