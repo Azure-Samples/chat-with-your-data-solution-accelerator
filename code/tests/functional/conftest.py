@@ -1,3 +1,4 @@
+import re
 import pytest
 from pytest_httpserver import HTTPServer
 from tests.functional.app_config import AppConfig
@@ -56,7 +57,9 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     )
 
     httpserver.expect_request(
-        f"/openai/deployments/{app_config.get('AZURE_OPENAI_MODEL')}/chat/completions",
+        re.compile(
+            f"/openai/deployments/({app_config.get('AZURE_OPENAI_MODEL')}|{app_config.get('AZURE_OPENAI_VISION_MODEL')})/chat/completions"
+        ),
         method="POST",
     ).respond_with_json(
         {
@@ -74,33 +77,6 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
                     "message": {
                         "role": "assistant",
                         "content": "42 is the meaning of life",
-                    },
-                    "finish_reason": "stop",
-                    "index": 0,
-                }
-            ],
-        }
-    )
-
-    httpserver.expect_request(
-        f"/openai/deployments/{app_config.get('AZURE_OPENAI_VISION_MODEL')}/chat/completions",
-        method="POST",
-    ).respond_with_json(
-        {
-            "id": "chatcmpl-6v7mkQj980V1yBec6ETrKPRqFjNw9",
-            "object": "chat.completion",
-            "created": 1679072642,
-            "model": app_config.get("AZURE_OPENAI_VISION_MODEL"),
-            "usage": {
-                "prompt_tokens": 58,
-                "completion_tokens": 68,
-                "total_tokens": 126,
-            },
-            "choices": [
-                {
-                    "message": {
-                        "role": "assistant",
-                        "content": "This is a caption for the image",
                     },
                     "finish_reason": "stop",
                     "index": 0,
