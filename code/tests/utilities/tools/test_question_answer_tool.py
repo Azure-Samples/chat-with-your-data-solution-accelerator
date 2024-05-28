@@ -42,6 +42,7 @@ def env_helper_mock():
         env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = False
         env_helper.USE_ADVANCED_IMAGE_PROCESSING = False
         env_helper.AZURE_OPENAI_VISION_MODEL = "mock vision model"
+        env_helper.ADVANCED_IMAGE_PROCESSING_MAX_IMAGES = 1
 
         yield env_helper
 
@@ -83,7 +84,7 @@ def search_handler_mock():
 
 
 @pytest.fixture(autouse=True)
-def source_documents_mock():
+def get_source_documents_mock():
     with patch(
         "backend.batch.utilities.tools.question_answer_tool.Search.get_source_documents"
     ) as mock:
@@ -106,11 +107,11 @@ def source_documents_mock():
             ),
         ]
         mock.return_value = documents
-        yield documents
+        yield mock
 
 
 def test_answer_question_returns_source_documents(
-    source_documents_mock: list[SourceDocument],
+    get_source_documents_mock: MagicMock,
 ):
     # given
     tool = QuestionAnswerTool()
@@ -121,7 +122,7 @@ def test_answer_question_returns_source_documents(
     # then
     assert len(answer.source_documents) == 2
     assert isinstance(answer.source_documents[0], SourceDocument)
-    assert answer.source_documents == source_documents_mock
+    assert answer.source_documents == get_source_documents_mock.return_value
 
 
 def test_answer_question_returns_answer():
@@ -350,3 +351,71 @@ def test_use_advanced_vision_processing(env_helper_mock, llm_helper_mock):
     assert isinstance(answer, Answer)
     assert answer.question == "mock question"
     assert answer.answer == "mock content"
+
+
+def test_limit_number_of_images_passed_to_llm(
+    get_source_documents_mock: MagicMock,
+    env_helper_mock: MagicMock,
+    llm_helper_mock: MagicMock,
+):
+    # given
+    get_source_documents_mock.return_value = [
+        SourceDocument(
+            id="mock id",
+            content="mock content",
+            title="mock title",
+            source="mock source",
+            chunk=123,
+            offset=123,
+            page_number=123,
+        ),
+        SourceDocument(
+            id="mock id 2",
+            content="mock content 2",
+            title="mock title 2.jpg",
+            source="mock source 2_SAS_TOKEN_PLACEHOLDER_",
+            chunk_id="mock chunk id 2",
+        ),
+        SourceDocument(
+            id="mock id 3",
+            content="mock content 3",
+            title="mock title 3.jpg",
+            source="mock source 3_SAS_TOKEN_PLACEHOLDER_",
+            chunk_id="mock chunk id 3",
+        ),
+    ]
+    env_helper_mock.USE_ADVANCED_IMAGE_PROCESSING = True
+    tool = QuestionAnswerTool()
+
+    # when
+    tool.answer_question("mock question", [])
+
+    # then
+    llm_helper_mock.get_chat_completion.assert_called_once_with(
+        [
+            {"content": "mock answering system prompt", "role": "system"},
+            {
+                "content": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock example content"}}]}, Question: mock example user question',
+                "name": "example_user",
+                "role": "system",
+            },
+            {
+                "content": "mock example answer",
+                "name": "example_assistant",
+                "role": "system",
+            },
+            {"content": "mock azure openai system message", "role": "system"},
+            {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock content"}},{"[doc2]":{"content":"mock content 2"}},{"[doc3]":{"content":"mock content 3"}}]}, Question: mock question',
+                    },
+                    {"type": "image_url", "image_url": "mock source 2mock sas"},
+                ],
+                "role": "user",
+            },
+        ],
+        model="mock vision model",
+        temperature=0,
+    )

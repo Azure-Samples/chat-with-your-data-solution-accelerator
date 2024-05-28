@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.27.1.19265",
-      "templateHash": "6027201902589320671"
+      "templateHash": "10484197901623589764"
     }
   },
   "parameters": {
@@ -227,6 +227,13 @@
       "defaultValue": false,
       "metadata": {
         "description": "Enables the use of a vision LLM and Computer Vision for embedding images"
+      }
+    },
+    "advancedImageProcessingMaxImages": {
+      "type": "int",
+      "defaultValue": 1,
+      "metadata": {
+        "description": "The maximum number of images to pass to the vision model in a single request"
       }
     },
     "azureOpenAIVisionModel": {
@@ -2031,6 +2038,7 @@
               "AZURE_SPEECH_SERVICE_REGION": "[parameters('location')]",
               "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "[parameters('recognizedLanguages')]",
               "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
+              "ADVANCED_IMAGE_PROCESSING_MAX_IMAGES": "[parameters('advancedImageProcessingMaxImages')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
               "CONVERSATION_FLOW": "[parameters('conversationFlow')]",
               "LOGLEVEL": "[parameters('logLevel')]"
@@ -2984,6 +2992,7 @@
               "AZURE_SPEECH_SERVICE_REGION": "[parameters('location')]",
               "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "[parameters('recognizedLanguages')]",
               "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
+              "ADVANCED_IMAGE_PROCESSING_MAX_IMAGES": "[parameters('advancedImageProcessingMaxImages')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
               "CONVERSATION_FLOW": "[parameters('conversationFlow')]",
               "LOGLEVEL": "[parameters('logLevel')]"
@@ -11102,6 +11111,14 @@
     "CONVERSATION_FLOW": {
       "type": "string",
       "value": "[parameters('conversationFlow')]"
+    },
+    "USE_ADVANCED_IMAGE_PROCESSING": {
+      "type": "bool",
+      "value": "[parameters('useAdvancedImageProcessing')]"
+    },
+    "ADVANCED_IMAGE_PROCESSING_MAX_IMAGES": {
+      "type": "int",
+      "value": "[parameters('advancedImageProcessingMaxImages')]"
     }
   }
 }
