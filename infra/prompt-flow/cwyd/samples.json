@@ -1,0 +1,15 @@
+[
+  {
+    "chat_input": "What benefits are included in the Northwind Standard plan?",
+    "chat_history": [
+      {
+        "inputs": {
+          "chat_input": "Hi"
+        },
+        "outputs": {
+          "chat_output": "Hello! How can I assist you today?"
+        }
+      }
+    ]
+  }
+]
