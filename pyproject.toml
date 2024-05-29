@@ -37,7 +37,7 @@ opentelemetry-instrumentation-httpx = "^0.45b0"
 pillow = "10.3.0"
 azure-mgmt-cognitiveservices = "^13.5.0"
 jsonschema = "^4.22.0"
-semantic-kernel = {version = "^1.0.0rc1", python = "<3.13"}
+semantic-kernel = {version = "^1.0.2", python = "<3.13"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.1"
