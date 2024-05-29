@@ -54,6 +54,7 @@ pytest-asyncio = "^0.23.7"
 omit = [
     "**/tests/*",
     "**/dist/*",
+    "**/infra/*",
 ]
 
 [tool.coverage.report]
