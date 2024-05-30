@@ -976,7 +976,7 @@ module storage 'core/storage/storage-account.bicep' = {
      ? {
       enabled: true
       days: 7
-    } 
+    }
      : {}
     containers: [
       {
