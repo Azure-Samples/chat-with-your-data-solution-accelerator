@@ -3,8 +3,6 @@ import json
 import logging
 from typing import List
 from urllib.parse import urlparse
-import requests
-import base64
 
 from ...helpers.llm_helper import LLMHelper
 from ...helpers.env_helper import EnvHelper
@@ -96,10 +94,6 @@ Do not abbreviate anything and do not shorten sentances. Explain the image compl
 If you are provided with an image of a flow chart, describe the flow chart in detail.
 If the image is mostly text, use OCR to extract the text as it is displayed in the image."""
 
-        response = requests.get(source_url)
-        image_data = response.content
-        base64_encoded_data = base64.b64encode(image_data).decode('utf-8')
-        data_url = f"data:image/jpeg;base64,{base64_encoded_data}"
         messages = [
             {"role": "system", "content": caption_system_message},
             {
@@ -109,7 +103,7 @@ If the image is mostly text, use OCR to extract the text as it is displayed in t
                         "text": "Describe this image in detail. Limit the response to 500 words.",
                         "type": "text",
                     },
-                    {"image_url": source_url, "type": "image_url"},
+                    {"image_url": {"url": source_url}, "type": "image_url"},
                 ],
             },
         ]
