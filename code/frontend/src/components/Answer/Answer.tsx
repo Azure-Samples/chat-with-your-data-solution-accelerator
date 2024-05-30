@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useBoolean } from "@fluentui/react-hooks"
 import { FontIcon, Stack, Text } from "@fluentui/react";
 
@@ -29,7 +29,7 @@ export const Answer = ({
 
     const parsedAnswer = useMemo(() => parseAnswer(answer), [answer]);
     const [chevronIsExpanded, setChevronIsExpanded] = useState(isRefAccordionOpen);
-
+    const refContainer = useRef<HTMLDivElement>(null);
     const handleChevronClick = () => {
         setChevronIsExpanded(!chevronIsExpanded);
         toggleIsRefAccordionOpen();
@@ -37,6 +37,9 @@ export const Answer = ({
 
     useEffect(() => {
         setChevronIsExpanded(isRefAccordionOpen);
+        if(chevronIsExpanded && refContainer.current){
+            refContainer.current.scrollIntoView({ behavior:'smooth'});
+        }
     }, [isRefAccordionOpen]);
 
     const createCitationFilepath = (citation: Citation, index: number, truncate: boolean = false) => {
@@ -104,11 +107,11 @@ export const Answer = ({
 
                 </Stack>
                 {chevronIsExpanded &&
-                    <div style={{ marginTop: 8, display: "flex", flexDirection: "column", height: "100%", gap: "4px", maxWidth: "100%" }}>
+                    <div ref={refContainer} style={{ marginTop: 8, display: "flex", flexDirection: "column", height: "100%", gap: "4px", maxWidth: "100%" }}>
                         {parsedAnswer.citations.map((citation, idx) => {
                             return (
                                 <span title={createCitationFilepath(citation, ++idx)} key={idx} onClick={() => onCitationClicked(citation)} className={styles.citationContainer}>
-                                    <div className={styles.citation}>{idx}</div>
+                                    <div className={styles.citation} key={idx}>{idx}</div>
                                     {createCitationFilepath(citation, idx, true)}
                                 </span>);
                         })}
