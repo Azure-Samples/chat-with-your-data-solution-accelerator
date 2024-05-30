@@ -110,6 +110,9 @@ param azureOpenAIModelCapacity int = 30
 @description('Enables the use of a vision LLM and Computer Vision for embedding images')
 param useAdvancedImageProcessing bool = false
 
+@description('The maximum number of images to pass to the vision model in a single request')
+param advancedImageProcessingMaxImages int = 1
+
 @description('Azure OpenAI Vision Model Deployment Name')
 param azureOpenAIVisionModel string = 'gpt-4'
 
@@ -554,6 +557,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SPEECH_SERVICE_REGION: location
       AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+      ADVANCED_IMAGE_PROCESSING_MAX_IMAGES: advancedImageProcessingMaxImages
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       CONVERSATION_FLOW: conversationFlow
       LOGLEVEL: logLevel
@@ -627,6 +631,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SPEECH_SERVICE_REGION: location
       AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+      ADVANCED_IMAGE_PROCESSING_MAX_IMAGES: advancedImageProcessingMaxImages
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       CONVERSATION_FLOW: conversationFlow
       LOGLEVEL: logLevel
@@ -1097,3 +1102,5 @@ output ADMIN_WEBSITE_NAME string = hostingModel == 'code'
   : adminweb_docker.outputs.WEBSITE_ADMIN_URI
 output LOGLEVEL string = logLevel
 output CONVERSATION_FLOW string = conversationFlow
+output USE_ADVANCED_IMAGE_PROCESSING bool = useAdvancedImageProcessing
+output ADVANCED_IMAGE_PROCESSING_MAX_IMAGES int = advancedImageProcessingMaxImages

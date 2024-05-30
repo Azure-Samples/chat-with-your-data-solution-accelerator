@@ -16,6 +16,10 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "build"
+    groups:
+      langchain:
+        patterns:
+          - "langchain*"
     open-pull-requests-limit: 50
   - package-ecosystem: "npm"
     directory: "/code/frontend"

@@ -74,6 +74,7 @@ class AppConfig:
         "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "en-US,es-ES",
         "TIKTOKEN_CACHE_DIR": f"{os.path.dirname(os.path.realpath(__file__))}/resources",
         "USE_ADVANCED_IMAGE_PROCESSING": "False",
+        "ADVANCED_IMAGE_PROCESSING_MAX_IMAGES": "1",
         "USE_KEY_VAULT": "False",
         # These values are set directly within EnvHelper, adding them here ensures
         # that they are removed from the environment when remove_from_environment() runs

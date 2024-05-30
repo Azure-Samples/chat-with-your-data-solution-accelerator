@@ -12,7 +12,7 @@
 		"ghcr.io/rchaganti/vsc-devcontainer-features/azurebicep:1.0.5": {}
 	},
 
-	"postCreateCommand": "./.devcontainer/postCreate.sh",
+	"postCreateCommand": "./.devcontainer/setupEnv.sh",
 
 	"customizations": {
 		"vscode": {
