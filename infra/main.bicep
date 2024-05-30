@@ -1114,11 +1114,11 @@ output AZURE_TENANT_ID string = tenant().tenantId
 output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
 output USE_KEY_VAULT bool = useKeyVault
-output FRONTEND_WEBSITE_NAME string = hostingModel == 'code' 
- ? web.outputs.FRONTEND_API_URI 
+output FRONTEND_WEBSITE_NAME string = hostingModel == 'code'
+ ? web.outputs.FRONTEND_API_URI
  : web_docker.outputs.FRONTEND_API_URI
-output ADMIN_WEBSITE_NAME string = hostingModel == 'code' 
- ? adminweb.outputs.WEBSITE_ADMIN_URI 
+output ADMIN_WEBSITE_NAME string = hostingModel == 'code'
+ ? adminweb.outputs.WEBSITE_ADMIN_URI
  : adminweb_docker.outputs.WEBSITE_ADMIN_URI
 output LOGLEVEL string = logLevel
 output CONVERSATION_FLOW string = conversationFlow
