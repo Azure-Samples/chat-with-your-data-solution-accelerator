@@ -174,7 +174,7 @@ If the image is mostly text, use OCR to extract the text as it is displayed in t
                                 "text": "Describe this image in detail. Limit the response to 500 words.",
                                 "type": "text",
                             },
-                            {"image_url": ANY, "type": "image_url"},
+                            {"image_url": {"url": ANY}, "type": "image_url"},
                         ],
                     },
                 ],
