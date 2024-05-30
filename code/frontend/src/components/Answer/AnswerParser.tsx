@@ -31,7 +31,7 @@ export function parseAnswer(answer: AskResponse): ParsedAnswer {
           citation.id = citationIndex; // original doc index to de-dupe
           citation.reindex_id = citationReindex.toString(); // reindex from 1 for display
           filteredCitations.push(citation);
-        }else if (!isDuplicate(citation) && !filteredCitations.find((c) => c.id === citationIndex)){
+        }else if (isDuplicate(citation) && !filteredCitations.find((c) => c.id === citationIndex)){
             answerText= answerText.replaceAll(link, '')
         }
     })
