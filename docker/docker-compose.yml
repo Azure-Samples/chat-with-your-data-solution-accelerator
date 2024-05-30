@@ -28,7 +28,7 @@ services:
     environment:
       - AzureWebJobsSecretStorageType=files
     env_file:
-      - path: .env
+      - path: ../.env
         required: false
       - path: $AZD_ENV_FILE
         required: false

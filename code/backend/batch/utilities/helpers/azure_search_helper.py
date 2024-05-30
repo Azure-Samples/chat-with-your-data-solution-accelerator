@@ -1,6 +1,6 @@
 import logging
 from typing import Union
-from langchain.vectorstores.azuresearch import AzureSearch
+from langchain_community.vectorstores import AzureSearch
 from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential
 from azure.search.documents import SearchClient
