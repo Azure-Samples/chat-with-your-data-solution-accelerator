@@ -1,4 +1,6 @@
-#!/bin/bash -e
+#!/bin/bash
+
+set -e
 
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
@@ -61,10 +63,23 @@ sed -i "s@<aisearch_connection_id>@${connection_id_prefix}/aisearch_connection@g
 sed -i "s@<aisearch_endpoint>@${search_service}@g" "$flow_dag_file"
 sed -i "s@<aisearch_index>@${search_index}@g" "$flow_dag_file"
 
+set +e
+tries=1
 pfazure flow create --subscription "$subscription_id" --resource-group "$resource_group" \
     --workspace-name "$aml_workspace" --flow "$flow_dir" --set type=chat
+while [ $? -ne 0 ]; do
+    tries=$((tries+1))
+    if [ $tries -eq 10 ]; then
+        echo "Failed to create flow after 10 attempts"
+        exit 1
+    fi
 
-rm "$flow_dag_file"
+    echo "Failed to create flow, will retry in 30 seconds"
+    sleep 30
+    pfazure flow create --subscription "$subscription_id" --resource-group "$resource_group" \
+        --workspace-name "$aml_workspace" --flow "$flow_dir" --set type=chat
+done
+set -e
 
 echo "Creating model"
 az ml model create --file "${SCRIPTPATH}/model.yaml" --resource-group "$resource_group" --workspace-name "$aml_workspace" --set "name=$model_name"
@@ -89,3 +104,5 @@ else
     echo "Creating deployment"
     az ml online-deployment create --file "${SCRIPTPATH}/deployment.yaml" --resource-group "$resource_group" --workspace-name "$aml_workspace" --all-traffic --set "name=$deployment_name" --set "endpoint_name=$endpoint_name" --set "model=azureml:${model_name}:${model_version}" --set "environment_variables.PRT_CONFIG_OVERRIDE=$prt_config_override"
 fi
+
+rm "$flow_dag_file"
