@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, Mock, patch
 from backend.batch.utilities.search.azure_search_handler import AzureSearchHandler
 import json
 from azure.search.documents.models import VectorizedQuery
-
+from azure.search.documents import SearchItemPaged
 from backend.batch.utilities.common.source_document import SourceDocument
 
 
@@ -363,3 +363,35 @@ def test_semantic_search_with_advanced_image_processing(
         query_answer="extractive",
         top=handler.env_helper.AZURE_SEARCH_TOP_K,
     )
+
+
+def test_delete_from_index(handler, mock_search_client):
+    # given
+    blob_url = "https://example.com/blob"
+    filter_value = f"source eq '{blob_url}_SAS_TOKEN_PLACEHOLDER_'"
+    documents = Mock(
+        SearchItemPaged(
+            [
+                {"id": 1, "title": "file1"},
+                {"id": 2, "title": "file2"},
+                {"id": 3, "title": "file1"},
+                {"id": 4, "title": "file3"},
+            ]
+        )
+    )
+
+    handler.search_client.search.return_value = documents
+    documents.get_count.return_value = 4
+    ids_to_delete = [{"id": 1}, {"id": 3}, {"id": 2}, {"id": 4}]
+    handler.output_results = MagicMock(
+        return_value={"file1": [1, 3], "file2": [2], "file3": [4]}
+    )
+
+    # when
+    handler.delete_from_index(blob_url)
+
+    # then
+    handler.search_client.search.assert_called_once_with(
+        "*", select="id, title", include_total_count=True, filter=filter_value
+    )
+    handler.search_client.delete_documents.assert_called_once_with(ids_to_delete)

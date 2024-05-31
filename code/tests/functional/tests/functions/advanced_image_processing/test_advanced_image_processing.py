@@ -64,6 +64,36 @@ def setup_blob_metadata_mocking(httpserver: HTTPServer, app_config: AppConfig):
     ).respond_with_data()
 
 
+@pytest.fixture(autouse=True)
+def setup_caption_response(httpserver: HTTPServer, app_config: AppConfig):
+    httpserver.expect_oneshot_request(
+        f"/openai/deployments/{app_config.get('AZURE_OPENAI_VISION_MODEL')}/chat/completions",
+        method="POST",
+    ).respond_with_json(
+        {
+            "id": "chatcmpl-6v7mkQj980V1yBec6ETrKPRqFjNw9",
+            "object": "chat.completion",
+            "created": 1679072642,
+            "model": app_config.get("AZURE_OPENAI_VISION_MODEL"),
+            "usage": {
+                "prompt_tokens": 58,
+                "completion_tokens": 68,
+                "total_tokens": 126,
+            },
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": "This is a caption for the image",
+                    },
+                    "finish_reason": "stop",
+                    "index": 0,
+                }
+            ],
+        }
+    )
+
+
 def test_config_file_is_retrieved_from_storage(
     message: QueueMessage, httpserver: HTTPServer, app_config: AppConfig
 ):
@@ -144,7 +174,7 @@ If the image is mostly text, use OCR to extract the text as it is displayed in t
                                 "text": "Describe this image in detail. Limit the response to 500 words.",
                                 "type": "text",
                             },
-                            {"image_url": ANY, "type": "image_url"},
+                            {"image_url": {"url": ANY}, "type": "image_url"},
                         ],
                     },
                 ],
@@ -162,7 +192,7 @@ If the image is mostly text, use OCR to extract the text as it is displayed in t
         ),
     )[0]
 
-    assert request.get_json()["messages"][1]["content"][1]["image_url"].startswith(
+    assert request.get_json()["messages"][1]["content"][1]["image_url"]["url"].startswith(
         f"{app_config.get('AZURE_STORAGE_ACCOUNT_ENDPOINT')}{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}"
     )
 

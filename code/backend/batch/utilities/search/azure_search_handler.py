@@ -1,4 +1,5 @@
 from typing import List
+
 from .search_handler_base import SearchHandlerBase
 from ..helpers.llm_helper import LLMHelper
 from ..helpers.azure_computer_vision_client import AzureComputerVisionClient
@@ -62,6 +63,14 @@ class AzureSearchHandler(SearchHandlerBase):
         self.search_client.delete_documents(ids_to_delete)
 
         return ", ".join(files_to_delete)
+
+    def search_by_blob_url(self, blob_url):
+        return self.search_client.search(
+            "*",
+            select="id, title",
+            include_total_count=True,
+            filter=f"source eq '{blob_url}_SAS_TOKEN_PLACEHOLDER_'",
+        )
 
     def query_search(self, question) -> List[SourceDocument]:
         encoding = tiktoken.get_encoding(self._ENCODER_NAME)

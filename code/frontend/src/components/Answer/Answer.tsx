@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useBoolean } from "@fluentui/react-hooks"
 import { FontIcon, Stack, Text } from "@fluentui/react";
 
@@ -29,7 +29,7 @@ export const Answer = ({
 
     const parsedAnswer = useMemo(() => parseAnswer(answer), [answer]);
     const [chevronIsExpanded, setChevronIsExpanded] = useState(isRefAccordionOpen);
-
+    const refContainer = useRef<HTMLDivElement>(null);
     const handleChevronClick = () => {
         setChevronIsExpanded(!chevronIsExpanded);
         toggleIsRefAccordionOpen();
@@ -37,7 +37,10 @@ export const Answer = ({
 
     useEffect(() => {
         setChevronIsExpanded(isRefAccordionOpen);
-    }, [isRefAccordionOpen]);
+        if(chevronIsExpanded && refContainer.current){
+            refContainer.current.scrollIntoView({ behavior:'smooth'});
+        }
+    }, [chevronIsExpanded,isRefAccordionOpen]);
 
     const createCitationFilepath = (citation: Citation, index: number, truncate: boolean = false) => {
         let citationFilename = "";
@@ -45,10 +48,10 @@ export const Answer = ({
         if (citation.filepath && citation.chunk_id != null) {
             if (truncate && citation.filepath.length > filePathTruncationLimit) {
                 const citationLength = citation.filepath.length;
-                citationFilename = `${citation.filepath.substring(0, 20)}...${citation.filepath.substring(citationLength -20)} - Part ${parseInt(citation.chunk_id) + 1}`;
+                citationFilename = `${citation.filepath.substring(0, 20)}...${citation.filepath.substring(citationLength -20)} - Part ${citation.chunk_id}`;
             }
             else {
-                citationFilename = `${citation.filepath} - Part ${parseInt(citation.chunk_id) + 1}`;
+                citationFilename = `${citation.filepath} - Part ${citation.chunk_id}`;
             }
         }
         else {
@@ -97,18 +100,18 @@ export const Answer = ({
                                 onClick={handleChevronClick} iconName={chevronIsExpanded ? 'ChevronDown' : 'ChevronRight'}
                                 />
                             </Stack>
-                            
+
                         </Stack>
                     </Stack.Item>
                 )}
-                
+
                 </Stack>
-                {chevronIsExpanded && 
-                    <div style={{ marginTop: 8, display: "flex", flexDirection: "column", height: "100%", gap: "4px", maxWidth: "100%" }}>
+                {chevronIsExpanded &&
+                    <div ref={refContainer} style={{ marginTop: 8, display: "flex", flexDirection: "column", height: "100%", gap: "4px", maxWidth: "100%" }}>
                         {parsedAnswer.citations.map((citation, idx) => {
                             return (
                                 <span title={createCitationFilepath(citation, ++idx)} key={idx} onClick={() => onCitationClicked(citation)} className={styles.citationContainer}>
-                                    <div className={styles.citation}>{idx}</div>
+                                    <div className={styles.citation} key={idx}>{idx}</div>
                                     {createCitationFilepath(citation, idx, true)}
                                 </span>);
                         })}

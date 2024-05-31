@@ -570,7 +570,12 @@ def test_post_makes_correct_call_to_openai_chat_completions_with_documents(
                     {"content": "Hello", "role": "user"},
                     {"content": "Hi, how can I help?", "role": "assistant"},
                     {
-                        "content": '## Retrieved Documents\n{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}\n\n## User Question\nWhat is the meaning of life?',
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": '## Retrieved Documents\n{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}\n\n## User Question\nWhat is the meaning of life?',
+                            }
+                        ],
                         "role": "user",
                     },
                 ],

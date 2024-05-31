@@ -1,6 +1,18 @@
 {
   "recommendations": [
+    "github.vscode-pull-request-github",
+    "github.vscode-github-actions",
+    "ms-azuretools.azure-dev",
     "ms-azuretools.vscode-azurefunctions",
-    "ms-python.python"
+    "ms-azuretools.vscode-bicep",
+    "ms-azuretools.vscode-docker",
+    "ms-python.python",
+    "ms-python.black-formatter",
+    "ms-python.vscode-pylance",
+    "ms-python.pylint",
+    "ms-toolsai.jupyter",
+    "ms-vscode.vscode-node-azure-pack",
+    "TeamsDevApp.ms-teams-vscode-extension",
+    "zeshuaro.vscode-python-poetry"
   ]
 }
