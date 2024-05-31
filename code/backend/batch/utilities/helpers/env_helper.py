@@ -224,6 +224,12 @@ class EnvHelper:
             "LOAD_CONFIG_FROM_BLOB_STORAGE"
         )
 
+        self.AZURE_MACHINE_LEARNING_WORKSPACE = os.getenv(
+            "AZURE_MACHINE_LEARNING_WORKSPACE", ""
+        )
+
+        self.PROMPT_FLOW_ENDPOINT_NAME = os.getenv("PROMPT_FLOW_ENDPOINT_NAME", "")
+
     def should_use_data(self) -> bool:
         if (
             self.AZURE_SEARCH_SERVICE
