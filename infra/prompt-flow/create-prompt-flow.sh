@@ -64,6 +64,8 @@ sed -i "s@<aisearch_index>@${search_index}@g" "$flow_dag_file"
 pfazure flow create --subscription "$subscription_id" --resource-group "$resource_group" \
     --workspace-name "$aml_workspace" --flow "$flow_dir" --set type=chat
 
+rm "$flow_dag_file"
+
 echo "Creating model"
 az ml model create --file "${SCRIPTPATH}/model.yaml" --resource-group "$resource_group" --workspace-name "$aml_workspace" --set "name=$model_name"
 
