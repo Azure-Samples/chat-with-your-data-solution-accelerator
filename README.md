@@ -26,29 +26,25 @@ urlFragment: chat-with-your-data-solution-accelerator
 
 
  ##### Table of Contents
- * [User story](#user-story)
-    + [About this repo](#about-this-repo)
-    + [When should you use this repo](#when-should-you-use-this-repo)
-    + [Key features](#key-features)
-    + [Target end users](#target-end-users)
-    + [Industry scenario](#industry-scenario)
-  * [Deploy](#deploy)
-    + [Pre-requisites](#pre-requisites)
-    + [Products used](#products-used)
-    + [Required licenses](#required-licenses)
-    + [Pricing Considerations](#pricing-considerations)
-    + [Deploy instructions](#deploy-instructions)
-    + [Testing the deployment](#testing-the-deployment)
-  * [Supporting documentation](#supporting-documentation)
-    + [Best practices](docs/best_practices.md)
-    + [Getting Support](SUPPORT.md)
-    + [Resource links](#resource-links)
-    + [Licensing](#licensing)
-  * [Customer truth](docs/customer_truth.md)
-  * [Disclaimers](#disclaimers)
-\
-\
-![User Story](/docs/images/userStory.png)
+- [Chat with your data - Solution accelerator](#chat-with-your-data---solution-accelerator)
+        - [Table of Contents](#table-of-contents)
+  - [User story](#user-story)
+    - [About this repo](#about-this-repo)
+    - [When should you use this repo?](#when-should-you-use-this-repo)
+    - [Key features](#key-features)
+    - [Target end users](#target-end-users)
+    - [Industry scenario](#industry-scenario)
+  - [Deploy](#deploy)
+    - [Pre-requisites](#pre-requisites)
+    - [Products used](#products-used)
+    - [Required licenses](#required-licenses)
+    - [Pricing Considerations](#pricing-considerations)
+    - [Deploy instructions](#deploy-instructions)
+    - [Testing the deployment](#testing-the-deployment)
+  - [Supporting documentation](#supporting-documentation)
+    - [Resource links](#resource-links)
+    - [Licensing](#licensing)
+  - [Disclaimers](#disclaimers)
 ## User story
 Welcome to the *Chat with your data* Solution accelerator repository! The *Chat with your data* Solution accelerator is a powerful tool that combines the capabilities of Azure AI Search and Large Language Models (LLMs) to create a conversational search experience. This solution accelerator uses an Azure OpenAI GPT model and an Azure AI Search index generated from your data, which is integrated into a web application to provide a natural language interface, including [speech-to-text](docs/speech_to_text.md) functionality, for search queries. Users can drag and drop files, point to storage, and take care of technical setup to transform documents. Everything can be deployed in your own subscription to accelerate your use of this technology.
 
@@ -56,7 +52,7 @@ Welcome to the *Chat with your data* Solution accelerator repository! The *Chat 
 
 ### About this repo
 
-This repository provides an end-to-end solution for users who want to query their data with natural language. It includes a well designed ingestion mechanism for multiple file types, an easy deployment, and a support team for maintenance. The accelerator demonstrates both Push or Pull Ingestion; the choice of orchestration (Semantic Kernel or LangChain) and should be the minimum components needed to implement a RAG pattern. It is not intended to be put into Production as-is without experimentation or evaluation of your data. It provides the following features:
+This repository provides an end-to-end solution for users who want to query their data with natural language. It includes a well designed ingestion mechanism for multiple file types, an easy deployment, and a support team for maintenance. The accelerator demonstrates both Push or Pull Ingestion; the choice of orchestration (Semantic Kernel, LangChain, OpenAI Functions or Prompt Flow) and should be the minimum components needed to implement a RAG pattern. It is not intended to be put into Production as-is without experimentation or evaluation of your data. It provides the following features:
 
 * Chat with an Azure OpenAI model using your own data
 * Upload and process your documents
