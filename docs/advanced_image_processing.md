@@ -38,4 +38,11 @@ Once enabled, advanced image processing will be enabled for all supported image 
 
 ![image](./images/enable_advanced_image_processing.png)
 
+The `ADVANCED_IMAGE_PROCESSING_MAX_IMAGES` environment variable can be used to control the maximum number of images passed to GPT-4 vision in a single request (default is `1`).
+Increasing the number of images consumes more tokens and may result in throttled requests.
+
+```bash
+azd env set ADVANCED_IMAGE_PROCESSING_MAX_IMAGES 2
+```
+
 Advanced image processing is only used in the `custom` conversation flow and not the `byod` flow, as Azure OpenAI On Your Data only supports Ada embeddings. It is currently not possible to use advanced image processing when integrated vectorization is enabled.

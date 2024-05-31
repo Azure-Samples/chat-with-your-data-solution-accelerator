@@ -137,7 +137,7 @@ class QuestionAnswerTool(AnsweringToolBase):
                         [
                             {
                                 "type": "image_url",
-                                "image_url": image_url,
+                                "image_url": {"url": image_url},
                             }
                             for image_url in image_urls
                         ]
@@ -186,7 +186,7 @@ class QuestionAnswerTool(AnsweringToolBase):
             doc.source.replace("_SAS_TOKEN_PLACEHOLDER_", container_sas)
             for doc in source_documents
             if doc.title is not None and doc.title.split(".")[-1] in image_types
-        ]
+        ][: self.env_helper.ADVANCED_IMAGE_PROCESSING_MAX_IMAGES]
 
         return image_urls
 

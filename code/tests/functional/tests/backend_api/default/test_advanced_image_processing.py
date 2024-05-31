@@ -266,7 +266,7 @@ def test_image_urls_included_in_call_to_openai(
                                 "type": "text",
                                 "text": '## Retrieved Documents\n{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}\n\n## User Question\nWhat is the meaning of life?',
                             },
-                            {"type": "image_url", "image_url": ANY},
+                            {"type": "image_url", "image_url": {"url": ANY}},
                         ],
                         "role": "user",
                     },
@@ -286,6 +286,6 @@ def test_image_urls_included_in_call_to_openai(
         ),
     )[0]
 
-    assert request.json["messages"][6]["content"][1]["image_url"].startswith(
+    assert request.json["messages"][6]["content"][1]["image_url"]["url"].startswith(
         "https://source"
     )
