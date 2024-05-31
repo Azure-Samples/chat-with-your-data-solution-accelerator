@@ -85,6 +85,9 @@ class Config:
     def get_available_orchestration_strategies(self):
         return [c.value for c in OrchestrationStrategy]
 
+    def get_available_assistant(self):
+        return ["Default", "Legal Assistant"]
+
 
 # TODO: Change to AnsweringChain or something, Prompts is not a good name
 class Prompts:

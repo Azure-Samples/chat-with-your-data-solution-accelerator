@@ -158,6 +158,14 @@ try:
                 key="orchestrator_strategy",
                 options=config.get_available_orchestration_strategies(),
             )
+    with st.expander("CWYD Assistant Configuration", expanded=True):
+        cols = st.columns([2, 4])
+        with cols[0]:
+            st.selectbox(
+                "Assistant configuration",
+                key="assistant_configuration",
+                options=config.get_available_assistant(),
+            )
 
     # # # condense_question_prompt_help = "This prompt is used to convert the user's input to a standalone question, using the context of the chat history."
     answering_system_prompt_help = "The system prompt used to answer the user's question. Only used if Azure OpenAI On Your Data prompt format is enabled."
