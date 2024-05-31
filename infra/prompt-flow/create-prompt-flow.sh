@@ -44,7 +44,7 @@ endpoint_name="cwyd-endpoint-${resource_token}"
 deployment_name="cwyd-deployment-${resource_token}"
 
 echo "Installing dependencies"
-pip install promptflow[azure]==1.11.0
+poetry install --only prompt-flow
 az extension add --name ml
 
 echo "Creating prompt flow"
