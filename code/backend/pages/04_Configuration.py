@@ -92,8 +92,12 @@ def validate_answering_user_prompt():
         st.warning("Your answering prompt doesn't contain the variable `{question}`")
 
 def config_legal_assistant_prompt():
-    if st.session_state["enable_post_answering_prompt"]:
-        st.session_state["answering_user_prompt"] =ConfigHelper.get_default_legal_assistant()
+    if st.session_state["enable_legal_assistant"]:
+        st.success("Legal Assistant Prompt Enabled")
+        st.session_state["answering_user_prompt"] = ConfigHelper.get_default_legal_assistant()
+    else:
+        st.success("Legal Assistant Prompt Disabled")
+        st.session_state["answering_user_prompt"] = config.prompts.answering_user_prompt
 
 
 def validate_post_answering_prompt():

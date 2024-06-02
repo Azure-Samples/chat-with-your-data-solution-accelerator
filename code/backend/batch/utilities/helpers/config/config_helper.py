@@ -239,8 +239,11 @@ class ConfigHelper:
     @staticmethod
     def get_default_legal_assistant():
         legal_file_path = os.path.join(os.path.dirname(__file__), "default_legal_assistant_prompt.txt")
+        legal_assistant = ""
         with open(legal_file_path, encoding="utf-8") as f:
-            return f.readlines()
+            legal_assistant = f.readlines()
+
+        return ''.join([str(elem) for elem in legal_assistant])
 
 
     @staticmethod
