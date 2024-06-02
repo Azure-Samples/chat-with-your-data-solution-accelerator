@@ -85,9 +85,9 @@ class Config:
     def get_available_orchestration_strategies(self):
         return [c.value for c in OrchestrationStrategy]
 
-    def get_available_assistant(self):
-        return ["Default", "Legal Assistant"]
-
+    def get_legal_assistant(self):
+        legal_assistant = "Legal Assistant"
+        return legal_assistant
 
 # TODO: Change to AnsweringChain or something, Prompts is not a good name
 class Prompts:
@@ -99,6 +99,7 @@ class Prompts:
         self.use_on_your_data_format = prompts["use_on_your_data_format"]
         self.enable_post_answering_prompt = prompts["enable_post_answering_prompt"]
         self.enable_content_safety = prompts["enable_content_safety"]
+        self.enable_legal_assistant = prompts["enable_legal_assistant"]
 
 
 class Example:
@@ -161,6 +162,9 @@ class ConfigHelper:
 
         if config.get("example") is None:
             config["example"] = default_config["example"]
+
+        if config.get("enable_legal_assistant") is None:
+            config["enable_legal_assistant"] = default_config["enable_legal_assistant"]
 
         if config.get("integrated_vectorization_config") is None:
             config["integrated_vectorization_config"] = default_config[
@@ -231,6 +235,13 @@ class ConfigHelper:
                     ConfigHelper._append_advanced_image_processors()
 
         return ConfigHelper._default_config
+
+    @staticmethod
+    def get_default_legal_assistant():
+        legal_file_path = os.path.join(os.path.dirname(__file__), "default_legal_assistant_prompt.txt")
+        with open(legal_file_path, encoding="utf-8") as f:
+            return f.readlines()
+
 
     @staticmethod
     def clear_config():
