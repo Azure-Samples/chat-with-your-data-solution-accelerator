@@ -10,8 +10,8 @@ type ParsedAnswer = {
 let filteredCitations = [] as Citation[];
 
 // Define a function to check if a citation with the same Chunk_Id already exists in filteredCitations
-const isDuplicate = (citation: Citation) => {
-    return filteredCitations.some((c) => c.chunk_id === citation.chunk_id);
+const isDuplicate = (citation: Citation,citationIndex:string) => {
+    return filteredCitations.some((c) => c.chunk_id === citation.chunk_id) && !filteredCitations.find((c) => c.id === citationIndex) ;
 };
 
 export function parseAnswer(answer: AskResponse): ParsedAnswer {
@@ -22,17 +22,25 @@ export function parseAnswer(answer: AskResponse): ParsedAnswer {
 
     filteredCitations = [] as Citation[];
     let citationReindex = 0;
+    let i =0
     citationLinks?.forEach(link => {
         // Replacing the links/citations with number
         let citationIndex = link.slice(lengthDocN, link.length - 1);
-        let citation = cloneDeep(answer.citations[Number(citationIndex) - 1]) as Citation;
-        if (!isDuplicate(citation) && !filteredCitations.find((c) => c.id === citationIndex)) {
+        let citation = cloneDeep(answer.citations[i]) as Citation;
+        if (!isDuplicate(citation, citationIndex)) {
           answerText = answerText.replaceAll(link, ` ^${++citationReindex}^ `);
           citation.id = citationIndex; // original doc index to de-dupe
           citation.reindex_id = citationReindex.toString(); // reindex from 1 for display
           filteredCitations.push(citation);
-        }else if (isDuplicate(citation) && !filteredCitations.find((c) => c.id === citationIndex)){
-            answerText= answerText.replaceAll(link, '')
+          i++
+        }else{
+            // Replacing duplicate citation with original index
+            filteredCitations.find((ct)=>{
+                if (citation.chunk_id == ct.chunk_id){
+                    answerText= answerText.replaceAll(link, ` ^${ct.reindex_id}^`)
+                }
+            })
+            i++
         }
     })
 
