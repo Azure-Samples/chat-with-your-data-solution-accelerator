@@ -35,7 +35,7 @@ export function parseAnswer(answer: AskResponse): ParsedAnswer {
             // Replacing duplicate citation with original index
             let matchingCitation = filteredCitations.find((ct) => citation.chunk_id == ct.chunk_id);
             if (matchingCitation) {
-                answerText= answerText.replaceAll(link, ` ^${matchingCitation.reindex_id}^`)
+                answerText= answerText.replaceAll(link, ` ^${matchingCitation.reindex_id}^ `)
             }
         }
     })
