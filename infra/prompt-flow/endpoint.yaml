@@ -1,0 +1,5 @@
+$schema: https://azuremlschemas.azureedge.net/latest/managedOnlineEndpoint.schema.json
+name: cwyd-endpoint
+auth_mode: key
+properties:
+  enforce_access_to_default_secret_stores: enabled

@@ -130,6 +130,7 @@ param azureOpenAIVisionModelCapacity int = 10
   'openai_function'
   'semantic_kernel'
   'langchain'
+  'prompt_flow'
 ])
 param orchestrationStrategy string = 'openai_function'
 
@@ -278,6 +279,9 @@ param logLevel string = 'INFO'
 @description('List of comma-separated languages to recognize from the speech input. Supported languages are listed here: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=stt#supported-languages')
 param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
 
+@description('Azure Machine Learning Name')
+param azureMachineLearningName string = 'aml-${resourceToken}'
+
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
@@ -334,22 +338,22 @@ var defaultOpenAiDeployments = [
 
 var openAiDeployments = concat(
   defaultOpenAiDeployments,
-  useAdvancedImageProcessing
-    ? [
-        {
-          name: azureOpenAIVisionModel
-          model: {
-            format: 'OpenAI'
-            name: azureOpenAIVisionModelName
-            version: azureOpenAIVisionModelVersion
-          }
-          sku: {
-            name: 'Standard'
-            capacity: azureOpenAIVisionModelCapacity
-          }
-        }
-      ]
-    : []
+  useAdvancedImageProcessing 
+   ? [
+    {
+      name: azureOpenAIVisionModel
+      model: {
+        format: 'OpenAI'
+        name: azureOpenAIVisionModelName
+        version: azureOpenAIVisionModelVersion
+      }
+      sku: {
+        name: 'Standard'
+        capacity: azureOpenAIVisionModelCapacity
+      }
+    }
+  ] 
+   : []
 )
 
 module openai 'core/ai/cognitiveservices.bicep' = {
@@ -808,8 +812,8 @@ module workbook './app/workbook.bicep' = {
     functionName: hostingModel == 'container' ? function_docker.outputs.functionName : function.outputs.functionName
     websiteName: hostingModel == 'container' ? web_docker.outputs.FRONTEND_API_NAME : web.outputs.FRONTEND_API_NAME
     adminWebsiteName: hostingModel == 'container'
-      ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME
-      : adminweb.outputs.WEBSITE_ADMIN_NAME
+     ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME
+     : adminweb.outputs.WEBSITE_ADMIN_NAME
     eventGridSystemTopicName: eventgrid.outputs.name
     logAnalyticsName: monitoring.outputs.logAnalyticsWorkspaceName
     azureOpenAIResourceName: openai.outputs.name
@@ -968,12 +972,12 @@ module storage 'core/storage/storage-account.bicep' = {
     sku: {
       name: 'Standard_GRS'
     }
-    deleteRetentionPolicy: azureSearchUseIntegratedVectorization
-      ? {
-          enabled: true
-          days: 7
-        }
-      : {}
+    deleteRetentionPolicy: azureSearchUseIntegratedVectorization 
+     ? {
+      enabled: true
+      days: 7
+    }
+     : {}
     containers: [
       {
         name: blobContainerName
@@ -1040,6 +1044,22 @@ module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
   }
 }
 
+module machineLearning 'app/machinelearning.bicep' = if (orchestrationStrategy == 'prompt_flow') {
+  scope: rg
+  name: azureMachineLearningName
+  params: {
+    location: location
+    workspaceName: azureMachineLearningName
+    storageAccountId: storage.outputs.id
+    keyVaultId: useKeyVault ? keyvault.outputs.id : ''
+    applicationInsightsId: monitoring.outputs.applicationInsightsId
+    azureOpenAIName: openai.outputs.name
+    azureAISearchName: search.outputs.name
+    azureAISearchEndpoint: search.outputs.endpoint
+    azureOpenAIEndpoint: openai.outputs.endpoint
+  }
+}
+
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
 output AZURE_BLOB_CONTAINER_NAME string = blobContainerName
@@ -1095,12 +1115,14 @@ output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
 output USE_KEY_VAULT bool = useKeyVault
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code'
-  ? web.outputs.FRONTEND_API_URI
-  : web_docker.outputs.FRONTEND_API_URI
+ ? web.outputs.FRONTEND_API_URI
+ : web_docker.outputs.FRONTEND_API_URI
 output ADMIN_WEBSITE_NAME string = hostingModel == 'code'
-  ? adminweb.outputs.WEBSITE_ADMIN_URI
-  : adminweb_docker.outputs.WEBSITE_ADMIN_URI
+ ? adminweb.outputs.WEBSITE_ADMIN_URI
+ : adminweb_docker.outputs.WEBSITE_ADMIN_URI
 output LOGLEVEL string = logLevel
 output CONVERSATION_FLOW string = conversationFlow
 output USE_ADVANCED_IMAGE_PROCESSING bool = useAdvancedImageProcessing
 output ADVANCED_IMAGE_PROCESSING_MAX_IMAGES int = advancedImageProcessingMaxImages
+output AZURE_ML_WORKSPACE_NAME string = machineLearning.outputs.workspaceName
+output RESOURCE_TOKEN string = resourceToken
