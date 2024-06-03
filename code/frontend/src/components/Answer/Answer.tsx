@@ -40,7 +40,7 @@ export const Answer = ({
         if(chevronIsExpanded && refContainer.current){
             refContainer.current.scrollIntoView({ behavior:'smooth'});
         }
-    }, [isRefAccordionOpen]);
+    }, [chevronIsExpanded,isRefAccordionOpen]);
 
     const createCitationFilepath = (citation: Citation, index: number, truncate: boolean = false) => {
         let citationFilename = "";

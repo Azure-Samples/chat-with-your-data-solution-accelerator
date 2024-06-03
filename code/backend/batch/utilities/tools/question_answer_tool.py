@@ -137,7 +137,7 @@ class QuestionAnswerTool(AnsweringToolBase):
                         [
                             {
                                 "type": "image_url",
-                                "image_url": image_url,
+                                "image_url": {"url": image_url},
                             }
                             for image_url in image_urls
                         ]
