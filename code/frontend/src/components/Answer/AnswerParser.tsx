@@ -26,7 +26,7 @@ export function parseAnswer(answer: AskResponse): ParsedAnswer {
         // Replacing the links/citations with number
         let citationIndex = link.slice(lengthDocN, link.length - 1);
         let citation = cloneDeep(answer.citations[Number(citationIndex) - 1]) as Citation;
-        if (!isDuplicate(citation, citationIndex)) {
+        if (!isDuplicate(citation, citationIndex) && citation !== undefined) {
           answerText = answerText.replaceAll(link, ` ^${++citationReindex}^ `);
           citation.id = citationIndex; // original doc index to de-dupe
           citation.reindex_id = citationReindex.toString(); // reindex from 1 for display

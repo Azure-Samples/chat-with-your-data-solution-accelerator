@@ -174,7 +174,7 @@ If the image is mostly text, use OCR to extract the text as it is displayed in t
                                 "text": "Describe this image in detail. Limit the response to 500 words.",
                                 "type": "text",
                             },
-                            {"image_url": ANY, "type": "image_url"},
+                            {"image_url": {"url": ANY}, "type": "image_url"},
                         ],
                     },
                 ],
@@ -192,7 +192,7 @@ If the image is mostly text, use OCR to extract the text as it is displayed in t
         ),
     )[0]
 
-    assert request.get_json()["messages"][1]["content"][1]["image_url"].startswith(
+    assert request.get_json()["messages"][1]["content"][1]["image_url"]["url"].startswith(
         f"{app_config.get('AZURE_STORAGE_ACCOUNT_ENDPOINT')}{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}"
     )
 
