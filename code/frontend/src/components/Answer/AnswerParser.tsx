@@ -22,17 +22,15 @@ export function parseAnswer(answer: AskResponse): ParsedAnswer {
 
     filteredCitations = [] as Citation[];
     let citationReindex = 0;
-    let i =0
     citationLinks?.forEach(link => {
         // Replacing the links/citations with number
         let citationIndex = link.slice(lengthDocN, link.length - 1);
-        let citation = cloneDeep(answer.citations[i]) as Citation;
+        let citation = cloneDeep(answer.citations[Number(citationIndex) - 1]) as Citation;
         if (!isDuplicate(citation, citationIndex)) {
           answerText = answerText.replaceAll(link, ` ^${++citationReindex}^ `);
           citation.id = citationIndex; // original doc index to de-dupe
           citation.reindex_id = citationReindex.toString(); // reindex from 1 for display
           filteredCitations.push(citation);
-          i++
         }else{
             // Replacing duplicate citation with original index
             filteredCitations.find((ct)=>{
@@ -40,7 +38,6 @@ export function parseAnswer(answer: AskResponse): ParsedAnswer {
                     answerText= answerText.replaceAll(link, ` ^${ct.reindex_id}^`)
                 }
             })
-            i++
         }
     })
 
