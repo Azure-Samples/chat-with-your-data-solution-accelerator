@@ -33,11 +33,10 @@ export function parseAnswer(answer: AskResponse): ParsedAnswer {
           filteredCitations.push(citation);
         }else{
             // Replacing duplicate citation with original index
-            filteredCitations.find((ct)=>{
-                if (citation.chunk_id == ct.chunk_id){
-                    answerText= answerText.replaceAll(link, ` ^${ct.reindex_id}^`)
-                }
-            })
+            let matchingCitation = filteredCitations.find((ct) => citation.chunk_id == ct.chunk_id);
+            if (matchingCitation) {
+                answerText= answerText.replaceAll(link, ` ^${matchingCitation.reindex_id}^`)
+            }
         }
     })
 
