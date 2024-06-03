@@ -6,12 +6,18 @@ The CWYD Legal Assistant is designed to help legal professionals efficiently man
 
 The full prompt is here: [Link to the legal assistant prompt]
 ### Admin Configuration
-In the admin panel, there is a dropdown for selecting the CWYD Assistant type. The options are:
+In the admin panel, there is a checkbox to enable the CWYD Assistant . The options are:
 
-- **Default** default CWYD prompt
-- **Legal Assistant** Legal Assistant prompt
+- **Unchecked** default CWYD prompt
 
-When the user selects "Legal Assistant" from the dropdown, the user prompt textbox will update to the Legal Assistant prompt. When the user switches back to "Default CWYD," the user prompt textbox will update to the default prompt. Note that if the user has a custom prompt in the user prompt textbox, selecting an option from the dropdown will overwrite the custom prompt with the selected default or legal assistant prompt.
+![Unchecked ](images/cwyd_admin_legal_unchecked.png)
+
+
+- **Checked** Legal Assistant prompt
+![Checked ](images/cwyd_admin_legal_checked.png)
+
+
+When the user check "Legal Assistant", the user prompt textbox will update to the Legal Assistant prompt. When the user uncheck the box, the user prompt textbox will update to the default prompt. Note that if the user has a custom prompt in the user prompt textbox, selecting an option from the checkbox will overwrite the custom prompt with the default or legal assistant prompt.
 
 ### Legal Assistant Prompt
 The Legal Assistant prompt configuration ensures that the AI responds accurately based on the given context, handling a variety of tasks such as listing documents, filtering based on specific criteria, and summarizing document content. Below is the detailed prompt configuration:
