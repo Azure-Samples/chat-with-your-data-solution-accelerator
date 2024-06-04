@@ -2705,13 +2705,13 @@ extended-testing = ["aiosqlite (>=0.19.0,<0.20.0)", "aleph-alpha-client (>=2.15.
 
 [[package]]
 name = "langchain-core"
-version = "0.2.1"
+version = "0.2.2"
 description = "Building applications with LLMs through composability"
 optional = false
 python-versions = "<4.0,>=3.8.1"
 files = [
-    {file = "langchain_core-0.2.1-py3-none-any.whl", hash = "sha256:3521e1e573988c47399fca9739270c5d34f8ecec147253ad829eb9ff288f76d5"},
-    {file = "langchain_core-0.2.1.tar.gz", hash = "sha256:49383126168d934559a543ce812c485048d9e6ac9b6798fbf3d4a72b6bba5b0c"},
+    {file = "langchain_core-0.2.2-py3-none-any.whl", hash = "sha256:4b3b55a5f214acbcf8d6d8e322da3a9d6248d6b6f45ac1b86ab0494fd3716128"},
+    {file = "langchain_core-0.2.2.tar.gz", hash = "sha256:6884a87f7ac8e0d43e4d83c5f9efa95236c7bd535e22a0a51db19156875b4cd6"},
 ]
 
 [package.dependencies]
@@ -2727,18 +2727,18 @@ extended-testing = ["jinja2 (>=3,<4)"]
 
 [[package]]
 name = "langchain-openai"
-version = "0.1.7"
+version = "0.1.8"
 description = "An integration package connecting OpenAI and LangChain"
 optional = false
 python-versions = "<4.0,>=3.8.1"
 files = [
-    {file = "langchain_openai-0.1.7-py3-none-any.whl", hash = "sha256:39c3cb22bb739900ae8294d4d9939a6138c0ca7ad11198e57038eb14c08d04ec"},
-    {file = "langchain_openai-0.1.7.tar.gz", hash = "sha256:fd7e1c33ba8e2cab4b2154f3a2fd4a0d9cc6518b41cf49bb87255f9f732a4896"},
+    {file = "langchain_openai-0.1.8-py3-none-any.whl", hash = "sha256:8125c84223e9f43b05defbca64eedbcf362fd78a680de6c25e64f973b34a8063"},
+    {file = "langchain_openai-0.1.8.tar.gz", hash = "sha256:a11fcce15def7917c44232abda6baaa63dfc79fe44be1531eea650d39a44cd95"},
 ]
 
 [package.dependencies]
-langchain-core = ">=0.1.46,<0.3"
-openai = ">=1.24.0,<2.0.0"
+langchain-core = ">=0.2.2,<0.3"
+openai = ">=1.26.0,<2.0.0"
 tiktoken = ">=0.7,<1"
 
 [[package]]
@@ -7275,4 +7275,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "c23ad53d2e36724f48412d8da68eff10dacb959fa097c6e90ce830f6e65b47ca"
+content-hash = "74989ccf7535fc0d2cb80cb8fa9a589286a98f4ce44cd976be0759ef96aa9cdd"
