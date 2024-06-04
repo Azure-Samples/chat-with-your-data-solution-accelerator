@@ -338,22 +338,22 @@ var defaultOpenAiDeployments = [
 
 var openAiDeployments = concat(
   defaultOpenAiDeployments,
-  useAdvancedImageProcessing 
-   ? [
-    {
-      name: azureOpenAIVisionModel
-      model: {
-        format: 'OpenAI'
-        name: azureOpenAIVisionModelName
-        version: azureOpenAIVisionModelVersion
-      }
-      sku: {
-        name: 'Standard'
-        capacity: azureOpenAIVisionModelCapacity
-      }
-    }
-  ] 
-   : []
+  useAdvancedImageProcessing
+    ? [
+        {
+          name: azureOpenAIVisionModel
+          model: {
+            format: 'OpenAI'
+            name: azureOpenAIVisionModelName
+            version: azureOpenAIVisionModelVersion
+          }
+          sku: {
+            name: 'Standard'
+            capacity: azureOpenAIVisionModelCapacity
+          }
+        }
+      ]
+    : []
 )
 
 module openai 'core/ai/cognitiveservices.bicep' = {
@@ -812,8 +812,8 @@ module workbook './app/workbook.bicep' = {
     functionName: hostingModel == 'container' ? function_docker.outputs.functionName : function.outputs.functionName
     websiteName: hostingModel == 'container' ? web_docker.outputs.FRONTEND_API_NAME : web.outputs.FRONTEND_API_NAME
     adminWebsiteName: hostingModel == 'container'
-     ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME
-     : adminweb.outputs.WEBSITE_ADMIN_NAME
+      ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME
+      : adminweb.outputs.WEBSITE_ADMIN_NAME
     eventGridSystemTopicName: eventgrid.outputs.name
     logAnalyticsName: monitoring.outputs.logAnalyticsWorkspaceName
     azureOpenAIResourceName: openai.outputs.name
@@ -972,12 +972,12 @@ module storage 'core/storage/storage-account.bicep' = {
     sku: {
       name: 'Standard_GRS'
     }
-    deleteRetentionPolicy: azureSearchUseIntegratedVectorization 
-     ? {
-      enabled: true
-      days: 7
-    }
-     : {}
+    deleteRetentionPolicy: azureSearchUseIntegratedVectorization
+      ? {
+          enabled: true
+          days: 7
+        }
+      : {}
     containers: [
       {
         name: blobContainerName
@@ -1115,14 +1115,16 @@ output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
 output USE_KEY_VAULT bool = useKeyVault
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code'
- ? web.outputs.FRONTEND_API_URI
- : web_docker.outputs.FRONTEND_API_URI
+  ? web.outputs.FRONTEND_API_URI
+  : web_docker.outputs.FRONTEND_API_URI
 output ADMIN_WEBSITE_NAME string = hostingModel == 'code'
- ? adminweb.outputs.WEBSITE_ADMIN_URI
- : adminweb_docker.outputs.WEBSITE_ADMIN_URI
+  ? adminweb.outputs.WEBSITE_ADMIN_URI
+  : adminweb_docker.outputs.WEBSITE_ADMIN_URI
 output LOGLEVEL string = logLevel
 output CONVERSATION_FLOW string = conversationFlow
 output USE_ADVANCED_IMAGE_PROCESSING bool = useAdvancedImageProcessing
 output ADVANCED_IMAGE_PROCESSING_MAX_IMAGES int = advancedImageProcessingMaxImages
-output AZURE_ML_WORKSPACE_NAME string = machineLearning.outputs.workspaceName
+output AZURE_ML_WORKSPACE_NAME string = orchestrationStrategy == 'prompt_flow'
+  ? machineLearning.outputs.workspaceName
+  : ''
 output RESOURCE_TOKEN string = resourceToken
