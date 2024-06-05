@@ -2,6 +2,7 @@ import logging
 from typing import List
 import urllib.request
 import json
+import tempfile
 
 from .orchestrator_base import OrchestratorBase
 from ..common.answer import Answer
@@ -36,6 +37,9 @@ class PromptFlowOrchestrator(OrchestratorBase):
 
         body = str.encode(json.dumps(data))
 
+        with tempfile.NamedTemporaryFile(delete=False) as file:
+            file.write(body)
+
         # The azureml-model-deployment header will force the request to go to a specific deployment.
         # Remove this header to have the request observe the endpoint traffic rules
         # headers = {
@@ -49,7 +53,7 @@ class PromptFlowOrchestrator(OrchestratorBase):
         try:
             # response = urllib.request.urlopen(req)
             response = self.ml_client.online_endpoints.invoke(
-                endpoint_name=self.enpoint_name, input_data=body
+                endpoint_name=self.enpoint_name, request_file=file.name
             )
             print("Response: ", response)  # TOREMOVE
             result = response.read()
