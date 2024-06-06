@@ -16,7 +16,7 @@ class PromptFlowOrchestrator(OrchestratorBase):
         super().__init__()
         self.llm_helper = LLMHelper()
 
-        # Set the URL and API key for the Prompt Flow endpoint ?
+        # Get the ML client and endpoint name
         self.ml_client = self.llm_helper.get_ml_client()
         print("ML Client: ", self.ml_client)  # TOREMOVE
         self.enpoint_name = self.llm_helper.get_endpoint_name()
@@ -30,34 +30,21 @@ class PromptFlowOrchestrator(OrchestratorBase):
             if response := self.call_content_safety_input(user_message):
                 return response
 
-        # Call the Prompt Flow service
+        # Transform input into the right format for the Prompt Flow service
         data = {"chat_input": user_message, "chat_history": chat_history}
-
         print("Data: ", data)  # TOREMOVE
-
         body = str.encode(json.dumps(data))
-
         with tempfile.NamedTemporaryFile(delete=False) as file:
             file.write(body)
 
-        # The azureml-model-deployment header will force the request to go to a specific deployment.
-        # Remove this header to have the request observe the endpoint traffic rules
-        # headers = {
-        #     'Content-Type':'application/json',
-        #     'Authorization':('Bearer '+ self.api_key),
-        #     'azureml-model-deployment': '<name-aml-model-deployment>' # TODO
-        # }
-
-        # req = urllib.request.Request(self.url, body, headers)
-
+        # Call the Prompt Flow service
         try:
-            # response = urllib.request.urlopen(req)
             response = self.ml_client.online_endpoints.invoke(
                 endpoint_name=self.enpoint_name, request_file=file.name
             )
             print("Response: ", response)  # TOREMOVE
-            result = response.read()
-            print("Result: ", result)  # TOREMOVE
+            result = json.loads(response)
+            print("Chat output: ", result)  # TOREMOVE
             logger.debug(result)
         except urllib.error.HTTPError as error:
             logger.error("The request failed with status code: %s", str(error.code))
@@ -67,7 +54,7 @@ class PromptFlowOrchestrator(OrchestratorBase):
         # Transform response into answer
         answer = Answer(
             question=user_message,
-            answer=result,
+            answer=result['chat_output'],
             prompt_tokens=0,  # TODO: Does the response contain the number of tokens within metadata?
             completion_tokens=0,  # TODO: As above.
         )
