@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.27.1.19265",
-      "templateHash": "6027201902589320671"
+      "templateHash": "15258388180861212685"
     }
   },
   "parameters": {
@@ -229,6 +229,13 @@
         "description": "Enables the use of a vision LLM and Computer Vision for embedding images"
       }
     },
+    "advancedImageProcessingMaxImages": {
+      "type": "int",
+      "defaultValue": 1,
+      "metadata": {
+        "description": "The maximum number of images to pass to the vision model in a single request"
+      }
+    },
     "azureOpenAIVisionModel": {
       "type": "string",
       "defaultValue": "gpt-4",
@@ -263,7 +270,8 @@
       "allowedValues": [
         "openai_function",
         "semantic_kernel",
-        "langchain"
+        "langchain",
+        "prompt_flow"
       ],
       "metadata": {
         "description": "Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain"
@@ -551,6 +559,13 @@
       "metadata": {
         "description": "List of comma-separated languages to recognize from the speech input. Supported languages are listed here: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=stt#supported-languages"
       }
+    },
+    "azureMachineLearningName": {
+      "type": "string",
+      "defaultValue": "[format('aml-{0}', parameters('resourceToken'))]",
+      "metadata": {
+        "description": "Azure Machine Learning Name"
+      }
     }
   },
   "variables": {
@@ -631,7 +646,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.27.1.19265",
-              "templateHash": "2948321361335204987"
+              "templateHash": "10946574055690902625"
             },
             "description": "Creates an Azure Key Vault."
           },
@@ -677,6 +692,10 @@
             "name": {
               "type": "string",
               "value": "[parameters('name')]"
+            },
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.KeyVault/vaults', parameters('name'))]"
             }
           }
         }
@@ -2031,6 +2050,7 @@
               "AZURE_SPEECH_SERVICE_REGION": "[parameters('location')]",
               "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "[parameters('recognizedLanguages')]",
               "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
+              "ADVANCED_IMAGE_PROCESSING_MAX_IMAGES": "[parameters('advancedImageProcessingMaxImages')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
               "CONVERSATION_FLOW": "[parameters('conversationFlow')]",
               "LOGLEVEL": "[parameters('logLevel')]"
@@ -2984,6 +3004,7 @@
               "AZURE_SPEECH_SERVICE_REGION": "[parameters('location')]",
               "AZURE_SPEECH_RECOGNIZER_LANGUAGES": "[parameters('recognizedLanguages')]",
               "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
+              "ADVANCED_IMAGE_PROCESSING_MAX_IMAGES": "[parameters('advancedImageProcessingMaxImages')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
               "CONVERSATION_FLOW": "[parameters('conversationFlow')]",
               "LOGLEVEL": "[parameters('logLevel')]"
@@ -5757,7 +5778,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.27.1.19265",
-              "templateHash": "746484920101780722"
+              "templateHash": "13065021834937678877"
             },
             "description": "Creates an Application Insights instance and a Log Analytics workspace."
           },
@@ -5890,7 +5911,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.27.1.19265",
-                      "templateHash": "6641653850884689274"
+                      "templateHash": "6684811037284796150"
                     },
                     "description": "Creates an Application Insights instance based on an existing Log Analytics workspace."
                   },
@@ -7203,6 +7224,10 @@
                     "name": {
                       "type": "string",
                       "value": "[parameters('name')]"
+                    },
+                    "id": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Insights/components', parameters('name'))]"
                     }
                   }
                 }
@@ -7224,6 +7249,10 @@
             "applicationInsightsName": {
               "type": "string",
               "value": "[reference(resourceId('Microsoft.Resources/deployments', 'applicationinsights'), '2022-09-01').outputs.name.value]"
+            },
+            "applicationInsightsId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'applicationinsights'), '2022-09-01').outputs.id.value]"
             },
             "logAnalyticsWorkspaceId": {
               "type": "string",
@@ -10868,6 +10897,155 @@
       "dependsOn": [
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]"
       ]
+    },
+    {
+      "condition": "[equals(parameters('orchestrationStrategy'), 'prompt_flow')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[parameters('azureMachineLearningName')]",
+      "resourceGroup": "[variables('rgName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "workspaceName": {
+            "value": "[parameters('azureMachineLearningName')]"
+          },
+          "storageAccountId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('storageAccountName')), '2022-09-01').outputs.id.value]"
+          },
+          "keyVaultId": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'keyvault'), '2022-09-01').outputs.id.value), createObject('value', ''))]",
+          "applicationInsightsId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsId.value]"
+          },
+          "azureOpenAIName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName')), '2022-09-01').outputs.name.value]"
+          },
+          "azureAISearchName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureAISearchName')), '2022-09-01').outputs.name.value]"
+          },
+          "azureAISearchEndpoint": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureAISearchName')), '2022-09-01').outputs.endpoint.value]"
+          },
+          "azureOpenAIEndpoint": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName')), '2022-09-01').outputs.endpoint.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.27.1.19265",
+              "templateHash": "1703863751305099956"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "workspaceName": {
+              "type": "string"
+            },
+            "storageAccountId": {
+              "type": "string"
+            },
+            "keyVaultId": {
+              "type": "string"
+            },
+            "applicationInsightsId": {
+              "type": "string"
+            },
+            "azureAISearchName": {
+              "type": "string"
+            },
+            "azureAISearchEndpoint": {
+              "type": "string"
+            },
+            "azureOpenAIName": {
+              "type": "string"
+            },
+            "azureOpenAIEndpoint": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "azureOpenAIId": "[resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.MachineLearningServices/workspaces",
+              "apiVersion": "2023-06-01-preview",
+              "name": "[parameters('workspaceName')]",
+              "location": "[parameters('location')]",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "storageAccount": "[parameters('storageAccountId')]",
+                "keyVault": "[parameters('keyVaultId')]",
+                "applicationInsights": "[parameters('applicationInsightsId')]"
+              }
+            },
+            {
+              "type": "Microsoft.MachineLearningServices/workspaces/connections",
+              "apiVersion": "2024-01-01-preview",
+              "name": "[format('{0}/{1}', parameters('workspaceName'), 'aisearch_connection')]",
+              "properties": {
+                "authType": "ApiKey",
+                "credentials": {
+                  "key": "[listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2023-11-01').primaryKey]"
+                },
+                "category": "CognitiveSearch",
+                "target": "[parameters('azureAISearchEndpoint')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaceName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.MachineLearningServices/workspaces/connections",
+              "apiVersion": "2024-01-01-preview",
+              "name": "[format('{0}/{1}', parameters('workspaceName'), 'openai_connection')]",
+              "properties": {
+                "authType": "ApiKey",
+                "credentials": {
+                  "key": "[listKeys(variables('azureOpenAIId'), '2023-05-01').key1]"
+                },
+                "category": "AzureOpenAI",
+                "target": "[parameters('azureOpenAIEndpoint')]",
+                "metadata": {
+                  "apiType": "azure",
+                  "resourceId": "[variables('azureOpenAIId')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaceName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "workspaceName": {
+              "type": "string",
+              "value": "[parameters('workspaceName')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'keyvault')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName'))]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureAISearchName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('storageAccountName'))]"
+      ]
     }
   ],
   "outputs": {
@@ -11102,6 +11280,22 @@
     "CONVERSATION_FLOW": {
       "type": "string",
       "value": "[parameters('conversationFlow')]"
+    },
+    "USE_ADVANCED_IMAGE_PROCESSING": {
+      "type": "bool",
+      "value": "[parameters('useAdvancedImageProcessing')]"
+    },
+    "ADVANCED_IMAGE_PROCESSING_MAX_IMAGES": {
+      "type": "int",
+      "value": "[parameters('advancedImageProcessingMaxImages')]"
+    },
+    "AZURE_ML_WORKSPACE_NAME": {
+      "type": "string",
+      "value": "[if(equals(parameters('orchestrationStrategy'), 'prompt_flow'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureMachineLearningName')), '2022-09-01').outputs.workspaceName.value, '')]"
+    },
+    "RESOURCE_TOKEN": {
+      "type": "string",
+      "value": "[parameters('resourceToken')]"
     }
   }
 }

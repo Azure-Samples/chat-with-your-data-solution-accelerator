@@ -110,6 +110,9 @@ param azureOpenAIModelCapacity int = 30
 @description('Enables the use of a vision LLM and Computer Vision for embedding images')
 param useAdvancedImageProcessing bool = false
 
+@description('The maximum number of images to pass to the vision model in a single request')
+param advancedImageProcessingMaxImages int = 1
+
 @description('Azure OpenAI Vision Model Deployment Name')
 param azureOpenAIVisionModel string = 'gpt-4'
 
@@ -127,6 +130,7 @@ param azureOpenAIVisionModelCapacity int = 10
   'openai_function'
   'semantic_kernel'
   'langchain'
+  'prompt_flow'
 ])
 param orchestrationStrategy string = 'openai_function'
 
@@ -274,6 +278,9 @@ param logLevel string = 'INFO'
 
 @description('List of comma-separated languages to recognize from the speech input. Supported languages are listed here: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=stt#supported-languages')
 param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
+
+@description('Azure Machine Learning Name')
+param azureMachineLearningName string = 'aml-${resourceToken}'
 
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
@@ -554,6 +561,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SPEECH_SERVICE_REGION: location
       AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+      ADVANCED_IMAGE_PROCESSING_MAX_IMAGES: advancedImageProcessingMaxImages
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       CONVERSATION_FLOW: conversationFlow
       LOGLEVEL: logLevel
@@ -627,6 +635,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SPEECH_SERVICE_REGION: location
       AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
       USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+      ADVANCED_IMAGE_PROCESSING_MAX_IMAGES: advancedImageProcessingMaxImages
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       CONVERSATION_FLOW: conversationFlow
       LOGLEVEL: logLevel
@@ -1035,6 +1044,22 @@ module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
   }
 }
 
+module machineLearning 'app/machinelearning.bicep' = if (orchestrationStrategy == 'prompt_flow') {
+  scope: rg
+  name: azureMachineLearningName
+  params: {
+    location: location
+    workspaceName: azureMachineLearningName
+    storageAccountId: storage.outputs.id
+    keyVaultId: useKeyVault ? keyvault.outputs.id : ''
+    applicationInsightsId: monitoring.outputs.applicationInsightsId
+    azureOpenAIName: openai.outputs.name
+    azureAISearchName: search.outputs.name
+    azureAISearchEndpoint: search.outputs.endpoint
+    azureOpenAIEndpoint: openai.outputs.endpoint
+  }
+}
+
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
 output AZURE_BLOB_CONTAINER_NAME string = blobContainerName
@@ -1097,3 +1122,9 @@ output ADMIN_WEBSITE_NAME string = hostingModel == 'code'
   : adminweb_docker.outputs.WEBSITE_ADMIN_URI
 output LOGLEVEL string = logLevel
 output CONVERSATION_FLOW string = conversationFlow
+output USE_ADVANCED_IMAGE_PROCESSING bool = useAdvancedImageProcessing
+output ADVANCED_IMAGE_PROCESSING_MAX_IMAGES int = advancedImageProcessingMaxImages
+output AZURE_ML_WORKSPACE_NAME string = orchestrationStrategy == 'prompt_flow'
+  ? machineLearning.outputs.workspaceName
+  : ''
+output RESOURCE_TOKEN string = resourceToken
