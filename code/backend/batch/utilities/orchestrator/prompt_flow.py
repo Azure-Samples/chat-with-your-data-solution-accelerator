@@ -18,9 +18,7 @@ class PromptFlowOrchestrator(OrchestratorBase):
 
         # Get the ML client and endpoint name
         self.ml_client = self.llm_helper.get_ml_client()
-        print("ML Client: ", self.ml_client)  # TOREMOVE
         self.enpoint_name = self.llm_helper.get_endpoint_name()
-        print("Endpoint Name: ", self.enpoint_name)  # TOREMOVE
         self.deployment_name = self.llm_helper.get_deployment_name()
 
     async def orchestrate(
@@ -34,9 +32,8 @@ class PromptFlowOrchestrator(OrchestratorBase):
         # Transform conversation history into the right format for the Prompt Flow service
         transformed_chat_history = self.llm_helper.transform_chat_history_for_pf(chat_history)
 
-        # Transform input into the right format for the Prompt Flow service
+        # Transform data input into a file for the Prompt Flow service
         data = {"chat_input": user_message, "chat_history": transformed_chat_history}
-        print("Data: ", data)  # TOREMOVE
         body = str.encode(json.dumps(data))
         with tempfile.NamedTemporaryFile(delete=False) as file:
             file.write(body)
@@ -47,9 +44,7 @@ class PromptFlowOrchestrator(OrchestratorBase):
                 endpoint_name=self.enpoint_name, request_file=file.name,
                 deployment_name=self.deployment_name
             )
-            print("Response: ", response)  # TOREMOVE
             result = json.loads(response)
-            print("Chat output: ", result)  # TOREMOVE
             logger.debug(result)
         except urllib.error.HTTPError as error:
             logger.error("The request failed with status code: %s", str(error.code))
@@ -59,9 +54,7 @@ class PromptFlowOrchestrator(OrchestratorBase):
         # Transform response into answer
         answer = Answer(
             question=user_message,
-            answer=result['chat_output'],
-            prompt_tokens=0,  # TODO: Does the response contain the number of tokens within metadata?
-            completion_tokens=0,  # TODO: As above.
+            answer=result['chat_output']
         )
 
         # Call Content Safety tool
