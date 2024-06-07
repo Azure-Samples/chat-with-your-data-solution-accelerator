@@ -61,6 +61,8 @@
 ## **Point 2**: When asked to summarize a specific document
 - your answer:
   - Extract the key or relevant content for the specified document.
+  - ONE DOCUMENT, ONE SUMMARY.
+  - You don't combine documents summaries.
   - If any key factor (such as party, date, or any main key summarization part) is not available, do not include it in the answer.
   - Summary of [Document Title]:
     - Parties Involved: [Party A], [Party B] (if available)
