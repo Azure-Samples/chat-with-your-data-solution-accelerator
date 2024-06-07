@@ -11,6 +11,7 @@ while IFS='=' read -r key value; do
     case "$key" in
         "ORCHESTRATION_STRATEGY") orchestration_strategy=$value ;;
         "AZURE_SUBSCRIPTION_ID") subscription_id=$value ;;
+        "AZURE_TENANT_ID") tenant_id=$value ;;
         "AZURE_RESOURCE_GROUP") resource_group=$value ;;
         "AZURE_ML_WORKSPACE_NAME") aml_workspace=$value ;;
         "RESOURCE_TOKEN") resource_token=$value ;;
@@ -62,6 +63,10 @@ sed -i "s@<openai_embedding_model>@${openai_embedding_model}@g" "$flow_dag_file"
 sed -i "s@<aisearch_connection_id>@${connection_id_prefix}/aisearch_connection@g" "$flow_dag_file"
 sed -i "s@<aisearch_endpoint>@${search_service}@g" "$flow_dag_file"
 sed -i "s@<aisearch_index>@${search_index}@g" "$flow_dag_file"
+
+# login to Azure if not already logged in
+az account show > /dev/null 2>&1 || az login --tenant "$tenant_id"
+az account set --subscription "$subscription_id"
 
 set +e
 tries=1
