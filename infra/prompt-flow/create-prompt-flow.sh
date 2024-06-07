@@ -114,3 +114,4 @@ rm "$flow_dag_file"
 
 echo "Setting prompt flow endpoint name in azd env"
 azd env set PROMPT_FLOW_ENDPOINT_NAME $endpoint_name
+azd env set PROMPT_FLOW_DEPLOYMENT_NAME $deployment_name

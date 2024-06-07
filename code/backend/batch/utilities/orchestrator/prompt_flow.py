@@ -21,6 +21,7 @@ class PromptFlowOrchestrator(OrchestratorBase):
         print("ML Client: ", self.ml_client)  # TOREMOVE
         self.enpoint_name = self.llm_helper.get_endpoint_name()
         print("Endpoint Name: ", self.enpoint_name)  # TOREMOVE
+        self.deployment_name = self.llm_helper.get_deployment_name()
 
     async def orchestrate(
         self, user_message: str, chat_history: List[dict], **kwargs: dict
@@ -30,8 +31,11 @@ class PromptFlowOrchestrator(OrchestratorBase):
             if response := self.call_content_safety_input(user_message):
                 return response
 
+        # Transform conversation history into the right format for the Prompt Flow service
+        transformed_chat_history = self.llm_helper.transform_chat_history_for_pf(chat_history)
+
         # Transform input into the right format for the Prompt Flow service
-        data = {"chat_input": user_message, "chat_history": chat_history}
+        data = {"chat_input": user_message, "chat_history": transformed_chat_history}
         print("Data: ", data)  # TOREMOVE
         body = str.encode(json.dumps(data))
         with tempfile.NamedTemporaryFile(delete=False) as file:
@@ -40,7 +44,8 @@ class PromptFlowOrchestrator(OrchestratorBase):
         # Call the Prompt Flow service
         try:
             response = self.ml_client.online_endpoints.invoke(
-                endpoint_name=self.enpoint_name, request_file=file.name
+                endpoint_name=self.enpoint_name, request_file=file.name,
+                deployment_name=self.deployment_name
             )
             print("Response: ", response)  # TOREMOVE
             result = json.loads(response)
