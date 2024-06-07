@@ -162,7 +162,7 @@ class LLMHelper:
             DefaultAzureCredential(),
             self.env_helper.AZURE_SUBSCRIPTION_ID,
             self.env_helper.AZURE_RESOURCE_GROUP,
-            self.env_helper.AZURE_MACHINE_LEARNING_WORKSPACE,
+            self.env_helper.AZURE_ML_WORKSPACE_NAME,
         )
 
     def get_endpoint_name(self):
