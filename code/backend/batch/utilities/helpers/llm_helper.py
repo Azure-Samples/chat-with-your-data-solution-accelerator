@@ -158,12 +158,14 @@ class LLMHelper:
         )
 
     def get_ml_client(self):
-        return MLClient(
-            DefaultAzureCredential(),
-            self.env_helper.AZURE_SUBSCRIPTION_ID,
-            self.env_helper.AZURE_RESOURCE_GROUP,
-            self.env_helper.AZURE_ML_WORKSPACE_NAME,
-        )
+        if not hasattr(self, "_ml_client"):
+            self._ml_client = MLClient(
+                DefaultAzureCredential(),
+                self.env_helper.AZURE_SUBSCRIPTION_ID,
+                self.env_helper.AZURE_RESOURCE_GROUP,
+                self.env_helper.AZURE_ML_WORKSPACE_NAME,
+            )
+        return self._ml_client
 
     def get_endpoint_name(self):
         return self.env_helper.PROMPT_FLOW_ENDPOINT_NAME
