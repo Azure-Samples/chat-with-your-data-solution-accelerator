@@ -20,6 +20,7 @@ while IFS='=' read -r key value; do
         "AZURE_SEARCH_SERVICE") search_service=$value ;;
         "AZURE_SEARCH_INDEX") search_index=$value ;;
         "FRONTEND_WEBSITE_NAME") frontend_website_link=$value ;;
+        "ADMIN_WEBSITE_NAME") admin_website_link=$value ;;
     esac
 done <<EOF
 $(azd env get-values)
@@ -48,6 +49,7 @@ endpoint_name="cwyd-endpoint-${resource_token}"
 deployment_name="cwyd-deployment-${resource_token}"
 
 webapp_name=$(echo $frontend_website_link | cut -d'/' -f3 | cut -d'.' -f1)
+admin_webapp_name=$(echo $admin_website_link | cut -d'/' -f3 | cut -d'.' -f1)
 
 echo "Installing dependencies"
 poetry install --only prompt-flow
@@ -118,6 +120,10 @@ rm "$flow_dag_file"
 echo "Setting prompt flow endpoint name in azd env"
 azd env set PROMPT_FLOW_ENDPOINT_NAME $endpoint_name
 azd env set PROMPT_FLOW_DEPLOYMENT_NAME $deployment_name
+
+echo "Setting environment variables in webapp"
+az webapp config appsettings set --name $webapp_name --resource-group $resource_group --settings PROMPT_FLOW_ENDPOINT_NAME=$endpoint_name PROMPT_FLOW_DEPLOYMENT_NAME=$deployment_name AZURE_ML_WORKSPACE_NAME=$aml_workspace
+az webapp config appsettings set --name $admin_webapp_name --resource-group $resource_group --settings PROMPT_FLOW_ENDPOINT_NAME=$endpoint_name PROMPT_FLOW_DEPLOYMENT_NAME=$deployment_name AZURE_ML_WORKSPACE_NAME=$aml_workspace
 
 echo "Assigning AzureML Data Scientist role to webapp"
 webapp_id=$(az webapp identity show --resource-group "$resource_group" --name $webapp_name --query principalId --output tsv)
