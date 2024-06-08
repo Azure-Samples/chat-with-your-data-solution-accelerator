@@ -1,4 +1,4 @@
-### README for CWYD Legal Assistant
+# CWYD Legal Assistant
 
 ## Overview
 The CWYD Legal Assistant is designed to help legal professionals efficiently manage and interact with a large collection of legal documents. It utilizes advanced natural language processing capabilities to provide accurate and contextually relevant responses to user queries about the documents.
@@ -6,18 +6,18 @@ The CWYD Legal Assistant is designed to help legal professionals efficiently man
 
 The full prompt is here: [Link to the legal assistant prompt]
 ### Admin Configuration
-In the admin panel, there is a checkbox to enable the CWYD Assistant . The options are:
+In the admin panel, there is a dropdown to  select the CWYD legal Assistant. The options are:
 
-- **Unchecked** default CWYD prompt
+- **Default**  CWYD default prompt
 
-![Unchecked ](images/cwyd_admin_legal_unchecked.png)
-
-
-- **Checked** Legal Assistant prompt
-![Checked ](images/cwyd_admin_legal_checked.png)
+![UnSelected](images/cwyd_admin_legal_unselected.png)
 
 
-When the user check "Legal Assistant", the user prompt textbox will update to the Legal Assistant prompt. When the user uncheck the box, the user prompt textbox will update to the default prompt. Note that if the user has a custom prompt in the user prompt textbox, selecting an option from the checkbox will overwrite the custom prompt with the default or legal assistant prompt.
+- **Selected** Legal Assistant prompt
+![Checked ](images/cwyd_admin_legal_selected.png)
+
+
+When the user selects "Legal Assistant", the user prompt textbox will update to the Legal Assistant prompt. When the user select the default, the user prompt textbox will update to the default prompt. Note that if the user has a custom prompt in the user prompt textbox, selecting an option from the dropdown will overwrite the custom prompt with the default or legal assistant prompt.
 
 ### Legal Assistant Prompt
 The Legal Assistant prompt configuration ensures that the AI responds accurately based on the given context, handling a variety of tasks such as listing documents, filtering based on specific criteria, and summarizing document content. Below is the detailed prompt configuration:
