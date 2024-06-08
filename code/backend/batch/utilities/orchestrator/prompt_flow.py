@@ -24,7 +24,7 @@ class PromptFlowOrchestrator(OrchestratorBase):
     async def orchestrate(
         self, user_message: str, chat_history: List[dict], **kwargs: dict
     ) -> list[dict]:
-        # Call Content Safety tool
+        # Call Content Safety tool on question
         if self.config.prompts.enable_content_safety:
             if response := self.call_content_safety_input(user_message):
                 return response
@@ -51,13 +51,13 @@ class PromptFlowOrchestrator(OrchestratorBase):
             logger.error(error.info())
             logger.error(error.read().decode("utf8", "ignore"))
 
-        # Transform response into answer
+        # Transform response into answer for further processing
         answer = Answer(
             question=user_message,
             answer=result['chat_output']
         )
 
-        # Call Content Safety tool
+        # Call Content Safety tool on answer
         if self.config.prompts.enable_content_safety:
             if response := self.call_content_safety_output(user_message, answer.answer):
                 return response
