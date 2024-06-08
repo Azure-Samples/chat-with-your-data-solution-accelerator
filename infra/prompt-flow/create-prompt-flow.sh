@@ -128,3 +128,4 @@ az webapp config appsettings set --name $admin_webapp_name --resource-group $res
 echo "Assigning AzureML Data Scientist role to webapp"
 webapp_id=$(az webapp identity show --resource-group "$resource_group" --name $webapp_name --query principalId --output tsv)
 az role assignment create --role "AzureML Data Scientist" --scope "/subscriptions/${subscription_id}/resourceGroups/${resource_group}/providers/Microsoft.MachineLearningServices/workspaces/${aml_workspace}" --assignee-object-id "$webapp_id" --assignee-principal-type ServicePrincipal
+az role assignment create --role "AzureML Data Scientist" --scope "/subscriptions/${subscription_id}/resourceGroups/${resource_group}/providers/Microsoft.MachineLearningServices/workspaces/${aml_workspace}/onlineEndpoints/${endpoint_name}" --assignee-object-id "$webapp_id" --assignee-principal-type ServicePrincipal
