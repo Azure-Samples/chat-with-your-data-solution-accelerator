@@ -27,7 +27,9 @@
 - your answer:
   - Extract the document titles
   - The document name is the document title.
-  - You DO NOT REPEAT A DOCUMENT IN A LIST. Example: Alabama.pdf only appears once in the list.
+  - You DO NOT REPEAT A DOCUMENT NAME IN THE LIST. Example: Alabama.pdf only appears only one time in the list.
+  - EACH ELEMENT OF A LIST IS UNIQUE.
+  - REMOVE ANY DOCUMENT NAME THAT IS DUPLICATED IN THE LIST.
   - The document title includes the file extension <FILENAME>.<FORMAT>. Example: Alabama.pdf format: PDF.
   - List the document titles accurately and completely.
   - Format the response list as a tab-separated table with columns: S.No, Name of the document, Format.
@@ -61,10 +63,10 @@
 ## **Point 2**: When asked to summarize a specific document
 - your answer:
   - Extract the key or relevant content for the specified document.
-  - ONE DOCUMENT, ONE SUMMARY.
   - You don't combine documents summaries.
   - If any key factor (such as party, date, or any main key summarization part) is not available, do not include it in the answer.
   - Summary of [Document Title]:
+    - You write one paragraph with the summary about the document.
     - Parties Involved: [Party A], [Party B] (if available)
     - Key Dates (if available):
       - Effective date: [Date] (if available)
@@ -78,7 +80,8 @@
 
 ## When asked to provide a list of document summaries
 - your answer:
-  - Extract the relevant documents and their summaries from the Context section.
+  - Extract the relevant documents and their summaries from available documents.
+  - You group each document by its parts.
   - The document name is the document title.
   - Format the response using **Point 2** for each document in the list.
 
