@@ -19,6 +19,7 @@ while IFS='=' read -r key value; do
         "AZURE_OPENAI_EMBEDDING_MODEL") openai_embedding_model=$value ;;
         "AZURE_SEARCH_SERVICE") search_service=$value ;;
         "AZURE_SEARCH_INDEX") search_index=$value ;;
+        "FRONTEND_WEBSITE_NAME") frontend_website_link=$value ;;
     esac
 done <<EOF
 $(azd env get-values)
@@ -45,6 +46,8 @@ fi
 model_name="cwyd-model-${resource_token}"
 endpoint_name="cwyd-endpoint-${resource_token}"
 deployment_name="cwyd-deployment-${resource_token}"
+
+webapp_name=$(echo $frontend_website_link | cut -d'/' -f3 | cut -d'.' -f1)
 
 echo "Installing dependencies"
 poetry install --only prompt-flow
@@ -115,3 +118,7 @@ rm "$flow_dag_file"
 echo "Setting prompt flow endpoint name in azd env"
 azd env set PROMPT_FLOW_ENDPOINT_NAME $endpoint_name
 azd env set PROMPT_FLOW_DEPLOYMENT_NAME $deployment_name
+
+echo "Assigning AzureML Data Scientist role to webapp"
+webapp_id=$(az webapp identity show --resource-group "$resource_group" --name $webapp_name --query principalId --output tsv)
+az role assignment create --role "AzureML Data Scientist" --scope "/subscriptions/${subscription_id}/resourceGroups/${resource_group}/providers/Microsoft.MachineLearningServices/workspaces/${aml_workspace}" --assignee-object-id "$webapp_id" --assignee-principal-type ServicePrincipal
