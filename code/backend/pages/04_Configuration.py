@@ -63,8 +63,8 @@ if "log_tokens" not in st.session_state:
 
 if "orchestrator_strategy" not in st.session_state:
     st.session_state["orchestrator_strategy"] = config.orchestrator.strategy.value
-if "enable_legal_assistant" not in st.session_state:
-    st.session_state["enable_legal_assistant"] = config.prompts.enable_legal_assistant
+if "ai_assistant_type" not in st.session_state:
+    st.session_state["ai_assistant_type"] = config.prompts.ai_assistant_type
 
 if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
     if "max_page_length" not in st.session_state:
@@ -92,11 +92,11 @@ def validate_answering_user_prompt():
         st.warning("Your answering prompt doesn't contain the variable `{question}`")
 
 def config_legal_assistant_prompt():
-    if st.session_state["enable_legal_assistant"]:
-        st.success("Legal Assistant Prompt Enabled")
+    if st.session_state["ai_assistant_type"] == "legal assistant":
+        st.success("Legal Assistant Prompt")
         st.session_state["answering_user_prompt"] = ConfigHelper.get_default_legal_assistant()
     else:
-        st.success("Legal Assistant Prompt Disabled")
+        st.success("Default Assistant Prompt")
         st.session_state["answering_user_prompt"] = config.prompts.answering_user_prompt
 
 
@@ -184,7 +184,7 @@ try:
     post_answering_prompt_help = "You can configure a post prompt that allows to fact-check or process the answer, given the sources, question and answer. This prompt needs to return `True` or `False`."
     use_on_your_data_format_help = "Whether to use a similar prompt format to Azure OpenAI On Your Data, including separate system and user messages, and a few-shot example."
     post_answering_filter_help = "The message that is returned to the user, when the post-answering prompt returns."
-    enable_post_answering_prompt_help = "Whether to enable the Legal Assistant Prompt."
+    ai_assistant_type_help = "Whether to use the default user prompt or other."
     example_documents_help = (
         "JSON object containing documents retrieved from the knowledge base, in the following format:  \n"
         """```json
@@ -207,19 +207,22 @@ try:
     )
     example_user_question_help = "The example user question."
     example_answer_help = "The expected answer."
-
+    with st.expander("", expanded=True):
+        cols = st.columns([2, 4])
+        with cols[0]:
+            st.selectbox(
+                "Assistant Type",
+                key="ai_assistant_type",
+                on_change=config_legal_assistant_prompt,
+                options=config.get_available_ai_assistant_types(),
+                help=ai_assistant_type_help,
+            )
     with st.expander("Prompt configuration", expanded=True):
         # # # st.text_area("Condense question prompt", key='condense_question_prompt', on_change=validate_question_prompt, help=condense_question_prompt_help, height=200)
         st.checkbox(
             "Use Azure OpenAI On Your Data prompt format",
             key="use_on_your_data_format",
             help=use_on_your_data_format_help,
-        )
-        st.checkbox(
-            "Enable CWYD Legal Assistant",
-            key="enable_legal_assistant",
-            on_change=config_legal_assistant_prompt,
-            help=enable_post_answering_prompt_help,
         )
         st.text_area(
             "Answering user prompt",
@@ -370,7 +373,7 @@ try:
                     "enable_post_answering_prompt"
                 ],
                 "enable_content_safety": st.session_state["enable_content_safety"],
-                "enable_legal_assistant": st.session_state["enable_legal_assistant"]
+                "ai_assistant_type": st.session_state["ai_assistant_type"]
             },
             "messages": {
                 "post_answering_filter": st.session_state[

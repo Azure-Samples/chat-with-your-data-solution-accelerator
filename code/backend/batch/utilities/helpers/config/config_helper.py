@@ -84,10 +84,9 @@ class Config:
 
     def get_available_orchestration_strategies(self):
         return [c.value for c in OrchestrationStrategy]
+    def get_available_ai_assistant_types(self):
+        return ["default", "legal assistant"]
 
-    def get_legal_assistant(self):
-        legal_assistant = "Legal Assistant"
-        return legal_assistant
 
 # TODO: Change to AnsweringChain or something, Prompts is not a good name
 class Prompts:
@@ -99,7 +98,7 @@ class Prompts:
         self.use_on_your_data_format = prompts["use_on_your_data_format"]
         self.enable_post_answering_prompt = prompts["enable_post_answering_prompt"]
         self.enable_content_safety = prompts["enable_content_safety"]
-        self.enable_legal_assistant = prompts["enable_legal_assistant"]
+        self.ai_assistant_type = prompts["ai_assistant_type"]
 
 
 class Example:
@@ -164,8 +163,8 @@ class ConfigHelper:
         if config.get("example") is None:
             config["example"] = default_config["example"]
 
-        if config["prompts"].get("enable_legal_assistant") is None:
-            config["prompts"]["enable_legal_assistant"] =  default_config["prompts"]["enable_legal_assistant"]
+        if config["prompts"].get("ai_assistant_type") is None:
+            config["prompts"]["ai_assistant_type"] =  default_config["prompts"]["ai_assistant_type"]
 
         if config.get("integrated_vectorization_config") is None:
             config["integrated_vectorization_config"] = default_config[
@@ -178,17 +177,17 @@ class ConfigHelper:
         env_helper = EnvHelper()
         config = ConfigHelper.get_default_config()
 
-        if env_helper.LOAD_CONFIG_FROM_BLOB_STORAGE:
-            blob_client = AzureBlobStorageClient(container_name=CONFIG_CONTAINER_NAME)
+        # if env_helper.LOAD_CONFIG_FROM_BLOB_STORAGE:
+        #     blob_client = AzureBlobStorageClient(container_name=CONFIG_CONTAINER_NAME)
 
-            if blob_client.file_exists(CONFIG_FILE_NAME):
-                default_config = config
-                config_file = blob_client.download_file(CONFIG_FILE_NAME)
-                config = json.loads(config_file)
+        #     if blob_client.file_exists(CONFIG_FILE_NAME):
+        #         default_config = config
+        #         config_file = blob_client.download_file(CONFIG_FILE_NAME)
+        #         config = json.loads(config_file)
 
-                ConfigHelper._set_new_config_properties(config, default_config)
-            else:
-                logger.info("Returning default config")
+        #         ConfigHelper._set_new_config_properties(config, default_config)
+        #     else:
+        #         logger.info("Returning default config")
 
         return Config(config)
 
