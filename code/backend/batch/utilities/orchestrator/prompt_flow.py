@@ -43,11 +43,9 @@ class PromptFlowOrchestrator(OrchestratorBase):
             )
             result = json.loads(response)
             logger.debug(result)
-        except urllib.error.HTTPError as error:
-            logger.error("The request failed with status code: %s\nInfo: %s\nError: %s",
-                         str(error.code),
-                         error.info(),
-                         error.read().decode("utf8", "ignore"))
+        except Exception as error:
+            logger.error("The request failed: %s", error)
+            raise RuntimeError(f"The request failed: {error}") from error
 
         # Transform response into answer for further processing
         answer = Answer(

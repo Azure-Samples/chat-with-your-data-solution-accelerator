@@ -112,6 +112,18 @@ async def test_orchestrate_returns_expected_chat_response(orchestrator: PromptFl
     assert response == expected_result
 
 @pytest.mark.asyncio
+async def test_orchestrate_returns_error_response(orchestrator: PromptFlowOrchestrator):
+    # given
+    user_message = "question"
+    chat_history = []
+    error = Exception()
+    orchestrator.ml_client.online_endpoints.invoke = AsyncMock(side_effect=error)
+
+    # when & then
+    with pytest.raises(RuntimeError):
+        await orchestrator.orchestrate(user_message, chat_history)
+
+@pytest.mark.asyncio
 async def test_orchestrate_returns_content_safety_response_for_unsafe_output(
     orchestrator: PromptFlowOrchestrator):
     # given
