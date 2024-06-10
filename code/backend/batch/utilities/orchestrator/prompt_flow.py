@@ -7,6 +7,7 @@ import tempfile
 from .orchestrator_base import OrchestratorBase
 from ..common.answer import Answer
 from ..helpers.llm_helper import LLMHelper
+from ..helpers.env_helper import EnvHelper
 
 logger = logging.getLogger(__name__)
 
@@ -15,11 +16,12 @@ class PromptFlowOrchestrator(OrchestratorBase):
     def __init__(self) -> None:
         super().__init__()
         self.llm_helper = LLMHelper()
+        self.env_helper = EnvHelper()
 
-        # Get the ML client and endpoint name
+        # Get the ML client, endpoint and deployment names
         self.ml_client = self.llm_helper.get_ml_client()
-        self.enpoint_name = self.llm_helper.get_endpoint_name()
-        self.deployment_name = self.llm_helper.get_deployment_name()
+        self.enpoint_name = self.env_helper.PROMPT_FLOW_ENDPOINT_NAME
+        self.deployment_name = self.env_helper.PROMPT_FLOW_DEPLOYMENT_NAME
 
     async def orchestrate(
         self, user_message: str, chat_history: List[dict], **kwargs: dict
@@ -29,27 +31,23 @@ class PromptFlowOrchestrator(OrchestratorBase):
             if response := self.call_content_safety_input(user_message):
                 return response
 
-        # Transform conversation history into the right format for the Prompt Flow service
-        transformed_chat_history = self.llm_helper.transform_chat_history_for_pf(chat_history)
+        transformed_chat_history = self.transform_chat_history(chat_history)
 
-        # Transform data input into a file for the Prompt Flow service
-        data = {"chat_input": user_message, "chat_history": transformed_chat_history}
-        body = str.encode(json.dumps(data))
-        with tempfile.NamedTemporaryFile(delete=False) as file:
-            file.write(body)
+        file_name = self.transform_data_into_file(user_message, transformed_chat_history)
 
         # Call the Prompt Flow service
         try:
             response = self.ml_client.online_endpoints.invoke(
-                endpoint_name=self.enpoint_name, request_file=file.name,
+                endpoint_name=self.enpoint_name, request_file=file_name,
                 deployment_name=self.deployment_name
             )
             result = json.loads(response)
             logger.debug(result)
         except urllib.error.HTTPError as error:
-            logger.error("The request failed with status code: %s", str(error.code))
-            logger.error(error.info())
-            logger.error(error.read().decode("utf8", "ignore"))
+            logger.error("The request failed with status code: %s\nInfo: %s\nError: %s",
+                         str(error.code),
+                         error.info(),
+                         error.read().decode("utf8", "ignore"))
 
         # Transform response into answer for further processing
         answer = Answer(
@@ -69,3 +67,27 @@ class PromptFlowOrchestrator(OrchestratorBase):
             source_documents=answer.source_documents,
         )
         return messages
+
+    def transform_chat_history(self, chat_history):
+        # Transform conversation history into the right format for the Prompt Flow service
+        transformed_chat_history = []
+        for i in range(0, len(chat_history), 2):
+            user_message = chat_history[i]['content']
+            assistant_message = chat_history[i+1]['content'] if i+1 < len(chat_history) else ''
+            transformed_chat_history.append({
+                "inputs": {
+                    "chat_input": user_message
+                },
+                "outputs": {
+                    "chat_output": assistant_message
+                }
+            })
+        return transformed_chat_history
+
+    def transform_data_into_file(self, user_message, chat_history):
+        # Transform data input into a file for the Prompt Flow service
+        data = {"chat_input": user_message, "chat_history": chat_history}
+        body = str.encode(json.dumps(data))
+        with tempfile.NamedTemporaryFile(delete=False) as file:
+            file.write(body)
+        return file.name

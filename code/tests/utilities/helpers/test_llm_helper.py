@@ -140,7 +140,8 @@ def test_generate_embeddings_returns_embeddings(azure_openai_mock):
 
 @patch('backend.batch.utilities.helpers.llm_helper.DefaultAzureCredential')
 @patch('backend.batch.utilities.helpers.llm_helper.MLClient')
-def test_get_ml_client(mock_ml_client, mock_default_credential, env_helper_mock):
+def test_get_ml_client_initializes_with_expected_parameters(
+    mock_ml_client, mock_default_credential, env_helper_mock):
     # given
     llm_helper = LLMHelper()
 
@@ -154,80 +155,3 @@ def test_get_ml_client(mock_ml_client, mock_default_credential, env_helper_mock)
         env_helper_mock.AZURE_RESOURCE_GROUP,
         env_helper_mock.AZURE_ML_WORKSPACE_NAME
     )
-
-def test_get_endpoint_name(env_helper_mock):
-    # given
-    llm_helper = LLMHelper()
-
-    # when
-    result = llm_helper.get_endpoint_name()
-
-    # then
-    assert result == PROMPT_FLOW_ENDPOINT_NAME
-
-def test_get_deployment_name(env_helper_mock):
-    # given
-    llm_helper = LLMHelper()
-
-    # when
-    result = llm_helper.get_deployment_name()
-
-    # then
-    assert result == PROMPT_FLOW_DEPLOYMENT_NAME
-
-def test_transform_chat_history_for_pf():
-    # given
-    llm_helper = LLMHelper()
-    chat_history = [
-        {'role': 'user', 'content': 'Hi!'},
-        {'content': 'Hello! How can I assist you today?', 'end_turn': True, 'role': 'assistant'}
-    ]
-
-    # when
-    result = llm_helper.transform_chat_history_for_pf(chat_history)
-
-    # then
-    expected_result = [
-        {
-            'inputs': {'chat_input': 'Hi!'},
-            'outputs': {'chat_output': 'Hello! How can I assist you today?'}
-        }
-    ]
-    assert result == expected_result
-
-def test_transform_chat_history_for_pf_empty():
-    # given
-    llm_helper = LLMHelper()
-    chat_history = []
-
-    # when
-    result = llm_helper.transform_chat_history_for_pf(chat_history)
-
-    # then
-    assert result == []
-
-def test_transform_chat_history_for_pf_multiple_messages():
-    # given
-    llm_helper = LLMHelper()
-    chat_history = [
-        {'role': 'user', 'content': 'Hi!'},
-        {'content': 'Hello! How can I assist you today?', 'end_turn': True, 'role': 'assistant'},
-        {'role': 'user', 'content': 'Can you help with employee benefits?'},
-        {'content': 'What information are you looking for?', 'end_turn': True, 'role': 'assistant'}
-    ]
-
-    # when
-    result = llm_helper.transform_chat_history_for_pf(chat_history)
-
-    # then
-    expected_result = [
-        {
-            'inputs': {'chat_input': 'Hi!'},
-            'outputs': {'chat_output': 'Hello! How can I assist you today?'}
-        },
-        {
-            'inputs': {'chat_input': 'Can you help with employee benefits?'},
-            'outputs': {'chat_output': 'What information are you looking for?'}
-        }
-    ]
-    assert result == expected_result

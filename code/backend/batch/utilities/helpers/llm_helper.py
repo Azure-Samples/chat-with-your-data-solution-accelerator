@@ -166,24 +166,3 @@ class LLMHelper:
                 self.env_helper.AZURE_ML_WORKSPACE_NAME,
             )
         return self._ml_client
-
-    def get_endpoint_name(self):
-        return self.env_helper.PROMPT_FLOW_ENDPOINT_NAME
-
-    def get_deployment_name(self):
-        return self.env_helper.PROMPT_FLOW_DEPLOYMENT_NAME
-
-    def transform_chat_history_for_pf(self, chat_history):
-        transformed_chat_history = []
-        for i in range(0, len(chat_history), 2):
-            user_message = chat_history[i]['content']
-            assistant_message = chat_history[i+1]['content'] if i+1 < len(chat_history) else ''
-            transformed_chat_history.append({
-                "inputs": {
-                    "chat_input": user_message
-                },
-                "outputs": {
-                    "chat_output": assistant_message
-                }
-            })
-        return transformed_chat_history
