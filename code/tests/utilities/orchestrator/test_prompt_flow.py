@@ -202,3 +202,16 @@ def test_transform_chat_history_handles_multiple_messages_correctly(orchestrator
         }
     ]
     assert result == expected_result
+
+def test_transform_chat_history_handles_no_assistant_message_correctly(orchestrator: PromptFlowOrchestrator):
+    # given
+    chat_history = [
+        {'role': 'user', 'content': 'Hi!'},
+        {'role': 'user', 'content': 'Hello!'}
+    ]
+
+    # when
+    result = orchestrator.transform_chat_history(chat_history)
+
+    # then
+    assert result == []

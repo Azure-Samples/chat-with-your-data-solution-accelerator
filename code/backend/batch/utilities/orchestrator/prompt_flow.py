@@ -67,19 +67,31 @@ class PromptFlowOrchestrator(OrchestratorBase):
         return messages
 
     def transform_chat_history(self, chat_history):
-        # Transform conversation history into the right format for the Prompt Flow service
+        # Transform chat history into a format that the Prompt Flow service can understand
         transformed_chat_history = []
-        for i in range(0, len(chat_history), 2):
-            user_message = chat_history[i]['content']
-            assistant_message = chat_history[i+1]['content'] if i+1 < len(chat_history) else ''
-            transformed_chat_history.append({
-                "inputs": {
-                    "chat_input": user_message
-                },
-                "outputs": {
-                    "chat_output": assistant_message
-                }
-            })
+        i = 0
+        while i < len(chat_history):
+            if chat_history[i]['role'] == 'user':
+                user_message = chat_history[i]['content']
+                i += 1
+                assistant_message = ''
+                # Find the next assistant message
+                while i < len(chat_history) and chat_history[i]['role'] != 'assistant':
+                    i += 1
+                if i < len(chat_history):
+                    assistant_message = chat_history[i]['content']
+                    i += 1
+                if assistant_message:
+                    transformed_chat_history.append({
+                        "inputs": {
+                            "chat_input": user_message
+                        },
+                        "outputs": {
+                            "chat_output": assistant_message
+                        }
+                    })
+            else:
+                i += 1
         return transformed_chat_history
 
     def transform_data_into_file(self, user_message, chat_history):
