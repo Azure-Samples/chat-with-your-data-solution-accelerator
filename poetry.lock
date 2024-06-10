@@ -5966,13 +5966,13 @@ jeepney = ">=0.6"
 
 [[package]]
 name = "semantic-kernel"
-version = "1.0.4"
+version = "1.0.5"
 description = "Semantic Kernel Python SDK"
 optional = false
 python-versions = "<3.13,>=3.10"
 files = [
-    {file = "semantic_kernel-1.0.4-py3-none-any.whl", hash = "sha256:75b41fe4a71e26ab6cced3ad007902275a4405441deff7207e3cc3db09e40853"},
-    {file = "semantic_kernel-1.0.4.tar.gz", hash = "sha256:69d9f799a486ee804c494cef5d5fd12555792dc8043673bea2781f4d0dcae0ae"},
+    {file = "semantic_kernel-1.0.5-py3-none-any.whl", hash = "sha256:30c445bec1ac75ffbeaa5a0e74d27fb8c2d0b7c99b3f755d6047d3dda3172d3b"},
+    {file = "semantic_kernel-1.0.5.tar.gz", hash = "sha256:e2fd1112de64e8133998ef79f3c3d2fd3dc03d443e0290d036c36840baca1d60"},
 ]
 
 [package.dependencies]
@@ -7275,4 +7275,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "2d8149a6bcde99783c4c00228351a61900e379c92e19036faa37b0b2fce42910"
+content-hash = "2d8f28651557a0b7422673c39d5dca1a50690f7c55168b70c3e49095b64b000c"
