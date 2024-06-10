@@ -32,7 +32,6 @@
   - REMOVE ANY DOCUMENT NAME THAT IS DUPLICATED IN THE LIST.
   - The document title includes the file extension <FILENAME>.<FORMAT>. Example: Alabama.pdf format: PDF.
   - List the document titles accurately and completely.
-  - Add Document citation.
   - Format the response list as a tab-separated table with columns: S.No, Name of the document, Format.
 
 ## When asked to list all uploaded documents
