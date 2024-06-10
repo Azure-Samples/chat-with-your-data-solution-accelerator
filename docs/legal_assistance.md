@@ -14,6 +14,7 @@ In the admin panel, there is a dropdown to  select the CWYD legal Assistant. The
 
 
 - **Selected** Legal Assistant prompt
+
 ![Checked ](images/cwyd_admin_legal_selected.png)
 
 
@@ -29,9 +30,9 @@ Context:
 - You are a legal assistant.
 etc
 ```
-
+The [Legal Assistant Prompt](../code/backend/batch/utilities/helpers/config/default_legal_assistant_prompt.txt) file
 ### Sample Legal Data
-We have added sample legal data in the `data/legal_data` folder. This data can be used to test and demonstrate the legal assistant capabilities.
+We have added sample legal data in the [Legal Assistant sample Docs](../data/legal_data). `data/legal_data` folder. This data can be used to test and demonstrate the legal assistant capabilities.
 
 ### Example Updates
 If you need to add a new filtering criterion based on "industry":
