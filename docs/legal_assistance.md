@@ -30,7 +30,7 @@ Context:
 - You are a legal assistant.
 etc
 ```
-The [Legal Assistant Prompt](../code/backend/batch/utilities/helpers/config/default_legal_assistant_prompt.txt) file
+You can see here the [Legal Assistant Prompt](../code/backend/batch/utilities/helpers/config/default_legal_assistant_prompt.txt) file.
 ### Sample Legal Data
 We have added sample legal data in the [Legal Assistant sample Docs](../data/legal_data). `data/legal_data` folder. This data can be used to test and demonstrate the legal assistant capabilities.
 
