@@ -13,9 +13,10 @@ def llm_helper_mock():
     ) as mock:
         llm_helper = mock.return_value
 
-        llm_helper.get_ml_client.return_value = MagicMock()
+        mock_ml_client = MagicMock()
+        llm_helper.get_ml_client.return_value = mock_ml_client
 
-        yield llm_helper
+        yield llm_helper, mock_ml_client
 
 @pytest.fixture(autouse=True)
 def env_helper_mock():
@@ -47,8 +48,9 @@ def orchestrator():
 
         yield orchestrator
 
-def test_prompt_flow_init_initializes_with_expected_attributes(orchestrator: PromptFlowOrchestrator):
-    assert orchestrator.ml_client is not None
+def test_prompt_flow_init_initializes_with_expected_attributes(orchestrator: PromptFlowOrchestrator, llm_helper_mock):
+    _, mock_ml_client = llm_helper_mock
+    assert orchestrator.ml_client is mock_ml_client
     assert orchestrator.enpoint_name == "endpoint_name"
     assert orchestrator.deployment_name == "deployment_name"
 
@@ -56,6 +58,7 @@ def test_prompt_flow_init_initializes_with_expected_attributes(orchestrator: Pro
 async def test_orchestrate_returns_content_safety_response_for_unsafe_input(
     orchestrator: PromptFlowOrchestrator):
     # given
+    user_message = "bad question"
     content_safety_response = [
         {
             "role": "tool",
@@ -71,9 +74,10 @@ async def test_orchestrate_returns_content_safety_response_for_unsafe_input(
     orchestrator.call_content_safety_input.return_value = content_safety_response
 
     # when
-    response = await orchestrator.orchestrate("bad question", [])
+    response = await orchestrator.orchestrate(user_message, [])
 
     # then
+    orchestrator.call_content_safety_input.assert_called_once_with(user_message)
     assert response == content_safety_response
 
 @pytest.mark.asyncio
@@ -103,8 +107,6 @@ async def test_orchestrate_returns_expected_chat_response(orchestrator: PromptFl
         response = await orchestrator.orchestrate(user_message, chat_history)
 
     # then
-    orchestrator.call_content_safety_input.assert_called_once_with(user_message)
-    orchestrator.call_content_safety_output.assert_called_once_with(user_message, "answer")
     orchestrator.transform_chat_history.assert_called_once_with(chat_history)
     orchestrator.ml_client.online_endpoints.invoke.assert_called_once_with(
         endpoint_name="endpoint_name", request_file=ANY, deployment_name="deployment_name"
@@ -127,6 +129,7 @@ async def test_orchestrate_returns_error_response(orchestrator: PromptFlowOrches
 async def test_orchestrate_returns_content_safety_response_for_unsafe_output(
     orchestrator: PromptFlowOrchestrator):
     # given
+    user_message = "question"
     chat_output = {"chat_output":"bad-response", "citations":["",[]]}
     content_safety_response = [
         {
@@ -140,10 +143,10 @@ async def test_orchestrate_returns_content_safety_response_for_unsafe_output(
     with patch.object(orchestrator.ml_client, 'invoke', new_callable=AsyncMock,
                       return_value=chat_output), patch('json.loads', return_value=chat_output):
         # when
-        response = await orchestrator.orchestrate("question", [])
+        response = await orchestrator.orchestrate(user_message, [])
 
     # then
-    orchestrator.call_content_safety_output.assert_called_once_with("question", "bad-response")
+    orchestrator.call_content_safety_output.assert_called_once_with(user_message, "bad-response")
     assert response == content_safety_response
 
 def test_transform_chat_history_returns_expected_format(orchestrator: PromptFlowOrchestrator):
