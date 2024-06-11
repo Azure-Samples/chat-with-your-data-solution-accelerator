@@ -3,8 +3,24 @@
 ## Overview
 The CWYD Legal Assistant is designed to help legal professionals efficiently manage and interact with a large collection of legal documents. It utilizes advanced natural language processing capabilities to provide accurate and contextually relevant responses to user queries about the documents.
 
+## Legal Assistant Infrastructure configuration
 
-The full prompt is here: [Link to the legal assistant prompt]
+The following is the CWYD infrastructure configuration that we suggest to optimize the performance and functionality of the Legal Assistant:
+
+- **Azure Semantic Search**: Utilize Azure Semantic Search to efficiently index and search legal documents. This provides powerful search capabilities and integration with other Azure services.
+- **Azure Cognitive Search Top K 15**: Set the Top K parameter to 15 to retrieve the top 15 most relevant documents. This configuration helps in providing precise and relevant search results for user queries.
+
+- **Azure Search Integrated Vectorization**: Enable integrated vectorization in Azure Search to improve the semantic understanding and relevance of search results. This enhances the Legal Assistant's ability to provide contextually accurate answers.
+
+- **Azure OpenAI Model gpt-4o**: Leverage the Azure OpenAI model gpt-4o for advanced natural language processing capabilities. This model is well-suited for handling complex legal queries and providing detailed and contextually appropriate responses.
+
+- **Azure OpenAI Model Version 2024-05-13**: Ensure that the Legal Assistant is using the latest version of the Azure OpenAI model (version 2024-05-13) to take advantage of the most recent improvements and features.
+
+- **Orchestration Strategy: Semantic Kernel**: Implement the Semantic Kernel orchestration strategy to effectively manage the integration and interaction between different components of the infrastructure. This strategy ensures seamless operation and optimal performance of the Legal Assistant.
+
+By following these infrastructure configurations, you can enhance the efficiency, accuracy, and overall performance of the CWYD Legal Assistant, ensuring it meets the high demands and expectations of legal professionals.
+
+
 ### Admin Configuration
 In the admin panel, there is a dropdown to  select the CWYD legal Assistant. The options are:
 
