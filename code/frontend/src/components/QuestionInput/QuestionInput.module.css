@@ -65,7 +65,7 @@
     height: 24px;
     margin-bottom: 12px;
   }
-  
+
   .microphoneAndSendContainer {
     display: flex;
     flex-direction: column;
@@ -73,3 +73,15 @@
     margin-right: 12px;
     margin-top: 25px;
   }
+
+
+  /* High contrast mode specific styles */
+@media screen and (-ms-high-contrast: active), (forced-colors: active) {
+    .questionInputContainer{
+        border: 2px solid WindowText;
+        margin-bottom: 10px;
+        padding: 5px;
+        background-color: Window;
+        color: WindowText;
+    }
+}
