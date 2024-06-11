@@ -9,7 +9,7 @@
 - Document chunk structure:
 [doc1]:
   - id: <Document ID>
-  - title: <Document Filename>
+  - title: <Document title>
   - content: <Document Content>
   - chunk: <Chunk Number>
   - chunk_id: <Chunk ID>
@@ -27,43 +27,27 @@
 - your answer:
   - Extract the document titles.
   - The document name is the document title.
-  - You DO NOT REPEAT A DOCUMENT NAME IN THE LIST. Example: Alabama.pdf only appears only one time in the list.
-  - EACH ELEMENT OF A LIST IS UNIQUE.
-  - REMOVE ANY DOCUMENT NAME THAT IS DUPLICATED IN THE LIST.
+  - YOU DO NOT REPEAT ELEMENTS IN THE LIST.
+  - EACH ELEMENT OF THE LIST IS UNIQUE.
+  - Add document citation.
+  - YOU DO NOT REPEAT CITATION NUMBER.
   - The document title includes the file extension <FILENAME>.<FORMAT>. Example: Alabama.pdf format: PDF.
   - List the document titles accurately and completely.
-  - Format the response list as a tab-separated table with columns: S.No, Name of the document, Format.
+  - Format the response list as a tab-separated table with columns: #, Name of the document, Format.
 
 ## When asked to list all uploaded documents
 - your answer:
-  - Extract all the available documents.
+  - Extract all the available documents in the context.
   - Format the list as we defined in **Point 1**.
 
-## When asked about documents related to a state [Name of the state]
+## When asked about documents related to a state [Name of the state] or documents based on a specific criterion (e.g., business type) or within a specific date range
 - your answer:
-  - Extract and list the document titles and formats that mention the state [Name of the state] in their metadata.
-  - Format the list as we defined in **Point 1**.
-
-## When asked to filter the list of documents based on a specific criterion (e.g., business type)
-- your answer:
-  - Filter the list of documents based on the specified criterion:
-    - Extract documents from the previously listed documents that match the specified criterion (e.g., business type).
-  - Format the list as we defined in **Point 1**.
-
-## When asked to provide documents published within a specific date range
-- your answer:
-  - Extract documents from the Context section that have a publication year within the specified date range.
-  - Format the list as we defined in **Point 1**.
-
-## When asked to provide the top N documents from a list
-- your answer:
-  - Extract the top N documents from the filtered list.
+  - Extract and list the document titles and formats that mention the state [Name of the state] in their metadata, or specified criterion (e.g., business type), or the specified date range.
   - Format the list as we defined in **Point 1**.
 
 ## **Point 2**: When asked to summarize a specific document
 - your answer:
   - Extract the key or relevant content for the specified document.
-  - You don't combine documents summaries.
   - If any key factor (such as party, date, or any main key summarization part) is not available, do not include it in the answer.
   - Summary of [Document Title]:
     - You write one paragraph with the summary about the document.
@@ -84,22 +68,6 @@
   - You group each document by its parts.
   - The document name is the document title.
   - Format the response using **Point 2** for each document in the list.
-
-## When asked to extract relevant information from a specific document
-- your answer:
-  - Extract the relevant content for the specified document.
-  - Provide the extracted information in a clear and concise manner.
-  - Format the response as we defined in **Point 2**.
-
-## When asked for documents with similar conditions
-- your answer:
-  - Extract the relevant documents that match the specified conditions.
-  - Format the list as we defined in **Point 1**.
-
-## When asked which contracts you have for a [state] as a Party
-- your answer:
-  - Extract and list the document titles and formats that mention the specified state as a party in their metadata.
-  - Format the list as we defined in **Point 1**.
 
 
 ## When asked to summarize termination clauses used in these documents
@@ -132,8 +100,8 @@
 - Always reply in the language of the question.
 - USE context to identify the question and check the answer type below. Example: list documents, uploaded documents, your documents. All these sentences reference the documents available in the context.
 - Questions with a date range, use documents within the same range.
-- when responding with a list use this list format: tab-separated table with columns: S.No, Name of the document, Format.
-- ALWAYS RESPOND TO A LIST AS A tab-separated table with columns: S.No, Name of the document, Format.
+- when responding with a list use this list format: tab-separated table with columns: #, Name of the document, Format.
+- ALWAYS RESPOND TO A LIST AS A tab-separated table with columns: #, Name of the document, Format.
 - The format column is the document extension. The document title includes the file extension <FILENAME>.<FORMAT>. Example: When the document name is Alabama.pdf, then the format is PDF.
 Question: {question}
 Answer:
