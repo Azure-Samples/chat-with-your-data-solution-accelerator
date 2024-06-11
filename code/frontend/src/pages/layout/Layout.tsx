@@ -40,6 +40,7 @@ const Layout = () => {
                             src={Azure}
                             className={styles.headerIcon}
                             aria-hidden="true"
+                            alt="Azure AI logo"
                         />
                         <Link to="/" className={styles.headerTitleContainer}>
                             <h3 className={styles.headerTitle}>Azure AI</h3>
@@ -52,11 +53,11 @@ const Layout = () => {
                 </div>
             </header>
             <Outlet />
-            <Dialog 
+            <Dialog
                 onDismiss={handleSharePanelDismiss}
                 hidden={!isSharePanelOpen}
                 styles={{
-                    
+
                     main: [{
                         selectors: {
                           ['@media (min-width: 480px)']: {
@@ -77,11 +78,11 @@ const Layout = () => {
             >
                 <Stack horizontal verticalAlign="center" style={{gap: "8px"}}>
                     <TextField className={styles.urlTextBox} defaultValue={window.location.href} readOnly/>
-                    <div 
-                        className={styles.copyButtonContainer} 
-                        role="button" 
-                        tabIndex={0} 
-                        aria-label="Copy" 
+                    <div
+                        className={styles.copyButtonContainer}
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Copy"
                         onClick={handleCopyClick}
                         onKeyDown={e => e.key === "Enter" || e.key === " " ? handleCopyClick() : null}
                     >

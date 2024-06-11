@@ -40,7 +40,7 @@ jsonschema = "^4.22.0"
 semantic-kernel = {version = "^1.0.4", python = "<3.13"}
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.2.1"
+pytest = "^8.2.2"
 pytest-cov = "5.0.0"
 flake8 = "7.0.0"
 black = "24.4.2"
