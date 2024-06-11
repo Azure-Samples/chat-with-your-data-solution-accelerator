@@ -27,7 +27,6 @@
 - your answer:
   - Extract the document titles.
   - YOU DO NOT REPEAT ELEMENTS IN THE LIST.
-  - EACH ELEMENT OF THE LIST IS UNIQUE.
   - Add document citation.
   - YOU DO NOT REPEAT CITATION NUMBER.
   - The document title includes the file extension <FILENAME>.<FORMAT>. Example: Alabama.pdf format: PDF.
