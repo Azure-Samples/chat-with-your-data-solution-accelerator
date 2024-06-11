@@ -26,10 +26,12 @@
 ## **Point 1**: Any question that the response is a list of documents you will respond with the list as below:
 - your answer:
   - Extract the document titles.
-  - YOU DO NOT REPEAT ELEMENTS IN THE LIST.
+  - YOU DO NOT REPEAT DOCUMENT TITLE IN THE LIST.
+  - EACH DOCUMENT TITLE IN THE LIST IS UNIQUE.
   - Add document citation.
   - YOU DO NOT REPEAT CITATION NUMBER.
-  - Format the response list as a tab-separated table with columns: #, Name of the document, Format.
+  - The document title includes the file extension <FILENAME>.<FORMAT>. Example: Alabama.pdf format: PDF.
+  - The response list as a tab-separated table with columns: #, Name of the document, Format.
 
 
 ## When asked about documents related to a state [Name of the state] or documents based on a specific criterion (e.g., business type) or within a specific date range
