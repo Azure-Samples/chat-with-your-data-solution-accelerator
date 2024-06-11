@@ -4,7 +4,9 @@
 		"dockerfile": "Dockerfile"
 	},
 	"features": {
-		"ghcr.io/devcontainers/features/azure-cli:1": {},
+		"ghcr.io/devcontainers/features/azure-cli:1": {
+			"extensions": "ml"
+		},
 		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
 		"ghcr.io/devcontainers/features/node:1": {},
 		"ghcr.io/jlaundry/devcontainer-features/azure-functions-core-tools:1": {},
@@ -30,7 +32,8 @@
 				"ms-toolsai.jupyter",
 				"ms-vscode.vscode-node-azure-pack",
 				"TeamsDevApp.ms-teams-vscode-extension",
-				"zeshuaro.vscode-python-poetry"
+				"zeshuaro.vscode-python-poetry",
+				"prompt-flow.prompt-flow"
 			],
 			"settings": {
                 "python.defaultInterpreterPath": "/usr/local/bin/python",
