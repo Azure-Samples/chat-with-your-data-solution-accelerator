@@ -97,7 +97,7 @@ def config_legal_assistant_prompt():
         st.session_state["answering_user_prompt"] = ConfigHelper.get_default_legal_assistant()
     else:
         st.success("Default Assistant Prompt")
-        st.session_state["answering_user_prompt"] = config.prompts.answering_user_prompt
+        st.session_state["answering_user_prompt"] = ConfigHelper.get_default_assistant_prompt()
 
 
 def validate_post_answering_prompt():

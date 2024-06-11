@@ -67,7 +67,7 @@ If you need to add a new filtering criterion based on "industry":
 **Question:** Can you list all the documents uploaded?
 **Answer:**
 ```plaintext
-S.No    Name of the document    Format
+#    Name of the document    Format
 1    Master_Agreement_V1 (1).pdf    PDF
 2    NASPO_VP_SVAR_Insight_AL_PA.pdf    PDF
 <!-- More rows as needed -->
@@ -77,7 +77,7 @@ S.No    Name of the document    Format
 **Question:** Show me the list of contracts for the state of Alabama.
 **Answer:**
 ```plaintext
-S.No    Name of the document    Format
+#    Name of the document    Format
 1    State_of_Alabama_NASPO_Cloud_Services_PA_032224_.docx 1.pdf    PDF
 2    State_of_Alabama_NASPO_Cloud_Services_PA_032224_.docx.pdf    PDF
 <!-- More rows as needed -->
@@ -87,7 +87,7 @@ S.No    Name of the document    Format
 **Question:** Show me a list of contracts for the state of Alabama that were published between 2022 and 2024.
 **Answer:**
 ```plaintext
-S.No    Name of the document    Format
+#    Name of the document    Format
 1    State_of_Alabama_NASPO_Cloud_Services_PA_032224_.docx 1.pdf    PDF
 2    State_of_Alabama_NASPO_Cloud_Services_PA_032224_.docx.pdf    PDF
 <!-- More rows as needed -->

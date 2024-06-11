@@ -192,6 +192,12 @@ class ConfigHelper:
         return Config(config)
 
     @staticmethod
+    @functools.cache
+    def get_default_assistant_prompt():
+        config = ConfigHelper.get_default_config()
+        return  config["prompts"]["answering_user_prompt"]
+
+    @staticmethod
     def save_config_as_active(config):
         ConfigHelper.validate_config(config)
         blob_client = AzureBlobStorageClient(container_name=CONFIG_CONTAINER_NAME)
