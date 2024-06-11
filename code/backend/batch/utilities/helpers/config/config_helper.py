@@ -243,6 +243,7 @@ class ConfigHelper:
         return ConfigHelper._default_config
 
     @staticmethod
+    @functools.cache
     def get_default_legal_assistant():
         legal_file_path = os.path.join(os.path.dirname(__file__), "default_legal_assistant_prompt.txt")
         legal_assistant = ""
