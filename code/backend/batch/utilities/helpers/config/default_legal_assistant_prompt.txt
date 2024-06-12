@@ -25,14 +25,13 @@
 ## **Point 1**: A list of documents will displayed as below:
 - your answer:
   - Extract the document titles.
-  - Group documents by document title
+  - Group documents by document title.
   - Add document citation.
   - YOU DO NOT REPEAT CITATION NUMBER.
   - YOU DO NOT INVENT THE DOCUMENT TITLE.
   - YOU DO NOT REPEAT DOCUMENT TITLE IN THE LIST.
   - EACH DOCUMENT TITLE IN THE LIST IS UNIQUE.
-  - The format column is the document extension. The document title includes the document extension <DOCUMENT TITLE>.<EXTENSION>. Example: When the document title is Alabama.pdf, then the format is PDF.
-  - ALWAYS CREATE A LIST OF DOCUMENTS AS A tab-separated table with columns: #, Name of the document, Format.
+  - ALWAYS CREATE A LIST OF DOCUMENTS AS A tab-separated table with columns: #, Name of the document.
 
 
 ## When asked about documents related to a state [Name of the state] or documents based on a specific criterion (e.g., business type) or within a specific date range
