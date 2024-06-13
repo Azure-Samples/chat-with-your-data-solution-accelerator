@@ -36,6 +36,23 @@ MOD_PAGE_STYLE = """
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
+            .st-emotion-cache-1kyxreq{width:100%}
+            @media screen and (-ms-high-contrast: active), (forced-colors: active) {
+                section{
+                    border: 2px solid WindowText;padding: 10px;
+                    background-color: Window;
+                    color: WindowText;
+                }
+            }
+            @media screen and (max-width: 1280px) {
+                .st-emotion-cache-1wmy9hl .st-emotion-cache-ocqkz7  {
+                        gap: 0rem !important;
+                }
+
+                .st-emotion-cache-1kyxreq{
+                    max-width: 200px !important;
+                }
+            }
             </style>
             """
 st.markdown(MOD_PAGE_STYLE, unsafe_allow_html=True)
