@@ -1,6 +1,5 @@
 import logging
 from typing import List
-import urllib.request
 import json
 import tempfile
 
@@ -33,13 +32,16 @@ class PromptFlowOrchestrator(OrchestratorBase):
 
         transformed_chat_history = self.transform_chat_history(chat_history)
 
-        file_name = self.transform_data_into_file(user_message, transformed_chat_history)
+        file_name = self.transform_data_into_file(
+            user_message, transformed_chat_history
+        )
 
         # Call the Prompt Flow service
         try:
             response = self.ml_client.online_endpoints.invoke(
-                endpoint_name=self.enpoint_name, request_file=file_name,
-                deployment_name=self.deployment_name
+                endpoint_name=self.enpoint_name,
+                request_file=file_name,
+                deployment_name=self.deployment_name,
             )
             result = json.loads(response)
             logger.debug(result)
@@ -48,10 +50,7 @@ class PromptFlowOrchestrator(OrchestratorBase):
             raise RuntimeError(f"The request failed: {error}") from error
 
         # Transform response into answer for further processing
-        answer = Answer(
-            question=user_message,
-            answer=result['chat_output']
-        )
+        answer = Answer(question=user_message, answer=result["chat_output"])
 
         # Call Content Safety tool on answer
         if self.config.prompts.enable_content_safety:
@@ -67,31 +66,22 @@ class PromptFlowOrchestrator(OrchestratorBase):
         return messages
 
     def transform_chat_history(self, chat_history):
-        # Transform chat history into a format that the Prompt Flow service can understand
         transformed_chat_history = []
-        i = 0
-        while i < len(chat_history):
-            if chat_history[i]['role'] == 'user':
-                user_message = chat_history[i]['content']
-                i += 1
-                assistant_message = ''
-                # Find the next assistant message
-                while i < len(chat_history) and chat_history[i]['role'] != 'assistant':
-                    i += 1
-                if i < len(chat_history):
-                    assistant_message = chat_history[i]['content']
-                    i += 1
-                if assistant_message:
-                    transformed_chat_history.append({
-                        "inputs": {
-                            "chat_input": user_message
-                        },
-                        "outputs": {
-                            "chat_output": assistant_message
-                        }
-                    })
-            else:
-                i += 1
+        for i, message in enumerate(chat_history):
+            if message["role"] == "user":
+                user_message = message["content"]
+                assistant_message = ""
+                if (
+                    i + 1 < len(chat_history)
+                    and chat_history[i + 1]["role"] == "assistant"
+                ):
+                    assistant_message = chat_history[i + 1]["content"]
+                transformed_chat_history.append(
+                    {
+                        "inputs": {"chat_input": user_message},
+                        "outputs": {"chat_output": assistant_message},
+                    }
+                )
         return transformed_chat_history
 
     def transform_data_into_file(self, user_message, chat_history):
