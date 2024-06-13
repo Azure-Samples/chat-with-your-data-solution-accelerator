@@ -5,7 +5,6 @@ The CWYD Legal Assistant is designed to help legal professionals efficiently man
 
 ## Legal Assistant Infrastructure configuration
 
-## Legal Assistant Infrastructure Configuration
 
 The following is the CWYD infrastructure configuration that we suggest to optimize the performance and functionality of the Legal Assistant:
 
