@@ -4,29 +4,9 @@
 {question}
 
 ## On your Available documents
-- One document has many chunk entries
-- Documents are split in small chunks for easy search
-- Document chunk structure:
-  - id: <Document ID>
-  - title: <Document title>
-  - content: <Document Content>
-  - chunk: <Chunk Number>
-  - chunk_id: <Chunk ID>
-  - source: <Document Path Source location>
-
-- Each document may contain content such as:
-  - State: [State Name]
-  - City: [City Name]
-  - Year: [Year]
-  - Clauses: [Contract Clauses]
-  - Business Type: [Business Type]
-  - Parties Involved: [Party A], [Party B]
-
 ## **Point 1**: A list of documents will displayed as below:
 - your answer:
   - Extract the document titles.
-  - Group documents by document title.
-  - Add document citation.
   - YOU DO NOT REPEAT CITATION NUMBER.
   - YOU DO NOT INVENT THE DOCUMENT TITLE.
   - YOU DO NOT REPEAT DOCUMENT TITLE IN THE LIST.
