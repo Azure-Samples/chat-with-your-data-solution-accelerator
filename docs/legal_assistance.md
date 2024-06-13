@@ -118,3 +118,5 @@ Summary of Legal contract_20240411112609.pdf:
 
 ## Conclusion
 This README provides an overview of the CWYD Legal Assistant prompt, instructions for updating the prompt configuration, and examples of questions and answers. Ensure you follow the guidelines for updating the prompt to maintain consistency and accuracy in responses.
+
+[placeholder]
