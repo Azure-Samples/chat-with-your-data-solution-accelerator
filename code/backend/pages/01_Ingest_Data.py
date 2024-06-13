@@ -24,6 +24,13 @@ mod_page_style = """
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
+            @media screen and (-ms-high-contrast: active), (forced-colors: active) {
+                section{
+                    border: 2px solid WindowText;padding: 10px;
+                    background-color: Window;
+                    color: WindowText;
+                }
+            }
             </style>
             """
 st.markdown(mod_page_style, unsafe_allow_html=True)
