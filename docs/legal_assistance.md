@@ -5,9 +5,12 @@ The CWYD Legal Assistant is designed to help legal professionals efficiently man
 
 ## Legal Assistant Infrastructure configuration
 
+## Legal Assistant Infrastructure Configuration
+
 The following is the CWYD infrastructure configuration that we suggest to optimize the performance and functionality of the Legal Assistant:
 
 - **Azure Semantic Search**: Utilize Azure Semantic Search to efficiently index and search legal documents. This provides powerful search capabilities and integration with other Azure services.
+
 - **Azure Cognitive Search Top K 15**: Set the Top K parameter to 15 to retrieve the top 15 most relevant documents. This configuration helps in providing precise and relevant search results for user queries.
 
 - **Azure Search Integrated Vectorization**: Enable integrated vectorization in Azure Search to improve the semantic understanding and relevance of search results. This enhances the Legal Assistant's ability to provide contextually accurate answers.
@@ -17,6 +20,10 @@ The following is the CWYD infrastructure configuration that we suggest to optimi
 - **Azure OpenAI Model Version 2024-05-13**: Ensure that the Legal Assistant is using the latest version of the Azure OpenAI model (version 2024-05-13) to take advantage of the most recent improvements and features.
 
 - **Orchestration Strategy: Semantic Kernel**: Implement the Semantic Kernel orchestration strategy to effectively manage the integration and interaction between different components of the infrastructure. This strategy ensures seamless operation and optimal performance of the Legal Assistant.
+
+- **Conversation Flow Options**: Setting Set `CONVERSATION_FLOW=byod` enables running advanced AI models like GPT-4o on your own enterprise data without needing to train or fine-tune models.
+
+- **Chunking Strategy**: Setting the chunking strategy to maximum page length size of 1200 characters to optimizing relevance, preserving context
 
 By following these infrastructure configurations, you can enhance the efficiency, accuracy, and overall performance of the CWYD Legal Assistant, ensuring it meets the high demands and expectations of legal professionals.
 
