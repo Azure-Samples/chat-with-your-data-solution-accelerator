@@ -138,6 +138,7 @@ const Chat = () => {
     if (!isRecognizing) {
       setIsRecognizing(true);
       recognizerRef.current = await multiLingualSpeechRecognizer(); // Store the recognizer in the ref
+
       recognizerRef.current.recognized = (s, e) => {
         if (e.result.reason === ResultReason.RecognizedSpeech) {
           let recognizedText = e.result.text.trim();
@@ -240,7 +241,7 @@ const Chat = () => {
         <div className={`${styles.chatContainer} ${styles.MobileChatContainer}`}>
           {!lastQuestionRef.current ? (
             <Stack className={styles.chatEmptyState}>
-              <img src={Azure} className={styles.chatIcon} aria-hidden="true" />
+              <img src={Azure} className={styles.chatIcon} aria-hidden="true" alt="Azure AI logo"/>
               <h1 className={styles.chatEmptyStateTitle}>Start chatting</h1>
               <h2 className={styles.chatEmptyStateSubtitle}>
                 This chatbot is configured to answer your questions
