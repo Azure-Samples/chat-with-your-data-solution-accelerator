@@ -180,11 +180,22 @@ sup {
 
 @media (max-width: 500px) {
     .answerFooter {
-      flex-direction: column; 
+      flex-direction: column;
     }
-  
+
     .citationContainer {
         width: 100%;
         overflow-y: auto;
     }
   }
+
+@media screen and (max-width: 1280px) {
+    .answerContainer, .answerText {
+        font-size: 0.6rem !important;
+    }
+
+    .answerDisclaimer, .accordionTitle, .citationContainer{
+        font-size: 0.5rem !important;
+    }
+
+}
