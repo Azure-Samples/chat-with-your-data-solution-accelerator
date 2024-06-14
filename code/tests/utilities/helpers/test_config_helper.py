@@ -446,7 +446,7 @@ def test_get_available_orchestration_strategies(config: Config):
 
     # then
     assert sorted(orchestration_strategies) == sorted(
-        ["openai_function", "langchain", "semantic_kernel"]
+        ["openai_function", "langchain", "prompt_flow", "semantic_kernel"]
     )
 
 

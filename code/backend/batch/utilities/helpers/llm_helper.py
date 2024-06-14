@@ -6,6 +6,8 @@ from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
 from semantic_kernel.connectors.ai.open_ai.prompt_execution_settings.azure_chat_prompt_execution_settings import (
     AzureChatPromptExecutionSettings,
 )
+from azure.ai.ml import MLClient
+from azure.identity import DefaultAzureCredential
 from .env_helper import EnvHelper
 
 
@@ -154,3 +156,13 @@ class LLMHelper:
                 max_tokens=self.llm_max_tokens,
             ),
         )
+
+    def get_ml_client(self):
+        if not hasattr(self, "_ml_client"):
+            self._ml_client = MLClient(
+                DefaultAzureCredential(),
+                self.env_helper.AZURE_SUBSCRIPTION_ID,
+                self.env_helper.AZURE_RESOURCE_GROUP,
+                self.env_helper.AZURE_ML_WORKSPACE_NAME,
+            )
+        return self._ml_client
