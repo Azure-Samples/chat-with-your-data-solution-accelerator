@@ -18,12 +18,14 @@ st.set_page_config(
     menu_items=None,
 )
 
-def load_css(file_path):
-    with open(file_path) as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-# Load the common CSS
-load_css("pages/Common.css")
+MOD_PAGE_STYLE = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            </style>
+            """
+st.markdown(MOD_PAGE_STYLE, unsafe_allow_html=True)
 
 config = ConfigHelper.get_active_config_or_default()
 
