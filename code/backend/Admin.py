@@ -31,31 +31,12 @@ st.set_page_config(
     menu_items=None,
 )
 
-MOD_PAGE_STYLE = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            .st-emotion-cache-1kyxreq{width:100%}
-            @media screen and (-ms-high-contrast: active), (forced-colors: active) {
-                section{
-                    border: 2px solid WindowText;padding: 10px;
-                    background-color: Window;
-                    color: WindowText;
-                }
-            }
-            @media screen and (max-width: 1280px) {
-                .st-emotion-cache-1wmy9hl .st-emotion-cache-ocqkz7  {
-                        gap: 0rem !important;
-                }
+def load_css(file_path):
+    with open(file_path) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-                .st-emotion-cache-1kyxreq{
-                    max-width: 200px !important;
-                }
-            }
-            </style>
-            """
-st.markdown(MOD_PAGE_STYLE, unsafe_allow_html=True)
+# Load the common CSS
+load_css("pages/common.css")
 
 
 col1, col2, col3 = st.columns([1, 2, 1])
