@@ -426,3 +426,7 @@ tests/integration/ui/cypress/screenshots/
 
 #JetBrains IDE
 .idea/
+package.json
+package-lock.json
+package.json
+package.json
