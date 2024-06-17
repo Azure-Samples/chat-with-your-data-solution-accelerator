@@ -25,7 +25,7 @@ def load_css(file_path):
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 # Load the common CSS
-load_css("pages/Common.css")
+load_css("pages/common.css")
 
 def reprocess_all():
     backend_url = urllib.parse.urljoin(
