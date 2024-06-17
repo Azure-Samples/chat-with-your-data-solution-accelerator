@@ -13,6 +13,11 @@ OPENAI_API_KEY = "mock-api-key"
 AZURE_OPENAI_MODEL = "mock-model"
 AZURE_OPENAI_MAX_TOKENS = "100"
 AZURE_OPENAI_EMBEDDING_MODEL = "mock-embedding-model"
+AZURE_SUBSCRIPTION_ID = "mock-subscription-id"
+AZURE_RESOURCE_GROUP = "mock-resource-group"
+AZURE_ML_WORKSPACE_NAME = "mock-ml-workspace"
+PROMPT_FLOW_ENDPOINT_NAME = "mock-endpoint-name"
+PROMPT_FLOW_DEPLOYMENT_NAME = "mock-deployment-name"
 
 
 @pytest.fixture(autouse=True)
@@ -26,6 +31,11 @@ def env_helper_mock():
         env_helper.AZURE_OPENAI_MODEL = AZURE_OPENAI_MODEL
         env_helper.AZURE_OPENAI_MAX_TOKENS = AZURE_OPENAI_MAX_TOKENS
         env_helper.AZURE_OPENAI_EMBEDDING_MODEL = AZURE_OPENAI_EMBEDDING_MODEL
+        env_helper.AZURE_SUBSCRIPTION_ID = AZURE_SUBSCRIPTION_ID
+        env_helper.AZURE_RESOURCE_GROUP = AZURE_RESOURCE_GROUP
+        env_helper.AZURE_ML_WORKSPACE_NAME = AZURE_ML_WORKSPACE_NAME
+        env_helper.PROMPT_FLOW_ENDPOINT_NAME = PROMPT_FLOW_ENDPOINT_NAME
+        env_helper.PROMPT_FLOW_DEPLOYMENT_NAME = PROMPT_FLOW_DEPLOYMENT_NAME
 
         yield env_helper
 
@@ -127,3 +137,21 @@ def test_generate_embeddings_returns_embeddings(azure_openai_mock):
 
     # then
     assert actual_embeddings == expected_embeddings
+
+@patch('backend.batch.utilities.helpers.llm_helper.DefaultAzureCredential')
+@patch('backend.batch.utilities.helpers.llm_helper.MLClient')
+def test_get_ml_client_initializes_with_expected_parameters(
+    mock_ml_client, mock_default_credential, env_helper_mock):
+    # given
+    llm_helper = LLMHelper()
+
+    # when
+    llm_helper.get_ml_client()
+
+    # then
+    mock_ml_client.assert_called_once_with(
+        mock_default_credential.return_value,
+        env_helper_mock.AZURE_SUBSCRIPTION_ID,
+        env_helper_mock.AZURE_RESOURCE_GROUP,
+        env_helper_mock.AZURE_ML_WORKSPACE_NAME
+    )
