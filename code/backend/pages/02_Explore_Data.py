@@ -15,14 +15,6 @@ st.set_page_config(
     layout="wide",
     menu_items=None,
 )
-mod_page_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            </style>
-            """
-st.markdown(mod_page_style, unsafe_allow_html=True)
 
 # CSS to inject contained in a string
 hide_table_row_index = """
@@ -34,6 +26,14 @@ hide_table_row_index = """
 
 # Inject CSS with Markdown
 st.markdown(hide_table_row_index, unsafe_allow_html=True)
+
+def load_css(file_path):
+    with open(file_path) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+# Load the common CSS
+load_css("pages/common.css")
+
 
 try:
     search_handler = Search.get_search_handler(env_helper)
