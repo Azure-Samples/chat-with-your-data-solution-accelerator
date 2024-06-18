@@ -11,6 +11,7 @@ while IFS='=' read -r key value; do
     case "$key" in
         "ORCHESTRATION_STRATEGY") orchestration_strategy=$value ;;
         "AZURE_SUBSCRIPTION_ID") subscription_id=$value ;;
+        "AZURE_TENANT_ID") tenant_id=$value ;;
         "AZURE_RESOURCE_GROUP") resource_group=$value ;;
         "AZURE_ML_WORKSPACE_NAME") aml_workspace=$value ;;
         "RESOURCE_TOKEN") resource_token=$value ;;
@@ -18,6 +19,8 @@ while IFS='=' read -r key value; do
         "AZURE_OPENAI_EMBEDDING_MODEL") openai_embedding_model=$value ;;
         "AZURE_SEARCH_SERVICE") search_service=$value ;;
         "AZURE_SEARCH_INDEX") search_index=$value ;;
+        "FRONTEND_WEBSITE_NAME") frontend_website_link=$value ;;
+        "ADMIN_WEBSITE_NAME") admin_website_link=$value ;;
     esac
 done <<EOF
 $(azd env get-values)
@@ -45,6 +48,9 @@ model_name="cwyd-model-${resource_token}"
 endpoint_name="cwyd-endpoint-${resource_token}"
 deployment_name="cwyd-deployment-${resource_token}"
 
+webapp_name=$(echo $frontend_website_link | cut -d'/' -f3 | cut -d'.' -f1)
+admin_webapp_name=$(echo $admin_website_link | cut -d'/' -f3 | cut -d'.' -f1)
+
 echo "Installing dependencies"
 poetry install --only prompt-flow
 az extension add --name ml
@@ -62,6 +68,10 @@ sed -i "s@<openai_embedding_model>@${openai_embedding_model}@g" "$flow_dag_file"
 sed -i "s@<aisearch_connection_id>@${connection_id_prefix}/aisearch_connection@g" "$flow_dag_file"
 sed -i "s@<aisearch_endpoint>@${search_service}@g" "$flow_dag_file"
 sed -i "s@<aisearch_index>@${search_index}@g" "$flow_dag_file"
+
+# login to Azure if not already logged in
+az account show > /dev/null 2>&1 || az login --tenant "$tenant_id"
+az account set --subscription "$subscription_id"
 
 set +e
 tries=1
@@ -106,3 +116,16 @@ else
 fi
 
 rm "$flow_dag_file"
+
+echo "Setting prompt flow endpoint name in azd env"
+azd env set PROMPT_FLOW_ENDPOINT_NAME $endpoint_name
+azd env set PROMPT_FLOW_DEPLOYMENT_NAME $deployment_name
+
+echo "Setting environment variables in webapp"
+az webapp config appsettings set --name $webapp_name --resource-group $resource_group --settings PROMPT_FLOW_ENDPOINT_NAME=$endpoint_name PROMPT_FLOW_DEPLOYMENT_NAME=$deployment_name AZURE_ML_WORKSPACE_NAME=$aml_workspace
+az webapp config appsettings set --name $admin_webapp_name --resource-group $resource_group --settings PROMPT_FLOW_ENDPOINT_NAME=$endpoint_name PROMPT_FLOW_DEPLOYMENT_NAME=$deployment_name AZURE_ML_WORKSPACE_NAME=$aml_workspace
+
+echo "Assigning AzureML Data Scientist role to webapp"
+webapp_id=$(az webapp identity show --resource-group "$resource_group" --name $webapp_name --query principalId --output tsv)
+az role assignment create --role "AzureML Data Scientist" --scope "/subscriptions/${subscription_id}/resourceGroups/${resource_group}/providers/Microsoft.MachineLearningServices/workspaces/${aml_workspace}" --assignee-object-id "$webapp_id" --assignee-principal-type ServicePrincipal
+az role assignment create --role "AzureML Data Scientist" --scope "/subscriptions/${subscription_id}/resourceGroups/${resource_group}/providers/Microsoft.MachineLearningServices/workspaces/${aml_workspace}/onlineEndpoints/${endpoint_name}" --assignee-object-id "$webapp_id" --assignee-principal-type ServicePrincipal
