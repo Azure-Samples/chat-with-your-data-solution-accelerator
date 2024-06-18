@@ -227,9 +227,7 @@ class EnvHelper:
             "LOAD_CONFIG_FROM_BLOB_STORAGE"
         )
 
-        self.AZURE_ML_WORKSPACE_NAME = os.getenv(
-            "AZURE_ML_WORKSPACE_NAME", ""
-        )
+        self.AZURE_ML_WORKSPACE_NAME = os.getenv("AZURE_ML_WORKSPACE_NAME", "")
 
         self.PROMPT_FLOW_ENDPOINT_NAME = os.getenv("PROMPT_FLOW_ENDPOINT_NAME", "")
 
