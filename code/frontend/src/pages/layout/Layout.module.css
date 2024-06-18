@@ -132,7 +132,8 @@ body {
 
 @media screen and (-ms-high-contrast: active), (forced-colors: active) {
 
-.shareButtonContainer{
+.shareButtonContainer, .headerTitleContainer{
     border: 2px solid WindowText;
 }
+
 }

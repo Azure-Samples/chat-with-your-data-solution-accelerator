@@ -311,7 +311,14 @@
 
   /* High contrast mode specific styles */
   @media screen and (-ms-high-contrast: active), (forced-colors: active) {
-    .chatContainer {
+    .chatContainer, .chatMessageUserMessage {
+        border: 2px solid WindowText;
+        padding: 10px;
+        background-color: Window;
+        color: WindowText;
+    }
+
+    .citationPanel , .citationPanelHeader, .citationPanelTitle, .citationPanelContent{
         border: 2px solid WindowText;
         padding: 10px;
         background-color: Window;
@@ -321,6 +328,18 @@
 
 @media screen and (max-width: 1280px) {
     .clearChatBroom {
-        left: -17px !important;
+        left: -23px !important;
+    }
+    .citationPanelContent,.chatMessageUserMessage{
+        font-size: 0.6rem !important;
+    }
+    textarea{
+        font-size: 0.6rem !important;
+    }
+    .citationPanelHeader{
+        font-size: 1rem !important;
+    }
+    .citationPanelTitle{
+        font-size: 0.8rem !important;
     }
 }
