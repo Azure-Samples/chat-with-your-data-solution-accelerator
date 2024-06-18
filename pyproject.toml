@@ -43,7 +43,7 @@ azure-ai-ml = "^1.16.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.2"
 pytest-cov = "5.0.0"
-flake8 = "7.0.0"
+flake8 = "7.1.0"
 black = "24.4.2"
 pre-commit = "3.7.1"
 pytest_httpserver = "1.0.10"
