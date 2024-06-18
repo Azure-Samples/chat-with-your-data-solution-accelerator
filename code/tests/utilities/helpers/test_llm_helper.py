@@ -138,10 +138,12 @@ def test_generate_embeddings_returns_embeddings(azure_openai_mock):
     # then
     assert actual_embeddings == expected_embeddings
 
-@patch('backend.batch.utilities.helpers.llm_helper.DefaultAzureCredential')
-@patch('backend.batch.utilities.helpers.llm_helper.MLClient')
+
+@patch("backend.batch.utilities.helpers.llm_helper.DefaultAzureCredential")
+@patch("backend.batch.utilities.helpers.llm_helper.MLClient")
 def test_get_ml_client_initializes_with_expected_parameters(
-    mock_ml_client, mock_default_credential, env_helper_mock):
+    mock_ml_client, mock_default_credential, env_helper_mock
+):
     # given
     llm_helper = LLMHelper()
 
@@ -153,5 +155,5 @@ def test_get_ml_client_initializes_with_expected_parameters(
         mock_default_credential.return_value,
         env_helper_mock.AZURE_SUBSCRIPTION_ID,
         env_helper_mock.AZURE_RESOURCE_GROUP,
-        env_helper_mock.AZURE_ML_WORKSPACE_NAME
+        env_helper_mock.AZURE_ML_WORKSPACE_NAME,
     )
