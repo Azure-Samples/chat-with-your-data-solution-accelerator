@@ -39,6 +39,7 @@ param azureOpenAITopP = readEnvironmentVariable('AZURE_OPENAI_TOP_P', '1')
 param azureOpenAIStopSequence = readEnvironmentVariable('AZURE_OPENAI_STOP_SEQUENCE', '\n')
 
 // Computer Vision parameters
+param computerVisionLocation = readEnvironmentVariable('AZURE_COMPUTER_VISION_LOCATION', '')
 param computerVisionVectorizeImageApiVersion = readEnvironmentVariable('AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', '2024-02-01')
 param computerVisionVectorizeImageModelVersion = readEnvironmentVariable('AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', '2023-04-15')
 
