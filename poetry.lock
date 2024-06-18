@@ -493,17 +493,17 @@ typing-extensions = ">=4.6.0"
 
 [[package]]
 name = "azure-functions"
-version = "1.19.0"
+version = "1.20.0"
 description = "Azure Functions for Python"
 optional = false
 python-versions = "*"
 files = [
-    {file = "azure-functions-1.19.0.tar.gz", hash = "sha256:f3494913d137af9fd735e2b2497aa54fc308b64f4902aa286c19b328fa3ae278"},
-    {file = "azure_functions-1.19.0-py3-none-any.whl", hash = "sha256:1184cef20a587f4f63c9d4fbe20d6682163192b36bd1e16cc6e8261b2ba3fb61"},
+    {file = "azure-functions-1.20.0.tar.gz", hash = "sha256:437e8889d7a75379159b457589cb74f6f966d3576067ae6649fafcd9058102e1"},
+    {file = "azure_functions-1.20.0-py3-none-any.whl", hash = "sha256:1d4ad15b10768b78046154d1da392e99634b64b4821dd091d5b9fe3600c49573"},
 ]
 
 [package.extras]
-dev = ["coverage", "flake8 (>=4.0.1,<4.1.0)", "flake8-logging-format", "mypy", "pytest", "pytest-cov", "requests (==2.*)"]
+dev = ["azure-functions-durable", "coverage", "flake8 (>=4.0.1,<4.1.0)", "flake8-logging-format", "mypy", "pytest", "pytest-cov", "requests (==2.*)"]
 
 [[package]]
 name = "azure-identity"
@@ -7222,4 +7222,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "9d4897d77fe0b21e89e80106645c9056ac3823ee7eda2807bfea0e90da1f4b04"
+content-hash = "0d3debc524b72578137106cb8979ca3792f2aa846c2fa0b5755ba9071199cb81"
