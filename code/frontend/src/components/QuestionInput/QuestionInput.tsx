@@ -35,12 +35,14 @@ export const QuestionInput = ({
   const [liveRecognizedText, setLiveRecognizedText] = useState<string>("");
   const [microphoneIconActive, setMicrophoneIconActive] =
     useState<boolean>(false);
-
+  const [isTextAreaDisabled, setIsTextAreaDisabled] = useState(false);
   useEffect(() => {
     if (isRecognizing) {
       setLiveRecognizedText(recognizedText);
+      setIsTextAreaDisabled(true)
       setMicrophoneIconActive(true); // Set microphone icon to active (blue)
     } else {
+      setIsTextAreaDisabled(false)
       setMicrophoneIconActive(false); // Set microphone icon to inactive
     }
   }, [recognizedText, isRecognizing]);
@@ -81,6 +83,8 @@ export const QuestionInput = ({
     <Stack horizontal className={styles.questionInputContainer}>
       {/* Text Input Field */}
       <TextField
+        style={{backgroundColor: 'white'}}
+        disabled={isTextAreaDisabled}
         className={styles.questionInputTextArea}
         placeholder={placeholder}
         multiline
