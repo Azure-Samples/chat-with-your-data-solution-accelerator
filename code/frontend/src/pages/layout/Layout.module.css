@@ -8,7 +8,6 @@ body {
 .header, .footer {
     width: 100%;
     max-width: 1200px;
-    padding: 1rem;
     box-sizing: border-box;
 }
 
