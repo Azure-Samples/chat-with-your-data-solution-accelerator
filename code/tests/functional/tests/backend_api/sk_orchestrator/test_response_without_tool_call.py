@@ -170,11 +170,7 @@ def test_post_makes_correct_call_to_openai_chat_completions(
                     {"role": "user", "content": "What is the meaning of life?"},
                 ],
                 "model": app_config.get("AZURE_OPENAI_MODEL"),
-                "frequency_penalty": 0.0,
-                "logit_bias": {},
                 "max_tokens": int(app_config.get("AZURE_OPENAI_MAX_TOKENS")),
-                "n": 1,
-                "presence_penalty": 0.0,
                 "stream": False,
                 "temperature": 0.0,
                 "tools": [
@@ -218,7 +214,6 @@ def test_post_makes_correct_call_to_openai_chat_completions(
                     },
                 ],
                 "tool_choice": "auto",
-                "top_p": 1.0,
             },
             headers={
                 "Accept": "application/json",

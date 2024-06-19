@@ -1,0 +1,125 @@
+inputs:
+  chat_history:
+    type: list
+    default:
+    - inputs:
+        chat_input: Hi
+      outputs:
+        chat_output: Hello! How can I assist you today?
+    is_chat_input: false
+    is_chat_history: true
+  chat_input:
+    type: string
+    default: What benefits are included in the Northwind standard plan?
+    is_chat_input: true
+outputs:
+  chat_output:
+    type: string
+    reference: ${answer_output.output}
+    is_chat_output: true
+  citations:
+    type: string
+    reference: ${output_parser.output}
+nodes:
+- name: lookup
+  type: python
+  source:
+    type: package
+    tool: promptflow_vectordb.tool.common_index_lookup.search
+  inputs:
+    mlindex_content: >
+      embeddings:
+        api_base: <openai_api_base>
+        api_type: azure
+        api_version: '2024-02-01'
+        batch_size: '1'
+        connection:
+          id: <openai_connection_id>
+        connection_type: workspace_connection
+        deployment: <openai_embedding_model>
+        dimension: 1536
+        kind: open_ai
+        model: <openai_embedding_model>
+        schema_version: '2'
+      index:
+        api_version: '2023-11-01'
+        connection:
+          id: <aisearch_connection_id>
+        connection_type: workspace_connection
+        endpoint: <aisearch_endpoint>
+        engine: azure-sdk
+        field_mapping:
+          content: content
+          embedding: content_vector
+          metadata: metadata
+        index: <aisearch_index>
+        kind: acs
+        semantic_configuration_name: default
+    queries: ${inputs.chat_input}
+    query_type: Hybrid (vector + keyword)
+    top_k: 2
+  use_variants: false
+- name: generate_prompt_context
+  type: python
+  source:
+    type: code
+    path: generate_prompt_context.py
+  inputs:
+    search_result: ${lookup.output}
+  use_variants: false
+- name: Prompt_variants
+  type: prompt
+  source:
+    type: code
+    path: Prompt_variants.jinja2
+  inputs:
+    chat_history: ${inputs.chat_history}
+    chat_input: ${inputs.chat_input}
+    contexts: ${generate_prompt_context.output}
+  use_variants: false
+- name: chat_with_context
+  type: llm
+  source:
+    type: code
+    path: chat_with_context.jinja2
+  inputs:
+    deployment_name: gpt-35-turbo-16k
+    temperature: 0
+    top_p: 1
+    max_tokens: 1000
+    presence_penalty: 0
+    frequency_penalty: 0
+    prompt_text: ${Prompt_variants.output}
+  provider: AzureOpenAI
+  connection: openai_connection
+  api: chat
+  module: promptflow.tools.aoai
+  use_variants: false
+- name: output_parser
+  type: python
+  source:
+    type: code
+    path: output_parser.py
+  inputs:
+    answer: ${chat_with_context.output}
+    sources: ${generate_prompt_context.output}
+  use_variants: false
+- name: answer_output
+  type: python
+  source:
+    type: code
+    path: answer_output.py
+  inputs:
+    output: ${output_parser.output}
+  use_variants: false
+- name: citation_output
+  type: python
+  source:
+    type: code
+    path: citation_output.py
+  inputs:
+    output: ${output_parser.output}
+  use_variants: false
+node_variants: {}
+environment:
+  python_requirements_txt: requirements.txt

@@ -38,7 +38,7 @@ Poetry is a package manager for Python that allows developers to manage dependen
 
 Poetry is setup for you in the devcontainer, but should you need to set this up manually you can
 ```sh
-sh ./.devcontainer/postCreate.sh
+sh ./.devcontainer/setupEnv.sh
 ```
 
 The following manual steps can also be followed to setup poetry:
