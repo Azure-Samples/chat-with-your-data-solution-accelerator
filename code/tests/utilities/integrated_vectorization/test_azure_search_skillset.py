@@ -6,6 +6,8 @@ from backend.batch.utilities.integrated_vectorization.azure_search_skillset impo
 from azure.search.documents.indexes.models import (
     SearchIndexerSkillset,
     SplitSkill,
+    OcrSkill,
+    MergeSkill,
     AzureOpenAIEmbeddingSkill,
     SearchIndexerIndexProjections,
 )
@@ -43,7 +45,7 @@ def search_indexer_client_mock():
         indexer_client.create_or_update_skillset.return_value = SearchIndexerSkillset(
             name="skillset_name",
             description="Skillset to chunk documents and generating embeddings",
-            skills=[SplitSkill, AzureOpenAIEmbeddingSkill],
+            skills=[OcrSkill, MergeSkill, SplitSkill, AzureOpenAIEmbeddingSkill],
             index_projections=SearchIndexerIndexProjections,
         )
         yield mock
@@ -62,7 +64,7 @@ def test_create_skillset_keys(
 
     # then
     assert create_or_update_skillset.name == "skillset_name"
-    assert len(create_or_update_skillset.skills) == 2
+    assert len(create_or_update_skillset.skills) == 4
     assert create_or_update_skillset.index_projections is not None
     search_indexer_client_mock.return_value.create_or_update_skillset.assert_called_once()
 
@@ -82,6 +84,6 @@ def test_create_skillset_rbac(
 
     # then
     assert create_or_update_skillset.name == "skillset_name"
-    assert len(create_or_update_skillset.skills) == 2
+    assert len(create_or_update_skillset.skills) == 4
     assert create_or_update_skillset.index_projections is not None
     search_indexer_client_mock.return_value.create_or_update_skillset.assert_called_once()

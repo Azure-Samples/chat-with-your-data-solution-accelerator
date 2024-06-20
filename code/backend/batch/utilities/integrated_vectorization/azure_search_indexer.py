@@ -27,10 +27,25 @@ class AzureSearchIndexer:
             skillset_name=skillset_name,
             target_index_name=self.env_helper.AZURE_SEARCH_INDEX,
             data_source_name=self.env_helper.AZURE_SEARCH_DATASOURCE_NAME,
+            parameters={
+                "configuration": {
+                    "dataToExtract": "contentAndMetadata",
+                    "parsingMode": "default",
+                    "imageAction": "generateNormalizedImages",
+                }
+            },
             field_mappings=[
                 FieldMapping(
                     source_field_name="metadata_storage_path",
                     target_field_name="source",
+                ),
+                FieldMapping(
+                    source_field_name="/document/normalized_images/*/text",
+                    target_field_name="text",
+                ),
+                FieldMapping(
+                    source_field_name="/document/normalized_images/*/layoutText",
+                    target_field_name="layoutText",
                 ),
             ],
         )
