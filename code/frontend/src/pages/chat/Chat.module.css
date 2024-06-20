@@ -326,7 +326,8 @@
     }
 }
 
-@media screen and (max-width: 1280px) {
+/* Styles for 1280p resolution at 200% zoom */
+@media screen and (max-width: 640px) {
     .clearChatBroom {
         left: -23px !important;
     }
