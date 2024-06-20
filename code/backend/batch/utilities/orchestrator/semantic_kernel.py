@@ -5,7 +5,7 @@ from semantic_kernel import Kernel
 from semantic_kernel.connectors.ai.function_call_behavior import FunctionCallBehavior
 from semantic_kernel.contents import ChatHistory
 from semantic_kernel.contents.chat_message_content import ChatMessageContent
-from semantic_kernel.contents.finish_reason import FinishReason
+from semantic_kernel.contents.utils.finish_reason import FinishReason
 
 from ..common.answer import Answer
 from ..helpers.llm_helper import LLMHelper
