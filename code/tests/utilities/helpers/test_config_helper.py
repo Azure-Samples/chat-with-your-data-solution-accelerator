@@ -335,6 +335,22 @@ def test_clear_config():
     assert ConfigHelper._default_config is None
 
 
+def test_get_default_assistant_prompt():
+    # when
+    default_assistant_prompt = ConfigHelper.get_default_assistant_prompt()
+
+    # then
+    assert default_assistant_prompt is not None
+    assert isinstance(default_assistant_prompt, str)
+
+def test_get_default_legal_assistant():
+    # when
+    legal_assistant_prompt = ConfigHelper.get_default_legal_assistant()
+
+    # then
+    assert legal_assistant_prompt is not None
+    assert isinstance(legal_assistant_prompt, str)
+
 def test_get_document_processors(config_dict: dict):
     # given
     config_dict["document_processors"] = [
