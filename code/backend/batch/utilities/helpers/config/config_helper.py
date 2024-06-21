@@ -11,7 +11,7 @@ from .embedding_config import EmbeddingConfig
 from ...orchestrator.orchestration_strategy import OrchestrationStrategy
 from ...orchestrator import OrchestrationSettings
 from ..env_helper import EnvHelper
-from assistant_strategy import AssistantStrategy
+from .assistant_strategy import AssistantStrategy
 
 CONFIG_CONTAINER_NAME = "config"
 CONFIG_FILE_NAME = "active.json"

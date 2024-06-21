@@ -7,7 +7,7 @@ import streamlit as st
 from batch.utilities.helpers.env_helper import EnvHelper
 from batch.utilities.helpers.config.config_helper import ConfigHelper
 from azure.core.exceptions import ResourceNotFoundError
-
+from batch.utilities.helpers.config.assistant_strategy import AssistantStrategy
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
 
@@ -92,7 +92,7 @@ def validate_answering_user_prompt():
         st.warning("Your answering prompt doesn't contain the variable `{question}`")
 
 def config_legal_assistant_prompt():
-    if st.session_state["ai_assistant_type"] == "legal assistant":
+    if st.session_state["ai_assistant_type"] == AssistantStrategy.LEGAL_ASSISTANT.value:
         st.success("Legal Assistant Prompt")
         st.session_state["answering_user_prompt"] = ConfigHelper.get_default_legal_assistant()
     else:
