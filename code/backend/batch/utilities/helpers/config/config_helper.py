@@ -137,7 +137,6 @@ class ConfigHelper:
         Function used to set newer properties that will not be present in older configs.
         The function mutates the config object.
         """
-        print("config", config)
         if config["prompts"].get("answering_system_prompt") is None:
             config["prompts"]["answering_system_prompt"] = default_config["prompts"][
                 "answering_system_prompt"
