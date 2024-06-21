@@ -11,6 +11,7 @@ from .embedding_config import EmbeddingConfig
 from ...orchestrator.orchestration_strategy import OrchestrationStrategy
 from ...orchestrator import OrchestrationSettings
 from ..env_helper import EnvHelper
+from assistant_strategy import AssistantStrategy
 
 CONFIG_CONTAINER_NAME = "config"
 CONFIG_FILE_NAME = "active.json"
@@ -85,7 +86,7 @@ class Config:
     def get_available_orchestration_strategies(self):
         return [c.value for c in OrchestrationStrategy]
     def get_available_ai_assistant_types(self):
-        return ["default", "legal assistant"]
+       return [c.value for c in AssistantStrategy]
 
 
 # TODO: Change to AnsweringChain or something, Prompts is not a good name
