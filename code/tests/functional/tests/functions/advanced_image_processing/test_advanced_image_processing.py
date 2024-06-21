@@ -192,7 +192,9 @@ If the image is mostly text, use OCR to extract the text as it is displayed in t
         ),
     )[0]
 
-    assert request.get_json()["messages"][1]["content"][1]["image_url"]["url"].startswith(
+    assert request.get_json()["messages"][1]["content"][1]["image_url"][
+        "url"
+    ].startswith(
         f"{app_config.get('AZURE_STORAGE_ACCOUNT_ENDPOINT')}{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}"
     )
 

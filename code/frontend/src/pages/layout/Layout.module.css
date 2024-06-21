@@ -8,7 +8,6 @@ body {
 .header, .footer {
     width: 100%;
     max-width: 1200px;
-    padding: 1rem;
     box-sizing: border-box;
 }
 
@@ -132,7 +131,8 @@ body {
 
 @media screen and (-ms-high-contrast: active), (forced-colors: active) {
 
-.shareButtonContainer{
+.shareButtonContainer, .headerTitleContainer{
     border: 2px solid WindowText;
 }
+
 }

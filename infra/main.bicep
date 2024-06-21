@@ -193,7 +193,7 @@ param computerVisionSkuName string = 'S1'
   'southeastasia'
   ''
 ])
-param computerVisionLocation string = useAdvancedImageProcessing ? location : ''
+param computerVisionLocation string = ''
 
 @description('Azure Computer Vision Vectorize Image API Version')
 param computerVisionVectorizeImageApiVersion string = '2024-02-01'
@@ -338,22 +338,22 @@ var defaultOpenAiDeployments = [
 
 var openAiDeployments = concat(
   defaultOpenAiDeployments,
-  useAdvancedImageProcessing
-    ? [
-        {
-          name: azureOpenAIVisionModel
-          model: {
-            format: 'OpenAI'
-            name: azureOpenAIVisionModelName
-            version: azureOpenAIVisionModelVersion
-          }
-          sku: {
-            name: 'Standard'
-            capacity: azureOpenAIVisionModelCapacity
-          }
-        }
-      ]
-    : []
+  useAdvancedImageProcessing 
+   ? [
+    {
+      name: azureOpenAIVisionModel
+      model: {
+        format: 'OpenAI'
+        name: azureOpenAIVisionModelName
+        version: azureOpenAIVisionModelVersion
+      }
+      sku: {
+        name: 'Standard'
+        capacity: azureOpenAIVisionModelCapacity
+      }
+    }
+  ] 
+   : []
 )
 
 module openai 'core/ai/cognitiveservices.bicep' = {
@@ -377,7 +377,7 @@ module computerVision 'core/ai/cognitiveservices.bicep' = if (useAdvancedImagePr
   params: {
     name: computerVisionName
     kind: 'ComputerVision'
-    location: computerVisionLocation
+    location: computerVisionLocation != '' ? computerVisionLocation : location
     tags: tags
     sku: {
       name: computerVisionSkuName
@@ -811,9 +811,9 @@ module workbook './app/workbook.bicep' = {
     hostingPlanName: hostingplan.outputs.name
     functionName: hostingModel == 'container' ? function_docker.outputs.functionName : function.outputs.functionName
     websiteName: hostingModel == 'container' ? web_docker.outputs.FRONTEND_API_NAME : web.outputs.FRONTEND_API_NAME
-    adminWebsiteName: hostingModel == 'container'
-      ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME
-      : adminweb.outputs.WEBSITE_ADMIN_NAME
+    adminWebsiteName: hostingModel == 'container' 
+     ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME 
+     : adminweb.outputs.WEBSITE_ADMIN_NAME
     eventGridSystemTopicName: eventgrid.outputs.name
     logAnalyticsName: monitoring.outputs.logAnalyticsWorkspaceName
     azureOpenAIResourceName: openai.outputs.name
@@ -972,12 +972,12 @@ module storage 'core/storage/storage-account.bicep' = {
     sku: {
       name: 'Standard_GRS'
     }
-    deleteRetentionPolicy: azureSearchUseIntegratedVectorization
-      ? {
-          enabled: true
-          days: 7
-        }
-      : {}
+    deleteRetentionPolicy: azureSearchUseIntegratedVectorization 
+     ? {
+      enabled: true
+      days: 7
+    } 
+     : {}
     containers: [
       {
         name: blobContainerName
@@ -1066,6 +1066,7 @@ output AZURE_BLOB_CONTAINER_NAME string = blobContainerName
 output AZURE_BLOB_ACCOUNT_NAME string = storageAccountName
 output AZURE_BLOB_ACCOUNT_KEY string = useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
 output AZURE_COMPUTER_VISION_ENDPOINT string = useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+output AZURE_COMPUTER_VISION_LOCATION string = useAdvancedImageProcessing ? computerVision.outputs.location : ''
 output AZURE_COMPUTER_VISION_KEY string = useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
 output AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION string = computerVisionVectorizeImageApiVersion
 output AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION string = computerVisionVectorizeImageModelVersion
@@ -1114,17 +1115,17 @@ output AZURE_TENANT_ID string = tenant().tenantId
 output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
 output USE_KEY_VAULT bool = useKeyVault
-output FRONTEND_WEBSITE_NAME string = hostingModel == 'code'
-  ? web.outputs.FRONTEND_API_URI
-  : web_docker.outputs.FRONTEND_API_URI
-output ADMIN_WEBSITE_NAME string = hostingModel == 'code'
-  ? adminweb.outputs.WEBSITE_ADMIN_URI
-  : adminweb_docker.outputs.WEBSITE_ADMIN_URI
+output FRONTEND_WEBSITE_NAME string = hostingModel == 'code' 
+ ? web.outputs.FRONTEND_API_URI 
+ : web_docker.outputs.FRONTEND_API_URI
+output ADMIN_WEBSITE_NAME string = hostingModel == 'code' 
+ ? adminweb.outputs.WEBSITE_ADMIN_URI 
+ : adminweb_docker.outputs.WEBSITE_ADMIN_URI
 output LOGLEVEL string = logLevel
 output CONVERSATION_FLOW string = conversationFlow
 output USE_ADVANCED_IMAGE_PROCESSING bool = useAdvancedImageProcessing
 output ADVANCED_IMAGE_PROCESSING_MAX_IMAGES int = advancedImageProcessingMaxImages
-output AZURE_ML_WORKSPACE_NAME string = orchestrationStrategy == 'prompt_flow'
-  ? machineLearning.outputs.workspaceName
-  : ''
+output AZURE_ML_WORKSPACE_NAME string = orchestrationStrategy == 'prompt_flow' 
+ ? machineLearning.outputs.workspaceName 
+ : ''
 output RESOURCE_TOKEN string = resourceToken

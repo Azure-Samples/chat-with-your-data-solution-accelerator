@@ -130,25 +130,40 @@ const Chat = () => {
 
     return abortController.abort();
   };
+    // Buffer to store recognized text
+    let recognizedTextBuffer = "";
+    let currentSentence = "";
 
   const startSpeechRecognition = async () => {
     if (!isRecognizing) {
       setIsRecognizing(true);
-
       recognizerRef.current = await multiLingualSpeechRecognizer(); // Store the recognizer in the ref
 
       recognizerRef.current.recognized = (s, e) => {
         if (e.result.reason === ResultReason.RecognizedSpeech) {
-          const recognized = e.result.text;
-          setUserMessage(recognized);
-          setRecognizedText(recognized);
+          let recognizedText = e.result.text.trim();
+          // Append current sentence to buffer if it's not empty
+          if (currentSentence) {
+              recognizedTextBuffer += ` ${currentSentence.trim()}`;
+              currentSentence = "";
+          }
+          // Start new sentence
+          currentSentence += ` ${recognizedText}`;
+          //set text in textarea
+           setUserMessage((recognizedTextBuffer + currentSentence).trim());
+           setRecognizedText((recognizedTextBuffer + currentSentence).trim());
         }
       };
 
-      recognizerRef.current.startContinuousRecognitionAsync(() => {
-        setIsRecognizing(true);
-        setIsListening(true);
-      });
+      recognizerRef.current.startContinuousRecognitionAsync(
+        () => {
+            setIsRecognizing(true);
+            setIsListening(true);
+        },
+        error => {
+            console.error(`Error starting recognition: ${error}`);
+        }
+    );
     }
   };
 

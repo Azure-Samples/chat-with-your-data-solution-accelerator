@@ -1,21 +1,23 @@
 from unittest.mock import ANY, AsyncMock, MagicMock, call, patch
 
 import pytest
-from backend.batch.utilities.common.answer import Answer
-from backend.batch.utilities.orchestrator.semantic_kernel import (
-    SemanticKernelOrchestrator,
-)
-from backend.batch.utilities.parser.output_parser_tool import OutputParserTool
 from semantic_kernel import Kernel
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
 from semantic_kernel.connectors.ai.function_call_behavior import EnabledFunctions
 from semantic_kernel.connectors.ai.open_ai.prompt_execution_settings.azure_chat_prompt_execution_settings import (
     AzureChatPromptExecutionSettings,
 )
-from semantic_kernel.contents.author_role import AuthorRole
+from semantic_kernel.contents.utils.author_role import AuthorRole
 from semantic_kernel.contents.chat_message_content import ChatMessageContent
-from semantic_kernel.contents.finish_reason import FinishReason
+from semantic_kernel.contents.utils.finish_reason import FinishReason
 from semantic_kernel.contents.function_call_content import FunctionCallContent
+
+from backend.batch.utilities.common.answer import Answer
+from backend.batch.utilities.orchestrator.semantic_kernel import (
+    SemanticKernelOrchestrator,
+)
+from backend.batch.utilities.parser.output_parser_tool import OutputParserTool
+
 
 chat_message_default_content = ChatMessageContent(
     content="mock-response",
