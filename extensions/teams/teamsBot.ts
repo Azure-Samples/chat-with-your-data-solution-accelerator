@@ -20,6 +20,7 @@ export class TeamsBot extends TeamsActivityHandler {
     super();
     let newActivity;
     let assistantAnswer = "";
+    let answerwithdisclaimertext = "";
     let activityUpdated = true;
 
     this.onMessage(async (context, next) => {
@@ -118,13 +119,14 @@ export class TeamsBot extends TeamsActivityHandler {
         answers.map((answer, index) => {
           if (answer.role === "assistant") {
             assistantAnswer = answer.content;
+            answerwithdisclaimertext = assistantAnswer + "<div style='color:#707070;font-size:12px;font-family: Segoe UI;font-style: normal;font-weight: 400; line-height: 16px; margin-top: 15px; padding-bottom: 5px;'>AI-generated content may be incorrect</div>" ;
             if (assistantAnswer.startsWith("[doc")) {
               assistantAnswer = EMPTY_RESPONSE;
-              newActivity = MessageFactory.text(assistantAnswer);
+              newActivity = MessageFactory.text(answerwithdisclaimertext);
             } else {
               const citations = parseCitationFromMessage(answers[index - 1]) as Citation[];
               if (citations.length === 0) {
-                newActivity = MessageFactory.text(assistantAnswer);
+                newActivity = MessageFactory.text(answerwithdisclaimertext);
                 newActivity.id = reply.id;
               } else {
                 newActivity = MessageFactory.attachment(cwydResponseBuilder(citations, assistantAnswer));
