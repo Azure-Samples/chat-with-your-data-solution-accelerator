@@ -352,6 +352,7 @@ def test_get_default_legal_assistant():
     assert legal_assistant_prompt is not None
     assert isinstance(legal_assistant_prompt, str)
 
+
 def test_get_document_processors(config_dict: dict):
     # given
     config_dict["document_processors"] = [
