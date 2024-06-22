@@ -59,6 +59,13 @@ export function cardBodyBuilder(citations: any[], assistantAnswer: string): any 
             }, {
                 type: 'ActionSet',
                 actions: []
+            }, {
+                type: CardType.TextBlock,
+                text: "AI-generated content may be incorrect",
+                wrap: true,
+                weight: "lighter",
+                size: "small",
+                color: "default"
             }
         ],
         actions: [],
