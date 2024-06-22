@@ -91,6 +91,7 @@ def validate_answering_user_prompt():
     if "{question}" not in st.session_state.answering_user_prompt:
         st.warning("Your answering prompt doesn't contain the variable `{question}`")
 
+
 def config_legal_assistant_prompt():
     if st.session_state["ai_assistant_type"] == AssistantStrategy.LEGAL_ASSISTANT.value:
         st.success("Legal Assistant Prompt")

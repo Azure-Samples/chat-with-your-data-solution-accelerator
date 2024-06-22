@@ -85,8 +85,9 @@ class Config:
 
     def get_available_orchestration_strategies(self):
         return [c.value for c in OrchestrationStrategy]
+
     def get_available_ai_assistant_types(self):
-       return [c.value for c in AssistantStrategy]
+        return [c.value for c in AssistantStrategy]
 
 
 # TODO: Change to AnsweringChain or something, Prompts is not a good name
@@ -164,7 +165,7 @@ class ConfigHelper:
             config["example"] = default_config["example"]
 
         if config["prompts"].get("ai_assistant_type") is None:
-            config["prompts"]["ai_assistant_type"] =  default_config["prompts"]["ai_assistant_type"]
+            config["prompts"]["ai_assistant_type"] = default_config["prompts"]["ai_assistant_type"]
 
         if config.get("integrated_vectorization_config") is None:
             config["integrated_vectorization_config"] = default_config[
@@ -195,7 +196,7 @@ class ConfigHelper:
     @functools.cache
     def get_default_assistant_prompt():
         config = ConfigHelper.get_default_config()
-        return  config["prompts"]["answering_user_prompt"]
+        return config["prompts"]["answering_user_prompt"]
 
     @staticmethod
     def save_config_as_active(config):
@@ -251,7 +252,6 @@ class ConfigHelper:
             legal_assistant = f.readlines()
 
         return ''.join([str(elem) for elem in legal_assistant])
-
 
     @staticmethod
     def clear_config():

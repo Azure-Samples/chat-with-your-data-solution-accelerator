@@ -343,6 +343,7 @@ def test_get_default_assistant_prompt():
     assert default_assistant_prompt is not None
     assert isinstance(default_assistant_prompt, str)
 
+
 def test_get_default_legal_assistant():
     # when
     legal_assistant_prompt = ConfigHelper.get_default_legal_assistant()
