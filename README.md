@@ -113,8 +113,8 @@ In this scenario, a financial advisor is preparing for a meeting with a potentia
 
 Now that the financial advisor is more informed about Woodgrove’s Emerging Markets Funds, they're better equipped to respond to questions about this fund from their client.
 
-#### Legal Assistant scenario
-Additionally, we have implemented a Legal Assistant scenario to demonstrate how this accelerator can be utilized in the legal industry. The Legal Assistant helps legal professionals manage and interact with a large collection of legal documents efficiently. For more details, refer to the [Legal Assistant README](docs/legal_assistance.md).
+#### Contract Review and Summarization Assistant scenario
+Additionally, we have implemented a Contract Review and Summarization Assistant scenario to demonstrate how this accelerator can be utilized in any industry. The Contract Review and Summarization Assistant helps professionals manage and interact with a large collection of documents efficiently. For more details, refer to the [Contract Review and Summarization Assistant README](docs/contract_assistance.md).
 
 Note: Some of the sample data included with this accelerator was generated using AI and is for illustrative purposes only.
 
