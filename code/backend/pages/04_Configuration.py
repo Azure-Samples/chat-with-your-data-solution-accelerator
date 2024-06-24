@@ -7,7 +7,7 @@ import streamlit as st
 from batch.utilities.helpers.env_helper import EnvHelper
 from batch.utilities.helpers.config.config_helper import ConfigHelper
 from azure.core.exceptions import ResourceNotFoundError
-
+from batch.utilities.helpers.config.assistant_strategy import AssistantStrategy
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
 
@@ -63,6 +63,8 @@ if "log_tokens" not in st.session_state:
 
 if "orchestrator_strategy" not in st.session_state:
     st.session_state["orchestrator_strategy"] = config.orchestrator.strategy.value
+if "ai_assistant_type" not in st.session_state:
+    st.session_state["ai_assistant_type"] = config.prompts.ai_assistant_type
 
 if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
     if "max_page_length" not in st.session_state:
@@ -88,6 +90,15 @@ def validate_answering_user_prompt():
         st.warning("Your answering prompt doesn't contain the variable `{sources}`")
     if "{question}" not in st.session_state.answering_user_prompt:
         st.warning("Your answering prompt doesn't contain the variable `{question}`")
+
+
+def config_legal_assistant_prompt():
+    if st.session_state["ai_assistant_type"] == AssistantStrategy.LEGAL_ASSISTANT.value:
+        st.success("Legal Assistant Prompt")
+        st.session_state["answering_user_prompt"] = ConfigHelper.get_default_legal_assistant()
+    else:
+        st.success("Default Assistant Prompt")
+        st.session_state["answering_user_prompt"] = ConfigHelper.get_default_assistant_prompt()
 
 
 def validate_post_answering_prompt():
@@ -174,7 +185,7 @@ try:
     post_answering_prompt_help = "You can configure a post prompt that allows to fact-check or process the answer, given the sources, question and answer. This prompt needs to return `True` or `False`."
     use_on_your_data_format_help = "Whether to use a similar prompt format to Azure OpenAI On Your Data, including separate system and user messages, and a few-shot example."
     post_answering_filter_help = "The message that is returned to the user, when the post-answering prompt returns."
-
+    ai_assistant_type_help = "Whether to use the default user prompt or the Legal Assistance user prompt. Refer to the Legal Assistance README for more details."
     example_documents_help = (
         "JSON object containing documents retrieved from the knowledge base, in the following format:  \n"
         """```json
@@ -197,7 +208,16 @@ try:
     )
     example_user_question_help = "The example user question."
     example_answer_help = "The expected answer."
-
+    with st.expander("", expanded=True):
+        cols = st.columns([2, 4])
+        with cols[0]:
+            st.selectbox(
+                "Assistant Type",
+                key="ai_assistant_type",
+                on_change=config_legal_assistant_prompt,
+                options=config.get_available_ai_assistant_types(),
+                help=ai_assistant_type_help,
+            )
     with st.expander("Prompt configuration", expanded=True):
         # # # st.text_area("Condense question prompt", key='condense_question_prompt', on_change=validate_question_prompt, help=condense_question_prompt_help, height=200)
         st.checkbox(
@@ -205,7 +225,6 @@ try:
             key="use_on_your_data_format",
             help=use_on_your_data_format_help,
         )
-
         st.text_area(
             "Answering user prompt",
             key="answering_user_prompt",
@@ -355,6 +374,7 @@ try:
                     "enable_post_answering_prompt"
                 ],
                 "enable_content_safety": st.session_state["enable_content_safety"],
+                "ai_assistant_type": st.session_state["ai_assistant_type"]
             },
             "messages": {
                 "post_answering_filter": st.session_state[

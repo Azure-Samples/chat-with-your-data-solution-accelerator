@@ -19,6 +19,7 @@ def config_dict():
             "post_answering_prompt": "mock_post_answering_prompt",
             "enable_post_answering_prompt": False,
             "enable_content_safety": True,
+            "ai_assistant_type": "default"
         },
         "messages": {
             "post_answering_filter": "mock_post_answering_filter",
@@ -332,6 +333,24 @@ def test_clear_config():
     # then
     assert config is not None
     assert ConfigHelper._default_config is None
+
+
+def test_get_default_assistant_prompt():
+    # when
+    default_assistant_prompt = ConfigHelper.get_default_assistant_prompt()
+
+    # then
+    assert default_assistant_prompt is not None
+    assert isinstance(default_assistant_prompt, str)
+
+
+def test_get_default_legal_assistant():
+    # when
+    legal_assistant_prompt = ConfigHelper.get_default_legal_assistant()
+
+    # then
+    assert legal_assistant_prompt is not None
+    assert isinstance(legal_assistant_prompt, str)
 
 
 def test_get_document_processors(config_dict: dict):
