@@ -198,15 +198,3 @@ sup {
         color: WindowText;
     }
 }
-
-/* Styles for 1280p resolution at 200% zoom */
-@media screen and (max-width: 640px) {
-    .answerContainer, .answerText {
-        font-size: 0.6rem !important;
-    }
-
-    .answerDisclaimer, .accordionTitle, .citationContainer{
-        font-size: 0.5rem !important;
-    }
-
-}
