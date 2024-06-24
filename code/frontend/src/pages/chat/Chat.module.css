@@ -325,22 +325,3 @@
         color: WindowText;
     }
 }
-
-/* Styles for 1280p resolution at 200% zoom */
-@media screen and (max-width: 640px) {
-    .clearChatBroom {
-        left: -23px !important;
-    }
-    .citationPanelContent,.chatMessageUserMessage{
-        font-size: 0.6rem !important;
-    }
-    textarea{
-        font-size: 0.6rem !important;
-    }
-    .citationPanelHeader{
-        font-size: 1rem !important;
-    }
-    .citationPanelTitle{
-        font-size: 0.8rem !important;
-    }
-}
