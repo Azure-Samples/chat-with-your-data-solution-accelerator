@@ -571,27 +571,28 @@ azure-core = ">=1.26.2,<2.0.0"
 
 [[package]]
 name = "azure-monitor-opentelemetry"
-version = "1.5.0"
+version = "1.6.0"
 description = "Microsoft Azure Monitor Opentelemetry Distro Client Library for Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "azure-monitor-opentelemetry-1.5.0.tar.gz", hash = "sha256:1a6cec5dbd031e5f4d5174b69a666107d2716fbe06696d62560e68dfd181b951"},
-    {file = "azure_monitor_opentelemetry-1.5.0-py3-none-any.whl", hash = "sha256:ab01528ff7ef92a40bdd4b970ffd2edd31d2d49ce7141d33210ab6ceefa98dbb"},
+    {file = "azure-monitor-opentelemetry-1.6.0.tar.gz", hash = "sha256:a55858e66cf7283ef4753e85df2931a1d1574a6d8dcc429599f086948af5dbb2"},
+    {file = "azure_monitor_opentelemetry-1.6.0-py3-none-any.whl", hash = "sha256:45a4995fffa62fc62dc08c43b28e91c35cdf7e6a46d7f2fdd5197aafb816cc9d"},
 ]
 
 [package.dependencies]
 azure-core = ">=1.28.0,<2.0.0"
 azure-core-tracing-opentelemetry = ">=1.0.0b11,<1.1.0"
 azure-monitor-opentelemetry-exporter = ">=1.0.0b26,<1.1.0"
-opentelemetry-instrumentation-django = ">=0.42b0,<1.0"
-opentelemetry-instrumentation-fastapi = ">=0.42b0,<1.0"
-opentelemetry-instrumentation-flask = ">=0.42b0,<1.0"
-opentelemetry-instrumentation-psycopg2 = ">=0.42b0,<1.0"
-opentelemetry-instrumentation-requests = ">=0.42b0,<1.0"
-opentelemetry-instrumentation-urllib = ">=0.42b0,<1.0"
-opentelemetry-instrumentation-urllib3 = ">=0.42b0,<1.0"
+opentelemetry-instrumentation-django = ">=0.46b0,<1.0"
+opentelemetry-instrumentation-fastapi = ">=0.46b0,<1.0"
+opentelemetry-instrumentation-flask = ">=0.46b0,<1.0"
+opentelemetry-instrumentation-psycopg2 = ">=0.46b0,<1.0"
+opentelemetry-instrumentation-requests = ">=0.46b0,<1.0"
+opentelemetry-instrumentation-urllib = ">=0.46b0,<1.0"
+opentelemetry-instrumentation-urllib3 = ">=0.46b0,<1.0"
 opentelemetry-resource-detector-azure = ">=0.1.4,<0.2.0"
+opentelemetry-sdk = ">=1.25,<2.0"
 
 [[package]]
 name = "azure-monitor-opentelemetry-exporter"
@@ -7226,4 +7227,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "e9a972205bee9464aceec601ed24ac26f0ee448f15da1af577fdbeabb65fecb0"
+content-hash = "78cfa3df84c890f1cab2e9480c03e311a892fd2c5e840385d99c70da0fbc171f"
