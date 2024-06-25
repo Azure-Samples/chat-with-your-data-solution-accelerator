@@ -284,6 +284,92 @@ def test_integrated_vectorization_skillset_created(
             method="PUT",
             query_string="api-version=2023-10-01-Preview",
             times=1,
+            json={
+                "name": f"{app_config.get('AZURE_SEARCH_INDEX')}-skillset",
+                "description": "Skillset to chunk documents and generating embeddings",
+                "skills": [
+                    {
+                        "@odata.type": "#Microsoft.Skills.Vision.OcrSkill",
+                        "description": "Extract text (plain and structured) from image",
+                        "context": "/document/normalized_images/*",
+                        "inputs": [
+                            {"name": "image", "source": "/document/normalized_images/*"}
+                        ],
+                        "outputs": [
+                            {"name": "text", "targetName": "text"},
+                            {"name": "layoutText", "targetName": "layoutText"},
+                        ],
+                        "detectOrientation": False,
+                    },
+                    {
+                        "@odata.type": "#Microsoft.Skills.Text.MergeSkill",
+                        "description": "Merge text from OCR and text from document",
+                        "context": "/document",
+                        "inputs": [
+                            {"name": "text", "source": "/document/content"},
+                            {
+                                "name": "itemsToInsert",
+                                "source": "/document/normalized_images/*/text",
+                            },
+                            {
+                                "name": "offsets",
+                                "source": "/document/normalized_images/*/contentOffset",
+                            },
+                        ],
+                        "outputs": [
+                            {"name": "mergedText", "targetName": "merged_content"}
+                        ],
+                        "insertPreTag": " ",
+                        "insertPostTag": " ",
+                    },
+                    {
+                        "@odata.type": "#Microsoft.Skills.Text.SplitSkill",
+                        "description": "Split skill to chunk documents",
+                        "context": "/document",
+                        "inputs": [
+                            {"name": "text", "source": "/document/merged_content"}
+                        ],
+                        "outputs": [{"name": "textItems", "targetName": "pages"}],
+                        "textSplitMode": "pages",
+                        "maximumPageLength": 800,
+                        "pageOverlapLength": 100,
+                    },
+                    {
+                        "@odata.type": "#Microsoft.Skills.Text.AzureOpenAIEmbeddingSkill",
+                        "description": "Skill to generate embeddings via Azure OpenAI",
+                        "context": "/document/pages/*",
+                        "inputs": [{"name": "text", "source": "/document/pages/*"}],
+                        "outputs": [
+                            {"name": "embedding", "targetName": "content_vector"}
+                        ],
+                        "resourceUri": f"https://localhost:{httpserver.port}/",
+                        "deploymentId": f"{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}",
+                        "apiKey": f"{app_config.get('AZURE_OPENAI_API_KEY')}",
+                    },
+                ],
+                "indexProjections": {
+                    "selectors": [
+                        {
+                            "targetIndexName": f"{app_config.get('AZURE_SEARCH_INDEX')}",
+                            "parentKeyFieldName": "id",
+                            "sourceContext": "/document/pages/*",
+                            "mappings": [
+                                {"name": "content", "source": "/document/pages/*"},
+                                {
+                                    "name": "content_vector",
+                                    "source": "/document/pages/*/content_vector",
+                                },
+                                {"name": "title", "source": "/document/title"},
+                                {
+                                    "name": "source",
+                                    "source": "/document/metadata_storage_path",
+                                },
+                            ],
+                        }
+                    ],
+                    "parameters": {"projectionMode": "skipIndexingParentDocuments"},
+                },
+            },
         ),
     )
 

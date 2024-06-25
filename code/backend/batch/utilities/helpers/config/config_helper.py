@@ -11,6 +11,7 @@ from .embedding_config import EmbeddingConfig
 from ...orchestrator.orchestration_strategy import OrchestrationStrategy
 from ...orchestrator import OrchestrationSettings
 from ..env_helper import EnvHelper
+from .assistant_strategy import AssistantStrategy
 
 CONFIG_CONTAINER_NAME = "config"
 CONFIG_FILE_NAME = "active.json"
@@ -85,6 +86,9 @@ class Config:
     def get_available_orchestration_strategies(self):
         return [c.value for c in OrchestrationStrategy]
 
+    def get_available_ai_assistant_types(self):
+        return [c.value for c in AssistantStrategy]
+
 
 # TODO: Change to AnsweringChain or something, Prompts is not a good name
 class Prompts:
@@ -96,6 +100,7 @@ class Prompts:
         self.use_on_your_data_format = prompts["use_on_your_data_format"]
         self.enable_post_answering_prompt = prompts["enable_post_answering_prompt"]
         self.enable_content_safety = prompts["enable_content_safety"]
+        self.ai_assistant_type = prompts["ai_assistant_type"]
 
 
 class Example:
@@ -159,6 +164,9 @@ class ConfigHelper:
         if config.get("example") is None:
             config["example"] = default_config["example"]
 
+        if config["prompts"].get("ai_assistant_type") is None:
+            config["prompts"]["ai_assistant_type"] = default_config["prompts"]["ai_assistant_type"]
+
         if config.get("integrated_vectorization_config") is None:
             config["integrated_vectorization_config"] = default_config[
                 "integrated_vectorization_config"
@@ -183,6 +191,12 @@ class ConfigHelper:
                 logger.info("Returning default config")
 
         return Config(config)
+
+    @staticmethod
+    @functools.cache
+    def get_default_assistant_prompt():
+        config = ConfigHelper.get_default_config()
+        return config["prompts"]["answering_user_prompt"]
 
     @staticmethod
     def save_config_as_active(config):
@@ -228,6 +242,16 @@ class ConfigHelper:
                     ConfigHelper._append_advanced_image_processors()
 
         return ConfigHelper._default_config
+
+    @staticmethod
+    @functools.cache
+    def get_default_legal_assistant():
+        legal_file_path = os.path.join(os.path.dirname(__file__), "default_legal_assistant_prompt.txt")
+        legal_assistant = ""
+        with open(legal_file_path, encoding="utf-8") as f:
+            legal_assistant = f.readlines()
+
+        return ''.join([str(elem) for elem in legal_assistant])
 
     @staticmethod
     def clear_config():

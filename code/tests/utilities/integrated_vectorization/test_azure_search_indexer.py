@@ -61,6 +61,13 @@ def test_create_or_update_indexer_keys(
         skillset_name="skillset_name",
         target_index_name=env_helper_mock.AZURE_SEARCH_INDEX,
         data_source_name=env_helper_mock.AZURE_SEARCH_DATASOURCE_NAME,
+        parameters={
+            "configuration": {
+                "dataToExtract": "contentAndMetadata",
+                "parsingMode": "default",
+                "imageAction": "generateNormalizedImages",
+            }
+        },
         field_mappings=ANY,
     )
 
@@ -88,6 +95,13 @@ def test_create_or_update_indexer_rbac(
         skillset_name="skillset_name",
         target_index_name=env_helper_mock.AZURE_SEARCH_INDEX,
         data_source_name=env_helper_mock.AZURE_SEARCH_DATASOURCE_NAME,
+        parameters={
+            "configuration": {
+                "dataToExtract": "contentAndMetadata",
+                "parsingMode": "default",
+                "imageAction": "generateNormalizedImages",
+            }
+        },
         field_mappings=ANY,
     )
 

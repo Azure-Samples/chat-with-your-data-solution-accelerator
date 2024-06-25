@@ -4,6 +4,8 @@ from azure.search.documents.indexes.models import (
     InputFieldMappingEntry,
     OutputFieldMappingEntry,
     AzureOpenAIEmbeddingSkill,
+    OcrSkill,
+    MergeSkill,
     SearchIndexerIndexProjections,
     SearchIndexerIndexProjectionSelector,
     SearchIndexerIndexProjectionsParameters,
@@ -39,6 +41,38 @@ class AzureSearchSkillset:
     def create_skillset(self):
         skillset_name = f"{self.env_helper.AZURE_SEARCH_INDEX}-skillset"
 
+        ocr_skill = OcrSkill(
+            description="Extract text (plain and structured) from image",
+            context="/document/normalized_images/*",
+            inputs=[
+                InputFieldMappingEntry(
+                    name="image",
+                    source="/document/normalized_images/*",
+                )
+            ],
+            outputs=[
+                OutputFieldMappingEntry(name="text", target_name="text"),
+                OutputFieldMappingEntry(name="layoutText", target_name="layoutText"),
+            ],
+        )
+
+        merge_skill = MergeSkill(
+            description="Merge text from OCR and text from document",
+            context="/document",
+            inputs=[
+                InputFieldMappingEntry(name="text", source="/document/content"),
+                InputFieldMappingEntry(
+                    name="itemsToInsert", source="/document/normalized_images/*/text"
+                ),
+                InputFieldMappingEntry(
+                    name="offsets", source="/document/normalized_images/*/contentOffset"
+                ),
+            ],
+            outputs=[
+                OutputFieldMappingEntry(name="mergedText", target_name="merged_content")
+            ],
+        )
+
         split_skill = SplitSkill(
             description="Split skill to chunk documents",
             text_split_mode="pages",
@@ -46,7 +80,7 @@ class AzureSearchSkillset:
             maximum_page_length=self.integrated_vectorization_config.max_page_length,
             page_overlap_length=self.integrated_vectorization_config.page_overlap_length,
             inputs=[
-                InputFieldMappingEntry(name="text", source="/document/content"),
+                InputFieldMappingEntry(name="text", source="/document/merged_content"),
             ],
             outputs=[OutputFieldMappingEntry(name="textItems", target_name="pages")],
         )
@@ -98,7 +132,7 @@ class AzureSearchSkillset:
         skillset = SearchIndexerSkillset(
             name=skillset_name,
             description="Skillset to chunk documents and generating embeddings",
-            skills=[split_skill, embedding_skill],
+            skills=[ocr_skill, merge_skill, split_skill, embedding_skill],
             index_projections=index_projections,
         )
 
