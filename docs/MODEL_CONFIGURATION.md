@@ -34,13 +34,13 @@ This document outlines the necessary steps and configurations required for setti
     - example: `10`
 
 ### EMBEDDINGS
-- `AZURE_OPENAI_EMBEDDINGS_MODEL`: The Azure OpenAI Model Deployment Name
+- `AZURE_OPENAI_EMBEDDING_MODEL`: The Azure OpenAI Model Deployment Name
     - example: `my-text-embedding-ada-002`
-- `AZURE_OPENAI_EMBEDDINGS_MODEL_NAME`: The Azure OpenAI Model Name
+- `AZURE_OPENAI_EMBEDDING_MODEL_NAME`: The Azure OpenAI Model Name
     - example: `text-embedding-ada-002`
-- `AZURE_OPENAI_EMBEDDINGS_MODEL_VERSION`: The Azure OpenAI Model Version
+- `AZURE_OPENAI_EMBEDDING_MODEL_VERSION`: The Azure OpenAI Model Version
     - example: `2`
-- `AZURE_OPENAI_EMBEDDINGS_MODEL_CAPACITY`: The Tokens per Minute Rate Limit (thousands)
+- `AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY`: The Tokens per Minute Rate Limit (thousands)
     - example: `30`
 - `AZURE_SEARCH_DIMENSIONS`: Azure OpenAI Embeddings dimensions. A full list of dimensions can be found [here](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#embeddings-models).
     - example: `1536`
