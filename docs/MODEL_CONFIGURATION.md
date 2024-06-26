@@ -68,9 +68,9 @@ This document outlines the necessary steps and configurations required for setti
     - `AZURE_OPENAI_MODEL`: `my-gpt-4o`
     - `AZURE_OPENAI_MODEL_NAME`: `gpt-4o`
     - `AZURE_OPENAI_MODEL_VERSION`: `2024-05-13`
-    - `AZURE_OPENAI_EMBEDDINGS_MODEL`: `my-text-embeddings-3-large`
-    - `AZURE_OPENAI_EMBEDDINGS_MODEL_NAME`: `text-embeddings-3-large`
-    - `AZURE_OPENAI_EMBEDDINGS_MODEL_VERSION`: `1`
+    - `AZURE_OPENAI_EMBEDDING_MODEL`: `my-text-embedding-3-large`
+    - `AZURE_OPENAI_EMBEDDING_MODEL_NAME`: `text-embedding-3-large`
+    - `AZURE_OPENAI_EMBEDDING_MODEL_VERSION`: `1`
     - `AZURE_SEARCH_DIMENSIONS`: `3072`
     - `AZURE_MAX_TOKENS`: `4096`
 
