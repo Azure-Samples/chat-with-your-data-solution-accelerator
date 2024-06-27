@@ -102,6 +102,7 @@ param azureOpenAIModel string = 'gpt-35-turbo-16k'
 @description('Azure OpenAI Model Name')
 param azureOpenAIModelName string = 'gpt-35-turbo-16k'
 
+@description('Azure OpenAI Model Version')
 param azureOpenAIModelVersion string = '0613'
 
 @description('Azure OpenAI Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
@@ -167,6 +168,9 @@ param azureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 
 @description('Azure OpenAI Embedding Model Name')
 param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
+
+@description('Azure OpenAI Embedding Model Version')
+param azureOpenAIEmbeddingModelVersion string = '2'
 
 @description('Azure OpenAI Embedding Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIEmbeddingModelCapacity int = 30
@@ -327,7 +331,7 @@ var defaultOpenAiDeployments = [
     model: {
       format: 'OpenAI'
       name: azureOpenAIEmbeddingModelName
-      version: '2'
+      version: azureOpenAIEmbeddingModelVersion
     }
     sku: {
       name: 'Standard'
@@ -339,21 +343,21 @@ var defaultOpenAiDeployments = [
 var openAiDeployments = concat(
   defaultOpenAiDeployments,
   useAdvancedImageProcessing
-   ? [
-    {
-      name: azureOpenAIVisionModel
-      model: {
-        format: 'OpenAI'
-        name: azureOpenAIVisionModelName
-        version: azureOpenAIVisionModelVersion
-      }
-      sku: {
-        name: 'Standard'
-        capacity: azureOpenAIVisionModelCapacity
-      }
-    }
-  ]
-   : []
+    ? [
+        {
+          name: azureOpenAIVisionModel
+          model: {
+            format: 'OpenAI'
+            name: azureOpenAIVisionModelName
+            version: azureOpenAIVisionModelVersion
+          }
+          sku: {
+            name: 'Standard'
+            capacity: azureOpenAIVisionModelCapacity
+          }
+        }
+      ]
+    : []
 )
 
 module openai 'core/ai/cognitiveservices.bicep' = {
@@ -534,6 +538,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
+      AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
       AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
       AZURE_OPENAI_TOP_P: azureOpenAITopP
       AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
@@ -542,6 +547,8 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_OPENAI_STREAM: azureOpenAIStream
       AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
+      AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
+      AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -608,6 +615,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
+      AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
       AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
       AZURE_OPENAI_TOP_P: azureOpenAITopP
       AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
@@ -616,6 +624,8 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_OPENAI_STREAM: azureOpenAIStream
       AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
+      AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
+      AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -682,6 +692,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
+      AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
       AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
       AZURE_OPENAI_TOP_P: azureOpenAITopP
       AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
@@ -690,6 +701,8 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_OPENAI_STREAM: azureOpenAIStream
       AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
+      AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
+      AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
@@ -754,6 +767,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL: azureOpenAIModel
       AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
+      AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
       AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
       AZURE_OPENAI_TOP_P: azureOpenAITopP
       AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
@@ -762,6 +776,8 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_OPENAI_STREAM: azureOpenAIStream
       AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
+      AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
+      AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
@@ -812,8 +828,8 @@ module workbook './app/workbook.bicep' = {
     functionName: hostingModel == 'container' ? function_docker.outputs.functionName : function.outputs.functionName
     websiteName: hostingModel == 'container' ? web_docker.outputs.FRONTEND_API_NAME : web.outputs.FRONTEND_API_NAME
     adminWebsiteName: hostingModel == 'container'
-     ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME
-     : adminweb.outputs.WEBSITE_ADMIN_NAME
+      ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME
+      : adminweb.outputs.WEBSITE_ADMIN_NAME
     eventGridSystemTopicName: eventgrid.outputs.name
     logAnalyticsName: monitoring.outputs.logAnalyticsWorkspaceName
     azureOpenAIResourceName: openai.outputs.name
@@ -860,7 +876,11 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_MODEL: azureOpenAIModel
+      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
+      AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
       AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
+      AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
+      AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -913,7 +933,11 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_MODEL: azureOpenAIModel
+      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
+      AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
       AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
+      AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
+      AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -973,11 +997,11 @@ module storage 'core/storage/storage-account.bicep' = {
       name: 'Standard_GRS'
     }
     deleteRetentionPolicy: azureSearchUseIntegratedVectorization
-     ? {
-      enabled: true
-      days: 7
-    }
-     : {}
+      ? {
+          enabled: true
+          days: 7
+        }
+      : {}
     containers: [
       {
         name: blobContainerName
@@ -1078,6 +1102,7 @@ output AZURE_KEY_VAULT_ENDPOINT string = useKeyVault ? keyvault.outputs.endpoint
 output AZURE_KEY_VAULT_NAME string = useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
 output AZURE_LOCATION string = location
 output AZURE_OPENAI_MODEL_NAME string = azureOpenAIModelName
+output AZURE_OPENAI_MODEL_VERSION string = azureOpenAIModelVersion
 output AZURE_OPENAI_STREAM string = azureOpenAIStream
 output AZURE_OPENAI_SYSTEM_MESSAGE string = azureOpenAISystemMessage
 output AZURE_OPENAI_STOP_SEQUENCE string = azureOpenAIStopSequence
@@ -1086,8 +1111,8 @@ output AZURE_OPENAI_TOP_P string = azureOpenAITopP
 output AZURE_OPENAI_TEMPERATURE string = azureOpenAITemperature
 output AZURE_OPENAI_API_VERSION string = azureOpenAIApiVersion
 output AZURE_OPENAI_RESOURCE string = azureOpenAIResourceName
-output AZURE_OPENAI_EMBEDDING_MODEL string = azureOpenAIEmbeddingModel
-output AZURE_OPENAI_MODEL string = azureOpenAIModel
+output AZURE_OPENAI_EMBEDDING_MODEL_NAME string = azureOpenAIEmbeddingModelName
+output AZURE_OPENAI_EMBEDDING_MODEL_VERSION string = azureOpenAIEmbeddingModelVersion
 output AZURE_OPENAI_API_KEY string = useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
 output AZURE_RESOURCE_GROUP string = rgName
 output AZURE_SEARCH_KEY string = useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
@@ -1116,16 +1141,16 @@ output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
 output USE_KEY_VAULT bool = useKeyVault
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code'
- ? web.outputs.FRONTEND_API_URI
- : web_docker.outputs.FRONTEND_API_URI
+  ? web.outputs.FRONTEND_API_URI
+  : web_docker.outputs.FRONTEND_API_URI
 output ADMIN_WEBSITE_NAME string = hostingModel == 'code'
- ? adminweb.outputs.WEBSITE_ADMIN_URI
- : adminweb_docker.outputs.WEBSITE_ADMIN_URI
+  ? adminweb.outputs.WEBSITE_ADMIN_URI
+  : adminweb_docker.outputs.WEBSITE_ADMIN_URI
 output LOGLEVEL string = logLevel
 output CONVERSATION_FLOW string = conversationFlow
 output USE_ADVANCED_IMAGE_PROCESSING bool = useAdvancedImageProcessing
 output ADVANCED_IMAGE_PROCESSING_MAX_IMAGES int = advancedImageProcessingMaxImages
 output AZURE_ML_WORKSPACE_NAME string = orchestrationStrategy == 'prompt_flow'
- ? machineLearning.outputs.workspaceName
- : ''
+  ? machineLearning.outputs.workspaceName
+  : ''
 output RESOURCE_TOKEN string = resourceToken
