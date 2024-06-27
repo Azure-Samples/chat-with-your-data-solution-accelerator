@@ -75,7 +75,7 @@ az account set --subscription "$subscription_id"
 
 set +e
 tries=1
-pfazure flow create --subscription "$subscription_id" --resource-group "$resource_group" \
+poetry run pfazure flow create --subscription "$subscription_id" --resource-group "$resource_group" \
     --workspace-name "$aml_workspace" --flow "$flow_dir" --set type=chat
 while [ $? -ne 0 ]; do
     tries=$((tries+1))
@@ -86,7 +86,7 @@ while [ $? -ne 0 ]; do
 
     echo "Failed to create flow, will retry in 30 seconds"
     sleep 30
-    pfazure flow create --subscription "$subscription_id" --resource-group "$resource_group" \
+    poetry run pfazure flow create --subscription "$subscription_id" --resource-group "$resource_group" \
         --workspace-name "$aml_workspace" --flow "$flow_dir" --set type=chat
 done
 set -e
