@@ -5,7 +5,7 @@ from promptflow_vectordb.core.contracts import SearchResultEntity
 
 @tool
 def generate_prompt_context(search_result: List[dict]) -> str:
-    retrieved_docs = []
+    retrieved_docs = {}
     for index, item in enumerate(search_result):
 
         entity = SearchResultEntity.from_dict(item)
@@ -14,14 +14,10 @@ def generate_prompt_context(search_result: List[dict]) -> str:
         filepath = additional_fields.get("source")
         chunk_id = additional_fields.get("chunk_id", additional_fields.get("chunk", ""))
 
-        retrieved_docs.append(
-            {
-                f"[doc{index+1}]": {
-                    "content": content,
-                    "filepath": filepath,
-                    "chunk_id": chunk_id,
-                }
-            }
-        )
+        retrieved_docs[f"[doc{index+1}]"] = {
+            "content": content,
+            "filepath": filepath,
+            "chunk_id": chunk_id,
+        }
 
-    return {"retrieved_documents": retrieved_docs}
+    return retrieved_docs

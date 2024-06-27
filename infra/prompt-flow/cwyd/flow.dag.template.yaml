@@ -15,11 +15,11 @@ inputs:
 outputs:
   chat_output:
     type: string
-    reference: ${answer_output.output}
+    reference: ${chat_with_context.output}
     is_chat_output: true
   citations:
     type: string
-    reference: ${output_parser.output}
+    reference: ${generate_prompt_context.output}
 nodes:
 - name: lookup
   type: python
@@ -94,31 +94,6 @@ nodes:
   connection: openai_connection
   api: chat
   module: promptflow.tools.aoai
-  use_variants: false
-- name: output_parser
-  type: python
-  source:
-    type: code
-    path: output_parser.py
-  inputs:
-    answer: ${chat_with_context.output}
-    sources: ${generate_prompt_context.output}
-  use_variants: false
-- name: answer_output
-  type: python
-  source:
-    type: code
-    path: answer_output.py
-  inputs:
-    output: ${output_parser.output}
-  use_variants: false
-- name: citation_output
-  type: python
-  source:
-    type: code
-    path: citation_output.py
-  inputs:
-    output: ${output_parser.output}
   use_variants: false
 node_variants: {}
 environment:

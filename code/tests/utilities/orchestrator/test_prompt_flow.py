@@ -95,16 +95,30 @@ async def test_orchestrate_returns_expected_chat_response(
     expected_result = [
         {
             "role": "tool",
-            "content": '{"citations": [], "intent": "question"}',
+            "content": '{"citations": [{"content": "[None](some-filepath)\\n\\n\\nsome-content", "id": "[doc1]", "chunk_id": "1", "title": null, "filepath": "some-filepath", "url": "[None](some-filepath)", "metadata": {"offset": null, "source": "some-filepath", "markdown_url": "[None](some-filepath)", "title": null, "original_url": "some-filepath", "chunk": null, "key": "[doc1]", "filename": "some-filepath"}}, {"content": "[None](some-other-filepath)\\n\\n\\nsome-other-content", "id": "[doc2]", "chunk_id": "2", "title": null, "filepath": "some-other-filepath", "url": "[None](some-other-filepath)", "metadata": {"offset": null, "source": "some-other-filepath", "markdown_url": "[None](some-other-filepath)", "title": null, "original_url": "some-other-filepath", "chunk": null, "key": "[doc2]", "filename": "some-other-filepath"}}], "intent": "question"}',
             "end_turn": False,
         },
         {
             "role": "assistant",
-            "content": "answer",
+            "content": "answer[doc1][doc2]",
             "end_turn": True,
         },
     ]
-    chat_output = {"chat_output": "answer", "citations": ["", []]}
+    chat_output = {
+        "chat_output": "answer[doc1][doc2]",
+        "citations": {
+            "[doc1]": {
+                "content": "some-content",
+                "filepath": "some-filepath",
+                "chunk_id": 1,
+            },
+            "[doc2]": {
+                "content": "some-other-content",
+                "filepath": "some-other-filepath",
+                "chunk_id": 2,
+            },
+        },
+    }
 
     orchestrator.transform_chat_history = MagicMock(return_value=[])
     orchestrator.ml_client.online_endpoints.invoke = AsyncMock(return_value=chat_output)
@@ -142,7 +156,7 @@ async def test_orchestrate_returns_content_safety_response_for_unsafe_output(
 ):
     # given
     user_message = "question"
-    chat_output = {"chat_output": "bad-response", "citations": ["", []]}
+    chat_output = {"chat_output": "bad-response", "citations": {}}
     content_safety_response = [
         {
             "role": "tool",
