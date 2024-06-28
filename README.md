@@ -105,8 +105,9 @@ This accelerator also works across industry and roles and would be suitable for 
 Tech administrators can use this accelerator to give their colleagues easy access to internal unstructured company data. Admins can customize the system configurator to tailor responses for the intended audience.
 
 
-### Industry scenario
+### Use Case scenarios
 
+#### Financial Advisor Scenario
 The sample data illustrates how this accelerator could be used in the financial services industry (FSI).
 
 In this scenario, a financial advisor is preparing for a meeting with a potential client who has expressed interest in Woodgrove Investments’ Emerging Markets Funds. The advisor prepares for the meeting by refreshing their understanding of the emerging markets fund's overall goals and the associated risks.

@@ -1,11 +1,11 @@
-# CWYD Contract Review and Summarization Assistant
+# Chat With Your Data Contract Review and Summarization Assistant
 
 ## Overview
-The CWYD Contract Review and Summarization Assistant is designed to help professionals efficiently manage and interact with a large collection of documents. It utilizes advanced natural language processing capabilities to provide accurate and contextually relevant responses to user queries about the documents.
+The Chat With Your Data Contract Review and Summarization Assistant is designed to help professionals efficiently manage and interact with a large collection of documents. It utilizes advanced natural language processing capabilities to provide accurate and contextually relevant responses to user queries about the documents.
 
 ## Contract Review and Summarization Assistant Infrastructure Configuration
 
-The following is the CWYD infrastructure configuration that we suggest to optimize the performance and functionality of the Contract Review and Summarization Assistant:
+The following is the Chat With Your Data infrastructure configuration that we suggest to optimize the performance and functionality of the Contract Review and Summarization Assistant:
 
 - **Azure Semantic Search**: Utilize Azure Semantic Search to efficiently index and search legal documents. This provides powerful search capabilities and integration with other Azure services.
 - **Azure Cognitive Search Top K 15**: Set the Top K parameter to 15 to retrieve the top 15 most relevant documents. This configuration helps in providing precise and relevant search results for user queries.
@@ -14,7 +14,7 @@ The following is the CWYD infrastructure configuration that we suggest to optimi
 - **Orchestration Strategy: Semantic Kernel**: Implement the Semantic Kernel orchestration strategy to effectively manage the integration and interaction between different components of the infrastructure. This strategy ensures seamless operation and optimal performance of the Legal Assistant.
 - **Conversation Flow Options**: Setting `CONVERSATION_FLOW` enables running advanced AI models like GPT-4o on your own enterprise data without needing to train or fine-tune models.
 
-By following these infrastructure configurations, you can enhance the efficiency, accuracy, and overall performance of the CWYD Contract Review and Summarization Assistant, ensuring it meets the high demands and expectations of  professionals.
+By following these infrastructure configurations, you can enhance the efficiency, accuracy, and overall performance of the Chat With Your Data Contract Review and Summarization Assistant, ensuring it meets the high demands and expectations of  professionals.
 
 ## Updating Configuration Fields
 
@@ -30,9 +30,9 @@ To apply the suggested configurations in your deployment, update the following f
 
 
 ## Admin Configuration
-In the admin panel, there is a dropdown to select the CWYD Legal Assistant. The options are:
+In the admin panel, there is a dropdown to select the Chat With Your Data Legal Assistant. The options are:
 
-- **Default**: CWYD default prompt.
+- **Default**: Chat With Your Data default prompt.
 
 ![UnSelected](images/cwyd_admin_legal_unselected.png)
 
@@ -57,4 +57,4 @@ You can see the [Contract Review and Summarization Assistant Prompt](../code/bac
 We have added sample contract data in the [Legal Assistant sample Docs](../data/legal_data) folder. This data can be used to test and demonstrate the Contract Review and Summarization Assistant's capabilities.
 
 ## Conclusion
-This README provides an overview of the CWYD Contract Review and Summarization Assistant prompt, instructions for updating the prompt configuration, and examples of questions and answers. Ensure you follow the guidelines for updating the prompt to maintain consistency and accuracy in responses.
+This README provides an overview of the Chat With Your Data Contract Review and Summarization Assistant prompt, instructions for updating the prompt configuration, and examples of questions and answers. Ensure you follow the guidelines for updating the prompt to maintain consistency and accuracy in responses.
