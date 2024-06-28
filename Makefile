@@ -36,7 +36,7 @@ python-test: ## 🧪 Run Python unit + functional tests
 
 unittest: ## 🧪 Run the unit tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@poetry run pytest -m "not azure and not functional" $(optional_args)
+	@poetry run pytest -vvv -m "not azure and not functional" $(optional_args)
 
 unittest-frontend: build-frontend ## 🧪 Unit test the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
