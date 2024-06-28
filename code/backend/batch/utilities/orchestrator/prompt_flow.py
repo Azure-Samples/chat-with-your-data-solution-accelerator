@@ -5,6 +5,7 @@ import tempfile
 
 from .orchestrator_base import OrchestratorBase
 from ..common.answer import Answer
+from ..common.source_document import SourceDocument
 from ..helpers.llm_helper import LLMHelper
 from ..helpers.env_helper import EnvHelper
 
@@ -50,7 +51,13 @@ class PromptFlowOrchestrator(OrchestratorBase):
             raise RuntimeError(f"The request failed: {error}") from error
 
         # Transform response into answer for further processing
-        answer = Answer(question=user_message, answer=result["chat_output"])
+        answer = Answer(
+            question=user_message,
+            answer=result["chat_output"],
+            source_documents=self.transform_citations_into_source_documents(
+                result["citations"]
+            ),
+        )
 
         # Call Content Safety tool on answer
         if self.config.prompts.enable_content_safety:
@@ -91,3 +98,18 @@ class PromptFlowOrchestrator(OrchestratorBase):
         with tempfile.NamedTemporaryFile(delete=False) as file:
             file.write(body)
         return file.name
+
+    def transform_citations_into_source_documents(self, citations):
+        source_documents = []
+
+        for _, doc_id in enumerate(citations):
+            citation = citations[doc_id]
+            source_documents.append(
+                SourceDocument(
+                    id=doc_id,
+                    content=citation.get("content"),
+                    source=citation.get("filepath"),
+                    chunk_id=str(citation.get("chunk_id", 0)),
+                )
+            )
+        return source_documents
