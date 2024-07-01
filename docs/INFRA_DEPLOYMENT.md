@@ -13,7 +13,7 @@ This requires the following fields to be entered:
 |---------|---------|
 |Resource group   | The resource group that will contain the resources for this accelerator. You can select **Create new** to create a new group.        |
 |Resource prefix   | A text string that will be appended to each resource that gets created, and used as the website name for the web app. This name cannot contain spaces or special characters.        |
-|Orchestration strategy| Use Azure OpenAI Functions (openai_functions) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_functions" (or "langchain"), if you are using a 0314 model version select "langchain"|
+|Orchestration strategy| Use Azure OpenAI Functions (openai_function) or LangChain (langchain) for messages orchestration. If you are using a new model version 0613 select "openai_function" (or "langchain"), if you are using a 0314 model version select "langchain"|
 
 ## Bicep
 
