@@ -114,10 +114,13 @@ const Chat = () => {
       }
     } catch (e) {
       if (!abortController.signal.aborted) {
-        console.error(result);
-        alert(
-          "An error occurred. Please try again. If the problem persists, please contact the site administrator."
-        );
+        if (e instanceof Error) {
+          alert(e.message);
+        }
+        else
+        {
+          alert('An unknown error occurred');
+        }
       }
       setAnswers([...answers, userMessage]);
     } finally {

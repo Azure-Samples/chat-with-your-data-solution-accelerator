@@ -346,14 +346,11 @@ def create_app():
         except Exception as e:
             error_message = str(e)
             logger.exception("Exception in /api/conversation | %s", error_message)
-            return (
-                jsonify(
-                    {
-                        "error": "Exception in /api/conversation. See log for more details."
-                    }
-                ),
-                500,
-            )
+            if hasattr(e, 'code'):
+                if e.code == '429':
+                    return jsonify({"error": ConfigHelper.get_active_config_or_default().messages.error_429}), 429
+
+            return jsonify({"error": ConfigHelper.get_active_config_or_default().messages.error_generic}), 500
 
     async def conversation_custom():
         message_orchestrator = get_message_orchestrator()
@@ -388,14 +385,11 @@ def create_app():
         except Exception as e:
             error_message = str(e)
             logger.exception("Exception in /api/conversation | %s", error_message)
-            return (
-                jsonify(
-                    {
-                        "error": "Exception in /api/conversation. See log for more details."
-                    }
-                ),
-                500,
-            )
+            if hasattr(e, 'code'):
+                if e.code == '429':
+                    return jsonify({"error": ConfigHelper.get_active_config_or_default().messages.error_429}), 429
+
+            return jsonify({"error": ConfigHelper.get_active_config_or_default().messages.error_generic}), 500
 
     @app.route("/api/conversation", methods=["POST"])
     async def conversation():

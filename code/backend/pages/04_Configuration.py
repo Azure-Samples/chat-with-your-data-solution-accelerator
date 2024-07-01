@@ -48,6 +48,14 @@ if "post_answering_filter_message" not in st.session_state:
     st.session_state["post_answering_filter_message"] = (
         config.messages.post_answering_filter
     )
+if "error_429_message" not in st.session_state:
+    st.session_state["error_429_message"] = (
+        config.messages.error_429
+    )
+if "error_generic_message" not in st.session_state:
+    st.session_state["error_generic_message"] = (
+        config.messages.error_generic
+    )
 if "enable_content_safety" not in st.session_state:
     st.session_state["enable_content_safety"] = config.prompts.enable_content_safety
 if "example_documents" not in st.session_state:
@@ -379,6 +387,12 @@ try:
             "messages": {
                 "post_answering_filter": st.session_state[
                     "post_answering_filter_message"
+                ],
+                "error_429": st.session_state[
+                    "error_429_message"
+                ],
+                "error_generic": st.session_state[
+                    "error_generic_message"
                 ]
             },
             "example": {
