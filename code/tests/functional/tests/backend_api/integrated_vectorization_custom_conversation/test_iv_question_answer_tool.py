@@ -277,5 +277,5 @@ def test_post_returns_error_when_downstream_fails(
     assert response.status_code == 500
     assert response.headers["Content-Type"] == "application/json"
     assert json.loads(response.text) == {
-        "error": "Exception in /api/conversation. See log for more details."
+        "error": "An error occurred. Please try again. If the problem persists, please contact the site administrator."
     }

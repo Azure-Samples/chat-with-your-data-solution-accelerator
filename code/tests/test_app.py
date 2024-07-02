@@ -320,7 +320,7 @@ class TestConversationCustom:
         # then
         assert response.status_code == 500
         assert response.json == {
-            "error": "Exception in /api/conversation. See log for more details."
+            "error": "An error occurred. Please try again. If the problem persists, please contact the site administrator."
         }
 
     @patch("create_app.get_message_orchestrator")
@@ -688,7 +688,7 @@ class TestConversationAzureByod:
         # then
         assert response.status_code == 500
         assert response.json == {
-            "error": "Exception in /api/conversation. See log for more details."
+            "error": "An error occurred. Please try again. If the problem persists, please contact the site administrator."
         }
 
     @patch("create_app.AzureOpenAI")
