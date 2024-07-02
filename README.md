@@ -105,16 +105,17 @@ This accelerator also works across industry and roles and would be suitable for 
 Tech administrators can use this accelerator to give their colleagues easy access to internal unstructured company data. Admins can customize the system configurator to tailor responses for the intended audience.
 
 
-### Industry scenario
+### Use Case scenarios
 
+#### Financial Advisor Scenario
 The sample data illustrates how this accelerator could be used in the financial services industry (FSI).
 
 In this scenario, a financial advisor is preparing for a meeting with a potential client who has expressed interest in Woodgrove Investments’ Emerging Markets Funds. The advisor prepares for the meeting by refreshing their understanding of the emerging markets fund's overall goals and the associated risks.
 
 Now that the financial advisor is more informed about Woodgrove’s Emerging Markets Funds, they're better equipped to respond to questions about this fund from their client.
 
-#### Legal Assistant scenario
-Additionally, we have implemented a Legal Assistant scenario to demonstrate how this accelerator can be utilized in the legal industry. The Legal Assistant helps legal professionals manage and interact with a large collection of legal documents efficiently. For more details, refer to the [Legal Assistant README](docs/legal_assistance.md).
+#### Contract Review and Summarization Assistant scenario
+Additionally, we have implemented a Contract Review and Summarization Assistant scenario to demonstrate how this accelerator can be utilized in any industry. The Contract Review and Summarization Assistant helps professionals manage and interact with a large collection of documents efficiently. For more details, refer to the [Contract Review and Summarization Assistant README](docs/contract_assistance.md).
 
 Note: Some of the sample data included with this accelerator was generated using AI and is for illustrative purposes only.
 
