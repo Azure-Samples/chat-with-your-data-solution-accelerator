@@ -37,7 +37,7 @@ export function actionBuilder(citation: Citation, docId: number): any {
                 {
                     type: CardType.OpenUrl,
                     title: "Go to the source",
-                    url: url,
+                    url: decodeURI(url),
                 }
             ]
         }
