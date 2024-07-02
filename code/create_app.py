@@ -17,6 +17,7 @@ from backend.batch.utilities.helpers.env_helper import EnvHelper
 from backend.batch.utilities.helpers.orchestrator_helper import Orchestrator
 from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
+from backend.constants import (ERROR_429_MESSAGE, ERROR_GENERIC_MESSAGE)
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
 from azure.identity import DefaultAzureCredential
 
@@ -348,9 +349,9 @@ def create_app():
             logger.exception("Exception in /api/conversation | %s", error_message)
             if hasattr(e, 'code'):
                 if e.code == '429':
-                    return jsonify({"error": ConfigHelper.get_active_config_or_default().messages.error_429}), 429
+                    return jsonify({"error": ERROR_429_MESSAGE}), 429
 
-            return jsonify({"error": ConfigHelper.get_active_config_or_default().messages.error_generic}), 500
+            return jsonify({"error": ERROR_GENERIC_MESSAGE}), 500
 
     async def conversation_custom():
         message_orchestrator = get_message_orchestrator()
@@ -387,9 +388,9 @@ def create_app():
             logger.exception("Exception in /api/conversation | %s", error_message)
             if hasattr(e, 'code'):
                 if e.code == '429':
-                    return jsonify({"error": ConfigHelper.get_active_config_or_default().messages.error_429}), 429
+                    return jsonify({"error": ERROR_429_MESSAGE}), 429
 
-            return jsonify({"error": ConfigHelper.get_active_config_or_default().messages.error_generic}), 500
+            return jsonify({"error": ERROR_GENERIC_MESSAGE}), 500
 
     @app.route("/api/conversation", methods=["POST"])
     async def conversation():

@@ -17,8 +17,6 @@
   },
   "messages": {
     "post_answering_filter": "I'm sorry, but I can't answer this question correctly. Please try again by altering or rephrasing your question.",
-    "error_429": "We're currently experiencing a high number of requests for the service you're trying to access. Please wait a moment and try again.",
-    "error_generic": "An error occurred. Please try again. If the problem persists, please contact the site administrator."
   },
   "document_processors": [
     {

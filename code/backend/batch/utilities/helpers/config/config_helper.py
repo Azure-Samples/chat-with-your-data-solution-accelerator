@@ -113,8 +113,6 @@ class Example:
 class Messages:
     def __init__(self, messages: dict):
         self.post_answering_filter = messages["post_answering_filter"]
-        self.error_429 = messages["error_429"]
-        self.error_generic = messages["error_generic"]
 
 
 class Logging:
@@ -173,12 +171,6 @@ class ConfigHelper:
             config["integrated_vectorization_config"] = default_config[
                 "integrated_vectorization_config"
             ]
-
-        if config["messages"].get("error_429") is None:
-            config["messages"]["error_429"] = default_config["messages"]["error_429"]
-
-        if config["messages"].get("error_generic") is None:
-            config["messages"]["error_generic"] = default_config["messages"]["error_generic"]
 
     @staticmethod
     @functools.cache
