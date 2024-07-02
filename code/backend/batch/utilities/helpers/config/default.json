@@ -16,7 +16,7 @@
     "answer": "The Dual Transformer Encoder (DTE) is a framework for sentence representation learning that can be used to train, infer, and evaluate sentence similarity models[doc1][doc2]. It builds upon existing transformer-based text representations and applies smoothness inducing technology and Noise Contrastive Estimation for improved robustness and faster training[doc1]. DTE also offers pretrained models for in-context learning, which can be used to find semantically similar natural language utterances[doc2]. These models can be further finetuned for specific tasks, such as prompt crafting, to enhance the performance of downstream inference models like GPT-3[doc2][doc3][doc4]. However, this finetuning may require a significant amount of data[doc3][doc4]."
   },
   "messages": {
-    "post_answering_filter": "I'm sorry, but I can't answer this question correctly. Please try again by altering or rephrasing your question.",
+    "post_answering_filter": "I'm sorry, but I can't answer this question correctly. Please try again by altering or rephrasing your question."
   },
   "document_processors": [
     {
