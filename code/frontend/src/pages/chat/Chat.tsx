@@ -119,7 +119,7 @@ const Chat = () => {
         }
         else
         {
-          alert('An unknown error occurred');
+          alert('An error occurred. Please try again. If the problem persists, please contact the site administrator.');
         }
       }
       setAnswers([...answers, userMessage]);
