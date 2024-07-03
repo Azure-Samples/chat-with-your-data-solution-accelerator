@@ -1,11 +1,11 @@
-# CWYD Legal Assistant
+# Chat With Your Data Contract Review and Summarization Assistant
 
 ## Overview
-The CWYD Legal Assistant is designed to help legal professionals efficiently manage and interact with a large collection of legal documents. It utilizes advanced natural language processing capabilities to provide accurate and contextually relevant responses to user queries about the documents.
+The Chat With Your Data Contract Review and Summarization Assistant is designed to help professionals efficiently manage and interact with a large collection of documents. It utilizes advanced natural language processing capabilities to provide accurate and contextually relevant responses to user queries about the documents.
 
-## Legal Assistant Infrastructure Configuration
+## Contract Review and Summarization Assistant Infrastructure Configuration
 
-The following is the CWYD infrastructure configuration that we suggest to optimize the performance and functionality of the Legal Assistant:
+The following is the Chat With Your Data infrastructure configuration that we suggest to optimize the performance and functionality of the Contract Review and Summarization Assistant:
 
 - **Azure Semantic Search**: Utilize Azure Semantic Search to efficiently index and search legal documents. This provides powerful search capabilities and integration with other Azure services.
 - **Azure Cognitive Search Top K 15**: Set the Top K parameter to 15 to retrieve the top 15 most relevant documents. This configuration helps in providing precise and relevant search results for user queries.
@@ -14,7 +14,7 @@ The following is the CWYD infrastructure configuration that we suggest to optimi
 - **Orchestration Strategy: Semantic Kernel**: Implement the Semantic Kernel orchestration strategy to effectively manage the integration and interaction between different components of the infrastructure. This strategy ensures seamless operation and optimal performance of the Legal Assistant.
 - **Conversation Flow Options**: Setting `CONVERSATION_FLOW` enables running advanced AI models like GPT-4o on your own enterprise data without needing to train or fine-tune models.
 
-By following these infrastructure configurations, you can enhance the efficiency, accuracy, and overall performance of the CWYD Legal Assistant, ensuring it meets the high demands and expectations of legal professionals.
+By following these infrastructure configurations, you can enhance the efficiency, accuracy, and overall performance of the Chat With Your Data Contract Review and Summarization Assistant, ensuring it meets the high demands and expectations of  professionals.
 
 ## Updating Configuration Fields
 
@@ -30,20 +30,20 @@ To apply the suggested configurations in your deployment, update the following f
 
 
 ## Admin Configuration
-In the admin panel, there is a dropdown to select the CWYD Legal Assistant. The options are:
+In the admin panel, there is a dropdown to select the Chat With Your Data Legal Assistant. The options are:
 
-- **Default**: CWYD default prompt.
+- **Default**: Chat With Your Data default prompt.
 
 ![UnSelected](images/cwyd_admin_legal_unselected.png)
 
-- **Selected**: Legal Assistant prompt.
+- **Selected**: Contract Review and Summarization Assistant prompt.
 
 ![Checked](images/cwyd_admin_legal_selected.png)
 
 When the user selects "Legal Assistant," the user prompt textbox will update to the Legal Assistant prompt. When the user selects the default, the user prompt textbox will update to the default prompt. Note that if the user has a custom prompt in the user prompt textbox, selecting an option from the dropdown will overwrite the custom prompt with the default or legal assistant prompt. Ensure to **Save the Configuration** after making this change.
 
-## Legal Assistant Prompt
-The Legal Assistant prompt configuration ensures that the AI responds accurately based on the given context, handling a variety of tasks such as listing documents, filtering based on specific criteria, and summarizing document content. Below is the detailed prompt configuration:
+## Contract Review and Summarization Assistant Prompt
+The Contract Review and Summarization Assistant prompt configuration ensures that the AI responds accurately based on the given context, handling a variety of tasks such as listing documents, filtering based on specific criteria, and summarizing document content. Below is the detailed prompt configuration:
 
 ```plaintext
 ## Summary Contracts
@@ -51,10 +51,10 @@ Context:
 {sources}
 - You are a legal assistant.
 ```
-You can see the [Legal Assistant Prompt](../code/backend/batch/utilities/helpers/config/default_legal_assistant_prompt.txt) file for more details.
+You can see the [Contract Review and Summarization Assistant Prompt](../code/backend/batch/utilities/helpers/config/default_legal_assistant_prompt.txt) file for more details.
 
 ## Sample Legal Data
-We have added sample legal data in the [Legal Assistant sample Docs](../data/legal_data) folder. This data can be used to test and demonstrate the Legal Assistant's capabilities.
+We have added sample contract data in the [Legal Assistant sample Docs](../data/legal_data) folder. This data can be used to test and demonstrate the Contract Review and Summarization Assistant's capabilities.
 
 ## Conclusion
-This README provides an overview of the CWYD Legal Assistant prompt, instructions for updating the prompt configuration, and examples of questions and answers. Ensure you follow the guidelines for updating the prompt to maintain consistency and accuracy in responses.
+This README provides an overview of the Chat With Your Data Contract Review and Summarization Assistant prompt, instructions for updating the prompt configuration, and examples of questions and answers. Ensure you follow the guidelines for updating the prompt to maintain consistency and accuracy in responses.
