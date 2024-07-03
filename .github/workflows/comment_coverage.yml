@@ -44,4 +44,4 @@ jobs:
           pytest-xml-coverage-path: coverage.xml
           junitxml-path: coverage-junit.xml
           issue-number: ${{ github.event.workflow_run.pull_requests[0].number || steps.pr.outputs.result }}
-          report-only-changed-files: ${{ !github.event.workflow_run.head_repository.fork }} # This does not currently work for forks
+          report-only-changed-files: true
