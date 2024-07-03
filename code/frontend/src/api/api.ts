@@ -14,5 +14,10 @@ export async function callConversationApi(options: ConversationRequest, abortSig
         signal: abortSignal
     });
 
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(JSON.stringify(errorData.error));
+    }
+
     return response;
 }

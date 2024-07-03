@@ -9,7 +9,7 @@ import mimetypes
 from os import path
 import sys
 import requests
-from openai import AzureOpenAI, Stream
+from openai import AzureOpenAI, Stream, RateLimitError
 from openai.types.chat import ChatCompletionChunk
 from flask import Flask, Response, request, Request, jsonify
 from dotenv import load_dotenv
@@ -20,6 +20,8 @@ from backend.batch.utilities.helpers.config.conversation_flow import Conversatio
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
 from azure.identity import DefaultAzureCredential
 
+ERROR_429_MESSAGE = "We're currently experiencing a high number of requests for the service you're trying to access. Please wait a moment and try again."
+ERROR_GENERIC_MESSAGE = "An error occurred. Please try again. If the problem persists, please contact the site administrator."
 logger = logging.getLogger(__name__)
 
 
@@ -343,17 +345,14 @@ def create_app():
                 return conversation_with_data(request, env_helper)
             else:
                 return conversation_without_data(request, env_helper)
+        except RateLimitError as e:
+            error_message = str(e)
+            logger.exception("Exception in /api/conversation | %s", error_message)
+            return jsonify({"error": ERROR_429_MESSAGE}), 429
         except Exception as e:
             error_message = str(e)
             logger.exception("Exception in /api/conversation | %s", error_message)
-            return (
-                jsonify(
-                    {
-                        "error": "Exception in /api/conversation. See log for more details."
-                    }
-                ),
-                500,
-            )
+            return jsonify({"error": ERROR_GENERIC_MESSAGE}), 500
 
     async def conversation_custom():
         message_orchestrator = get_message_orchestrator()
@@ -385,17 +384,14 @@ def create_app():
 
             return jsonify(response_obj), 200
 
+        except RateLimitError as e:
+            error_message = str(e)
+            logger.exception("Exception in /api/conversation | %s", error_message)
+            return jsonify({"error": ERROR_429_MESSAGE}), 429
         except Exception as e:
             error_message = str(e)
             logger.exception("Exception in /api/conversation | %s", error_message)
-            return (
-                jsonify(
-                    {
-                        "error": "Exception in /api/conversation. See log for more details."
-                    }
-                ),
-                500,
-            )
+            return jsonify({"error": ERROR_GENERIC_MESSAGE}), 500
 
     @app.route("/api/conversation", methods=["POST"])
     async def conversation():
