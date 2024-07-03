@@ -117,8 +117,7 @@ const Chat = () => {
         if (e instanceof Error) {
           alert(e.message);
         }
-        else
-        {
+        else {
           alert('An error occurred. Please try again. If the problem persists, please contact the site administrator.');
         }
       }
