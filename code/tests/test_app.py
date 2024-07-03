@@ -2,7 +2,9 @@
 This module tests the entry point for the application.
 """
 
+from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch, ANY
+from openai import RateLimitError
 import pytest
 from flask.testing import FlaskClient
 from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
@@ -321,6 +323,33 @@ class TestConversationCustom:
         assert response.status_code == 500
         assert response.json == {
             "error": "An error occurred. Please try again. If the problem persists, please contact the site administrator."
+        }
+
+    @patch("create_app.get_orchestrator_config")
+    def test_conversation_custom_returns_error_response_on_rate_limit_error(
+        self, get_orchestrator_config_mock, env_helper_mock, client
+    ):
+        """Test that a 429 response is returned on RateLimitError."""
+        # given
+        response_mock = mock.Mock()
+        response_mock.status_code = 429
+        body_mock = {"error": "Rate limit exceeded"}
+
+        rate_limit_error = RateLimitError("Rate limit exceeded", response=response_mock, body=body_mock)
+        get_orchestrator_config_mock.side_effect = rate_limit_error
+
+        # when
+        response = client.post(
+            "/api/conversation",
+            headers={"content-type": "application/json"},
+            json=self.body,
+        )
+
+        # then
+        assert response.status_code == 429
+        assert response.json == {
+            "error": "We're currently experiencing a high number of requests for the service you're trying to access. "
+                     "Please wait a moment and try again."
         }
 
     @patch("create_app.get_message_orchestrator")
@@ -689,6 +718,34 @@ class TestConversationAzureByod:
         assert response.status_code == 500
         assert response.json == {
             "error": "An error occurred. Please try again. If the problem persists, please contact the site administrator."
+        }
+
+    @patch("create_app.conversation_with_data")
+    def test_conversation_azure_byod_returns_429_on_rate_limit_error(
+        self, conversation_with_data_mock, env_helper_mock, client
+    ):
+        """Test that a 429 response is returned on RateLimitError for BYOD conversation."""
+        # given
+        response_mock = mock.Mock()
+        response_mock.status_code = 429
+        body_mock = {"error": "Rate limit exceeded"}
+
+        rate_limit_error = RateLimitError("Rate limit exceeded", response=response_mock, body=body_mock)
+        conversation_with_data_mock.side_effect = rate_limit_error
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
+
+        # when
+        response = client.post(
+            "/api/conversation",
+            headers={"content-type": "application/json"},
+            json=self.body,
+        )
+
+        # then
+        assert response.status_code == 429
+        assert response.json == {
+            "error": "We're currently experiencing a high number of requests for the service you're trying to access. "
+                     "Please wait a moment and try again."
         }
 
     @patch("create_app.AzureOpenAI")
