@@ -2,8 +2,7 @@
 This module tests the entry point for the application.
 """
 
-from unittest import mock
-from unittest.mock import AsyncMock, MagicMock, patch, ANY
+from unittest.mock import AsyncMock, MagicMock, Mock, patch, ANY
 from openai import RateLimitError
 import pytest
 from flask.testing import FlaskClient
@@ -331,7 +330,7 @@ class TestConversationCustom:
     ):
         """Test that a 429 response is returned on RateLimitError."""
         # given
-        response_mock = mock.Mock()
+        response_mock = Mock()
         response_mock.status_code = 429
         body_mock = {"error": "Rate limit exceeded"}
 
@@ -726,7 +725,7 @@ class TestConversationAzureByod:
     ):
         """Test that a 429 response is returned on RateLimitError for BYOD conversation."""
         # given
-        response_mock = mock.Mock()
+        response_mock = Mock()
         response_mock.status_code = 429
         body_mock = {"error": "Rate limit exceeded"}
 
