@@ -111,9 +111,9 @@ export const Answer = ({
                                 return (
                                     <DefaultButton
                                         key={idx}
-                                        text={createCitationFilepath(citation, idx, true)}
+                                        text="Download PPTX"
                                         iconProps={{ iconName: 'Download' }}
-                                        title={createCitationFilepath(citation, idx, true)}
+                                        title="Download PPTX"
                                         onClick={downloadFile}
                                         className={styles.downloadButton}
                                     />
