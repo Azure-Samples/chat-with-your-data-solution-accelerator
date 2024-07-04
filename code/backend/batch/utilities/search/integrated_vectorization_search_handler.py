@@ -48,12 +48,13 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
     def output_results(self, results):
         files = {}
         for result in results:
-            id = result["chunk_id"]
-            filename = result["title"]
-            if filename in files:
-                files[filename].append(id)
-            else:
-                files[filename] = [id]
+            if result["chunk_id"] is not None and result["title"] is not None:
+                id = result["chunk_id"]
+                filename = result["title"]
+                if filename in files:
+                    files[filename].append(id)
+                else:
+                    files[filename] = [id]
 
         return files
 
