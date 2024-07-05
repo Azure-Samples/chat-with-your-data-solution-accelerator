@@ -3,7 +3,9 @@ This module tests the entry point for the application.
 """
 
 from unittest.mock import AsyncMock, MagicMock, Mock, patch, ANY
-from openai import RateLimitError
+
+from httpx import Response
+from openai import RateLimitError, BadRequestError
 import pytest
 from flask.testing import FlaskClient
 from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
@@ -748,15 +750,28 @@ class TestConversationAzureByod:
         }
 
     @patch("create_app.conversation_with_data")
-    @patch("create_app.get_inner_error_code")
     def test_conversation_returns_429_on_inner_error_code_429(
-            self, get_inner_error_code_mock, conversation_with_data_mock, env_helper_mock, client
+            self, conversation_with_data_mock, env_helper_mock, client
     ):
         """Test that a 429 response is returned on RateLimitError for BYOD conversation."""
-        # Mock get_inner_error_code to return '429'
-        get_inner_error_code_mock.return_value = '429'
+        # given
+        response_content = ("{\"error\": {\"requestid\": \"f30740e1-c6e1-48ab-ab1e-35469ed41ba4\", \"code\": 400, "
+                            "\"message\": \"An error occurred when calling Azure OpenAI: Rate limit reached for AOAI "
+                            "embedding resource: Server responded with status 429. Error message: {\\\"error\\\":{"
+                            "\\\"code\\\":\\\"429\\\",\\\"message\\\": \\\"Rate limit is exceeded. Try again in 44 "
+                            "seconds.\\\"}}\"}}")
+        response_mock = MagicMock()
+        response_mock.content = response_content
+        response_mock.status_code = 400
+        body_mock = {
+            'requestid': 'f30740e1-c6e1-48ab-ab1e-35469ed41ba4',
+            'code': 400,
+            'message': 'An error occurred when calling Azure OpenAI: Rate limit reached for AOAI embedding resource: '
+                       'Server responded with status 429. Error message: {"error":{"code":"429","message": "Rate '
+                       'limit is exceeded. Try again in 44 seconds."}}'
+        }
 
-        conversation_with_data_mock.side_effect = Exception("Test exception")
+        conversation_with_data_mock.side_effect = BadRequestError("Error code: 400", response=response_mock, body=body_mock)
         env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
 
         # when
