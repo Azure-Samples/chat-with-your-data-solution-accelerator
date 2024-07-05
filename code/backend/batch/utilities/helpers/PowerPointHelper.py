@@ -162,7 +162,7 @@ class PowerPointHelper:
                         replaceText(shape.text_frame.paragraphs[1], projectData.results)
                     case 18:
                         replaceText(
-                            shape.text_frame.paragraphs[2], projectData.solution
+                            shape.text_frame.paragraphs[1], projectData.solution
                         )
 
 
