@@ -24,6 +24,24 @@ ERROR_429_MESSAGE = "We're currently experiencing a high number of requests for 
 ERROR_GENERIC_MESSAGE = "An error occurred. Please try again. If the problem persists, please contact the site administrator."
 logger = logging.getLogger(__name__)
 
+# Helper function to extract inner error code safely
+def get_inner_error_code(e):
+    try:
+        # Parse the initial JSON string
+        error_content = json.loads(e.__dict__.get("response").content)
+        error_message = error_content["error"]["message"]
+
+        # Find the position of the JSON part in the string
+        inner_error_json_start = error_message.find('{"error":')
+        inner_error_json_part = error_message[inner_error_json_start:]
+
+        # Parse the JSON string
+        inner_error_json = json.loads(inner_error_json_part)
+        return inner_error_json["error"]["code"]
+
+    except Exception as ex:
+        logger.exception("Exception in /api/conversation | %s", str(ex))
+        return None
 
 def stream_with_data(response: Stream[ChatCompletionChunk]):
     """This function streams the response from Azure OpenAI with data."""
@@ -352,6 +370,9 @@ def create_app():
         except Exception as e:
             error_message = str(e)
             logger.exception("Exception in /api/conversation | %s", error_message)
+            inner_error_code = get_inner_error_code(e)
+            if inner_error_code == '429':
+                return jsonify({"error": ERROR_429_MESSAGE}), 429
             return jsonify({"error": ERROR_GENERIC_MESSAGE}), 500
 
     async def conversation_custom():

@@ -747,6 +747,32 @@ class TestConversationAzureByod:
                      "Please wait a moment and try again."
         }
 
+    @patch("create_app.conversation_with_data")
+    @patch("create_app.get_inner_error_code")
+    def test_conversation_returns_429_on_inner_error_code_429(
+            self, get_inner_error_code_mock, conversation_with_data_mock, env_helper_mock, client
+    ):
+        """Test that a 429 response is returned on RateLimitError for BYOD conversation."""
+        # Mock get_inner_error_code to return '429'
+        get_inner_error_code_mock.return_value = '429'
+
+        conversation_with_data_mock.side_effect = Exception("Test exception")
+        env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
+
+        # when
+        response = client.post(
+            "/api/conversation",
+            headers={"content-type": "application/json"},
+            json=self.body,
+        )
+
+        # then
+        assert response.status_code == 429
+        assert response.json == {
+            "error": "We're currently experiencing a high number of requests for the service you're trying to access. "
+                     "Please wait a moment and try again."
+        }
+
     @patch("create_app.AzureOpenAI")
     def test_conversation_azure_byod_returns_correct_response_when_not_streaming_without_data_keys(
         self, azure_openai_mock, env_helper_mock, client
