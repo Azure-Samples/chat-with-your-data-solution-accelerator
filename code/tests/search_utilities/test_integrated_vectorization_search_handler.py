@@ -131,6 +131,7 @@ def test_output_results(handler):
         {"chunk_id": "123_chunk", "title": "file1"},
         {"chunk_id": "456_chunk", "title": "file2"},
         {"chunk_id": "789_chunk", "title": "file1"},
+        {"chunk_id": "101_chunk", "title": None},
     ]
 
     # when
