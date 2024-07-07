@@ -179,6 +179,16 @@ def main():
             )
             st.checkbox("Log tokens", key="log_tokens")
 
+
+        with st.expander("Crawler configuration", expanded=True):
+            crawl_enabled = st.checkbox("Enable crawling", key="crawl_enabled")
+            if crawl_enabled:
+                # with st.expander("Crawler configuration", expanded=True):
+                    st.text_area("Crawl target URLs", key="crawl_target_urls", help="Enter URLs separated by commas")
+                    st.number_input("Crawl recurring interval (seconds)", key="crawl_recurring_interval_seconds")
+                    st.number_input("Crawl delay (seconds)", key="crawl_delay_seconds")
+                    st.number_input("Crawl retry count", key="crawl_retry_count")
+
         if st.button("Save configuration"):
             document_processors = list(
                 map(
@@ -217,6 +227,15 @@ def main():
                     "log_tokens": st.session_state["log_tokens"],
                 },
                 "orchestrator": {"strategy": st.session_state["orchestrator_strategy"]},
+                "crawling": {
+                    "crawl_enabled": st.session_state["crawl_enabled"],
+                    "crawl_recurring_interval_seconds": st.session_state[
+                        "crawl_recurring_interval_seconds"
+                    ],
+                    "crawl_target_urls": st.session_state["crawl_target_urls"],
+                    "crawl_delay_seconds": st.session_state["crawl_delay_seconds"],
+                    "crawl_retry_count": st.session_state["crawl_retry_count"],
+                }
             }
             ConfigHelper.save_config_as_active(current_config)
             st.success("Configuration saved successfully!")

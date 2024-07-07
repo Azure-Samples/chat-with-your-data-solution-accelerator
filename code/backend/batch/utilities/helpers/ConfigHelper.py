@@ -32,6 +32,7 @@ class Config:
         self.orchestrator = OrchestrationSettings(
             config.get("orchestrator", self.default_orchestration_settings)
         )
+        self.crawling = Crawling(config["crawling"])
 
     def get_available_document_types(self):
         return ["txt", "pdf", "url", "html", "md", "jpeg", "jpg", "png", "docx", "json"]
@@ -66,6 +67,13 @@ class Logging:
         self.log_user_interactions = logging["log_user_interactions"]
         self.log_tokens = logging["log_tokens"]
 
+class Crawling:
+    def __init__(self, crawling: dict):
+        self.crawl_enabled = crawling["crawl_enabled"]
+        self.crawl_recurring_interval_seconds = crawling["crawl_recurring_interval_seconds"]
+        self.crawl_target_urls = crawling["crawl_target_urls"]
+        self.crawl_delay_seconds = crawling["crawl_delay_seconds"]
+        self.crawl_retry_count = crawling["crawl_retry_count"]
 
 class ConfigHelper:
     @staticmethod
@@ -215,5 +223,12 @@ Answer: {answer}""",
             ],
             "logging": {"log_user_interactions": True, "log_tokens": True},
             "orchestrator": {"strategy": env_helper.ORCHESTRATION_STRATEGY},
+            "crawling": {
+                "crawl_enabled": False,
+                "crawl_recurring_interval_seconds": 86400,
+                "crawl_target_urls": [],
+                "crawl_delay_seconds": 86400,
+                "crawl_retry_count": 3,
+            }
         }
         return Config(default_config)
