@@ -8,6 +8,6 @@
   },
   "devDependencies": {
     "cypress": "^13.13.0",
-    "typescript": "^5.5.2"
+    "typescript": "^5.5.3"
   }
 }
