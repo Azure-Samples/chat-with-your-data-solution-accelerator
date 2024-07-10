@@ -9,7 +9,7 @@ import mimetypes
 from os import path
 import sys
 import requests
-from openai import AzureOpenAI, Stream, RateLimitError
+from openai import AzureOpenAI, Stream, RateLimitError, APIStatusError
 from openai.types.chat import ChatCompletionChunk
 from flask import Flask, Response, request, Request, jsonify
 from dotenv import load_dotenv
@@ -23,25 +23,6 @@ from azure.identity import DefaultAzureCredential
 ERROR_429_MESSAGE = "We're currently experiencing a high number of requests for the service you're trying to access. Please wait a moment and try again."
 ERROR_GENERIC_MESSAGE = "An error occurred. Please try again. If the problem persists, please contact the site administrator."
 logger = logging.getLogger(__name__)
-
-# Helper function to extract inner error code safely
-def get_inner_error_code(e):
-    try:
-        # Parse the initial JSON string
-        error_content = json.loads(e.__dict__.get("response").content)
-        error_message = error_content["error"]["message"]
-
-        # Find the position of the JSON part in the string
-        inner_error_json_start = error_message.find('{"error":')
-        inner_error_json_part = error_message[inner_error_json_start:]
-
-        # Parse the JSON string
-        inner_error_json = json.loads(inner_error_json_part)
-        return inner_error_json["error"]["code"]
-
-    except Exception as ex:
-        logger.exception("Exception in /api/conversation | %s", str(ex))
-        return None
 
 def stream_with_data(response: Stream[ChatCompletionChunk]):
     """This function streams the response from Azure OpenAI with data."""
@@ -363,16 +344,17 @@ def create_app():
                 return conversation_with_data(request, env_helper)
             else:
                 return conversation_without_data(request, env_helper)
-        except RateLimitError as e:
+        except APIStatusError as e:
             error_message = str(e)
             logger.exception("Exception in /api/conversation | %s", error_message)
-            return jsonify({"error": ERROR_429_MESSAGE}), 429
+            response_json = e.response.json()
+            response_message = response_json.get("error", {}).get("message", "")
+            if "429" in response_message:
+                return jsonify({"error": ERROR_429_MESSAGE}), 429
+            return jsonify({"error": ERROR_GENERIC_MESSAGE}), 500
         except Exception as e:
             error_message = str(e)
             logger.exception("Exception in /api/conversation | %s", error_message)
-            inner_error_code = get_inner_error_code(e)
-            if inner_error_code == '429':
-                return jsonify({"error": ERROR_429_MESSAGE}), 429
             return jsonify({"error": ERROR_GENERIC_MESSAGE}), 500
 
     async def conversation_custom():
