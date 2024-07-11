@@ -17,10 +17,16 @@ class SearchHandlerBase(ABC):
             return None
         return self.search_client.search(query, facets=facets)
 
-    def get_unique_files(self, results, facet_key: str):
-        if results:
-            return [facet["value"] for facet in results.get_facets()[facet_key]]
-        return []
+    def get_unique_files(self, search_text, field_name):
+        unique_files = set()  # Using a set to automatically handle uniqueness
+        results = self.search_client.search(search_text=search_text)
+
+        for page in results.by_page():
+            for result in page:
+                if field_name in result:
+                    unique_files.add(result[field_name])
+
+        return list(unique_files)
 
     def delete_from_index(self, blob_url) -> None:
         documents = self.search_by_blob_url(blob_url)
