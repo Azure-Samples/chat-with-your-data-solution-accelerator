@@ -349,7 +349,8 @@ def create_app():
             logger.exception("Exception in /api/conversation | %s", error_message)
             response_json = e.response.json()
             response_message = response_json.get("error", {}).get("message", "")
-            if "429" in response_message:
+            response_code = response_json.get("error", {}).get("code", "")
+            if response_code == "429" or "429" in response_message:
                 return jsonify({"error": ERROR_429_MESSAGE}), 429
             return jsonify({"error": ERROR_GENERIC_MESSAGE}), 500
         except Exception as e:
@@ -387,10 +388,15 @@ def create_app():
 
             return jsonify(response_obj), 200
 
-        except RateLimitError as e:
+        except APIStatusError as e:
             error_message = str(e)
             logger.exception("Exception in /api/conversation | %s", error_message)
-            return jsonify({"error": ERROR_429_MESSAGE}), 429
+            response_json = e.response.json()
+            response_message = response_json.get("error", {}).get("message", "")
+            response_code = response_json.get("error", {}).get("code", "")
+            if response_code == "429" or "429" in response_message:
+                return jsonify({"error": ERROR_429_MESSAGE}), 429
+            return jsonify({"error": ERROR_GENERIC_MESSAGE}), 500
         except Exception as e:
             error_message = str(e)
             logger.exception("Exception in /api/conversation | %s", error_message)
