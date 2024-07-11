@@ -39,7 +39,9 @@ load_css("pages/common.css")
 
 try:
     search_handler = Search.get_search_handler(env_helper)
-    unique_files = search_handler.get_unique_files("*", "title")
+
+    results = search_handler.search_with_facets("*", ["title"],facet_count=0)
+    unique_files = search_handler.get_unique_files(results, "title")
     filename = st.selectbox("Select your file:", unique_files)
     st.write("Showing chunks for:", filename)
 

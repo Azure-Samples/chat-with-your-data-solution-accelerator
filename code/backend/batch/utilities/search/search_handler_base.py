@@ -12,21 +12,20 @@ class SearchHandlerBase(ABC):
         self.env_helper = env_helper
         self.search_client = self.create_search_client()
 
-    def search_with_facets(self, query: str, facets: list[str]):
+    def search_with_facets(self, query: str, facets: list[str], facet_count: int = None):
         if self.search_client is None:
             return None
-        return self.search_client.search(query, facets=facets)
 
-    def get_unique_files(self, search_text, field_name):
-        unique_files = set()  # Using a set to automatically handle uniqueness
-        results = self.search_client.search(search_text=search_text)
+        # Construct facet parameter based on facet_count
+        facet_param = facets[0] if facet_count is None else f"{facets[0]},count:{facet_count}"
 
-        for page in results.by_page():
-            for result in page:
-                if field_name in result:
-                    unique_files.add(result[field_name])
+        # Perform search with facets and facet_param
+        return self.search_client.search(query, facets=[facet_param])
 
-        return list(unique_files)
+    def get_unique_files(self, results, facet_key: str):
+        if results:
+            return [facet["value"] for facet in results.get_facets()[facet_key]]
+        return []
 
     def delete_from_index(self, blob_url) -> None:
         documents = self.search_by_blob_url(blob_url)
