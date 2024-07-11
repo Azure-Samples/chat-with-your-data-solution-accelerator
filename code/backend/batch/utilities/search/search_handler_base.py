@@ -12,12 +12,12 @@ class SearchHandlerBase(ABC):
         self.env_helper = env_helper
         self.search_client = self.create_search_client()
 
-    def search_with_facets(self, query: str, facets: list[str], facet_count: int = None):
+    def search_with_facets(self, query: str, facets: list[str], facet_count: int):
         if self.search_client is None:
             return None
 
         # Construct facet parameter based on facet_count
-        facet_param = facets[0] if facet_count is None else f"{facets[0]},count:{facet_count}"
+        facet_param = f"{facets[0]},count:{facet_count}"
 
         # Perform search with facets and facet_param
         return self.search_client.search(query, facets=[facet_param])
