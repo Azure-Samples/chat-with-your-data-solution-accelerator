@@ -34,6 +34,8 @@ const Chat = () => {
   const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showLoadingMessage, setShowLoadingMessage] = useState<boolean>(false);
+
+  const [isSendButtonDisabled, setSendButtonDisabled] = useState(false);
   const [activeCitation, setActiveCitation] =
     useState<
       [
@@ -180,16 +182,16 @@ const Chat = () => {
       }
       setIsRecognizing(false);
       setRecognizedText("");
+      setSendButtonDisabled(false);
       setIsListening(false);
     }
   };
 
   const onMicrophoneClick = async () => {
     if (!isRecognizing) {
-      // console.log("Starting speech recognition...");
+      setSendButtonDisabled(true);
       await startSpeechRecognition();
     } else {
-      // console.log("Stopping speech recognition...");
       stopSpeechRecognition();
       setRecognizedText(userMessage);
     }
@@ -355,6 +357,7 @@ const Chat = () => {
               disabled={isLoading}
               onSend={(question) => makeApiRequest(question)}
               recognizedText={recognizedText}
+              isSendButtonDisabled={isSendButtonDisabled}
               onMicrophoneClick={onMicrophoneClick}
               onStopClick={stopSpeechRecognition}
               isListening={isListening}
