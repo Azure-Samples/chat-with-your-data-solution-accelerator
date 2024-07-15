@@ -176,22 +176,11 @@ def test_returns_text_vectors(
     assert actual_vectors == expected_vectors
 
 
+@mock.patch("backend.batch.utilities.helpers.azure_computer_vision_client.requests")
 def test_vectorize_image_calls_computer_vision_timeout(
-    httpserver: HTTPServer, azure_computer_vision_client: AzureComputerVisionClient
+        mock_requests: MagicMock, azure_computer_vision_client: AzureComputerVisionClient
 ):
-    # given
-    def handler(_) -> werkzeug.Response:
-        time.sleep(0.3)
-        return werkzeug.Response(
-            json.dumps({"modelVersion": "2022-04-11", "vector": [1.0, 2.0, 3.0]}),
-            status=200,
-        )
-
-    httpserver.expect_request(
-        COMPUTER_VISION_VECTORIZE_IMAGE_PATH,
-        COMPUTER_VISION_VECTORIZE_IMAGE_REQUEST_METHOD,
-    ).respond_with_handler(handler)
-
+    mock_requests.post.side_effect = ReadTimeout("An error occurred")
     # when
     with pytest.raises(Exception) as exec_info:
         azure_computer_vision_client.vectorize_image(IMAGE_URL)
