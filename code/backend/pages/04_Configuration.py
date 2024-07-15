@@ -208,7 +208,7 @@ try:
     )
     example_user_question_help = "The example user question."
     example_answer_help = "The expected answer."
-    with st.expander("", expanded=True):
+    with st.expander("Assistant type configuration", expanded=True):
         cols = st.columns([2, 4])
         with cols[0]:
             st.selectbox(
