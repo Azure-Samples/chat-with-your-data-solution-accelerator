@@ -73,6 +73,7 @@ try:
                 )
                 if len(files_to_delete) > 0:
                     st.success("Deleted files: " + str(files_to_delete))
+                    st.experimental_rerun()
 
 except Exception:
     logger.error(traceback.format_exc())
