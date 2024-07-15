@@ -372,7 +372,7 @@ def search_handler():
 def test_search_with_facets_no_search_client(search_handler):
 
     search_handler.search_client = None
-    result = search_handler.search_with_facets("query", ["facet1"], 10)
+    result = search_handler.search_with_facets("query", "facet1", 10)
     assert result is None
 
 
@@ -380,7 +380,7 @@ def test_search_with_facets_valid(search_handler):
     mock_search_client = MagicMock()
     search_handler.search_client = mock_search_client
     mock_search_client.search.return_value = "search_results"
-    result = search_handler.search_with_facets("query", ["facet1"], 10)
+    result = search_handler.search_with_facets("query", "facet1", 10)
     mock_search_client.search.assert_called_once_with(
         "query", facets=["facet1,count:10"]
     )
