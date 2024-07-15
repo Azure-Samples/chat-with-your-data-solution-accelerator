@@ -12,10 +12,15 @@ class SearchHandlerBase(ABC):
         self.env_helper = env_helper
         self.search_client = self.create_search_client()
 
-    def search_with_facets(self, query: str, facets: list[str]):
+    def search_with_facets(self, query: str, facet: str, facet_count: int):
         if self.search_client is None:
             return None
-        return self.search_client.search(query, facets=facets)
+
+        # Construct facet parameter based on facet_count
+        facet_param = f"{facet},count:{facet_count}"
+
+        # Perform search with facets and facet_param
+        return self.search_client.search(query, facets=[facet_param])
 
     def get_unique_files(self, results, facet_key: str):
         if results:
