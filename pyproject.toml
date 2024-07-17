@@ -17,10 +17,10 @@ azure-ai-formrecognizer = "3.3.3"
 azure-storage-blob = "12.20.0"
 azure-identity = "1.17.1"
 flask = {extras = ["async"], version = "^3.0.3"}
-openai = "1.35.10"
-langchain = "0.2.6"
-langchain-community = "0.2.6"
-langchain-openai = "0.1.14"
+openai = "1.35.14"
+langchain = "0.2.7"
+langchain-community = "0.2.7"
+langchain-openai = "0.1.16"
 requests = "2.32.3"
 tiktoken = "0.7.0"
 azure-storage-queue = "12.10.0"
@@ -36,8 +36,8 @@ azure-monitor-opentelemetry = "^1.6.0"
 opentelemetry-instrumentation-httpx = "^0.46b0"
 pillow = "10.4.0"
 azure-mgmt-cognitiveservices = "^13.5.0"
-jsonschema = "^4.22.0"
-semantic-kernel = {version = "1.1.2", python = "<3.13"}
+jsonschema = "^4.23.0"
+semantic-kernel = {version = "1.2.0", python = "<3.13"}
 azure-ai-ml = "^1.17.1"
 
 [tool.poetry.group.dev.dependencies]
