@@ -892,6 +892,8 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
+      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+      AZURE_SEARCH_TOP_K: azureSearchTopK
     }
   }
 }
@@ -949,6 +951,8 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
       DOCUMENT_PROCESSING_QUEUE_NAME: queueName
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
+      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+      AZURE_SEARCH_TOP_K: azureSearchTopK
     }
   }
 }
