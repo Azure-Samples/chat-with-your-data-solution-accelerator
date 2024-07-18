@@ -39,6 +39,8 @@ param azureOpenAIMaxTokens = readEnvironmentVariable('AZURE_OPENAI_MAX_TOKENS', 
 param azureOpenAITemperature = readEnvironmentVariable('AZURE_OPENAI_TEMPERATURE', '0')
 param azureOpenAITopP = readEnvironmentVariable('AZURE_OPENAI_TOP_P', '1')
 param azureOpenAIStopSequence = readEnvironmentVariable('AZURE_OPENAI_STOP_SEQUENCE', '\n')
+param azureOpenAISystemMessage = readEnvironmentVariable('AZURE_OPENAI_SYSTEM_MESSAGE', 'You are an AI assistant that helps people find information.')
+param azureSearchTopK = readEnvironmentVariable('AZURE_SEARCH_TOP_K', '5')
 
 // Computer Vision parameters
 param computerVisionLocation = readEnvironmentVariable('AZURE_COMPUTER_VISION_LOCATION', '')
