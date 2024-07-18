@@ -31,17 +31,17 @@ jobs:
           script: |
             const response = await github.rest.pulls.list({
               owner: "${{ github.repository_owner }}",
-              repo: "${{ github.event.workflow_run.repository.name }}",
+              repo: context.payload.workflow_run.repository.name,
               state: "open",
-              head: "${{ github.event.workflow_run.head_repository.owner.login }}:${{ github.event.workflow_run.head_branch }}",
+              head: `${context.payload.workflow_run.head_repository.owner.login}:${context.payload.workflow_run.head_branch}`,
             });
 
             return response.data[0]?.number ?? "";
           retries: 3
       - name: Comment coverage
-        uses: MishaKav/pytest-coverage-comment@a1fe18e2b00c64a765568e2edb9f1706eb8fc88b
+        uses: MishaKav/pytest-coverage-comment@fa1c641d7e3fa1d98ed95d5f658ccd638b774628
         with:
           pytest-xml-coverage-path: coverage.xml
           junitxml-path: coverage-junit.xml
           issue-number: ${{ github.event.workflow_run.pull_requests[0].number || steps.pr.outputs.result }}
-          report-only-changed-files: ${{ !github.event.workflow_run.head_repository.fork }} # This does not currently work for forks
+          report-only-changed-files: true

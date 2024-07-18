@@ -1,0 +1,13 @@
+{
+  "name": "ui",
+  "private": true,
+  "version": "0.0.0",
+  "description": "ui tests",
+  "scripts": {
+    "cypress:open": "cypress open"
+  },
+  "devDependencies": {
+    "cypress": "^13.13.0",
+    "typescript": "^5.5.3"
+  }
+}

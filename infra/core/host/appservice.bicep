@@ -11,11 +11,20 @@ param managedIdentity bool = !empty(keyVaultName)
 
 // Runtime Properties
 @allowed([
-  'dotnet', 'dotnetcore', 'dotnet-isolated', 'node', 'python', 'java', 'powershell', 'custom'
+  'dotnet'
+  'dotnetcore'
+  'dotnet-isolated'
+  'node'
+  'python'
+  'java'
+  'powershell'
+  'custom'
 ])
 param runtimeName string
 param runtimeNameAndVersion string = '${runtimeName}|${runtimeVersion}'
 param runtimeVersion string
+param dockerFullImageName string = ''
+param useDocker bool = dockerFullImageName != ''
 
 // Microsoft.Web/sites Properties
 param kind string = 'app,linux'
@@ -27,9 +36,9 @@ param appCommandLine string = ''
 @secure()
 param appSettings object = {}
 param clientAffinityEnabled bool = false
-param enableOryxBuild bool = contains(kind, 'linux')
+param enableOryxBuild bool = useDocker ? false : contains(kind, 'linux')
 param functionAppScaleLimit int = -1
-param linuxFxVersion string = runtimeNameAndVersion
+param linuxFxVersion string = useDocker ? 'DOCKER|${dockerFullImageName}' : runtimeNameAndVersion
 param minimumElasticInstanceCount int = -1
 param numberOfWorkers int = -1
 param scmDoBuildDuringDeployment bool = false
@@ -56,7 +65,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
       functionAppScaleLimit: functionAppScaleLimit != -1 ? functionAppScaleLimit : null
       healthCheckPath: healthCheckPath
       cors: {
-        allowedOrigins: union([ 'https://portal.azure.com', 'https://ms.portal.azure.com' ], allowedOrigins)
+        allowedOrigins: union(['https://portal.azure.com', 'https://ms.portal.azure.com'], allowedOrigins)
       }
     }
     clientAffinityEnabled: clientAffinityEnabled
@@ -86,14 +95,21 @@ module configAppSettings 'appservice-appsettings.bicep' = {
   name: '${name}-appSettings'
   params: {
     name: appService.name
-    appSettings: union(appSettings,
+    appSettings: union(
+      appSettings,
       {
+        APPLICATIONINSIGHTS_ENABLED: string(!empty(applicationInsightsName))
+        AZURE_RESOURCE_GROUP: resourceGroup().name
+        AZURE_SUBSCRIPTION_ID: subscription().subscriptionId
         SCM_DO_BUILD_DURING_DEPLOYMENT: string(scmDoBuildDuringDeployment)
         ENABLE_ORYX_BUILD: string(enableOryxBuild)
       },
       runtimeName == 'python' && appCommandLine == '' ? { PYTHON_ENABLE_GUNICORN_MULTIWORKERS: 'true' } : {},
-      !empty(applicationInsightsName) ? { APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString } : {},
-      !empty(keyVaultName) ? { AZURE_KEY_VAULT_ENDPOINT: keyVault.properties.vaultUri } : {})
+      !empty(applicationInsightsName)
+        ? { APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString }
+        : {},
+      !empty(keyVaultName) ? { AZURE_KEY_VAULT_ENDPOINT: keyVault.properties.vaultUri } : {}
+    )
   }
 }
 
@@ -107,7 +123,7 @@ resource configLogs 'Microsoft.Web/sites/config@2022-03-01' = {
     failedRequestsTracing: { enabled: true }
     httpLogs: { fileSystem: { enabled: true, retentionInDays: 1, retentionInMb: 35 } }
   }
-  dependsOn: [ configAppSettings ]
+  dependsOn: [configAppSettings]
 }
 
 resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = if (!(empty(keyVaultName))) {

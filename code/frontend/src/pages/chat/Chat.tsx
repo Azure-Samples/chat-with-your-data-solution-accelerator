@@ -6,8 +6,6 @@ import {
   SquareRegular,
 } from "@fluentui/react-icons";
 import {
-  SpeechConfig,
-  AudioConfig,
   SpeechRecognizer,
   ResultReason,
 } from "microsoft-cognitiveservices-speech-sdk";
@@ -18,11 +16,14 @@ import { v4 as uuidv4 } from "uuid";
 
 import styles from "./Chat.module.css";
 import CapgeminiLogo from "../../assets/capgemini_engineering_logo.png";
+import Azure from "../../assets/Azure.svg";
+import { multiLingualSpeechRecognizer } from "../../util/SpeechToText";
 
 import {
   ChatMessage,
   ConversationRequest,
   customConversationApi,
+  callConversationApi,
   Citation,
   ToolMessageContent,
   ChatResponse,
@@ -36,6 +37,7 @@ const Chat = () => {
   const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showLoadingMessage, setShowLoadingMessage] = useState<boolean>(false);
+  const [isSendButtonDisabled, setSendButtonDisabled] = useState(false);
   const [activeCitation, setActiveCitation] =
     useState<
       [
@@ -57,8 +59,6 @@ const Chat = () => {
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognizerRef = useRef<SpeechRecognizer | null>(null);
-  const [subscriptionKey, setSubscriptionKey] = useState<string>("");
-  const [serviceRegion, setServiceRegion] = useState<string>("");
   const makeApiRequest = async (question: string) => {
     lastQuestionRef.current = question;
 
@@ -79,7 +79,7 @@ const Chat = () => {
 
     let result = {} as ChatResponse;
     try {
-      const response = await customConversationApi(
+      const response = await callConversationApi(
         request,
         abortController.signal
       );
@@ -111,17 +111,19 @@ const Chat = () => {
                 ]);
               }
               runningText = "";
-            } catch {}
+            } catch { }
           });
         }
         setAnswers([...answers, userMessage, ...result.choices[0].messages]);
       }
     } catch (e) {
       if (!abortController.signal.aborted) {
-        console.error(result);
-        alert(
-          "An error occurred. Please try again. If the problem persists, please contact the site administrator."
-        );
+        if (e instanceof Error) {
+          alert(e.message);
+        }
+        else {
+          alert('An error occurred. Please try again. If the problem persists, please contact the site administrator.');
+        }
       }
       setAnswers([...answers, userMessage]);
     } finally {
@@ -134,6 +136,9 @@ const Chat = () => {
 
     return abortController.abort();
   };
+    // Buffer to store recognized text
+    let recognizedTextBuffer = "";
+    let currentSentence = "";
 
   useEffect(() => {
     async function fetchServerConfig() {
@@ -159,35 +164,33 @@ const Chat = () => {
   ) => {
     if (!isRecognizing) {
       setIsRecognizing(true);
+      recognizerRef.current = await multiLingualSpeechRecognizer(); // Store the recognizer in the ref
 
-      if (!subscriptionKey || !serviceRegion) {
-        console.error(
-          "Azure Speech subscription key or region is not defined."
-        );
-      } else {
-        const speechConfig = SpeechConfig.fromSubscription(
-          subscriptionKey,
-          serviceRegion
-        );
-        const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
-        const recognizer = new SpeechRecognizer(speechConfig, audioConfig);
-        recognizerRef.current = recognizer; // Store the recognizer in the ref
-
-        recognizerRef.current.recognized = (s, e) => {
-          if (e.result.reason === ResultReason.RecognizedSpeech) {
-            const recognized = e.result.text;
-            // console.log("Recognized:", recognized);
-            setUserMessage(recognized);
-            setRecognizedText(recognized);
+      recognizerRef.current.recognized = (s, e) => {
+        if (e.result.reason === ResultReason.RecognizedSpeech) {
+          let recognizedText = e.result.text.trim();
+          // Append current sentence to buffer if it's not empty
+          if (currentSentence) {
+              recognizedTextBuffer += ` ${currentSentence.trim()}`;
+              currentSentence = "";
           }
-        };
+          // Start new sentence
+          currentSentence += ` ${recognizedText}`;
+          //set text in textarea
+           setUserMessage((recognizedTextBuffer + currentSentence).trim());
+           setRecognizedText((recognizedTextBuffer + currentSentence).trim());
+        }
+      };
 
-        recognizerRef.current.startContinuousRecognitionAsync(() => {
-          setIsRecognizing(true);
-          // console.log("Speech recognition started.");
-          setIsListening(true);
-        });
-      }
+      recognizerRef.current.startContinuousRecognitionAsync(
+        () => {
+            setIsRecognizing(true);
+            setIsListening(true);
+        },
+        error => {
+            console.error(`Error starting recognition: ${error}`);
+        }
+    );
     }
   };
 
@@ -202,16 +205,16 @@ const Chat = () => {
       }
       setIsRecognizing(false);
       setRecognizedText("");
+      setSendButtonDisabled(false);
       setIsListening(false);
     }
   };
 
-  const onMicrophoneClick = () => {
+  const onMicrophoneClick = async () => {
     if (!isRecognizing) {
-      // console.log("Starting speech recognition...");
-      startSpeechRecognition(subscriptionKey, serviceRegion);
+      setSendButtonDisabled(true);
+      await startSpeechRecognition();
     } else {
-      // console.log("Stopping speech recognition...");
       stopSpeechRecognition();
       setRecognizedText(userMessage);
     }
@@ -292,7 +295,7 @@ const Chat = () => {
                             answer.role === "assistant"
                               ? answer.content
                               : "Sorry, an error occurred. Try refreshing the conversation or waiting a few minutes. If the issue persists, contact your system administrator. Error: " +
-                                answer.content,
+                              answer.content,
                           citations:
                             answer.role === "assistant"
                               ? parseCitationFromMessage(answers[index - 1])
@@ -377,6 +380,7 @@ const Chat = () => {
               disabled={isLoading}
               onSend={(question) => makeApiRequest(question)}
               recognizedText={recognizedText}
+              isSendButtonDisabled={isSendButtonDisabled}
               onMicrophoneClick={onMicrophoneClick}
               onStopClick={stopSpeechRecognition}
               isListening={isListening}

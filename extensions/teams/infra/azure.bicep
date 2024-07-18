@@ -16,7 +16,7 @@ param azureFunctionURL string
 
 param webAppSKU string
 
-@maxLength(42) 
+@maxLength(42)
 param botDisplayName string
 
 param serverfarmsName string = resourceBaseName
@@ -43,6 +43,7 @@ resource webApp 'Microsoft.Web/sites@2021-02-01' = {
     httpsOnly: true
     siteConfig: {
       alwaysOn: true
+      minTlsVersion: '1.2'
       appSettings: [
         {
           name: 'WEBSITE_RUN_FROM_PACKAGE'

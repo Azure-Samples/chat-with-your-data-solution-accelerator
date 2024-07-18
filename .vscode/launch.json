@@ -30,7 +30,9 @@
                 "--app",
                 "./app.py",
                 "--debug",
-                "run"
+                "run",
+                "--port",
+                "5050"
             ],
             "cwd": "${workspaceFolder}/code",
             "preLaunchTask": "poetry install",
@@ -71,6 +73,13 @@
             "program": "${file}",
             "justMyCode": true,
             "envFile": "${input:dotEnvFilePath}",
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Launch Frontend",
+            "configurations": [ "Launch Frontend (UI)", "Launch Frontend (api)" ],
+            "stopAll": true
         }
     ],
     "inputs": [

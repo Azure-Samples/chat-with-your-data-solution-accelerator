@@ -10,7 +10,9 @@ from langchain.prompts import PromptTemplate
 from langchain_community.callbacks import get_openai_callback
 from langchain_community.vectorstores.azuresearch import (
     FIELDS_CONTENT_VECTOR,
-    FIELDS_CONTENT, FIELDS_METADATA)
+    FIELDS_CONTENT,
+    FIELDS_METADATA,
+)
 
 from ..helpers.AzureSearchHelper import AzureSearchHelper
 from ..helpers.ConfigHelper import ConfigHelper
@@ -37,39 +39,41 @@ class QuestionAnswerTool(AnsweringToolBase):
 
         # Retrieve documents as sources
         from azure.search.documents.models import VectorizedQuery
-        sources = [Document(
-            page_content=result.pop(FIELDS_CONTENT),
-            metadata=json.loads(result[FIELDS_METADATA])
-            if FIELDS_METADATA in result
-            else {
-                k: v for k, v in result.items() if k != FIELDS_CONTENT_VECTOR
-            },
-        ) for result in
-            self.vector_store.client.search(
-            search_text=keyword_search,
-            search_fields=["keywords"],
-            vector_queries=[
-                VectorizedQuery(
-                    vector=np.array(self.vector_store.embed_query(
-                        question), dtype=np.float32).tolist(),
-                    k_nearest_neighbors=4,
-                    fields=FIELDS_CONTENT_VECTOR,
-                )
-            ],
-        )]
+
+        sources = [
+            Document(
+                page_content=result.pop(FIELDS_CONTENT),
+                metadata=(
+                    json.loads(result[FIELDS_METADATA])
+                    if FIELDS_METADATA in result
+                    else {k: v for k, v in result.items() if k != FIELDS_CONTENT_VECTOR}
+                ),
+            )
+            for result in self.vector_store.client.search(
+                search_text=keyword_search,
+                search_fields=["keywords"],
+                vector_queries=[
+                    VectorizedQuery(
+                        vector=np.array(
+                            self.vector_store.embed_query(question), dtype=np.float32
+                        ).tolist(),
+                        k_nearest_neighbors=4,
+                        fields=FIELDS_CONTENT_VECTOR,
+                    )
+                ],
+            )
+        ]
 
         # Generate answer from sources
         answer_generator = LLMChain(
             llm=llm_helper.get_llm(), prompt=answering_prompt, verbose=self.verbose
         )
         sources_text = "\n\n".join(
-            [f"[doc{i+1}]: {source.page_content}" for i,
-                source in enumerate(sources)]
+            [f"[doc{i+1}]: {source.page_content}" for i, source in enumerate(sources)]
         )
 
         with get_openai_callback() as cb:
-            result = answer_generator(
-                {"question": question, "sources": sources_text})
+            result = answer_generator({"question": question, "sources": sources_text})
 
         answer = result["text"]
         print(f"Answer: {answer}")

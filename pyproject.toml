@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "chat-with-your-data-solution-accelerator"
-version = "0.1.0"
-description = ""
+version = "1.1.0"
+description = "Chat with your data solution accelerator"
 authors = []
 readme = "README.md"
 packages = [
@@ -10,47 +10,63 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-azure-functions = "1.18.0"
-streamlit = "1.32.2"
-scipy = "1.12.0"
-transformers = "4.38.2"
+azure-functions = "1.20.0"
+streamlit = "1.36.0"
 python-dotenv = "1.0.1"
-azure-ai-formrecognizer = "3.3.2"
-azure-storage-blob = "12.19.1"
-azure-identity = "1.15.0"
-flask = "3.0.2"
-openai = "1.14.2"
-langchain = "0.1.12"
-langchain-community = "0.0.28"
-langchain-openai = "0.0.7"
-requests = "2.31.0"
-tiktoken = "0.6.0"
-azure-storage-queue = "12.9.0"
+azure-ai-formrecognizer = "3.3.3"
+azure-storage-blob = "12.20.0"
+azure-identity = "1.17.1"
+flask = {extras = ["async"], version = "^3.0.3"}
+openai = "1.35.14"
+langchain = "0.2.7"
+langchain-community = "0.2.7"
+langchain-openai = "0.1.16"
+requests = "2.32.3"
+tiktoken = "0.7.0"
+azure-storage-queue = "12.10.0"
 beautifulsoup4 = "4.12.3"
 fake-useragent = "1.5.1"
 chardet = "5.2.0"
-azure-search-documents = "11.4.0"
-opencensus-ext-azure = "1.1.13"
+azure-search-documents = "11.6.0b1"
 azure-ai-contentsafety = "1.0.0"
-python-docx = "1.1.0"
+python-docx = "1.1.2"
 azure-keyvault-secrets = "4.8.0"
-pandas = "2.2.1"
 python-jose = "3.3.0"
 streamlit-msal = "0.2.0"
 jq = "^1.7.0"
 pydantic = "2.6.4"
 python-pptx = "0.6.23"
+pandas = "2.2.2"
+azure-monitor-opentelemetry = "^1.6.0"
+opentelemetry-instrumentation-httpx = "^0.46b0"
+pillow = "10.4.0"
+azure-mgmt-cognitiveservices = "^13.5.0"
+jsonschema = "^4.23.0"
+semantic-kernel = {version = "1.2.0", python = "<3.13"}
+azure-ai-ml = "^1.17.1"
+
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.1.1"
-pytest-cov = "4.1.0"
-flake8 = "7.0.0"
-black = "24.3.0"
-pre-commit = "3.6.2"
+pytest = "^8.2.2"
+pytest-cov = "5.0.0"
+flake8 = "7.1.0"
+black = "24.4.2"
+pre-commit = "3.7.1"
 pytest_httpserver = "1.0.10"
+trustme = "1.1.0"
+jupyter = "1.0.0"
+pytest-asyncio = "^0.23.7"
+
+[tool.poetry.group.prompt-flow]
+optional = true
+
+[tool.poetry.group.prompt-flow.dependencies]
+promptflow = {extras = ["azure"], version = "1.13.0"}
 
 [tool.coverage.run]
 omit = [
-    "code/tests/*",
+    "**/tests/*",
+    "**/dist/*",
+    "**/infra/*",
 ]
 
 [tool.coverage.report]

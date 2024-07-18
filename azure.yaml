@@ -3,22 +3,25 @@
 name: chat-with-your-data-solution-accelerator
 metadata:
   template: chat-with-your-data-solution-accelerator@1.7.0
-
+hooks:
+  postprovision:
+    run: ./infra/prompt-flow/create-prompt-flow.sh
 services:
   web:
     project: ./code
     language: py
     host: appservice
+    dist: ./dist
     hooks:
       prepackage:
         windows:
           shell: pwsh
-          run: poetry export -o requirements.txt;cd ./frontend;npm install;npm run build;
+          run: ../scripts/package_frontend.ps1
           interactive: true
           continueOnError: false
         posix:
           shell: sh
-          run: poetry export -o requirements.txt;cd ./frontend;npm install;npm run build;
+          run: ../scripts/package_frontend.sh
           interactive: true
           continueOnError: false
 
@@ -30,10 +33,10 @@ services:
       prepackage:
         windows:
           shell: pwsh
-          run: poetry export -o requirements.txt
+          run: poetry install; poetry export -o requirements.txt
         posix:
           shell: sh
-          run: poetry export -o requirements.txt
+          run: poetry install; poetry export -o requirements.txt
 
   function:
     project: ./code/backend/batch
@@ -43,7 +46,7 @@ services:
       prepackage:
         windows:
           shell: pwsh
-          run: poetry export -o requirements.txt
+          run: poetry install; poetry export -o requirements.txt
         posix:
           shell: sh
-          run: poetry export -o requirements.txt
+          run: poetry install; poetry export -o requirements.txt

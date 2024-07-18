@@ -1,3 +1,16 @@
+body {
+    font-size: 16px; /* Use relative units */
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+}
+
+.header, .footer {
+    width: 100%;
+    max-width: 1200px;
+    box-sizing: border-box;
+}
+
 .layout {
     display: flex;
     flex-direction: column;
@@ -118,4 +131,12 @@
     display: flex;
     align-items: center;
     color: #242424;
+}
+
+@media screen and (-ms-high-contrast: active), (forced-colors: active) {
+
+.shareButtonContainer, .headerTitleContainer{
+    border: 2px solid WindowText;
+}
+
 }

@@ -6,6 +6,7 @@ param tags object = {}
 param customSubDomainName string = name
 param deployments array = []
 param kind string = 'OpenAI'
+param managedIdentity bool = false
 
 @allowed([ 'Enabled', 'Disabled' ])
 param publicNetworkAccess string = 'Enabled'
@@ -14,9 +15,11 @@ param sku object = {
 }
 
 param allowedIpRules array = []
-param networkAcls object = empty(allowedIpRules) ? {
+param networkAcls object = empty(allowedIpRules) 
+ ? {
   defaultAction: 'Allow'
-} : {
+} 
+ : {
   ipRules: allowedIpRules
   defaultAction: 'Deny'
 }
@@ -32,22 +35,31 @@ resource account 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
     networkAcls: networkAcls
   }
   sku: sku
+  identity: {
+    type: managedIdentity ? 'SystemAssigned' : 'None'
+  }
 }
 
 @batchSize(1)
-resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = [for deployment in deployments: {
+resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = [
+for deployment in deployments: {
   parent: account
   name: deployment.name
   properties: {
     model: deployment.model
     raiPolicyName: contains(deployment, 'raiPolicyName') ? deployment.raiPolicyName : null
   }
-  sku: contains(deployment, 'sku') ? deployment.sku : {
+  sku: contains(deployment, 'sku') 
+   ? deployment.sku 
+   : {
     name: 'Standard'
     capacity: 20
   }
-}]
+}
+]
 
 output endpoint string = account.properties.endpoint
+output identityPrincipalId string = managedIdentity ? account.identity.principalId : ''
 output id string = account.id
 output name string = account.name
+output location string = location
