@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.28.1.47646",
-      "templateHash": "10368627789026861374"
+      "templateHash": "10957511334188011911"
     }
   },
   "parameters": {
@@ -7609,7 +7609,9 @@
               "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "LOGLEVEL": "[parameters('logLevel')]"
+              "LOGLEVEL": "[parameters('logLevel')]",
+              "AZURE_OPENAI_SYSTEM_MESSAGE": "[parameters('azureOpenAISystemMessage')]",
+              "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]"
             }
           }
         },
@@ -8848,7 +8850,9 @@
               "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "LOGLEVEL": "[parameters('logLevel')]"
+              "LOGLEVEL": "[parameters('logLevel')]",
+              "AZURE_OPENAI_SYSTEM_MESSAGE": "[parameters('azureOpenAISystemMessage')]",
+              "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]"
             }
           }
         },
