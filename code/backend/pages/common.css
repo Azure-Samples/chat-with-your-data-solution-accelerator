@@ -2,6 +2,7 @@
 footer {visibility: hidden;}
 header {visibility: hidden;}
 .st-emotion-cache-1kyxreq{width:100%}
+.stTextArea{width: 97% !important;}
 @media screen and (-ms-high-contrast: active), (forced-colors: active) {
     section, .st-emotion-cache-ch5dnh{
         border: 2px solid WindowText;padding: 10px;
