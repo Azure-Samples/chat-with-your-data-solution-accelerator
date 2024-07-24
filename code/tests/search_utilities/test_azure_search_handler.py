@@ -364,10 +364,12 @@ def test_semantic_search_with_advanced_image_processing(
         top=handler.env_helper.AZURE_SEARCH_TOP_K,
     )
 
+
 @pytest.fixture
 def search_handler():
-    env_helper=Mock()
+    env_helper = Mock()
     return AzureSearchHandler(env_helper)
+
 
 def test_search_with_facets_no_search_client(search_handler):
 
@@ -387,12 +389,11 @@ def test_search_with_facets_valid(search_handler):
     assert result == "search_results"
 
 
-
 def test_get_unique_files_no_results(search_handler):
     results = None
     facet_key = "facet_key"
     result = search_handler.get_unique_files(results, facet_key)
-    assert(result, [])
+    assert result == []
 
 
 def test_get_unique_files_with_results(search_handler):
@@ -405,7 +406,7 @@ def test_get_unique_files_with_results(search_handler):
     }
     facet_key = "facet_key"
     result = search_handler.get_unique_files(mock_results, facet_key)
-    assert(result, ["file1", "file2"])
+    assert result == ["file1", "file2"]
 
 
 def test_delete_from_index(handler, mock_search_client):
