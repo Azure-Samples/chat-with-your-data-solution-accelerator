@@ -212,6 +212,11 @@ def test_default_config_when_use_advanced_image_processing(env_helper_mock):
             "loading": {"strategy": "web"},
         },
         {
+            "document_type": "htm",
+            "chunking": expected_chunking,
+            "loading": {"strategy": "web"},
+        },
+        {
             "document_type": "docx",
             "chunking": expected_chunking,
             "loading": {"strategy": "docx"},
@@ -409,7 +414,7 @@ def test_get_available_document_types(config: Config):
 
     # then
     assert sorted(document_types) == sorted(
-        ["txt", "pdf", "url", "html", "md", "jpeg", "jpg", "png", "docx"]
+        ["txt", "pdf", "url", "html", "htm", "md", "jpeg", "jpg", "png", "docx"]
     )
 
 
@@ -424,7 +429,7 @@ def test_get_available_document_types_when_advanced_image_processing_enabled(
 
     # then
     assert sorted(document_types) == sorted(
-        ["txt", "pdf", "url", "html", "md", "jpeg", "jpg", "png", "docx", "tiff", "bmp"]
+        ["txt", "pdf", "url", "html", "htm", "md", "jpeg", "jpg", "png", "docx", "tiff", "bmp"]
     )
 
 
