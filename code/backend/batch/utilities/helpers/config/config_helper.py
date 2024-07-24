@@ -63,6 +63,7 @@ class Config:
             "pdf",
             "url",
             "html",
+            "htm",
             "md",
             "jpeg",
             "jpg",
