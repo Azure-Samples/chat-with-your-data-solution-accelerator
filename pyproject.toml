@@ -17,7 +17,7 @@ azure-ai-formrecognizer = "3.3.3"
 azure-storage-blob = "12.20.0"
 azure-identity = "1.17.1"
 flask = {extras = ["async"], version = "^3.0.3"}
-openai = "1.35.14"
+openai = "1.37.0"
 langchain = "0.2.7"
 langchain-community = "0.2.7"
 langchain-openai = "0.1.16"
