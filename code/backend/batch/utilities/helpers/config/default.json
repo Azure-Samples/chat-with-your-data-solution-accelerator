@@ -97,6 +97,17 @@
       }
     },
     {
+      "document_type": "jpeg",
+      "chunking": {
+        "strategy": "layout",
+        "size": 500,
+        "overlap": 100
+      },
+      "loading": {
+        "strategy": "layout"
+      }
+    },
+    {
       "document_type": "png",
       "chunking": {
         "strategy": "layout",
