@@ -14,7 +14,7 @@
         "@fluentui/react": "^8.119.2",
         "@fluentui/react-icons": "^2.0.249",
         "@fortawesome/fontawesome-svg-core": "^6.6.0",
-        "@fortawesome/free-solid-svg-icons": "^6.5.2",
+        "@fortawesome/free-solid-svg-icons": "^6.6.0",
         "@fortawesome/react-fontawesome": "github:fortawesome/react-fontawesome",
         "lodash": "^4.17.21",
         "lodash-es": "^4.17.21",
