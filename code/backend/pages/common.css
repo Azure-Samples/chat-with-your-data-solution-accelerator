@@ -2,6 +2,8 @@
 footer {visibility: hidden;}
 header {visibility: hidden;}
 .st-emotion-cache-1kyxreq{width:100%}
+
+.stTextArea{width: 100% !important;}
 @media screen and (-ms-high-contrast: active), (forced-colors: active) {
     section, .st-emotion-cache-ch5dnh{
         border: 2px solid WindowText;padding: 10px;
@@ -10,10 +12,6 @@ header {visibility: hidden;}
     }
 }
 @media screen and (max-width: 1280px) {
-    .st-emotion-cache-1wmy9hl .st-emotion-cache-ocqkz7  {
-            gap: 0rem !important;
-    }
-
     .st-emotion-cache-1kyxreq{
         max-width: 200px !important;
     }
