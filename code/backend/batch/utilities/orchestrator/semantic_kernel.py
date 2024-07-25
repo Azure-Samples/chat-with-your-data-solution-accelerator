@@ -41,7 +41,8 @@ class SemanticKernelOrchestrator(OrchestratorBase):
         system_message = """You help employees to navigate only private information sources.
 You must prioritize the function call over your general knowledge for any question by calling the search_documents function.
 Call the text_processing function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.
-When directly replying to the user, always reply in the language the user is speaking."""
+When directly replying to the user, always reply in the language the user is speaking.
+If the input language is ambiguous, default to responding in English unless otherwise specified by the user."""
 
         self.kernel.add_plugin(
             plugin=ChatPlugin(question=user_message, chat_history=chat_history),

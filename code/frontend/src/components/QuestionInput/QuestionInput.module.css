@@ -35,6 +35,13 @@
     height: 23px;
 }
 
+.SendButtonDisabled{
+    pointer-events: none;
+    width: 24px;
+    height: 23px;
+    margin-right: 12px;
+}
+
 .questionInputSendButtonDisabled {
     /* opacity: 0.4; */
     width: 24px;
@@ -60,6 +67,10 @@
     height: 30px;
 }
 
+.microphoneIcon ,.microphoneIconActive{
+    height: 1.3em;
+}
+
 .questionInputMicrophone {
     width: 24px;
     height: 24px;
@@ -70,8 +81,11 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-right: 12px;
-    margin-top: 25px;
+    margin-right: 1rem;
+    margin-top: 0.3rem;
+    width: 3%;
+    min-width: 3%;
+    height: 70px;
   }
 
 
