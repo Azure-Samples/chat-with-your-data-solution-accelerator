@@ -1,8 +1,8 @@
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
-.st-emotion-cache-1kyxreq{width:100%}
-
+[data-testid="baseButton-secondary"] svg{display: none;}
+[data-testid="stPopoverBody"] button{float: right;}
 .stTextArea{width: 100% !important;}
 @media screen and (-ms-high-contrast: active), (forced-colors: active) {
     section, .st-emotion-cache-ch5dnh{
