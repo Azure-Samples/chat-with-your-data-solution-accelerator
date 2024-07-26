@@ -26,6 +26,7 @@
     word-wrap: break-word;
     max-width: 800px;
     overflow-x: auto;
+    overflow-wrap: anywhere;
 }
 
 .answerFooter {
