@@ -213,10 +213,7 @@ def _convert_source_documents_to_content(
     for source_document in source_documents:
         content["citations"].append(
             {
-                "content": "<div style=\"font-size: 12px; color: #707070;\">Tables, images, and other special "
-                           "formatting not shown in this preview. Please follow the link to review the original "
-                           "document.</div>\n\n"
-                + source_document.get_markdown_url()
+                "content": source_document.get_markdown_url()
                 + "\n\n\n"
                 + source_document.content,
                 "id": source_document.id,

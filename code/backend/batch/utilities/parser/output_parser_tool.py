@@ -66,9 +66,7 @@ class OutputParserTool(ParserBase):
             # Then update the citation object in the response, it needs to have filepath and chunk_id to render in the UI as a file
             messages[0]["content"]["citations"].append(
                 {
-                    "content": "<div style=\"font-size: 12px; color: #707070;\">Tables, images, and other special "
-                    "formatting not shown in this preview. Please follow the link to review the original "
-                    "document.</div>\n\n" + doc.get_markdown_url() + "\n\n\n" + doc.content,
+                    "content": doc.get_markdown_url() + "\n\n\n" + doc.content,
                     "id": doc.id,
                     "chunk_id": (
                         re.findall(r"\d+", doc.chunk_id)[-1]
