@@ -3,6 +3,19 @@ footer {visibility: hidden;}
 header {visibility: hidden;}
 [data-testid="baseButton-secondary"] svg{display: none;}
 [data-testid="stPopoverBody"] button{float: right;}
+[data-testid="stPopoverBody"] .stTooltipIcon {
+    position: absolute;
+    right: 0;
+    margin-top: 0.3rem;
+}
+[data-testid="stPopoverBody"] [data-testid="stVerticalBlock"]{
+    width: 520px;
+}
+[data-testid="stPopoverBody"] .stTooltipIcon [data-testid="baseButton-secondary"]{
+    border: none;
+    z-index: 1;
+}
+
 .stTextArea{width: 100% !important;}
 @media screen and (-ms-high-contrast: active), (forced-colors: active) {
     section, .st-emotion-cache-ch5dnh{
