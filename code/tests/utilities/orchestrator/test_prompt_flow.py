@@ -90,12 +90,13 @@ async def test_orchestrate_returns_expected_chat_response(
     orchestrator: PromptFlowOrchestrator,
 ):
     # given
+    fallback_message = "<div style=\\\"font-size: 12px; color: #707070;\\\">Tables, images, and other special formatting not shown in this preview. Please follow the link to review the original document.</div>\\n\\n"
     user_message = "question"
     chat_history = []
     expected_result = [
         {
             "role": "tool",
-            "content": '{"citations": [{"content": "[None](some-filepath)\\n\\n\\nsome-content", "id": "[doc1]", "chunk_id": "1", "title": null, "filepath": "some-filepath", "url": "[None](some-filepath)", "metadata": {"offset": null, "source": "some-filepath", "markdown_url": "[None](some-filepath)", "title": null, "original_url": "some-filepath", "chunk": null, "key": "[doc1]", "filename": "some-filepath"}}, {"content": "[None](some-other-filepath)\\n\\n\\nsome-other-content", "id": "[doc2]", "chunk_id": "2", "title": null, "filepath": "some-other-filepath", "url": "[None](some-other-filepath)", "metadata": {"offset": null, "source": "some-other-filepath", "markdown_url": "[None](some-other-filepath)", "title": null, "original_url": "some-other-filepath", "chunk": null, "key": "[doc2]", "filename": "some-other-filepath"}}], "intent": "question"}',
+            "content": '{"citations": [{"content": "' + fallback_message + '[None](some-filepath)\\n\\n\\nsome-content", "id": "[doc1]", "chunk_id": "1", "title": null, "filepath": "some-filepath", "url": "[None](some-filepath)", "metadata": {"offset": null, "source": "some-filepath", "markdown_url": "[None](some-filepath)", "title": null, "original_url": "some-filepath", "chunk": null, "key": "[doc1]", "filename": "some-filepath"}}, {"content": "' + fallback_message + '[None](some-other-filepath)\\n\\n\\nsome-other-content", "id": "[doc2]", "chunk_id": "2", "title": null, "filepath": "some-other-filepath", "url": "[None](some-other-filepath)", "metadata": {"offset": null, "source": "some-other-filepath", "markdown_url": "[None](some-other-filepath)", "title": null, "original_url": "some-other-filepath", "chunk": null, "key": "[doc2]", "filename": "some-other-filepath"}}], "intent": "question"}',
             "end_turn": False,
         },
         {
