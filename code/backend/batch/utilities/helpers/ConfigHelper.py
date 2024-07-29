@@ -69,11 +69,46 @@ class Logging:
 
 class Crawling:
     def __init__(self, crawling: dict):
-        self.crawl_enabled = crawling["crawl_enabled"]
-        self.crawl_recurring_interval_seconds = crawling["crawl_recurring_interval_seconds"]
-        self.crawl_target_urls = crawling["crawl_target_urls"]
-        self.crawl_delay_seconds = crawling["crawl_delay_seconds"]
-        self.crawl_retry_count = crawling["crawl_retry_count"]
+        self._crawl_enabled = crawling["crawl_enabled"]
+        self.crawl_cron = Cron(crawling["crawl_cron"])
+        self.crawl_schedule_str = crawling["crawl_schedule_str"]
+        self._crawl_target_urls = crawling["crawl_target_urls"]
+        self._crawl_delay_seconds = crawling["crawl_delay_seconds"]
+        self._crawl_retry_count = crawling["crawl_retry_count"]
+
+class Cron:
+    def __init__(self, cron: dict):
+        self.seconds = cron["seconds"]
+        self.minutes = cron["minutes"]
+        self.hours = cron["hours"]
+        self.days = cron["days"]
+        self.months = cron["months"]
+        self.day_of_week = cron["day_of_week"]
+
+    @property
+    def crawl_enabled(self):
+        return self._crawl_enabled
+
+    @property
+    def crawl_cron(self):
+        return self.crawl_cron
+
+    @property
+    def crawl_schedule_str(self):
+        return self.crawl_schedule_str
+
+    @property
+    def crawl_target_urls(self):
+        return self._crawl_target_urls
+
+    @property
+    def crawl_delay_seconds(self):
+        return self._crawl_delay_seconds
+
+    @property
+    def crawl_retry_count(self):
+        return self._crawl_retry_count
+
 
 class ConfigHelper:
     @staticmethod
@@ -225,7 +260,15 @@ Answer: {answer}""",
             "orchestrator": {"strategy": env_helper.ORCHESTRATION_STRATEGY},
             "crawling": {
                 "crawl_enabled": False,
-                "crawl_recurring_interval_seconds": 86400,
+                "crawl_cron": {
+                    "seconds": 0,
+                    "minutes": 0,
+                    "hours": 0,
+                    "days": 0,
+                    "months": 0,
+                    "day_of_week": 0,
+                },
+                "crawl_schedule_str": "* * * * * *",
                 "crawl_target_urls": [],
                 "crawl_delay_seconds": 86400,
                 "crawl_retry_count": 3,

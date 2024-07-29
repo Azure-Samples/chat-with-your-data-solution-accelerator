@@ -96,6 +96,7 @@ def main():
                 "Your post answering prompt doesn't contain the variable `{answer}`"
             )
 
+
     try:
         with st.expander("Orchestrator configuration", expanded=True):
             cols = st.columns([2, 4])
@@ -180,15 +181,42 @@ def main():
             st.checkbox("Log tokens", key="log_tokens")
 
 
+        crawler_config = config.crawling
         with st.expander("Crawler configuration", expanded=True):
-            crawl_enabled = st.checkbox("Enable crawling", key="crawl_enabled")
+            crawl_enabled = st.checkbox("Enable crawling", value=crawler_config.crawl_enabled, key="crawl_enabled")
             if crawl_enabled:
-                # with st.expander("Crawler configuration", expanded=True):
-                    st.text_area("Crawl target URLs", key="crawl_target_urls", help="Enter URLs separated by commas")
-                    st.number_input("Crawl recurring interval (seconds)", key="crawl_recurring_interval_seconds")
-                    st.number_input("Crawl delay (seconds)", key="crawl_delay_seconds")
-                    st.number_input("Crawl retry count", key="crawl_retry_count")
+                st.text_area("Crawl target URLs", value=crawler_config.crawl_target_urls, key="crawl_target_urls", help="Enter URLs separated by commas")
+                
+                
+                st.markdown("### Cron Schedule")
+                with st.container():  # Create a container for the cron schedule fields
+                     # Input fields for the cron expression components
+                    crawl_schedule_second = st.number_input("Second", min_value=0, max_value=59, value=crawler_config.crawl_cron.seconds, key="seconds")  # Input for second
+                    crawl_schedule_minute = st.number_input("Minute", min_value=0, max_value=59, value=crawler_config.crawl_cron.minutes, key="minutes")
+                    crawl_schedule_hour = st.number_input("Hour", min_value=0, max_value=23, value=crawler_config.crawl_cron.hours, key="hours")
+                    crawl_schedule_day = st.number_input("Day of Month", min_value=1, max_value=31, value=crawler_config.crawl_cron.days, key="days")
+                    crawl_schedule_month = st.number_input("Month", min_value=1, max_value=12, value=crawler_config.crawl_cron.months, key="months")
+                    # Select box for day of week with options
+                    crawl_schedule_day_of_week = st.selectbox("Day of Week", ["*", "0 (Sunday)", "1 (Monday)", "2 (Tuesday)", "3 (Wednesday)", "4 (Thursday)", "5 (Friday)", "6 (Saturday)"])
 
+                    if crawl_schedule_day_of_week != "*":
+                        crawl_schedule_day_of_week = crawl_schedule_day_of_week.split()[0]
+
+                    crawl_schedule_str = f"{crawl_schedule_second} {crawl_schedule_minute} {crawl_schedule_hour} {crawl_schedule_day} {crawl_schedule_month} {crawl_schedule_day_of_week}"
+                    st.write(f"Cron Schedule: `{crawl_schedule_str}`")  # Display the generated cron schedule
+
+
+
+                crawl_delay_seconds_str = st.text_input("Crawl delay (seconds)", value=str(crawler_config.crawl_delay_seconds), key="crawl_delay_seconds")
+                crawl_retry_count_str = st.text_input("Crawl retry count", value=str(crawler_config.crawl_retry_count), key="crawl_retry_count")
+
+                # Convert the string inputs back to integers with validation
+                try:
+                    crawl_delay_seconds = int(crawl_delay_seconds_str)
+                    crawl_retry_count = int(crawl_retry_count_str)
+                except ValueError:
+                    st.error("Please enter valid integers for the crawl settings.")
+        
         if st.button("Save configuration"):
             document_processors = list(
                 map(
@@ -229,9 +257,16 @@ def main():
                 "orchestrator": {"strategy": st.session_state["orchestrator_strategy"]},
                 "crawling": {
                     "crawl_enabled": st.session_state["crawl_enabled"],
-                    "crawl_recurring_interval_seconds": st.session_state[
-                        "crawl_recurring_interval_seconds"
-                    ],
+                    "crawl_schedule_str": crawl_schedule_str,
+                    "crawl_cron": {
+                        "second": st.session_state["crawl_schedule_second"],
+                        "minute": st.session_state["crawl_schedule_minute"],
+                        "hour": st.session_state["crawl_schedule_hour"],
+                        "day": st.session_state["crawl_schedule_day"],
+                        "month": st.session_state["crawl_schedule_month"],
+                        "day_of_week": st.session_state["crawl_schedule_day_of_week"],
+
+                    },
                     "crawl_target_urls": st.session_state["crawl_target_urls"],
                     "crawl_delay_seconds": st.session_state["crawl_delay_seconds"],
                     "crawl_retry_count": st.session_state["crawl_retry_count"],
