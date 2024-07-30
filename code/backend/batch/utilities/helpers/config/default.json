@@ -75,6 +75,17 @@
       }
     },
     {
+      "document_type": "htm",
+      "chunking": {
+        "strategy": "layout",
+        "size": 500,
+        "overlap": 100
+      },
+      "loading": {
+        "strategy": "web"
+      }
+    },
+    {
       "document_type": "docx",
       "chunking": {
         "strategy": "layout",
@@ -87,6 +98,17 @@
     },
     {
       "document_type": "jpg",
+      "chunking": {
+        "strategy": "layout",
+        "size": 500,
+        "overlap": 100
+      },
+      "loading": {
+        "strategy": "layout"
+      }
+    },
+    {
+      "document_type": "jpeg",
       "chunking": {
         "strategy": "layout",
         "size": 500,

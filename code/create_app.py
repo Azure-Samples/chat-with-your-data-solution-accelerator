@@ -9,7 +9,7 @@ import mimetypes
 from os import path
 import sys
 import requests
-from openai import AzureOpenAI, Stream, RateLimitError, APIStatusError
+from openai import AzureOpenAI, Stream, APIStatusError
 from openai.types.chat import ChatCompletionChunk
 from flask import Flask, Response, request, Request, jsonify
 from dotenv import load_dotenv
@@ -23,6 +23,7 @@ from azure.identity import DefaultAzureCredential
 ERROR_429_MESSAGE = "We're currently experiencing a high number of requests for the service you're trying to access. Please wait a moment and try again."
 ERROR_GENERIC_MESSAGE = "An error occurred. Please try again. If the problem persists, please contact the site administrator."
 logger = logging.getLogger(__name__)
+
 
 def stream_with_data(response: Stream[ChatCompletionChunk]):
     """This function streams the response from Azure OpenAI with data."""
