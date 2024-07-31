@@ -3,6 +3,10 @@ footer {visibility: hidden;}
 header {visibility: hidden;}
 [data-testid="baseButton-secondary"] svg{display: none;}
 [data-testid="stPopoverBody"] button{float: right;}
+[data-testid="stSidebar"] {z-index: 999;}
+[data-testid="stPopoverBody"] .stTooltipIcon [data-testid="baseButton-secondary"] p{
+    font-weight: bold;
+}
 [data-testid="stPopoverBody"] .stTooltipIcon {
     position: absolute;
     right: 0;
