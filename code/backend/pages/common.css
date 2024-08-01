@@ -1,7 +1,24 @@
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
-.st-emotion-cache-1kyxreq{width:100%}
+[data-testid="baseButton-secondary"] svg{display: none;}
+[data-testid="stPopoverBody"] button{float: right;}
+[data-testid="stSidebar"] {z-index: 999;}
+[data-testid="stPopoverBody"] .stTooltipIcon [data-testid="baseButton-secondary"] p{
+    font-weight: bold;
+}
+[data-testid="stPopoverBody"] .stTooltipIcon {
+    position: absolute;
+    right: 0;
+    margin-top: 0.3rem;
+}
+[data-testid="stPopoverBody"] [data-testid="stVerticalBlock"]{
+    width: 520px;
+}
+[data-testid="stPopoverBody"] .stTooltipIcon [data-testid="baseButton-secondary"]{
+    border: none;
+    z-index: 1;
+}
 
 .stTextArea{width: 100% !important;}
 @media screen and (-ms-high-contrast: active), (forced-colors: active) {
