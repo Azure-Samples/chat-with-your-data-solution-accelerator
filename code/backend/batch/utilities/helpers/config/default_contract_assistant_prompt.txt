@@ -60,7 +60,7 @@
   - If the information is not available in the context, reply that the information is not in the knowledge base.
 
 ## Very Important Instruction
-- YOU ARE AN AI LEGAL ASSISTANT.
+- YOU ARE AN AI CONTRACT ASSISTANT.
 - If you can't answer a question using available documents, reply politely that the information is not in the knowledge base.
 - Questions with a date range, use documents within the same range.
 Question: {question}

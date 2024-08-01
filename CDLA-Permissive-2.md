@@ -6,7 +6,7 @@ This is the Community Data License Agreement - Permissive, Version 2.0 (the "agr
 
 1.1. A Data Recipient may use, modify, and share the Data made available by Data Provider(s) under this agreement if that Data Recipient follows the terms of this agreement.
 
-1.2. This agreement does not impose any restriction on a Data Recipient's use, modification, or sharing of any portions of the Data that are in the public domain or that may be used, modified, or shared under any other legal exception or limitation.
+1.2. This agreement does not impose any restriction on a Data Recipient's use, modification, or sharing of any portions of the Data that are in the public domain or that may be used, modified, or shared under any other contract exception or limitation.
 
 ## 2. Conditions for Sharing Data
 

@@ -9,7 +9,7 @@ import mimetypes
 from os import path
 import sys
 import requests
-from openai import AzureOpenAI, Stream, APIStatusError
+from openai import AzureOpenAI, Stream, RateLimitError,APIStatusError
 from openai.types.chat import ChatCompletionChunk
 from flask import Flask, Response, request, Request, jsonify
 from dotenv import load_dotenv
@@ -403,6 +403,8 @@ def create_app():
             logger.exception("Exception in /api/conversation | %s", error_message)
             return jsonify({"error": ERROR_GENERIC_MESSAGE}), 500
 
+
+
     @app.route("/api/conversation", methods=["POST"])
     async def conversation():
         conversation_flow = env_helper.CONVERSATION_FLOW
@@ -419,6 +421,7 @@ def create_app():
                 ),
                 500,
             )
+
 
     @app.route("/api/speech", methods=["GET"])
     def speech_config():
@@ -447,5 +450,11 @@ def create_app():
             logger.exception("Exception in /api/speech | %s", str(e))
 
             return {"error": "Failed to get speech config"}, 500
+
+
+    @app.route("/api/getAssistantType", methods=["GET"])
+    def getAssistantType():
+        result = ConfigHelper.get_active_config_or_default()
+        return jsonify({"ai_assistant_type": result.prompts.ai_assistant_type})
 
     return app

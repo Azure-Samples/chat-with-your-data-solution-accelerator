@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { Stack } from "@fluentui/react";
+
 import {
   BroomRegular,
   DismissRegular,
@@ -25,13 +26,12 @@ import {
   Citation,
   ToolMessageContent,
   ChatResponse,
-  getAssistantTypeApi,
 } from "../../api";
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
-import ChatLegalAssistant from "./ChatLegalAssistaint";
+import Homepage from "./Homepage/Homepage";
 
-const Chat = () => {
+const ChatLegalAssistant = () => {
   const lastQuestionRef = useRef<string>("");
   const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -59,8 +59,6 @@ const Chat = () => {
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognizerRef = useRef<SpeechRecognizer | null>(null);
-  const [assistantType, setAssistantType] = useState("");
-
   const makeApiRequest = async (question: string) => {
     lastQuestionRef.current = question;
 
@@ -215,24 +213,8 @@ const Chat = () => {
   };
 
   useEffect(
-     () => {
-      chatMessageStreamEnd.current?.scrollIntoView({ behavior: "smooth" })
-      const fetchAssistantType = async () => {
-        try {
-          const result = await getAssistantTypeApi();
-          console.log("Assistant Type:", result); // Log the result for debugging
-          if (result) {
-            setAssistantType(result.ai_assistant_type); // Assuming result contains ai_assistant_type
-          }
-          return result;
-        } catch (error) {
-          console.error('Error fetching assistant type:', error);
-        }
-      };
-      fetchAssistantType();
-    },
-
-     [showLoadingMessage]
+    () => chatMessageStreamEnd.current?.scrollIntoView({ behavior: "smooth" }),
+    [showLoadingMessage]
   );
 
   const onShowCitation = (citation: Citation) => {
@@ -258,27 +240,19 @@ const Chat = () => {
     }
     return [];
   };
-  if (assistantType == 'contract assistant')
-    {
-   return(
-  <div className={styles.container}>
-  <ChatLegalAssistant></ChatLegalAssistant>
-  </div>
-      );
-  }
-  else{
+
   return (
     <div className={styles.container}>
-      <Stack horizontal className={styles.chatRoot} >
-
+      <Stack horizontal className={styles.chatRoot}>
         <div className={`${styles.chatContainer} ${styles.MobileChatContainer}`}>
           {!lastQuestionRef.current ? (
             <Stack className={styles.chatEmptyState}>
               <img src={Azure} className={styles.chatIcon} aria-hidden="true" alt="Azure AI logo"/>
-              <h1 className={styles.chatEmptyStateTitle}>Start chatting</h1>
+              <h1 className={styles.chatEmptyStateTitle}>Contract Summarizer</h1>
               <h2 className={styles.chatEmptyStateSubtitle}>
-                This chatbot is configured to answer your questions
+              AI-Powered assistant for simplified summarization
               </h2>
+              <Homepage></Homepage>
             </Stack>
           ) : (
             <div
@@ -410,7 +384,6 @@ const Chat = () => {
               />
             </Stack>
             <h5 className={`${styles.citationPanelTitle} ${styles.mobileCitationPanelTitle}`}>{activeCitation[2]}</h5>
-            <div className={`${styles.citationPanelDisclaimer} ${styles.mobileCitationPanelDisclaimer}`}>Tables, images, and other special formatting not shown in this preview. Please follow the link to review the original document.</div>
             <ReactMarkdown
               className={`${styles.citationPanelContent} ${styles.mobileCitationPanelContent}`}
               children={activeCitation[0]}
@@ -422,7 +395,6 @@ const Chat = () => {
       </Stack>
     </div>
   );
-}
 };
 
-export default Chat;
+export default ChatLegalAssistant;
