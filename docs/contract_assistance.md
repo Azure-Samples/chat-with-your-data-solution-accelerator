@@ -7,10 +7,10 @@ The Chat With Your Data Contract Review and Summarization Assistant is designed 
 
 The following is the Chat With Your Data infrastructure configuration that we suggest to optimize the performance and functionality of the Contract Review and Summarization Assistant:
 
-- **Azure Semantic Search**: Utilize Azure Semantic Search to efficiently index and search contract documents. This provides powerful search capabilities and integration with other Azure services.
+- **Azure Semantic Search**: Utilize Azure Semantic Search to efficiently index and search legal documents. This provides powerful search capabilities and integration with other Azure services.
 - **Azure Cognitive Search Top K 15**: Set the Top K parameter to 15 to retrieve the top 15 most relevant documents. This configuration helps in providing precise and relevant search results for user queries.
 - **Azure Search Integrated Vectorization**: Enable integrated vectorization in Azure Search to improve the semantic understanding and relevance of search results. This enhances the Contract Assistant's ability to provide contextually accurate answers.
-- **Azure OpenAI Model gpt-4o**: Leverage the Azure OpenAI model gpt-4o for advanced natural language processing capabilities. This model is well-suited for handling complex contract queries and providing detailed and contextually appropriate responses.
+- **Azure OpenAI Model gpt-4o**: Leverage the Azure OpenAI model gpt-4o for advanced natural language processing capabilities. This model is well-suited for handling complex legal queries and providing detailed and contextually appropriate responses.
 - **Orchestration Strategy: Semantic Kernel**: Implement the Semantic Kernel orchestration strategy to effectively manage the integration and interaction between different components of the infrastructure. This strategy ensures seamless operation and optimal performance of the Contract Assistant.
 - **Conversation Flow Options**: Setting `CONVERSATION_FLOW` enables running advanced AI models like GPT-4o on your own enterprise data without needing to train or fine-tune models.
 
