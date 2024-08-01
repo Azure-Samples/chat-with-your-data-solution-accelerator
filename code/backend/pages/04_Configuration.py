@@ -8,6 +8,7 @@ from batch.utilities.helpers.env_helper import EnvHelper
 from batch.utilities.helpers.config.config_helper import ConfigHelper
 from azure.core.exceptions import ResourceNotFoundError
 from batch.utilities.helpers.config.assistant_strategy import AssistantStrategy
+
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
 
@@ -95,10 +96,14 @@ def validate_answering_user_prompt():
 def config_legal_assistant_prompt():
     if st.session_state["ai_assistant_type"] == AssistantStrategy.LEGAL_ASSISTANT.value:
         st.success("Legal Assistant Prompt")
-        st.session_state["answering_user_prompt"] = ConfigHelper.get_default_legal_assistant()
+        st.session_state["answering_user_prompt"] = (
+            ConfigHelper.get_default_legal_assistant()
+        )
     else:
         st.success("Default Assistant Prompt")
-        st.session_state["answering_user_prompt"] = ConfigHelper.get_default_assistant_prompt()
+        st.session_state["answering_user_prompt"] = (
+            ConfigHelper.get_default_assistant_prompt()
+        )
 
 
 def validate_post_answering_prompt():
@@ -374,7 +379,7 @@ try:
                     "enable_post_answering_prompt"
                 ],
                 "enable_content_safety": st.session_state["enable_content_safety"],
-                "ai_assistant_type": st.session_state["ai_assistant_type"]
+                "ai_assistant_type": st.session_state["ai_assistant_type"],
             },
             "messages": {
                 "post_answering_filter": st.session_state[
@@ -404,9 +409,16 @@ try:
         )
 
     with st.popover(":red[Reset configuration to defaults]"):
+
+        # Close button with a custom class
+        if st.button("X", key="close_popup", help="Close popup"):
+            st.session_state["popup_open"] = False
+            st.rerun()
+
         st.write(
             "**Resetting the configuration cannot be reversed, proceed with caution!**"
         )
+
         st.text_input('Enter "reset" to proceed', key="reset_configuration")
         if st.button(
             ":red[Reset]", disabled=st.session_state["reset_configuration"] != "reset"
