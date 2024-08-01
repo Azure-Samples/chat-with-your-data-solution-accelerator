@@ -335,6 +335,12 @@ def setup_config_mocking(httpserver: HTTPServer):
                     "use_advanced_image_processing": False,
                 },
                 {
+                    "document_type": "htm",
+                    "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+                    "loading": {"strategy": "web"},
+                    "use_advanced_image_processing": False,
+                },
+                {
                     "document_type": "docx",
                     "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
                     "loading": {"strategy": "docx"},
