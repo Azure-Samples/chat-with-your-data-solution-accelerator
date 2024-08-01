@@ -575,8 +575,8 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-      AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumn
-      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumn
+      AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
       AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
@@ -657,8 +657,8 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-      AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumn
-      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumn
+      AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
       AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
@@ -738,8 +738,8 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-      AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumn
-      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumn
+      AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
       AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
@@ -818,8 +818,8 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
       AZURE_SEARCH_FILTER: azureSearchFilter
       AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-      AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumn
-      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumn
+      AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
       AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
@@ -924,8 +924,8 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
       AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
       AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-      AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumn
-      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumn
+      AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
       AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
@@ -991,8 +991,8 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
       AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
       AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-      AZURE_SEARCH_CONTENT_COLUMNS: azureSearchContentColumn
-      AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: azureSearchVectorColumn
+      AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+      AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
       AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
       AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
       AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
@@ -1177,8 +1177,8 @@ output AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG string = azureSearchSemanticSearchCon
 output AZURE_SEARCH_INDEX_IS_PRECHUNKED string = azureSearchIndexIsPrechunked
 output AZURE_SEARCH_TOP_K string = azureSearchTopK
 output AZURE_SEARCH_ENABLE_IN_DOMAIN string = azureSearchEnableInDomain
-output AZURE_SEARCH_CONTENT_COLUMNS string = azureSearchContentColumn
-output AZURE_SEARCH_CONTENT_VECTOR_COLUMNS string = azureSearchVectorColumn
+output AZURE_SEARCH_CONTENT_COLUMN string = azureSearchContentColumn
+output AZURE_SEARCH_CONTENT_VECTOR_COLUMN string = azureSearchVectorColumn
 output AZURE_SEARCH_FILENAME_COLUMN string = azureSearchFilenameColumn
 output AZURE_SEARCH_FILTER string = azureSearchFilter
 output AZURE_SEARCH_TITLE_COLUMN string = azureSearchTitleColumn

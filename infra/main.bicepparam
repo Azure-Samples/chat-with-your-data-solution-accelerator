@@ -21,8 +21,8 @@ param conversationFlow = readEnvironmentVariable('CONVERSATION_FLOW', 'custom')
 
 //Azure Search
 param azureSearchFieldId = readEnvironmentVariable('AZURE_SEARCH_FIELDS_ID', 'id')
-param azureSearchContentColumn = readEnvironmentVariable('AZURE_SEARCH_CONTENT_COLUMNS', 'content')
-param azureSearchVectorColumn = readEnvironmentVariable('AZURE_SEARCH_CONTENT_VECTOR_COLUMNS', 'content_vector')
+param azureSearchContentColumn = readEnvironmentVariable('AZURE_SEARCH_CONTENT_COLUMN', 'content')
+param azureSearchVectorColumn = readEnvironmentVariable('AZURE_SEARCH_CONTENT_VECTOR_COLUMN', 'content_vector')
 param azureSearchTitleColumn = readEnvironmentVariable('AZURE_SEARCH_TITLE_COLUMN', 'title')
 param azureSearchFieldsMetadata = readEnvironmentVariable('AZURE_SEARCH_FIELDS_METADATA', 'metadata')
 param azureSearchSourceColumn = readEnvironmentVariable('AZURE_SEARCH_SOURCE_COLUMN', 'source')

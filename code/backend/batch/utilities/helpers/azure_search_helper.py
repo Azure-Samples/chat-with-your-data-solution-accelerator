@@ -96,11 +96,11 @@ class AzureSearchHelper:
                 filterable=True,
             ),
             SearchableField(
-                name=self.env_helper.AZURE_SEARCH_CONTENT_COLUMNS,
+                name=self.env_helper.AZURE_SEARCH_CONTENT_COLUMN,
                 type=SearchFieldDataType.String,
             ),
             SearchField(
-                name=self.env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMNS,
+                name=self.env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN,
                 type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
                 searchable=True,
                 vector_search_dimensions=self.search_dimensions,
@@ -155,7 +155,7 @@ class AzureSearchHelper:
                             name=self.env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
                             prioritized_fields=SemanticPrioritizedFields(
                                 title_field=None,
-                                content_fields=[SemanticField(field_name=self.env_helper.AZURE_SEARCH_CONTENT_COLUMNS)],
+                                content_fields=[SemanticField(field_name=self.env_helper.AZURE_SEARCH_CONTENT_COLUMN)],
                             ),
                         )
                     ]

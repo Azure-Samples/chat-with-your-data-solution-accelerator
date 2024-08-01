@@ -53,11 +53,11 @@ class EnvHelper:
             os.getenv("AZURE_SEARCH_ENABLE_IN_DOMAIN", "true").lower() == "true"
         )
         self.AZURE_SEARCH_FIELDS_ID = os.getenv("AZURE_SEARCH_FIELDS_ID", "id")
-        self.AZURE_SEARCH_CONTENT_COLUMNS = os.getenv(
-            "AZURE_SEARCH_CONTENT_COLUMNS", "content"
+        self.AZURE_SEARCH_CONTENT_COLUMN = os.getenv(
+            "AZURE_SEARCH_CONTENT_COLUMN", "content"
         )
-        self.AZURE_SEARCH_CONTENT_VECTOR_COLUMNS = os.getenv(
-            "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS", "content_vector"
+        self.AZURE_SEARCH_CONTENT_VECTOR_COLUMN = os.getenv(
+            "AZURE_SEARCH_CONTENT_VECTOR_COLUMN", "content_vector"
         )
         self.AZURE_SEARCH_DIMENSIONS = os.getenv("AZURE_SEARCH_DIMENSIONS", "1536")
         self.AZURE_SEARCH_FILENAME_COLUMN = os.getenv(

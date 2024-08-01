@@ -125,8 +125,8 @@ If the image is mostly text, use OCR to extract the text as it is displayed in t
         }
         return {
             self.env_helper.AZURE_SEARCH_FIELDS_ID: document.id,
-            self.env_helper.AZURE_SEARCH_CONTENT_COLUMNS: document.content,
-            self.env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMNS: embedded_content,
+            self.env_helper.AZURE_SEARCH_CONTENT_COLUMN: document.content,
+            self.env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN: embedded_content,
             self.env_helper.AZURE_SEARCH_FIELDS_METADATA: json.dumps(metadata),
             self.env_helper.AZURE_SEARCH_TITLE_COLUMN: document.title,
             self.env_helper.AZURE_SEARCH_SOURCE_COLUMN: document.source,
