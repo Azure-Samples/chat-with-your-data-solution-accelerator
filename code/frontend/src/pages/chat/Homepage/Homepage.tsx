@@ -14,20 +14,20 @@ const Homepage: React.FC = () => {
           <FeatureCard
 
             title="Interact with Data"
-            description="Intuitive and conversational search experience that simplifies complex queries, ultimately improving productivity, job efficiency, and satisfaction."
-            icon={<img src = {IntractData} style={{ minWidth: 20, minHeight: 22 }} />}
+            description="Intuitive and conversational search experience that simplifies complex queries, ultimately improves productivity, job efficiency and satisfaction.​"
+            icon={<img src = {IntractData} aria-hidden="true" alt="Intract with Data" role="none" aria-label='IntractwithData' aria-labelledby='Cards' style={{ minWidth: 20, minHeight: 22 }} />}
           />
           <FeatureCard
 
             title="Summarize Contracts"
             description="Quickly review and summarize lengthy documents, extracting essential details to streamline document review and preparation."
-            icon={<img src = {SummarizeContracts} style={{ minWidth: 20, minHeight: 22 }} />}
+            icon={<img src = {SummarizeContracts} aria-hidden="true" alt="Summarize Contracts" role="none" aria-label='SummarizeContracts' aria-labelledby='Cards'style={{ minWidth: 20, minHeight: 22 }} />}
           />
           <FeatureCard
 
             title="Quick Source Reference"
             description="Effortlessly retrieve and reference original documents, ensuring accuracy and comprehensiveness."
-            icon={<img src = {SourceReference} style={{ minWidth: 20, minHeight: 22 }} />}
+            icon={<img src = {SourceReference} aria-hidden="true" alt="Source Reference" role="none" aria-label='SourceReference' aria-labelledby='Cards' style={{ minWidth: 20, minHeight: 22 }} />}
           />
         </section>
       </main>

@@ -22,7 +22,7 @@
 }
 
 .featureCard {
-  width: 250px; /* Set a fixed width for the cards or adjust as needed */
+  width: 260px; /* Set a fixed width for the cards or adjust as needed */
   display: inline;
   flex-direction: column;
   justify-content: space-between;
@@ -50,4 +50,8 @@
 .cardDescription {
   font-size: 14px; /* Adjust font size as needed */
   color: #3d3d3d;
+  margin-bottom: -2px;
+}
+.icon{
+  margin-top: 10px;
 }
