@@ -454,6 +454,7 @@ def create_app():
 
     @app.route("/api/getAssistantType", methods=["GET"])
     def getAssistantType():
+        ConfigHelper.get_active_config_or_default.cache_clear()
         result = ConfigHelper.get_active_config_or_default()
         return jsonify({"ai_assistant_type": result.prompts.ai_assistant_type})
 

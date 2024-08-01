@@ -38,7 +38,9 @@
 .cardTitle {
   font-size: 16px; /* Adjust font size as needed */
   margin-top: -30px;
-  margin-left: 25px;
+  margin-left: 30px;
+  font-weight: 600;
+  color: #3d3d3d;
 
 }
 .iconTitleContainer{
@@ -47,5 +49,5 @@
 }
 .cardDescription {
   font-size: 14px; /* Adjust font size as needed */
-
+  color: #3d3d3d;
 }

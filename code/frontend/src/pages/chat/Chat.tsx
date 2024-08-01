@@ -266,7 +266,7 @@ const Chat = () => {
   </div>
       );
   }
-  else{
+  else if(assistantType == 'default'){
   return (
     <div className={styles.container}>
       <Stack horizontal className={styles.chatRoot} >
