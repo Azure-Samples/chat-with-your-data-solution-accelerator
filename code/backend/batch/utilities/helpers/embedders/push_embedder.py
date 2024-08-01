@@ -39,7 +39,6 @@ class PushEmbedder(EmbedderBase):
 
     def embed_file(self, source_url: str, file_name: str):
         file_extension = file_name.split(".")[-1]
-        file_extension = file_extension.lower()
         embedding_config = self.embedding_configs.get(file_extension)
         self.__embed(
             source_url=source_url,
