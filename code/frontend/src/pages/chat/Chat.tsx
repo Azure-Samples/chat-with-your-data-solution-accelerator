@@ -220,9 +220,8 @@ const Chat = () => {
       const fetchAssistantType = async () => {
         try {
           const result = await getAssistantTypeApi();
-          console.log("Assistant Type:", result); // Log the result for debugging
           if (result) {
-            setAssistantType(result.ai_assistant_type); // Assuming result contains ai_assistant_type
+            setAssistantType(result.ai_assistant_type);
           }
           return result;
         } catch (error) {
