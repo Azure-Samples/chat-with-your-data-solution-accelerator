@@ -9,7 +9,7 @@ import mimetypes
 from os import path
 import sys
 import requests
-from openai import AzureOpenAI, Stream, RateLimitError,APIStatusError
+from openai import AzureOpenAI, Stream, APIStatusError
 from openai.types.chat import ChatCompletionChunk
 from flask import Flask, Response, request, Request, jsonify
 from dotenv import load_dotenv
