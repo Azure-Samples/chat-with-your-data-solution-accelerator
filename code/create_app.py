@@ -433,7 +433,7 @@ def create_app():
                 },
                 timeout=5,
             )
-            
+
             if response.status_code == 200:
                 return {
                     "token": response.text,
