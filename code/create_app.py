@@ -403,8 +403,6 @@ def create_app():
             logger.exception("Exception in /api/conversation | %s", error_message)
             return jsonify({"error": ERROR_GENERIC_MESSAGE}), 500
 
-
-
     @app.route("/api/conversation", methods=["POST"])
     async def conversation():
         conversation_flow = env_helper.CONVERSATION_FLOW
@@ -422,7 +420,6 @@ def create_app():
                 500,
             )
 
-
     @app.route("/api/speech", methods=["GET"])
     def speech_config():
         """Get the speech config for Azure Speech."""
@@ -436,7 +433,7 @@ def create_app():
                 },
                 timeout=5,
             )
-
+            
             if response.status_code == 200:
                 return {
                     "token": response.text,
@@ -450,7 +447,6 @@ def create_app():
             logger.exception("Exception in /api/speech | %s", str(e))
 
             return {"error": "Failed to get speech config"}, 500
-
 
     @app.route("/api/getAssistantType", methods=["GET"])
     def getAssistantType():
