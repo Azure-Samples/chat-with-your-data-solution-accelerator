@@ -53,11 +53,11 @@ class EnvHelper:
             os.getenv("AZURE_SEARCH_ENABLE_IN_DOMAIN", "true").lower() == "true"
         )
         self.AZURE_SEARCH_FIELDS_ID = os.getenv("AZURE_SEARCH_FIELDS_ID", "id")
-        self.AZURE_SEARCH_CONTENT_COLUMNS = os.getenv(
-            "AZURE_SEARCH_CONTENT_COLUMNS", "content"
+        self.AZURE_SEARCH_CONTENT_COLUMN = os.getenv(
+            "AZURE_SEARCH_CONTENT_COLUMN", "content"
         )
-        self.AZURE_SEARCH_CONTENT_VECTOR_COLUMNS = os.getenv(
-            "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS", "content_vector"
+        self.AZURE_SEARCH_CONTENT_VECTOR_COLUMN = os.getenv(
+            "AZURE_SEARCH_CONTENT_VECTOR_COLUMN", "content_vector"
         )
         self.AZURE_SEARCH_DIMENSIONS = os.getenv("AZURE_SEARCH_DIMENSIONS", "1536")
         self.AZURE_SEARCH_FILENAME_COLUMN = os.getenv(
@@ -69,6 +69,9 @@ class EnvHelper:
         self.AZURE_SEARCH_FIELDS_METADATA = os.getenv(
             "AZURE_SEARCH_FIELDS_METADATA", "metadata"
         )
+        self.AZURE_SEARCH_SOURCE_COLUMN = os.getenv("AZURE_SEARCH_SOURCE_COLUMN", "source")
+        self.AZURE_SEARCH_CHUNK_COLUMN = os.getenv("AZURE_SEARCH_CHUNK_COLUMN", "chunk")
+        self.AZURE_SEARCH_OFFSET_COLUMN = os.getenv("AZURE_SEARCH_OFFSET_COLUMN", "offset")
         self.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = os.getenv(
             "AZURE_SEARCH_CONVERSATIONS_LOG_INDEX", "conversations"
         )
