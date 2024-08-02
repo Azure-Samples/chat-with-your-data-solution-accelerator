@@ -131,7 +131,7 @@ def test_post_makes_correct_call_to_get_conversation_log_search_index(
                 "Api-Key": app_config.get("AZURE_SEARCH_KEY"),
             },
             query_string="api-version=2023-10-01-Preview",
-            times=1,
+            times=2,
         ),
     )
 
