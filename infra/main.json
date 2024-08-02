@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.28.1.47646",
-      "templateHash": "10957511334188011911"
+      "templateHash": "306983932277203040"
     }
   },
   "parameters": {
@@ -134,14 +134,21 @@
         "description": "Enable in domain"
       }
     },
-    "azureSearchContentColumns": {
+    "azureSearchFieldId": {
+      "type": "string",
+      "defaultValue": "Id",
+      "metadata": {
+        "description": "Id columns"
+      }
+    },
+    "azureSearchContentColumn": {
       "type": "string",
       "defaultValue": "content",
       "metadata": {
         "description": "Content columns"
       }
     },
-    "azureSearchVectorColumns": {
+    "azureSearchVectorColumn": {
       "type": "string",
       "defaultValue": "content_vector",
       "metadata": {
@@ -167,6 +174,34 @@
       "defaultValue": "title",
       "metadata": {
         "description": "Title column"
+      }
+    },
+    "azureSearchFieldsMetadata": {
+      "type": "string",
+      "defaultValue": "metadata",
+      "metadata": {
+        "description": "Metadata column"
+      }
+    },
+    "azureSearchSourceColumn": {
+      "type": "string",
+      "defaultValue": "source",
+      "metadata": {
+        "description": "Source column"
+      }
+    },
+    "azureSearchChunkColumn": {
+      "type": "string",
+      "defaultValue": "chunk",
+      "metadata": {
+        "description": "Chunk column"
+      }
+    },
+    "azureSearchOffsetColumn": {
+      "type": "string",
+      "defaultValue": "offset",
+      "metadata": {
+        "description": "Offset column"
       }
     },
     "azureSearchUrlColumn": {
@@ -2062,11 +2097,16 @@
               "AZURE_SEARCH_INDEX_IS_PRECHUNKED": "[parameters('azureSearchIndexIsPrechunked')]",
               "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
-              "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
-              "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS": "[parameters('azureSearchVectorColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
               "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
+              "AZURE_SEARCH_FIELDS_ID": "[parameters('azureSearchFieldId')]",
+              "AZURE_SEARCH_CONTENT_COLUMN": "[parameters('azureSearchContentColumn')]",
+              "AZURE_SEARCH_CONTENT_VECTOR_COLUMN": "[parameters('azureSearchVectorColumn')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
+              "AZURE_SEARCH_FIELDS_METADATA": "[parameters('azureSearchFieldsMetadata')]",
+              "AZURE_SEARCH_SOURCE_COLUMN": "[parameters('azureSearchSourceColumn')]",
+              "AZURE_SEARCH_CHUNK_COLUMN": "[parameters('azureSearchChunkColumn')]",
+              "AZURE_SEARCH_OFFSET_COLUMN": "[parameters('azureSearchOffsetColumn')]",
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
               "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
               "AZURE_SPEECH_SERVICE_NAME": "[parameters('speechServiceName')]",
@@ -3019,11 +3059,16 @@
               "AZURE_SEARCH_INDEX_IS_PRECHUNKED": "[parameters('azureSearchIndexIsPrechunked')]",
               "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
-              "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
-              "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS": "[parameters('azureSearchVectorColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
               "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
+              "AZURE_SEARCH_FIELDS_ID": "[parameters('azureSearchFieldId')]",
+              "AZURE_SEARCH_CONTENT_COLUMN": "[parameters('azureSearchContentColumn')]",
+              "AZURE_SEARCH_CONTENT_VECTOR_COLUMN": "[parameters('azureSearchVectorColumn')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
+              "AZURE_SEARCH_FIELDS_METADATA": "[parameters('azureSearchFieldsMetadata')]",
+              "AZURE_SEARCH_SOURCE_COLUMN": "[parameters('azureSearchSourceColumn')]",
+              "AZURE_SEARCH_CHUNK_COLUMN": "[parameters('azureSearchChunkColumn')]",
+              "AZURE_SEARCH_OFFSET_COLUMN": "[parameters('azureSearchOffsetColumn')]",
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
               "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
               "AZURE_SPEECH_SERVICE_NAME": "[parameters('speechServiceName')]",
@@ -3975,11 +4020,16 @@
               "AZURE_SEARCH_INDEX_IS_PRECHUNKED": "[parameters('azureSearchIndexIsPrechunked')]",
               "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
-              "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
-              "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS": "[parameters('azureSearchVectorColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
               "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
+              "AZURE_SEARCH_FIELDS_ID": "[parameters('azureSearchFieldId')]",
+              "AZURE_SEARCH_CONTENT_COLUMN": "[parameters('azureSearchContentColumn')]",
+              "AZURE_SEARCH_CONTENT_VECTOR_COLUMN": "[parameters('azureSearchVectorColumn')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
+              "AZURE_SEARCH_FIELDS_METADATA": "[parameters('azureSearchFieldsMetadata')]",
+              "AZURE_SEARCH_SOURCE_COLUMN": "[parameters('azureSearchSourceColumn')]",
+              "AZURE_SEARCH_CHUNK_COLUMN": "[parameters('azureSearchChunkColumn')]",
+              "AZURE_SEARCH_OFFSET_COLUMN": "[parameters('azureSearchOffsetColumn')]",
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
               "AZURE_SEARCH_DATASOURCE_NAME": "[parameters('azureSearchDatasource')]",
               "AZURE_SEARCH_INDEXER_NAME": "[parameters('azureSearchIndexer')]",
@@ -4921,11 +4971,16 @@
               "AZURE_SEARCH_INDEX_IS_PRECHUNKED": "[parameters('azureSearchIndexIsPrechunked')]",
               "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
               "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
-              "AZURE_SEARCH_CONTENT_COLUMNS": "[parameters('azureSearchContentColumns')]",
-              "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS": "[parameters('azureSearchVectorColumns')]",
               "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
               "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
+              "AZURE_SEARCH_FIELDS_ID": "[parameters('azureSearchFieldId')]",
+              "AZURE_SEARCH_CONTENT_COLUMN": "[parameters('azureSearchContentColumn')]",
+              "AZURE_SEARCH_CONTENT_VECTOR_COLUMN": "[parameters('azureSearchVectorColumn')]",
               "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
+              "AZURE_SEARCH_FIELDS_METADATA": "[parameters('azureSearchFieldsMetadata')]",
+              "AZURE_SEARCH_SOURCE_COLUMN": "[parameters('azureSearchSourceColumn')]",
+              "AZURE_SEARCH_CHUNK_COLUMN": "[parameters('azureSearchChunkColumn')]",
+              "AZURE_SEARCH_OFFSET_COLUMN": "[parameters('azureSearchOffsetColumn')]",
               "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
               "AZURE_SEARCH_DATASOURCE_NAME": "[parameters('azureSearchDatasource')]",
               "AZURE_SEARCH_INDEXER_NAME": "[parameters('azureSearchIndexer')]",
@@ -7606,6 +7661,14 @@
               "AZURE_SEARCH_DATASOURCE_NAME": "[parameters('azureSearchDatasource')]",
               "AZURE_SEARCH_INDEXER_NAME": "[parameters('azureSearchIndexer')]",
               "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
+              "AZURE_SEARCH_FIELDS_ID": "[parameters('azureSearchFieldId')]",
+              "AZURE_SEARCH_CONTENT_COLUMN": "[parameters('azureSearchContentColumn')]",
+              "AZURE_SEARCH_CONTENT_VECTOR_COLUMN": "[parameters('azureSearchVectorColumn')]",
+              "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
+              "AZURE_SEARCH_FIELDS_METADATA": "[parameters('azureSearchFieldsMetadata')]",
+              "AZURE_SEARCH_SOURCE_COLUMN": "[parameters('azureSearchSourceColumn')]",
+              "AZURE_SEARCH_CHUNK_COLUMN": "[parameters('azureSearchChunkColumn')]",
+              "AZURE_SEARCH_OFFSET_COLUMN": "[parameters('azureSearchOffsetColumn')]",
               "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
@@ -8847,6 +8910,14 @@
               "AZURE_SEARCH_DATASOURCE_NAME": "[parameters('azureSearchDatasource')]",
               "AZURE_SEARCH_INDEXER_NAME": "[parameters('azureSearchIndexer')]",
               "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
+              "AZURE_SEARCH_FIELDS_ID": "[parameters('azureSearchFieldId')]",
+              "AZURE_SEARCH_CONTENT_COLUMN": "[parameters('azureSearchContentColumn')]",
+              "AZURE_SEARCH_CONTENT_VECTOR_COLUMN": "[parameters('azureSearchVectorColumn')]",
+              "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
+              "AZURE_SEARCH_FIELDS_METADATA": "[parameters('azureSearchFieldsMetadata')]",
+              "AZURE_SEARCH_SOURCE_COLUMN": "[parameters('azureSearchSourceColumn')]",
+              "AZURE_SEARCH_CHUNK_COLUMN": "[parameters('azureSearchChunkColumn')]",
+              "AZURE_SEARCH_OFFSET_COLUMN": "[parameters('azureSearchOffsetColumn')]",
               "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
@@ -11253,13 +11324,13 @@
       "type": "string",
       "value": "[parameters('azureSearchEnableInDomain')]"
     },
-    "AZURE_SEARCH_CONTENT_COLUMNS": {
+    "AZURE_SEARCH_CONTENT_COLUMN": {
       "type": "string",
-      "value": "[parameters('azureSearchContentColumns')]"
+      "value": "[parameters('azureSearchContentColumn')]"
     },
-    "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS": {
+    "AZURE_SEARCH_CONTENT_VECTOR_COLUMN": {
       "type": "string",
-      "value": "[parameters('azureSearchVectorColumns')]"
+      "value": "[parameters('azureSearchVectorColumn')]"
     },
     "AZURE_SEARCH_FILENAME_COLUMN": {
       "type": "string",

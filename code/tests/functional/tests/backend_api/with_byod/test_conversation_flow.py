@@ -114,7 +114,7 @@ def test_post_makes_correct_call_to_azure_openai(
                                 "content_fields": ["content"],
                                 "vector_fields": [
                                     app_config.get(
-                                        "AZURE_SEARCH_CONTENT_VECTOR_COLUMNS"
+                                        "AZURE_SEARCH_CONTENT_VECTOR_COLUMN"
                                     )
                                 ],
                                 "title_field": "title",
