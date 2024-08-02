@@ -24,7 +24,7 @@ export async function callConversationApi(options: ConversationRequest, abortSig
 
 export async function getAssistantTypeApi() {
     try {
-        const response = await fetch("/api/getAssistantType", {
+        const response = await fetch("/api/assistanttype", {
             method: "GET",
             headers: {
                 "Content-Type": "application/json"
