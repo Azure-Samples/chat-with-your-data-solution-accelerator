@@ -28,6 +28,7 @@ AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = "default"
 AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = "mock-log-index"
 USE_ADVANCED_IMAGE_PROCESSING = False
 
+
 @pytest.fixture(autouse=True)
 def llm_helper_mock():
     with patch(
@@ -44,6 +45,7 @@ def llm_helper_mock():
 
         llm_helper.generate_embeddings.return_value = [123]
         yield llm_helper
+
 
 @pytest.fixture(autouse=True)
 def env_helper_mock():
@@ -71,8 +73,9 @@ def env_helper_mock():
 
         env_helper.USE_ADVANCED_IMAGE_PROCESSING = USE_ADVANCED_IMAGE_PROCESSING
         env_helper.is_auth_type_keys.return_value = True
-
         yield env_helper
+
+
 @pytest.fixture(autouse=True)
 def azure_search_helper_mock():
     with patch(

@@ -19,6 +19,7 @@ pytestmark = pytest.mark.functional
 
 FILE_NAME = "image.jpg"
 
+
 @pytest.fixture
 def message(app_config: AppConfig):
     return QueueMessage(
