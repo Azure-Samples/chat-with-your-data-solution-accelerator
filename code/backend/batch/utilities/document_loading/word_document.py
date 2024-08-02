@@ -24,10 +24,10 @@ class WordDocumentLoading(DocumentLoadingBase):
         return file
 
     def _get_opening_tag(self, heading_level: int) -> str:
-        return f"<{self.doc_headings_to_markdown_tags.get(f'{heading_level}', '')}>"
+        return f"<{self.doc_headings_to_markdown_tags.get(f'{heading_level}', 'p')}>"
 
     def _get_closing_tag(self, heading_level: int) -> str:
-        return f"</{self.doc_headings_to_markdown_tags.get(f'{heading_level}', '')}>"
+        return f"</{self.doc_headings_to_markdown_tags.get(f'{heading_level}', 'p')}>"
 
     def load(self, document_url: str) -> List[SourceDocument]:
         output = ""

@@ -95,3 +95,5 @@ jobs:
           cache-dependency-path: "code/frontend/package-lock.json"
       - name: Run frontend unit tests
         run: make unittest-frontend
+      - name: Lint
+        run: make lint
