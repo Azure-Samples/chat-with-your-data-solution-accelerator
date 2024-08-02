@@ -18,14 +18,6 @@ from backend.batch.batch_push_results import batch_push_results
 pytestmark = pytest.mark.functional
 
 FILE_NAME = "image.jpg"
-AZURE_SEARCH_FIELDS_ID = "mock-id"
-AZURE_SEARCH_CONTENT_COLUMN = "mock-content"
-AZURE_SEARCH_CONTENT_VECTOR_COLUMN = "mock-vector"
-AZURE_SEARCH_TITLE_COLUMN = "mock-title"
-AZURE_SEARCH_FIELDS_METADATA = "mock-metadata"
-AZURE_SEARCH_SOURCE_COLUMN = "mock-source"
-AZURE_SEARCH_CHUNK_COLUMN = "mock-chunk"
-AZURE_SEARCH_OFFSET_COLUMN = "mock-offset"
 
 @pytest.fixture
 def message(app_config: AppConfig):
@@ -303,7 +295,7 @@ def test_makes_correct_call_to_create_documents_search_index(
                 "name": app_config.get("AZURE_SEARCH_INDEX"),
                 "fields": [
                     {
-                        "name": AZURE_SEARCH_FIELDS_ID,
+                        "name": app_config.get("AZURE_SEARCH_FIELDS_ID"),
                         "type": "Edm.String",
                         "key": True,
                         "retrievable": True,
@@ -313,7 +305,7 @@ def test_makes_correct_call_to_create_documents_search_index(
                         "facetable": False,
                     },
                     {
-                        "name": AZURE_SEARCH_CONTENT_COLUMN,
+                        "name": app_config.get("AZURE_SEARCH_CONTENT_COLUMN"),
                         "type": "Edm.String",
                         "key": False,
                         "retrievable": True,
@@ -323,14 +315,14 @@ def test_makes_correct_call_to_create_documents_search_index(
                         "facetable": False,
                     },
                     {
-                        "name": AZURE_SEARCH_CONTENT_VECTOR_COLUMN,
+                        "name": app_config.get("AZURE_SEARCH_CONTENT_VECTOR_COLUMN"),
                         "type": "Collection(Edm.Single)",
                         "searchable": True,
                         "dimensions": 2,
                         "vectorSearchProfile": "myHnswProfile",
                     },
                     {
-                        "name": AZURE_SEARCH_FIELDS_METADATA,
+                        "name": app_config.get("AZURE_SEARCH_FIELDS_METADATA"),
                         "type": "Edm.String",
                         "key": False,
                         "retrievable": True,
@@ -340,7 +332,7 @@ def test_makes_correct_call_to_create_documents_search_index(
                         "facetable": False,
                     },
                     {
-                        "name": AZURE_SEARCH_TITLE_COLUMN,
+                        "name": app_config.get("AZURE_SEARCH_TITLE_COLUMN"),
                         "type": "Edm.String",
                         "key": False,
                         "retrievable": True,
@@ -350,7 +342,7 @@ def test_makes_correct_call_to_create_documents_search_index(
                         "facetable": True,
                     },
                     {
-                        "name": AZURE_SEARCH_SOURCE_COLUMN,
+                        "name": app_config.get("AZURE_SEARCH_SOURCE_COLUMN"),
                         "type": "Edm.String",
                         "key": False,
                         "retrievable": True,
@@ -360,7 +352,7 @@ def test_makes_correct_call_to_create_documents_search_index(
                         "facetable": False,
                     },
                     {
-                        "name": AZURE_SEARCH_CHUNK_COLUMN,
+                        "name": app_config.get("AZURE_SEARCH_CHUNK_COLUMN"),
                         "type": "Edm.Int32",
                         "key": False,
                         "retrievable": True,
@@ -370,7 +362,7 @@ def test_makes_correct_call_to_create_documents_search_index(
                         "facetable": False,
                     },
                     {
-                        "name": AZURE_SEARCH_OFFSET_COLUMN,
+                        "name": app_config.get("AZURE_SEARCH_OFFSET_COLUMN"),
                         "type": "Edm.Int32",
                         "key": False,
                         "retrievable": True,
@@ -394,7 +386,8 @@ def test_makes_correct_call_to_create_documents_search_index(
                                 "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG"
                             ),
                             "prioritizedFields": {
-                                "prioritizedContentFields": [{"fieldName": AZURE_SEARCH_CONTENT_COLUMN}]
+                                "prioritizedContentFields":
+                                    [{"fieldName": app_config.get("AZURE_SEARCH_CONTENT_COLUMN")}]
                             },
                         }
                     ]
