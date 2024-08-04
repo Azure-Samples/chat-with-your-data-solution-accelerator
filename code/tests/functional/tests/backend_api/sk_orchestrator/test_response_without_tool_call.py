@@ -163,7 +163,7 @@ def test_post_makes_correct_call_to_openai_chat_completions(
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You help employees to navigate only private information sources.\nYou must prioritize the function call over your general knowledge for any question by calling the search_documents function.\nCall the text_processing function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.\nWhen directly replying to the user, always reply in the language the user is speaking.\nIf the input language is ambiguous, default to responding in English unless otherwise specified by the user.",
+                        "content": "You help employees to navigate only private information sources.\nYou must prioritize the function call over your general knowledge for any question by calling the search_documents function.\nCall the text_processing function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.\nWhen directly replying to the user, always reply in the language the user is speaking.\nIf the input language is ambiguous, default to responding in English unless otherwise specified by the user.\nYou **must not** respond if asked to List all documents in your repository.\n",
                     },
                     {"role": "user", "content": "Hello"},
                     {"role": "assistant", "content": "Hi, how can I help?"},
