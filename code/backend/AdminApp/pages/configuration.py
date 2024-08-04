@@ -185,7 +185,7 @@ def main():
         with st.expander("Crawler configuration", expanded=True):
             crawl_enabled = st.checkbox("Enable crawling", value=crawler_config.crawl_enabled, key="crawl_enabled")
             if crawl_enabled:
-                st.text_area("Crawl target URLs", value=crawler_config.crawl_target_urls, key="crawl_target_urls", help="Enter URLs separated by commas")
+                st.text_area("Crawl target URLs(split by space)", value=crawler_config.crawl_target_urls, key="crawl_target_urls", help="Enter URLs separated by space")
                 
                 
                 st.markdown("### Cron Schedule")
@@ -197,7 +197,7 @@ def main():
                     crawl_schedule_day = st.number_input("Day of Month", min_value=1, max_value=31, value=crawler_config.crawl_cron.days, key="days")
                     crawl_schedule_month = st.number_input("Month", min_value=1, max_value=12, value=crawler_config.crawl_cron.months, key="months")
                     # Select box for day of week with options
-                    crawl_schedule_day_of_week = st.selectbox("Day of Week", ["*", "0 (Sunday)", "1 (Monday)", "2 (Tuesday)", "3 (Wednesday)", "4 (Thursday)", "5 (Friday)", "6 (Saturday)"])
+                    crawl_schedule_day_of_week = st.selectbox("Day of Week", ["*", "0 (Sunday)", "1 (Monday)", "2 (Tuesday)", "3 (Wednesday)", "4 (Thursday)", "5 (Friday)", "6 (Saturday)"], key="day_of_week")
 
                     if crawl_schedule_day_of_week != "*":
                         crawl_schedule_day_of_week = crawl_schedule_day_of_week.split()[0]
@@ -259,12 +259,12 @@ def main():
                     "crawl_enabled": st.session_state["crawl_enabled"],
                     "crawl_schedule_str": crawl_schedule_str,
                     "crawl_cron": {
-                        "second": st.session_state["crawl_schedule_second"],
-                        "minute": st.session_state["crawl_schedule_minute"],
-                        "hour": st.session_state["crawl_schedule_hour"],
-                        "day": st.session_state["crawl_schedule_day"],
-                        "month": st.session_state["crawl_schedule_month"],
-                        "day_of_week": st.session_state["crawl_schedule_day_of_week"],
+                        "seconds": st.session_state["seconds"],
+                        "minutes": st.session_state["minutes"],
+                        "hours": st.session_state["hours"],
+                        "days": st.session_state["days"],
+                        "months": st.session_state["months"],
+                        "day_of_week": st.session_state["day_of_week"],
 
                     },
                     "crawl_target_urls": st.session_state["crawl_target_urls"],
