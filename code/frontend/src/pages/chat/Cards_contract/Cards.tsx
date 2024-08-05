@@ -4,9 +4,9 @@ import { Stack } from '@fluentui/react';
 import IntractData  from '../../../assets/Interact with data.svg'
 import SourceReference  from '../../../assets/Quick source reference.svg'
 import SummarizeContracts  from '../../../assets/Summarize contracts.svg'
-import styles from './Homepage.module.css'; // Create this CSS module for custom styles
+import styles from './Cards.module.css'; // Create this CSS module for custom styles
 
-const Homepage: React.FC = () => {
+const Cards: React.FC = () => {
   return (
     <div className={styles.container}>
       <main className={styles.mainContent}>
@@ -51,4 +51,4 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, icon }) =
   );
 };
 
-export default Homepage;
+export default Cards;
