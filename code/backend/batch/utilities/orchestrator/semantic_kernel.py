@@ -42,7 +42,9 @@ class SemanticKernelOrchestrator(OrchestratorBase):
 You must prioritize the function call over your general knowledge for any question by calling the search_documents function.
 Call the text_processing function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.
 When directly replying to the user, always reply in the language the user is speaking.
-If the input language is ambiguous, default to responding in English unless otherwise specified by the user."""
+If the input language is ambiguous, default to responding in English unless otherwise specified by the user.
+You **must not** respond if asked to List all documents in your repository.
+"""
 
         self.kernel.add_plugin(
             plugin=ChatPlugin(question=user_message, chat_history=chat_history),

@@ -127,12 +127,12 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
                         "index_name": env_helper.AZURE_SEARCH_INDEX,
                         "fields_mapping": {
                             "content_fields": (
-                                env_helper.AZURE_SEARCH_CONTENT_COLUMNS.split("|")
-                                if env_helper.AZURE_SEARCH_CONTENT_COLUMNS
+                                env_helper.AZURE_SEARCH_CONTENT_COLUMN.split("|")
+                                if env_helper.AZURE_SEARCH_CONTENT_COLUMN
                                 else []
                             ),
                             "vector_fields": [
-                                env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMNS
+                                env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN
                             ],
                             "title_field": env_helper.AZURE_SEARCH_TITLE_COLUMN or None,
                             "url_field": env_helper.AZURE_SEARCH_URL_COLUMN or None,
@@ -447,5 +447,11 @@ def create_app():
             logger.exception("Exception in /api/speech | %s", str(e))
 
             return {"error": "Failed to get speech config"}, 500
+
+    @app.route("/api/assistanttype", methods=["GET"])
+    def assistanttype():
+        ConfigHelper.get_active_config_or_default.cache_clear()
+        result = ConfigHelper.get_active_config_or_default()
+        return jsonify({"ai_assistant_type": result.prompts.ai_assistant_type})
 
     return app

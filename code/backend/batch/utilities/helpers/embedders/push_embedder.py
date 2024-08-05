@@ -115,23 +115,23 @@ If the image is mostly text, use OCR to extract the text as it is displayed in t
     def __convert_to_search_document(self, document: SourceDocument):
         embedded_content = self.llm_helper.generate_embeddings(document.content)
         metadata = {
-            "id": document.id,
-            "source": document.source,
-            "title": document.title,
-            "chunk": document.chunk,
-            "offset": document.offset,
+            self.env_helper.AZURE_SEARCH_FIELDS_ID: document.id,
+            self.env_helper.AZURE_SEARCH_SOURCE_COLUMN: document.source,
+            self.env_helper.AZURE_SEARCH_TITLE_COLUMN: document.title,
+            self.env_helper.AZURE_SEARCH_CHUNK_COLUMN: document.chunk,
+            self.env_helper.AZURE_SEARCH_OFFSET_COLUMN: document.offset,
             "page_number": document.page_number,
             "chunk_id": document.chunk_id,
         }
         return {
-            "id": document.id,
-            "content": document.content,
-            "content_vector": embedded_content,
-            "metadata": json.dumps(metadata),
-            "title": document.title,
-            "source": document.source,
-            "chunk": document.chunk,
-            "offset": document.offset,
+            self.env_helper.AZURE_SEARCH_FIELDS_ID: document.id,
+            self.env_helper.AZURE_SEARCH_CONTENT_COLUMN: document.content,
+            self.env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN: embedded_content,
+            self.env_helper.AZURE_SEARCH_FIELDS_METADATA: json.dumps(metadata),
+            self.env_helper.AZURE_SEARCH_TITLE_COLUMN: document.title,
+            self.env_helper.AZURE_SEARCH_SOURCE_COLUMN: document.source,
+            self.env_helper.AZURE_SEARCH_CHUNK_COLUMN: document.chunk,
+            self.env_helper.AZURE_SEARCH_OFFSET_COLUMN: document.offset,
         }
 
     def __generate_document_id(self, source_url: str) -> str:

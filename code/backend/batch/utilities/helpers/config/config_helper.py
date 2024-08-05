@@ -246,13 +246,13 @@ class ConfigHelper:
 
     @staticmethod
     @functools.cache
-    def get_default_legal_assistant():
-        legal_file_path = os.path.join(os.path.dirname(__file__), "default_legal_assistant_prompt.txt")
-        legal_assistant = ""
-        with open(legal_file_path, encoding="utf-8") as f:
-            legal_assistant = f.readlines()
+    def get_default_contract_assistant():
+        contract_file_path = os.path.join(os.path.dirname(__file__), "default_contract_assistant_prompt.txt")
+        contract_assistant = ""
+        with open(contract_file_path, encoding="utf-8") as f:
+            contract_assistant = f.readlines()
 
-        return ''.join([str(elem) for elem in legal_assistant])
+        return ''.join([str(elem) for elem in contract_assistant])
 
     @staticmethod
     def clear_config():

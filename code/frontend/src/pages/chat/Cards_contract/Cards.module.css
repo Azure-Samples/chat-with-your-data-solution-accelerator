@@ -1,0 +1,57 @@
+
+/* Homepage.module.css */
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  /* background-color: #FAF9F8; */
+}
+
+.mainContent {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px; /* Adjust gap between cards as needed */
+  justify-content: center; /* Center align cards in the row */
+}
+
+.featureCard {
+  width: 260px; /* Set a fixed width for the cards or adjust as needed */
+  display: inline;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: start;
+  background-color: #FAF9F8;
+  border-radius: 8px; /* Rounded corners */
+  border: 1px solid #EDEBE9; /* Border around the card */
+  box-shadow: 0px 4px 8px 0px #00000024;
+  padding: 18px; /* Add padding inside the card */
+}
+
+
+.cardTitle {
+  font-size: 16px; /* Adjust font size as needed */
+  margin-top: -30px;
+  margin-left: 30px;
+  font-weight: 600;
+  color: #3d3d3d;
+
+}
+.iconTitleContainer{
+  display: flex;
+  align-items: center;
+}
+.cardDescription {
+  font-size: 14px; /* Adjust font size as needed */
+  color: #3d3d3d;
+  margin-bottom: -2px;
+}
+.icon{
+  margin-top: 10px;
+}
