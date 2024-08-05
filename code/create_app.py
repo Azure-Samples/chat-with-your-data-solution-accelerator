@@ -24,6 +24,7 @@ ERROR_429_MESSAGE = "We're currently experiencing a high number of requests for 
 ERROR_GENERIC_MESSAGE = "An error occurred. Please try again. If the problem persists, please contact the site administrator."
 logger = logging.getLogger(__name__)
 
+
 def stream_with_data(response: Stream[ChatCompletionChunk]):
     """This function streams the response from Azure OpenAI with data."""
     response_obj = {
