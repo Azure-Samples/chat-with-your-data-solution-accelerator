@@ -2604,20 +2604,20 @@ tenacity = ">=8.1.0,<8.4.0 || >8.4.0,<9.0.0"
 
 [[package]]
 name = "langchain-community"
-version = "0.2.10"
+version = "0.2.11"
 description = "Community contributed LangChain integrations."
 optional = false
 python-versions = "<4.0,>=3.8.1"
 files = [
-    {file = "langchain_community-0.2.10-py3-none-any.whl", hash = "sha256:9f4d1b5ab7f0b0a704f538e26e50fce45a461da6d2bf6b7b636d24f22fbc088a"},
-    {file = "langchain_community-0.2.10.tar.gz", hash = "sha256:3a0404bad4bd07d6f86affdb62fb3d080a456c66191754d586a409d9d6024d62"},
+    {file = "langchain_community-0.2.11-py3-none-any.whl", hash = "sha256:465c03ba1603975d141533424185e09546ecf09e379c93aee2671bdc9b325cda"},
+    {file = "langchain_community-0.2.11.tar.gz", hash = "sha256:ede261ff8202f1433f004ee90baf89f371cee37cb1abfc16dd0f8392db10b23e"},
 ]
 
 [package.dependencies]
 aiohttp = ">=3.8.3,<4.0.0"
 dataclasses-json = ">=0.5.7,<0.7"
-langchain = ">=0.2.9,<0.3.0"
-langchain-core = ">=0.2.23,<0.3.0"
+langchain = ">=0.2.12,<0.3.0"
+langchain-core = ">=0.2.27,<0.3.0"
 langsmith = ">=0.1.0,<0.2.0"
 numpy = [
     {version = ">=1,<2", markers = "python_version < \"3.12\""},
@@ -7058,4 +7058,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "18946614c3896de881d64cc2c6878474daa0ffc6aa7060e5c9e4978782d0451c"
+content-hash = "4600d3c0479dda8ae8071a5f6d57a6d42f864721fd3cb28a11b0ef4d48f85a1e"
