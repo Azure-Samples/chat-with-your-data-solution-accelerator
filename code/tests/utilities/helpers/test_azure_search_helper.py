@@ -26,6 +26,14 @@ AZURE_SEARCH_KEY = "mock-key"
 AZURE_SEARCH_SERVICE = "mock-service"
 AZURE_SEARCH_INDEX = "mock-index"
 AZURE_SEARCH_USE_SEMANTIC_SEARCH = False
+AZURE_SEARCH_FIELDS_ID = "mock-id"
+AZURE_SEARCH_CONTENT_COLUMN = "mock-content"
+AZURE_SEARCH_CONTENT_VECTOR_COLUMN = "mock-vector"
+AZURE_SEARCH_TITLE_COLUMN = "mock-title"
+AZURE_SEARCH_FIELDS_METADATA = "mock-metadata"
+AZURE_SEARCH_SOURCE_COLUMN = "mock-source"
+AZURE_SEARCH_CHUNK_COLUMN = "mock-chunk"
+AZURE_SEARCH_OFFSET_COLUMN = "mock-offset"
 AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = "default"
 AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = "mock-log-index"
 USE_ADVANCED_IMAGE_PROCESSING = False
@@ -62,6 +70,14 @@ def env_helper_mock():
         env_helper.AZURE_SEARCH_SERVICE = AZURE_SEARCH_SERVICE
         env_helper.AZURE_SEARCH_INDEX = AZURE_SEARCH_INDEX
         env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH = AZURE_SEARCH_USE_SEMANTIC_SEARCH
+        env_helper.AZURE_SEARCH_FIELDS_ID = AZURE_SEARCH_FIELDS_ID
+        env_helper.AZURE_SEARCH_CONTENT_COLUMN = AZURE_SEARCH_CONTENT_COLUMN
+        env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN = AZURE_SEARCH_CONTENT_VECTOR_COLUMN
+        env_helper.AZURE_SEARCH_TITLE_COLUMN = AZURE_SEARCH_TITLE_COLUMN
+        env_helper.AZURE_SEARCH_FIELDS_METADATA = AZURE_SEARCH_FIELDS_METADATA
+        env_helper.AZURE_SEARCH_SOURCE_COLUMN = AZURE_SEARCH_SOURCE_COLUMN
+        env_helper.AZURE_SEARCH_CHUNK_COLUMN = AZURE_SEARCH_CHUNK_COLUMN
+        env_helper.AZURE_SEARCH_OFFSET_COLUMN = AZURE_SEARCH_OFFSET_COLUMN
         env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = (
             AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
         )
@@ -173,44 +189,44 @@ def test_creates_search_index_if_not_exists(
 
     fields = [
         SimpleField(
-            name="id",
+            name=AZURE_SEARCH_FIELDS_ID,
             type=SearchFieldDataType.String,
             key=True,
             filterable=True,
         ),
         SearchableField(
-            name="content",
+            name=AZURE_SEARCH_CONTENT_COLUMN,
             type=SearchFieldDataType.String,
         ),
         SearchField(
-            name="content_vector",
+            name=AZURE_SEARCH_CONTENT_VECTOR_COLUMN,
             type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
             searchable=True,
             vector_search_dimensions=len(SEARCH_EMBEDDINGS),
             vector_search_profile_name="myHnswProfile",
         ),
         SearchableField(
-            name="metadata",
+            name=AZURE_SEARCH_FIELDS_METADATA,
             type=SearchFieldDataType.String,
         ),
         SearchableField(
-            name="title",
+            name=AZURE_SEARCH_TITLE_COLUMN,
             type=SearchFieldDataType.String,
             facetable=True,
             filterable=True,
         ),
         SearchableField(
-            name="source",
+            name=AZURE_SEARCH_SOURCE_COLUMN,
             type=SearchFieldDataType.String,
             filterable=True,
         ),
         SimpleField(
-            name="chunk",
+            name=AZURE_SEARCH_CHUNK_COLUMN,
             type=SearchFieldDataType.Int32,
             filterable=True,
         ),
         SimpleField(
-            name="offset",
+            name=AZURE_SEARCH_OFFSET_COLUMN,
             type=SearchFieldDataType.Int32,
             filterable=True,
         ),
@@ -226,7 +242,7 @@ def test_creates_search_index_if_not_exists(
                         name=AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
                         prioritized_fields=SemanticPrioritizedFields(
                             title_field=None,
-                            content_fields=[SemanticField(field_name="content")],
+                            content_fields=[SemanticField(field_name=AZURE_SEARCH_CONTENT_COLUMN)],
                         ),
                     )
                 ]

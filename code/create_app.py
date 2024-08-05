@@ -127,12 +127,12 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
                         "index_name": env_helper.AZURE_SEARCH_INDEX,
                         "fields_mapping": {
                             "content_fields": (
-                                env_helper.AZURE_SEARCH_CONTENT_COLUMNS.split("|")
-                                if env_helper.AZURE_SEARCH_CONTENT_COLUMNS
+                                env_helper.AZURE_SEARCH_CONTENT_COLUMN.split("|")
+                                if env_helper.AZURE_SEARCH_CONTENT_COLUMN
                                 else []
                             ),
                             "vector_fields": [
-                                env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMNS
+                                env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN
                             ],
                             "title_field": env_helper.AZURE_SEARCH_TITLE_COLUMN or None,
                             "url_field": env_helper.AZURE_SEARCH_URL_COLUMN or None,
