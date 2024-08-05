@@ -10,6 +10,7 @@ from tests.request_matching import (
 )
 from tests.functional.app_config import AppConfig
 
+
 pytestmark = pytest.mark.functional
 
 path = "/api/conversation"
@@ -222,7 +223,7 @@ def test_post_makes_correct_call_to_get_conversation_log_search_index(
                 "Api-Key": app_config.get("AZURE_SEARCH_KEY"),
             },
             query_string="api-version=2023-10-01-Preview",
-            times=1,
+            times=2,
         ),
     )
 
@@ -267,7 +268,7 @@ def test_post_makes_correct_call_to_openai_chat_completions_with_functions(
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You help employees to navigate only private information sources.\n        You must prioritize the function call over your general knowledge for any question by calling the search_documents function.\n        Call the text_processing function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.\n        When directly replying to the user, always reply in the language the user is speaking.\n        ",
+                        "content": "You help employees to navigate only private information sources.\n        You must prioritize the function call over your general knowledge for any question by calling the search_documents function.\n        Call the text_processing function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.\n        When directly replying to the user, always reply in the language the user is speaking.\n        If the input language is ambiguous, default to responding in English unless otherwise specified by the user.\n        You **must not** respond if asked to List all documents in your repository.\n        ",
                     },
                     {"role": "user", "content": "Hello"},
                     {"role": "assistant", "content": "Hi, how can I help?"},
@@ -365,7 +366,7 @@ def test_post_makes_correct_call_to_create_documents_search_index(
                 "name": app_config.get("AZURE_SEARCH_INDEX"),
                 "fields": [
                     {
-                        "name": "id",
+                        "name": app_config.get("AZURE_SEARCH_FIELDS_ID"),
                         "type": "Edm.String",
                         "key": True,
                         "retrievable": True,
@@ -375,7 +376,7 @@ def test_post_makes_correct_call_to_create_documents_search_index(
                         "facetable": False,
                     },
                     {
-                        "name": "content",
+                        "name": app_config.get("AZURE_SEARCH_CONTENT_COLUMN"),
                         "type": "Edm.String",
                         "key": False,
                         "retrievable": True,
@@ -385,14 +386,14 @@ def test_post_makes_correct_call_to_create_documents_search_index(
                         "facetable": False,
                     },
                     {
-                        "name": "content_vector",
+                        "name": app_config.get("AZURE_SEARCH_CONTENT_VECTOR_COLUMN"),
                         "type": "Collection(Edm.Single)",
                         "searchable": True,
                         "dimensions": 2,
                         "vectorSearchProfile": "myHnswProfile",
                     },
                     {
-                        "name": "metadata",
+                        "name": app_config.get("AZURE_SEARCH_FIELDS_METADATA"),
                         "type": "Edm.String",
                         "key": False,
                         "retrievable": True,
@@ -402,7 +403,7 @@ def test_post_makes_correct_call_to_create_documents_search_index(
                         "facetable": False,
                     },
                     {
-                        "name": "title",
+                        "name": app_config.get("AZURE_SEARCH_TITLE_COLUMN"),
                         "type": "Edm.String",
                         "key": False,
                         "retrievable": True,
@@ -412,7 +413,7 @@ def test_post_makes_correct_call_to_create_documents_search_index(
                         "facetable": True,
                     },
                     {
-                        "name": "source",
+                        "name": app_config.get("AZURE_SEARCH_SOURCE_COLUMN"),
                         "type": "Edm.String",
                         "key": False,
                         "retrievable": True,
@@ -422,7 +423,7 @@ def test_post_makes_correct_call_to_create_documents_search_index(
                         "facetable": False,
                     },
                     {
-                        "name": "chunk",
+                        "name": app_config.get("AZURE_SEARCH_CHUNK_COLUMN"),
                         "type": "Edm.Int32",
                         "key": False,
                         "retrievable": True,
@@ -432,7 +433,7 @@ def test_post_makes_correct_call_to_create_documents_search_index(
                         "facetable": False,
                     },
                     {
-                        "name": "offset",
+                        "name": app_config.get("AZURE_SEARCH_OFFSET_COLUMN"),
                         "type": "Edm.Int32",
                         "key": False,
                         "retrievable": True,
@@ -456,7 +457,13 @@ def test_post_makes_correct_call_to_create_documents_search_index(
                                 "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG"
                             ),
                             "prioritizedFields": {
-                                "prioritizedContentFields": [{"fieldName": "content"}]
+                                "prioritizedContentFields": [
+                                    {
+                                        "fieldName": app_config.get(
+                                            "AZURE_SEARCH_CONTENT_COLUMN"
+                                        )
+                                    }
+                                ]
                             },
                         }
                     ]

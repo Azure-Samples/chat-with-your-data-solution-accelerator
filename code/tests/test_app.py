@@ -4,7 +4,6 @@ This module tests the entry point for the application.
 
 from unittest.mock import AsyncMock, MagicMock, Mock, patch, ANY
 
-from httpx import Response
 from openai import RateLimitError, BadRequestError, InternalServerError
 import pytest
 from flask.testing import FlaskClient
@@ -23,8 +22,8 @@ AZURE_OPENAI_API_KEY = "mock-api-key"
 AZURE_SEARCH_KEY = "mock-search-key"
 AZURE_SEARCH_INDEX = "mock-search-index"
 AZURE_SEARCH_SERVICE = "mock-search-service"
-AZURE_SEARCH_CONTENT_COLUMNS = "field1|field2"
-AZURE_SEARCH_CONTENT_VECTOR_COLUMNS = "vector-column"
+AZURE_SEARCH_CONTENT_COLUMN = "field1|field2"
+AZURE_SEARCH_CONTENT_VECTOR_COLUMN = "vector-column"
 AZURE_SEARCH_TITLE_COLUMN = "title"
 AZURE_SEARCH_FILENAME_COLUMN = "filename"
 AZURE_SEARCH_URL_COLUMN = "url"
@@ -69,9 +68,9 @@ def env_helper_mock():
         env_helper.AZURE_OPENAI_STOP_SEQUENCE = AZURE_OPENAI_STOP_SEQUENCE
         env_helper.AZURE_SEARCH_INDEX = AZURE_SEARCH_INDEX
         env_helper.AZURE_SEARCH_SERVICE = AZURE_SEARCH_SERVICE
-        env_helper.AZURE_SEARCH_CONTENT_COLUMNS = AZURE_SEARCH_CONTENT_COLUMNS
-        env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMNS = (
-            AZURE_SEARCH_CONTENT_VECTOR_COLUMNS
+        env_helper.AZURE_SEARCH_CONTENT_COLUMN = AZURE_SEARCH_CONTENT_COLUMN
+        env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN = (
+            AZURE_SEARCH_CONTENT_VECTOR_COLUMN
         )
         env_helper.AZURE_SEARCH_TITLE_COLUMN = AZURE_SEARCH_TITLE_COLUMN
         env_helper.AZURE_SEARCH_FILENAME_COLUMN = AZURE_SEARCH_FILENAME_COLUMN
@@ -335,17 +334,19 @@ class TestConversationCustom:
         response_mock = Mock()
         response_mock.status_code = 429
         response_mock.json.return_value = {
-            'error': {
-                'code': "429",
-                'message': 'Requests to the Embeddings_Create Operation under Azure OpenAI API version 2024-02-01 '
-                           'have exceeded call rate limit of your current OpenAI S0 pricing tier. Please retry after '
-                           '2 seconds. Please go here: https://aka.ms/oai/quotaincrease if you would like to further '
-                           'increase the default rate limit.'
+            "error": {
+                "code": "429",
+                "message": "Requests to the Embeddings_Create Operation under Azure OpenAI API version 2024-02-01 "
+                "have exceeded call rate limit of your current OpenAI S0 pricing tier. Please retry after "
+                "2 seconds. Please go here: https://aka.ms/oai/quotaincrease if you would like to further "
+                "increase the default rate limit.",
             }
         }
         body_mock = {"error": "Rate limit exceeded"}
 
-        rate_limit_error = RateLimitError("Rate limit exceeded", response=response_mock, body=body_mock)
+        rate_limit_error = RateLimitError(
+            "Rate limit exceeded", response=response_mock, body=body_mock
+        )
         get_orchestrator_config_mock.side_effect = rate_limit_error
 
         # when
@@ -359,18 +360,20 @@ class TestConversationCustom:
         assert response.status_code == 429
         assert response.json == {
             "error": "We're currently experiencing a high number of requests for the service you're trying to access. "
-                     "Please wait a moment and try again."
+            "Please wait a moment and try again."
         }
 
     @patch("create_app.get_orchestrator_config")
     def test_conversation_custom_returns_500_when_internalservererror_occurs(
-            self, get_orchestrator_config_mock, env_helper_mock, client
+        self, get_orchestrator_config_mock, env_helper_mock, client
     ):
         """Test that an error response is returned when an exception occurs."""
         # given
         response_mock = MagicMock()
         response_mock.status_code = 500
-        get_orchestrator_config_mock.side_effect = InternalServerError("Test exception", response=response_mock, body="")
+        get_orchestrator_config_mock.side_effect = InternalServerError(
+            "Test exception", response=response_mock, body=""
+        )
 
         # when
         response = client.post(
@@ -383,7 +386,7 @@ class TestConversationCustom:
         assert response.status_code == 500
         assert response.json == {
             "error": "An error occurred. Please try again. If the problem persists, please contact the site "
-                     "administrator."
+            "administrator."
         }
 
     @patch("create_app.get_message_orchestrator")
@@ -614,7 +617,7 @@ class TestConversationAzureByod:
                             "index_name": AZURE_SEARCH_INDEX,
                             "fields_mapping": {
                                 "content_fields": ["field1", "field2"],
-                                "vector_fields": [AZURE_SEARCH_CONTENT_VECTOR_COLUMNS],
+                                "vector_fields": [AZURE_SEARCH_CONTENT_VECTOR_COLUMN],
                                 "title_field": AZURE_SEARCH_TITLE_COLUMN,
                                 "url_field": AZURE_SEARCH_URL_COLUMN,
                                 "filepath_field": AZURE_SEARCH_FILENAME_COLUMN,
@@ -756,13 +759,15 @@ class TestConversationAzureByod:
 
     @patch("create_app.conversation_with_data")
     def test_conversation_azure_byod_returns_500_when_internalservererror_occurs(
-            self, conversation_with_data_mock, env_helper_mock, client
+        self, conversation_with_data_mock, env_helper_mock, client
     ):
         """Test that an error response is returned when an exception occurs."""
         # given
         response_mock = MagicMock()
         response_mock.status_code = 500
-        conversation_with_data_mock.side_effect = InternalServerError("Test exception", response=response_mock, body="")
+        conversation_with_data_mock.side_effect = InternalServerError(
+            "Test exception", response=response_mock, body=""
+        )
         env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
 
         # when
@@ -776,29 +781,30 @@ class TestConversationAzureByod:
         assert response.status_code == 500
         assert response.json == {
             "error": "An error occurred. Please try again. If the problem persists, please contact the site "
-                     "administrator."
+            "administrator."
         }
 
     @patch("create_app.conversation_with_data")
     def test_conversation_azure_byod_returns_429_on_rate_limit_error(
-            self, conversation_with_data_mock, env_helper_mock, client
+        self, conversation_with_data_mock, env_helper_mock, client
     ):
         """Test that a 429 response is returned on RateLimitError for BYOD conversation."""
         # given
         response_mock = MagicMock()
         response_mock.status_code = 400
         response_mock.json.return_value = {
-            'error': {
-                'requestid': 'f30740e1-c6e1-48ab-ab1e-35469ed41ba4',
-                'code': "400",
-                'message': 'An error occurred when calling Azure OpenAI: Rate limit reached for AOAI embedding '
-                           'resource: Server responded with status 429. Error message: {"error":{"code":"429",'
-                           '"message": "Rate limit is exceeded. Try again in 44 seconds."}}'
+            "error": {
+                "requestid": "f30740e1-c6e1-48ab-ab1e-35469ed41ba4",
+                "code": "400",
+                "message": "An error occurred when calling Azure OpenAI: Rate limit reached for AOAI embedding "
+                'resource: Server responded with status 429. Error message: {"error":{"code":"429",'
+                '"message": "Rate limit is exceeded. Try again in 44 seconds."}}',
             }
         }
 
-        conversation_with_data_mock.side_effect = BadRequestError(message="Error code: 400", response=response_mock,
-                                                                  body="")
+        conversation_with_data_mock.side_effect = BadRequestError(
+            message="Error code: 400", response=response_mock, body=""
+        )
         env_helper_mock.CONVERSATION_FLOW = ConversationFlow.BYOD.value
 
         # when
@@ -812,7 +818,7 @@ class TestConversationAzureByod:
         assert response.status_code == 429
         assert response.json == {
             "error": "We're currently experiencing a high number of requests for the service you're trying to access. "
-                     "Please wait a moment and try again."
+            "Please wait a moment and try again."
         }
 
     @patch("create_app.AzureOpenAI")
