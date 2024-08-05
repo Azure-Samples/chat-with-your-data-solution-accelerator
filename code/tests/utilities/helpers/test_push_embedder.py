@@ -362,6 +362,7 @@ def test_embed_file_chunks_documents_upper_case(document_loading_mock, document_
         document_loading_mock.return_value.load.return_value, CHUNKING_SETTINGS
     )
 
+
 def test_embed_file_generates_embeddings_for_documents(llm_helper_mock, env_helper_mock):
     # given
     push_embedder = PushEmbedder(MagicMock(), env_helper_mock)
