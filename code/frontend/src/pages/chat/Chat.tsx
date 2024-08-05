@@ -188,6 +188,7 @@ const Chat = () => {
   };
 
   const onMicrophoneClick = async () => {
+    // clear the previous text
     setUserMessage("");
     setRecognizedText("");
     if (!isRecognizing) {
