@@ -349,13 +349,13 @@ def test_get_default_assistant_prompt():
     assert isinstance(default_assistant_prompt, str)
 
 
-def test_get_default_legal_assistant():
+def test_get_default_contract_assistant():
     # when
-    legal_assistant_prompt = ConfigHelper.get_default_legal_assistant()
+    contract_assistant_prompt = ConfigHelper.get_default_contract_assistant()
 
     # then
-    assert legal_assistant_prompt is not None
-    assert isinstance(legal_assistant_prompt, str)
+    assert contract_assistant_prompt is not None
+    assert isinstance(contract_assistant_prompt, str)
 
 
 def test_get_document_processors(config_dict: dict):

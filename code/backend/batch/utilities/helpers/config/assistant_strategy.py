@@ -3,4 +3,4 @@ from enum import Enum
 
 class AssistantStrategy(Enum):
     DEFAULT = "default"
-    LEGAL_ASSISTANT = "legal assistant"
+    CONTRACT_ASSISTANT = "contract assistant"
