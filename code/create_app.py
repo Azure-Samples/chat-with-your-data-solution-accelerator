@@ -127,12 +127,12 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
                         "index_name": env_helper.AZURE_SEARCH_INDEX,
                         "fields_mapping": {
                             "content_fields": (
-                                env_helper.AZURE_SEARCH_CONTENT_COLUMNS.split("|")
-                                if env_helper.AZURE_SEARCH_CONTENT_COLUMNS
+                                env_helper.AZURE_SEARCH_CONTENT_COLUMN.split("|")
+                                if env_helper.AZURE_SEARCH_CONTENT_COLUMN
                                 else []
                             ),
                             "vector_fields": [
-                                env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMNS
+                                env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN
                             ],
                             "title_field": env_helper.AZURE_SEARCH_TITLE_COLUMN or None,
                             "url_field": env_helper.AZURE_SEARCH_URL_COLUMN or None,
@@ -403,8 +403,6 @@ def create_app():
             logger.exception("Exception in /api/conversation | %s", error_message)
             return jsonify({"error": ERROR_GENERIC_MESSAGE}), 500
 
-
-
     @app.route("/api/conversation", methods=["POST"])
     async def conversation():
         conversation_flow = env_helper.CONVERSATION_FLOW
@@ -421,7 +419,6 @@ def create_app():
                 ),
                 500,
             )
-
 
     @app.route("/api/speech", methods=["GET"])
     def speech_config():

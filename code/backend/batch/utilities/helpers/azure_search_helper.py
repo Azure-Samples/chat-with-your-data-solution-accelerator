@@ -90,44 +90,44 @@ class AzureSearchHelper:
     def create_index(self):
         fields = [
             SimpleField(
-                name="id",
+                name=self.env_helper.AZURE_SEARCH_FIELDS_ID,
                 type=SearchFieldDataType.String,
                 key=True,
                 filterable=True,
             ),
             SearchableField(
-                name="content",
+                name=self.env_helper.AZURE_SEARCH_CONTENT_COLUMN,
                 type=SearchFieldDataType.String,
             ),
             SearchField(
-                name="content_vector",
+                name=self.env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN,
                 type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
                 searchable=True,
                 vector_search_dimensions=self.search_dimensions,
                 vector_search_profile_name="myHnswProfile",
             ),
             SearchableField(
-                name="metadata",
+                name=self.env_helper.AZURE_SEARCH_FIELDS_METADATA,
                 type=SearchFieldDataType.String,
             ),
             SearchableField(
-                name="title",
+                name=self.env_helper.AZURE_SEARCH_TITLE_COLUMN,
                 type=SearchFieldDataType.String,
                 facetable=True,
                 filterable=True,
             ),
             SearchableField(
-                name="source",
+                name=self.env_helper.AZURE_SEARCH_SOURCE_COLUMN,
                 type=SearchFieldDataType.String,
                 filterable=True,
             ),
             SimpleField(
-                name="chunk",
+                name=self.env_helper.AZURE_SEARCH_CHUNK_COLUMN,
                 type=SearchFieldDataType.Int32,
                 filterable=True,
             ),
             SimpleField(
-                name="offset",
+                name=self.env_helper.AZURE_SEARCH_OFFSET_COLUMN,
                 type=SearchFieldDataType.Int32,
                 filterable=True,
             ),
@@ -155,7 +155,7 @@ class AzureSearchHelper:
                             name=self.env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
                             prioritized_fields=SemanticPrioritizedFields(
                                 title_field=None,
-                                content_fields=[SemanticField(field_name="content")],
+                                content_fields=[SemanticField(field_name=self.env_helper.AZURE_SEARCH_CONTENT_COLUMN)],
                             ),
                         )
                     ]

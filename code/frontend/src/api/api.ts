@@ -30,7 +30,6 @@ export async function getAssistantTypeApi() {
                 "Content-Type": "application/json"
             },
         });
-      console.log("Entered API call", response);
 
       if (!response.ok) {
         throw new Error('Network response was not ok');
