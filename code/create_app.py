@@ -448,4 +448,10 @@ def create_app():
 
             return {"error": "Failed to get speech config"}, 500
 
+    @app.route("/api/assistanttype", methods=["GET"])
+    def assistanttype():
+        ConfigHelper.get_active_config_or_default.cache_clear()
+        result = ConfigHelper.get_active_config_or_default()
+        return jsonify({"ai_assistant_type": result.prompts.ai_assistant_type})
+
     return app
