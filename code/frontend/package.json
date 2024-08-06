@@ -10,7 +10,7 @@
         "test": "vitest run"
     },
     "dependencies": {
-        "@babel/traverse": "^7.25.2",
+        "@babel/traverse": "^7.25.3",
         "@fluentui/react": "^8.120.2",
         "@fluentui/react-icons": "^2.0.252",
         "@fortawesome/fontawesome-svg-core": "^6.6.0",
