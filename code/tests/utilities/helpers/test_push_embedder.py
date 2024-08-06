@@ -347,6 +347,22 @@ def test_embed_file_chunks_documents(document_loading_mock, document_chunking_mo
     )
 
 
+def test_embed_file_chunks_documents_upper_case(document_loading_mock, document_chunking_mock, env_helper_mock):
+    # given
+    push_embedder = PushEmbedder(MagicMock(), env_helper_mock)
+
+    # when
+    push_embedder.embed_file(
+        "some-url",
+        "some-file-name.PDF",
+    )
+
+    # then
+    document_chunking_mock.return_value.chunk.assert_called_once_with(
+        document_loading_mock.return_value.load.return_value, CHUNKING_SETTINGS
+    )
+
+
 def test_embed_file_generates_embeddings_for_documents(llm_helper_mock, env_helper_mock):
     # given
     push_embedder = PushEmbedder(MagicMock(), env_helper_mock)
