@@ -14,7 +14,7 @@ azure-functions = "1.20.0"
 streamlit = "1.36.0"
 python-dotenv = "1.0.1"
 azure-ai-formrecognizer = "3.3.3"
-azure-storage-blob = "12.20.0"
+azure-storage-blob = "12.21.0"
 azure-identity = "1.17.1"
 flask = {extras = ["async"], version = "^3.0.3"}
 openai = "1.38.0"
