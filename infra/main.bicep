@@ -70,7 +70,7 @@ param azureSearchTopK string = '5'
 param azureSearchEnableInDomain string = 'false'
 
 @description('Id columns')
-param azureSearchFieldId string = 'Id'
+param azureSearchFieldId string = 'id'
 
 @description('Content columns')
 param azureSearchContentColumn string = 'content'
