@@ -136,7 +136,7 @@
     },
     "azureSearchFieldId": {
       "type": "string",
-      "defaultValue": "Id",
+      "defaultValue": "id",
       "metadata": {
         "description": "Id columns"
       }
