@@ -118,9 +118,7 @@ export const Answer = ({
             text,
             result => {
                 if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
-                    console.log('Synthesis completed');
-                    setIsSpeaking(false);
-                    setIsPaused(false);
+                 
                     context.close();
                   }
                 //   if (result.reason === sdk.ResultReason.SynthesizingAudioStarted) {
@@ -128,6 +126,13 @@ export const Answer = ({
                 //     setIsSpeaking(false);
                 //     setIsPaused(true);
                 //   }
+
+                const duration = result.audioDuration/10000;
+                setTimeout(()=>{
+                  setIsSpeaking(false);
+                  setIsPaused(false);
+                  context.close();
+                },duration)
 
             },
             error => {
