@@ -12,6 +12,7 @@ from ...orchestrator.orchestration_strategy import OrchestrationStrategy
 from ...orchestrator import OrchestrationSettings
 from ..env_helper import EnvHelper
 from .assistant_strategy import AssistantStrategy
+from .conversation_flow import ConversationFlow
 
 CONFIG_CONTAINER_NAME = "config"
 CONFIG_FILE_NAME = "active.json"
@@ -90,6 +91,9 @@ class Config:
     def get_available_ai_assistant_types(self):
         return [c.value for c in AssistantStrategy]
 
+    def get_available_conversational_flows(self):
+        return [c.value for c in ConversationFlow]
+
 
 # TODO: Change to AnsweringChain or something, Prompts is not a good name
 class Prompts:
@@ -102,6 +106,7 @@ class Prompts:
         self.enable_post_answering_prompt = prompts["enable_post_answering_prompt"]
         self.enable_content_safety = prompts["enable_content_safety"]
         self.ai_assistant_type = prompts["ai_assistant_type"]
+        self.conversational_flow = prompts["conversational_flow"]
 
 
 class Example:
@@ -173,6 +178,9 @@ class ConfigHelper:
                 "integrated_vectorization_config"
             ]
 
+        if config["prompts"].get("conversational_flow") is None:
+            config["prompts"]["conversational_flow"] = default_config["prompts"]["conversational_flow"]
+
     @staticmethod
     @functools.cache
     def get_active_config_or_default():
@@ -198,6 +206,12 @@ class ConfigHelper:
     def get_default_assistant_prompt():
         config = ConfigHelper.get_default_config()
         return config["prompts"]["answering_user_prompt"]
+
+    @staticmethod
+    @functools.cache
+    def get_default_conversational_flow_prompt():
+        config = ConfigHelper.get_default_config()
+        return config["prompts"]["conversational_flow"]
 
     @staticmethod
     def save_config_as_active(config):

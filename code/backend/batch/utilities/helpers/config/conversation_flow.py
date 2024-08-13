@@ -3,4 +3,4 @@ from enum import Enum
 
 class ConversationFlow(Enum):
     CUSTOM = "custom"
-    BYOD = "byod"
+    BYOD = "bring your own data"
