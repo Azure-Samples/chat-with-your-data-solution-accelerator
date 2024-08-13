@@ -405,7 +405,8 @@ def create_app():
 
     @app.route("/api/conversation", methods=["POST"])
     async def conversation():
-        conversation_flow = ConfigHelper.get_default_conversational_flow_prompt()
+        result = ConfigHelper.get_active_config_or_default()
+        conversation_flow = result.prompts.conversational_flow
         if conversation_flow == ConversationFlow.CUSTOM.value:
             return await conversation_custom()
         elif conversation_flow == ConversationFlow.BYOD.value:

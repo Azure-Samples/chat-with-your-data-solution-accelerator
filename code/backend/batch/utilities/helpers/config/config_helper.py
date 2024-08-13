@@ -207,11 +207,6 @@ class ConfigHelper:
         config = ConfigHelper.get_default_config()
         return config["prompts"]["answering_user_prompt"]
 
-    @staticmethod
-    @functools.cache
-    def get_default_conversational_flow_prompt():
-        config = ConfigHelper.get_default_config()
-        return config["prompts"]["conversational_flow"]
 
     @staticmethod
     def save_config_as_active(config):
