@@ -20,6 +20,7 @@ def test_speech_token_returned(app_url: str, app_config: AppConfig):
         "token": "speech-token",
         "region": app_config.get("AZURE_SPEECH_SERVICE_REGION"),
         "languages": app_config.get("AZURE_SPEECH_RECOGNIZER_LANGUAGES").split(","),
+        "key": "some-azure-speech-service-key"
     }
     assert response.headers["Content-Type"] == "application/json"
 
