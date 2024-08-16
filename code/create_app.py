@@ -19,6 +19,8 @@ from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
 from azure.identity import DefaultAzureCredential
+from backend.batch.utilities.tools.question_answer_tool import QuestionAnswerTool
+from backend.batch.utilities.parser.output_parser_tool import OutputParserTool
 
 ERROR_429_MESSAGE = "We're currently experiencing a high number of requests for the service you're trying to access. Please wait a moment and try again."
 ERROR_GENERIC_MESSAGE = "An error occurred. Please try again. If the problem persists, please contact the site administrator."
@@ -166,30 +168,27 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
     )
 
     if not env_helper.SHOULD_STREAM:
+        user_messages = list(
+            filter(
+                lambda x: x["role"] in ("user", "assistant"),
+                conversation.json["messages"][0:-1],
+            )
+        )
+        answer = QuestionAnswerTool().answer_question(
+            messages[-1]["content"], user_messages
+        )
+        # Format the output for the UI
+        messages = OutputParserTool().parse(
+            question=answer.question,
+            answer=answer.answer,
+            source_documents=answer.source_documents,
+        )
         response_obj = {
             "id": response.id,
             "model": response.model,
             "created": response.created,
             "object": response.object,
-            "choices": [
-                {
-                    "messages": [
-                        {
-                            "content": json.dumps(
-                                response.choices[0].message.model_extra["context"],
-                                ensure_ascii=False,
-                            ),
-                            "end_turn": False,
-                            "role": "tool",
-                        },
-                        {
-                            "end_turn": True,
-                            "content": response.choices[0].message.content,
-                            "role": "assistant",
-                        },
-                    ]
-                }
-            ],
+            "choices": [{"messages": messages}],
         }
 
         return response_obj
@@ -405,6 +404,7 @@ def create_app():
 
     @app.route("/api/conversation", methods=["POST"])
     async def conversation():
+        ConfigHelper.get_active_config_or_default.cache_clear()
         result = ConfigHelper.get_active_config_or_default()
         conversation_flow = result.prompts.conversational_flow
         if conversation_flow == ConversationFlow.CUSTOM.value:

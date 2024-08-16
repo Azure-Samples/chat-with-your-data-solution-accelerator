@@ -185,7 +185,12 @@ try:
                 "Orchestrator strategy",
                 key="orchestrator_strategy",
                 options=config.get_available_orchestration_strategies(),
-                disabled= True if st.session_state["conversational_flow"] == ConversationFlow.BYOD.value else False
+                disabled=(
+                    True
+                    if st.session_state["conversational_flow"]
+                    == ConversationFlow.BYOD.value
+                    else False
+                ),
             )
 
     # # # condense_question_prompt_help = "This prompt is used to convert the user's input to a standalone question, using the context of the chat history."
