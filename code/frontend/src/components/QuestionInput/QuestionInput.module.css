@@ -27,7 +27,7 @@
     right: 24px;
     bottom: 20px;
     position: static;
-    margin-right: 12px;
+    /* margin-right: 12px; */
 }
 
 .questionInputSendButton {
@@ -39,7 +39,7 @@
     pointer-events: none;
     width: 24px;
     height: 23px;
-    margin-right: 12px;
+    /* margin-right: 12px; */
 }
 
 .questionInputSendButtonDisabled {
@@ -75,6 +75,8 @@
     width: 24px;
     height: 24px;
     margin-bottom: 12px;
+    border: none;
+    background: transparent;
   }
 
   .microphoneAndSendContainer {
