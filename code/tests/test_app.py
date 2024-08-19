@@ -110,6 +110,7 @@ class TestSpeechToken:
             "token": "speech-token",
             "region": AZURE_SPEECH_SERVICE_REGION,
             "languages": AZURE_SPEECH_RECOGNIZER_LANGUAGES,
+            "key": "mock-speech-key"
         }
 
         requests.post.assert_called_once_with(
@@ -153,6 +154,7 @@ class TestSpeechToken:
             "token": "speech-token",
             "region": AZURE_SPEECH_SERVICE_REGION,
             "languages": AZURE_SPEECH_RECOGNIZER_LANGUAGES,
+            "key": "mock-key1"
         }
 
         requests.post.assert_called_once_with(
