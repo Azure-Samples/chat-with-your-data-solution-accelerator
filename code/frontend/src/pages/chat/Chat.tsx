@@ -60,6 +60,8 @@ const Chat = () => {
   const [isListening, setIsListening] = useState(false);
   const recognizerRef = useRef<SpeechRecognizer | null>(null);
   const [assistantType, setAssistantType] = useState("");
+  const [activeCardIndex, setActiveCardIndex] = useState<number | null>(null);
+  const [isTextToSpeachActive , setIsTextToSpeachActive] = useState(false);
 
   const makeApiRequest = async (question: string) => {
     lastQuestionRef.current = question;
@@ -261,6 +263,13 @@ const Chat = () => {
     return [];
   };
 
+  const handleSpeech = (index: number, status : string) => {
+    if(status != 'pause')
+    setActiveCardIndex(index);
+    setIsTextToSpeachActive(status =='speak' ? true : false)
+  };
+
+
   return (
     <div className={styles.container}>
       <Stack horizontal className={styles.chatRoot} >
@@ -314,6 +323,8 @@ const Chat = () => {
                               ? parseCitationFromMessage(answers[index - 1])
                               : [],
                         }}
+                        onSpeak={handleSpeech}
+                        isActive={activeCardIndex === index}
                         onCitationClicked={(c) => onShowCitation(c)}
                         index={index}
                       />
@@ -399,6 +410,7 @@ const Chat = () => {
               isListening={isListening}
               isRecognizing={isRecognizing}
               setRecognizedText={setRecognizedText}
+              isTextToSpeachActive = {isTextToSpeachActive}
             />
           </Stack>
         </div>
