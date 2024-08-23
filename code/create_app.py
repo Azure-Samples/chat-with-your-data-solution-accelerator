@@ -437,6 +437,7 @@ def create_app():
             if response.status_code == 200:
                 return {
                     "token": response.text,
+                    "key": speech_key,
                     "region": env_helper.AZURE_SPEECH_SERVICE_REGION,
                     "languages": env_helper.AZURE_SPEECH_RECOGNIZER_LANGUAGES,
                 }
