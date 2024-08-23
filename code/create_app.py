@@ -321,9 +321,9 @@ def create_app():
 
     sys.path.append(path.join(path.dirname(__file__), ".."))
 
-    load_dotenv(
-        path.join(path.dirname(__file__), "..", "..", ".env")
-    )  # Load environment variables from .env file
+    # load_dotenv(
+    #     path.join(path.dirname(__file__), "..", "..", ".env")
+    # )  # Load environment variables from .env file
 
     app = Flask(__name__)
     env_helper: EnvHelper = EnvHelper()

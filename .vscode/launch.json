@@ -32,7 +32,7 @@
                 "--debug",
                 "run",
                 "--port",
-                "5050"
+                "5000"
             ],
             "cwd": "${workspaceFolder}/code",
             "preLaunchTask": "poetry install",
