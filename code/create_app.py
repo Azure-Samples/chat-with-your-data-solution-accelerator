@@ -8,6 +8,7 @@ import logging
 import mimetypes
 from os import path
 import sys
+import re
 import requests
 from openai import AzureOpenAI, Stream, APIStatusError
 from openai.types.chat import ChatCompletionChunk
@@ -21,13 +22,53 @@ from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
 from azure.identity import DefaultAzureCredential
 from backend.batch.utilities.tools.question_answer_tool import QuestionAnswerTool
 from backend.batch.utilities.parser.output_parser_tool import OutputParserTool
+from backend.batch.utilities.search.search import Search
 
 ERROR_429_MESSAGE = "We're currently experiencing a high number of requests for the service you're trying to access. Please wait a moment and try again."
 ERROR_GENERIC_MESSAGE = "An error occurred. Please try again. If the problem persists, please contact the site administrator."
 logger = logging.getLogger(__name__)
 
 
-def stream_with_data(response: Stream[ChatCompletionChunk]):
+def parse_byod_answer(source_documents, doc_ids, citations):
+    # create return message object
+
+    messages = [
+        {
+            "role": "tool",
+            "content": {"citations": [*citations]},
+            "end_turn": False,
+        }
+    ]
+    for i in doc_ids:
+        idx = i - 1
+
+        if idx >= len(source_documents):
+            logger.warning(f"Source document {i} not provided, skipping doc")
+            continue
+
+        doc = source_documents[idx]
+        # Then update the citation object in the response, it needs to have filepath and chunk_id to render in the UI as a file
+        messages[0]["content"]["citations"].append(
+            {
+                "content": doc.content,
+                "id": doc.id,
+                "chunk_id": (
+                    re.findall(r"\d+", doc.chunk_id)[-1]
+                    if doc.chunk_id is not None
+                    else doc.chunk
+                ),
+                "title": doc.title,
+                "filepath": doc.get_filename(include_path=True),
+                "url": doc.get_markdown_url(),
+            }
+        )
+    citations = messages[0]["content"]["citations"]
+
+    messages[0]["content"] = json.dumps(messages[0]["content"])
+    return messages, citations
+
+
+def stream_with_data(response: Stream[ChatCompletionChunk], question: str):
     """This function streams the response from Azure OpenAI with data."""
     response_obj = {
         "id": "",
@@ -51,7 +92,9 @@ def stream_with_data(response: Stream[ChatCompletionChunk]):
             }
         ],
     }
-
+    search_handler = Search.get_search_handler(env_helper=EnvHelper())
+    source_documents = Search.get_source_documents(search_handler, question)
+    citations = []
     for line in response:
         choice = line.choices[0]
 
@@ -75,7 +118,13 @@ def stream_with_data(response: Stream[ChatCompletionChunk]):
             )
         else:
             response_obj["choices"][0]["messages"][1]["content"] += delta.content
-
+            docs = re.findall(r"\[doc(\d+)\]", delta.content.replace("  ", " "))
+            if docs:
+                doc_ids = [int(i) for i in docs]
+                ref_content, citations = parse_byod_answer(
+                    source_documents, doc_ids, citations
+                )
+                response_obj["choices"][0]["messages"][0] = ref_content[0]
         yield json.dumps(response_obj, ensure_ascii=False) + "\n"
 
 
@@ -194,7 +243,7 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
         return response_obj
 
     return Response(
-        stream_with_data(response),
+        stream_with_data(response, messages[-1]["content"]),
         mimetype="application/json-lines",
     )
 
@@ -404,7 +453,6 @@ def create_app():
 
     @app.route("/api/conversation", methods=["POST"])
     async def conversation():
-        ConfigHelper.get_active_config_or_default.cache_clear()
         result = ConfigHelper.get_active_config_or_default()
         conversation_flow = result.prompts.conversational_flow
         if conversation_flow == ConversationFlow.CUSTOM.value:
