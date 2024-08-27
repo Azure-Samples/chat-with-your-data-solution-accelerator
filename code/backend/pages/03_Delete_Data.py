@@ -40,8 +40,11 @@ hide_table_row_index = """
 st.markdown(hide_table_row_index, unsafe_allow_html=True)
 
 try:
-    search_handler = Search.get_search_handler(env_helper)
+    # Initialize session state for selected files
+    if "selected_files" not in st.session_state:
+        st.session_state.selected_files = {}
 
+    search_handler = Search.get_search_handler(env_helper)
     results = search_handler.get_files()
     if results is None or results.get_count() == 0:
         st.info("No files to delete")
@@ -54,25 +57,26 @@ try:
         filename: st.checkbox(filename, False, key=filename)
         for filename in files.keys()
     }
-    selected_files = {
-        filename: ids for filename, ids in files.items() if selections[filename]
-    }
-
+    # Update session state with selected files
+    st.session_state.selected_files.update(
+        {filename: ids for filename, ids in files.items() if selections[filename]}
+    )
     if st.button("Delete"):
         with st.spinner("Deleting files..."):
-            if len(selected_files) == 0:
+            if len(st.session_state.selected_files) == 0:
                 st.info("No files selected")
                 st.stop()
             else:
                 files_to_delete = search_handler.delete_files(
-                    selected_files,
+                    st.session_state.selected_files,
                 )
                 blob_client = AzureBlobStorageClient()
                 blob_client.delete_files(
-                    selected_files, env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
+                    st.session_state.selected_files, env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
                 )
                 if len(files_to_delete) > 0:
                     st.success("Deleted files: " + str(files_to_delete))
+                    st.session_state.selected_files.clear()
                     st.rerun()
 except Exception:
     logger.error(traceback.format_exc())
