@@ -53,31 +53,32 @@ try:
         st.write("Select files to delete:")
 
     files = search_handler.output_results(results)
-    selections = {
-        filename: st.checkbox(filename, False, key=filename)
-        for filename in files.keys()
-    }
-    # Update session state with selected files
-    st.session_state.selected_files.update(
-        {filename: ids for filename, ids in files.items() if selections[filename]}
-    )
-    if st.button("Delete"):
-        with st.spinner("Deleting files..."):
-            if len(st.session_state.selected_files) == 0:
-                st.info("No files selected")
-                st.stop()
-            else:
-                files_to_delete = search_handler.delete_files(
-                    st.session_state.selected_files,
-                )
-                blob_client = AzureBlobStorageClient()
-                blob_client.delete_files(
-                    st.session_state.selected_files, env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
-                )
-                if len(files_to_delete) > 0:
-                    st.success("Deleted files: " + str(files_to_delete))
-                    st.session_state.selected_files.clear()
-                    st.rerun()
+    with st.form("delete_form", clear_on_submit=True, border=False):
+        selections = {
+            filename: st.checkbox(filename, False, key=filename)
+            for filename in files.keys()
+        }
+        selected_files = {
+            filename: ids for filename, ids in files.items() if selections[filename]
+        }
+
+        if st.form_submit_button("Delete"):
+            with st.spinner("Deleting files..."):
+                if len(selected_files) == 0:
+                    st.info("No files selected")
+                    st.stop()
+                else:
+                    files_to_delete = search_handler.delete_files(
+                        selected_files,
+                    )
+                    blob_client = AzureBlobStorageClient()
+                    blob_client.delete_files(
+                        selected_files,
+                        env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION,
+                    )
+                    if len(files_to_delete) > 0:
+                        st.success("Deleted files: " + str(files_to_delete))
+                        st.rerun()
 except Exception:
     logger.error(traceback.format_exc())
     st.error("Exception occurred deleting files.")
