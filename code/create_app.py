@@ -14,6 +14,7 @@ from openai import AzureOpenAI, Stream, APIStatusError
 from openai.types.chat import ChatCompletionChunk
 from flask import Flask, Response, request, Request, jsonify
 from dotenv import load_dotenv
+from urllib.parse import quote
 from backend.batch.utilities.helpers.env_helper import EnvHelper
 from backend.batch.utilities.helpers.orchestrator_helper import Orchestrator
 from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
@@ -22,53 +23,51 @@ from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
 from azure.identity import DefaultAzureCredential
 from backend.batch.utilities.tools.question_answer_tool import QuestionAnswerTool
 from backend.batch.utilities.parser.output_parser_tool import OutputParserTool
-from backend.batch.utilities.search.search import Search
+from backend.batch.utilities.helpers.azure_blob_storage_client import (
+    AzureBlobStorageClient,
+)
 
 ERROR_429_MESSAGE = "We're currently experiencing a high number of requests for the service you're trying to access. Please wait a moment and try again."
 ERROR_GENERIC_MESSAGE = "An error occurred. Please try again. If the problem persists, please contact the site administrator."
 logger = logging.getLogger(__name__)
 
 
-def parse_byod_answer(source_documents, doc_ids, citations):
-    # create return message object
+def get_markdown_url(source, title):
+    """Get Markdown URL for a citation"""
 
-    messages = [
-        {
-            "role": "tool",
-            "content": {"citations": [*citations]},
-            "end_turn": False,
-        }
-    ]
-    for i in doc_ids:
-        idx = i - 1
+    url = quote(source, safe=":/")
+    if "_SAS_TOKEN_PLACEHOLDER_" in url:
+        blob_client = AzureBlobStorageClient()
+        container_sas = blob_client.get_container_sas()
+        url = url.replace("_SAS_TOKEN_PLACEHOLDER_", container_sas)
+    return f"[{title}]({url})"
 
-        if idx >= len(source_documents):
-            logger.warning(f"Source document {i} not provided, skipping doc")
-            continue
 
-        doc = source_documents[idx]
-        # Then update the citation object in the response, it needs to have filepath and chunk_id to render in the UI as a file
-        messages[0]["content"]["citations"].append(
+def get_citations(citation_list):
+    """Returns Formated Citations"""
+
+    citations_dict = {"citations": []}
+    for citation in citation_list.get("citations"):
+        metadata = json.loads(citation["url"])
+        title = citation["title"]
+        citations_dict["citations"].append(
             {
-                "content": doc.content,
-                "id": doc.id,
+                "content": citation["content"],
+                "id": metadata["id"],
                 "chunk_id": (
-                    re.findall(r"\d+", doc.chunk_id)[-1]
-                    if doc.chunk_id is not None
-                    else doc.chunk
+                    re.findall(r"\d+", metadata["chunk_id"])[-1]
+                    if metadata["chunk_id"] is not None
+                    else metadata["chunk"]
                 ),
-                "title": doc.title,
-                "filepath": doc.get_filename(include_path=True),
-                "url": doc.get_markdown_url(),
+                "title": title,
+                "filepath": title.split("/")[-1],
+                "url": get_markdown_url(metadata["source"], title),
             }
         )
-    citations = messages[0]["content"]["citations"]
-
-    messages[0]["content"] = json.dumps(messages[0]["content"])
-    return messages, citations
+    return citations_dict
 
 
-def stream_with_data(response: Stream[ChatCompletionChunk], question: str):
+def stream_with_data(response: Stream[ChatCompletionChunk]):
     """This function streams the response from Azure OpenAI with data."""
     response_obj = {
         "id": "",
@@ -92,9 +91,7 @@ def stream_with_data(response: Stream[ChatCompletionChunk], question: str):
             }
         ],
     }
-    search_handler = Search.get_search_handler(env_helper=EnvHelper())
-    source_documents = Search.get_source_documents(search_handler, question)
-    citations = []
+
     for line in response:
         choice = line.choices[0]
 
@@ -112,19 +109,14 @@ def stream_with_data(response: Stream[ChatCompletionChunk], question: str):
         role = delta.role
 
         if role == "assistant":
+            citations = get_citations(delta.model_extra["context"])
             response_obj["choices"][0]["messages"][0]["content"] = json.dumps(
-                delta.model_extra["context"],
+                citations,
                 ensure_ascii=False,
             )
         else:
             response_obj["choices"][0]["messages"][1]["content"] += delta.content
-            docs = re.findall(r"\[doc(\d+)\]", delta.content.replace("  ", " "))
-            if docs:
-                doc_ids = [int(i) for i in docs]
-                ref_content, citations = parse_byod_answer(
-                    source_documents, doc_ids, citations
-                )
-                response_obj["choices"][0]["messages"][0] = ref_content[0]
+
         yield json.dumps(response_obj, ensure_ascii=False) + "\n"
 
 
@@ -186,7 +178,8 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
                                 env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN
                             ],
                             "title_field": env_helper.AZURE_SEARCH_TITLE_COLUMN or None,
-                            "url_field": env_helper.AZURE_SEARCH_URL_COLUMN or None,
+                            "url_field": env_helper.AZURE_SEARCH_FIELDS_METADATA
+                            or None,
                             "filepath_field": (
                                 env_helper.AZURE_SEARCH_FILENAME_COLUMN or None
                             ),
@@ -242,10 +235,7 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
 
         return response_obj
 
-    return Response(
-        stream_with_data(response, messages[-1]["content"]),
-        mimetype="application/json-lines",
-    )
+    return Response(stream_with_data(response), mimetype="application/json-lines")
 
 
 def stream_without_data(response: Stream[ChatCompletionChunk]):
@@ -453,6 +443,7 @@ def create_app():
 
     @app.route("/api/conversation", methods=["POST"])
     async def conversation():
+        ConfigHelper.get_active_config_or_default.cache_clear()
         result = ConfigHelper.get_active_config_or_default()
         conversation_flow = result.prompts.conversational_flow
         if conversation_flow == ConversationFlow.CUSTOM.value:
