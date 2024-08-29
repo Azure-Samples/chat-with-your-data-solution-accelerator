@@ -50,9 +50,10 @@ def get_citations(citation_list):
     for citation in citation_list.get("citations"):
         metadata = json.loads(citation["url"])
         title = citation["title"]
+        url = get_markdown_url(metadata["source"], title)
         citations_dict["citations"].append(
             {
-                "content": citation["content"],
+                "content": url + "\n\n\n" + citation["content"],
                 "id": metadata["id"],
                 "chunk_id": (
                     re.findall(r"\d+", metadata["chunk_id"])[-1]
@@ -61,7 +62,7 @@ def get_citations(citation_list):
                 ),
                 "title": title,
                 "filepath": title.split("/")[-1],
-                "url": get_markdown_url(metadata["source"], title),
+                "url": url,
             }
         )
     return citations_dict
