@@ -21,8 +21,6 @@ from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
 from azure.identity import DefaultAzureCredential
-from backend.batch.utilities.tools.question_answer_tool import QuestionAnswerTool
-from backend.batch.utilities.parser.output_parser_tool import OutputParserTool
 from backend.batch.utilities.helpers.azure_blob_storage_client import (
     AzureBlobStorageClient,
 )
@@ -211,27 +209,31 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
     )
 
     if not env_helper.SHOULD_STREAM:
-        user_messages = list(
-            filter(
-                lambda x: x["role"] in ("user", "assistant"),
-                conversation.json["messages"][0:-1],
-            )
-        )
-        answer = QuestionAnswerTool().answer_question(
-            messages[-1]["content"], user_messages
-        )
-        # Format the output for the UI
-        messages = OutputParserTool().parse(
-            question=answer.question,
-            answer=answer.answer,
-            source_documents=answer.source_documents,
-        )
+        citations = get_citations(response.choices[0].message.model_extra["context"])
         response_obj = {
             "id": response.id,
             "model": response.model,
             "created": response.created,
             "object": response.object,
-            "choices": [{"messages": messages}],
+            "choices": [
+                {
+                    "messages": [
+                        {
+                            "content": json.dumps(
+                                citations,
+                                ensure_ascii=False,
+                            ),
+                            "end_turn": False,
+                            "role": "tool",
+                        },
+                        {
+                            "end_turn": True,
+                            "content": response.choices[0].message.content,
+                            "role": "assistant",
+                        },
+                    ]
+                }
+            ],
         }
 
         return response_obj
