@@ -2,6 +2,7 @@ import json
 import re
 import pytest
 from pytest_httpserver import HTTPServer
+from unittest.mock import ANY, MagicMock, patch
 import requests
 
 from tests.request_matching import (
@@ -175,9 +176,16 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question_to_sear
     )
 
 
+@patch(
+    "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
+)
 def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question_to_store_in_conversation_log(
-    app_url: str, app_config: AppConfig, httpserver: HTTPServer
+    get_active_config_or_default_mock,
+    app_url: str,
+    app_config: AppConfig,
+    httpserver: HTTPServer,
 ):
+    get_active_config_or_default_mock.prompts.conversational_flow = "custom"
     # when
     requests.post(f"{app_url}{path}", json=body)
 

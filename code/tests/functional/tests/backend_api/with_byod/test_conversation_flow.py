@@ -1,6 +1,7 @@
 import json
 import pytest
 from pytest_httpserver import HTTPServer
+from unittest.mock import patch
 import requests
 from string import Template
 
@@ -46,9 +47,18 @@ data: [DONE]
     httpserver.check()
 
 
+@patch(
+    "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
+)
 def test_azure_byod_responds_successfully_when_streaming(
-    app_url: str, app_config: AppConfig, httpserver: HTTPServer
+    app_url: str,
+    app_config: AppConfig,
+    httpserver: HTTPServer,
+    get_active_config_or_default_mock,
 ):
+    get_active_config_or_default_mock.return_value.prompts.return_value = {
+        "conversational_flow": "byod"
+    }
     # when
     response = requests.post(f"{app_url}{path}", json=body)
 

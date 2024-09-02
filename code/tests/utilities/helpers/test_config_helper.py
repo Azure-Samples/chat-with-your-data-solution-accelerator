@@ -19,7 +19,8 @@ def config_dict():
             "post_answering_prompt": "mock_post_answering_prompt",
             "enable_post_answering_prompt": False,
             "enable_content_safety": True,
-            "ai_assistant_type": "default"
+            "ai_assistant_type": "default",
+            "conversational_flow": "custom",
         },
         "messages": {
             "post_answering_filter": "mock_post_answering_filter",
