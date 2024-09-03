@@ -389,11 +389,17 @@ class TestConversationCustom:
         }
 
     @patch("create_app.get_orchestrator_config")
+    @patch(
+        "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
+    )
     def test_conversation_custom_returns_500_when_internalservererror_occurs(
-        self, get_orchestrator_config_mock, client
+        self, get_active_config_or_default_mock, get_orchestrator_config_mock, client
     ):
         """Test that an error response is returned when an exception occurs."""
         # given
+        get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
+            "custom"
+        )
         response_mock = MagicMock()
         response_mock.status_code = 500
         get_orchestrator_config_mock.side_effect = InternalServerError(
