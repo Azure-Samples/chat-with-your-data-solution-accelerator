@@ -318,11 +318,17 @@ class TestConversationCustom:
         )
 
     @patch("create_app.get_orchestrator_config")
+    @patch(
+        "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
+    )
     def test_conversaation_custom_returns_error_response_on_exception(
-        self, get_orchestrator_config_mock, env_helper_mock, client
+        self, get_active_config_or_default_mock, get_orchestrator_config_mock, client
     ):
         """Test that an error response is returned when an exception occurs."""
         # given
+        get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
+            "custom"
+        )
         get_orchestrator_config_mock.side_effect = Exception("An error occurred")
 
         # when
@@ -384,7 +390,7 @@ class TestConversationCustom:
 
     @patch("create_app.get_orchestrator_config")
     def test_conversation_custom_returns_500_when_internalservererror_occurs(
-        self, get_orchestrator_config_mock, env_helper_mock, client
+        self, get_orchestrator_config_mock, client
     ):
         """Test that an error response is returned when an exception occurs."""
         # given
