@@ -623,9 +623,9 @@ class TestConversationAzureByod:
         data = str(response.data, "utf-8")
         assert (
             data
-            == r"""{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "", "end_turn": false, "role": "assistant"}]}]}
-{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": false, "role": "assistant"}]}]}
-{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": true, "role": "assistant"}]}]}
+            == r"""{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"[title](source)\\n\\n\\ncontent\", \"id\": \"doc_id\", \"chunk_id\": 46, \"title\": \"title\", \"filepath\": \"title\", \"url\": \"[title](source)\"}]}", "end_turn": false, "role": "tool"}, {"content": "", "end_turn": false, "role": "assistant"}]}]}
+{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"[title](source)\\n\\n\\ncontent\", \"id\": \"doc_id\", \"chunk_id\": 46, \"title\": \"title\", \"filepath\": \"title\", \"url\": \"[title](source)\"}]}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": false, "role": "assistant"}]}]}
+{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"[title](source)\\n\\n\\ncontent\", \"id\": \"doc_id\", \"chunk_id\": 46, \"title\": \"title\", \"filepath\": \"title\", \"url\": \"[title](source)\"}]}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": true, "role": "assistant"}]}]}
 """
         )
 
@@ -713,9 +713,9 @@ class TestConversationAzureByod:
         data = str(response.data, "utf-8")
         assert (
             data
-            == r"""{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "", "end_turn": false, "role": "assistant"}]}]}
-{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": false, "role": "assistant"}]}]}
-{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"content\", \"title\": \"title\"}], \"intent\": \"intent\"}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": true, "role": "assistant"}]}]}
+            == r"""{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"[title](source)\\n\\n\\ncontent\", \"id\": \"doc_id\", \"chunk_id\": 46, \"title\": \"title\", \"filepath\": \"title\", \"url\": \"[title](source)\"}]}", "end_turn": false, "role": "tool"}, {"content": "", "end_turn": false, "role": "assistant"}]}]}
+{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"[title](source)\\n\\n\\ncontent\", \"id\": \"doc_id\", \"chunk_id\": 46, \"title\": \"title\", \"filepath\": \"title\", \"url\": \"[title](source)\"}]}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": false, "role": "assistant"}]}]}
+{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"[title](source)\\n\\n\\ncontent\", \"id\": \"doc_id\", \"chunk_id\": 46, \"title\": \"title\", \"filepath\": \"title\", \"url\": \"[title](source)\"}]}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": true, "role": "assistant"}]}]}
 """
         )
 
@@ -772,7 +772,7 @@ class TestConversationAzureByod:
                 {
                     "messages": [
                         {
-                            "content": '{"citations": [{"content": "content", "title": "title"}], "intent": "intent"}',
+                            "content": '{"citations": [{"content": "[title](source)\\n\\n\\ncontent", "id": "doc_id", "chunk_id": 46, "title": "title", "filepath": "title", "url": "[title](source)"}]}',
                             "end_turn": False,
                             "role": "tool",
                         },
