@@ -155,7 +155,7 @@ class EnvHelper:
         # Set env for Azure OpenAI
         self.AZURE_OPENAI_ENDPOINT = os.environ.get(
             "AZURE_OPENAI_ENDPOINT",
-            f"https://{self.AZURE_OPENAI_RESOURCE}.openai.azure.com/",
+            f"https://{self.AZURE_OPENAI_RESOURCE}.openai.azure.com",
         )
 
         # Set env for OpenAI SDK
@@ -210,10 +210,6 @@ class EnvHelper:
         # Orchestration Settings
         self.ORCHESTRATION_STRATEGY = os.getenv(
             "ORCHESTRATION_STRATEGY", "openai_function"
-        )
-        # Conversation Type - which chooses between custom or byod
-        self.CONVERSATION_FLOW = os.getenv(
-            "CONVERSATION_FLOW", ConversationFlow.CUSTOM.value
         )
         # Speech Service
         self.AZURE_SPEECH_SERVICE_NAME = os.getenv("AZURE_SPEECH_SERVICE_NAME", "")
