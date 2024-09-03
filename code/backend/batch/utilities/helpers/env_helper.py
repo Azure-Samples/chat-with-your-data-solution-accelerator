@@ -155,7 +155,7 @@ class EnvHelper:
         # Set env for Azure OpenAI
         self.AZURE_OPENAI_ENDPOINT = os.environ.get(
             "AZURE_OPENAI_ENDPOINT",
-            f"https://{self.AZURE_OPENAI_RESOURCE}.openai.azure.com",
+            f"https://{self.AZURE_OPENAI_RESOURCE}.openai.azure.com/",
         )
 
         # Set env for OpenAI SDK
