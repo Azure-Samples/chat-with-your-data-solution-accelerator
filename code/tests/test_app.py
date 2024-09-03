@@ -278,8 +278,12 @@ class TestConversationCustom:
 
     @patch("create_app.get_message_orchestrator")
     @patch("create_app.get_orchestrator_config")
+    @patch(
+        "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
+    )
     def test_conversation_custom_calls_message_orchestrator_correctly(
         self,
+        get_active_config_or_default_mock,
         get_orchestrator_config_mock,
         get_message_orchestrator_mock,
         env_helper_mock,
@@ -287,6 +291,9 @@ class TestConversationCustom:
     ):
         """Test that the custom conversation endpoint calls the message orchestrator correctly."""
         # given
+        get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
+            "custom"
+        )
         get_orchestrator_config_mock.return_value = self.orchestrator_config
 
         message_orchestrator_mock = AsyncMock()
@@ -332,11 +339,17 @@ class TestConversationCustom:
         }
 
     @patch("create_app.get_orchestrator_config")
+    @patch(
+        "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
+    )
     def test_conversation_custom_returns_error_response_on_rate_limit_error(
-        self, get_orchestrator_config_mock, env_helper_mock, client
+        self, get_active_config_or_default_mock, get_orchestrator_config_mock, client
     ):
         """Test that a 429 response is returned on RateLimitError."""
         # given
+        get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
+            "custom"
+        )
         response_mock = Mock()
         response_mock.status_code = 429
         response_mock.json.return_value = {
@@ -397,8 +410,12 @@ class TestConversationCustom:
 
     @patch("create_app.get_message_orchestrator")
     @patch("create_app.get_orchestrator_config")
+    @patch(
+        "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
+    )
     def test_conversation_custom_allows_multiple_messages_from_user(
         self,
+        get_active_config_or_default_mock,
         get_orchestrator_config_mock,
         get_message_orchestrator_mock,
         client,
@@ -406,6 +423,9 @@ class TestConversationCustom:
         """This can happen if there was an error getting a response from the assistant for the previous user message."""
 
         # given
+        get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
+            "custom"
+        )
         get_orchestrator_config_mock.return_value = self.orchestrator_config
 
         message_orchestrator_mock = AsyncMock()
@@ -497,7 +517,7 @@ class TestConversationAzureByod:
                                     {
                                         "content": "content",
                                         "title": "title",
-                                        "url": '{"id": "doc_id", "source": "https://strgwchoykpenmmu.blob.core.windows.net/documents/MSFT_FY23Q4_10K.docx_SAS_TOKEN_PLACEHOLDER_", "title": "/documents/MSFT_FY23Q4_10K.docx", "chunk": 46, "chunk_id": null}',
+                                        "url": '{"id": "doc_id", "source": "source", "title": "title", "chunk": 46, "chunk_id": null}',
                                     }
                                 ],
                                 "intent": "intent",
@@ -524,7 +544,7 @@ class TestConversationAzureByod:
                                         {
                                             "content": "content",
                                             "title": "title",
-                                            "url": '{"id": "doc_id", "source": "https://strgwchoykpenmmu.blob.core.windows.net/documents/MSFT_FY23Q4_10K.docx_SAS_TOKEN_PLACEHOLDER_", "title": "/documents/MSFT_FY23Q4_10K.docx", "chunk": 46, "chunk_id": null}',
+                                            "url": '{"id": "doc_id", "source": "source", "title": "title", "chunk": 46, "chunk_id": null}',
                                         }
                                     ],
                                     "intent": "intent",
