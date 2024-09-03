@@ -46,11 +46,11 @@ def verify_request_made(
             if request.method != request_matcher.method:
                 continue
 
-            # if (
-            #     request_matcher.json is not None
-            #     and request.json != request_matcher.json
-            # ):
-            #     continue
+            if (
+                request_matcher.json is not None
+                and request.json != request_matcher.json
+            ):
+                continue
 
             if request_matcher.headers is not None and not contains_all_headers(
                 request_matcher, request
