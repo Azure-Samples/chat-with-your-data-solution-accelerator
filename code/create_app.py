@@ -46,7 +46,11 @@ def get_citations(citation_list):
 
     citations_dict = {"citations": []}
     for citation in citation_list.get("citations"):
-        metadata = json.loads(citation["url"])
+        metadata = (
+            json.loads(citation["url"])
+            if isinstance(citation["url"], str)
+            else citation["url"]
+        )
         title = citation["title"]
         url = get_markdown_url(metadata["source"], title)
         citations_dict["citations"].append(
