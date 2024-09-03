@@ -176,16 +176,11 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question_to_sear
     )
 
 
-@patch(
-    "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
-)
 def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question_to_store_in_conversation_log(
-    get_active_config_or_default_mock,
     app_url: str,
     app_config: AppConfig,
     httpserver: HTTPServer,
 ):
-    get_active_config_or_default_mock.prompts.conversational_flow = "custom"
     # when
     requests.post(f"{app_url}{path}", json=body)
 
@@ -657,9 +652,13 @@ def test_post_makes_correct_call_to_store_conversation_in_search(
     )
 
 
+@patch(
+    "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
+)
 def test_post_returns_error_when_downstream_fails(
-    app_url: str, app_config: AppConfig, httpserver: HTTPServer
+    get_active_config_or_default_mock, app_url: str, httpserver: HTTPServer
 ):
+    get_active_config_or_default_mock.return_value.prompts.conversational_flow = "custom"
     httpserver.expect_oneshot_request(
         re.compile(".*"),
     ).respond_with_json({}, status=403)
