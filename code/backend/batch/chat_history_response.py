@@ -14,7 +14,7 @@ import asyncio
 from azure.identity.aio import  DefaultAzureCredential
 
 load_dotenv()
-bp = func.Blueprint()
+bp_chat_history_response = func.Blueprint()
 logger = logging.getLogger(__name__)
 logger.setLevel(level=os.environ.get("LOGLEVEL", "INFO").upper())
 
@@ -55,11 +55,11 @@ def init_cosmosdb_client():
             cosmos_conversation_client = None
             raise e
     else:
-        logging.debug("CosmosDB not configured")
+        logger.debug("CosmosDB not configured")
 
     return cosmos_conversation_client
 
-@bp.route("/history/list", methods=["GET"])
+@bp_chat_history_response.route("/history/list", methods=["GET"])
 async def list_conversations(request: func.HttpRequest) -> func.HttpResponse:
     offset = request.args.get("offset", 0)
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
@@ -83,7 +83,7 @@ async def list_conversations(request: func.HttpRequest) -> func.HttpResponse:
         logger.exception("Exception in /history/list")
         return func.HttpResponse(json.dumps({"error": str(e)}), status_code=500)
 
-@bp.route("/history/rename", methods=["POST"])
+@bp_chat_history_response.route("/history/rename", methods=["POST"])
 async def rename_conversation(request: func.HttpRequest) -> func.HttpResponse:
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
     user_id = authenticated_user["user_principal_id"]
@@ -123,7 +123,7 @@ async def rename_conversation(request: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse(json.dumps({"error": str(e)}), status_code=500)
 
 
-@bp.route("/history/read", methods=["POST"])
+@bp_chat_history_response.route("/history/read", methods=["POST"])
 async def get_conversation(request: func.HttpRequest) -> func.HttpResponse:
 
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
@@ -173,7 +173,7 @@ async def get_conversation(request: func.HttpRequest) -> func.HttpResponse:
         logger.exception("Exception in /history/read")
         return func.HttpResponse(json.dumps({"error": str(e)}), status_code=500)
 
-@bp.route("/history/delete", methods=["DELETE"])
+@bp_chat_history_response.route("/history/delete", methods=["DELETE"])
 async def delete_conversation(request: func.HttpRequest) -> func.HttpResponse:
     ## get the user id from the request headers
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
@@ -208,7 +208,7 @@ async def delete_conversation(request: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse(json.dumps({"error": str(e)}), status_code=500)
 
 
-@bp.route("/history/delete_all", methods=["DELETE"])
+@bp_chat_history_response.route("/history/delete_all", methods=["DELETE"])
 async def delete_all_conversations(request: func.HttpRequest) -> func.HttpResponse:
 
     ## get the user id from the request headers
@@ -241,8 +241,8 @@ async def delete_all_conversations(request: func.HttpRequest) -> func.HttpRespon
                 user_id, conversation["id"]
             )
 
-        return func.HttpResponse(json.dumps({"message": f"Successfully deleted conversation and messages for user {user_id} "), 200)
+        return func.HttpResponse(json.dumps({"message": f"Successfully deleted conversation and messages for user {user_id} "}), 200)
 
     except Exception as e:
-        logging.exception("Exception in /history/delete_all")
-        return jsonify({"error": str(e)}), 500
+        logger.exception("Exception in /history/delete")
+        return func.HttpResponse(json.dumps({"error": str(e)}), status_code=500)
