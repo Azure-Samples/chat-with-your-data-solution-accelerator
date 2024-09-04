@@ -214,7 +214,6 @@ class TestConversationCustom:
     def setup_method(self):
         """Set up the test data."""
         self.orchestrator_config = {"strategy": "langchain"}
-        self.conversastion_flow = {"conversation_flow": "custom"}
         self.messages = [
             {
                 "content": '{"citations": [], "intent": "A question?"}',
@@ -608,7 +607,7 @@ class TestConversationAzureByod:
         self,
         get_active_config_or_default_mock,
         azure_openai_mock: MagicMock,
-        env_helper_mock,
+        env_helper_mock: MagicMock,
         client: FlaskClient,
     ):
         """Test that the Azure BYOD conversation endpoint returns the correct response."""

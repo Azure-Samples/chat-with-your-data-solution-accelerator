@@ -171,7 +171,9 @@ class ConfigHelper:
             config["example"] = default_config["example"]
 
         if config["prompts"].get("ai_assistant_type") is None:
-            config["prompts"]["ai_assistant_type"] = default_config["prompts"]["ai_assistant_type"]
+            config["prompts"]["ai_assistant_type"] = default_config["prompts"][
+                "ai_assistant_type"
+            ]
 
         if config.get("integrated_vectorization_config") is None:
             config["integrated_vectorization_config"] = default_config[
@@ -179,7 +181,9 @@ class ConfigHelper:
             ]
 
         if config["prompts"].get("conversational_flow") is None:
-            config["prompts"]["conversational_flow"] = default_config["prompts"]["conversational_flow"]
+            config["prompts"]["conversational_flow"] = default_config["prompts"][
+                "conversational_flow"
+            ]
 
     @staticmethod
     @functools.cache
@@ -206,7 +210,6 @@ class ConfigHelper:
     def get_default_assistant_prompt():
         config = ConfigHelper.get_default_config()
         return config["prompts"]["answering_user_prompt"]
-
 
     @staticmethod
     def save_config_as_active(config):
@@ -256,12 +259,14 @@ class ConfigHelper:
     @staticmethod
     @functools.cache
     def get_default_contract_assistant():
-        contract_file_path = os.path.join(os.path.dirname(__file__), "default_contract_assistant_prompt.txt")
+        contract_file_path = os.path.join(
+            os.path.dirname(__file__), "default_contract_assistant_prompt.txt"
+        )
         contract_assistant = ""
         with open(contract_file_path, encoding="utf-8") as f:
             contract_assistant = f.readlines()
 
-        return ''.join([str(elem) for elem in contract_assistant])
+        return "".join([str(elem) for elem in contract_assistant])
 
     @staticmethod
     def clear_config():

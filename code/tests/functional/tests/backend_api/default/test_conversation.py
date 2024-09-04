@@ -2,7 +2,7 @@ import json
 import re
 import pytest
 from pytest_httpserver import HTTPServer
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import patch
 import requests
 
 from tests.request_matching import (
@@ -658,7 +658,9 @@ def test_post_makes_correct_call_to_store_conversation_in_search(
 def test_post_returns_error_when_downstream_fails(
     get_active_config_or_default_mock, app_url: str, httpserver: HTTPServer
 ):
-    get_active_config_or_default_mock.return_value.prompts.conversational_flow = "custom"
+    get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
+        "custom"
+    )
     httpserver.expect_oneshot_request(
         re.compile(".*"),
     ).respond_with_json({}, status=403)
