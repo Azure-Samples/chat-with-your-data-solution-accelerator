@@ -129,12 +129,12 @@ def test_post_makes_correct_call_to_azure_openai(
                             "fields_mapping": {
                                 "content_fields": ["content"],
                                 "vector_fields": [
-                                    app_config.get(
-                                        "AZURE_SEARCH_CONTENT_VECTOR_COLUMN"
-                                    )
+                                    app_config.get("AZURE_SEARCH_CONTENT_VECTOR_COLUMN")
                                 ],
                                 "title_field": "title",
-                                "url_field": "source",
+                                "url_field": app_config.get(
+                                    "AZURE_SEARCH_FIELDS_METADATA"
+                                ),
                                 "filepath_field": "filepath",
                             },
                             "filter": app_config.get("AZURE_SEARCH_FILTER"),

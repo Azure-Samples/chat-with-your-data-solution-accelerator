@@ -608,6 +608,7 @@ class TestConversationAzureByod:
         self,
         get_active_config_or_default_mock,
         azure_openai_mock: MagicMock,
+        env_helper_mock,
         client: FlaskClient,
     ):
         """Test that the Azure BYOD conversation endpoint returns the correct response."""
@@ -670,7 +671,7 @@ class TestConversationAzureByod:
                                 "content_fields": ["field1", "field2"],
                                 "vector_fields": [AZURE_SEARCH_CONTENT_VECTOR_COLUMN],
                                 "title_field": AZURE_SEARCH_TITLE_COLUMN,
-                                "url_field": AZURE_SEARCH_URL_COLUMN,
+                                "url_field": env_helper_mock.AZURE_SEARCH_FIELDS_METADATA,
                                 "filepath_field": AZURE_SEARCH_FILENAME_COLUMN,
                             },
                             "filter": AZURE_SEARCH_FILTER,
