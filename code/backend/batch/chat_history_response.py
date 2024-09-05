@@ -9,7 +9,7 @@ from utilities.helpers.env_helper import EnvHelper
 from utilities.helpers.orchestrator_helper import Orchestrator
 from utilities.helpers.config.config_helper import ConfigHelper
 from utilities.chat_history.chat_history import CosmosConversationClient
-from utilities.helpers.auth_helper import get_authenticated_user_details
+from utilities.auth.auth_utils import get_authenticated_user_details
 import asyncio
 from azure.identity.aio import DefaultAzureCredential
 
@@ -452,7 +452,7 @@ async def update_conversation(request: func.HttpRequest) -> func.HttpResponse:
 
 
 @bp_chat_history_response.route(
-    "/history/frontend_settings", ethods=[func.HttpMethod.GET]
+    "/history/frontend_settings", methods=[func.HttpMethod.GET]
 )
 def get_frontend_settings():
     try:
