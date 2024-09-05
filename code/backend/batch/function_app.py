@@ -5,7 +5,7 @@ from add_url_embeddings import bp_add_url_embeddings
 from batch_push_results import bp_batch_push_results
 from batch_start_processing import bp_batch_start_processing
 from get_conversation_response import bp_get_conversation_response
-from chat_history_response import bp_chat_history_response
+# from chat_history_response import bp_chat_history_response
 from azure.monitor.opentelemetry import configure_azure_monitor
 
 logging.captureWarnings(True)
@@ -21,4 +21,4 @@ app.register_functions(bp_add_url_embeddings)
 app.register_functions(bp_batch_push_results)
 app.register_functions(bp_batch_start_processing)
 app.register_functions(bp_get_conversation_response)
-app.register_functions(bp_chat_history_response)
+# app.register_functions(bp_chat_history_response)

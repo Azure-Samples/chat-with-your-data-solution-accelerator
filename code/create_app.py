@@ -17,12 +17,13 @@ from backend.batch.utilities.helpers.env_helper import EnvHelper
 from backend.batch.utilities.helpers.orchestrator_helper import Orchestrator
 from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
+from backend.api.chat_history import bp_chat_history_response
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
-from azure.identity import DefaultAzureCredential
 
+
+logger = logging.getLogger(__name__)
 ERROR_429_MESSAGE = "We're currently experiencing a high number of requests for the service you're trying to access. Please wait a moment and try again."
 ERROR_GENERIC_MESSAGE = "An error occurred. Please try again. If the problem persists, please contact the site administrator."
-logger = logging.getLogger(__name__)
 
 
 def stream_with_data(response: Stream[ChatCompletionChunk]):
@@ -455,4 +456,5 @@ def create_app():
         result = ConfigHelper.get_active_config_or_default()
         return jsonify({"ai_assistant_type": result.prompts.ai_assistant_type})
 
+    app.register_blueprint(bp_chat_history_response, url_prefix='/api')
     return app

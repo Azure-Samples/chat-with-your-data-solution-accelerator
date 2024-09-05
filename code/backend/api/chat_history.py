@@ -1,20 +1,15 @@
 import os
-import azure.functions as func
 import logging
 import json
 from uuid import uuid4
 from dotenv import load_dotenv
-
-from utilities.helpers.env_helper import EnvHelper
-from utilities.helpers.orchestrator_helper import Orchestrator
-from utilities.helpers.config.config_helper import ConfigHelper
-from code.backend.batch.utilities.chat_history.cosmosdb import CosmosConversationClient
-from utilities.auth.auth_utils import get_authenticated_user_details
-import asyncio
+from flask import Flask, Response, request, Request, jsonify, Blueprint
+from .cosmosdb import CosmosConversationClient
+from .auth_utils import get_authenticated_user_details
 from azure.identity.aio import DefaultAzureCredential
 
 load_dotenv()
-bp_chat_history_response = func.Blueprint()
+bp_chat_history_response = Blueprint("chat_history", __name__)
 logger = logging.getLogger(__name__)
 logger.setLevel(level=os.environ.get("LOGLEVEL", "INFO").upper())
 
@@ -61,124 +56,110 @@ def init_cosmosdb_client():
     return cosmos_conversation_client
 
 
-@bp_chat_history_response.route("/history/list", methods=[func.HttpMethod.GET])
-async def list_conversations(request: func.HttpRequest) -> func.HttpResponse:
+@bp_chat_history_response.route("/history/list", methods=["GET"])
+async def list_conversations():
+    print("list_conversations")
     if not CHAT_HISTORY_ENABLED:
-        return func.HttpResponse(
-            json.dumps({"error": f"Chat history is not avaliable"}), status_code=400
-        )
-    offset = request.args.get("offset", 0)
-    authenticated_user = get_authenticated_user_details(request_headers=request.headers)
-    user_id = authenticated_user["user_principal_id"]
+        return (jsonify({"error": f"Chat history is not avaliable"}), 400)
 
     try:
+        offset = request.args.get("offset", 0)
+        authenticated_user = get_authenticated_user_details(request_headers=request.headers)
+        user_id = authenticated_user["user_principal_id"]
         cosmos_conversation_client = init_cosmosdb_client()
         if not cosmos_conversation_client:
-            return func.HttpResponse(
-                json.dumps({"error": "database not available"}), status_code=500
-            )
+            return (jsonify({"error": "database not available"}), 500)
 
         ## get the conversations from cosmos
         conversations = await cosmos_conversation_client.get_conversations(
             user_id, offset=offset, limit=25
         )
         if not isinstance(conversations, list):
-            return func.HttpResponse(
-                json.dumps({"error": f"No conversations for {user_id} were found"}),
-                status_code=400,
+            return (
+                jsonify({"error": f"No conversations for {user_id} were found"}),
+                400,
             )
 
-        return func.HttpResponse(json.dumps(conversations), 200)
+        return (jsonify(conversations), 200)
 
     except Exception as e:
-        logger.exception("Exception in /history/list")
-        return func.HttpResponse(json.dumps({"error": str(e)}), status_code=500)
+        logger.exception("Exception in /list")
+        return (jsonify({"error": str(e)}), 500)
 
 
-@bp_chat_history_response.route("/history/rename", methods=[func.HttpMethod.POST])
-async def rename_conversation(request: func.HttpRequest) -> func.HttpResponse:
+@bp_chat_history_response.route("/history/rename", methods=["POST"])
+async def rename_conversation():
+    print("rename_conversation")
     if not CHAT_HISTORY_ENABLED:
-        return func.HttpResponse(
-            json.dumps({"error": f"Chat history is not avaliable"}), status_code=400
-        )
+        return (jsonify({"error": f"Chat history is not avaliable"}), 400)
+    try:
+        authenticated_user = get_authenticated_user_details(request_headers=request.headers)
+        user_id = authenticated_user["user_principal_id"]
 
-    authenticated_user = get_authenticated_user_details(request_headers=request.headers)
-    user_id = authenticated_user["user_principal_id"]
+        ## check request for conversation_id
+        request_json = await request.get_json()
+        conversation_id = request_json.get("conversation_id", None)
 
-    ## check request for conversation_id
-    request_json = await request.get_json()
-    conversation_id = request_json.get("conversation_id", None)
-
-    if not conversation_id:
-        return func.HttpResponse(
-            json.dumps({"error": "conversation_id is required"}), status_code=400
-        )
+        if not conversation_id:
+            return (jsonify({"error": "conversation_id is required"}), 400)
 
     ## make sure cosmos is configured
-    try:
+
         cosmos_conversation_client = init_cosmosdb_client()
         if not cosmos_conversation_client:
-            return func.HttpResponse(
-                json.dumps({"error": "database not available"}), status_code=500
-            )
+            return (jsonify({"error": "database not available"}), 500)
 
         ## get the conversation from cosmos
         conversation = await cosmos_conversation_client.get_conversation(
             user_id, conversation_id
         )
         if not conversation:
-            return func.HttpResponse(
-                json.dumps(
+            return (
+                jsonify(
                     {
                         "error": f"Conversation {conversation_id} was not found. It either does not exist or the logged in user does not have access to it."
                     }
                 ),
-                status_code=400,
+                400,
             )
 
         ## update the title
         title = request_json.get("title", None)
         if not title:
-            return func.HttpResponse(
-                json.dumps({"error": "title is required"}), status_code=400
-            )
+            return (jsonify({"error": "title is required"}), 400)
         conversation["title"] = title
         updated_conversation = await cosmos_conversation_client.upsert_conversation(
             conversation
         )
-        return func.HttpResponse(json.dumps(updated_conversation), 200)
+        return (jsonify(updated_conversation), 200)
 
     except Exception as e:
-        logger.exception("Exception in /history/rename")
-        return func.HttpResponse(json.dumps({"error": str(e)}), status_code=500)
+        logger.exception("Exception in /rename")
+        return (jsonify({"error": str(e)}), 500)
 
 
-@bp_chat_history_response.route("/history/read", methods=[func.HttpMethod.POST])
-async def get_conversation(request: func.HttpRequest) -> func.HttpResponse:
-
+@bp_chat_history_response.route("/history/read", methods=["POST"])
+async def get_conversation():
+    print("get_conversation")
     if not CHAT_HISTORY_ENABLED:
-        return func.HttpResponse(
-            json.dumps({"error": f"Chat history is not avaliable"}), status_code=400
-        )
-    authenticated_user = get_authenticated_user_details(request_headers=request.headers)
-    user_id = authenticated_user["user_principal_id"]
+        return (jsonify({"error": f"Chat history is not avaliable"}), 400)
 
-    ## check request for conversation_id
-    request_json = await request.get_json()
-    conversation_id = request_json.get("conversation_id", None)
-
-    if not conversation_id:
-        return func.HttpResponse(
-            json.dumps({"error": "conversation_id is required"}), status_code=400
-        )
-
-    ## make sure cosmos is configured
     try:
+        authenticated_user = get_authenticated_user_details(request_headers=request.headers)
+        user_id = authenticated_user["user_principal_id"]
+
+        ## check request for conversation_id
+        request_json = await request.get_json()
+        conversation_id = request_json.get("conversation_id", None)
+
+        if not conversation_id:
+            return (jsonify({"error": "conversation_id is required"}), 400)
+
+        ## make sure cosmos is configured
+
         cosmos_conversation_client = init_cosmosdb_client()
         if not cosmos_conversation_client:
-            return func.HttpResponse(
-                json.dumps({"error": "database not available"}), status_code=500
-            )
+            return (jsonify({"error": "database not available"}), 500)
 
         ## get the conversation object and the related messages from cosmos
         conversation = await cosmos_conversation_client.get_conversation(
@@ -186,13 +167,13 @@ async def get_conversation(request: func.HttpRequest) -> func.HttpResponse:
         )
         ## return the conversation id and the messages in the bot frontend format
         if not conversation:
-            return func.HttpResponse(
-                json.dumps(
+            return (
+                jsonify(
                     {
                         "error": f"Conversation {conversation_id} was not found. It either does not exist or the logged in user does not have access to it."
                     }
                 ),
-                status_code=400,
+                400,
             )
 
         # get the messages for the conversation from cosmos
@@ -212,44 +193,41 @@ async def get_conversation(request: func.HttpRequest) -> func.HttpResponse:
             for msg in conversation_messages
         ]
 
-        return func.HttpResponse(
-            json.dumps({"conversation_id": conversation_id, "messages": messages}), 200
+        return (
+            jsonify({"conversation_id": conversation_id, "messages": messages}),
+            200,
         )
     except Exception as e:
-        logger.exception("Exception in /history/read")
-        return func.HttpResponse(json.dumps({"error": str(e)}), status_code=500)
+        logger.exception("Exception in /read")
+        return (jsonify({"error": str(e)}), 500)
 
 
-@bp_chat_history_response.route("/history/delete", methods=[func.HttpMethod.DELETE])
-async def delete_conversation(request: func.HttpRequest) -> func.HttpResponse:
+@bp_chat_history_response.route("/history/delete", methods=["DELETE"])
+async def delete_conversation():
+    print("delete_conversation")
     if not CHAT_HISTORY_ENABLED:
-        return func.HttpResponse(
-            json.dumps({"error": f"Chat history is not avaliable"}), status_code=400
-        )
-    ## get the user id from the request headers
-    authenticated_user = get_authenticated_user_details(request_headers=request.headers)
-    user_id = authenticated_user["user_principal_id"]
-
-    ## check request for conversation_id
-    request_json = await request.get_json()
-    conversation_id = request_json.get("conversation_id", None)
+        return (jsonify({"error": f"Chat history is not avaliable"}), 400)
 
     try:
+        ## get the user id from the request headers
+        authenticated_user = get_authenticated_user_details(request_headers=request.headers)
+        user_id = authenticated_user["user_principal_id"]
+        ## check request for conversation_id
+        request_json = await request.get_json()
+        conversation_id = request_json.get("conversation_id", None)
         if not conversation_id:
-            return func.HttpResponse(
-                json.dumps(
+            return (
+                jsonify(
                     {
                         "error": f"Conversation {conversation_id} was not found. It either does not exist or the logged in user does not have access to it."
                     }
                 ),
-                status_code=400,
+                400,
             )
 
         cosmos_conversation_client = init_cosmosdb_client()
         if not cosmos_conversation_client:
-            return func.HttpResponse(
-                json.dumps({"error": "database not available"}), status_code=500
-            )
+            return (jsonify({"error": "database not available"}), 500)
 
         ## delete the conversation messages from cosmos first
         deleted_messages = await cosmos_conversation_client.delete_messages(
@@ -261,8 +239,8 @@ async def delete_conversation(request: func.HttpRequest) -> func.HttpResponse:
             user_id, conversation_id
         )
 
-        return func.HttpResponse(
-            json.dumps(
+        return (
+            jsonify(
                 {
                     "message": "Successfully deleted conversation and messages",
                     "conversation_id": conversation_id,
@@ -271,36 +249,34 @@ async def delete_conversation(request: func.HttpRequest) -> func.HttpResponse:
             200,
         )
     except Exception as e:
-        logger.exception("Exception in /history/delete")
-        return func.HttpResponse(json.dumps({"error": str(e)}), status_code=500)
+        logger.exception("Exception in /delete")
+        return (jsonify({"error": str(e)}), 500)
 
 
-@bp_chat_history_response.route("/history/delete_all", methods=[func.HttpMethod.DELETE])
-async def delete_all_conversations(request: func.HttpRequest) -> func.HttpResponse:
+@bp_chat_history_response.route("/history/delete_all", methods=["DELETE"])
+async def delete_all_conversations():
+    print("delete_all_conversations")
     if not CHAT_HISTORY_ENABLED:
-        return func.HttpResponse(
-            json.dumps({"error": f"Chat history is not avaliable"}), status_code=400
-        )
-    ## get the user id from the request headers
-    authenticated_user = get_authenticated_user_details(request_headers=request.headers)
-    user_id = authenticated_user["user_principal_id"]
+        return (jsonify({"error": f"Chat history is not avaliable"}), 400)
 
-    # get conversations for user
     try:
+        ## get the user id from the request headers
+        authenticated_user = get_authenticated_user_details(request_headers=request.headers)
+        user_id = authenticated_user["user_principal_id"]
+
+        # get conversations for user
         ## make sure cosmos is configured
         cosmos_conversation_client = init_cosmosdb_client()
         if not cosmos_conversation_client:
-            return func.HttpResponse(
-                json.dumps({"error": "database not available"}), status_code=500
-            )
+            return (jsonify({"error": "database not available"}), 500)
 
         conversations = await cosmos_conversation_client.get_conversations(
             user_id, offset=0, limit=None
         )
         if not conversations:
-            return func.HttpResponse(
-                json.dumps({"error": f"No conversations for {user_id} were found"}),
-                status_code=400,
+            return (
+                jsonify({"error": f"No conversations for {user_id} were found"}),
+                400,
             )
 
         # delete each conversation
@@ -315,8 +291,8 @@ async def delete_all_conversations(request: func.HttpRequest) -> func.HttpRespon
                 user_id, conversation["id"]
             )
 
-        return func.HttpResponse(
-            json.dumps(
+        return (
+            jsonify(
                 {
                     "message": f"Successfully deleted all conversation and messages for user {user_id} "
                 }
@@ -325,16 +301,15 @@ async def delete_all_conversations(request: func.HttpRequest) -> func.HttpRespon
         )
 
     except Exception as e:
-        logger.exception("Exception in /history/delete")
-        return func.HttpResponse(json.dumps({"error": str(e)}), status_code=500)
+        logger.exception("Exception in /delete")
+        return (jsonify({"error": str(e)}), 500)
 
 
-@bp_chat_history_response.route("/history/generate", methods=[func.HttpMethod.POST])
-async def add_conversation(request: func.HttpRequest) -> func.HttpResponse:
+@bp_chat_history_response.route("/history/generate", methods=["POST"])
+async def add_conversation():
+    print("add_conversation")
     if not CHAT_HISTORY_ENABLED:
-        return func.HttpResponse(
-            json.dumps({"error": f"Chat history is not avaliable"}), status_code=400
-        )
+        return (jsonify({"error": f"Chat history is not avaliable"}), 400)
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
     user_id = authenticated_user["user_principal_id"]
 
@@ -346,9 +321,7 @@ async def add_conversation(request: func.HttpRequest) -> func.HttpResponse:
         ## make sure cosmos is configured
         cosmos_conversation_client = init_cosmosdb_client()
         if not cosmos_conversation_client:
-            return func.HttpResponse(
-                json.dumps({"error": "database not available"}), status_code=500
-            )
+            return (jsonify({"error": "database not available"}), 500)
         # check for the conversation_id, if the conversation is not set, we will create a new one
         history_metadata = {}
         if not conversation_id:
@@ -371,13 +344,9 @@ async def add_conversation(request: func.HttpRequest) -> func.HttpResponse:
                 input_message=messages[-1],
             )
             if createdMessageValue == "Conversation not found":
-                return func.HttpResponse(
-                    json.dumps({"error": f"Conversation not found"}), status_code=400
-                )
+                return (jsonify({"error": f"Conversation not found"}), 400)
         else:
-            return func.HttpResponse(
-                json.dumps({"error": f"User not found"}), status_code=400
-            )
+            return (jsonify({"error": f"User not found"}), 400)
 
         # # Submit request to Chat Completions for response
         # request_body = await request.get_json()
@@ -386,37 +355,29 @@ async def add_conversation(request: func.HttpRequest) -> func.HttpResponse:
         # return await conversation_internal(request_body, request.headers)
 
     except Exception as e:
-        logger.exception("Exception in /history/generate")
-        return func.HttpResponse(json.dumps({"error": str(e)}), status_code=500)
+        logger.exception("Exception in /generate")
+        return (jsonify({"error": str(e)}), 500)
 
 
-@bp_chat_history_response.route("/history/update", methods=[func.HttpMethod.POST])
-async def update_conversation(request: func.HttpRequest) -> func.HttpResponse:
+@bp_chat_history_response.route("/history/update", methods=["POST"])
+async def update_conversation():
     if not CHAT_HISTORY_ENABLED:
-        return func.HttpResponse(
-            json.dumps({"error": f"Chat history is not avaliable"}), status_code=400
-        )
-
-    authenticated_user = get_authenticated_user_details(request_headers=request.headers)
-    user_id = authenticated_user["user_principal_id"]
-
-    ## check request for conversation_id
-    request_json = await request.get_json()
-    conversation_id = request_json.get("conversation_id", None)
-
+        return (jsonify({"error": f"Chat history is not avaliable"}), 400)
     try:
+        authenticated_user = get_authenticated_user_details(request_headers=request.headers)
+        user_id = authenticated_user["user_principal_id"]
+
+        ## check request for conversation_id
+        request_json = await request.get_json()
+        conversation_id = request_json.get("conversation_id", None)
         # make sure cosmos is configured
         cosmos_conversation_client = init_cosmosdb_client()
         if not cosmos_conversation_client:
-            return func.HttpResponse(
-                json.dumps({"error": "database not available"}), status_code=500
-            )
+            return (jsonify({"error": "database not available"}), 500)
 
         # check for the conversation_id, if the conversation is not set, we will create a new one
         if not conversation_id:
-            return func.HttpResponse(
-                json.dumps({"error": "conversation_id is required"}), status_code=400
-            )
+            return (jsonify({"error": "conversation_id is required"}), 400)
 
         ## Format the incoming message object in the "chat/completions" messages format
         ## then write it to the conversation history in cosmos
@@ -438,27 +399,22 @@ async def update_conversation(request: func.HttpRequest) -> func.HttpResponse:
                 input_message=messages[-1],
             )
         else:
-            return func.HttpResponse(
-                json.dumps({"error": "no conversationbot"}), status_code=400
-            )
+            return (jsonify({"error": "no conversationbot"}), 400)
 
         # Submit request to Chat Completions for response
 
-        return func.HttpResponse(json.dumps({"success": True}), 200)
+        return (jsonify({"success": True}), 200)
 
     except Exception as e:
-        logger.exception("Exception in /history/update")
-        return func.HttpResponse(json.dumps({"error": str(e)}), status_code=500)
+        logger.exception("Exception in /update")
+        return (jsonify({"error": str(e)}), 500)
 
 
-@bp_chat_history_response.route(
-    "/history/frontend_settings", methods=[func.HttpMethod.GET]
-)
+@bp_chat_history_response.route("/history/frontend_settings", methods=["GET"])
 def get_frontend_settings():
+    print("get_frontend_settings")
     try:
-        return func.HttpResponse(
-            json.dumps({"CHAT_HISTORY_ENABLED": CHAT_HISTORY_ENABLED}), 200
-        )
+        return (jsonify({"CHAT_HISTORY_ENABLED": CHAT_HISTORY_ENABLED}), 200)
     except Exception as e:
-        logger.exception("Exception in /history/frontend_settings")
-        return func.HttpResponse(json.dumps({"error": str(e)}), status_code=500)
+        logger.exception("Exception in /frontend_settings")
+        return (jsonify({"error": str(e)}), 500)
