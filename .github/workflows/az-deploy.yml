@@ -34,4 +34,4 @@ jobs:
             --name automation-CWYD \
             --location eastus \
             --template-file infra/main.bicep \
-            --parameters environmentName=pslautomation2 location=eastus2
+            --parameters environmentName=pslautomationtest location=eastus2
