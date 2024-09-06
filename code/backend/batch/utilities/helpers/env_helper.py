@@ -23,7 +23,7 @@ class EnvHelper:
 
     def __load_config(self, **kwargs) -> None:
         load_dotenv()
-
+        print(os.environ)
         logger.info("Initializing EnvHelper")
 
         # Wrapper for Azure Key Vault
@@ -84,13 +84,18 @@ class EnvHelper:
             "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION", "False"
         )
 
-        self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "keys")
+        print(os.getenv("AZURE_AUTH_TYPE"))
+        self.AZURE_AUTH_TYPE =  os.getenv("AZURE_AUTH_TYPE", "keys")
+        print(f"AZURE_AUTH_TYPE: {self.AZURE_AUTH_TYPE}")
         # Azure OpenAI
         self.AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE", "")
-        self.AZURE_OPENAI_MODEL = os.getenv("AZURE_OPENAI_MODEL", "")
+        print(os.getenv("AZURE_OPENAI_MODEL", "gpt-35-turbo-16k"))
+        print(os.getenv("AZURE_OPENAI_MODEL_NAME", "gpt-35-turbo-16k"))
+        self.AZURE_OPENAI_MODEL = os.getenv("AZURE_OPENAI_MODEL", "gpt-35-turbo-16k")
         self.AZURE_OPENAI_MODEL_NAME = os.getenv(
-            "AZURE_OPENAI_MODEL_NAME", "gpt-35-turbo"
+            "AZURE_OPENAI_MODEL_NAME", "gpt-35-turbo-16k"
         )
+        print(f"AZURE_OPENAI_MODEL_NAME: {self.AZURE_OPENAI_MODEL_NAME}")
         self.AZURE_OPENAI_VISION_MODEL = os.getenv("AZURE_OPENAI_VISION_MODEL", "gpt-4")
         self.AZURE_OPENAI_TEMPERATURE = os.getenv("AZURE_OPENAI_TEMPERATURE", "0")
         self.AZURE_OPENAI_TOP_P = os.getenv("AZURE_OPENAI_TOP_P", "1.0")
@@ -135,6 +140,7 @@ class EnvHelper:
 
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
+        print(f"AZURE_AUTH_TYPE: {self.AZURE_AUTH_TYPE}")
         if self.AZURE_AUTH_TYPE == "rbac":
             self.AZURE_SEARCH_KEY = None
             self.AZURE_OPENAI_API_KEY = ""
@@ -151,7 +157,7 @@ class EnvHelper:
             self.AZURE_COMPUTER_VISION_KEY = self.secretHelper.get_secret(
                 "AZURE_COMPUTER_VISION_KEY"
             )
-
+        print(f"AZURE_SEARCH_KEY: {self.AZURE_SEARCH_KEY}")
         # Set env for Azure OpenAI
         self.AZURE_OPENAI_ENDPOINT = os.environ.get(
             "AZURE_OPENAI_ENDPOINT",

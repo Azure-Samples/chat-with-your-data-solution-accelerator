@@ -176,21 +176,7 @@ class ConfigHelper:
     @staticmethod
     @functools.cache
     def get_active_config_or_default():
-        env_helper = EnvHelper()
         config = ConfigHelper.get_default_config()
-
-        if env_helper.LOAD_CONFIG_FROM_BLOB_STORAGE:
-            blob_client = AzureBlobStorageClient(container_name=CONFIG_CONTAINER_NAME)
-
-            if blob_client.file_exists(CONFIG_FILE_NAME):
-                default_config = config
-                config_file = blob_client.download_file(CONFIG_FILE_NAME)
-                config = json.loads(config_file)
-
-                ConfigHelper._set_new_config_properties(config, default_config)
-            else:
-                logger.info("Returning default config")
-
         return Config(config)
 
     @staticmethod
