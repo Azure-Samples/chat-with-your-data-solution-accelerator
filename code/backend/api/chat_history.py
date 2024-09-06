@@ -97,7 +97,7 @@ async def rename_conversation():
         user_id = authenticated_user["user_principal_id"]
 
         ## check request for conversation_id
-        request_json = await request.get_json()
+        request_json = request.get_json()
         conversation_id = request_json.get("conversation_id", None)
 
         if not conversation_id:
@@ -149,7 +149,7 @@ async def get_conversation():
         user_id = authenticated_user["user_principal_id"]
 
         ## check request for conversation_id
-        request_json = await request.get_json()
+        request_json = request.get_json()
         conversation_id = request_json.get("conversation_id", None)
 
         if not conversation_id:
@@ -213,7 +213,7 @@ async def delete_conversation():
         authenticated_user = get_authenticated_user_details(request_headers=request.headers)
         user_id = authenticated_user["user_principal_id"]
         ## check request for conversation_id
-        request_json = await request.get_json()
+        request_json = request.get_json()
         conversation_id = request_json.get("conversation_id", None)
         if not conversation_id:
             return (
@@ -314,7 +314,7 @@ async def add_conversation():
     user_id = authenticated_user["user_principal_id"]
 
     ## check request for conversation_id
-    request_json = await request.get_json()
+    request_json = request.get_json()
     conversation_id = request_json.get("conversation_id", None)
 
     try:
@@ -349,7 +349,7 @@ async def add_conversation():
             return (jsonify({"error": f"User not found"}), 400)
 
         # # Submit request to Chat Completions for response
-        # request_body = await request.get_json()
+        # request_body = request.get_json()
         # history_metadata["conversation_id"] = conversation_id
         # request_body["history_metadata"] = history_metadata
         # return await conversation_internal(request_body, request.headers)
@@ -368,7 +368,7 @@ async def update_conversation():
         user_id = authenticated_user["user_principal_id"]
 
         ## check request for conversation_id
-        request_json = await request.get_json()
+        request_json = request.get_json()
         conversation_id = request_json.get("conversation_id", None)
         # make sure cosmos is configured
         cosmos_conversation_client = init_cosmosdb_client()
