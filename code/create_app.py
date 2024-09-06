@@ -30,20 +30,19 @@ ERROR_GENERIC_MESSAGE = "An error occurred. Please try again. If the problem per
 logger = logging.getLogger(__name__)
 
 
-def get_markdown_url(source, title):
+def get_markdown_url(source, title, container_sas):
     """Get Markdown URL for a citation"""
 
     url = quote(source, safe=":/")
     if "_SAS_TOKEN_PLACEHOLDER_" in url:
-        blob_client = AzureBlobStorageClient()
-        container_sas = blob_client.get_container_sas()
         url = url.replace("_SAS_TOKEN_PLACEHOLDER_", container_sas)
     return f"[{title}]({url})"
 
 
 def get_citations(citation_list):
     """Returns Formated Citations"""
-
+    blob_client = AzureBlobStorageClient()
+    container_sas = blob_client.get_container_sas()
     citations_dict = {"citations": []}
     for citation in citation_list.get("citations"):
         metadata = (
@@ -52,7 +51,7 @@ def get_citations(citation_list):
             else citation["url"]
         )
         title = citation["title"]
-        url = get_markdown_url(metadata["source"], title)
+        url = get_markdown_url(metadata["source"], title, container_sas)
         citations_dict["citations"].append(
             {
                 "content": url + "\n\n\n" + citation["content"],
