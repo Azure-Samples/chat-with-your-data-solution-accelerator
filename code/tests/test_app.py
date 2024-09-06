@@ -603,10 +603,12 @@ class TestConversationAzureByod:
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
     )
-    @patch("backend.batch.utilities.common.source_document.AzureBlobStorageClient")
+    @patch(
+        "backend.batch.utilities.helpers.azure_blob_storage_client.generate_container_sas"
+    )
     def test_conversation_azure_byod_returns_correct_response_when_streaming_with_data_keys(
         self,
-        azure_blob_service_mock,
+        generate_container_sas_mock: MagicMock,
         get_active_config_or_default_mock,
         azure_openai_mock: MagicMock,
         env_helper_mock: MagicMock,
@@ -622,7 +624,7 @@ class TestConversationAzureByod:
         get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
             "byod"
         )
-        azure_blob_service_mock().get_container_sas.return_value = "_12345"
+        generate_container_sas_mock.return_value = "mock-sas"
 
         # when
         response = client.post(
