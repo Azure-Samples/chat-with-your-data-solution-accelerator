@@ -89,16 +89,6 @@ def env_helper_mock():
 
         yield env_helper
 
-    @pytest.fixture(autouse=True)
-    def azure_blob_clints_mock():
-        with patch(
-            "backend.batch.utilities.tools.question_answer_tool.AzureBlobStorageClient"
-        ) as mock:
-            blob_helper = mock.return_value
-            blob_helper.get_container_sas.return_value = "mock sas"
-
-            yield blob_helper
-
 
 class TestSpeechToken:
     @patch("create_app.requests")
@@ -613,8 +603,10 @@ class TestConversationAzureByod:
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
     )
+    @patch("backend.batch.utilities.common.source_document.AzureBlobStorageClient")
     def test_conversation_azure_byod_returns_correct_response_when_streaming_with_data_keys(
         self,
+        azure_blob_service_mock,
         get_active_config_or_default_mock,
         azure_openai_mock: MagicMock,
         env_helper_mock: MagicMock,
@@ -630,6 +622,7 @@ class TestConversationAzureByod:
         get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
             "byod"
         )
+        azure_blob_service_mock().get_container_sas.return_value = "_12345"
 
         # when
         response = client.post(
