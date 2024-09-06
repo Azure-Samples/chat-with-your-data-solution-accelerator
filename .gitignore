@@ -426,3 +426,5 @@ tests/integration/ui/cypress/screenshots/
 
 #JetBrains IDE
 .idea/
+Pipfile
+Pipfile.lock
