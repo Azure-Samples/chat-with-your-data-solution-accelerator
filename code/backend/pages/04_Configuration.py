@@ -1,6 +1,5 @@
 import os
 import sys
-import traceback
 import json
 import jsonschema
 import streamlit as st
