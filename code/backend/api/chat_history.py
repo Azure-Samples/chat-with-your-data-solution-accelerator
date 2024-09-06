@@ -64,7 +64,9 @@ async def list_conversations():
 
     try:
         offset = request.args.get("offset", 0)
-        authenticated_user = get_authenticated_user_details(request_headers=request.headers)
+        authenticated_user = get_authenticated_user_details(
+            request_headers=request.headers
+        )
         user_id = authenticated_user["user_principal_id"]
         cosmos_conversation_client = init_cosmosdb_client()
         if not cosmos_conversation_client:
@@ -93,7 +95,9 @@ async def rename_conversation():
     if not CHAT_HISTORY_ENABLED:
         return (jsonify({"error": f"Chat history is not avaliable"}), 400)
     try:
-        authenticated_user = get_authenticated_user_details(request_headers=request.headers)
+        authenticated_user = get_authenticated_user_details(
+            request_headers=request.headers
+        )
         user_id = authenticated_user["user_principal_id"]
 
         ## check request for conversation_id
@@ -103,7 +107,7 @@ async def rename_conversation():
         if not conversation_id:
             return (jsonify({"error": "conversation_id is required"}), 400)
 
-    ## make sure cosmos is configured
+        ## make sure cosmos is configured
 
         cosmos_conversation_client = init_cosmosdb_client()
         if not cosmos_conversation_client:
@@ -145,7 +149,9 @@ async def get_conversation():
         return (jsonify({"error": f"Chat history is not avaliable"}), 400)
 
     try:
-        authenticated_user = get_authenticated_user_details(request_headers=request.headers)
+        authenticated_user = get_authenticated_user_details(
+            request_headers=request.headers
+        )
         user_id = authenticated_user["user_principal_id"]
 
         ## check request for conversation_id
@@ -210,7 +216,9 @@ async def delete_conversation():
 
     try:
         ## get the user id from the request headers
-        authenticated_user = get_authenticated_user_details(request_headers=request.headers)
+        authenticated_user = get_authenticated_user_details(
+            request_headers=request.headers
+        )
         user_id = authenticated_user["user_principal_id"]
         ## check request for conversation_id
         request_json = request.get_json()
@@ -261,7 +269,9 @@ async def delete_all_conversations():
 
     try:
         ## get the user id from the request headers
-        authenticated_user = get_authenticated_user_details(request_headers=request.headers)
+        authenticated_user = get_authenticated_user_details(
+            request_headers=request.headers
+        )
         user_id = authenticated_user["user_principal_id"]
 
         # get conversations for user
@@ -312,12 +322,11 @@ async def add_conversation():
         return (jsonify({"error": f"Chat history is not avaliable"}), 400)
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
     user_id = authenticated_user["user_principal_id"]
-
-    ## check request for conversation_id
-    request_json = request.get_json()
-    conversation_id = request_json.get("conversation_id", None)
-
     try:
+        ## check request for conversation_id
+        request_json = request.get_json()
+        conversation_id = request_json.get("conversation_id", None)
+
         ## make sure cosmos is configured
         cosmos_conversation_client = init_cosmosdb_client()
         if not cosmos_conversation_client:
@@ -364,7 +373,9 @@ async def update_conversation():
     if not CHAT_HISTORY_ENABLED:
         return (jsonify({"error": f"Chat history is not avaliable"}), 400)
     try:
-        authenticated_user = get_authenticated_user_details(request_headers=request.headers)
+        authenticated_user = get_authenticated_user_details(
+            request_headers=request.headers
+        )
         user_id = authenticated_user["user_principal_id"]
 
         ## check request for conversation_id
