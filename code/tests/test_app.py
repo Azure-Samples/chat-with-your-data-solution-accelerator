@@ -698,8 +698,12 @@ class TestConversationAzureByod:
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
     )
+    @patch(
+        "backend.batch.utilities.helpers.azure_blob_storage_client.generate_container_sas"
+    )
     def test_conversation_azure_byod_returns_correct_response_when_streaming_with_data_rbac(
         self,
+        generate_container_sas_mock: MagicMock,
         get_active_config_or_default_mock,
         azure_openai_mock: MagicMock,
         env_helper_mock: MagicMock,
@@ -711,6 +715,7 @@ class TestConversationAzureByod:
         get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
             "byod"
         )
+        generate_container_sas_mock.return_value = "mock-sas"
         openai_client_mock = azure_openai_mock.return_value
         openai_client_mock.chat.completions.create.return_value = (
             self.mock_streamed_response
@@ -754,8 +759,12 @@ class TestConversationAzureByod:
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
     )
+    @patch(
+        "backend.batch.utilities.helpers.azure_blob_storage_client.generate_container_sas"
+    )
     def test_conversation_azure_byod_returns_correct_response_when_not_streaming_with_data(
         self,
+        generate_container_sas_mock: MagicMock,
         get_active_config_or_default_mock,
         azure_openai_mock: MagicMock,
         env_helper_mock: MagicMock,
@@ -767,6 +776,7 @@ class TestConversationAzureByod:
         get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
             "byod"
         )
+        generate_container_sas_mock.return_value = "mock-sas"
 
         openai_client_mock = azure_openai_mock.return_value
         openai_client_mock.chat.completions.create.return_value = self.mock_response
@@ -1114,8 +1124,12 @@ class TestConversationAzureByod:
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
     )
+    @patch(
+        "backend.batch.utilities.helpers.azure_blob_storage_client.generate_container_sas"
+    )
     def test_conversation_azure_byod_uses_semantic_config(
         self,
+        generate_container_sas_mock: MagicMock,
         get_active_config_or_default_mock,
         azure_openai_mock: MagicMock,
         client: FlaskClient,
@@ -1125,6 +1139,7 @@ class TestConversationAzureByod:
         get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
             "byod"
         )
+        generate_container_sas_mock.return_value = "mock-sas"
         openai_client_mock = azure_openai_mock.return_value
         openai_client_mock.chat.completions.create.return_value = (
             self.mock_streamed_response
