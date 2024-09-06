@@ -89,6 +89,16 @@ def env_helper_mock():
 
         yield env_helper
 
+    @pytest.fixture(autouse=True)
+    def azure_blob_clints_mock():
+        with patch(
+            "backend.batch.utilities.tools.question_answer_tool.AzureBlobStorageClient"
+        ) as mock:
+            blob_helper = mock.return_value
+            blob_helper.get_container_sas.return_value = "mock sas"
+
+            yield blob_helper
+
 
 class TestSpeechToken:
     @patch("create_app.requests")
@@ -598,16 +608,6 @@ class TestConversationAzureByod:
                 ],
             ),
         ]
-
-    @pytest.fixture(autouse=True)
-    def azure_blob_service_mock():
-        with patch(
-            "backend.batch.utilities.tools.question_answer_tool.AzureBlobStorageClient"
-        ) as mock:
-            blob_helper = mock.return_value
-            blob_helper.get_container_sas.return_value = "mock sas"
-
-            yield blob_helper
 
     @patch("create_app.AzureOpenAI")
     @patch(
