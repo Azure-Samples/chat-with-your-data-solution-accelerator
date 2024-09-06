@@ -3,7 +3,7 @@ name: Deploy Azure Resources
 on:
   push:
     branches:
-      - PSL-Automation-7724
+      - main
 
 jobs:
   deploy:
