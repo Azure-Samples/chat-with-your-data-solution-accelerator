@@ -1,5 +1,5 @@
-import * as React from 'react'
-import { useContext, useEffect, useRef, useState } from 'react'
+import * as React from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import {
   DefaultButton,
   Dialog,
@@ -14,80 +14,82 @@ import {
   SpinnerSize,
   Stack,
   Text,
-  TextField
-} from '@fluentui/react'
-import { useBoolean } from '@fluentui/react-hooks'
+  TextField,
+} from "@fluentui/react";
+import { useBoolean } from "@fluentui/react-hooks";
 
-import { historyList } from '../../api'
-import { Conversation } from '../../api/models'
+import { historyList } from "../../api";
+import { Conversation } from "../../api/models";
 // import { AppStateContext } from '../../state/AppProvider'
 
-import { GroupedChatHistory } from './ChatHistoryList'
+import { GroupedChatHistory } from "./ChatHistoryList";
 
-import styles from './ChatHistoryPanel.module.css'
+import styles from "./ChatHistoryPanel.module.css";
 
-const OFFSET_INCREMENT = 5
+const OFFSET_INCREMENT = 5;
 interface ChatHistoryListItemCellProps {
-  item?: Conversation
-  onSelect: (item: Conversation | null) => void
+  item?: Conversation;
+  onSelect: (item: Conversation | null) => void;
 }
 
 interface ChatHistoryListItemGroupsProps {
-  groupedChatHistory: GroupedChatHistory[]
+  groupedChatHistory: GroupedChatHistory[];
 }
 
 const formatMonth = (month: string) => {
-  const currentDate = new Date()
-  const currentYear = currentDate.getFullYear()
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
 
-  const [monthName, yearString] = month.split(' ')
-  const year = parseInt(yearString)
+  const [monthName, yearString] = month.split(" ");
+  const year = parseInt(yearString);
 
   if (year === currentYear) {
-    return monthName
+    return monthName;
   } else {
-    return month
+    return month;
   }
-}
+};
 
-export const ChatHistoryListItemCell: React.FC<ChatHistoryListItemCellProps> = ({ item, onSelect }) => {
-  const [isHovered, setIsHovered] = React.useState(false)
-  const [edit, setEdit] = useState(false)
-  const [editTitle, setEditTitle] = useState('')
-  const [hideDeleteDialog, { toggle: toggleDeleteDialog }] = useBoolean(true)
-  const [errorDelete, setErrorDelete] = useState(false)
-  const [renameLoading, setRenameLoading] = useState(false)
-  const [errorRename, setErrorRename] = useState<string | undefined>(undefined)
-  const [textFieldFocused, setTextFieldFocused] = useState(false)
-  const textFieldRef = useRef<ITextField | null>(null)
-  const [isButtonDisabled, setIsButtonDisabled] = useState<boolean>(false)
+export const ChatHistoryListItemCell: React.FC<
+  ChatHistoryListItemCellProps
+> = ({ item, onSelect }) => {
+  const [isHovered, setIsHovered] = React.useState(false);
+  const [edit, setEdit] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [hideDeleteDialog, { toggle: toggleDeleteDialog }] = useBoolean(true);
+  const [errorDelete, setErrorDelete] = useState(false);
+  const [renameLoading, setRenameLoading] = useState(false);
+  const [errorRename, setErrorRename] = useState<string | undefined>(undefined);
+  const [textFieldFocused, setTextFieldFocused] = useState(false);
+  const textFieldRef = useRef<ITextField | null>(null);
+  const [isButtonDisabled, setIsButtonDisabled] = useState<boolean>(false);
 
   // const appStateContext = React.useContext(AppStateContext)
   // const isSelected = item?.id === appStateContext?.state.currentChat?.id
   const dialogContentProps = {
     type: DialogType.close,
-    title: 'Are you sure you want to delete this item?',
-    closeButtonAriaLabel: 'Close',
-    subText: 'The history of this chat session will permanently removed.'
-  }
+    title: "Are you sure you want to delete this item?",
+    closeButtonAriaLabel: "Close",
+    subText: "The history of this chat session will permanently removed.",
+  };
 
   const modalProps = {
-    titleAriaId: 'labelId',
-    subtitleAriaId: 'subTextId',
+    titleAriaId: "labelId",
+    subtitleAriaId: "subTextId",
     isBlocking: true,
-    styles: { main: { maxWidth: 450 } }
-  }
+    styles: { main: { maxWidth: 450 } },
+  };
 
   if (!item) {
-    return null
+    return null;
   }
 
   useEffect(() => {
     if (textFieldFocused && textFieldRef.current) {
-      textFieldRef.current.focus()
-      setTextFieldFocused(false)
+      textFieldRef.current.focus();
+      setTextFieldFocused(false);
     }
-  }, [textFieldFocused])
+  }, [textFieldFocused]);
 
   // useEffect(() => {
   //   if (appStateContext?.state.currentChat?.id !== item?.id) {
@@ -117,17 +119,20 @@ export const ChatHistoryListItemCell: React.FC<ChatHistoryListItemCellProps> = (
   // }
 
   const onEdit = () => {
-    setEdit(true)
-    setTextFieldFocused(true)
-    setEditTitle(item?.title)
-  }
+    setEdit(true);
+    setTextFieldFocused(true);
+    setEditTitle(item?.title);
+  };
 
   // const handleSelectItem = () => {
   //   onSelect(item)
   //   appStateContext?.dispatch({ type: 'UPDATE_CURRENT_CHAT', payload: item })
   // }
 
-  const truncatedTitle = item?.title?.length > 28 ? `${item.title.substring(0, 28)} ...` : item.title
+  const truncatedTitle =
+    item?.title?.length > 28
+      ? `${item.title.substring(0, 28)} ...`
+      : item.title;
 
   // const handleSaveEdit = async (e: any) => {
   //   e.preventDefault()
@@ -165,13 +170,13 @@ export const ChatHistoryListItemCell: React.FC<ChatHistoryListItemCellProps> = (
   // }
 
   const chatHistoryTitleOnChange = (e: any) => {
-    setEditTitle(e.target.value)
-  }
+    setEditTitle(e.target.value);
+  };
 
   const cancelEditTitle = () => {
-    setEdit(false)
-    setEditTitle('')
-  }
+    setEdit(false);
+    setEditTitle("");
+  };
 
   // const handleKeyPressEdit = (e: any) => {
   //   if (e.key === 'Enter') {
@@ -198,15 +203,17 @@ export const ChatHistoryListItemCell: React.FC<ChatHistoryListItemCellProps> = (
       styles={{
         root: {
           // backgroundColor: isSelected ? '#e6e6e6' : 'transparent'
-        }
-      }}>
+        },
+      }}
+    >
       {edit ? (
         <>
-          <Stack.Item style={{ width: '100%' }}>
-            <form aria-label="edit title form"
-            // onSubmit={e => handleSaveEdit(e)} style={{ padding: '5px 0px' }}
+          <Stack.Item style={{ width: "100%" }}>
+            <form
+              aria-label="edit title form"
+              // onSubmit={e => handleSaveEdit(e)} style={{ padding: '5px 0px' }}
             >
-              <Stack horizontal verticalAlign={'start'}>
+              <Stack horizontal verticalAlign={"start"}>
                 <Stack.Item>
                   <TextField
                     componentRef={textFieldRef}
@@ -221,24 +228,32 @@ export const ChatHistoryListItemCell: React.FC<ChatHistoryListItemCellProps> = (
                 </Stack.Item>
                 {editTitle && (
                   <Stack.Item>
-                    <Stack aria-label="action button group" horizontal verticalAlign={'center'}>
+                    <Stack
+                      aria-label="action button group"
+                      horizontal
+                      verticalAlign={"center"}
+                    >
                       <IconButton
                         role="button"
                         disabled={errorRename !== undefined}
                         // onKeyDown={e => (e.key === ' ' || e.key === 'Enter' ? handleSaveEdit(e) : null)}
                         // onClick={e => handleSaveEdit(e)}
                         aria-label="confirm new title"
-                        iconProps={{ iconName: 'CheckMark' }}
-                        styles={{ root: { color: 'green', marginLeft: '5px' } }}
+                        iconProps={{ iconName: "CheckMark" }}
+                        styles={{ root: { color: "green", marginLeft: "5px" } }}
                       />
                       <IconButton
                         role="button"
                         disabled={errorRename !== undefined}
-                        onKeyDown={e => (e.key === ' ' || e.key === 'Enter' ? cancelEditTitle() : null)}
+                        onKeyDown={(e) =>
+                          e.key === " " || e.key === "Enter"
+                            ? cancelEditTitle()
+                            : null
+                        }
                         onClick={() => cancelEditTitle()}
                         aria-label="cancel edit title"
-                        iconProps={{ iconName: 'Cancel' }}
-                        styles={{ root: { color: 'red', marginLeft: '5px' } }}
+                        iconProps={{ iconName: "Cancel" }}
+                        styles={{ root: { color: "red", marginLeft: "5px" } }}
                       />
                     </Stack>
                   </Stack.Item>
@@ -248,7 +263,12 @@ export const ChatHistoryListItemCell: React.FC<ChatHistoryListItemCellProps> = (
                 <Text
                   role="alert"
                   aria-label={errorRename}
-                  style={{ fontSize: 12, fontWeight: 400, color: 'rgb(164,38,44)' }}>
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 400,
+                    color: "rgb(164,38,44)",
+                  }}
+                >
                   {errorRename}
                 </Text>
               )}
@@ -257,25 +277,27 @@ export const ChatHistoryListItemCell: React.FC<ChatHistoryListItemCellProps> = (
         </>
       ) : (
         <>
-          <Stack horizontal verticalAlign={'center'} style={{ width: '100%' }}>
+          <Stack horizontal verticalAlign={"center"} style={{ width: "100%" }}>
             <div className={styles.chatTitle}>{truncatedTitle}</div>
             {(isSelected || isHovered) && (
               <Stack horizontal horizontalAlign="end">
                 <IconButton
                   className={styles.itemButton}
                   disabled={isButtonDisabled}
-                  iconProps={{ iconName: 'Delete' }}
+                  iconProps={{ iconName: "Delete" }}
                   title="Delete"
                   onClick={toggleDeleteDialog}
-                  onKeyDown={e => (e.key === ' ' ? toggleDeleteDialog() : null)}
+                  onKeyDown={(e) =>
+                    e.key === " " ? toggleDeleteDialog() : null
+                  }
                 />
                 <IconButton
                   className={styles.itemButton}
                   disabled={isButtonDisabled}
-                  iconProps={{ iconName: 'Edit' }}
+                  iconProps={{ iconName: "Edit" }}
                   title="Edit"
                   onClick={onEdit}
-                  onKeyDown={e => (e.key === ' ' ? onEdit() : null)}
+                  onKeyDown={(e) => (e.key === " " ? onEdit() : null)}
                 />
               </Stack>
             )}
@@ -285,8 +307,9 @@ export const ChatHistoryListItemCell: React.FC<ChatHistoryListItemCellProps> = (
       {errorDelete && (
         <Text
           styles={{
-            root: { color: 'red', marginTop: 5, fontSize: 14 }
-          }}>
+            root: { color: "red", marginTop: 5, fontSize: 14 },
+          }}
+        >
           Error: could not delete item
         </Text>
       )}
@@ -294,86 +317,85 @@ export const ChatHistoryListItemCell: React.FC<ChatHistoryListItemCellProps> = (
         hidden={hideDeleteDialog}
         onDismiss={toggleDeleteDialog}
         dialogContentProps={dialogContentProps}
-        modalProps={modalProps}>
+        modalProps={modalProps}
+      >
         <DialogFooter>
           {/* <PrimaryButton onClick={onDelete} text="Delete" /> */}
           <DefaultButton onClick={toggleDeleteDialog} text="Cancel" />
         </DialogFooter>
       </Dialog>
     </Stack>
-  )
-}
+  );
+};
 
-export const ChatHistoryListItemGroups: React.FC<ChatHistoryListItemGroupsProps> = ({ groupedChatHistory }) => {
+export const ChatHistoryListItemGroups: React.FC<
+  ChatHistoryListItemGroupsProps
+> = ({ groupedChatHistory, handleFetchHistory, fetchingChatHistory }) => {
   // const appStateContext = useContext(AppStateContext)
-  const observerTarget = useRef(null)
-  const [, setSelectedItem] = React.useState<Conversation | null>(null)
-  const [offset, setOffset] = useState<number>(25)
-  const [observerCounter, setObserverCounter] = useState(0)
-  const [showSpinner, setShowSpinner] = useState(false)
-  const firstRender = useRef(true)
+  const observerTarget = useRef(null);
+  const [, setSelectedItem] = React.useState<Conversation | null>(null);
+  const [offset, setOffset] = useState<number>(25);
+  const [observerCounter, setObserverCounter] = useState(0);
+  const [showSpinner, setShowSpinner] = useState(false);
+  const firstRender = useRef(true);
 
   const handleSelectHistory = (item?: Conversation) => {
     if (item) {
-      setSelectedItem(item)
+      setSelectedItem(item);
     }
-  }
+  };
 
   const onRenderCell = (item?: Conversation) => {
-    return <ChatHistoryListItemCell item={item} onSelect={() => handleSelectHistory(item)} />
-  }
+    return (
+      <ChatHistoryListItemCell
+        item={item}
+        onSelect={() => handleSelectHistory(item)}
+      />
+    );
+  };
 
   useEffect(() => {
     if (firstRender.current) {
-      firstRender.current = false
-      return
+      firstRender.current = false;
+      return;
     }
-    // handleFetchHistory()
-    setOffset(offset => (offset += OFFSET_INCREMENT))
-  }, [observerCounter])
-
-  // const handleFetchHistory = async () => {
-  //   const currentChatHistory = appStateContext?.state.chatHistory
-  //   setShowSpinner(true)
-
-  //   await historyList(offset).then(response => {
-  //     const concatenatedChatHistory = currentChatHistory && response && currentChatHistory.concat(...response)
-  //     if (response) {
-  //       appStateContext?.dispatch({ type: 'FETCH_CHAT_HISTORY', payload: concatenatedChatHistory || response })
-  //     } else {
-  //       appStateContext?.dispatch({ type: 'FETCH_CHAT_HISTORY', payload: null })
-  //     }
-  //     setShowSpinner(false)
-  //     return response
-  //   })
-  // }
+    console.log("Paginated call obeserver counter");
+    handleFetchHistory();
+  }, [observerCounter]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      entries => {
-        if (entries[0].isIntersecting) setObserverCounter(observerCounter => (observerCounter += 1))
+      (entries) => {
+        if (entries[0].isIntersecting)
+          setObserverCounter((observerCounter) => (observerCounter += 1));
       },
       { threshold: 1 }
-    )
+    );
 
-    if (observerTarget.current) observer.observe(observerTarget.current)
+    if (observerTarget.current) observer.observe(observerTarget.current);
 
     return () => {
-      if (observerTarget.current) observer.unobserve(observerTarget.current)
-    }
-  }, [observerTarget])
-
+      if (observerTarget.current) observer.unobserve(observerTarget.current);
+    };
+  }, [observerTarget]);
+  const allConversationsLength = groupedChatHistory.reduce(
+    (previousValue, currentValue) =>
+      previousValue + currentValue.entries.length,
+    0
+  );
+  console.log("groupedChatHistory", groupedChatHistory, allConversationsLength);
   return (
     <div className={styles.listContainer} data-is-scrollable>
       {groupedChatHistory.map(
-        group =>
+        (group) =>
           group.entries.length > 0 && (
             <Stack
               horizontalAlign="start"
               verticalAlign="center"
               key={group.month}
               className={styles.chatGroup}
-              aria-label={`chat history group: ${group.month}`}>
+              aria-label={`chat history group: ${group.month}`}
+            >
               <Stack aria-label={group.month} className={styles.chatMonth}>
                 {formatMonth(group.month)}
               </Stack>
@@ -383,26 +405,32 @@ export const ChatHistoryListItemGroups: React.FC<ChatHistoryListItemGroupsProps>
                 onRenderCell={onRenderCell}
                 className={styles.chatList}
               />
-              <div ref={observerTarget} />
-              <Separator
-                styles={{
-                  root: {
-                    width: '100%',
-                    position: 'relative',
-                    '::before': {
-                      backgroundColor: '#d6d6d6'
-                    }
-                  }
-                }}
-              />
             </Stack>
           )
       )}
-      {showSpinner && (
+      {/* {Boolean(allConversationsLength) && (
+      )} */}
+      <div id="chatHistoryListItemObserver" ref={observerTarget} />
+      <Separator
+        styles={{
+          root: {
+            width: "100%",
+            position: "relative",
+            "::before": {
+              backgroundColor: "#d6d6d6",
+            },
+          },
+        }}
+      />
+      {Boolean(fetchingChatHistory) && (
         <div className={styles.spinnerContainer}>
-          <Spinner size={SpinnerSize.small} aria-label="loading more chat history" className={styles.spinner} />
+          <Spinner
+            size={SpinnerSize.small}
+            aria-label="loading more chat history"
+            className={styles.spinner}
+          />
         </div>
       )}
     </div>
-  )
-}
+  );
+};

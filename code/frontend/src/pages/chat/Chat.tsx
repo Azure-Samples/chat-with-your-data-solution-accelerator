@@ -89,8 +89,8 @@ const Chat = () => {
   const firstRender = useRef(true);
   const observerTarget = useRef(null);
   const [observerCounter, setObserverCounter] = useState(0);
-  const [showContextualMenu, setShowContextualMenu] = React.useState(false)
-  const [chatHistory, setChatHistory] = useState<Conversation[]>([])
+  const [showContextualMenu, setShowContextualMenu] = React.useState(false);
+  const [chatHistory, setChatHistory] = useState<Conversation[]>([]);
 
   const makeApiRequest = async (question: string) => {
     lastQuestionRef.current = question;
@@ -297,33 +297,35 @@ const Chat = () => {
     setShowHistoryPanel((prevState) => !prevState);
   };
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting)
-          setObserverCounter((observerCounter) => (observerCounter += 1));
-      },
-      { threshold: 1 }
-    );
+  // useEffect(() => {
+  //   const observer = new IntersectionObserver(
+  //     (entries) => {
+  //       if (entries[0].isIntersecting)
+  //         setObserverCounter((observerCounter) => (observerCounter += 1));
+  //     },
+  //     { threshold: 1 }
+  //   );
 
-    if (observerTarget.current) observer.observe(observerTarget.current);
+  //   if (observerTarget.current) observer.observe(observerTarget.current);
 
-    return () => {
-      if (observerTarget.current) observer.unobserve(observerTarget.current);
-    };
-  }, [observerTarget]);
+  //   return () => {
+  //     if (observerTarget.current) observer.unobserve(observerTarget.current);
+  //   };
+  // }, [observerTarget]);
 
   useEffect(() => {
     if (firstRender.current) {
       firstRender.current = false;
       return;
     }
-
+    console.log("Initial call observer");
     handleFetchHistory();
-    setOffset((offset) => (offset += OFFSET_INCREMENT));
-  }, [observerCounter]);
+  }, []);
 
   const handleFetchHistory = async () => {
+    if (fetchingChatHistory) {
+      return;
+    }
     // const currentChatHistory = appStateContext?.state.chatHistory
     setFetchingChatHistory(true);
     await historyList(offset).then((response) => {
@@ -331,7 +333,8 @@ const Chat = () => {
       // const concatenatedChatHistory = currentChatHistory && response && currentChatHistory.concat(...response)
       if (response) {
         // appStateContext?.dispatch({ type: 'FETCH_CHAT_HISTORY', payload: concatenatedChatHistory || response })
-        setChatHistory(response)
+        setChatHistory((prevData) => [...prevData, ...response]);
+        setOffset((offset) => (offset += OFFSET_INCREMENT));
       } else {
         // appStateContext?.dispatch({ type: 'FETCH_CHAT_HISTORY', payload: null })
       }
@@ -342,13 +345,21 @@ const Chat = () => {
   };
 
   const menuItems: IContextualMenuItem[] = [
-    { key: 'clearAll', text: 'Clear all chat history',disabled: isLoading, iconProps: { iconName: 'Delete' }}
-  ]
+    {
+      key: "clearAll",
+      text: "Clear all chat history",
+      disabled: isLoading,
+      iconProps: { iconName: "Delete" },
+    },
+  ];
 
-  const onShowContextualMenu = useCallback((ev: React.MouseEvent<HTMLElement>) => {
-    ev.preventDefault() // don't navigate
-    setShowContextualMenu(true)
-  }, [])
+  const onShowContextualMenu = useCallback(
+    (ev: React.MouseEvent<HTMLElement>) => {
+      ev.preventDefault(); // don't navigate
+      setShowContextualMenu(true);
+    },
+    []
+  );
 
   return (
     <Layout
@@ -627,7 +638,13 @@ const Chat = () => {
                   {/* appStateContext?.state.chatHistoryLoadingState ===
                     ChatHistoryLoadingState.Success &&
                     appStateContext?.state.isCosmosDBAvailable.cosmosDB */}
-                  {!fetchingChatHistory && showHistoryPanel && <ChatHistoryList chatHistory={chatHistory} />}
+                  {showHistoryPanel && (
+                    <ChatHistoryList
+                      fetchingChatHistory={fetchingChatHistory}
+                      handleFetchHistory={handleFetchHistory}
+                      chatHistory={chatHistory}
+                    />
+                  )}
                   {/* appStateContext?.state.chatHistoryLoadingState ===
                     ChatHistoryLoadingState.Fail &&
                     appStateContext?.state.isCosmosDBAvailable */}
@@ -669,7 +686,7 @@ const Chat = () => {
                   )} */}
                   {/* appStateContext?.state.chatHistoryLoadingState ===
                     ChatHistoryLoadingState.Loading && */}
-                  {fetchingChatHistory && (
+                  {/* {fetchingChatHistory && (
                     <>
                       <Stack
                         horizontal
@@ -687,7 +704,7 @@ const Chat = () => {
                         </StackItem>
                       </Stack>
                     </>
-                  )}
+                  )} */}
                 </Stack>
               </Stack>
               <Dialog
