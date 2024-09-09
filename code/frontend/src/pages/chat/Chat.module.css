@@ -5,6 +5,9 @@
     gap: 20px
 }
 
+.historyContainer {
+    width: 20vw;
+}
 .chatRoot {
     flex: 1;
     display: flex;

@@ -1,5 +1,18 @@
-import { useRef, useState, useEffect } from "react";
-import { Stack } from "@fluentui/react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
+import {
+  CommandBarButton,
+  ContextualMenu,
+  DefaultButton,
+  Dialog,
+  DialogFooter,
+  IContextualMenuItem,
+  Separator,
+  Spinner,
+  SpinnerSize,
+  Stack,
+  StackItem,
+  Text,
+} from "@fluentui/react";
 import {
   BroomRegular,
   DismissRegular,
@@ -26,10 +39,16 @@ import {
   ToolMessageContent,
   ChatResponse,
   getAssistantTypeApi,
+  historyList,
 } from "../../api";
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
 import Cards from "./Cards_contract/Cards";
+import Layout from "../layout/Layout";
+import HistoryPanel from "../../components/HistoryPanel/HistoryPanel";
+import ChatHistoryList from "./ChatHistoryList";
+
+const OFFSET_INCREMENT = 5;
 
 const Chat = () => {
   const lastQuestionRef = useRef<string>("");
@@ -46,7 +65,7 @@ const Chat = () => {
         title: string,
         filepath: string,
         url: string,
-        metadata: string
+        metadata: string,
       ]
     >();
   const [isCitationPanelOpen, setIsCitationPanelOpen] =
@@ -61,7 +80,16 @@ const Chat = () => {
   const recognizerRef = useRef<SpeechRecognizer | null>(null);
   const [assistantType, setAssistantType] = useState("");
   const [activeCardIndex, setActiveCardIndex] = useState<number | null>(null);
-  const [isTextToSpeachActive , setIsTextToSpeachActive] = useState(false);
+  const [isTextToSpeachActive, setIsTextToSpeachActive] = useState(false);
+  const [showHistoryBtn, setShowHistoryBtn] = useState(true);
+  const [showHistoryPanel, setShowHistoryPanel] = useState(true);
+  const [fetchingChatHistory, setFetchingChatHistory] = useState(false);
+  const [offset, setOffset] = useState<number>(0);
+  const firstRender = useRef(true);
+  const observerTarget = useRef(null);
+  const [observerCounter, setObserverCounter] = useState(0);
+  const [showContextualMenu, setShowContextualMenu] = React.useState(false)
+
 
   const makeApiRequest = async (question: string) => {
     lastQuestionRef.current = question;
@@ -115,7 +143,7 @@ const Chat = () => {
                 ]);
               }
               runningText = "";
-            } catch { }
+            } catch {}
           });
         }
         setAnswers([...answers, userMessage, ...result.choices[0].messages]);
@@ -124,9 +152,10 @@ const Chat = () => {
       if (!abortController.signal.aborted) {
         if (e instanceof Error) {
           alert(e.message);
-        }
-        else {
-          alert('An error occurred. Please try again. If the problem persists, please contact the site administrator.');
+        } else {
+          alert(
+            "An error occurred. Please try again. If the problem persists, please contact the site administrator."
+          );
         }
       }
       setAnswers([...answers, userMessage]);
@@ -170,7 +199,7 @@ const Chat = () => {
           setIsRecognizing(true);
           setIsListening(true);
         },
-        error => {
+        (error) => {
           console.error(`Error starting recognition: ${error}`);
         }
       );
@@ -219,25 +248,21 @@ const Chat = () => {
     setIsLoading(false);
   };
 
-  useEffect(
-    () => {
-      chatMessageStreamEnd.current?.scrollIntoView({ behavior: "smooth" })
-      const fetchAssistantType = async () => {
-        try {
-          const result = await getAssistantTypeApi();
-          if (result) {
-            setAssistantType(result.ai_assistant_type);
-          }
-          return result;
-        } catch (error) {
-          console.error('Error fetching assistant type:', error);
+  useEffect(() => {
+    chatMessageStreamEnd.current?.scrollIntoView({ behavior: "smooth" });
+    const fetchAssistantType = async () => {
+      try {
+        const result = await getAssistantTypeApi();
+        if (result) {
+          setAssistantType(result.ai_assistant_type);
         }
-      };
-      fetchAssistantType();
-    },
-
-    [showLoadingMessage]
-  );
+        return result;
+      } catch (error) {
+        console.error("Error fetching assistant type:", error);
+      }
+    };
+    fetchAssistantType();
+  }, [showLoadingMessage]);
 
   const onShowCitation = (citation: Citation) => {
     setActiveCitation([
@@ -263,185 +288,433 @@ const Chat = () => {
     return [];
   };
 
-  const handleSpeech = (index: number, status : string) => {
-    if(status != 'pause')
-    setActiveCardIndex(index);
-    setIsTextToSpeachActive(status =='speak' ? true : false)
+  const handleSpeech = (index: number, status: string) => {
+    if (status != "pause") setActiveCardIndex(index);
+    setIsTextToSpeachActive(status == "speak" ? true : false);
+  };
+  const onSetShowHistoryPanel = () => {
+    setShowHistoryPanel((prevState) => !prevState);
   };
 
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting)
+          setObserverCounter((observerCounter) => (observerCounter += 1));
+      },
+      { threshold: 1 }
+    );
+
+    if (observerTarget.current) observer.observe(observerTarget.current);
+
+    return () => {
+      if (observerTarget.current) observer.unobserve(observerTarget.current);
+    };
+  }, [observerTarget]);
+
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+
+    handleFetchHistory();
+    setOffset((offset) => (offset += OFFSET_INCREMENT));
+  }, [observerCounter]);
+
+  const handleFetchHistory = async () => {
+    // const currentChatHistory = appStateContext?.state.chatHistory
+    setFetchingChatHistory(true);
+    await historyList(offset).then((response) => {
+      console.log("HL response", response);
+      // const concatenatedChatHistory = currentChatHistory && response && currentChatHistory.concat(...response)
+      if (response) {
+        // appStateContext?.dispatch({ type: 'FETCH_CHAT_HISTORY', payload: concatenatedChatHistory || response })
+      } else {
+        // appStateContext?.dispatch({ type: 'FETCH_CHAT_HISTORY', payload: null })
+      }
+      // response =
+      setFetchingChatHistory(false);
+      return response;
+    });
+  };
+
+  const menuItems: IContextualMenuItem[] = [
+    { key: 'clearAll', text: 'Clear all chat history',disabled: isLoading, iconProps: { iconName: 'Delete' }}
+  ]
+
+  const onShowContextualMenu = useCallback((ev: React.MouseEvent<HTMLElement>) => {
+    ev.preventDefault() // don't navigate
+    setShowContextualMenu(true)
+  }, [])
 
   return (
-    <div className={styles.container}>
-      <Stack horizontal className={styles.chatRoot} >
-
-        <div className={`${styles.chatContainer} ${styles.MobileChatContainer}`}>
-          {!lastQuestionRef.current ? (
-            <Stack className={styles.chatEmptyState}>
-              <img src={Azure} className={styles.chatIcon} aria-hidden="true" alt="Azure AI logo" />
-              {assistantType === 'contract assistant' ? (
-                <>
-                  <h1 className={styles.chatEmptyStateTitle}>Contract Summarizer</h1>
-                  <h2 className={styles.chatEmptyStateSubtitle}>AI-Powered assistant for simplified summarization</h2>
-                  <Cards />
-                </>
-              ) : assistantType === 'default' ? (
-                <>
-                  <h1 className={styles.chatEmptyStateTitle}>Start chatting</h1>
-                  <h2 className={styles.chatEmptyStateSubtitle}>This chatbot is configured to answer your questions</h2>
-                </>
-              ) : <div className={styles.loadingContainer}>
-                <div className={styles.loadingIcon}></div>
-                <p>Loading...</p>
-              </div>}
-
-
-            </Stack>
-          ) : (
-            <div
-              className={styles.chatMessageStream}
-              style={{ marginBottom: isLoading ? "40px" : "0px" }}
-            >
-              {answers.map((answer, index) => (
-                <>
-                  {answer.role === "user" ? (
+    <Layout
+      showHistoryBtn={showHistoryBtn}
+      onSetShowHistoryPanel={onSetShowHistoryPanel}
+      showHistoryPanel={showHistoryPanel}
+    >
+      <div className={styles.container}>
+        <Stack horizontal className={styles.chatRoot}>
+          <div
+            className={`${styles.chatContainer} ${styles.MobileChatContainer}`}
+          >
+            {!lastQuestionRef.current ? (
+              <Stack className={styles.chatEmptyState}>
+                <img
+                  src={Azure}
+                  className={styles.chatIcon}
+                  aria-hidden="true"
+                  alt="Azure AI logo"
+                />
+                {assistantType === "contract assistant" ? (
+                  <>
+                    <h1 className={styles.chatEmptyStateTitle}>
+                      Contract Summarizer
+                    </h1>
+                    <h2 className={styles.chatEmptyStateSubtitle}>
+                      AI-Powered assistant for simplified summarization
+                    </h2>
+                    <Cards />
+                  </>
+                ) : assistantType === "default" ? (
+                  <>
+                    <h1 className={styles.chatEmptyStateTitle}>
+                      Start chatting
+                    </h1>
+                    <h2 className={styles.chatEmptyStateSubtitle}>
+                      This chatbot is configured to answer your questions
+                    </h2>
+                  </>
+                ) : (
+                  <div className={styles.loadingContainer}>
+                    <div className={styles.loadingIcon}></div>
+                    <p>Loading...</p>
+                  </div>
+                )}
+              </Stack>
+            ) : (
+              <div
+                className={styles.chatMessageStream}
+                style={{ marginBottom: isLoading ? "40px" : "0px" }}
+              >
+                {answers.map((answer, index) => (
+                  <>
+                    {answer.role === "user" ? (
+                      <div className={styles.chatMessageUser}>
+                        <div className={styles.chatMessageUserMessage}>
+                          {answer.content}
+                        </div>
+                      </div>
+                    ) : answer.role === "assistant" ||
+                      answer.role === "error" ? (
+                      <div className={styles.chatMessageGpt}>
+                        <Answer
+                          answer={{
+                            answer:
+                              answer.role === "assistant"
+                                ? answer.content
+                                : "Sorry, an error occurred. Try refreshing the conversation or waiting a few minutes. If the issue persists, contact your system administrator. Error: " +
+                                  answer.content,
+                            citations:
+                              answer.role === "assistant"
+                                ? parseCitationFromMessage(answers[index - 1])
+                                : [],
+                          }}
+                          onSpeak={handleSpeech}
+                          isActive={activeCardIndex === index}
+                          onCitationClicked={(c) => onShowCitation(c)}
+                          index={index}
+                        />
+                      </div>
+                    ) : null}
+                  </>
+                ))}
+                {showLoadingMessage && (
+                  <>
                     <div className={styles.chatMessageUser}>
                       <div className={styles.chatMessageUserMessage}>
-                        {answer.content}
+                        {lastQuestionRef.current}
                       </div>
                     </div>
-                  ) : answer.role === "assistant" || answer.role === "error" ? (
                     <div className={styles.chatMessageGpt}>
                       <Answer
                         answer={{
-                          answer:
-                            answer.role === "assistant"
-                              ? answer.content
-                              : "Sorry, an error occurred. Try refreshing the conversation or waiting a few minutes. If the issue persists, contact your system administrator. Error: " +
-                              answer.content,
-                          citations:
-                            answer.role === "assistant"
-                              ? parseCitationFromMessage(answers[index - 1])
-                              : [],
+                          answer: "Generating answer...",
+                          citations: [],
                         }}
-                        onSpeak={handleSpeech}
-                        isActive={activeCardIndex === index}
-                        onCitationClicked={(c) => onShowCitation(c)}
-                        index={index}
+                        onCitationClicked={() => null}
+                        index={0}
                       />
                     </div>
-                  ) : null}
-                </>
-              ))}
-              {showLoadingMessage && (
-                <>
-                  <div className={styles.chatMessageUser}>
-                    <div className={styles.chatMessageUserMessage}>
-                      {lastQuestionRef.current}
-                    </div>
-                  </div>
-                  <div className={styles.chatMessageGpt}>
-                    <Answer
-                      answer={{
-                        answer: "Generating answer...",
-                        citations: [],
-                      }}
-                      onCitationClicked={() => null}
-                      index={0}
-                    />
-                  </div>
-                </>
-              )}
-              <div ref={chatMessageStreamEnd} />
-            </div>
-          )}
-          <div>
-            {isRecognizing && !isListening && <p>Please wait...</p>}{" "}
-            {isListening && <p>Listening...</p>}{" "}
-          </div>
-
-          <Stack horizontal className={styles.chatInput}>
-            {isLoading && (
-              <Stack
-                horizontal
-                className={styles.stopGeneratingContainer}
-                role="button"
-                aria-label="Stop generating"
-                tabIndex={0}
-                onClick={stopGenerating}
-                onKeyDown={(e) =>
-                  e.key === "Enter" || e.key === " " ? stopGenerating() : null
-                }
-              >
-                <SquareRegular
-                  className={styles.stopGeneratingIcon}
-                  aria-hidden="true"
-                />
-                <span className={styles.stopGeneratingText} aria-hidden="true">
-                  Stop generating
-                </span>
-              </Stack>
+                  </>
+                )}
+                <div ref={chatMessageStreamEnd} />
+              </div>
             )}
-            <BroomRegular
-              className={`${styles.clearChatBroom} ${styles.mobileclearChatBroom}`}
-              style={{
-                background:
-                  isLoading || answers.length === 0
-                    ? "#BDBDBD"
-                    : "radial-gradient(109.81% 107.82% at 100.1% 90.19%, #0F6CBD 33.63%, #2D87C3 70.31%, #8DDDD8 100%)",
-                cursor: isLoading || answers.length === 0 ? "" : "pointer",
-              }}
-              onClick={clearChat}
-              onKeyDown={(e) =>
-                e.key === "Enter" || e.key === " " ? clearChat() : null
-              }
-              aria-label="Clear session"
-              role="button"
-              tabIndex={0}
-            />
-            <QuestionInput
-              clearOnSend
-              placeholder="Type a new question..."
-              disabled={isLoading}
-              onSend={(question) => makeApiRequest(question)}
-              recognizedText={recognizedText}
-              isSendButtonDisabled={isSendButtonDisabled}
-              onMicrophoneClick={onMicrophoneClick}
-              onStopClick={stopSpeechRecognition}
-              isListening={isListening}
-              isRecognizing={isRecognizing}
-              setRecognizedText={setRecognizedText}
-              isTextToSpeachActive = {isTextToSpeachActive}
-            />
-          </Stack>
-        </div>
-        {answers.length > 0 && isCitationPanelOpen && activeCitation && (
-          <Stack.Item className={`${styles.citationPanel} ${styles.mobileStyles}`}>
-            <Stack
-              horizontal
-              className={styles.citationPanelHeaderContainer}
-              horizontalAlign="space-between"
-              verticalAlign="center"
-            >
-              <span className={styles.citationPanelHeader}>Citations</span>
-              <DismissRegular
-                className={styles.citationPanelDismiss}
-                onClick={() => setIsCitationPanelOpen(false)}
+            <div>
+              {isRecognizing && !isListening && <p>Please wait...</p>}{" "}
+              {isListening && <p>Listening...</p>}{" "}
+            </div>
+
+            <Stack horizontal className={styles.chatInput}>
+              {isLoading && (
+                <Stack
+                  horizontal
+                  className={styles.stopGeneratingContainer}
+                  role="button"
+                  aria-label="Stop generating"
+                  tabIndex={0}
+                  onClick={stopGenerating}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" || e.key === " " ? stopGenerating() : null
+                  }
+                >
+                  <SquareRegular
+                    className={styles.stopGeneratingIcon}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className={styles.stopGeneratingText}
+                    aria-hidden="true"
+                  >
+                    Stop generating
+                  </span>
+                </Stack>
+              )}
+              <BroomRegular
+                className={`${styles.clearChatBroom} ${styles.mobileclearChatBroom}`}
+                style={{
+                  background:
+                    isLoading || answers.length === 0
+                      ? "#BDBDBD"
+                      : "radial-gradient(109.81% 107.82% at 100.1% 90.19%, #0F6CBD 33.63%, #2D87C3 70.31%, #8DDDD8 100%)",
+                  cursor: isLoading || answers.length === 0 ? "" : "pointer",
+                }}
+                onClick={clearChat}
+                onKeyDown={(e) =>
+                  e.key === "Enter" || e.key === " " ? clearChat() : null
+                }
+                aria-label="Clear session"
+                role="button"
+                tabIndex={0}
+              />
+              <QuestionInput
+                clearOnSend
+                placeholder="Type a new question..."
+                disabled={isLoading}
+                onSend={(question) => makeApiRequest(question)}
+                recognizedText={recognizedText}
+                isSendButtonDisabled={isSendButtonDisabled}
+                onMicrophoneClick={onMicrophoneClick}
+                onStopClick={stopSpeechRecognition}
+                isListening={isListening}
+                isRecognizing={isRecognizing}
+                setRecognizedText={setRecognizedText}
+                isTextToSpeachActive={isTextToSpeachActive}
               />
             </Stack>
-            <h5 className={`${styles.citationPanelTitle} ${styles.mobileCitationPanelTitle}`}>{activeCitation[2]}</h5>
-            <div className={`${styles.citationPanelDisclaimer} ${styles.mobileCitationPanelDisclaimer}`}>Tables, images, and other special formatting not shown in this preview. Please follow the link to review the original document.</div>
-            <ReactMarkdown
-              className={`${styles.citationPanelContent} ${styles.mobileCitationPanelContent}`}
-              children={activeCitation[0]}
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeRaw]}
-            />
-          </Stack.Item>
-        )}
-      </Stack>
-    </div>
-  );
+          </div>
+          {answers.length > 0 && isCitationPanelOpen && activeCitation && (
+            <Stack.Item
+              className={`${styles.citationPanel} ${styles.mobileStyles}`}
+            >
+              <Stack
+                horizontal
+                className={styles.citationPanelHeaderContainer}
+                horizontalAlign="space-between"
+                verticalAlign="center"
+              >
+                <span className={styles.citationPanelHeader}>Citations</span>
+                <DismissRegular
+                  className={styles.citationPanelDismiss}
+                  onClick={() => setIsCitationPanelOpen(false)}
+                />
+              </Stack>
+              <h5
+                className={`${styles.citationPanelTitle} ${styles.mobileCitationPanelTitle}`}
+              >
+                {activeCitation[2]}
+              </h5>
+              <div
+                className={`${styles.citationPanelDisclaimer} ${styles.mobileCitationPanelDisclaimer}`}
+              >
+                Tables, images, and other special formatting not shown in this
+                preview. Please follow the link to review the original document.
+              </div>
+              <ReactMarkdown
+                className={`${styles.citationPanelContent} ${styles.mobileCitationPanelContent}`}
+                children={activeCitation[0]}
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
+              />
+            </Stack.Item>
+          )}
 
+          {showHistoryPanel && (
+            <section
+              className={styles.historyContainer}
+              data-is-scrollable
+              aria-label={"chat history panel"}
+            >
+              <Stack
+                horizontal
+                horizontalAlign="space-between"
+                verticalAlign="center"
+                wrap
+                aria-label="chat history header"
+              >
+                <StackItem>
+                  <Text
+                    role="heading"
+                    aria-level={2}
+                    style={{
+                      alignSelf: "center",
+                      fontWeight: "600",
+                      fontSize: "18px",
+                      marginRight: "auto",
+                      paddingLeft: "20px",
+                    }}
+                  >
+                    Chat history
+                  </Text>
+                </StackItem>
+                <Stack verticalAlign="start">
+                  <Stack
+                    horizontal
+                    // styles={commandBarButtonStyle}
+                  >
+                    <CommandBarButton
+                      iconProps={{ iconName: "More" }}
+                      title={"Clear all chat history"}
+                      aria-label={"clear all chat history"}
+                      role="button"
+                      id="moreButton"
+                      onClick={onShowContextualMenu}
+                      // styles={commandBarStyle}
+                    />
+                    <ContextualMenu
+                      target={"#moreButton"}
+                      items={menuItems}
+                      // hidden={!showContextualMenu}
+                      // onItemClick={toggleClearAllDialog}
+                      // onDismiss={onHideContextualMenu}
+                    />
+                    <CommandBarButton
+                      iconProps={{ iconName: "Cancel" }}
+                      title={"Hide"}
+                      aria-label={"hide button"}
+                      role="button"
+                      // onClick={handleHistoryClick}
+                      // styles={commandBarStyle}
+                    />
+                  </Stack>
+                </Stack>
+              </Stack>
+              <Stack
+                aria-label="chat history panel content"
+                style={{
+                  display: "flex",
+                  flexGrow: 1,
+                  flexDirection: "column",
+                  flexWrap: "wrap",
+                  padding: "1px",
+                }}
+              >
+                <Stack className={styles.chatHistoryListContainer}>
+                  {/* appStateContext?.state.chatHistoryLoadingState ===
+                    ChatHistoryLoadingState.Success &&
+                    appStateContext?.state.isCosmosDBAvailable.cosmosDB */}
+                  {/* {showHistoryPanel && <ChatHistoryList />} */}
+                  {/* appStateContext?.state.chatHistoryLoadingState ===
+                    ChatHistoryLoadingState.Fail &&
+                    appStateContext?.state.isCosmosDBAvailable */}
+                  {/* {true && (
+                    <>
+                      <Stack>
+                        <Stack
+                          horizontalAlign="center"
+                          verticalAlign="center"
+                          style={{ width: "100%", marginTop: 10 }}
+                        >
+                          <StackItem>
+                            <Text
+                              style={{
+                                alignSelf: "center",
+                                fontWeight: "400",
+                                fontSize: 16,
+                              }}
+                            >
+                              <span>Error loading chat history</span>
+                            </Text>
+                          </StackItem>
+                          <StackItem>
+                            <Text
+                              style={{
+                                alignSelf: "center",
+                                fontWeight: "400",
+                                fontSize: 14,
+                              }}
+                            >
+                              <span>
+                                Chat history can't be saved at this time
+                              </span>
+                            </Text>
+                          </StackItem>
+                        </Stack>
+                      </Stack>
+                    </>
+                  )} */}
+                  {/* appStateContext?.state.chatHistoryLoadingState ===
+                    ChatHistoryLoadingState.Loading && */}
+                  {fetchingChatHistory && (
+                    <>
+                      <Stack
+                        horizontal
+                        horizontalAlign="center"
+                        verticalAlign="center"
+                        style={{ width: "100%", marginTop: 10, gap: 8 }}
+                      >
+                        <StackItem>
+                          <Spinner size={SpinnerSize.medium} />
+                        </StackItem>
+                        <StackItem>
+                          <span style={{ whiteSpace: "pre-wrap" }}>
+                            Loading chat history
+                          </span>
+                        </StackItem>
+                      </Stack>
+                    </>
+                  )}
+                </Stack>
+              </Stack>
+              <Dialog
+              // hidden={hideClearAllDialog}
+              // onDismiss={clearing ? () => {} : onHideClearAllDialog}
+              // dialogContentProps={clearAllDialogContentProps}
+              // modalProps={modalProps}
+              >
+                <DialogFooter>
+                  {/* {!clearingError && (
+                    <PrimaryButton
+                      onClick={onClearAllChatHistory}
+                      disabled={clearing}
+                      text="Clear All"
+                    />
+                  )} */}
+                  <DefaultButton
+                  // onClick={onHideClearAllDialog}
+                  // disabled={clearing}
+                  // text={!clearingError ? "Cancel" : "Close"}
+                  />
+                </DialogFooter>
+              </Dialog>
+            </section>
+          )}
+        </Stack>
+      </div>
+    </Layout>
+  );
 };
 
 export default Chat;

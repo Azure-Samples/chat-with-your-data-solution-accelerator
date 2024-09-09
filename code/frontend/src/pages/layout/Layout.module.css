@@ -7,7 +7,6 @@ body {
 
 .header, .footer {
     width: 100%;
-    max-width: 1200px;
     box-sizing: border-box;
 }
 
@@ -65,9 +64,13 @@ body {
     flex: none;
     order: 1;
     flex-grow: 0;
+    cursor: pointer;
+}
+
+.layoutRightButtons {
     position: absolute;
     right: 20px;
-    cursor: pointer;
+    gap: 1rem;
 }
 
 .shareButton {
