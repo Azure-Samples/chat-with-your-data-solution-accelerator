@@ -2305,23 +2305,22 @@ referencing = ">=0.31.0"
 
 [[package]]
 name = "jupyter"
-version = "1.0.0"
+version = "1.1.1"
 description = "Jupyter metapackage. Install all the Jupyter components in one go."
 optional = false
 python-versions = "*"
 files = [
-    {file = "jupyter-1.0.0-py2.py3-none-any.whl", hash = "sha256:5b290f93b98ffbc21c0c7e749f054b3267782166d72fa5e3ed1ed4eaf34a2b78"},
-    {file = "jupyter-1.0.0.tar.gz", hash = "sha256:d9dc4b3318f310e34c82951ea5d6683f67bed7def4b259fafbfe4f1beb1d8e5f"},
-    {file = "jupyter-1.0.0.zip", hash = "sha256:3e1f86076bbb7c8c207829390305a2b1fe836d471ed54be66a3b8c41e7f46cc7"},
+    {file = "jupyter-1.1.1-py2.py3-none-any.whl", hash = "sha256:7a59533c22af65439b24bbe60373a4e95af8f16ac65a6c00820ad378e3f7cc83"},
+    {file = "jupyter-1.1.1.tar.gz", hash = "sha256:d55467bceabdea49d7e3624af7e33d59c37fff53ed3a350e1ac957bed731de7a"},
 ]
 
 [package.dependencies]
 ipykernel = "*"
 ipywidgets = "*"
 jupyter-console = "*"
+jupyterlab = "*"
 nbconvert = "*"
 notebook = "*"
-qtconsole = "*"
 
 [[package]]
 name = "jupyter-client"
@@ -2485,13 +2484,13 @@ test = ["jupyter-server (>=2.0.0)", "pytest (>=7.0)", "pytest-jupyter[server] (>
 
 [[package]]
 name = "jupyterlab"
-version = "4.2.2"
+version = "4.2.5"
 description = "JupyterLab computational environment"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "jupyterlab-4.2.2-py3-none-any.whl", hash = "sha256:59ee9b839f43308c3dfd55d72d1f1a299ed42a7f91f2d1afe9c12a783f9e525f"},
-    {file = "jupyterlab-4.2.2.tar.gz", hash = "sha256:a534b6a25719a92a40d514fb133a9fe8f0d9981b0bbce5d8a5fcaa33344a3038"},
+    {file = "jupyterlab-4.2.5-py3-none-any.whl", hash = "sha256:73b6e0775d41a9fee7ee756c80f58a6bed4040869ccc21411dc559818874d321"},
+    {file = "jupyterlab-4.2.5.tar.gz", hash = "sha256:ae7f3a1b8cb88b4f55009ce79fa7c06f99d70cd63601ee4aa91815d054f46f75"},
 ]
 
 [package.dependencies]
@@ -2515,7 +2514,7 @@ dev = ["build", "bump2version", "coverage", "hatch", "pre-commit", "pytest-cov",
 docs = ["jsx-lexer", "myst-parser", "pydata-sphinx-theme (>=0.13.0)", "pytest", "pytest-check-links", "pytest-jupyter", "sphinx (>=1.8,<7.3.0)", "sphinx-copybutton"]
 docs-screenshots = ["altair (==5.3.0)", "ipython (==8.16.1)", "ipywidgets (==8.1.2)", "jupyterlab-geojson (==3.4.0)", "jupyterlab-language-pack-zh-cn (==4.1.post2)", "matplotlib (==3.8.3)", "nbconvert (>=7.0.0)", "pandas (==2.2.1)", "scipy (==1.12.0)", "vega-datasets (==0.9.0)"]
 test = ["coverage", "pytest (>=7.0)", "pytest-check-links (>=0.7)", "pytest-console-scripts", "pytest-cov", "pytest-jupyter (>=0.5.3)", "pytest-timeout", "pytest-tornasync", "requests", "requests-cache", "virtualenv"]
-upgrade-extension = ["copier (>=8,<10)", "jinja2-time (<0.3)", "pydantic (<2.0)", "pyyaml-include (<2.0)", "tomli-w (<2.0)"]
+upgrade-extension = ["copier (>=9,<10)", "jinja2-time (<0.3)", "pydantic (<3.0)", "pyyaml-include (<3.0)", "tomli-w (<2.0)"]
 
 [[package]]
 name = "jupyterlab-pygments"
@@ -4400,35 +4399,35 @@ wcwidth = "*"
 
 [[package]]
 name = "promptflow"
-version = "1.14.0"
+version = "1.15.0"
 description = "Prompt flow Python SDK - build high-quality LLM apps"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "promptflow-1.14.0-py3-none-any.whl", hash = "sha256:8f564d376e5e3fbadadf44a15c01157d35bbb69d252a2dd689238532287ebb25"},
+    {file = "promptflow-1.15.0-py3-none-any.whl", hash = "sha256:f953175295a9da7409127da9759f1e2e2093834b2a9207f455f82bb8048f99e9"},
 ]
 
 [package.dependencies]
-promptflow-azure = {version = "1.14.0", optional = true, markers = "extra == \"azure\""}
-promptflow-core = "1.14.0"
-promptflow-devkit = "1.14.0"
-promptflow-tracing = "1.14.0"
+promptflow-azure = {version = "1.15.0", optional = true, markers = "extra == \"azure\""}
+promptflow-core = "1.15.0"
+promptflow-devkit = "1.15.0"
+promptflow-tracing = "1.15.0"
 
 [package.extras]
-all = ["promptflow-azure (==1.14.0)", "promptflow-core[executor-service] (==1.14.0)", "promptflow-devkit[all] (==1.14.0)"]
-azure = ["promptflow-azure (==1.14.0)"]
-azureml-serving = ["promptflow-core[azureml-serving] (==1.14.0)"]
-executable = ["promptflow-devkit[executable] (==1.14.0)"]
-executor-service = ["promptflow-core[executor-service] (==1.14.0)"]
+all = ["promptflow-azure (==1.15.0)", "promptflow-core[executor-service] (==1.15.0)", "promptflow-devkit[all] (==1.15.0)"]
+azure = ["promptflow-azure (==1.15.0)"]
+azureml-serving = ["promptflow-core[azureml-serving] (==1.15.0)"]
+executable = ["promptflow-devkit[executable] (==1.15.0)"]
+executor-service = ["promptflow-core[executor-service] (==1.15.0)"]
 
 [[package]]
 name = "promptflow-azure"
-version = "1.14.0"
+version = "1.15.0"
 description = "Prompt flow azure"
 optional = false
 python-versions = "!=2.7.*,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,!=3.7.*,>=3.8"
 files = [
-    {file = "promptflow_azure-1.14.0-py3-none-any.whl", hash = "sha256:45c4b5f4a721095af8531747c8f4c656748bfda815079d5eccfe70a5d6265ef1"},
+    {file = "promptflow_azure-1.15.0-py3-none-any.whl", hash = "sha256:1e7382eb9595db828c239231bac861ec8532d150bcedb9a3eabf7b3751e60e75"},
 ]
 
 [package.dependencies]
@@ -4437,17 +4436,17 @@ azure-core = ">=1.26.4,<2.0.0"
 azure-cosmos = ">=4.5.1,<5.0.0"
 azure-identity = ">=1.12.0,<2.0.0"
 azure-storage-blob = {version = ">=12.17.0,<13.0.0", extras = ["aio"]}
-promptflow-devkit = ">=1.14.0,<2.0.0"
+promptflow-devkit = ">=1.15.0,<2.0.0"
 pyjwt = ">=2.4.0,<3.0.0"
 
 [[package]]
 name = "promptflow-core"
-version = "1.14.0"
+version = "1.15.0"
 description = "Prompt flow core"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "promptflow_core-1.14.0-py3-none-any.whl", hash = "sha256:83a29672fe09ce99165399c04298aaa0abd6242890f2c3d5c3c060b995c39875"},
+    {file = "promptflow_core-1.15.0-py3-none-any.whl", hash = "sha256:46674e52eef0541509f6dc69b2203e63f711aacddd5aa06c7b55359f9fefbfeb"},
 ]
 
 [package.dependencies]
@@ -4456,7 +4455,7 @@ fastapi = ">=0.109.0,<1.0.0"
 filetype = ">=1.2.0"
 flask = ">=2.2.3,<4.0.0"
 jsonschema = ">=4.0.0,<5.0.0"
-promptflow-tracing = "1.14.0"
+promptflow-tracing = "1.15.0"
 psutil = "*"
 python-dateutil = ">=2.1.0,<3.0.0"
 "ruamel.yaml" = ">=0.17.10,<1.0.0"
@@ -4466,12 +4465,12 @@ azureml-serving = ["azure-ai-ml (>=1.14.0,<2.0.0)", "azure-identity (>=1.12.0,<2
 
 [[package]]
 name = "promptflow-devkit"
-version = "1.14.0"
+version = "1.15.0"
 description = "Prompt flow devkit"
 optional = false
 python-versions = "!=2.7.*,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,!=3.7.*,>=3.8"
 files = [
-    {file = "promptflow_devkit-1.14.0-py3-none-any.whl", hash = "sha256:7c8de6d29b64bd9b288ea4a479c575fc5a91da95c0010cd10ef4394136376733"},
+    {file = "promptflow_devkit-1.15.0-py3-none-any.whl", hash = "sha256:7c9f3286b8e745e70d8513c449c47ec8db7d0f5d3b2934b33533d7009fea1dfd"},
 ]
 
 [package.dependencies]
@@ -4489,7 +4488,7 @@ marshmallow = ">=3.5,<4.0.0"
 opentelemetry-exporter-otlp-proto-http = ">=1.22.0,<2.0.0"
 pandas = ">=1.5.3,<3.0.0"
 pillow = ">=10.1.0,<11.0.0"
-promptflow-core = ">=1.14.0,<2.0.0"
+promptflow-core = ">=1.15.0,<2.0.0"
 pydash = ">=6.0.0,<8.0.0"
 python-dotenv = ">=1.0.0,<2.0.0"
 pywin32 = {version = "*", markers = "sys_platform == \"win32\""}
@@ -4504,12 +4503,12 @@ pyarrow = ["pyarrow (>=14.0.1,<15.0.0)"]
 
 [[package]]
 name = "promptflow-tracing"
-version = "1.14.0"
+version = "1.15.0"
 description = "Prompt flow tracing"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "promptflow_tracing-1.14.0-py3-none-any.whl", hash = "sha256:57bf2f2b96f84bd1a76de49e28ce82a2600cc512d7c05122d50d9f9ae0438637"},
+    {file = "promptflow_tracing-1.15.0-py3-none-any.whl", hash = "sha256:776be489a2d8d70c3434d361c9576b4be1abd72b20912406fee02bca785d33ca"},
 ]
 
 [package.dependencies]
@@ -5294,48 +5293,6 @@ files = [
 
 [package.dependencies]
 cffi = {version = "*", markers = "implementation_name == \"pypy\""}
-
-[[package]]
-name = "qtconsole"
-version = "5.5.2"
-description = "Jupyter Qt console"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "qtconsole-5.5.2-py3-none-any.whl", hash = "sha256:42d745f3d05d36240244a04e1e1ec2a86d5d9b6edb16dbdef582ccb629e87e0b"},
-    {file = "qtconsole-5.5.2.tar.gz", hash = "sha256:6b5fb11274b297463706af84dcbbd5c92273b1f619e6d25d08874b0a88516989"},
-]
-
-[package.dependencies]
-ipykernel = ">=4.1"
-jupyter-client = ">=4.1"
-jupyter-core = "*"
-packaging = "*"
-pygments = "*"
-pyzmq = ">=17.1"
-qtpy = ">=2.4.0"
-traitlets = "<5.2.1 || >5.2.1,<5.2.2 || >5.2.2"
-
-[package.extras]
-doc = ["Sphinx (>=1.3)"]
-test = ["flaky", "pytest", "pytest-qt"]
-
-[[package]]
-name = "qtpy"
-version = "2.4.1"
-description = "Provides an abstraction layer on top of the various Qt bindings (PyQt5/6 and PySide2/6)."
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "QtPy-2.4.1-py3-none-any.whl", hash = "sha256:1c1d8c4fa2c884ae742b069151b0abe15b3f70491f3972698c683b8e38de839b"},
-    {file = "QtPy-2.4.1.tar.gz", hash = "sha256:a5a15ffd519550a1361bdc56ffc07fda56a6af7292f17c7b395d4083af632987"},
-]
-
-[package.dependencies]
-packaging = "*"
-
-[package.extras]
-test = ["pytest (>=6,!=7.0.0,!=7.0.1)", "pytest-cov (>=3.0.0)", "pytest-qt"]
 
 [[package]]
 name = "referencing"
@@ -7070,4 +7027,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "cb2f9228ee25dbe57cb5aaf137bcb43a970cdb91317726ca58168a70243cbd37"
+content-hash = "dc8add83de57797567b94191065860736f572f38db5e1c872761894a8b3fceef"

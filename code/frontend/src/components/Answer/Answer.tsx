@@ -61,7 +61,7 @@ export const Answer = ({
     toggleIsRefAccordionOpen();
   };
 
-  const initializeSynthesizer = () =>{
+  const initializeSynthesizer = () => {
     const speechConfig = sdk.SpeechConfig.fromSubscription(synthesizerData.key, synthesizerData.region);
     const newAudioDestination = new SpeechSDK.SpeakerAudioDestination();
     const audioConfig = SpeechSDK.AudioConfig.fromSpeakerOutput(newAudioDestination);
@@ -69,9 +69,9 @@ export const Answer = ({
     setSynthesizer(newSynthesizer);
     setAudioDestination(newAudioDestination);
     if (playbackTimeout) {
-      clearTimeout(playbackTimeout); 
+      clearTimeout(playbackTimeout);
     }
-    setRemainingDuration(0); 
+    setRemainingDuration(0);
   }
 
   useEffect(() => {
@@ -116,13 +116,16 @@ export const Answer = ({
     if (chevronIsExpanded && refContainer.current) {
       refContainer.current.scrollIntoView({ behavior: 'smooth' });
     }
+  }, [chevronIsExpanded, isRefAccordionOpen])
+
+  useEffect(() => {
     // After genrating answer then only show speaker icon
     if (parsedAnswer.markdownFormatText === "Generating answer...") {
       setShowSpeaker(false);
     } else {
       setShowSpeaker(true);
     }
-  }, [chevronIsExpanded, isRefAccordionOpen, parsedAnswer]);
+  }, [parsedAnswer]);
 
   const createCitationFilepath = (citation: Citation, index: number, truncate: boolean = false) => {
     let citationFilename = "";
@@ -183,7 +186,7 @@ export const Answer = ({
       setTimeout(() => {
         setIsSpeaking(false);
         setIsPaused(false);
-        onSpeak(index , 'stop');
+        onSpeak(index, 'stop');
       }, remainingDuration)
     );
   };
@@ -199,13 +202,13 @@ export const Answer = ({
   const handleSpeakPauseResume = () => {
     if (isSpeaking) {
       if (isPaused) {
-        onSpeak(index , 'speak');
+        onSpeak(index, 'speak');
         audioDestination?.resume();
         setIsPaused(false);
         setStartTime(Date.now());
         handleTimeout(remainingDuration);
       } else {
-        onSpeak(index , 'pause');
+        onSpeak(index, 'pause');
         audioDestination?.pause();
         setIsPaused(true);
         const elapsed = Date.now() - (startTime || 0);
@@ -216,7 +219,7 @@ export const Answer = ({
         }
       }
     } else {
-      onSpeak(index , 'speak');
+      onSpeak(index, 'speak');
       startSpeech();
     }
   };
@@ -235,7 +238,7 @@ export const Answer = ({
   const getSpeechButtons = () => {
     const speechStatus = !showSpeaker ? "none" : showSpeaker && !isSpeaking ? "Speak"
       : isSpeaking && isPaused ? "Resume" : "Pause";
-      
+
     switch (speechStatus) {
       case 'Speak':
       case 'Resume':
