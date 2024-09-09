@@ -59,10 +59,10 @@ const groupByMonth = (entries: Conversation[]) => {
   return groups
 }
 
-const ChatHistoryList: React.FC<ChatHistoryListProps> = ({ }) => {
+const ChatHistoryList: React.FC<ChatHistoryListProps> = ({  chatHistory }) => {
   // const appStateContext = useContext(AppStateContext)
   // const chatHistory = appStateContext?.state.chatHistory
-  const chatHistory  = [];
+  // const chatHistory  = [];
   // React.useEffect(() => {}, [appStateContext?.state.chatHistory])
 
   let groupedChatHistory

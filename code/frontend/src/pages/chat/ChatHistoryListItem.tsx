@@ -193,8 +193,8 @@ export const ChatHistoryListItemCell: React.FC<ChatHistoryListItemCellProps> = (
       // onKeyDown={e => (e.key === 'Enter' || e.key === ' ' ? handleSelectItem() : null)}
       verticalAlign="center"
       // horizontal
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      // onMouseEnter={() => setIsHovered(true)}
+      // onMouseLeave={() => setIsHovered(false)}
       styles={{
         root: {
           // backgroundColor: isSelected ? '#e6e6e6' : 'transparent'

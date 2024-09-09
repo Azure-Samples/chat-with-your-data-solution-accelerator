@@ -40,6 +40,7 @@ import {
   ChatResponse,
   getAssistantTypeApi,
   historyList,
+  Conversation,
 } from "../../api";
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
@@ -89,7 +90,7 @@ const Chat = () => {
   const observerTarget = useRef(null);
   const [observerCounter, setObserverCounter] = useState(0);
   const [showContextualMenu, setShowContextualMenu] = React.useState(false)
-
+  const [chatHistory, setChatHistory] = useState<Conversation[]>([])
 
   const makeApiRequest = async (question: string) => {
     lastQuestionRef.current = question;
@@ -330,6 +331,7 @@ const Chat = () => {
       // const concatenatedChatHistory = currentChatHistory && response && currentChatHistory.concat(...response)
       if (response) {
         // appStateContext?.dispatch({ type: 'FETCH_CHAT_HISTORY', payload: concatenatedChatHistory || response })
+        setChatHistory(response)
       } else {
         // appStateContext?.dispatch({ type: 'FETCH_CHAT_HISTORY', payload: null })
       }
@@ -579,7 +581,7 @@ const Chat = () => {
                     Chat history
                   </Text>
                 </StackItem>
-                <Stack verticalAlign="start">
+                {/* <Stack verticalAlign="start">
                   <Stack
                     horizontal
                     // styles={commandBarButtonStyle}
@@ -609,7 +611,7 @@ const Chat = () => {
                       // styles={commandBarStyle}
                     />
                   </Stack>
-                </Stack>
+                </Stack> */}
               </Stack>
               <Stack
                 aria-label="chat history panel content"
@@ -625,7 +627,7 @@ const Chat = () => {
                   {/* appStateContext?.state.chatHistoryLoadingState ===
                     ChatHistoryLoadingState.Success &&
                     appStateContext?.state.isCosmosDBAvailable.cosmosDB */}
-                  {/* {showHistoryPanel && <ChatHistoryList />} */}
+                  {!fetchingChatHistory && showHistoryPanel && <ChatHistoryList chatHistory={chatHistory} />}
                   {/* appStateContext?.state.chatHistoryLoadingState ===
                     ChatHistoryLoadingState.Fail &&
                     appStateContext?.state.isCosmosDBAvailable */}
