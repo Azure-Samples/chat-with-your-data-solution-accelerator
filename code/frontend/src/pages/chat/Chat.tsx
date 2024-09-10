@@ -281,6 +281,7 @@ const Chat = () => {
       "",
     ]);
     setIsCitationPanelOpen(true);
+    setShowHistoryPanel(false);
   };
 
   const parseCitationFromMessage = (message: ChatMessage) => {
