@@ -1,0 +1,24 @@
+name: Deploy Azure Resources
+
+on:
+  push:
+    branches:
+      - PSL-Automation-Flow-Draft
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Azure CLI
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          az --version  # Verify installation
+
+      - name: Login to Azure
+        run: |
+          az login --service-principal -u ${{ secrets.AUTO_AZURE_CLIENT_ID }} -p ${{ secrets.AUTO_AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AUTO_AZURE_TENANT_ID }}
+          # az account set --subscription ${{ secrets.AUTO_AZURE_SUBSCRIPTION_ID }}
