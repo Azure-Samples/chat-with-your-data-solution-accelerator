@@ -81,6 +81,6 @@ export type Conversation = {
 //   _ts?: number;
 //   createdAt?: string;
 //   type: string;
-//   updatedAt?: string;
+  updatedAt?: string;
 //   userId?: string;
 };

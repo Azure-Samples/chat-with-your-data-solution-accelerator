@@ -7,6 +7,8 @@
 
 .historyContainer {
     width: 20vw;
+    background: radial-gradient(108.78% 108.78% at 50.02% 19.78%, #FFFFFF 57.29%, #EEF6FE 100%);
+    border-radius: 8px;
 }
 .chatRoot {
     flex: 1;

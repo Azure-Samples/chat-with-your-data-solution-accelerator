@@ -1,16 +1,21 @@
 import { Outlet, Link } from "react-router-dom";
 import styles from "./Layout.module.css";
 import Azure from "../../assets/Azure.svg";
-import { CopyRegular, ShareRegular } from "@fluentui/react-icons";
+import {
+  CopyRegular,
+  ShareRegular,
+  ShieldLockRegular,
+} from "@fluentui/react-icons";
 import { Dialog, Stack, TextField } from "@fluentui/react";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { HistoryButton } from "../../components/HistoryButton/HistoryButton";
+import { getUserInfo } from "../../api";
 
 type LayoutProps = {
   children: ReactNode;
   onSetShowHistoryPanel: () => void;
   showHistoryBtn: boolean;
-  showHistoryPanel: boolean
+  showHistoryPanel: boolean;
 };
 const Layout = ({ children, ...props }: LayoutProps) => {
   const { showHistoryPanel, showHistoryBtn, onSetShowHistoryPanel } = props;
@@ -39,6 +44,32 @@ const Layout = ({ children, ...props }: LayoutProps) => {
     }
   }, [copyClicked]);
 
+  const [showAuthMessage, setShowAuthMessage] = useState<boolean | undefined>();
+  const firstRender = useRef(true);
+
+  const getUserInfoList = async () => {
+    const userInfoList = await getUserInfo();
+    console.log(">>> fetched User info", userInfoList);
+    if (
+      userInfoList.length === 0 &&
+      window.location.hostname !== "localhost" &&
+      window.location.hostname !== "127.0.0.1"
+    ) {
+      setShowAuthMessage(true);
+    } else {
+      setShowAuthMessage(false);
+    }
+  };
+
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    console.log("calling list ");
+    getUserInfoList();
+  }, []);
+
   return (
     <div className={styles.layout}>
       <header className={styles.header} role={"banner"}>
@@ -54,7 +85,7 @@ const Layout = ({ children, ...props }: LayoutProps) => {
               <h3 className={styles.headerTitle}>Azure AI</h3>
             </Link>
             <Stack horizontal className={styles.layoutRightButtons}>
-              {showHistoryBtn && (
+              {!showAuthMessage && showHistoryBtn && (
                 <HistoryButton
                   onClick={onSetShowHistoryPanel}
                   text={`${showHistoryPanel ? "Hide" : "Show"} Chat History`}
@@ -78,7 +109,52 @@ const Layout = ({ children, ...props }: LayoutProps) => {
         </div>
       </header>
       {/* <Outlet /> */}
-      {children}
+
+      {showAuthMessage ? (
+        <Stack className={styles.chatEmptyState}>
+          <ShieldLockRegular
+            className={styles.chatIcon}
+            style={{ color: "darkorange", height: "200px", width: "200px" }}
+          />
+          <h1 className={styles.chatEmptyStateTitle}>
+            Authentication Not Configured
+          </h1>
+          <h2 className={styles.chatEmptyStateSubtitle}>
+            This app does not have authentication configured. Please add an
+            identity provider by finding your app in the{" "}
+            <a href="https://portal.azure.com/" target="_blank">
+              Azure Portal
+            </a>
+            and following{" "}
+            <a
+              href="https://learn.microsoft.com/en-us/azure/app-service/scenario-secure-app-authentication-app-service#3-configure-authentication-and-authorization"
+              target="_blank"
+            >
+              these instructions
+            </a>
+            .
+          </h2>
+          <h2
+            className={styles.chatEmptyStateSubtitle}
+            style={{ fontSize: "20px" }}
+          >
+            <strong>
+              Authentication configuration takes a few minutes to apply.{" "}
+            </strong>
+          </h2>
+          <h2
+            className={styles.chatEmptyStateSubtitle}
+            style={{ fontSize: "20px" }}
+          >
+            <strong>
+              If you deployed in the last 10 minutes, please wait and reload the
+              page after 10 minutes.
+            </strong>
+          </h2>
+        </Stack>
+      ) : (
+        <>{children}</>
+      )}
       <Dialog
         onDismiss={handleSharePanelDismiss}
         hidden={!isSharePanelOpen}

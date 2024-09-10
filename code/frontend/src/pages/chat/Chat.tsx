@@ -49,7 +49,7 @@ import Layout from "../layout/Layout";
 import HistoryPanel from "../../components/HistoryPanel/HistoryPanel";
 import ChatHistoryList from "./ChatHistoryList";
 
-const OFFSET_INCREMENT = 5;
+const OFFSET_INCREMENT = 25;
 
 const Chat = () => {
   const lastQuestionRef = useRef<string>("");
@@ -104,7 +104,7 @@ const Chat = () => {
       role: "user",
       content: recognizedText || question,
       id: "",
-      date: ""
+      date: "",
     };
 
     const request: ConversationRequest = {
@@ -137,9 +137,10 @@ const Chat = () => {
                   ...answers,
                   userMessage,
                   {
-                    role: "error", content: result.error,
+                    role: "error",
+                    content: result.error,
                     id: "",
-                    date: ""
+                    date: "",
                   },
                 ]);
               } else {
@@ -583,6 +584,7 @@ const Chat = () => {
                 verticalAlign="center"
                 wrap
                 aria-label="chat history header"
+                className="mt-8"
               >
                 <StackItem>
                   <Text
@@ -599,12 +601,12 @@ const Chat = () => {
                     Chat history
                   </Text>
                 </StackItem>
-                {/* <Stack verticalAlign="start">
+                <Stack verticalAlign="start">
                   <Stack
                     horizontal
                     // styles={commandBarButtonStyle}
                   >
-                    <CommandBarButton
+                    {/* <CommandBarButton
                       iconProps={{ iconName: "More" }}
                       title={"Clear all chat history"}
                       aria-label={"clear all chat history"}
@@ -619,17 +621,17 @@ const Chat = () => {
                       // hidden={!showContextualMenu}
                       // onItemClick={toggleClearAllDialog}
                       // onDismiss={onHideContextualMenu}
-                    />
+                    /> */}
                     <CommandBarButton
                       iconProps={{ iconName: "Cancel" }}
                       title={"Hide"}
                       aria-label={"hide button"}
                       role="button"
-                      // onClick={handleHistoryClick}
+                      onClick={() => setShowHistoryPanel(false)}
                       // styles={commandBarStyle}
                     />
                   </Stack>
-                </Stack> */}
+                </Stack>
               </Stack>
               <Stack
                 aria-label="chat history panel content"

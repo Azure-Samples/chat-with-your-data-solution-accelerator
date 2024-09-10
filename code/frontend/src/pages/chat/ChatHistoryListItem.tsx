@@ -33,8 +33,8 @@ interface ChatHistoryListItemCellProps {
 }
 
 interface ChatHistoryListItemGroupsProps {
-  fetchingChatHistory: boolean; 
-  handleFetchHistory: () => Promise<void>; 
+  fetchingChatHistory: boolean;
+  handleFetchHistory: () => Promise<void>;
   groupedChatHistory: GroupedChatHistory[];
 }
 
@@ -394,12 +394,12 @@ export const ChatHistoryListItemGroups: React.FC<
             <Stack
               horizontalAlign="start"
               verticalAlign="center"
-              key={group.month}
+              key={group.title}
               className={styles.chatGroup}
-              aria-label={`chat history group: ${group.month}`}
+              aria-label={`chat history group: ${group.title}`}
             >
-              <Stack aria-label={group.month} className={styles.chatMonth}>
-                {formatMonth(group.month)}
+              <Stack aria-label={group.title} className={styles.chatMonth}>
+                {group.title}
               </Stack>
               <List
                 aria-label={`chat history list`}
