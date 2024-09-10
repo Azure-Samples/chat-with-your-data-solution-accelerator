@@ -69,10 +69,11 @@ export const historyRead = async (convId: string): Promise<ChatMessage[]> => {
   const response = await fetch("/api/history/read", {
     method: "POST",
     body: JSON.stringify({
-      conversation_id: convId,
+      conversation_id: "7f09b86a-7853-4fa1-9e4d-0d582a3e4b69",
     }),
     headers: {
       "Content-Type": "application/json",
+      "X-Ms-Client-Principal-Id": "95647817-dfb9-47a6-a124-4205938bdd72"
     },
   })
     .then(async (res) => {
@@ -146,10 +147,13 @@ export const historyList = async (
               console.error("error fetching messages: ", err);
               return [];
             });
+            console.log("conversation messages", convMessages);
+
           const conversation: Conversation = {
             id: conv.id,
             title: conv.title,
             date: conv.createdAt,
+            updatedAt:conv?.updatedAt,
             messages: convMessages,
           };
           return conversation;
@@ -162,141 +166,141 @@ export const historyList = async (
       return null;
     });
   console.log("list response returning ", response);
-  response = [
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-09-10T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-09-10T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-09-09T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-09-02T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-09-09T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-09-11T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-09-08T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-08-16T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-09-07T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-08-15T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-09-06T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-08-14T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-09-01T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-08-14T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-08-01T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-08-16T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-08-01T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-08-16T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-09-01T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-08-16T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-09-01T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-08-16T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-09-01T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-08-16T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-09-01T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-08-16T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-09-01T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-08-16T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-09-01T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-08-16T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-09-01T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-08-16T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-09-01T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-08-16T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-09-01T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-08-16T23:30:41.602059",
-      messages: [],
-    },
-    {
-      id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-      updatedAt: "2024-09-01T05:28:11.040548",
-      title: "Data conversation title requested",
-      date: "2024-08-16T23:30:41.602059",
-      messages: [],
-    },
-  ];
+  // response = [
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-09-10T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-09-10T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-09-09T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-09-02T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-09-09T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-09-11T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-09-08T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-08-16T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-09-07T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-08-15T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-09-06T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-08-14T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-09-01T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-08-14T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-08-01T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-08-16T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-08-01T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-08-16T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-09-01T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-08-16T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-09-01T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-08-16T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-09-01T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-08-16T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-09-01T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-08-16T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-09-01T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-08-16T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-09-01T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-08-16T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-09-01T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-08-16T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-09-01T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-08-16T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-09-01T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-08-16T23:30:41.602059",
+  //     messages: [],
+  //   },
+  //   {
+  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
+  //     updatedAt: "2024-09-01T05:28:11.040548",
+  //     title: "Data conversation title requested",
+  //     date: "2024-08-16T23:30:41.602059",
+  //     messages: [],
+  //   },
+  // ];
   // response = [];
   return response;
 };
