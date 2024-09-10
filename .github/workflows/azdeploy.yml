@@ -21,3 +21,16 @@ jobs:
       - name: Login to Azure
         run: |
           az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: Install Bicep CLI
+        run: az bicep install
+
+      - name: Deploy Bicep Template
+        run: |
+          set -e
+
+          az deployment sub create \
+            --name autoDemo \
+            --location eastus \
+            --template-file infra/main.bicep \
+            --parameters environmentName=pslautomation2 location=eastus2
