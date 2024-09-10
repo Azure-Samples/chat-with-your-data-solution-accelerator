@@ -49,7 +49,7 @@ import Layout from "../layout/Layout";
 import HistoryPanel from "../../components/HistoryPanel/HistoryPanel";
 import ChatHistoryList from "./ChatHistoryList";
 
-const OFFSET_INCREMENT = 5;
+const OFFSET_INCREMENT = 25;
 
 const Chat = () => {
   const lastQuestionRef = useRef<string>("");
