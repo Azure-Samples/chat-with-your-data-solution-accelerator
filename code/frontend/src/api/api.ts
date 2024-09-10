@@ -34,14 +34,19 @@ export type UserInfo = {
 };
 
 export async function getUserInfo(): Promise<UserInfo[]> {
-  const response = await fetch("/.auth/me");
-  if (!response.ok) {
-    console.log("No identity provider found. Access to chat will be blocked.");
+  try {
+    const response = await fetch("/.auth/me");
+    if (!response.ok) {
+      console.log(
+        "No identity provider found. Access to chat will be blocked."
+      );
+      return [];
+    }
+    const payload = await response.json();
+    return payload;
+  } catch (e) {
     return [];
   }
-
-  const payload = await response.json();
-  return payload;
 }
 
 export async function getAssistantTypeApi() {
@@ -73,7 +78,7 @@ export const historyRead = async (convId: string): Promise<ChatMessage[]> => {
     }),
     headers: {
       "Content-Type": "application/json",
-      "X-Ms-Client-Principal-Id": "95647817-dfb9-47a6-a124-4205938bdd72"
+      "X-Ms-Client-Principal-Id": "95647817-dfb9-47a6-a124-4205938bdd72",
     },
   })
     .then(async (res) => {
@@ -147,13 +152,13 @@ export const historyList = async (
               console.error("error fetching messages: ", err);
               return [];
             });
-            console.log("conversation messages", convMessages);
+          console.log("conversation messages", convMessages);
 
           const conversation: Conversation = {
             id: conv.id,
             title: conv.title,
             date: conv.createdAt,
-            updatedAt:conv?.updatedAt,
+            updatedAt: conv?.updatedAt,
             messages: convMessages,
           };
           return conversation;
