@@ -582,6 +582,7 @@ const Chat = () => {
                 verticalAlign="center"
                 wrap
                 aria-label="chat history header"
+                className="mt-8"
               >
                 <StackItem>
                   <Text
