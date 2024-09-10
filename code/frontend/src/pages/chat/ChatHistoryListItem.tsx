@@ -33,8 +33,8 @@ interface ChatHistoryListItemCellProps {
 }
 
 interface ChatHistoryListItemGroupsProps {
-  fetchingChatHistory: boolean; 
-  handleFetchHistory: () => Promise<void>; 
+  fetchingChatHistory: boolean;
+  handleFetchHistory: () => Promise<void>;
   groupedChatHistory: GroupedChatHistory[];
 }
 

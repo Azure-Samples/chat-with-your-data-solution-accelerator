@@ -101,6 +101,7 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
       />
     );
   }
+  return <></>
 };
 
 export default ChatHistoryList;

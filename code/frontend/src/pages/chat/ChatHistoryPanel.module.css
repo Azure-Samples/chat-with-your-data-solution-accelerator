@@ -51,7 +51,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 50px;
+  height: 22px;
+  margin-top: -8px;
 }
 
 .chatList {
