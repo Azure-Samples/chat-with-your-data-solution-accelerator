@@ -6,7 +6,7 @@ import { Conversation } from "../../api/models";
 
 import { ChatHistoryListItemGroups } from "./ChatHistoryListItem";
 
-interface ChatHistoryListProps {}
+interface ChatHistoryListProps { fetchingChatHistory: boolean; handleFetchHistory: () => Promise<void>; chatHistory: Conversation[]; }
 
 export interface GroupedChatHistory {
   month: string;

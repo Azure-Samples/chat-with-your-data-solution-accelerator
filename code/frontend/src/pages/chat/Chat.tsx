@@ -103,6 +103,8 @@ const Chat = () => {
     const userMessage: ChatMessage = {
       role: "user",
       content: recognizedText || question,
+      id: "",
+      date: ""
     };
 
     const request: ConversationRequest = {
@@ -134,7 +136,11 @@ const Chat = () => {
                 setAnswers([
                   ...answers,
                   userMessage,
-                  { role: "error", content: result.error },
+                  {
+                    role: "error", content: result.error,
+                    id: "",
+                    date: ""
+                  },
                 ]);
               } else {
                 setAnswers([
