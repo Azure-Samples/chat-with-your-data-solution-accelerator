@@ -3,7 +3,7 @@ name: Deploy Azure Resources
 on:
   push:
     branches:
-      - PSL-Automation-Flow-Draft
+      - main
 
 jobs:
   deploy:
