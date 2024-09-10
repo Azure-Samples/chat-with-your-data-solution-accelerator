@@ -1,50 +1,40 @@
 import os
 import logging
-import json
 from uuid import uuid4
 from dotenv import load_dotenv
-from flask import Flask, Response, request, Request, jsonify, Blueprint
+from flask import request, jsonify, Blueprint
 from .cosmosdb import CosmosConversationClient
 from .auth_utils import get_authenticated_user_details
 from azure.identity.aio import DefaultAzureCredential
+from backend.batch.utilities.helpers.env_helper import EnvHelper
 
 load_dotenv()
 bp_chat_history_response = Blueprint("chat_history", __name__)
 logger = logging.getLogger(__name__)
 logger.setLevel(level=os.environ.get("LOGLEVEL", "INFO").upper())
 
-# Chat History CosmosDB Integration Settings
-AZURE_COSMOSDB_DATABASE = os.environ.get("AZURE_COSMOSDB_DATABASE")
-AZURE_COSMOSDB_ACCOUNT = os.environ.get("AZURE_COSMOSDB_ACCOUNT")
-AZURE_COSMOSDB_CONVERSATIONS_CONTAINER = os.environ.get(
-    "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER"
-)
-AZURE_COSMOSDB_ACCOUNT_KEY = os.environ.get("AZURE_COSMOSDB_ACCOUNT_KEY")
-AZURE_COSMOSDB_ENABLE_FEEDBACK = (
-    os.environ.get("AZURE_COSMOSDB_ENABLE_FEEDBACK", "false").lower() == "true"
-)
-CHAT_HISTORY_ENABLED = os.environ.get("CHAT_HISTORY_ENABLED", "false").lower() == "true"
+env_helper: EnvHelper = EnvHelper()
 
 
 def init_cosmosdb_client():
     cosmos_conversation_client = None
-    if CHAT_HISTORY_ENABLED:
+    if env_helper.CHAT_HISTORY_ENABLED:
         try:
             cosmos_endpoint = (
-                f"https://{AZURE_COSMOSDB_ACCOUNT}.documents.azure.com:443/"
+                f"https://{env_helper.AZURE_COSMOSDB_ACCOUNT}.documents.azure.com:443/"
             )
 
-            if not AZURE_COSMOSDB_ACCOUNT_KEY:
+            if not env_helper.AZURE_COSMOSDB_ACCOUNT_KEY:
                 credential = DefaultAzureCredential()
             else:
-                credential = AZURE_COSMOSDB_ACCOUNT_KEY
+                credential = env_helper.AZURE_COSMOSDB_ACCOUNT_KEY
 
             cosmos_conversation_client = CosmosConversationClient(
                 cosmosdb_endpoint=cosmos_endpoint,
                 credential=credential,
-                database_name=AZURE_COSMOSDB_DATABASE,
-                container_name=AZURE_COSMOSDB_CONVERSATIONS_CONTAINER,
-                enable_message_feedback=AZURE_COSMOSDB_ENABLE_FEEDBACK,
+                database_name=env_helper.AZURE_COSMOSDB_DATABASE,
+                container_name=env_helper.AZURE_COSMOSDB_CONVERSATIONS_CONTAINER,
+                enable_message_feedback=env_helper.AZURE_COSMOSDB_ENABLE_FEEDBACK,
             )
         except Exception as e:
             logger.exception("Exception in CosmosDB initialization")
@@ -59,8 +49,8 @@ def init_cosmosdb_client():
 @bp_chat_history_response.route("/history/list", methods=["GET"])
 async def list_conversations():
     print("list_conversations")
-    if not CHAT_HISTORY_ENABLED:
-        return (jsonify({"error": f"Chat history is not avaliable"}), 400)
+    if not env_helper.CHAT_HISTORY_ENABLED:
+        return (jsonify({"error": "Chat history is not avaliable"}), 400)
 
     try:
         offset = request.args.get("offset", 0)
@@ -92,8 +82,8 @@ async def list_conversations():
 @bp_chat_history_response.route("/history/rename", methods=["POST"])
 async def rename_conversation():
     print("rename_conversation")
-    if not CHAT_HISTORY_ENABLED:
-        return (jsonify({"error": f"Chat history is not avaliable"}), 400)
+    if not env_helper.CHAT_HISTORY_ENABLED:
+        return (jsonify({"error": "Chat history is not avaliable"}), 400)
     try:
         authenticated_user = get_authenticated_user_details(
             request_headers=request.headers
@@ -145,8 +135,8 @@ async def rename_conversation():
 @bp_chat_history_response.route("/history/read", methods=["POST"])
 async def get_conversation():
     print("get_conversation")
-    if not CHAT_HISTORY_ENABLED:
-        return (jsonify({"error": f"Chat history is not avaliable"}), 400)
+    if not env_helper.CHAT_HISTORY_ENABLED:
+        return (jsonify({"error": "Chat history is not avaliable"}), 400)
 
     try:
         authenticated_user = get_authenticated_user_details(
@@ -211,8 +201,8 @@ async def get_conversation():
 @bp_chat_history_response.route("/history/delete", methods=["DELETE"])
 async def delete_conversation():
     print("delete_conversation")
-    if not CHAT_HISTORY_ENABLED:
-        return (jsonify({"error": f"Chat history is not avaliable"}), 400)
+    if not env_helper.CHAT_HISTORY_ENABLED:
+        return (jsonify({"error": "Chat history is not avaliable"}), 400)
 
     try:
         ## get the user id from the request headers
@@ -264,8 +254,8 @@ async def delete_conversation():
 @bp_chat_history_response.route("/history/delete_all", methods=["DELETE"])
 async def delete_all_conversations():
     print("delete_all_conversations")
-    if not CHAT_HISTORY_ENABLED:
-        return (jsonify({"error": f"Chat history is not avaliable"}), 400)
+    if not env_helper.CHAT_HISTORY_ENABLED:
+        return (jsonify({"error": "Chat history is not avaliable"}), 400)
 
     try:
         ## get the user id from the request headers
@@ -318,8 +308,8 @@ async def delete_all_conversations():
 @bp_chat_history_response.route("/history/generate", methods=["POST"])
 async def add_conversation():
     print("add_conversation")
-    if not CHAT_HISTORY_ENABLED:
-        return (jsonify({"error": f"Chat history is not avaliable"}), 400)
+    if not env_helper.CHAT_HISTORY_ENABLED:
+        return (jsonify({"error": "Chat history is not avaliable"}), 400)
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
     user_id = authenticated_user["user_principal_id"]
     try:
@@ -353,9 +343,9 @@ async def add_conversation():
                 input_message=messages[-1],
             )
             if createdMessageValue == "Conversation not found":
-                return (jsonify({"error": f"Conversation not found"}), 400)
+                return (jsonify({"error": "Conversation not found"}), 400)
         else:
-            return (jsonify({"error": f"User not found"}), 400)
+            return (jsonify({"error": "User not found"}), 400)
 
         # # Submit request to Chat Completions for response
         # request_body = request.get_json()
@@ -370,8 +360,8 @@ async def add_conversation():
 
 @bp_chat_history_response.route("/history/update", methods=["POST"])
 async def update_conversation():
-    if not CHAT_HISTORY_ENABLED:
-        return (jsonify({"error": f"Chat history is not avaliable"}), 400)
+    if not env_helper.CHAT_HISTORY_ENABLED:
+        return (jsonify({"error": "Chat history is not avaliable"}), 400)
     try:
         authenticated_user = get_authenticated_user_details(
             request_headers=request.headers
@@ -425,7 +415,7 @@ async def update_conversation():
 def get_frontend_settings():
     print("get_frontend_settings")
     try:
-        return (jsonify({"CHAT_HISTORY_ENABLED": CHAT_HISTORY_ENABLED}), 200)
+        return (jsonify({"CHAT_HISTORY_ENABLED": env_helper.CHAT_HISTORY_ENABLED}), 200)
     except Exception as e:
         logger.exception("Exception in /frontend_settings")
         return (jsonify({"error": str(e)}), 500)
