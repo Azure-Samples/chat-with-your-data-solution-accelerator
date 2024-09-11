@@ -30,12 +30,15 @@ const OFFSET_INCREMENT = 5;
 interface ChatHistoryListItemCellProps {
   item?: Conversation;
   onSelect: (item: Conversation | null) => void;
+  selectedConvId: string;
 }
 
 interface ChatHistoryListItemGroupsProps {
   fetchingChatHistory: boolean;
   handleFetchHistory: () => Promise<void>;
   groupedChatHistory: GroupedChatHistory[];
+  onSelectConversation: (id: string) => void;
+  selectedConvId: string;
 }
 
 const formatMonth = (month: string) => {
@@ -54,7 +57,7 @@ const formatMonth = (month: string) => {
 
 export const ChatHistoryListItemCell: React.FC<
   ChatHistoryListItemCellProps
-> = ({ item, onSelect }) => {
+> = ({ item, onSelect, selectedConvId }) => {
   const [isHovered, setIsHovered] = React.useState(false);
   const [edit, setEdit] = useState(false);
   const [editTitle, setEditTitle] = useState("");
@@ -66,8 +69,7 @@ export const ChatHistoryListItemCell: React.FC<
   const textFieldRef = useRef<ITextField | null>(null);
   const [isButtonDisabled, setIsButtonDisabled] = useState<boolean>(false);
 
-  // const appStateContext = React.useContext(AppStateContext)
-  // const isSelected = item?.id === appStateContext?.state.currentChat?.id
+  const isSelected = item?.id === selectedConvId;
   const dialogContentProps = {
     type: DialogType.close,
     title: "Are you sure you want to delete this item?",
@@ -126,10 +128,9 @@ export const ChatHistoryListItemCell: React.FC<
     setEditTitle(item?.title);
   };
 
-  // const handleSelectItem = () => {
-  //   onSelect(item)
-  //   appStateContext?.dispatch({ type: 'UPDATE_CURRENT_CHAT', payload: item })
-  // }
+  const handleSelectItem = () => {
+    onSelect(item);
+  };
 
   const truncatedTitle =
     item?.title?.length > 28
@@ -189,14 +190,13 @@ export const ChatHistoryListItemCell: React.FC<
   //     return
   //   }
   // }
-  const isSelected = false;
   return (
     <Stack
       key={item.id}
       tabIndex={0}
       aria-label="chat history item"
       className={styles.itemCell}
-      // onClick={() => handleSelectItem()}
+      onClick={() => handleSelectItem()}
       // onKeyDown={e => (e.key === 'Enter' || e.key === ' ' ? handleSelectItem() : null)}
       verticalAlign="center"
       // horizontal
@@ -204,7 +204,7 @@ export const ChatHistoryListItemCell: React.FC<
       // onMouseLeave={() => setIsHovered(false)}
       styles={{
         root: {
-          // backgroundColor: isSelected ? '#e6e6e6' : 'transparent'
+          backgroundColor: isSelected ? '#e6e6e6' : 'transparent'
         },
       }}
     >
@@ -281,7 +281,7 @@ export const ChatHistoryListItemCell: React.FC<
         <>
           <Stack horizontal verticalAlign={"center"} style={{ width: "100%" }}>
             <div className={styles.chatTitle}>{truncatedTitle}</div>
-            {(isSelected || isHovered) && (
+            {(isHovered) && (
               <Stack horizontal horizontalAlign="end">
                 <IconButton
                   className={styles.itemButton}
@@ -332,18 +332,20 @@ export const ChatHistoryListItemCell: React.FC<
 
 export const ChatHistoryListItemGroups: React.FC<
   ChatHistoryListItemGroupsProps
-> = ({ groupedChatHistory, handleFetchHistory, fetchingChatHistory }) => {
-  // const appStateContext = useContext(AppStateContext)
+> = ({
+  groupedChatHistory,
+  handleFetchHistory,
+  fetchingChatHistory,
+  onSelectConversation,
+  selectedConvId,
+}) => {
   const observerTarget = useRef(null);
-  const [, setSelectedItem] = React.useState<Conversation | null>(null);
-  const [offset, setOffset] = useState<number>(25);
   const [observerCounter, setObserverCounter] = useState(0);
-  const [showSpinner, setShowSpinner] = useState(false);
   const firstRender = useRef(true);
 
   const handleSelectHistory = (item?: Conversation) => {
-    if (item) {
-      setSelectedItem(item);
+    if (typeof item === "object") {
+      onSelectConversation(item?.id);
     }
   };
 
@@ -352,6 +354,7 @@ export const ChatHistoryListItemGroups: React.FC<
       <ChatHistoryListItemCell
         item={item}
         onSelect={() => handleSelectHistory(item)}
+        selectedConvId={selectedConvId}
       />
     );
   };

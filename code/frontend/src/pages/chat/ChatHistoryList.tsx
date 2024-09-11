@@ -6,7 +6,12 @@ import { Conversation } from "../../api/models";
 
 import { ChatHistoryListItemGroups } from "./ChatHistoryListItem";
 
-interface ChatHistoryListProps { fetchingChatHistory: boolean; handleFetchHistory: () => Promise<void>; chatHistory: Conversation[]; }
+interface ChatHistoryListProps {
+  fetchingChatHistory: boolean;
+  handleFetchHistory: () => Promise<void>; chatHistory: Conversation[];
+  onSelectConversation: (id: string) => void;
+  selectedConvId: string
+}
 
 export interface GroupedChatHistory {
   title: string;
@@ -89,6 +94,8 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
   handleFetchHistory,
   chatHistory,
   fetchingChatHistory,
+  onSelectConversation,
+  selectedConvId
 }) => {
   if (!fetchingChatHistory && chatHistory?.length === 0) {
     return (
@@ -116,6 +123,8 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
         fetchingChatHistory={fetchingChatHistory}
         handleFetchHistory={handleFetchHistory}
         groupedChatHistory={groupedChatHistory}
+        onSelectConversation={onSelectConversation}
+        selectedConvId={selectedConvId}
       />
     );
   }

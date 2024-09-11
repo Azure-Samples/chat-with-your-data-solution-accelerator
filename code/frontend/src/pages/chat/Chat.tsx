@@ -92,6 +92,7 @@ const Chat = () => {
   const [showContextualMenu, setShowContextualMenu] = React.useState(false);
   const [chatHistory, setChatHistory] = useState<Conversation[]>([]);
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(true);
+  const [selectedConvId, setSelectedConvId] = useState<string>("");
 
   const makeApiRequest = async (question: string) => {
     lastQuestionRef.current = question;
@@ -306,6 +307,20 @@ const Chat = () => {
     setShowHistoryPanel((prevState) => !prevState);
   };
 
+  const getMessagesByconvId = (id: string) => {
+    const conv = chatHistory.find((obj) => obj.id === id);
+    if (conv) {
+      return conv.messages;
+    }
+    return [];
+  };
+
+  const onSelectConversation = (id: string) => {
+    console.log("selected conv id in chat", id);
+    const messages = getMessagesByconvId(id);
+    setAnswers(messages);
+    setSelectedConvId(id);
+  };
   // useEffect(() => {
   //   const observer = new IntersectionObserver(
   //     (entries) => {
@@ -370,7 +385,7 @@ const Chat = () => {
     },
     []
   );
-
+  console.log("answers", answers, lastQuestionRef);
   return (
     <Layout
       showHistoryBtn={showHistoryBtn}
@@ -382,7 +397,7 @@ const Chat = () => {
           <div
             className={`${styles.chatContainer} ${styles.MobileChatContainer}`}
           >
-            {!lastQuestionRef.current ? (
+            {!lastQuestionRef.current && answers.length === 0 ? (
               <Stack className={styles.chatEmptyState}>
                 <img
                   src={Azure}
@@ -654,6 +669,8 @@ const Chat = () => {
                       fetchingChatHistory={fetchingChatHistory}
                       handleFetchHistory={handleFetchHistory}
                       chatHistory={chatHistory}
+                      onSelectConversation={onSelectConversation}
+                      selectedConvId={selectedConvId}
                     />
                   )}
                   {/* appStateContext?.state.chatHistoryLoadingState ===
