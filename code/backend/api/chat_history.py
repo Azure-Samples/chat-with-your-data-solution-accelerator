@@ -5,8 +5,8 @@ from uuid import uuid4
 from dotenv import load_dotenv
 from flask import Flask, Response, request, Request, jsonify, Blueprint
 from openai import AsyncAzureOpenAI
-from .cosmosdb import CosmosConversationClient
-from .auth_utils import get_authenticated_user_details
+from backend.batch.utilities.chat_history.cosmosdb import CosmosConversationClient
+from backend.batch.utilities.chat_history.auth_utils import get_authenticated_user_details
 from azure.identity.aio import DefaultAzureCredential
 from backend.batch.utilities.helpers.env_helper import EnvHelper
 
