@@ -124,15 +124,18 @@ const Chat = () => {
         const reader = response.body.getReader();
         let runningText = "";
         while (true) {
+          console.log(">>> reading from response");
           const { done, value } = await reader.read();
           if (done) break;
 
           var text = new TextDecoder("utf-8").decode(value);
           const objects = text.split("\n");
           objects.forEach((obj) => {
+
             try {
               runningText += obj;
               result = JSON.parse(runningText);
+              console.log(">>> obj ", obj, runningText, result);
               setShowLoadingMessage(false);
               if (result.error) {
                 setAnswers([

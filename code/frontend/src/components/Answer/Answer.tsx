@@ -69,9 +69,9 @@ export const Answer = ({
     setSynthesizer(newSynthesizer);
     setAudioDestination(newAudioDestination);
     if (playbackTimeout) {
-      clearTimeout(playbackTimeout); 
+      clearTimeout(playbackTimeout);
     }
-    setRemainingDuration(0); 
+    setRemainingDuration(0);
   }
 
   useEffect(() => {
@@ -113,9 +113,9 @@ export const Answer = ({
 
   useEffect(() => {
     setChevronIsExpanded(isRefAccordionOpen);
-    if (chevronIsExpanded && refContainer.current) {
-      refContainer.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    // if (chevronIsExpanded && refContainer.current) {
+    //   refContainer.current.scrollIntoView({ behavior: 'smooth' });
+    // }
     // After genrating answer then only show speaker icon
     if (parsedAnswer.markdownFormatText === "Generating answer...") {
       setShowSpeaker(false);
@@ -235,7 +235,6 @@ export const Answer = ({
   const getSpeechButtons = () => {
     const speechStatus = !showSpeaker ? "none" : showSpeaker && !isSpeaking ? "Speak"
       : isSpeaking && isPaused ? "Resume" : "Pause";
-      
     switch (speechStatus) {
       case 'Speak':
       case 'Resume':
@@ -254,6 +253,7 @@ export const Answer = ({
         return null;
     }
   }
+console.log("chevronIsExpanded, isRefAccordionOpen, parsedAnswer", chevronIsExpanded, isRefAccordionOpen, parsedAnswer);
 
   return (
     <>
