@@ -91,6 +91,7 @@ const Chat = () => {
   const [observerCounter, setObserverCounter] = useState(0);
   const [showContextualMenu, setShowContextualMenu] = React.useState(false);
   const [chatHistory, setChatHistory] = useState<Conversation[]>([]);
+  const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(true);
 
   const makeApiRequest = async (question: string) => {
     lastQuestionRef.current = question;
@@ -331,22 +332,23 @@ const Chat = () => {
   }, []);
 
   const handleFetchHistory = async () => {
-    if (fetchingChatHistory) {
+    if (fetchingChatHistory || !hasMoreRecords) {
       return;
     }
-    // const currentChatHistory = appStateContext?.state.chatHistory
     setFetchingChatHistory(true);
     await historyList(offset).then((response) => {
       console.log("HL response", response);
-      // const concatenatedChatHistory = currentChatHistory && response && currentChatHistory.concat(...response)
-      if (response) {
-        // appStateContext?.dispatch({ type: 'FETCH_CHAT_HISTORY', payload: concatenatedChatHistory || response })
+      if (Array.isArray(response)) {
         setChatHistory((prevData) => [...prevData, ...response]);
-        setOffset((offset) => (offset += OFFSET_INCREMENT));
+        if (response.length === OFFSET_INCREMENT) {
+          setOffset((offset) => (offset += OFFSET_INCREMENT));
+          // Stopping offset increment if there were no records
+        } else if (response.length < OFFSET_INCREMENT) {
+          setHasMoreRecords(false);
+        }
       } else {
-        // appStateContext?.dispatch({ type: 'FETCH_CHAT_HISTORY', payload: null })
+        setChatHistory([]);
       }
-      // response =
       setFetchingChatHistory(false);
       return response;
     });
