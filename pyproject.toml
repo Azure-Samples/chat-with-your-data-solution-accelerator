@@ -39,6 +39,7 @@ azure-mgmt-cognitiveservices = "^13.5.0"
 jsonschema = "^4.23.0"
 semantic-kernel = {version = "1.8.0", python = "<3.13"}
 azure-ai-ml = "^1.19.0"
+azure-cosmos = "==4.5.*"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"
