@@ -355,6 +355,7 @@ export const ChatHistoryListItemGroups: React.FC<
         item={item}
         onSelect={() => handleSelectHistory(item)}
         selectedConvId={selectedConvId}
+        key={item?.id}
       />
     );
   };
@@ -392,12 +393,12 @@ export const ChatHistoryListItemGroups: React.FC<
   return (
     <div className={styles.listContainer} data-is-scrollable>
       {groupedChatHistory.map(
-        (group) =>
+        (group, index) =>
           group.entries.length > 0 && (
             <Stack
               horizontalAlign="start"
               verticalAlign="center"
-              key={group.title}
+              key={`GROUP-${group.title}-${index}`}
               className={styles.chatGroup}
               aria-label={`chat history group: ${group.title}`}
             >

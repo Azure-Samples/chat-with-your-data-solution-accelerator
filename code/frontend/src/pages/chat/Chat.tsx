@@ -439,14 +439,14 @@ const Chat = () => {
                 {answers.map((answer, index) => (
                   <>
                     {answer.role === "user" ? (
-                      <div className={styles.chatMessageUser}>
+                      <div className={styles.chatMessageUser} key={`${answer?.role}-${index}`}>
                         <div className={styles.chatMessageUserMessage}>
                           {answer.content}
                         </div>
                       </div>
                     ) : answer.role === "assistant" ||
                       answer.role === "error" ? (
-                      <div className={styles.chatMessageGpt}>
+                      <div className={styles.chatMessageGpt} key={`${answer?.role}-${index}`}>
                         <Answer
                           answer={{
                             answer:
@@ -469,7 +469,7 @@ const Chat = () => {
                   </>
                 ))}
                 {showLoadingMessage && (
-                  <>
+                  <React.Fragment key="generating-answer">
                     <div className={styles.chatMessageUser}>
                       <div className={styles.chatMessageUserMessage}>
                         {lastQuestionRef.current}
@@ -485,7 +485,7 @@ const Chat = () => {
                         index={0}
                       />
                     </div>
-                  </>
+                  </React.Fragment>
                 )}
                 <div ref={chatMessageStreamEnd} />
               </div>
