@@ -108,8 +108,6 @@ const Layout = ({ children, ...props }: LayoutProps) => {
           </Stack>
         </div>
       </header>
-      {/* <Outlet /> */}
-
       {showAuthMessage ? (
         <Stack className={styles.chatEmptyState}>
           <ShieldLockRegular
@@ -124,7 +122,7 @@ const Layout = ({ children, ...props }: LayoutProps) => {
             identity provider by finding your app in the{" "}
             <a href="https://portal.azure.com/" target="_blank">
               Azure Portal
-            </a>
+            </a>{" "}
             and following{" "}
             <a
               href="https://learn.microsoft.com/en-us/azure/app-service/scenario-secure-app-authentication-app-service#3-configure-authentication-and-authorization"
