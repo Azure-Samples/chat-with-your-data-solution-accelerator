@@ -248,7 +248,9 @@ class EnvHelper:
         self.AZURE_COSMOSDB_CONVERSATIONS_CONTAINER = os.getenv(
             "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER", ""
         )
-        self.AZURE_COSMOSDB_ACCOUNT_KEY = os.getenv("AZURE_COSMOSDB_ACCOUNT_KEY", "")
+        self.AZURE_COSMOSDB_ACCOUNT_KEY = self.secretHelper.get_secret(
+            "AZURE_COSMOSDB_ACCOUNT_KEY"
+        )
         self.AZURE_COSMOSDB_ENABLE_FEEDBACK = (
             os.getenv("AZURE_COSMOSDB_ENABLE_FEEDBACK", "false").lower() == "true"
         )
