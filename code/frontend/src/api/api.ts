@@ -74,11 +74,11 @@ export const historyRead = async (convId: string): Promise<ChatMessage[]> => {
   const response = await fetch("/api/history/read", {
     method: "POST",
     body: JSON.stringify({
-      conversation_id: "7f09b86a-7853-4fa1-9e4d-0d582a3e4b69",
+      conversation_id: convId,
     }),
     headers: {
       "Content-Type": "application/json",
-      "X-Ms-Client-Principal-Id": "95647817-dfb9-47a6-a124-4205938bdd72",
+      "X-Ms-Client-Principal-Id": "00000000-0000-0000-0000-000000000000",
     },
   })
     .then(async (res) => {
@@ -114,28 +114,14 @@ export const historyList = async (
   let response = await fetch(`/api/history/list?offset=${offset}`, {
     method: "GET",
     headers: {
-      "X-Ms-Client-Principal-Id": "4b16c510-aecd-4016-9581-5467bfe2b8f3",
+      "X-Ms-Client-Principal-Id": "00000000-0000-0000-0000-000000000000",
     },
   })
     .then(async (res) => {
+      console.log("list res", res);
+
       let payload = await res.json();
       console.log("History list api called", res, payload);
-      payload = [
-        {
-          _attachments: "attachments/",
-          _etag: '"0500efd3-0000-0200-0000-66bfe1210000"',
-          _rid: "F+9-AIq9dQHVngAAAAAAAA==",
-          _self:
-            "dbs/F+9-AA==/colls/F+9-AIq9dQE=/docs/F+9-AIq9dQHVngAAAAAAAA==/",
-          _ts: 1723851041,
-          createdAt: "2024-08-16T23:30:41.602059",
-          id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-          title: "Data conversation title requested",
-          type: "conversation",
-          updatedAt: "2024-08-16T23:30:41.623074",
-          userId: "00000000-0000-0000-0000-000000000000",
-        },
-      ];
       if (!Array.isArray(payload)) {
         console.error("There was an issue fetching your data.");
         return null;
@@ -171,142 +157,6 @@ export const historyList = async (
       return null;
     });
   console.log("list response returning ", response);
-  // response = [
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-10T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-09-10T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-09T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-09-02T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-09T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-09-11T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-08T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-07T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-15T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-06T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-14T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-14T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-08-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-08-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  // ];
-  // response = [];
   return response;
 };
 
@@ -318,7 +168,8 @@ export const historyUpdate = async (messages: ChatMessage[], convId: string): Pr
       messages: messages
     }),
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      "X-Ms-Client-Principal-Id": "00000000-0000-0000-0000-000000000000",
     }
   })
     .then(async res => {

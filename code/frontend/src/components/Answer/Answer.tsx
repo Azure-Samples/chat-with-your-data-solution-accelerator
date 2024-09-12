@@ -253,7 +253,6 @@ export const Answer = ({
         return null;
     }
   }
-console.log("chevronIsExpanded, isRefAccordionOpen, parsedAnswer", chevronIsExpanded, isRefAccordionOpen, parsedAnswer);
 
   return (
     <>

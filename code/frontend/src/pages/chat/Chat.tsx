@@ -100,9 +100,9 @@ const Chat = () => {
     if (!convId || !messages.length) {
       return;
     }
-    console.log("uuidv4()", uuidv4());
+    const isNewConversation = !selectedConvId;
     await historyUpdate(messages, convId)
-      .then((res) => {
+      .then(async (res) => {
         if (!res.ok) {
           let errorMessage =
             "An error occurred. Answers can't be saved at this time. If the problem persists, please contact the site administrator.";
@@ -121,16 +121,37 @@ const Chat = () => {
           }
           setAnswers([...messages, errorChatMsg]);
         }
+        console.log("update response", res);
+        let responseJson = await res.json();
+        // "history_metadata": {
+        //   "title": "Investment Summary Overview",
+        //   "date": "2024-09-12T12:32:10.864690",
+        //   "conversation_id": "285d0f44-f729-4506-868f-d999fcf8b4eb"
+        //  }
+        if (isNewConversation && responseJson?.success) {
+          const metaData = responseJson?.history_metadata;
+          const newConversation = {
+            id: metaData?.conversation_id,
+            title: metaData?.title,
+            messages: messages,
+            date: metaData?.date,
+            //   _attachments?: string;
+            //   _etag?: string;
+            //   _rid?: string;
+            //   _self?: string;
+            //   _ts?: number;
+            //   createdAt?: string;
+            //   type: string;
+            // updatedAt?: string;
+            //   userId?: string;
+          };
+          setChatHistory((prevHistory) => [newConversation, ...prevHistory]);
+          setSelectedConvId(metaData?.conversation_id);
+        }
         return res as Response;
       })
       .catch((err) => {
-        console.error("Error: ", err);
-        let errRes: Response = {
-          ...new Response(),
-          ok: false,
-          status: 500,
-        };
-        return errRes;
+        console.error("Error: while saving data", err);
       });
   };
 
@@ -150,10 +171,11 @@ const Chat = () => {
     };
 
     const request: ConversationRequest = {
-      id: conversationId,
-      messages: [...answers, userMessage],
+      id: selectedConvId || conversationId,
+      messages: [...answers, userMessage].filter(
+        (messageObj) => messageObj.role !== ERROR
+      ),
     };
-
     let result = {} as ChatResponse;
     try {
       const response = await callConversationApi(
@@ -298,6 +320,7 @@ const Chat = () => {
     setActiveCitation(undefined);
     setAnswers([]);
     setConversationId(uuidv4());
+    setSelectedConvId("");
   };
 
   const stopGenerating = () => {
