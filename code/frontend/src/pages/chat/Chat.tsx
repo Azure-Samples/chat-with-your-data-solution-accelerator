@@ -100,6 +100,7 @@ const Chat = () => {
     if (!convId || !messages.length) {
       return;
     }
+    console.log("uuidv4()", uuidv4());
     await historyUpdate(messages, convId)
       .then((res) => {
         if (!res.ok) {
@@ -144,8 +145,8 @@ const Chat = () => {
     const userMessage: ChatMessage = {
       role: "user",
       content: recognizedText || question,
-      id: "",
-      date: "",
+      id: uuidv4(),
+      date: new Date().toISOString(),
     };
 
     const request: ConversationRequest = {
@@ -203,7 +204,7 @@ const Chat = () => {
           ...result.choices[0].messages,
         ];
         setAnswers(updatedMessages);
-        // saveToDB(updatedMessages);
+        saveToDB(updatedMessages, conversationId);
       }
     } catch (e) {
       if (!abortController.signal.aborted) {

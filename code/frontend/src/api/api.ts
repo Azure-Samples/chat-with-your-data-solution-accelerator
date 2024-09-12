@@ -311,7 +311,7 @@ export const historyList = async (
 };
 
 export const historyUpdate = async (messages: ChatMessage[], convId: string): Promise<Response> => {
-  const response = await fetch('/history/update', {
+  const response = await fetch('/api/history/update', {
     method: 'POST',
     body: JSON.stringify({
       conversation_id: convId,
