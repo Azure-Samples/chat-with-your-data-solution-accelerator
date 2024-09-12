@@ -41,6 +41,7 @@ import {
   getAssistantTypeApi,
   historyList,
   Conversation,
+  historyUpdate,
 } from "../../api";
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
@@ -50,6 +51,7 @@ import HistoryPanel from "../../components/HistoryPanel/HistoryPanel";
 import ChatHistoryList from "./ChatHistoryList";
 
 const OFFSET_INCREMENT = 25;
+const [ASSISTANT, TOOL, ERROR] = ["assistant", "tool", "error"];
 
 const Chat = () => {
   const lastQuestionRef = useRef<string>("");
@@ -94,6 +96,43 @@ const Chat = () => {
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(true);
   const [selectedConvId, setSelectedConvId] = useState<string>("");
 
+  const saveToDB = async (messages: ChatMessage[], convId: string) => {
+    if (!convId || !messages.length) {
+      return;
+    }
+    await historyUpdate(messages, convId)
+      .then((res) => {
+        if (!res.ok) {
+          let errorMessage =
+            "An error occurred. Answers can't be saved at this time. If the problem persists, please contact the site administrator.";
+          let errorChatMsg: ChatMessage = {
+            id: uuidv4(), // TODO need to update to uuid() from react-uuid
+            role: ERROR,
+            content: errorMessage,
+            date: new Date().toISOString(),
+          };
+          if (!messages) {
+            let err: Error = {
+              ...new Error(),
+              message: "Failure fetching current chat state.",
+            };
+            throw err;
+          }
+          setAnswers([...messages, errorChatMsg]);
+        }
+        return res as Response;
+      })
+      .catch((err) => {
+        console.error("Error: ", err);
+        let errRes: Response = {
+          ...new Response(),
+          ok: false,
+          status: 500,
+        };
+        return errRes;
+      });
+  };
+
   const makeApiRequest = async (question: string) => {
     lastQuestionRef.current = question;
 
@@ -131,7 +170,6 @@ const Chat = () => {
           var text = new TextDecoder("utf-8").decode(value);
           const objects = text.split("\n");
           objects.forEach((obj) => {
-
             try {
               runningText += obj;
               result = JSON.parse(runningText);
@@ -159,7 +197,13 @@ const Chat = () => {
             } catch {}
           });
         }
-        setAnswers([...answers, userMessage, ...result.choices[0].messages]);
+        const updatedMessages = [
+          ...answers,
+          userMessage,
+          ...result.choices[0].messages,
+        ];
+        setAnswers(updatedMessages);
+        // saveToDB(updatedMessages);
       }
     } catch (e) {
       if (!abortController.signal.aborted) {
@@ -311,7 +355,7 @@ const Chat = () => {
   };
 
   const getMessagesByconvId = (id: string) => {
-    const conv = chatHistory.find((obj) => obj.id === id);
+    const conv = chatHistory.find((obj) => String(obj.id) === String(id));
     if (conv) {
       return conv.messages;
     }
@@ -340,14 +384,14 @@ const Chat = () => {
   //   };
   // }, [observerTarget]);
 
-  useEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
-    }
-    console.log("Initial call observer");
-    handleFetchHistory();
-  }, []);
+  // useEffect(() => {
+  //   if (firstRender.current) {
+  //     firstRender.current = false;
+  //     return;
+  //   }
+  //   console.log("Initial call observer");
+  //   handleFetchHistory();
+  // }, []);
 
   const handleFetchHistory = async () => {
     if (fetchingChatHistory || !hasMoreRecords) {
@@ -442,14 +486,20 @@ const Chat = () => {
                 {answers.map((answer, index) => (
                   <>
                     {answer.role === "user" ? (
-                      <div className={styles.chatMessageUser} key={`${answer?.role}-${index}`}>
+                      <div
+                        className={styles.chatMessageUser}
+                        key={`${answer?.role}-${index}`}
+                      >
                         <div className={styles.chatMessageUserMessage}>
                           {answer.content}
                         </div>
                       </div>
                     ) : answer.role === "assistant" ||
                       answer.role === "error" ? (
-                      <div className={styles.chatMessageGpt} key={`${answer?.role}-${index}`}>
+                      <div
+                        className={styles.chatMessageGpt}
+                        key={`${answer?.role}-${index}`}
+                      >
                         <Answer
                           answer={{
                             answer:

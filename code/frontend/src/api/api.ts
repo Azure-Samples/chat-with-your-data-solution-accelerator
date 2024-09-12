@@ -309,3 +309,29 @@ export const historyList = async (
   // response = [];
   return response;
 };
+
+export const historyUpdate = async (messages: ChatMessage[], convId: string): Promise<Response> => {
+  const response = await fetch('/history/update', {
+    method: 'POST',
+    body: JSON.stringify({
+      conversation_id: convId,
+      messages: messages
+    }),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+    .then(async res => {
+      return res
+    })
+    .catch(_err => {
+      console.error('There was an issue fetching your data.')
+      const errRes: Response = {
+        ...new Response(),
+        ok: false,
+        status: 500
+      }
+      return errRes
+    })
+  return response
+}

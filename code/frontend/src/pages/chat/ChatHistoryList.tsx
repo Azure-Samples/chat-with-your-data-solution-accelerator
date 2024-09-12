@@ -1,16 +1,16 @@
-import React, { useContext } from "react";
+import React from "react";
 import { Stack, StackItem, Text } from "@fluentui/react";
 
 import { Conversation } from "../../api/models";
-// import { AppStateContext } from '../../state/AppProvider'
 
 import { ChatHistoryListItemGroups } from "./ChatHistoryListItem";
 
 interface ChatHistoryListProps {
   fetchingChatHistory: boolean;
-  handleFetchHistory: () => Promise<void>; chatHistory: Conversation[];
+  handleFetchHistory: () => Promise<void>;
+  chatHistory: Conversation[];
   onSelectConversation: (id: string) => void;
-  selectedConvId: string
+  selectedConvId: string;
 }
 
 export interface GroupedChatHistory {
@@ -35,18 +35,19 @@ function isLastSevenDaysRange(dateToCheck: any) {
 const segregateItems = (items: Conversation[]) => {
   const today = new Date();
   const yesterday = new Date(today);
-  const last7Days = []
   yesterday.setDate(today.getDate() - 1);
   // Sort items by updatedAt in descending order
   items.sort(
-    (a, b) => new Date(b.updatedAt ? b.updatedAt : new Date()).getTime() - new Date(a.updatedAt ? a.updatedAt : new Date()).getTime()
+    (a, b) =>
+      new Date(b.updatedAt ? b.updatedAt : new Date()).getTime() -
+      new Date(a.updatedAt ? a.updatedAt : new Date()).getTime()
   );
   const groupedItems: {
-    Today: Conversation[],
-    Yesterday: Conversation[],
-    Last7Days: Conversation[],
-    Older: Conversation[],
-    Past: { [key: string]: Conversation[] },
+    Today: Conversation[];
+    Yesterday: Conversation[];
+    Last7Days: Conversation[];
+    Older: Conversation[];
+    Past: { [key: string]: Conversation[] };
   } = {
     Today: [],
     Yesterday: [],
@@ -55,18 +56,16 @@ const segregateItems = (items: Conversation[]) => {
     Past: {},
   };
 
-  items.forEach(item => {
+  items.forEach((item) => {
     const itemDate = new Date(item.updatedAt ? item.updatedAt : new Date());
     const itemDateOnly = itemDate.toDateString();
     if (itemDateOnly === today.toDateString()) {
       groupedItems.Today.push(item);
     } else if (itemDateOnly === yesterday.toDateString()) {
       groupedItems.Yesterday.push(item);
-    }
-    else if (isLastSevenDaysRange(itemDate)) {
+    } else if (isLastSevenDaysRange(itemDate)) {
       groupedItems.Last7Days.push(item);
-    }
-    else {
+    } else {
       groupedItems.Older.push(item);
     }
   });
@@ -95,40 +94,19 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
   chatHistory,
   fetchingChatHistory,
   onSelectConversation,
-  selectedConvId
+  selectedConvId,
 }) => {
-  if (!fetchingChatHistory && chatHistory?.length === 0) {
-    return (
-      <Stack
-        horizontal
-        horizontalAlign="center"
-        verticalAlign="center"
-        style={{ width: "100%", marginTop: 10 }}
-      >
-        <StackItem>
-          <Text
-            style={{ alignSelf: "center", fontWeight: "400", fontSize: 14 }}
-          >
-            <span>No chat history.</span>
-          </Text>
-        </StackItem>
-      </Stack>
-    );
-  }
   let groupedChatHistory;
   groupedChatHistory = segregateItems(chatHistory);
-  if (fetchingChatHistory || chatHistory?.length > 0) {
-    return (
-      <ChatHistoryListItemGroups
-        fetchingChatHistory={fetchingChatHistory}
-        handleFetchHistory={handleFetchHistory}
-        groupedChatHistory={groupedChatHistory}
-        onSelectConversation={onSelectConversation}
-        selectedConvId={selectedConvId}
-      />
-    );
-  }
-  return <></>
+  return (
+    <ChatHistoryListItemGroups
+      fetchingChatHistory={fetchingChatHistory}
+      handleFetchHistory={handleFetchHistory}
+      groupedChatHistory={groupedChatHistory}
+      onSelectConversation={onSelectConversation}
+      selectedConvId={selectedConvId}
+    />
+  );
 };
 
 export default ChatHistoryList;

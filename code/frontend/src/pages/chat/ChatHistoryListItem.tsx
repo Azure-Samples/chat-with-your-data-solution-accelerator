@@ -13,6 +13,7 @@ import {
   Spinner,
   SpinnerSize,
   Stack,
+  StackItem,
   Text,
   TextField,
 } from "@fluentui/react";
@@ -204,7 +205,7 @@ export const ChatHistoryListItemCell: React.FC<
       // onMouseLeave={() => setIsHovered(false)}
       styles={{
         root: {
-          backgroundColor: isSelected ? '#e6e6e6' : 'transparent'
+          backgroundColor: isSelected ? "#e6e6e6" : "transparent",
         },
       }}
     >
@@ -281,7 +282,7 @@ export const ChatHistoryListItemCell: React.FC<
         <>
           <Stack horizontal verticalAlign={"center"} style={{ width: "100%" }}>
             <div className={styles.chatTitle}>{truncatedTitle}</div>
-            {(isHovered) && (
+            {isHovered && (
               <Stack horizontal horizontalAlign="end">
                 <IconButton
                   className={styles.itemButton}
@@ -342,7 +343,6 @@ export const ChatHistoryListItemGroups: React.FC<
   const observerTarget = useRef(null);
   const [observerCounter, setObserverCounter] = useState(0);
   const firstRender = useRef(true);
-
   const handleSelectHistory = (item?: Conversation) => {
     if (typeof item === "object") {
       onSelectConversation(item?.id);
@@ -361,17 +361,32 @@ export const ChatHistoryListItemGroups: React.FC<
   };
 
   useEffect(() => {
+    console.log("Chat history item initial call");
     if (firstRender.current) {
       firstRender.current = false;
       return;
     }
-    console.log("Paginated call obeserver counter");
     handleFetchHistory();
+  }, []);
+
+  function hasVerticalScrollbar(element: any) {
+    return element?.scrollHeight > element?.clientHeight;
+  }
+
+  useEffect(() => {
+    const element = document.getElementById("historyListContainer");
+    if (element) {
+      const scrollBar = hasVerticalScrollbar(element);
+      console.log("Has scroll", scrollBar);
+      console.log("Paginated call obeserver counter");
+      handleFetchHistory();
+    }
   }, [observerCounter]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
+        console.log("Entries", entries);
         if (entries[0].isIntersecting)
           setObserverCounter((observerCounter) => (observerCounter += 1));
       },
@@ -384,14 +399,44 @@ export const ChatHistoryListItemGroups: React.FC<
       if (observerTarget.current) observer.unobserve(observerTarget.current);
     };
   }, [observerTarget]);
+
   const allConversationsLength = groupedChatHistory.reduce(
     (previousValue, currentValue) =>
       previousValue + currentValue.entries.length,
     0
   );
-  console.log("groupedChatHistory", groupedChatHistory, allConversationsLength);
+  console.log(
+    "groupedChatHistory",
+    groupedChatHistory,
+    allConversationsLength,
+    observerTarget
+  );
+
+  if (!fetchingChatHistory && allConversationsLength === 0) {
+    return (
+      <Stack
+        horizontal
+        horizontalAlign="center"
+        verticalAlign="center"
+        style={{ width: "100%", marginTop: 10 }}
+      >
+        <StackItem>
+          <Text
+            style={{ alignSelf: "center", fontWeight: "400", fontSize: 14 }}
+          >
+            <span>No chat history.</span>
+          </Text>
+        </StackItem>
+      </Stack>
+    );
+  }
+
   return (
-    <div className={styles.listContainer} data-is-scrollable>
+    <div
+      id="historyListContainer"
+      className={styles.listContainer}
+      data-is-scrollable
+    >
       {groupedChatHistory.map(
         (group, index) =>
           group.entries.length > 0 && (
@@ -414,8 +459,6 @@ export const ChatHistoryListItemGroups: React.FC<
             </Stack>
           )
       )}
-      {/* {Boolean(allConversationsLength) && (
-      )} */}
       <div id="chatHistoryListItemObserver" ref={observerTarget} />
       <Separator
         styles={{
