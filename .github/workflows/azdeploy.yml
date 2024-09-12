@@ -4,16 +4,16 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
-    inputs:
-      environmentName:
-        description: 'The name of the environment'
-        required: true
-        default: "pslTestAuto2"
-      location:
-        description: 'The location for the deployment'
-        required: true
-        default: "eastus2"
+  # workflow_dispatch:
+  #   inputs:
+  #     environmentName:
+  #       description: 'The name of the environment'
+  #       required: true
+  #       default: "pslTestAuto2"
+  #     location:
+  #       description: 'The location for the deployment'
+  #       required: true
+  #       default: "eastus2"
 
 jobs:
   deploy:
