@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Stack, StackItem, Text } from "@fluentui/react";
 
 import { Conversation } from "../../api/models";
@@ -11,6 +11,8 @@ interface ChatHistoryListProps {
   handleFetchHistory: () => Promise<void>; chatHistory: Conversation[];
   onSelectConversation: (id: string) => void;
   selectedConvId: string
+  onHistoryTitleChange:(id:string, newTitle:string)=>void;
+  onHistoryDelete:(id:string)=>void;
 }
 
 export interface GroupedChatHistory {
@@ -95,7 +97,9 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
   chatHistory,
   fetchingChatHistory,
   onSelectConversation,
-  selectedConvId
+  selectedConvId,
+  onHistoryTitleChange,
+  onHistoryDelete
 }) => {
   if (!fetchingChatHistory && chatHistory?.length === 0) {
     return (
@@ -125,6 +129,8 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
         groupedChatHistory={groupedChatHistory}
         onSelectConversation={onSelectConversation}
         selectedConvId={selectedConvId}
+        onHistoryTitleChange={onHistoryTitleChange}
+        onHistoryDelete={onHistoryDelete}
       />
     );
   }

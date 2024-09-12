@@ -74,7 +74,7 @@ export const historyRead = async (convId: string): Promise<ChatMessage[]> => {
   const response = await fetch("/api/history/read", {
     method: "POST",
     body: JSON.stringify({
-      conversation_id: "7f09b86a-7853-4fa1-9e4d-0d582a3e4b69",
+      conversation_id: convId,
     }),
     headers: {
       "Content-Type": "application/json",
@@ -114,33 +114,33 @@ export const historyList = async (
   let response = await fetch(`/api/history/list?offset=${offset}`, {
     method: "GET",
     headers: {
-      "X-Ms-Client-Principal-Id": "4b16c510-aecd-4016-9581-5467bfe2b8f3",
+      "X-Ms-Client-Principal-Id": "95647817-dfb9-47a6-a124-4205938bdd72",
     },
   })
     .then(async (res) => {
       let payload = await res.json();
       console.log("History list api called", res, payload);
-      payload = [
-        {
-          _attachments: "attachments/",
-          _etag: '"0500efd3-0000-0200-0000-66bfe1210000"',
-          _rid: "F+9-AIq9dQHVngAAAAAAAA==",
-          _self:
-            "dbs/F+9-AA==/colls/F+9-AIq9dQE=/docs/F+9-AIq9dQHVngAAAAAAAA==/",
-          _ts: 1723851041,
-          createdAt: "2024-08-16T23:30:41.602059",
-          id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-          title: "Data conversation title requested",
-          type: "conversation",
-          updatedAt: "2024-08-16T23:30:41.623074",
-          userId: "00000000-0000-0000-0000-000000000000",
-        },
-      ];
       if (!Array.isArray(payload)) {
         console.error("There was an issue fetching your data.");
         return null;
       }
       console.log("payload", payload);
+      // static data
+    //   payload =[
+    //     {
+    //         "_attachments": "attachments/",
+    //         "_etag": "\"0200607a-0000-0200-0000-66e1e8400000\"",
+    //         "_rid": "QedyANGSTVRcAQAAAAAAAA==",
+    //         "_self": "dbs/QedyAA==/colls/QedyANGSTVQ=/docs/QedyANGSTVRcAQAAAAAAAA==/",
+    //         "_ts": 1726081088,
+    //         "createdAt": "2024-08-22T09:51:00.268537",
+    //         "id": "affe98de-0adc-4aad-a68f-b53ded29a22f",
+    //         "title": "dfsdf Investmsdsdfxcxd ent Portfolio Analysis",
+    //         "type": "conversation",
+    //         "updatedAt": "2024-08-22T09:51:11.226404",
+    //         "userId": "84d3652d-7b78-4e33-bfe3-1bb6cd6c03a9"
+    //     }
+    // ]
       const conversations: Conversation[] = await Promise.all(
         payload.map(async (conv: any) => {
           let convMessages: ChatMessage[] = [];
@@ -171,141 +171,61 @@ export const historyList = async (
       return null;
     });
   console.log("list response returning ", response);
-  // response = [
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-10T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-09-10T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-09T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-09-02T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-09T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-09-11T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-08T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-07T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-15T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-06T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-14T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-14T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-08-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-08-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  //   {
-  //     id: "67eb8b48-10d2-46f9-bfae-e35c0de10971",
-  //     updatedAt: "2024-09-01T05:28:11.040548",
-  //     title: "Data conversation title requested",
-  //     date: "2024-08-16T23:30:41.602059",
-  //     messages: [],
-  //   },
-  // ];
-  // response = [];
   return response;
 };
+
+
+export const historyDelete = async (convId: string): Promise<Response> => {
+  const response = await fetch('/api/history/delete', {
+    method: 'DELETE',
+    body: JSON.stringify({
+      conversation_id: convId
+    }),
+    headers: {
+      'Content-Type': 'application/json',
+      "X-Ms-Client-Principal-Id": "95647817-dfb9-47a6-a124-4205938bdd72",
+    }
+  })
+    .then(res => {
+      return res
+    })
+    .catch(_err => {
+      console.error('There was an issue fetching your data.')
+      const errRes: Response = {
+        ...new Response(),
+        ok: false,
+        status: 500
+      }
+      return errRes
+    })
+  return response
+}
+
+export const historyRename = async (convId: string, title: string): Promise<Response> => {
+  const response = await fetch('/api/history/rename', {
+    method: 'POST',
+    body: JSON.stringify({
+      conversation_id: convId,
+      title: title
+    }),
+    headers: {
+      "Content-Type": "application/json",
+      "X-Ms-Client-Principal-Id": "95647817-dfb9-47a6-a124-4205938bdd72",//need to changes
+    }
+  })
+    .then(res => {
+
+      return res
+    })
+    .catch(_err => {
+      console.error('There was an issue fetching your data.')
+      const errRes: Response = {
+        ...new Response(),
+        ok: false,
+        status: 500
+      }
+      return errRes
+    })
+  return response
+}
+

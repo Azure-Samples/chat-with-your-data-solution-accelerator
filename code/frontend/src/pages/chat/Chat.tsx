@@ -324,6 +324,20 @@ const Chat = () => {
     setAnswers(messages);
     setSelectedConvId(id);
   };
+
+
+  const onHistoryTitleChange =(id:string, newTitle: string)=>{
+    const conv = chatHistory.find((obj) => obj.id === id);
+    if (conv) {
+      conv.title = newTitle;
+    }
+  }
+
+  const onHistoryDelete =(id:string)=>{
+    // remove seleted id
+     chatHistory.splice(chatHistory.findIndex(a => a.id === id) , 1)
+     setChatHistory(chatHistory);
+  }
   // useEffect(() => {
   //   const observer = new IntersectionObserver(
   //     (entries) => {
@@ -674,6 +688,8 @@ const Chat = () => {
                       chatHistory={chatHistory}
                       onSelectConversation={onSelectConversation}
                       selectedConvId={selectedConvId}
+                      onHistoryTitleChange={onHistoryTitleChange}
+                      onHistoryDelete={onHistoryDelete}
                     />
                   )}
                   {/* appStateContext?.state.chatHistoryLoadingState ===

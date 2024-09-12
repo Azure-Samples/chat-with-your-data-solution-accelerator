@@ -18,7 +18,7 @@ import {
 } from "@fluentui/react";
 import { useBoolean } from "@fluentui/react-hooks";
 
-import { historyList } from "../../api";
+import { historyList, historyRename, historyDelete } from "../../api";
 import { Conversation } from "../../api/models";
 // import { AppStateContext } from '../../state/AppProvider'
 
@@ -31,6 +31,8 @@ interface ChatHistoryListItemCellProps {
   item?: Conversation;
   onSelect: (item: Conversation | null) => void;
   selectedConvId: string;
+  onHistoryTitleChange: (id: string, newTitle: string) => void;
+  onHistoryDelete:(id:string) => void;
 }
 
 interface ChatHistoryListItemGroupsProps {
@@ -39,6 +41,8 @@ interface ChatHistoryListItemGroupsProps {
   groupedChatHistory: GroupedChatHistory[];
   onSelectConversation: (id: string) => void;
   selectedConvId: string;
+  onHistoryTitleChange: (id: string, newTitle: string) => void;
+  onHistoryDelete:(id:string) => void;
 }
 
 const formatMonth = (month: string) => {
@@ -57,7 +61,7 @@ const formatMonth = (month: string) => {
 
 export const ChatHistoryListItemCell: React.FC<
   ChatHistoryListItemCellProps
-> = ({ item, onSelect, selectedConvId }) => {
+> = ({ item, onSelect, selectedConvId, onHistoryTitleChange, onHistoryDelete}) => {
   const [isHovered, setIsHovered] = React.useState(false);
   const [edit, setEdit] = useState(false);
   const [editTitle, setEditTitle] = useState("");
@@ -68,7 +72,6 @@ export const ChatHistoryListItemCell: React.FC<
   const [textFieldFocused, setTextFieldFocused] = useState(false);
   const textFieldRef = useRef<ITextField | null>(null);
   const [isButtonDisabled, setIsButtonDisabled] = useState<boolean>(false);
-
   const isSelected = item?.id === selectedConvId;
   const dialogContentProps = {
     type: DialogType.close,
@@ -107,20 +110,21 @@ export const ChatHistoryListItemCell: React.FC<
   //   if (v != undefined) setIsButtonDisabled(v && isSelected)
   // }, [appStateContext?.state.isRequestInitiated])
 
-  // const onDelete = async () => {
-  //   appStateContext?.dispatch({ type: 'TOGGLE_LOADER' })
-  //   const response = await historyDelete(item.id)
-  //   if (!response.ok) {
-  //     setErrorDelete(true)
-  //     setTimeout(() => {
-  //       setErrorDelete(false)
-  //     }, 5000)
-  //   } else {
-  //     appStateContext?.dispatch({ type: 'DELETE_CHAT_ENTRY', payload: item.id })
-  //   }
-  //   appStateContext?.dispatch({ type: 'TOGGLE_LOADER' })
-  //   toggleDeleteDialog()
-  // }
+  const onDelete = async () => {
+    // appStateContext?.dispatch({ type: 'TOGGLE_LOADER' })
+    const response = await historyDelete(item.id)
+    if (!response.ok) {
+      setErrorDelete(true)
+      setTimeout(() => {
+        setErrorDelete(false)
+      }, 5000)
+    } else {
+      onHistoryDelete(item.id);
+      // appStateContext?.dispatch({ type: 'DELETE_CHAT_ENTRY', payload: item.id })
+    }
+    // appStateContext?.dispatch({ type: 'TOGGLE_LOADER' })
+    toggleDeleteDialog()
+  }
 
   const onEdit = () => {
     setEdit(true);
@@ -137,40 +141,42 @@ export const ChatHistoryListItemCell: React.FC<
       ? `${item.title.substring(0, 28)} ...`
       : item.title;
 
-  // const handleSaveEdit = async (e: any) => {
-  //   e.preventDefault()
-  //   if (errorRename || renameLoading) {
-  //     return
-  //   }
-  //   if (editTitle == item.title) {
-  //     setErrorRename('Error: Enter a new title to proceed.')
-  //     setTimeout(() => {
-  //       setErrorRename(undefined)
-  //       setTextFieldFocused(true)
-  //       if (textFieldRef.current) {
-  //         textFieldRef.current.focus()
-  //       }
-  //     }, 5000)
-  //     return
-  //   }
-  //   setRenameLoading(true)
-  //   const response = await historyRename(item.id, editTitle)
-  //   if (!response.ok) {
-  //     setErrorRename('Error: could not rename item')
-  //     setTimeout(() => {
-  //       setTextFieldFocused(true)
-  //       setErrorRename(undefined)
-  //       if (textFieldRef.current) {
-  //         textFieldRef.current.focus()
-  //       }
-  //     }, 5000)
-  //   } else {
-  //     setRenameLoading(false)
-  //     setEdit(false)
-  //     appStateContext?.dispatch({ type: 'UPDATE_CHAT_TITLE', payload: { ...item, title: editTitle } as Conversation })
-  //     setEditTitle('')
-  //   }
-  // }
+  const handleSaveEdit = async (e: any) => {
+    console.log("save rename title::")
+    e.preventDefault()
+    if (errorRename || renameLoading) {
+      return
+    }
+    if (editTitle == item.title) {
+      setErrorRename('Error: Enter a new title to proceed.')
+      setTimeout(() => {
+        setErrorRename(undefined)
+        setTextFieldFocused(true)
+        if (textFieldRef.current) {
+          textFieldRef.current.focus()
+        }
+      }, 5000)
+      return
+    }
+    setRenameLoading(true)
+    const response = await historyRename(item.id, editTitle)
+    if (!response.ok) {
+      setErrorRename('Error: could not rename item')
+      setTimeout(() => {
+        setTextFieldFocused(true)
+        setErrorRename(undefined)
+        if (textFieldRef.current) {
+          textFieldRef.current.focus()
+        }
+      }, 5000)
+    } else {
+      setRenameLoading(false)
+      setEdit(false)
+      onHistoryTitleChange(item.id, editTitle)
+      // appStateContext?.dispatch({ type: 'UPDATE_CHAT_TITLE', payload: { ...item, title: editTitle } as Conversation })
+      setEditTitle('')
+    }
+  }
 
   const chatHistoryTitleOnChange = (e: any) => {
     setEditTitle(e.target.value);
@@ -181,15 +187,16 @@ export const ChatHistoryListItemCell: React.FC<
     setEditTitle("");
   };
 
-  // const handleKeyPressEdit = (e: any) => {
-  //   if (e.key === 'Enter') {
-  //     return handleSaveEdit(e)
-  //   }
-  //   if (e.key === 'Escape') {
-  //     cancelEditTitle()
-  //     return
-  //   }
-  // }
+  const handleKeyPressEdit = (e: any) => {
+    if (e.key === 'Enter') {
+      return handleSaveEdit(e)
+    }
+    if (e.key === 'Escape') {
+      cancelEditTitle()
+      return
+    }
+  }
+
   return (
     <Stack
       key={item.id}
@@ -200,8 +207,8 @@ export const ChatHistoryListItemCell: React.FC<
       // onKeyDown={e => (e.key === 'Enter' || e.key === ' ' ? handleSelectItem() : null)}
       verticalAlign="center"
       // horizontal
-      // onMouseEnter={() => setIsHovered(true)}
-      // onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       styles={{
         root: {
           backgroundColor: isSelected ? '#e6e6e6' : 'transparent'
@@ -223,8 +230,8 @@ export const ChatHistoryListItemCell: React.FC<
                     value={editTitle}
                     placeholder={item.title}
                     onChange={chatHistoryTitleOnChange}
-                    // onKeyDown={handleKeyPressEdit}
-                    // errorMessage={errorRename}
+                    onKeyDown={handleKeyPressEdit}
+                    errorMessage={errorRename}
                     disabled={errorRename ? true : false}
                   />
                 </Stack.Item>
@@ -238,8 +245,8 @@ export const ChatHistoryListItemCell: React.FC<
                       <IconButton
                         role="button"
                         disabled={errorRename !== undefined}
-                        // onKeyDown={e => (e.key === ' ' || e.key === 'Enter' ? handleSaveEdit(e) : null)}
-                        // onClick={e => handleSaveEdit(e)}
+                        onKeyDown={e => (e.key === ' ' || e.key === 'Enter' ? handleSaveEdit(e) : null)}
+                        onClick={e => handleSaveEdit(e)}
                         aria-label="confirm new title"
                         iconProps={{ iconName: "CheckMark" }}
                         styles={{ root: { color: "green", marginLeft: "5px" } }}
@@ -322,7 +329,7 @@ export const ChatHistoryListItemCell: React.FC<
         modalProps={modalProps}
       >
         <DialogFooter>
-          {/* <PrimaryButton onClick={onDelete} text="Delete" /> */}
+          <PrimaryButton onClick={onDelete} text="Delete" />
           <DefaultButton onClick={toggleDeleteDialog} text="Cancel" />
         </DialogFooter>
       </Dialog>
@@ -338,6 +345,8 @@ export const ChatHistoryListItemGroups: React.FC<
   fetchingChatHistory,
   onSelectConversation,
   selectedConvId,
+  onHistoryTitleChange,
+  onHistoryDelete
 }) => {
   const observerTarget = useRef(null);
   const [observerCounter, setObserverCounter] = useState(0);
@@ -356,6 +365,8 @@ export const ChatHistoryListItemGroups: React.FC<
         onSelect={() => handleSelectHistory(item)}
         selectedConvId={selectedConvId}
         key={item?.id}
+        onHistoryTitleChange={onHistoryTitleChange}
+        onHistoryDelete={onHistoryDelete}
       />
     );
   };
