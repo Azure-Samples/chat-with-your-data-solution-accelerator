@@ -1,5 +1,5 @@
 import { ChatMessage, Conversation, ConversationRequest } from "./models";
-const principalID = "00000000-0000-0000-0000-000000000000";
+
 export async function callConversationApi(
   options: ConversationRequest,
   abortSignal: AbortSignal
@@ -78,7 +78,6 @@ export const historyRead = async (convId: string): Promise<ChatMessage[]> => {
     }),
     headers: {
       "Content-Type": "application/json",
-      "X-Ms-Client-Principal-Id": principalID,
     },
   })
     .then(async (res) => {
@@ -112,10 +111,7 @@ export const historyList = async (
   offset = 0
 ): Promise<Conversation[] | null> => {
   let response = await fetch(`/api/history/list?offset=${offset}`, {
-    method: "GET",
-    headers: {
-      "X-Ms-Client-Principal-Id": principalID,
-    },
+    method: "GET"
   })
     .then(async (res) => {
       console.log("list res", res);
@@ -188,7 +184,6 @@ export const historyUpdate = async (
     }),
     headers: {
       "Content-Type": "application/json",
-      "X-Ms-Client-Principal-Id": principalID,
     },
   })
     .then(async (res) => {
@@ -218,7 +213,6 @@ export const historyRename = async (
     }),
     headers: {
       "Content-Type": "application/json",
-      "X-Ms-Client-Principal-Id": principalID, //need to changes
     },
   })
     .then((res) => {
@@ -244,7 +238,6 @@ export const historyDelete = async (convId: string): Promise<Response> => {
     }),
     headers: {
       "Content-Type": "application/json",
-      "X-Ms-Client-Principal-Id": principalID,
     },
   })
     .then((res) => {
