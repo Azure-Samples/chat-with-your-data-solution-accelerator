@@ -327,16 +327,19 @@ const Chat = () => {
 
 
   const onHistoryTitleChange =(id:string, newTitle: string)=>{
-    const conv = chatHistory.find((obj) => obj.id === id);
+    const tempChatHistory = [...chatHistory];
+    const conv = tempChatHistory.find((obj) => obj.id === id);
     if (conv) {
       conv.title = newTitle;
+      setChatHistory(tempChatHistory)
     }
   }
 
   const onHistoryDelete =(id:string)=>{
     // remove seleted id
-     chatHistory.splice(chatHistory.findIndex(a => a.id === id) , 1)
-     setChatHistory(chatHistory);
+     const tempChatHistory = [...chatHistory];
+     tempChatHistory.splice(tempChatHistory.findIndex(a => a.id === id) , 1)
+     setChatHistory(tempChatHistory);
   }
   // useEffect(() => {
   //   const observer = new IntersectionObserver(
