@@ -194,7 +194,8 @@ export const ChatHistoryListItemCell: React.FC<
           <Stack.Item style={{ width: "100%" }}>
             <form
               aria-label="edit title form"
-              onSubmit={e => handleSaveEdit(e)} style={{ padding: '5px 0px' }}
+              onSubmit={(e) => handleSaveEdit(e)}
+              style={{ padding: "5px 0px" }}
             >
               <Stack horizontal verticalAlign={"start"}>
                 <Stack.Item>
@@ -350,7 +351,7 @@ export const ChatHistoryListItemGroups: React.FC<
 
   useEffect(() => {
     console.log("Chat history item initial call");
-    if (firstRender.current) {
+    if (firstRender.current && import.meta.env.MODE === "development") {
       firstRender.current = false;
       return;
     }

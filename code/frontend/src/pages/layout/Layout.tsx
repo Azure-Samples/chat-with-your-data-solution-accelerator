@@ -11,6 +11,8 @@ import { ReactNode, useEffect, useRef, useState } from "react";
 import { HistoryButton } from "../../components/HistoryButton/HistoryButton";
 import { getUserInfo } from "../../api";
 
+console.log("import.meta.env.MODE ", import.meta.env.MODE);
+
 type LayoutProps = {
   children: ReactNode;
   onSetShowHistoryPanel: () => void;
@@ -62,7 +64,7 @@ const Layout = ({ children, ...props }: LayoutProps) => {
   };
 
   useEffect(() => {
-    if (firstRender.current) {
+    if (firstRender.current && import.meta.env.MODE === "development") {
       firstRender.current = false;
       return;
     }
