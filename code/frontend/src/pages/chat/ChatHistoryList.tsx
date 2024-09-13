@@ -10,6 +10,7 @@ interface ChatHistoryListProps {
   selectedConvId: string
   onHistoryTitleChange:(id:string, newTitle:string)=>void;
   onHistoryDelete:(id:string)=>void;
+  toggleToggleSpinner: (toggler: boolean) => void;
 }
 
 export interface GroupedChatHistory {
@@ -95,7 +96,8 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
   onSelectConversation,
   selectedConvId,
   onHistoryTitleChange,
-  onHistoryDelete
+  onHistoryDelete,
+  toggleToggleSpinner
 }) => {
   let groupedChatHistory;
   groupedChatHistory = segregateItems(chatHistory);
@@ -108,6 +110,7 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
       selectedConvId={selectedConvId}
       onHistoryTitleChange={onHistoryTitleChange}
       onHistoryDelete={onHistoryDelete}
+      toggleToggleSpinner={toggleToggleSpinner}
     />
   );
 };

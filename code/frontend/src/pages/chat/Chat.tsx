@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { CommandBarButton, Stack, StackItem, Text } from "@fluentui/react";
+import { CommandBarButton, ContextualMenu, DefaultButton, Dialog, DialogFooter, DialogType, ICommandBarStyles, IContextualMenuItem, IStackStyles, PrimaryButton, Stack, StackItem, Text } from "@fluentui/react";
 import {
   BroomRegular,
   DismissRegular,
@@ -17,7 +17,7 @@ import { v4 as uuidv4 } from "uuid";
 import styles from "./Chat.module.css";
 import Azure from "../../assets/Azure.svg";
 import { multiLingualSpeechRecognizer } from "../../util/SpeechToText";
-
+import { useBoolean } from '@fluentui/react-hooks'
 import {
   ChatMessage,
   ConversationRequest,
@@ -29,6 +29,7 @@ import {
   historyList,
   Conversation,
   historyUpdate,
+  historyDeleteAll,
 } from "../../api";
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
@@ -38,6 +39,16 @@ import ChatHistoryList from "./ChatHistoryList";
 
 const OFFSET_INCREMENT = 25;
 const [ASSISTANT, TOOL, ERROR] = ["assistant", "tool", "error"];
+const commandBarStyle: ICommandBarStyles = {
+  root: {
+    padding: '0',
+    display: 'flex',
+    justifyContent: 'center',
+    backgroundColor: 'transparent'
+  }
+}
+
+const commandBarButtonStyle: Partial<IStackStyles> = { root: { height: '50px' } }
 
 const Chat = () => {
   const lastQuestionRef = useRef<string>("");
@@ -60,6 +71,9 @@ const Chat = () => {
   const [isCitationPanelOpen, setIsCitationPanelOpen] =
     useState<boolean>(false);
   const [answers, setAnswers] = useState<ChatMessage[]>([]);
+  const [toggleSpinner, setToggleSpinner] = React.useState(false)
+  const [showContextualMenu, setShowContextualMenu] = React.useState(false)
+  const [showContextualPopup, setShowContextualPopup] = React.useState(false)
   const abortFuncs = useRef([] as AbortController[]);
   const [conversationId, setConversationId] = useState<string>(uuidv4());
   const [userMessage, setUserMessage] = useState("");
@@ -77,7 +91,33 @@ const Chat = () => {
   const [chatHistory, setChatHistory] = useState<Conversation[]>([]);
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(true);
   const [selectedConvId, setSelectedConvId] = useState<string>("");
+  const [hideClearAllDialog, { toggle: toggleClearAllDialog }] = useBoolean(true)
+  const [clearing, setClearing] = React.useState(false)
+  const [clearingError, setClearingError] = React.useState(false)
+  const [hasChatHistory, setHasChatHistory] = React.useState(false)
+  const clearAllDialogContentProps = {
+    type: DialogType.close,
+    title: !clearingError ? 'Are you sure you want to clear all chat history?' : 'Error deleting all of chat history',
+    closeButtonAriaLabel: 'Close',
+    subText: !clearingError
+      ? 'All chat history will be permanently removed.'
+      : 'Please try again. If the problem persists, please contact the site administrator.'
+  }
 
+  useEffect(() => {
+    if(chatHistory.length){
+      setHasChatHistory(true)
+    }else{
+      setHasChatHistory(false)
+    }
+  }, [chatHistory])
+  
+  const modalProps = {
+    titleAriaId: 'labelId',
+    subtitleAriaId: 'subTextId',
+    isBlocking: true,
+    styles: { main: { maxWidth: 450 } }
+  }
   const saveToDB = async (messages: ChatMessage[], convId: string) => {
     if (!convId || !messages.length) {
       return;
@@ -123,6 +163,9 @@ const Chat = () => {
       });
   };
 
+  const menuItems: IContextualMenuItem[] = [
+    { key: 'clearAll', text: 'Clear all chat history',disabled: (!hasChatHistory || isLoading), iconProps: { iconName: 'Delete' }}
+  ]
   const makeApiRequest = async (question: string) => {
     lastQuestionRef.current = question;
 
@@ -337,6 +380,36 @@ const Chat = () => {
     return [];
   };
 
+  const onClearAllChatHistory = async () => {
+    toggleToggleSpinner(true);
+    setClearing(true)
+    const response = await historyDeleteAll()
+    if (!response.ok) {
+      setClearingError(true)
+    } else {
+      setChatHistory([]);
+      toggleClearAllDialog();
+      setShowContextualPopup(false);
+    }
+    setClearing(false)
+    toggleToggleSpinner(false);
+  }
+
+  const onHideClearAllDialog = () => {
+    toggleClearAllDialog()
+    setTimeout(() => {
+      setClearingError(false)
+    }, 2000)
+  }
+
+  const onShowContextualMenu = React.useCallback((ev: React.MouseEvent<HTMLElement>) => {
+    ev.preventDefault() // don't navigate
+    setShowContextualMenu(true)
+    setShowContextualPopup(true)
+  }, [])
+
+  const onHideContextualMenu = React.useCallback(() => setShowContextualMenu(false), [])
+
   const handleSpeech = (index: number, status: string) => {
     if (status != "pause") setActiveCardIndex(index);
     setIsTextToSpeachActive(status == "speak" ? true : false);
@@ -371,6 +444,9 @@ const Chat = () => {
     }
   };
 
+  const toggleToggleSpinner = (toggler: boolean) =>{
+    setToggleSpinner(toggler);
+  }
   const onHistoryDelete = (id: string) => {
     const tempChatHistory = [...chatHistory];
     tempChatHistory.splice(
@@ -405,6 +481,7 @@ const Chat = () => {
   console.log("answers", answers, lastQuestionRef);
   return (
     <Layout
+      toggleSpinner={toggleSpinner}
       showHistoryBtn={showHistoryBtn}
       onSetShowHistoryPanel={onSetShowHistoryPanel}
       showHistoryPanel={showHistoryPanel}
@@ -641,6 +718,26 @@ const Chat = () => {
                     Chat history
                   </Text>
                 </StackItem>
+              <Stack verticalAlign="start">
+              <Stack horizontal styles={commandBarButtonStyle} >
+                <CommandBarButton
+                  iconProps={{ iconName: 'More' }}
+                  title={'Clear all chat history'}
+                  onClick={onShowContextualMenu}
+                  aria-label={'clear all chat history'}
+                  styles={commandBarStyle}
+                  role="button"
+                  id="moreButton"
+                />
+                <ContextualMenu
+                items={menuItems}
+                hidden={!showContextualMenu}
+                target={'#moreButton'}
+                onItemClick={toggleClearAllDialog}
+                onDismiss={onHideContextualMenu}
+                />
+              </Stack>
+              </Stack>
                 <Stack verticalAlign="start">
                   <Stack horizontal>
                     <CommandBarButton
@@ -673,10 +770,27 @@ const Chat = () => {
                       selectedConvId={selectedConvId}
                       onHistoryTitleChange={onHistoryTitleChange}
                       onHistoryDelete={onHistoryDelete}
+                      toggleToggleSpinner={toggleToggleSpinner}
                     />
                   )}
                 </Stack>
               </Stack>
+              {showContextualPopup && (
+                 <Dialog
+                 hidden={hideClearAllDialog}
+                 onDismiss={clearing ? () => {} : onHideClearAllDialog}
+                 dialogContentProps={clearAllDialogContentProps}
+                 modalProps={modalProps}>
+                 <DialogFooter>
+                   {!clearingError && <PrimaryButton onClick={onClearAllChatHistory} disabled={clearing} text="Clear All" />}
+                   <DefaultButton
+                     onClick={onHideClearAllDialog}
+                     disabled={clearing}
+                     text={!clearingError ? 'Cancel' : 'Close'}
+                   />
+                 </DialogFooter>
+               </Dialog>
+              )}
             </section>
           )}
         </Stack>
