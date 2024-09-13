@@ -1,8 +1,5 @@
 import React from "react";
-import { Stack, StackItem, Text } from "@fluentui/react";
-
 import { Conversation } from "../../api/models";
-
 import { ChatHistoryListItemGroups } from "./ChatHistoryListItem";
 
 interface ChatHistoryListProps {
@@ -10,7 +7,9 @@ interface ChatHistoryListProps {
   handleFetchHistory: () => Promise<void>;
   chatHistory: Conversation[];
   onSelectConversation: (id: string) => void;
-  selectedConvId: string;
+  selectedConvId: string
+  onHistoryTitleChange:(id:string, newTitle:string)=>void;
+  onHistoryDelete:(id:string)=>void;
 }
 
 export interface GroupedChatHistory {
@@ -95,6 +94,8 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
   fetchingChatHistory,
   onSelectConversation,
   selectedConvId,
+  onHistoryTitleChange,
+  onHistoryDelete
 }) => {
   let groupedChatHistory;
   groupedChatHistory = segregateItems(chatHistory);
@@ -105,6 +106,8 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
       groupedChatHistory={groupedChatHistory}
       onSelectConversation={onSelectConversation}
       selectedConvId={selectedConvId}
+      onHistoryTitleChange={onHistoryTitleChange}
+      onHistoryDelete={onHistoryDelete}
     />
   );
 };

@@ -395,6 +395,25 @@ const Chat = () => {
     setAnswers(messages);
     setSelectedConvId(id);
   };
+
+  const onHistoryTitleChange = (id: string, newTitle: string) => {
+    const tempChatHistory = [...chatHistory];
+    const conv = tempChatHistory.find((obj) => obj.id === id);
+    if (conv) {
+      conv.title = newTitle;
+      setChatHistory(tempChatHistory);
+    }
+  };
+
+  const onHistoryDelete = (id: string) => {
+    // remove seleted id
+    const tempChatHistory = [...chatHistory];
+    tempChatHistory.splice(
+      tempChatHistory.findIndex((a) => a.id === id),
+      1
+    );
+    setChatHistory(tempChatHistory);
+  };
   // useEffect(() => {
   //   const observer = new IntersectionObserver(
   //     (entries) => {
@@ -511,7 +530,7 @@ const Chat = () => {
                 style={{ marginBottom: isLoading ? "40px" : "0px" }}
               >
                 {answers.map((answer, index) => (
-                  <>
+                  <React.Fragment key={`${answer?.role}-${index}`}>
                     {answer.role === "user" ? (
                       <div
                         className={styles.chatMessageUser}
@@ -546,7 +565,7 @@ const Chat = () => {
                         />
                       </div>
                     ) : null}
-                  </>
+                  </React.Fragment>
                 ))}
                 {showLoadingMessage && (
                   <React.Fragment key="generating-answer">
@@ -751,6 +770,8 @@ const Chat = () => {
                       chatHistory={chatHistory}
                       onSelectConversation={onSelectConversation}
                       selectedConvId={selectedConvId}
+                      onHistoryTitleChange={onHistoryTitleChange}
+                      onHistoryDelete={onHistoryDelete}
                     />
                   )}
                   {/* appStateContext?.state.chatHistoryLoadingState ===

@@ -1,5 +1,5 @@
 import { ChatMessage, Conversation, ConversationRequest } from "./models";
-
+const principalID = "00000000-0000-0000-0000-000000000000";
 export async function callConversationApi(
   options: ConversationRequest,
   abortSignal: AbortSignal
@@ -78,7 +78,7 @@ export const historyRead = async (convId: string): Promise<ChatMessage[]> => {
     }),
     headers: {
       "Content-Type": "application/json",
-      "X-Ms-Client-Principal-Id": "00000000-0000-0000-0000-000000000000",
+      "X-Ms-Client-Principal-Id": principalID,
     },
   })
     .then(async (res) => {
@@ -114,7 +114,7 @@ export const historyList = async (
   let response = await fetch(`/api/history/list?offset=${offset}`, {
     method: "GET",
     headers: {
-      "X-Ms-Client-Principal-Id": "00000000-0000-0000-0000-000000000000",
+      "X-Ms-Client-Principal-Id": principalID,
     },
   })
     .then(async (res) => {
@@ -127,6 +127,22 @@ export const historyList = async (
         return null;
       }
       console.log("payload", payload);
+      // static data
+      //   payload =[
+      //     {
+      //         "_attachments": "attachments/",
+      //         "_etag": "\"0200607a-0000-0200-0000-66e1e8400000\"",
+      //         "_rid": "QedyANGSTVRcAQAAAAAAAA==",
+      //         "_self": "dbs/QedyAA==/colls/QedyANGSTVQ=/docs/QedyANGSTVRcAQAAAAAAAA==/",
+      //         "_ts": 1726081088,
+      //         "createdAt": "2024-08-22T09:51:00.268537",
+      //         "id": "affe98de-0adc-4aad-a68f-b53ded29a22f",
+      //         "title": "dfsdf Investmsdsdfxcxd ent Portfolio Analysis",
+      //         "type": "conversation",
+      //         "updatedAt": "2024-08-22T09:51:11.226404",
+      //         "userId": "84d3652d-7b78-4e33-bfe3-1bb6cd6c03a9"
+      //     }
+      // ]
       const conversations: Conversation[] = await Promise.all(
         payload.map(async (conv: any) => {
           let convMessages: ChatMessage[] = [];
@@ -160,29 +176,88 @@ export const historyList = async (
   return response;
 };
 
-export const historyUpdate = async (messages: ChatMessage[], convId: string): Promise<Response> => {
-  const response = await fetch('/api/history/update', {
-    method: 'POST',
+export const historyUpdate = async (
+  messages: ChatMessage[],
+  convId: string
+): Promise<Response> => {
+  const response = await fetch("/api/history/update", {
+    method: "POST",
     body: JSON.stringify({
       conversation_id: convId,
-      messages: messages
+      messages: messages,
     }),
     headers: {
-      'Content-Type': 'application/json',
-      "X-Ms-Client-Principal-Id": "00000000-0000-0000-0000-000000000000",
-    }
+      "Content-Type": "application/json",
+      "X-Ms-Client-Principal-Id": principalID,
+    },
   })
-    .then(async res => {
-      return res
+    .then(async (res) => {
+      return res;
     })
-    .catch(_err => {
-      console.error('There was an issue fetching your data.')
+    .catch((_err) => {
+      console.error("There was an issue fetching your data.");
       const errRes: Response = {
         ...new Response(),
         ok: false,
-        status: 500
-      }
-      return errRes
+        status: 500,
+      };
+      return errRes;
+    });
+  return response;
+};
+
+export const historyRename = async (
+  convId: string,
+  title: string
+): Promise<Response> => {
+  const response = await fetch("/api/history/rename", {
+    method: "POST",
+    body: JSON.stringify({
+      conversation_id: convId,
+      title: title,
+    }),
+    headers: {
+      "Content-Type": "application/json",
+      "X-Ms-Client-Principal-Id": principalID, //need to changes
+    },
+  })
+    .then((res) => {
+      return res;
     })
-  return response
-}
+    .catch((_err) => {
+      console.error("There was an issue fetching your data.");
+      const errRes: Response = {
+        ...new Response(),
+        ok: false,
+        status: 500,
+      };
+      return errRes;
+    });
+  return response;
+};
+
+export const historyDelete = async (convId: string): Promise<Response> => {
+  const response = await fetch("/api/history/delete", {
+    method: "DELETE",
+    body: JSON.stringify({
+      conversation_id: convId,
+    }),
+    headers: {
+      "Content-Type": "application/json",
+      "X-Ms-Client-Principal-Id": principalID,
+    },
+  })
+    .then((res) => {
+      return res;
+    })
+    .catch((_err) => {
+      console.error("There was an issue fetching your data.");
+      const errRes: Response = {
+        ...new Response(),
+        ok: false,
+        status: 500,
+      };
+      return errRes;
+    });
+  return response;
+};
