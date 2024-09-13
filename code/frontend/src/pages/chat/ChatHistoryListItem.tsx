@@ -329,7 +329,6 @@ export const ChatHistoryListItemGroups: React.FC<
 }) => {
   const observerTarget = useRef(null);
   const [observerCounter, setObserverCounter] = useState(0);
-  const firstRender = useRef(true);
   const handleSelectHistory = (item?: Conversation) => {
     if (typeof item === "object") {
       onSelectConversation(item?.id);
@@ -349,14 +348,6 @@ export const ChatHistoryListItemGroups: React.FC<
     );
   };
 
-  useEffect(() => {
-    console.log("Chat history item initial call");
-    if (firstRender.current && import.meta.env.MODE === "development") {
-      firstRender.current = false;
-      return;
-    }
-    handleFetchHistory();
-  }, []);
 
   function hasVerticalScrollbar(element: any) {
     return element?.scrollHeight > element?.clientHeight;
@@ -364,20 +355,22 @@ export const ChatHistoryListItemGroups: React.FC<
 
   useEffect(() => {
     const element = document.getElementById("historyListContainer");
-    if (element) {
-      const scrollBar = hasVerticalScrollbar(element);
-      console.log("Has scroll", scrollBar);
-      console.log("Paginated call obeserver counter");
+    // console.log("observerCounter UseEffect", observerCounter, element);
+    const scrollBar = hasVerticalScrollbar(element);
+    if (element && scrollBar) {
       handleFetchHistory();
     }
   }, [observerCounter]);
 
   useEffect(() => {
+    // console.log("observerTarget >>>> in useEffect", { ...observerTarget });
     const observer = new IntersectionObserver(
       (entries) => {
         console.log("Entries", entries);
-        if (entries[0].isIntersecting)
+        if (entries[0].isIntersecting) {
+          // console.log("isIntersecting", entries[0].isIntersecting);
           setObserverCounter((observerCounter) => (observerCounter += 1));
+        }
       },
       { threshold: 1 }
     );
@@ -387,7 +380,7 @@ export const ChatHistoryListItemGroups: React.FC<
     return () => {
       if (observerTarget.current) observer.unobserve(observerTarget.current);
     };
-  }, [observerTarget]);
+  }, [observerTarget.current]);
 
   const allConversationsLength = groupedChatHistory.reduce(
     (previousValue, currentValue) =>

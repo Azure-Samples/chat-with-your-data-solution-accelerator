@@ -77,6 +77,7 @@ const Chat = () => {
   const [chatHistory, setChatHistory] = useState<Conversation[]>([]);
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(true);
   const [selectedConvId, setSelectedConvId] = useState<string>("");
+  const firstRender = useRef(true);
 
   const saveToDB = async (messages: ChatMessage[], convId: string) => {
     if (!convId || !messages.length) {
@@ -373,12 +374,21 @@ const Chat = () => {
 
   const onHistoryTitleChange = (id: string, newTitle: string) => {
     const tempChatHistory = [...chatHistory];
-    const conv = tempChatHistory.find((obj) => obj.id === id);
-    if (conv) {
-      conv.title = newTitle;
+    const matchedIndex = tempChatHistory.findIndex((obj) => obj.id === id);
+    if (matchedIndex > -1) {
+      tempChatHistory[matchedIndex].title = newTitle;
       setChatHistory(tempChatHistory);
     }
   };
+
+  useEffect(() => {
+    // console.log("Chat history item initial call");
+    if (firstRender.current && import.meta.env.MODE === "development") {
+      firstRender.current = false;
+      return;
+    }
+    handleFetchHistory();
+  }, []);
 
   const onHistoryDelete = (id: string) => {
     const tempChatHistory = [...chatHistory];
