@@ -326,9 +326,8 @@ async def delete_all_conversations():
         return (jsonify({"error": str(e)}), 500)
 
 
-@bp_chat_history_response.route("/history/generate", methods=["POST"])
-async def add_conversation():
-    print("add_conversation")
+@bp_chat_history_response.route("/history/update", methods=["POST"])
+async def update_conversation():
     if not env_helper.CHAT_HISTORY_ENABLED:
         return (jsonify({"error": "Chat history is not avaliable"}), 400)
 
@@ -338,73 +337,48 @@ async def add_conversation():
         # check request for conversation_id
         request_json = request.get_json()
         conversation_id = request_json.get("conversation_id", None)
+        if not conversation_id:
+            return (jsonify({"error": "conversation_id is required"}), 400)
 
         # make sure cosmos is configured
         cosmos_conversation_client = init_cosmosdb_client()
         if not cosmos_conversation_client:
             return jsonify({"error": "database not available"}), 500
+
         # check for the conversation_id, if the conversation is not set, we will create a new one
-        history_metadata = {}
-        if not conversation_id:
+        conversation = await cosmos_conversation_client.get_conversation(
+            user_id, conversation_id
+        )
+        if not conversation:
             title = await generate_title(request_json["messages"])
-            conversation_dict = await cosmos_conversation_client.create_conversation(
-                user_id=user_id, title=title
+            conversation = await cosmos_conversation_client.create_conversation(
+                user_id=user_id, conversation_id=conversation_id, title=title
             )
-            conversation_id = conversation_dict["id"]
-            history_metadata["title"] = title
-            history_metadata["date"] = conversation_dict["createdAt"]
+            conversation_id = conversation["id"]
 
         # Format the incoming message object in the "chat/completions" messages format then write it to the
         # conversation history in cosmos
         messages = request_json["messages"]
-        if len(messages) > 0 and messages[-1]["role"] == "user":
+        if len(messages) > 0 and messages[0]["role"] == "user":
+            user_message = next(
+                (
+                    message
+                    for message in reversed(messages)
+                    if message["role"] == "user"
+                ),
+                None,
+            )
             createdMessageValue = await cosmos_conversation_client.create_message(
                 uuid=str(uuid4()),
                 conversation_id=conversation_id,
                 user_id=user_id,
-                input_message=messages[-1],
+                input_message=user_message,
             )
             if createdMessageValue == "Conversation not found":
                 return (jsonify({"error": "Conversation not found"}), 400)
         else:
             return (jsonify({"error": "User not found"}), 400)
 
-        # # Submit request to Chat Completions for response
-        # request_body = request.get_json()
-        # history_metadata["conversation_id"] = conversation_id
-        # request_body["history_metadata"] = history_metadata
-        # return await conversation_internal(request_body, request.headers)
-
-    except Exception as e:
-        logger.exception("Exception in /generate")
-        return (jsonify({"error": str(e)}), 500)
-
-
-@bp_chat_history_response.route("/history/update", methods=["POST"])
-async def update_conversation():
-    if not env_helper.CHAT_HISTORY_ENABLED:
-        return (jsonify({"error": "Chat history is not avaliable"}), 400)
-    try:
-        authenticated_user = get_authenticated_user_details(
-            request_headers=request.headers
-        )
-        user_id = authenticated_user["user_principal_id"]
-
-        ## check request for conversation_id
-        request_json = request.get_json()
-        conversation_id = request_json.get("conversation_id", None)
-        # make sure cosmos is configured
-        cosmos_conversation_client = init_cosmosdb_client()
-        if not cosmos_conversation_client:
-            return (jsonify({"error": "database not available"}), 500)
-
-        # check for the conversation_id, if the conversation is not set, we will create a new one
-        if not conversation_id:
-            return (jsonify({"error": "conversation_id is required"}), 400)
-
-        ## Format the incoming message object in the "chat/completions" messages format
-        ## then write it to the conversation history in cosmos
-        messages = request_json["messages"]
         if len(messages) > 0 and messages[-1]["role"] == "assistant":
             if len(messages) > 1 and messages[-2].get("role", None) == "tool":
                 # write the tool message first
@@ -416,7 +390,7 @@ async def update_conversation():
                 )
             # write the assistant message
             await cosmos_conversation_client.create_message(
-                uuid=messages[-1]["id"],
+                uuid=str(uuid4()),
                 conversation_id=conversation_id,
                 user_id=user_id,
                 input_message=messages[-1],
@@ -424,9 +398,19 @@ async def update_conversation():
         else:
             return (jsonify({"error": "no conversationbot"}), 400)
 
-        # Submit request to Chat Completions for response
-
-        return (jsonify({"success": True}), 200)
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "data": {
+                        "title": conversation["title"],
+                        "date": conversation["updatedAt"],
+                        "conversation_id": conversation["id"],
+                    },
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         logger.exception("Exception in /update")
@@ -435,7 +419,6 @@ async def update_conversation():
 
 @bp_chat_history_response.route("/history/frontend_settings", methods=["GET"])
 def get_frontend_settings():
-    print("get_frontend_settings")
     try:
         return (jsonify({"CHAT_HISTORY_ENABLED": env_helper.CHAT_HISTORY_ENABLED}), 200)
     except Exception as e:
@@ -444,7 +427,7 @@ def get_frontend_settings():
 
 
 async def generate_title(conversation_messages):
-    title_prompt = ('Summarize the conversation so far into a 4-word or less title. Do not use any quotation marks or punctuation. Do not include any other commentary or description.')
+    title_prompt = "Summarize the conversation so far into a 4-word or less title. Do not use any quotation marks or punctuation. Do not include any other commentary or description."
 
     messages = [
         {"role": msg["role"], "content": msg["content"]}
@@ -455,10 +438,13 @@ async def generate_title(conversation_messages):
     try:
         azure_openai_client = init_openai_client()
         response = await azure_openai_client.chat.completions.create(
-            model=env_helper.AZURE_OPENAI_MODEL, messages=messages, temperature=1, max_tokens=64
+            model=env_helper.AZURE_OPENAI_MODEL,
+            messages=messages,
+            temperature=1,
+            max_tokens=64,
         )
 
         title = response.choices[0].message.content
         return title
-    except Exception as e:
+    except Exception:
         return messages[-2]["content"]
