@@ -194,7 +194,7 @@ export const ChatHistoryListItemCell: React.FC<
           <Stack.Item style={{ width: "100%" }}>
             <form
               aria-label="edit title form"
-              // onSubmit={e => handleSaveEdit(e)} style={{ padding: '5px 0px' }}
+              onSubmit={e => handleSaveEdit(e)} style={{ padding: '5px 0px' }}
             >
               <Stack horizontal verticalAlign={"start"}>
                 <Stack.Item>
