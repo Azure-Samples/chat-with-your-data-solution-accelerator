@@ -364,10 +364,10 @@ const Chat = () => {
 
   const onHistoryTitleChange = (id: string, newTitle: string) => {
     const tempChatHistory = [...chatHistory];
-    const conv = tempChatHistory.find((obj) => obj.id === id);
-    if (conv) {
-      conv.title = newTitle;
-      setChatHistory(tempChatHistory);
+    const index = tempChatHistory.findIndex((obj) => obj.id === id);
+    if (index > -1) {
+      tempChatHistory[index].title=newTitle;
+      setChatHistory(tempChatHistory)
     }
   };
 
