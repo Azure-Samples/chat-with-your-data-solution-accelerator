@@ -74,13 +74,5 @@ export type Conversation = {
   title: string;
   messages: ChatMessage[];
   date: string;
-//   _attachments?: string;
-//   _etag?: string;
-//   _rid?: string;
-//   _self?: string;
-//   _ts?: number;
-//   createdAt?: string;
-//   type: string;
   updatedAt?: string;
-//   userId?: string;
 };

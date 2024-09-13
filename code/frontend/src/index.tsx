@@ -5,7 +5,6 @@ import { initializeIcons } from "@fluentui/react";
 
 import "./index.css";
 
-import Layout from "./pages/layout/Layout";
 import NoPage from "./pages/NoPage";
 import Chat from "./pages/chat/Chat";
 
