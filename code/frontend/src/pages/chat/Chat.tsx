@@ -1,18 +1,5 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
-import {
-  CommandBarButton,
-  ContextualMenu,
-  DefaultButton,
-  Dialog,
-  DialogFooter,
-  IContextualMenuItem,
-  Separator,
-  Spinner,
-  SpinnerSize,
-  Stack,
-  StackItem,
-  Text,
-} from "@fluentui/react";
+import React, { useRef, useState, useEffect } from "react";
+import { CommandBarButton, Stack, StackItem, Text } from "@fluentui/react";
 import {
   BroomRegular,
   DismissRegular,
@@ -47,7 +34,6 @@ import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
 import Cards from "./Cards_contract/Cards";
 import Layout from "../layout/Layout";
-import HistoryPanel from "../../components/HistoryPanel/HistoryPanel";
 import ChatHistoryList from "./ChatHistoryList";
 
 const OFFSET_INCREMENT = 25;
@@ -88,10 +74,6 @@ const Chat = () => {
   const [showHistoryPanel, setShowHistoryPanel] = useState(true);
   const [fetchingChatHistory, setFetchingChatHistory] = useState(false);
   const [offset, setOffset] = useState<number>(0);
-  const firstRender = useRef(true);
-  const observerTarget = useRef(null);
-  const [observerCounter, setObserverCounter] = useState(0);
-  const [showContextualMenu, setShowContextualMenu] = React.useState(false);
   const [chatHistory, setChatHistory] = useState<Conversation[]>([]);
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(true);
   const [selectedConvId, setSelectedConvId] = useState<string>("");
@@ -104,8 +86,7 @@ const Chat = () => {
     await historyUpdate(messages, convId)
       .then(async (res) => {
         if (!res.ok) {
-          let errorMessage =
-            "Answers can't be saved at this time.";
+          let errorMessage = "Answers can't be saved at this time.";
           let errorChatMsg: ChatMessage = {
             id: uuidv4(), // TODO need to update to uuid() from react-uuid
             role: ERROR,
@@ -345,7 +326,7 @@ const Chat = () => {
   };
 
   const parseCitationFromMessage = (message: ChatMessage) => {
-    if (message.role === "tool") {
+    if (message.role === TOOL) {
       try {
         const toolMessage = JSON.parse(message.content) as ToolMessageContent;
         return toolMessage.citations;
@@ -376,7 +357,6 @@ const Chat = () => {
   };
 
   const onSelectConversation = (id: string) => {
-    console.log("selected conv id in chat", id);
     const messages = getMessagesByconvId(id);
     setAnswers(messages);
     setSelectedConvId(id);
@@ -392,7 +372,6 @@ const Chat = () => {
   };
 
   const onHistoryDelete = (id: string) => {
-    // remove seleted id
     const tempChatHistory = [...chatHistory];
     tempChatHistory.splice(
       tempChatHistory.findIndex((a) => a.id === id),
@@ -407,7 +386,6 @@ const Chat = () => {
     }
     setFetchingChatHistory(true);
     await historyList(offset).then((response) => {
-      console.log("HL response", response);
       if (Array.isArray(response)) {
         setChatHistory((prevData) => [...prevData, ...response]);
         if (response.length === OFFSET_INCREMENT) {
@@ -424,22 +402,6 @@ const Chat = () => {
     });
   };
 
-  const menuItems: IContextualMenuItem[] = [
-    {
-      key: "clearAll",
-      text: "Clear all chat history",
-      disabled: isLoading,
-      iconProps: { iconName: "Delete" },
-    },
-  ];
-
-  // const onShowContextualMenu = useCallback(
-  //   (ev: React.MouseEvent<HTMLElement>) => {
-  //     ev.preventDefault(); // don't navigate
-  //     setShowContextualMenu(true);
-  //   },
-  //   []
-  // );
   console.log("answers", answers, lastQuestionRef);
   return (
     <Layout
@@ -502,7 +464,7 @@ const Chat = () => {
                           {answer.content}
                         </div>
                       </div>
-                    ) : answer.role === "assistant" ||
+                    ) : answer.role === ASSISTANT ||
                       answer.role === "error" ? (
                       <div
                         className={styles.chatMessageGpt}
@@ -511,12 +473,12 @@ const Chat = () => {
                         <Answer
                           answer={{
                             answer:
-                              answer.role === "assistant"
+                              answer.role === ASSISTANT
                                 ? answer.content
                                 : "Sorry, an error occurred. Try refreshing the conversation or waiting a few minutes. If the issue persists, contact your system administrator. Error: " +
                                   answer.content,
                             citations:
-                              answer.role === "assistant"
+                              answer.role === ASSISTANT
                                 ? parseCitationFromMessage(answers[index - 1])
                                 : [],
                           }}
@@ -680,33 +642,13 @@ const Chat = () => {
                   </Text>
                 </StackItem>
                 <Stack verticalAlign="start">
-                  <Stack
-                    horizontal
-                    // styles={commandBarButtonStyle}
-                  >
-                    {/* <CommandBarButton
-                      iconProps={{ iconName: "More" }}
-                      title={"Clear all chat history"}
-                      aria-label={"clear all chat history"}
-                      role="button"
-                      id="moreButton"
-                      onClick={onShowContextualMenu}
-                      // styles={commandBarStyle}
-                    />
-                    <ContextualMenu
-                      target={"#moreButton"}
-                      items={menuItems}
-                      // hidden={!showContextualMenu}
-                      // onItemClick={toggleClearAllDialog}
-                      // onDismiss={onHideContextualMenu}
-                    /> */}
+                  <Stack horizontal>
                     <CommandBarButton
                       iconProps={{ iconName: "Cancel" }}
                       title={"Hide"}
                       aria-label={"hide button"}
                       role="button"
                       onClick={() => setShowHistoryPanel(false)}
-                      // styles={commandBarStyle}
                     />
                   </Stack>
                 </Stack>
@@ -733,89 +675,8 @@ const Chat = () => {
                       onHistoryDelete={onHistoryDelete}
                     />
                   )}
-                  {/* appStateContext?.state.chatHistoryLoadingState ===
-                    ChatHistoryLoadingState.Fail &&
-                    appStateContext?.state.isCosmosDBAvailable */}
-                  {/* {true && (
-                    <>
-                      <Stack>
-                        <Stack
-                          horizontalAlign="center"
-                          verticalAlign="center"
-                          style={{ width: "100%", marginTop: 10 }}
-                        >
-                          <StackItem>
-                            <Text
-                              style={{
-                                alignSelf: "center",
-                                fontWeight: "400",
-                                fontSize: 16,
-                              }}
-                            >
-                              <span>Error loading chat history</span>
-                            </Text>
-                          </StackItem>
-                          <StackItem>
-                            <Text
-                              style={{
-                                alignSelf: "center",
-                                fontWeight: "400",
-                                fontSize: 14,
-                              }}
-                            >
-                              <span>
-                                Chat history can't be saved at this time
-                              </span>
-                            </Text>
-                          </StackItem>
-                        </Stack>
-                      </Stack>
-                    </>
-                  )} */}
-                  {/* appStateContext?.state.chatHistoryLoadingState ===
-                    ChatHistoryLoadingState.Loading && */}
-                  {/* {fetchingChatHistory && (
-                    <>
-                      <Stack
-                        horizontal
-                        horizontalAlign="center"
-                        verticalAlign="center"
-                        style={{ width: "100%", marginTop: 10, gap: 8 }}
-                      >
-                        <StackItem>
-                          <Spinner size={SpinnerSize.medium} />
-                        </StackItem>
-                        <StackItem>
-                          <span style={{ whiteSpace: "pre-wrap" }}>
-                            Loading chat history
-                          </span>
-                        </StackItem>
-                      </Stack>
-                    </>
-                  )} */}
                 </Stack>
               </Stack>
-              <Dialog
-              // hidden={hideClearAllDialog}
-              // onDismiss={clearing ? () => {} : onHideClearAllDialog}
-              // dialogContentProps={clearAllDialogContentProps}
-              // modalProps={modalProps}
-              >
-                <DialogFooter>
-                  {/* {!clearingError && (
-                    <PrimaryButton
-                      onClick={onClearAllChatHistory}
-                      disabled={clearing}
-                      text="Clear All"
-                    />
-                  )} */}
-                  <DefaultButton
-                  // onClick={onHideClearAllDialog}
-                  // disabled={clearing}
-                  // text={!clearingError ? "Cancel" : "Close"}
-                  />
-                </DialogFooter>
-              </Dialog>
             </section>
           )}
         </Stack>
