@@ -105,7 +105,7 @@ const Chat = () => {
       .then(async (res) => {
         if (!res.ok) {
           let errorMessage =
-            "An error occurred. Answers can't be saved at this time. If the problem persists, please contact the site administrator.";
+            "Answers can't be saved at this time.";
           let errorChatMsg: ChatMessage = {
             id: uuidv4(), // TODO need to update to uuid() from react-uuid
             role: ERROR,
@@ -121,30 +121,17 @@ const Chat = () => {
           }
           setAnswers([...messages, errorChatMsg]);
         }
-        console.log("update response", res);
         let responseJson = await res.json();
-        // "history_metadata": {
-        //   "title": "Investment Summary Overview",
-        //   "date": "2024-09-12T12:32:10.864690",
-        //   "conversation_id": "285d0f44-f729-4506-868f-d999fcf8b4eb"
-        //  }
+        console.log("update response", res, responseJson);
         if (isNewConversation && responseJson?.success) {
-          const metaData = responseJson?.history_metadata;
+          const metaData = responseJson?.data;
           const newConversation = {
             id: metaData?.conversation_id,
             title: metaData?.title,
             messages: messages,
             date: metaData?.date,
-            //   _attachments?: string;
-            //   _etag?: string;
-            //   _rid?: string;
-            //   _self?: string;
-            //   _ts?: number;
-            //   createdAt?: string;
-            //   type: string;
-            // updatedAt?: string;
-            //   userId?: string;
           };
+          // updatedAt?: string;
           setChatHistory((prevHistory) => [newConversation, ...prevHistory]);
           setSelectedConvId(metaData?.conversation_id);
         }
@@ -196,7 +183,6 @@ const Chat = () => {
             try {
               runningText += obj;
               result = JSON.parse(runningText);
-              console.log(">>> obj ", obj, runningText, result);
               setShowLoadingMessage(false);
               if (result.error) {
                 setAnswers([
@@ -414,30 +400,6 @@ const Chat = () => {
     );
     setChatHistory(tempChatHistory);
   };
-  // useEffect(() => {
-  //   const observer = new IntersectionObserver(
-  //     (entries) => {
-  //       if (entries[0].isIntersecting)
-  //         setObserverCounter((observerCounter) => (observerCounter += 1));
-  //     },
-  //     { threshold: 1 }
-  //   );
-
-  //   if (observerTarget.current) observer.observe(observerTarget.current);
-
-  //   return () => {
-  //     if (observerTarget.current) observer.unobserve(observerTarget.current);
-  //   };
-  // }, [observerTarget]);
-
-  // useEffect(() => {
-  //   if (firstRender.current) {
-  //     firstRender.current = false;
-  //     return;
-  //   }
-  //   console.log("Initial call observer");
-  //   handleFetchHistory();
-  // }, []);
 
   const handleFetchHistory = async () => {
     if (fetchingChatHistory || !hasMoreRecords) {
@@ -471,13 +433,13 @@ const Chat = () => {
     },
   ];
 
-  const onShowContextualMenu = useCallback(
-    (ev: React.MouseEvent<HTMLElement>) => {
-      ev.preventDefault(); // don't navigate
-      setShowContextualMenu(true);
-    },
-    []
-  );
+  // const onShowContextualMenu = useCallback(
+  //   (ev: React.MouseEvent<HTMLElement>) => {
+  //     ev.preventDefault(); // don't navigate
+  //     setShowContextualMenu(true);
+  //   },
+  //   []
+  // );
   console.log("answers", answers, lastQuestionRef);
   return (
     <Layout
@@ -760,9 +722,6 @@ const Chat = () => {
                 }}
               >
                 <Stack className={styles.chatHistoryListContainer}>
-                  {/* appStateContext?.state.chatHistoryLoadingState ===
-                    ChatHistoryLoadingState.Success &&
-                    appStateContext?.state.isCosmosDBAvailable.cosmosDB */}
                   {showHistoryPanel && (
                     <ChatHistoryList
                       fetchingChatHistory={fetchingChatHistory}
