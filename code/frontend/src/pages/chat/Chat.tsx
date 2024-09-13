@@ -202,7 +202,7 @@ const Chat = () => {
           ...result.choices[0].messages,
         ];
         setAnswers(updatedMessages);
-        saveToDB(updatedMessages, conversationId);
+        saveToDB(updatedMessages, selectedConvId || conversationId);
       }
     } catch (e) {
       if (!abortController.signal.aborted) {
@@ -387,6 +387,12 @@ const Chat = () => {
       1
     );
     setChatHistory(tempChatHistory);
+    if (id === selectedConvId) {
+      lastQuestionRef.current = "";
+      setActiveCitation(undefined);
+      setAnswers([]);
+      setSelectedConvId("");
+    }
   };
 
   const handleFetchHistory = async () => {
@@ -411,7 +417,14 @@ const Chat = () => {
     });
   };
 
-  console.log("answers", answers, lastQuestionRef, chatHistory, selectedConvId, conversationId);
+  console.log(
+    "answers",
+    answers,
+    lastQuestionRef,
+    chatHistory,
+    selectedConvId,
+    conversationId
+  );
   return (
     <Layout
       showHistoryBtn={showHistoryBtn}
