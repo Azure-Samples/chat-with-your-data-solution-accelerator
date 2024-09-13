@@ -360,11 +360,19 @@ async def update_conversation():
         # conversation history in cosmos
         messages = request_json["messages"]
         if len(messages) > 0 and messages[0]["role"] == "user":
+            user_message = next(
+                (
+                    message
+                    for message in reversed(messages)
+                    if message["role"] == "user"
+                ),
+                None,
+            )
             createdMessageValue = await cosmos_conversation_client.create_message(
                 uuid=str(uuid4()),
                 conversation_id=conversation_id,
                 user_id=user_id,
-                input_message=messages[0],
+                input_message=user_message,
             )
             if createdMessageValue == "Conversation not found":
                 return (jsonify({"error": "Conversation not found"}), 400)
@@ -419,7 +427,7 @@ def get_frontend_settings():
 
 
 async def generate_title(conversation_messages):
-    title_prompt = ('Summarize the conversation so far into a 4-word or less title. Do not use any quotation marks or punctuation. Do not include any other commentary or description.')
+    title_prompt = "Summarize the conversation so far into a 4-word or less title. Do not use any quotation marks or punctuation. Do not include any other commentary or description."
 
     messages = [
         {"role": msg["role"], "content": msg["content"]}
