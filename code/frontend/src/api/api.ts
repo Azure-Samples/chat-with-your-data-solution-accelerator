@@ -111,7 +111,7 @@ export const historyList = async (
   offset = 0
 ): Promise<Conversation[] | null> => {
   let response = await fetch(`/api/history/list?offset=${offset}`, {
-    method: "GET"
+    method: "GET",
   })
     .then(async (res) => {
       console.log("list res", res);
@@ -123,29 +123,16 @@ export const historyList = async (
         return null;
       }
       console.log("payload", payload);
-      const conversations: Conversation[] = await Promise.all(
-        payload.map(async (conv: any) => {
-          let convMessages: ChatMessage[] = [];
-          convMessages = await historyRead(conv.id)
-            .then((res) => {
-              return res;
-            })
-            .catch((err) => {
-              console.error("error fetching messages: ", err);
-              return [];
-            });
-          console.log("conversation messages", convMessages);
-
-          const conversation: Conversation = {
-            id: conv.id,
-            title: conv.title,
-            date: conv.createdAt,
-            updatedAt: conv?.updatedAt,
-            messages: convMessages,
-          };
-          return conversation;
-        })
-      );
+      const conversations: Conversation[] = payload.map((conv: any) => {
+        const conversation: Conversation = {
+          id: conv.id,
+          title: conv.title,
+          date: conv.createdAt,
+          updatedAt: conv?.updatedAt,
+          messages: [],
+        };
+        return conversation;
+      });
       return conversations;
     })
     .catch((_err) => {
