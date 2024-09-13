@@ -103,6 +103,7 @@ const Chat = () => {
       ? 'All chat history will be permanently removed.'
       : 'Please try again. If the problem persists, please contact the site administrator.'
   }
+  const firstRender = useRef(true);
 
   useEffect(() => {
     if(chatHistory.length){
@@ -155,6 +156,15 @@ const Chat = () => {
           // updatedAt?: string;
           setChatHistory((prevHistory) => [newConversation, ...prevHistory]);
           setSelectedConvId(metaData?.conversation_id);
+        } else {
+          const tempChatHistory = [...chatHistory];
+          const matchedIndex = tempChatHistory.findIndex(
+            (obj) => obj.id === convId
+          );
+          if (matchedIndex > -1) {
+            tempChatHistory[matchedIndex].messages = messages;
+            setChatHistory(tempChatHistory);
+          }
         }
         return res as Response;
       })
@@ -236,7 +246,7 @@ const Chat = () => {
           ...result.choices[0].messages,
         ];
         setAnswers(updatedMessages);
-        saveToDB(updatedMessages, conversationId);
+        saveToDB(updatedMessages, selectedConvId || conversationId);
       }
     } catch (e) {
       if (!abortController.signal.aborted) {
@@ -447,6 +457,16 @@ const Chat = () => {
   const toggleToggleSpinner = (toggler: boolean) =>{
     setToggleSpinner(toggler);
   }
+
+  useEffect(() => {
+    // console.log("Chat history item initial call");
+    if (firstRender.current && import.meta.env.MODE === "development") {
+      firstRender.current = false;
+      return;
+    }
+    handleFetchHistory();
+  }, []);
+
   const onHistoryDelete = (id: string) => {
     const tempChatHistory = [...chatHistory];
     tempChatHistory.splice(
@@ -454,6 +474,12 @@ const Chat = () => {
       1
     );
     setChatHistory(tempChatHistory);
+    if (id === selectedConvId) {
+      lastQuestionRef.current = "";
+      setActiveCitation(undefined);
+      setAnswers([]);
+      setSelectedConvId("");
+    }
   };
 
   const handleFetchHistory = async () => {
@@ -478,7 +504,14 @@ const Chat = () => {
     });
   };
 
-  console.log("answers", answers, lastQuestionRef);
+  console.log(
+    "answers",
+    answers,
+    lastQuestionRef,
+    chatHistory,
+    selectedConvId,
+    conversationId
+  );
   return (
     <Layout
       toggleSpinner={toggleSpinner}
@@ -541,8 +574,7 @@ const Chat = () => {
                           {answer.content}
                         </div>
                       </div>
-                    ) : answer.role === ASSISTANT ||
-                      answer.role === "error" ? (
+                    ) : answer.role === ASSISTANT || answer.role === "error" ? (
                       <div
                         className={styles.chatMessageGpt}
                         key={`${answer?.role}-${index}`}
