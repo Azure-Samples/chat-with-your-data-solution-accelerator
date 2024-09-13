@@ -375,6 +375,9 @@ const Chat = () => {
     setIsTextToSpeachActive(status == "speak" ? true : false);
   };
   const onSetShowHistoryPanel = () => {
+    if (!showHistoryPanel) {
+      setIsCitationPanelOpen(false);
+    }
     setShowHistoryPanel((prevState) => !prevState);
   };
 
