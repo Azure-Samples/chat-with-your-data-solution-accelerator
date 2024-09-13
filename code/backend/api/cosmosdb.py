@@ -45,14 +45,15 @@ class CosmosConversationClient():
 
         return True, "CosmosDB client initialized successfully"
 
-    async def create_conversation(self, user_id, title = ''):
+    async def create_conversation(self, user_id, conversation_id, title=""):
         conversation = {
-            'id': str(uuid.uuid4()),
-            'type': 'conversation',
-            'createdAt': datetime.utcnow().isoformat(),
-            'updatedAt': datetime.utcnow().isoformat(),
-            'userId': user_id,
-            'title': title
+            "id": conversation_id,
+            "type": "conversation",
+            "createdAt": datetime.utcnow().isoformat(),
+            "updatedAt": datetime.utcnow().isoformat(),
+            "userId": user_id,
+            "title": title,
+            "conversationId": conversation_id,
         }
         ## TODO: add some error handling based on the output of the upsert_item call
         resp = await self.container_client.upsert_item(conversation)
