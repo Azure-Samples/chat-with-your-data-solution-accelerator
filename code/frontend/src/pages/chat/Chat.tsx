@@ -115,6 +115,15 @@ const Chat = () => {
           // updatedAt?: string;
           setChatHistory((prevHistory) => [newConversation, ...prevHistory]);
           setSelectedConvId(metaData?.conversation_id);
+        } else {
+          const tempChatHistory = [...chatHistory];
+          const matchedIndex = tempChatHistory.findIndex(
+            (obj) => obj.id === convId
+          );
+          if (matchedIndex > -1) {
+            tempChatHistory[matchedIndex].messages = messages;
+            setChatHistory(tempChatHistory);
+          }
         }
         return res as Response;
       })
@@ -402,7 +411,7 @@ const Chat = () => {
     });
   };
 
-  console.log("answers", answers, lastQuestionRef);
+  console.log("answers", answers, lastQuestionRef, chatHistory, selectedConvId, conversationId);
   return (
     <Layout
       showHistoryBtn={showHistoryBtn}
@@ -464,8 +473,7 @@ const Chat = () => {
                           {answer.content}
                         </div>
                       </div>
-                    ) : answer.role === ASSISTANT ||
-                      answer.role === "error" ? (
+                    ) : answer.role === ASSISTANT || answer.role === "error" ? (
                       <div
                         className={styles.chatMessageGpt}
                         key={`${answer?.role}-${index}`}
