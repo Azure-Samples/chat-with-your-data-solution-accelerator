@@ -311,7 +311,7 @@ def test_save_config_as_active_validates_advanced_image_file_types_are_valid(
 
     # then
     assert str(e.value) == (
-        "Advanced image processing has been enabled for document type txt, but only ['jpeg', 'jpg', 'png', 'tiff', 'bmp'] file types are supported."
+        "Advanced image processing has not been enabled for document type txt, as only ['jpeg', 'jpg', 'png', 'tiff', 'bmp'] file types are supported."
     )
     AzureBlobStorageClientMock.assert_not_called()
 
