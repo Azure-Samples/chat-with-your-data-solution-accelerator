@@ -704,6 +704,7 @@ const Chat = () => {
                       selectedConvId={selectedConvId}
                       onHistoryTitleChange={onHistoryTitleChange}
                       onHistoryDelete={onHistoryDelete}
+                      isGenerating={showLoadingMessage}
                     />
                   )}
                 </Stack>

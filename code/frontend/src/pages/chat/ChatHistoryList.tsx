@@ -7,9 +7,10 @@ interface ChatHistoryListProps {
   handleFetchHistory: () => Promise<void>;
   chatHistory: Conversation[];
   onSelectConversation: (id: string) => void;
-  selectedConvId: string
-  onHistoryTitleChange:(id:string, newTitle:string)=>void;
-  onHistoryDelete:(id:string)=>void;
+  selectedConvId: string;
+  onHistoryTitleChange: (id: string, newTitle: string) => void;
+  onHistoryDelete: (id: string) => void;
+  isGenerating: boolean;
 }
 
 export interface GroupedChatHistory {
@@ -95,7 +96,8 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
   onSelectConversation,
   selectedConvId,
   onHistoryTitleChange,
-  onHistoryDelete
+  onHistoryDelete,
+  isGenerating,
 }) => {
   let groupedChatHistory;
   groupedChatHistory = segregateItems(chatHistory);
@@ -108,6 +110,7 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
       selectedConvId={selectedConvId}
       onHistoryTitleChange={onHistoryTitleChange}
       onHistoryDelete={onHistoryDelete}
+      isGenerating={isGenerating}
     />
   );
 };

@@ -32,6 +32,7 @@ interface ChatHistoryListItemCellProps {
   selectedConvId: string;
   onHistoryTitleChange: (id: string, newTitle: string) => void;
   onHistoryDelete: (id: string) => void;
+  isGenerating: boolean;
 }
 
 interface ChatHistoryListItemGroupsProps {
@@ -42,6 +43,7 @@ interface ChatHistoryListItemGroupsProps {
   selectedConvId: string;
   onHistoryTitleChange: (id: string, newTitle: string) => void;
   onHistoryDelete: (id: string) => void;
+  isGenerating: boolean;
 }
 
 export const ChatHistoryListItemCell: React.FC<
@@ -52,6 +54,7 @@ export const ChatHistoryListItemCell: React.FC<
   selectedConvId,
   onHistoryTitleChange,
   onHistoryDelete,
+  isGenerating,
 }) => {
   const [isHovered, setIsHovered] = React.useState(false);
   const [edit, setEdit] = useState(false);
@@ -62,7 +65,6 @@ export const ChatHistoryListItemCell: React.FC<
   const [errorRename, setErrorRename] = useState<string | undefined>(undefined);
   const [textFieldFocused, setTextFieldFocused] = useState(false);
   const textFieldRef = useRef<ITextField | null>(null);
-  const [isButtonDisabled, setIsButtonDisabled] = useState<boolean>(false);
   const isSelected = item?.id === selectedConvId;
   const dialogContentProps = {
     type: DialogType.close,
@@ -170,7 +172,7 @@ export const ChatHistoryListItemCell: React.FC<
       return;
     }
   };
-
+  const isButtonDisabled = isGenerating;
   return (
     <Stack
       key={item.id}
@@ -326,6 +328,7 @@ export const ChatHistoryListItemGroups: React.FC<
   selectedConvId,
   onHistoryTitleChange,
   onHistoryDelete,
+  isGenerating,
 }) => {
   const observerTarget = useRef(null);
   const [observerCounter, setObserverCounter] = useState(0);
@@ -344,10 +347,10 @@ export const ChatHistoryListItemGroups: React.FC<
         key={item?.id}
         onHistoryTitleChange={onHistoryTitleChange}
         onHistoryDelete={onHistoryDelete}
+        isGenerating={isGenerating}
       />
     );
   };
-
 
   function hasVerticalScrollbar(element: any) {
     return element?.scrollHeight > element?.clientHeight;
