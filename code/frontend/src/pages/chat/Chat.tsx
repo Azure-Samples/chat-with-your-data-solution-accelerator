@@ -746,6 +746,13 @@ const Chat = () => {
               >
                 <span className={styles.citationPanelHeader}>Citations</span>
                 <DismissRegular
+                  role="button"
+                  onKeyDown={(e) =>
+                    e.key === " " || e.key === "Enter"
+                      ? setIsCitationPanelOpen(false)
+                      : () => {}
+                  }
+                  tabIndex={0}
                   className={styles.citationPanelDismiss}
                   onClick={() => setIsCitationPanelOpen(false)}
                 />
@@ -799,8 +806,11 @@ const Chat = () => {
                     Chat history
                   </Text>
                 </StackItem>
-                <Stack horizontal className={styles.historyPanelTopRightButtons}>
-                  <Stack horizontal >
+                <Stack
+                  horizontal
+                  className={styles.historyPanelTopRightButtons}
+                >
+                  <Stack horizontal>
                     <CommandBarButton
                       iconProps={{ iconName: "More" }}
                       title={"Clear all chat history"}
