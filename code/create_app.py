@@ -8,21 +8,65 @@ import logging
 import mimetypes
 from os import path
 import sys
+import re
 import requests
 from openai import AzureOpenAI, Stream, APIStatusError
 from openai.types.chat import ChatCompletionChunk
 from flask import Flask, Response, request, Request, jsonify
 from dotenv import load_dotenv
+from urllib.parse import quote
 from backend.batch.utilities.helpers.env_helper import EnvHelper
 from backend.batch.utilities.helpers.orchestrator_helper import Orchestrator
 from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
 from azure.identity import DefaultAzureCredential
+from backend.batch.utilities.helpers.azure_blob_storage_client import (
+    AzureBlobStorageClient,
+)
 
 ERROR_429_MESSAGE = "We're currently experiencing a high number of requests for the service you're trying to access. Please wait a moment and try again."
 ERROR_GENERIC_MESSAGE = "An error occurred. Please try again. If the problem persists, please contact the site administrator."
 logger = logging.getLogger(__name__)
+
+
+def get_markdown_url(source, title, container_sas):
+    """Get Markdown URL for a citation"""
+
+    url = quote(source, safe=":/")
+    if "_SAS_TOKEN_PLACEHOLDER_" in url:
+        url = url.replace("_SAS_TOKEN_PLACEHOLDER_", container_sas)
+    return f"[{title}]({url})"
+
+
+def get_citations(citation_list):
+    """Returns Formated Citations"""
+    blob_client = AzureBlobStorageClient()
+    container_sas = blob_client.get_container_sas()
+    citations_dict = {"citations": []}
+    for citation in citation_list.get("citations"):
+        metadata = (
+            json.loads(citation["url"])
+            if isinstance(citation["url"], str)
+            else citation["url"]
+        )
+        title = citation["title"]
+        url = get_markdown_url(metadata["source"], title, container_sas)
+        citations_dict["citations"].append(
+            {
+                "content": url + "\n\n\n" + citation["content"],
+                "id": metadata["id"],
+                "chunk_id": (
+                    re.findall(r"\d+", metadata["chunk_id"])[-1]
+                    if metadata["chunk_id"] is not None
+                    else metadata["chunk"]
+                ),
+                "title": title,
+                "filepath": title.split("/")[-1],
+                "url": url,
+            }
+        )
+    return citations_dict
 
 
 def stream_with_data(response: Stream[ChatCompletionChunk]):
@@ -67,8 +111,9 @@ def stream_with_data(response: Stream[ChatCompletionChunk]):
         role = delta.role
 
         if role == "assistant":
+            citations = get_citations(delta.model_extra["context"])
             response_obj["choices"][0]["messages"][0]["content"] = json.dumps(
-                delta.model_extra["context"],
+                citations,
                 ensure_ascii=False,
             )
         else:
@@ -135,7 +180,8 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
                                 env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN
                             ],
                             "title_field": env_helper.AZURE_SEARCH_TITLE_COLUMN or None,
-                            "url_field": env_helper.AZURE_SEARCH_URL_COLUMN or None,
+                            "url_field": env_helper.AZURE_SEARCH_FIELDS_METADATA
+                            or None,
                             "filepath_field": (
                                 env_helper.AZURE_SEARCH_FILENAME_COLUMN or None
                             ),
@@ -166,6 +212,7 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
     )
 
     if not env_helper.SHOULD_STREAM:
+        citations = get_citations(response.choices[0].message.model_extra["context"])
         response_obj = {
             "id": response.id,
             "model": response.model,
@@ -176,7 +223,7 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
                     "messages": [
                         {
                             "content": json.dumps(
-                                response.choices[0].message.model_extra["context"],
+                                citations,
                                 ensure_ascii=False,
                             ),
                             "end_turn": False,
@@ -194,10 +241,7 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
 
         return response_obj
 
-    return Response(
-        stream_with_data(response),
-        mimetype="application/json-lines",
-    )
+    return Response(stream_with_data(response), mimetype="application/json-lines")
 
 
 def stream_without_data(response: Stream[ChatCompletionChunk]):
@@ -405,7 +449,9 @@ def create_app():
 
     @app.route("/api/conversation", methods=["POST"])
     async def conversation():
-        conversation_flow = env_helper.CONVERSATION_FLOW
+        ConfigHelper.get_active_config_or_default.cache_clear()
+        result = ConfigHelper.get_active_config_or_default()
+        conversation_flow = result.prompts.conversational_flow
         if conversation_flow == ConversationFlow.CUSTOM.value:
             return await conversation_custom()
         elif conversation_flow == ConversationFlow.BYOD.value:
