@@ -95,10 +95,13 @@ def validate_answering_user_prompt():
         st.warning("Your answering prompt doesn't contain the variable `{question}`")
 
 
-def config_contract_assistant_prompt():
+def config_assistant_prompt():
     if st.session_state["ai_assistant_type"] == AssistantStrategy.CONTRACT_ASSISTANT.value:
         st.success("Contract Assistant Prompt")
         st.session_state["answering_user_prompt"] = ConfigHelper.get_default_contract_assistant()
+    elif st.session_state["ai_assistant_type"] == AssistantStrategy.EMPLOYEE_ASSISTANT.value:
+        st.success("Employee Assistant Prompt")
+        st.session_state["answering_user_prompt"] = ConfigHelper.get_default_employee_assistant()
     else:
         st.success("Default Assistant Prompt")
         st.session_state["answering_user_prompt"] = (
@@ -236,7 +239,7 @@ try:
             st.selectbox(
                 "Assistant Type",
                 key="ai_assistant_type",
-                on_change=config_contract_assistant_prompt,
+                on_change=config_assistant_prompt,
                 options=config.get_available_ai_assistant_types(),
                 help=ai_assistant_type_help,
             )

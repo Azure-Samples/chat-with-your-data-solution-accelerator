@@ -255,6 +255,16 @@ class ConfigHelper:
         return "".join([str(elem) for elem in contract_assistant])
 
     @staticmethod
+    @functools.cache
+    def get_default_employee_assistant():
+        employee_file_path = os.path.join(os.path.dirname(__file__), "default_employee_assistant_prompt.txt")
+        employee_assistant = ""
+        with open(employee_file_path, encoding="utf-8") as f:
+            employee_assistant = f.readlines()
+
+        return ''.join([str(elem) for elem in employee_assistant])
+
+    @staticmethod
     def clear_config():
         ConfigHelper._default_config = None
         ConfigHelper.get_active_config_or_default.cache_clear()
