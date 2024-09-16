@@ -110,6 +110,7 @@ const Chat = () => {
   const [clearing, setClearing] = React.useState(false);
   const [clearingError, setClearingError] = React.useState(false);
   const [fetchingConvMessages, setFetchingConvMessages] = React.useState(false);
+  const [isSavingToDB, setIsSavingToDB] = React.useState(false);
 
   const clearAllDialogContentProps = {
     type: DialogType.close,
@@ -134,6 +135,7 @@ const Chat = () => {
       return;
     }
     const isNewConversation = !selectedConvId;
+    setIsSavingToDB(true);
     await historyUpdate(messages, convId)
       .then(async (res) => {
         if (!res.ok) {
@@ -168,10 +170,12 @@ const Chat = () => {
         } else if (responseJson?.success) {
           setMessagesByConvId(convId, messages);
         }
+        setIsSavingToDB(false);
         return res as Response;
       })
       .catch((err) => {
         console.error("Error: while saving data", err);
+        setIsSavingToDB(false);
       });
   };
 
@@ -335,7 +339,9 @@ const Chat = () => {
     }
   };
 
-  const onMicrophoneClick = async (e: React.KeyboardEvent | React.MouseEvent) => {
+  const onMicrophoneClick = async (
+    e: React.KeyboardEvent | React.MouseEvent
+  ) => {
     // clear the previous text
     e.preventDefault();
     e.stopPropagation();
@@ -871,7 +877,7 @@ const Chat = () => {
                       selectedConvId={selectedConvId}
                       onHistoryTitleChange={onHistoryTitleChange}
                       onHistoryDelete={onHistoryDelete}
-                      isGenerating={showLoadingMessage}
+                      isGenerating={showLoadingMessage || isSavingToDB}
                       toggleToggleSpinner={toggleToggleSpinner}
                     />
                   )}
