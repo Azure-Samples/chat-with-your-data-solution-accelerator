@@ -111,7 +111,7 @@ export const historyList = async (
   offset = 0
 ): Promise<Conversation[] | null> => {
   let response = await fetch(`/api/history/list?offset=${offset}`, {
-    method: "GET"
+    method: "GET",
   })
     .then(async (res) => {
       console.log("list res", res);
@@ -123,45 +123,16 @@ export const historyList = async (
         return null;
       }
       console.log("payload", payload);
-      // static data
-      //   payload =[
-      //     {
-      //         "_attachments": "attachments/",
-      //         "_etag": "\"0200607a-0000-0200-0000-66e1e8400000\"",
-      //         "_rid": "QedyANGSTVRcAQAAAAAAAA==",
-      //         "_self": "dbs/QedyAA==/colls/QedyANGSTVQ=/docs/QedyANGSTVRcAQAAAAAAAA==/",
-      //         "_ts": 1726081088,
-      //         "createdAt": "2024-08-22T09:51:00.268537",
-      //         "id": "95647817-dfb9-47a6-a124-4205938bdd72",
-      //         "title": "dfsdf Investmsdsdfxcxd ent Portfolio Analysis",
-      //         "type": "conversation",
-      //         "updatedAt": "2024-08-22T09:51:11.226404",
-      //         "userId": "84d3652d-7b78-4e33-bfe3-1bb6cd6c03a9"
-      //     }
-      // ]
-      const conversations: Conversation[] = await Promise.all(
-        payload.map(async (conv: any) => {
-          let convMessages: ChatMessage[] = [];
-          convMessages = await historyRead(conv.id)
-            .then((res) => {
-              return res;
-            })
-            .catch((err) => {
-              console.error("error fetching messages: ", err);
-              return [];
-            });
-          console.log("conversation messages", convMessages);
-
-          const conversation: Conversation = {
-            id: conv.id,
-            title: conv.title,
-            date: conv.createdAt,
-            updatedAt: conv?.updatedAt,
-            messages: convMessages,
-          };
-          return conversation;
-        })
-      );
+      const conversations: Conversation[] = payload.map((conv: any) => {
+        const conversation: Conversation = {
+          id: conv.id,
+          title: conv.title,
+          date: conv.createdAt,
+          updatedAt: conv?.updatedAt,
+          messages: [],
+        };
+        return conversation;
+      });
       return conversations;
     })
     .catch((_err) => {
