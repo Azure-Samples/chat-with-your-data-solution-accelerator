@@ -1,6 +1,7 @@
 import json
 import pytest
 from pytest_httpserver import HTTPServer
+from unittest.mock import patch
 import requests
 from string import Template
 
@@ -30,7 +31,7 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
         method="POST",
     ).respond_with_data(
         Template(
-            r"""data: {"id":"92f715be-cfc4-4ae6-80f8-c86b7955f6af","model":"$model","created":1712077271,"object":"extensions.chat.completion.chunk","choices":[{"index":0,"delta":{"role":"assistant","context":{"citations":[{"content":"document","title":"/documents/doc.pdf","url":null,"filepath":null,"chunk_id":"0"}],"intent":"[\"intent\"]"}},"end_turn":false,"finish_reason":null}]}
+            r"""data: {"id":"92f715be-cfc4-4ae6-80f8-c86b7955f6af","model":"$model","created":1712077271,"object":"extensions.chat.completion.chunk","choices":[{"index":0,"delta":{"role":"assistant","context":{"citations":[{"content":"document","title":"/documents/doc.pdf","url":{"id": "id", "source": "source", "title": "title", "chunk": 46, "chunk_id": null},"filepath":null,"chunk_id":"0"}],"intent":"[\"intent\"]"}},"end_turn":false,"finish_reason":null}]}
 
 data: {"id":"92f715be-cfc4-4ae6-80f8-c86b7955f6af","model":"$model","created":1712077271,"object":"extensions.chat.completion.chunk","choices":[{"index":0,"delta":{"content":"42 is the meaning of life"},"end_turn":false,"finish_reason":null}],"system_fingerprint":"fp_68a7d165bf"}
 
@@ -46,9 +47,16 @@ data: [DONE]
     httpserver.check()
 
 
+@patch(
+    "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
+)
 def test_azure_byod_responds_successfully_when_streaming(
-    app_url: str, app_config: AppConfig, httpserver: HTTPServer
+    get_active_config_or_default_mock,
+    app_url: str,
+    app_config: AppConfig,
 ):
+    get_active_config_or_default_mock.return_value.prompts.conversational_flow = "byod"
+
     # when
     response = requests.post(f"{app_url}{path}", json=body)
 
@@ -69,7 +77,7 @@ def test_azure_byod_responds_successfully_when_streaming(
             {
                 "messages": [
                     {
-                        "content": r'{"citations": [{"content": "document", "title": "/documents/doc.pdf", "url": null, "filepath": null, "chunk_id": "0"}], "intent": "[\"intent\"]"}',
+                        "content": '{"citations": [{"content": "[/documents/doc.pdf](source)\\n\\n\\ndocument", "id": "id", "chunk_id": 46, "title": "/documents/doc.pdf", "filepath": "doc.pdf", "url": "[/documents/doc.pdf](source)"}]}',
                         "end_turn": False,
                         "role": "tool",
                     },
@@ -84,9 +92,17 @@ def test_azure_byod_responds_successfully_when_streaming(
     }
 
 
+@patch(
+    "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
+)
 def test_post_makes_correct_call_to_azure_openai(
-    app_url: str, app_config: AppConfig, httpserver: HTTPServer
+    get_active_config_or_default_mock,
+    app_url: str,
+    app_config: AppConfig,
+    httpserver: HTTPServer,
 ):
+    get_active_config_or_default_mock.return_value.prompts.conversational_flow = "byod"
+
     # when
     requests.post(f"{app_url}{path}", json=body)
 
@@ -113,12 +129,12 @@ def test_post_makes_correct_call_to_azure_openai(
                             "fields_mapping": {
                                 "content_fields": ["content"],
                                 "vector_fields": [
-                                    app_config.get(
-                                        "AZURE_SEARCH_CONTENT_VECTOR_COLUMN"
-                                    )
+                                    app_config.get("AZURE_SEARCH_CONTENT_VECTOR_COLUMN")
                                 ],
                                 "title_field": "title",
-                                "url_field": "url",
+                                "url_field": app_config.get(
+                                    "AZURE_SEARCH_FIELDS_METADATA"
+                                ),
                                 "filepath_field": "filepath",
                             },
                             "filter": app_config.get("AZURE_SEARCH_FILTER"),

@@ -3,6 +3,7 @@ import pytest
 from pytest_httpserver import HTTPServer
 import requests
 from string import Template
+from unittest.mock import patch, MagicMock
 
 from tests.request_matching import (
     RequestMatcher,
@@ -48,9 +49,28 @@ data: [DONE]
     httpserver.check()
 
 
+@pytest.fixture(autouse=True)
+def env_helper_mock():
+    with patch("backend.batch.utilities.helpers.env_helper.EnvHelper") as mock:
+        env_helper = mock.return_value
+
+        yield env_helper
+
+
+@patch(
+    "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
+)
 def test_azure_byod_responds_successfully_when_streaming(
-    app_url: str, app_config: AppConfig, httpserver: HTTPServer
+    get_active_config_or_default_mock,
+    app_url: str,
+    app_config: AppConfig,
+    env_helper_mock: MagicMock,
 ):
+    # given
+    env_helper_mock.AZURE_SEARCH_KEY = None
+    env_helper_mock.should_use_data.return_value = False
+    get_active_config_or_default_mock.return_value.prompts.conversational_flow = "byod"
+
     # when
     response = requests.post(f"{app_url}{path}", json=body)
 
@@ -80,9 +100,18 @@ def test_azure_byod_responds_successfully_when_streaming(
     }
 
 
+@patch(
+    "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
+)
 def test_post_makes_correct_call_to_azure_openai(
-    app_url: str, app_config: AppConfig, httpserver: HTTPServer
+    get_active_config_or_default_mock,
+    app_url: str,
+    app_config: AppConfig,
+    httpserver: HTTPServer,
 ):
+    # given
+    get_active_config_or_default_mock.return_value.prompts.conversational_flow = "byod"
+
     # when
     requests.post(f"{app_url}{path}", json=body)
 
