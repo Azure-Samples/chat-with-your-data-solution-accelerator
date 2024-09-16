@@ -177,7 +177,7 @@ export const ChatHistoryListItemCell: React.FC<
       return;
     }
   };
-  const isButtonDisabled = isGenerating;
+  const isButtonDisabled = isGenerating && isSelected;
   return (
     <Stack
       key={item.id}
@@ -185,7 +185,7 @@ export const ChatHistoryListItemCell: React.FC<
       aria-label="chat history item"
       className={styles.itemCell}
       onClick={() => handleSelectItem()}
-      // onKeyDown={e => (e.key === 'Enter' || e.key === ' ' ? handleSelectItem() : null)}
+      onKeyDown={e => (e.key === 'Enter' || e.key === ' ' ? handleSelectItem() : null)}
       verticalAlign="center"
       // horizontal
       onMouseEnter={() => setIsHovered(true)}
@@ -274,7 +274,7 @@ export const ChatHistoryListItemCell: React.FC<
         <>
           <Stack horizontal verticalAlign={"center"} style={{ width: "100%" }}>
             <div className={styles.chatTitle}>{truncatedTitle}</div>
-            {isHovered && (
+            {(isSelected || isHovered) && (
               <Stack horizontal horizontalAlign="end">
                 <IconButton
                   className={styles.itemButton}

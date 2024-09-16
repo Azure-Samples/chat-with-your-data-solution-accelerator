@@ -293,6 +293,9 @@
 .fetchMessagesSpinner {
     margin-top: 30vh;
 }
+.historyPanelTopRightButtons {
+    height: 48px;
+}
 
 .MobileChatContainer {
     @media screen and (max-width: 600px) {

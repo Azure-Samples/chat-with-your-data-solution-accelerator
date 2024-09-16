@@ -109,7 +109,6 @@ const Chat = () => {
     useBoolean(true);
   const [clearing, setClearing] = React.useState(false);
   const [clearingError, setClearingError] = React.useState(false);
-  const [hasChatHistory, setHasChatHistory] = React.useState(false);
   const [fetchingConvMessages, setFetchingConvMessages] = React.useState(false);
 
   const clearAllDialogContentProps = {
@@ -123,14 +122,6 @@ const Chat = () => {
       : "Please try again. If the problem persists, please contact the site administrator.",
   };
   const firstRender = useRef(true);
-
-  useEffect(() => {
-    if (chatHistory.length) {
-      setHasChatHistory(true);
-    } else {
-      setHasChatHistory(false);
-    }
-  }, [chatHistory]);
 
   const modalProps = {
     titleAriaId: "labelId",
@@ -188,7 +179,11 @@ const Chat = () => {
     {
       key: "clearAll",
       text: "Clear all chat history",
-      disabled: !hasChatHistory || isLoading,
+      disabled:
+        !chatHistory.length ||
+        isLoading ||
+        fetchingConvMessages ||
+        fetchingChatHistory,
       iconProps: { iconName: "Delete" },
     },
   ];
@@ -416,6 +411,7 @@ const Chat = () => {
       setChatHistory([]);
       toggleClearAllDialog();
       setShowContextualPopup(false);
+      setAnswers([]);
     }
     setClearing(false);
     toggleToggleSpinner(false);
@@ -803,27 +799,26 @@ const Chat = () => {
                     Chat history
                   </Text>
                 </StackItem>
-                <Stack horizontal verticalAlign="start">
-                  <Stack horizontal>
-                    <Stack horizontal>
-                      <CommandBarButton
-                        iconProps={{ iconName: "More" }}
-                        title={"Clear all chat history"}
-                        onClick={onShowContextualMenu}
-                        aria-label={"clear all chat history"}
-                        styles={commandBarStyle}
-                        role="button"
-                        id="moreButton"
-                      />
-                      <ContextualMenu
-                        items={menuItems}
-                        hidden={!showContextualMenu}
-                        target={"#moreButton"}
-                        onItemClick={toggleClearAllDialog}
-                        onDismiss={onHideContextualMenu}
-                      />
-                    </Stack>
+                <Stack horizontal className={styles.historyPanelTopRightButtons}>
+                  <Stack horizontal >
+                    <CommandBarButton
+                      iconProps={{ iconName: "More" }}
+                      title={"Clear all chat history"}
+                      onClick={onShowContextualMenu}
+                      aria-label={"clear all chat history"}
+                      styles={commandBarStyle}
+                      role="button"
+                      id="moreButton"
+                    />
+                    <ContextualMenu
+                      items={menuItems}
+                      hidden={!showContextualMenu}
+                      target={"#moreButton"}
+                      onItemClick={toggleClearAllDialog}
+                      onDismiss={onHideContextualMenu}
+                    />
                   </Stack>
+
                   <Stack horizontal>
                     <CommandBarButton
                       iconProps={{ iconName: "Cancel" }}
