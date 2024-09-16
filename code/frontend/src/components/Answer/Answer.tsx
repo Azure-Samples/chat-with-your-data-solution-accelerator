@@ -334,6 +334,7 @@ export const Answer = ({
                     iconName={
                       chevronIsExpanded ? "ChevronDown" : "ChevronRight"
                     }
+                    aria-hidden={false}
                     role="button"
                     onKeyDown={(e) =>
                       e.key === " " || e.key === "Enter"

@@ -99,7 +99,7 @@ const Chat = () => {
   const [activeCardIndex, setActiveCardIndex] = useState<number | null>(null);
   const [isTextToSpeachActive, setIsTextToSpeachActive] = useState(false);
   const [showHistoryBtn, setShowHistoryBtn] = useState(true);
-  const [showHistoryPanel, setShowHistoryPanel] = useState(true);
+  const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   const [fetchingChatHistory, setFetchingChatHistory] = useState(false);
   const [offset, setOffset] = useState<number>(0);
   const [chatHistory, setChatHistory] = useState<Conversation[]>([]);
@@ -317,7 +317,9 @@ const Chat = () => {
     }
   };
 
-  const stopSpeechRecognition = () => {
+  const stopSpeechRecognition = (e: React.KeyboardEvent | React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (isRecognizing) {
       // console.log("Stopping continuous recognition...");
       if (recognizerRef.current) {
@@ -333,15 +335,24 @@ const Chat = () => {
     }
   };
 
-  const onMicrophoneClick = async () => {
+  const onMicrophoneClick = async (e: React.KeyboardEvent | React.MouseEvent) => {
     // clear the previous text
+    e.preventDefault();
+    e.stopPropagation();
     setUserMessage("");
     setRecognizedText("");
     if (!isRecognizing) {
       setSendButtonDisabled(true);
       await startSpeechRecognition();
     } else {
-      stopSpeechRecognition();
+      if (recognizerRef.current) {
+        recognizerRef.current.stopContinuousRecognitionAsync(() => {
+          recognizerRef.current?.close();
+        });
+      }
+      setIsRecognizing(false);
+      setSendButtonDisabled(false);
+      setIsListening(false);
       setRecognizedText(userMessage);
     }
   };
