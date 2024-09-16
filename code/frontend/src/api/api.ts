@@ -114,15 +114,11 @@ export const historyList = async (
     method: "GET",
   })
     .then(async (res) => {
-      console.log("list res", res);
-
       let payload = await res.json();
-      console.log("History list api called", res, payload);
       if (!Array.isArray(payload)) {
         console.error("There was an issue fetching your data.");
         return null;
       }
-      console.log("payload", payload);
       const conversations: Conversation[] = payload.map((conv: any) => {
         const conversation: Conversation = {
           id: conv.id,
@@ -139,7 +135,6 @@ export const historyList = async (
       console.error("There was an issue fetching your data.", _err);
       return null;
     });
-  console.log("list response returning ", response);
   return response;
 };
 
@@ -226,26 +221,25 @@ export const historyDelete = async (convId: string): Promise<Response> => {
   return response;
 };
 
-
 export const historyDeleteAll = async (): Promise<Response> => {
-  const response = await fetch('api/history/delete_all', {
-    method: 'DELETE',
+  const response = await fetch("api/history/delete_all", {
+    method: "DELETE",
     body: JSON.stringify({}),
     headers: {
-      'Content-Type': 'application/json'
-    }
+      "Content-Type": "application/json",
+    },
   })
-    .then(res => {
-      return res
+    .then((res) => {
+      return res;
     })
-    .catch(_err => {
-      console.error('There was an issue fetching your data.')
+    .catch((_err) => {
+      console.error("There was an issue fetching your data.");
       const errRes: Response = {
         ...new Response(),
         ok: false,
-        status: 500
-      }
-      return errRes
-    })
-  return response
-}
+        status: 500,
+      };
+      return errRes;
+    });
+  return response;
+};
