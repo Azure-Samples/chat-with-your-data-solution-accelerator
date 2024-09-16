@@ -290,6 +290,10 @@
 
 }
 
+.fetchMessagesSpinner {
+    margin-top: 30vh;
+}
+
 .MobileChatContainer {
     @media screen and (max-width: 600px) {
         max-width: 100%;

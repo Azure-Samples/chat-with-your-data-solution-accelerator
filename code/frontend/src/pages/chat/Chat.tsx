@@ -8,8 +8,9 @@ import {
   DialogType,
   ICommandBarStyles,
   IContextualMenuItem,
-  IStackStyles,
   PrimaryButton,
+  Spinner,
+  SpinnerSize,
   Stack,
   StackItem,
   Text,
@@ -44,6 +45,7 @@ import {
   Conversation,
   historyUpdate,
   historyDeleteAll,
+  historyRead,
 } from "../../api";
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
@@ -108,6 +110,8 @@ const Chat = () => {
   const [clearing, setClearing] = React.useState(false);
   const [clearingError, setClearingError] = React.useState(false);
   const [hasChatHistory, setHasChatHistory] = React.useState(false);
+  const [fetchingConvMessages, setFetchingConvMessages] = React.useState(false);
+
   const clearAllDialogContentProps = {
     type: DialogType.close,
     title: !clearingError
@@ -144,19 +148,19 @@ const Chat = () => {
         if (!res.ok) {
           let errorMessage = "Answers can't be saved at this time.";
           let errorChatMsg: ChatMessage = {
-            id: uuidv4(), // TODO need to update to uuid() from react-uuid
+            id: uuidv4(),
             role: ERROR,
             content: errorMessage,
             date: new Date().toISOString(),
           };
           if (!messages) {
+            setAnswers([...messages, errorChatMsg]);
             let err: Error = {
               ...new Error(),
               message: "Failure fetching current chat state.",
             };
             throw err;
           }
-          setAnswers([...messages, errorChatMsg]);
         }
         let responseJson = await res.json();
         console.log("update response", res, responseJson);
@@ -168,18 +172,10 @@ const Chat = () => {
             messages: messages,
             date: metaData?.date,
           };
-          // updatedAt?: string;
           setChatHistory((prevHistory) => [newConversation, ...prevHistory]);
           setSelectedConvId(metaData?.conversation_id);
-        } else {
-          const tempChatHistory = [...chatHistory];
-          const matchedIndex = tempChatHistory.findIndex(
-            (obj) => obj.id === convId
-          );
-          if (matchedIndex > -1) {
-            tempChatHistory[matchedIndex].messages = messages;
-            setChatHistory(tempChatHistory);
-          }
+        } else if (responseJson?.success) {
+          setMessagesByConvId(convId, messages);
         }
         return res as Response;
       })
@@ -457,17 +453,39 @@ const Chat = () => {
     setShowHistoryPanel((prevState) => !prevState);
   };
 
-  const getMessagesByconvId = (id: string) => {
+  const getMessagesByConvId = (id: string) => {
     const conv = chatHistory.find((obj) => String(obj.id) === String(id));
     if (conv) {
-      return conv.messages;
+      return conv?.messages || [];
     }
     return [];
   };
 
-  const onSelectConversation = (id: string) => {
-    const messages = getMessagesByconvId(id);
-    setAnswers(messages);
+  const setMessagesByConvId = (id: string, messagesList: ChatMessage[]) => {
+    const tempHistory = [...chatHistory];
+    const matchedIndex = tempHistory.findIndex(
+      (obj) => String(obj.id) === String(id)
+    );
+    if (matchedIndex > -1) {
+      tempHistory[matchedIndex].messages = messagesList;
+    }
+  };
+
+  const onSelectConversation = async (id: string) => {
+    if (!id) {
+      console.error("No conversation Id found");
+      return;
+    }
+    const messages = getMessagesByConvId(id);
+    if (messages.length === 0) {
+      setFetchingConvMessages(true);
+      const responseMessages = await historyRead(id);
+      setAnswers(responseMessages);
+      setMessagesByConvId(id, responseMessages);
+      setFetchingConvMessages(false);
+    } else {
+      setAnswers(messages);
+    }
     setSelectedConvId(id);
   };
 
@@ -550,7 +568,9 @@ const Chat = () => {
           <div
             className={`${styles.chatContainer} ${styles.MobileChatContainer}`}
           >
-            {!lastQuestionRef.current && answers.length === 0 ? (
+            {!fetchingConvMessages &&
+            !lastQuestionRef.current &&
+            answers.length === 0 ? (
               <Stack className={styles.chatEmptyState}>
                 <img
                   src={Azure}
@@ -589,43 +609,50 @@ const Chat = () => {
                 className={styles.chatMessageStream}
                 style={{ marginBottom: isLoading ? "40px" : "0px" }}
               >
-                {answers.map((answer, index) => (
-                  <React.Fragment key={`${answer?.role}-${index}`}>
-                    {answer.role === "user" ? (
-                      <div
-                        className={styles.chatMessageUser}
-                        key={`${answer?.role}-${index}`}
-                      >
-                        <div className={styles.chatMessageUserMessage}>
-                          {answer.content}
+                {fetchingConvMessages && (
+                  <div className={styles.fetchMessagesSpinner}>
+                    <Spinner size={SpinnerSize.medium} />
+                  </div>
+                )}
+                {!fetchingConvMessages &&
+                  answers.map((answer, index) => (
+                    <React.Fragment key={`${answer?.role}-${index}`}>
+                      {answer.role === "user" ? (
+                        <div
+                          className={styles.chatMessageUser}
+                          key={`${answer?.role}-${index}`}
+                        >
+                          <div className={styles.chatMessageUserMessage}>
+                            {answer.content}
+                          </div>
                         </div>
-                      </div>
-                    ) : answer.role === ASSISTANT || answer.role === "error" ? (
-                      <div
-                        className={styles.chatMessageGpt}
-                        key={`${answer?.role}-${index}`}
-                      >
-                        <Answer
-                          answer={{
-                            answer:
-                              answer.role === ASSISTANT
-                                ? answer.content
-                                : "Sorry, an error occurred. Try refreshing the conversation or waiting a few minutes. If the issue persists, contact your system administrator. Error: " +
-                                  answer.content,
-                            citations:
-                              answer.role === ASSISTANT
-                                ? parseCitationFromMessage(answers[index - 1])
-                                : [],
-                          }}
-                          onSpeak={handleSpeech}
-                          isActive={activeCardIndex === index}
-                          onCitationClicked={(c) => onShowCitation(c)}
-                          index={index}
-                        />
-                      </div>
-                    ) : null}
-                  </React.Fragment>
-                ))}
+                      ) : answer.role === ASSISTANT ||
+                        answer.role === "error" ? (
+                        <div
+                          className={styles.chatMessageGpt}
+                          key={`${answer?.role}-${index}`}
+                        >
+                          <Answer
+                            answer={{
+                              answer:
+                                answer.role === ASSISTANT
+                                  ? answer.content
+                                  : "Sorry, an error occurred. Try refreshing the conversation or waiting a few minutes. If the issue persists, contact your system administrator. Error: " +
+                                    answer.content,
+                              citations:
+                                answer.role === ASSISTANT
+                                  ? parseCitationFromMessage(answers[index - 1])
+                                  : [],
+                            }}
+                            onSpeak={handleSpeech}
+                            isActive={activeCardIndex === index}
+                            onCitationClicked={(c) => onShowCitation(c)}
+                            index={index}
+                          />
+                        </div>
+                      ) : null}
+                    </React.Fragment>
+                  ))}
                 {showLoadingMessage && (
                   <React.Fragment key="generating-answer">
                     <div className={styles.chatMessageUser}>
