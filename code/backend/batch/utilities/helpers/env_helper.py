@@ -69,9 +69,13 @@ class EnvHelper:
         self.AZURE_SEARCH_FIELDS_METADATA = os.getenv(
             "AZURE_SEARCH_FIELDS_METADATA", "metadata"
         )
-        self.AZURE_SEARCH_SOURCE_COLUMN = os.getenv("AZURE_SEARCH_SOURCE_COLUMN", "source")
+        self.AZURE_SEARCH_SOURCE_COLUMN = os.getenv(
+            "AZURE_SEARCH_SOURCE_COLUMN", "source"
+        )
         self.AZURE_SEARCH_CHUNK_COLUMN = os.getenv("AZURE_SEARCH_CHUNK_COLUMN", "chunk")
-        self.AZURE_SEARCH_OFFSET_COLUMN = os.getenv("AZURE_SEARCH_OFFSET_COLUMN", "offset")
+        self.AZURE_SEARCH_OFFSET_COLUMN = os.getenv(
+            "AZURE_SEARCH_OFFSET_COLUMN", "offset"
+        )
         self.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = os.getenv(
             "AZURE_SEARCH_CONVERSATIONS_LOG_INDEX", "conversations"
         )
