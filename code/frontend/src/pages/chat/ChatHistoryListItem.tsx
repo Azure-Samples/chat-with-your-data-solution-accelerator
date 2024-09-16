@@ -45,7 +45,7 @@ interface ChatHistoryListItemGroupsProps {
   onHistoryTitleChange: (id: string, newTitle: string) => void;
   onHistoryDelete: (id: string) => void;
   isGenerating: boolean;
-  toggleToggleSpinner:(toggler: boolean) => void;
+  toggleToggleSpinner: (toggler: boolean) => void;
 }
 
 export const ChatHistoryListItemCell: React.FC<
@@ -57,7 +57,7 @@ export const ChatHistoryListItemCell: React.FC<
   onHistoryTitleChange,
   onHistoryDelete,
   isGenerating,
-  toggleToggleSpinner
+  toggleToggleSpinner,
 }) => {
   const [isHovered, setIsHovered] = React.useState(false);
   const [edit, setEdit] = useState(false);
@@ -185,7 +185,9 @@ export const ChatHistoryListItemCell: React.FC<
       aria-label="chat history item"
       className={styles.itemCell}
       onClick={() => handleSelectItem()}
-      onKeyDown={e => (e.key === 'Enter' || e.key === ' ' ? handleSelectItem() : null)}
+      onKeyDown={(e) =>
+        e.key === "Enter" || e.key === " " ? handleSelectItem() : null
+      }
       verticalAlign="center"
       // horizontal
       onMouseEnter={() => setIsHovered(true)}
@@ -334,7 +336,7 @@ export const ChatHistoryListItemGroups: React.FC<
   onHistoryTitleChange,
   onHistoryDelete,
   isGenerating,
-  toggleToggleSpinner
+  toggleToggleSpinner,
 }) => {
   const observerTarget = useRef(null);
   const [observerCounter, setObserverCounter] = useState(0);
@@ -365,7 +367,6 @@ export const ChatHistoryListItemGroups: React.FC<
 
   useEffect(() => {
     const element = document.getElementById("historyListContainer");
-    // console.log("observerCounter UseEffect", observerCounter, element);
     const scrollBar = hasVerticalScrollbar(element);
     if (element && scrollBar) {
       handleFetchHistory();
@@ -373,12 +374,9 @@ export const ChatHistoryListItemGroups: React.FC<
   }, [observerCounter]);
 
   useEffect(() => {
-    // console.log("observerTarget >>>> in useEffect", { ...observerTarget });
     const observer = new IntersectionObserver(
       (entries) => {
-        console.log("Entries", entries);
         if (entries[0].isIntersecting) {
-          // console.log("isIntersecting", entries[0].isIntersecting);
           setObserverCounter((observerCounter) => (observerCounter += 1));
         }
       },
@@ -396,12 +394,6 @@ export const ChatHistoryListItemGroups: React.FC<
     (previousValue, currentValue) =>
       previousValue + currentValue.entries.length,
     0
-  );
-  console.log(
-    "groupedChatHistory",
-    groupedChatHistory,
-    allConversationsLength,
-    observerTarget
   );
 
   if (!fetchingChatHistory && allConversationsLength === 0) {

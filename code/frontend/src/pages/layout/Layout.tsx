@@ -12,7 +12,6 @@ import { HistoryButton } from "../../components/HistoryButton/HistoryButton";
 import { getUserInfo } from "../../api";
 import SpinnerComponent from '../../components/Spinner/Spinner';
 
-console.log("import.meta.env.MODE ", import.meta.env.MODE);
 
 type LayoutProps = {
   children: ReactNode;
@@ -20,7 +19,7 @@ type LayoutProps = {
   onSetShowHistoryPanel: () => void;
   showHistoryBtn: boolean;
   showHistoryPanel: boolean;
-  
+
 };
 const Layout = ({ children,toggleSpinner, ...props }: LayoutProps) => {
   const { showHistoryPanel, showHistoryBtn, onSetShowHistoryPanel } = props;
@@ -54,7 +53,6 @@ const Layout = ({ children,toggleSpinner, ...props }: LayoutProps) => {
 
   const getUserInfoList = async () => {
     const userInfoList = await getUserInfo();
-    console.log(">>> fetched User info", userInfoList);
     if (
       userInfoList.length === 0 &&
       window.location.hostname !== "localhost" &&

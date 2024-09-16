@@ -156,7 +156,6 @@ const Chat = () => {
           }
         }
         let responseJson = await res.json();
-        console.log("update response", res, responseJson);
         if (isNewConversation && responseJson?.success) {
           const metaData = responseJson?.data;
           const newConversation = {
@@ -222,7 +221,6 @@ const Chat = () => {
         const reader = response.body.getReader();
         let runningText = "";
         while (true) {
-          console.log(">>> reading from response");
           const { done, value } = await reader.read();
           if (done) break;
 
@@ -325,10 +323,8 @@ const Chat = () => {
     e.preventDefault();
     e.stopPropagation();
     if (isRecognizing) {
-      // console.log("Stopping continuous recognition...");
       if (recognizerRef.current) {
         recognizerRef.current.stopContinuousRecognitionAsync(() => {
-          // console.log("Speech recognition stopped.");
           recognizerRef.current?.close();
         });
       }
@@ -516,7 +512,6 @@ const Chat = () => {
   };
 
   useEffect(() => {
-    // console.log("Chat history item initial call");
     if (firstRender.current && import.meta.env.MODE === "development") {
       firstRender.current = false;
       return;
@@ -561,14 +556,6 @@ const Chat = () => {
     });
   };
 
-  console.log(
-    "answers",
-    answers,
-    lastQuestionRef,
-    chatHistory,
-    selectedConvId,
-    conversationId
-  );
   return (
     <Layout
       toggleSpinner={toggleSpinner}
