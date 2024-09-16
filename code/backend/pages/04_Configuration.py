@@ -7,6 +7,7 @@ from batch.utilities.helpers.env_helper import EnvHelper
 from batch.utilities.helpers.config.config_helper import ConfigHelper
 from azure.core.exceptions import ResourceNotFoundError
 from batch.utilities.helpers.config.assistant_strategy import AssistantStrategy
+from batch.utilities.helpers.config.conversation_flow import ConversationFlow
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
@@ -65,6 +66,8 @@ if "orchestrator_strategy" not in st.session_state:
     st.session_state["orchestrator_strategy"] = config.orchestrator.strategy.value
 if "ai_assistant_type" not in st.session_state:
     st.session_state["ai_assistant_type"] = config.prompts.ai_assistant_type
+if "conversational_flow" not in st.session_state:
+    st.session_state["conversational_flow"] = config.prompts.conversational_flow
 
 if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
     if "max_page_length" not in st.session_state:
@@ -163,6 +166,17 @@ def validate_documents():
 
 
 try:
+    conversational_flow_help = "Whether to use the custom conversational flow or byod conversational flow. Refer to the Conversational flow options README for more details."
+    with st.expander("Conversational flow configuration", expanded=True):
+        cols = st.columns([2, 4])
+        with cols[0]:
+            conv_flow = st.selectbox(
+                "Conversational flow",
+                key="conversational_flow",
+                options=config.get_available_conversational_flows(),
+                help=conversational_flow_help,
+            )
+
     with st.expander("Orchestrator configuration", expanded=True):
         cols = st.columns([2, 4])
         with cols[0]:
@@ -170,6 +184,12 @@ try:
                 "Orchestrator strategy",
                 key="orchestrator_strategy",
                 options=config.get_available_orchestration_strategies(),
+                disabled=(
+                    True
+                    if st.session_state["conversational_flow"]
+                    == ConversationFlow.BYOD.value
+                    else False
+                ),
             )
 
     # # # condense_question_prompt_help = "This prompt is used to convert the user's input to a standalone question, using the context of the chat history."
@@ -377,6 +397,7 @@ try:
                 ],
                 "enable_content_safety": st.session_state["enable_content_safety"],
                 "ai_assistant_type": st.session_state["ai_assistant_type"],
+                "conversational_flow": st.session_state["conversational_flow"],
             },
             "messages": {
                 "post_answering_filter": st.session_state[

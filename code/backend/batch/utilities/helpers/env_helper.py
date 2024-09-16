@@ -4,7 +4,6 @@ import threading
 from dotenv import load_dotenv
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.keyvault.secrets import SecretClient
-from .config.conversation_flow import ConversationFlow
 
 logger = logging.getLogger(__name__)
 
@@ -69,9 +68,13 @@ class EnvHelper:
         self.AZURE_SEARCH_FIELDS_METADATA = os.getenv(
             "AZURE_SEARCH_FIELDS_METADATA", "metadata"
         )
-        self.AZURE_SEARCH_SOURCE_COLUMN = os.getenv("AZURE_SEARCH_SOURCE_COLUMN", "source")
+        self.AZURE_SEARCH_SOURCE_COLUMN = os.getenv(
+            "AZURE_SEARCH_SOURCE_COLUMN", "source"
+        )
         self.AZURE_SEARCH_CHUNK_COLUMN = os.getenv("AZURE_SEARCH_CHUNK_COLUMN", "chunk")
-        self.AZURE_SEARCH_OFFSET_COLUMN = os.getenv("AZURE_SEARCH_OFFSET_COLUMN", "offset")
+        self.AZURE_SEARCH_OFFSET_COLUMN = os.getenv(
+            "AZURE_SEARCH_OFFSET_COLUMN", "offset"
+        )
         self.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = os.getenv(
             "AZURE_SEARCH_CONVERSATIONS_LOG_INDEX", "conversations"
         )
@@ -210,10 +213,6 @@ class EnvHelper:
         # Orchestration Settings
         self.ORCHESTRATION_STRATEGY = os.getenv(
             "ORCHESTRATION_STRATEGY", "openai_function"
-        )
-        # Conversation Type - which chooses between custom or byod
-        self.CONVERSATION_FLOW = os.getenv(
-            "CONVERSATION_FLOW", ConversationFlow.CUSTOM.value
         )
         # Speech Service
         self.AZURE_SPEECH_SERVICE_NAME = os.getenv("AZURE_SPEECH_SERVICE_NAME", "")
