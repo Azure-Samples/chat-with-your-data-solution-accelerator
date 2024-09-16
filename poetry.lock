@@ -490,18 +490,17 @@ opentelemetry-api = ">=1.12.0,<2.0.0"
 
 [[package]]
 name = "azure-cosmos"
-version = "4.7.0"
+version = "4.5.1"
 description = "Microsoft Azure Cosmos Client Library for Python"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.6"
 files = [
-    {file = "azure-cosmos-4.7.0.tar.gz", hash = "sha256:72d714033134656302a2e8957c4b93590673bd288b0ca60cb123e348ae99a241"},
-    {file = "azure_cosmos-4.7.0-py3-none-any.whl", hash = "sha256:03d8c7740ddc2906fb16e07b136acc0fe6a6a02656db46c5dd6f1b127b58cc96"},
+    {file = "azure-cosmos-4.5.1.tar.gz", hash = "sha256:c4ada8381306eec413c01bc50a778e264dc3f4fafa9d696f9df8436148d2aea8"},
+    {file = "azure_cosmos-4.5.1-py3-none-any.whl", hash = "sha256:3557570cf7197f50c5b11e655c1fbb1ddf433adc94f91381d671cfad8e2d7bdf"},
 ]
 
 [package.dependencies]
-azure-core = ">=1.25.1"
-typing-extensions = ">=4.6.0"
+azure-core = ">=1.23.0,<2.0.0"
 
 [[package]]
 name = "azure-functions"
@@ -7098,4 +7097,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "c1c572403ad12c8949d54bce9cb86c4165782fa30af3058a555d6beb3b4b3c8d"
+content-hash = "bf4f108d6b0022166b2d73a72e25515a67c5f28f146309a163d600f4a775f293"
