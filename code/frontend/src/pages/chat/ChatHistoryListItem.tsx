@@ -33,6 +33,7 @@ interface ChatHistoryListItemCellProps {
   onHistoryTitleChange: (id: string, newTitle: string) => void;
   onHistoryDelete: (id: string) => void;
   isGenerating: boolean;
+  toggleToggleSpinner: (toggler: boolean) => void;
 }
 
 interface ChatHistoryListItemGroupsProps {
@@ -44,6 +45,7 @@ interface ChatHistoryListItemGroupsProps {
   onHistoryTitleChange: (id: string, newTitle: string) => void;
   onHistoryDelete: (id: string) => void;
   isGenerating: boolean;
+  toggleToggleSpinner:(toggler: boolean) => void;
 }
 
 export const ChatHistoryListItemCell: React.FC<
@@ -55,6 +57,7 @@ export const ChatHistoryListItemCell: React.FC<
   onHistoryTitleChange,
   onHistoryDelete,
   isGenerating,
+  toggleToggleSpinner
 }) => {
   const [isHovered, setIsHovered] = React.useState(false);
   const [edit, setEdit] = useState(false);
@@ -92,6 +95,7 @@ export const ChatHistoryListItemCell: React.FC<
   }, [textFieldFocused]);
 
   const onDelete = async () => {
+    toggleToggleSpinner(true);
     const response = await historyDelete(item.id);
     if (!response.ok) {
       setErrorDelete(true);
@@ -102,6 +106,7 @@ export const ChatHistoryListItemCell: React.FC<
       onHistoryDelete(item.id);
     }
     toggleDeleteDialog();
+    toggleToggleSpinner(false);
   };
 
   const onEdit = () => {
@@ -329,6 +334,7 @@ export const ChatHistoryListItemGroups: React.FC<
   onHistoryTitleChange,
   onHistoryDelete,
   isGenerating,
+  toggleToggleSpinner
 }) => {
   const observerTarget = useRef(null);
   const [observerCounter, setObserverCounter] = useState(0);
@@ -348,6 +354,7 @@ export const ChatHistoryListItemGroups: React.FC<
         onHistoryTitleChange={onHistoryTitleChange}
         onHistoryDelete={onHistoryDelete}
         isGenerating={isGenerating}
+        toggleToggleSpinner={toggleToggleSpinner}
       />
     );
   };

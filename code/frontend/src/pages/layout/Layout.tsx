@@ -10,16 +10,19 @@ import { Dialog, Stack, TextField } from "@fluentui/react";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { HistoryButton } from "../../components/HistoryButton/HistoryButton";
 import { getUserInfo } from "../../api";
+import SpinnerComponent from '../../components/Spinner/Spinner';
 
 console.log("import.meta.env.MODE ", import.meta.env.MODE);
 
 type LayoutProps = {
   children: ReactNode;
+  toggleSpinner: boolean;
   onSetShowHistoryPanel: () => void;
   showHistoryBtn: boolean;
   showHistoryPanel: boolean;
+  
 };
-const Layout = ({ children, ...props }: LayoutProps) => {
+const Layout = ({ children,toggleSpinner, ...props }: LayoutProps) => {
   const { showHistoryPanel, showHistoryBtn, onSetShowHistoryPanel } = props;
   const [isSharePanelOpen, setIsSharePanelOpen] = useState<boolean>(false);
   const [copyClicked, setCopyClicked] = useState<boolean>(false);
@@ -74,6 +77,10 @@ const Layout = ({ children, ...props }: LayoutProps) => {
 
   return (
     <div className={styles.layout}>
+      <SpinnerComponent
+        loading={toggleSpinner}
+        label="Please wait.....!"
+      />
       <header className={styles.header} role={"banner"}>
         <div className={styles.headerContainer}>
           <Stack horizontal verticalAlign="center">

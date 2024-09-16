@@ -123,6 +123,22 @@ export const historyList = async (
         return null;
       }
       console.log("payload", payload);
+      // static data
+      //   payload =[
+      //     {
+      //         "_attachments": "attachments/",
+      //         "_etag": "\"0200607a-0000-0200-0000-66e1e8400000\"",
+      //         "_rid": "QedyANGSTVRcAQAAAAAAAA==",
+      //         "_self": "dbs/QedyAA==/colls/QedyANGSTVQ=/docs/QedyANGSTVRcAQAAAAAAAA==/",
+      //         "_ts": 1726081088,
+      //         "createdAt": "2024-08-22T09:51:00.268537",
+      //         "id": "95647817-dfb9-47a6-a124-4205938bdd72",
+      //         "title": "dfsdf Investmsdsdfxcxd ent Portfolio Analysis",
+      //         "type": "conversation",
+      //         "updatedAt": "2024-08-22T09:51:11.226404",
+      //         "userId": "84d3652d-7b78-4e33-bfe3-1bb6cd6c03a9"
+      //     }
+      // ]
       const conversations: Conversation[] = await Promise.all(
         payload.map(async (conv: any) => {
           let convMessages: ChatMessage[] = [];
@@ -238,3 +254,27 @@ export const historyDelete = async (convId: string): Promise<Response> => {
     });
   return response;
 };
+
+
+export const historyDeleteAll = async (): Promise<Response> => {
+  const response = await fetch('api/history/delete_all', {
+    method: 'DELETE',
+    body: JSON.stringify({}),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+    .then(res => {
+      return res
+    })
+    .catch(_err => {
+      console.error('There was an issue fetching your data.')
+      const errRes: Response = {
+        ...new Response(),
+        ok: false,
+        status: 500
+      }
+      return errRes
+    })
+  return response
+}

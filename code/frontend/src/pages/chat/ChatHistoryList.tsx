@@ -11,6 +11,7 @@ interface ChatHistoryListProps {
   onHistoryTitleChange: (id: string, newTitle: string) => void;
   onHistoryDelete: (id: string) => void;
   isGenerating: boolean;
+  toggleToggleSpinner: (toggler: boolean) => void;
 }
 
 export interface GroupedChatHistory {
@@ -98,6 +99,7 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
   onHistoryTitleChange,
   onHistoryDelete,
   isGenerating,
+  toggleToggleSpinner
 }) => {
   let groupedChatHistory;
   groupedChatHistory = segregateItems(chatHistory);
@@ -111,6 +113,7 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
       onHistoryTitleChange={onHistoryTitleChange}
       onHistoryDelete={onHistoryDelete}
       isGenerating={isGenerating}
+      toggleToggleSpinner={toggleToggleSpinner}
     />
   );
 };
