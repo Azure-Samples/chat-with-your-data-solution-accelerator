@@ -576,7 +576,7 @@ const Chat = () => {
                   src={Azure}
                   className={styles.chatIcon}
                   aria-hidden="true"
-                  alt="Azure AI logo"
+                  alt="Chat with your data"
                 />
                 {assistantType === "contract assistant" ? (
                   <>
@@ -591,7 +591,7 @@ const Chat = () => {
                 ) : assistantType === "default" ? (
                   <>
                     <h1 className={styles.chatEmptyStateTitle}>
-                      Start chatting
+                      Chat with your<span className={styles.dataText}>&nbsp;Data</span>
                     </h1>
                     <h2 className={styles.chatEmptyStateSubtitle}>
                       This chatbot is configured to answer your questions

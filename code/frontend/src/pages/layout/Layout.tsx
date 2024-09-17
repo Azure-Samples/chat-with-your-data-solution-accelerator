@@ -86,10 +86,10 @@ const Layout = ({ children,toggleSpinner, ...props }: LayoutProps) => {
               src={Azure}
               className={styles.headerIcon}
               aria-hidden="true"
-              alt="Azure AI logo"
+              alt="Chat with your data"
             />
             <Link to="/" className={styles.headerTitleContainer}>
-              <h3 className={styles.headerTitle}>Azure AI</h3>
+              <h3 className={styles.headerTitle}>Chat with your data</h3>
             </Link>
             <Stack horizontal className={styles.layoutRightButtons}>
               {!showAuthMessage && showHistoryBtn && (
