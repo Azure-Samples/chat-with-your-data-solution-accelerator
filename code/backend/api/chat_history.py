@@ -431,7 +431,7 @@ async def generate_title(conversation_messages):
 
     messages = [
         {"role": msg["role"], "content": msg["content"]}
-        for msg in conversation_messages
+        for msg in conversation_messages if msg["role"] == "user"
     ]
     messages.append({"role": "user", "content": title_prompt})
 
