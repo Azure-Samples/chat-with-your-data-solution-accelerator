@@ -177,6 +177,11 @@ export const ChatHistoryListItemCell: React.FC<
       return;
     }
   };
+  const onClickDelete = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleDeleteDialog();
+  };
   const isButtonDisabled = isGenerating && isSelected;
   return (
     <Stack
@@ -283,7 +288,7 @@ export const ChatHistoryListItemCell: React.FC<
                   disabled={isButtonDisabled}
                   iconProps={{ iconName: "Delete" }}
                   title="Delete"
-                  onClick={toggleDeleteDialog}
+                  onClick={onClickDelete}
                   onKeyDown={(e) =>
                     e.key === " " ? toggleDeleteDialog() : null
                   }
