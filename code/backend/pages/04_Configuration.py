@@ -1,6 +1,5 @@
 import os
 import sys
-import traceback
 import json
 import jsonschema
 import streamlit as st
@@ -459,5 +458,5 @@ try:
             del st.session_state["reset"]
             del st.session_state["reset_configuration"]
 
-except Exception:
-    st.error(traceback.format_exc())
+except Exception as e:
+    st.error(e)
