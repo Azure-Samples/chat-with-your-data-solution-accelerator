@@ -419,6 +419,7 @@ async def update_conversation():
 @bp_chat_history_response.route("/history/frontend_settings", methods=["GET"])
 def get_frontend_settings():
     try:
+        ConfigHelper.get_active_config_or_default.cache_clear()
         config = ConfigHelper.get_active_config_or_default()
         return (jsonify({"CHAT_HISTORY_ENABLED": config.enable_chat_history}), 200)
     except Exception as e:
