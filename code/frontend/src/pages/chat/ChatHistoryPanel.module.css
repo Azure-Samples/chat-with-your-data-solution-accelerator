@@ -4,8 +4,9 @@
 }
 
 .listContainer {
+  height: 100%;
   overflow: hidden auto;
-  max-height: calc(90vh - 56px);
+  max-height: 80vh;
 }
 
 .itemCell {

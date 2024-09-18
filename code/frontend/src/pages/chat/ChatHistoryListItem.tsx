@@ -344,7 +344,6 @@ export const ChatHistoryListItemGroups: React.FC<
   toggleToggleSpinner,
 }) => {
   const observerTarget = useRef(null);
-  const [observerCounter, setObserverCounter] = useState(0);
   const handleSelectHistory = (item?: Conversation) => {
     if (typeof item === "object") {
       onSelectConversation(item?.id);
@@ -366,23 +365,11 @@ export const ChatHistoryListItemGroups: React.FC<
     );
   };
 
-  function hasVerticalScrollbar(element: any) {
-    return element?.scrollHeight > element?.clientHeight;
-  }
-
-  useEffect(() => {
-    const element = document.getElementById("historyListContainer");
-    const scrollBar = hasVerticalScrollbar(element);
-    if (element && scrollBar) {
-      handleFetchHistory();
-    }
-  }, [observerCounter]);
-
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          setObserverCounter((observerCounter) => (observerCounter += 1));
+          handleFetchHistory();
         }
       },
       { threshold: 1 }
@@ -453,6 +440,8 @@ export const ChatHistoryListItemGroups: React.FC<
         styles={{
           root: {
             width: "100%",
+            padding: "0px",
+            height: "2px",
             position: "relative",
             "::before": {
               backgroundColor: "#d6d6d6",
