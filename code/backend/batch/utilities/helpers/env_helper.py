@@ -253,9 +253,6 @@ class EnvHelper:
         self.AZURE_COSMOSDB_ENABLE_FEEDBACK = (
             os.getenv("AZURE_COSMOSDB_ENABLE_FEEDBACK", "false").lower() == "true"
         )
-        self.CHAT_HISTORY_ENABLED = (
-            os.getenv("CHAT_HISTORY_ENABLED", "false").lower() == "true"
-        )
 
     def should_use_data(self) -> bool:
         if (
