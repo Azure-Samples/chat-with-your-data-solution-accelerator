@@ -76,3 +76,7 @@ export type Conversation = {
   date: string;
   updatedAt?: string;
 };
+
+export type FrontEndSettings = {
+  CHAT_HISTORY_ENABLED: boolean;
+};

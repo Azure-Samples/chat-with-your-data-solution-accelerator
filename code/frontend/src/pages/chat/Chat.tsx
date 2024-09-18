@@ -46,6 +46,7 @@ import {
   historyUpdate,
   historyDeleteAll,
   historyRead,
+  getFrontEndSettings,
 } from "../../api";
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
@@ -98,7 +99,7 @@ const Chat = () => {
   const [assistantType, setAssistantType] = useState("");
   const [activeCardIndex, setActiveCardIndex] = useState<number | null>(null);
   const [isTextToSpeachActive, setIsTextToSpeachActive] = useState(false);
-  const [showHistoryBtn, setShowHistoryBtn] = useState(true);
+  const [showHistoryBtn, setShowHistoryBtn] = useState(false);
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   const [fetchingChatHistory, setFetchingChatHistory] = useState(false);
   const [offset, setOffset] = useState<number>(0);
@@ -516,7 +517,13 @@ const Chat = () => {
       firstRender.current = false;
       return;
     }
-    handleFetchHistory();
+    (async () => {
+      const response = await getFrontEndSettings();
+      if (response.CHAT_HISTORY_ENABLED) {
+        handleFetchHistory();
+        setShowHistoryBtn(true);
+      }
+    })();
   }, []);
 
   const onHistoryDelete = (id: string) => {
@@ -591,7 +598,8 @@ const Chat = () => {
                 ) : assistantType === "default" ? (
                   <>
                     <h1 className={styles.chatEmptyStateTitle}>
-                      Chat with your<span className={styles.dataText}>&nbsp;Data</span>
+                      Chat with your
+                      <span className={styles.dataText}>&nbsp;Data</span>
                     </h1>
                     <h2 className={styles.chatEmptyStateSubtitle}>
                       This chatbot is configured to answer your questions
