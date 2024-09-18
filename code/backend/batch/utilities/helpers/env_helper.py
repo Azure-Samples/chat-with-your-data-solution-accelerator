@@ -334,8 +334,9 @@ class SecretHelper:
             None
 
         """
+        secret_name_value = os.getenv(secret_name, "")
         return (
-            self.secret_client.get_secret(os.getenv(secret_name, "")).value
-            if self.USE_KEY_VAULT
+            self.secret_client.get_secret(secret_name_value).value
+            if self.USE_KEY_VAULT and secret_name_value
             else os.getenv(secret_name, "")
         )
