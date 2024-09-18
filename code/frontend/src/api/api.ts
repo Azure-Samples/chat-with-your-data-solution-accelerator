@@ -1,4 +1,9 @@
-import { ChatMessage, Conversation, ConversationRequest } from "./models";
+import {
+  ChatMessage,
+  Conversation,
+  ConversationRequest,
+  FrontEndSettings,
+} from "./models";
 
 export async function callConversationApi(
   options: ConversationRequest,
@@ -243,3 +248,19 @@ export const historyDeleteAll = async (): Promise<Response> => {
     });
   return response;
 };
+
+export async function getFrontEndSettings(): Promise<FrontEndSettings> {
+  try {
+    const response = await fetch("/api/history/frontend_settings", {
+      method: "GET",
+    });
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    const responseJSON = await response.json();
+    return responseJSON
+  } catch (error) {
+    console.error("Failed to fetch Front End Settings:", error);
+    return { CHAT_HISTORY_ENABLED: false };
+  }
+}

@@ -68,6 +68,8 @@ if "ai_assistant_type" not in st.session_state:
     st.session_state["ai_assistant_type"] = config.prompts.ai_assistant_type
 if "conversational_flow" not in st.session_state:
     st.session_state["conversational_flow"] = config.prompts.conversational_flow
+if "enable_chat_history" not in st.session_state:
+    st.session_state["enable_chat_history"] = config.enable_chat_history
 
 if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
     if "max_page_length" not in st.session_state:
@@ -357,6 +359,9 @@ try:
                 },
             )
 
+    with st.expander("Chat history configuration", expanded=True):
+        st.checkbox("Enable chat history", key="enable_chat_history")
+
     with st.expander("Logging configuration", expanded=True):
         st.checkbox(
             "Log user input and output (questions, answers, chat history, sources)",
@@ -423,6 +428,7 @@ try:
                 if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
                 else None
             ),
+            "enable_chat_history": st.session_state["enable_chat_history"],
         }
         ConfigHelper.save_config_as_active(current_config)
         st.success(

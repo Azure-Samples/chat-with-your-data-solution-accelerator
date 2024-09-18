@@ -253,9 +253,6 @@ class EnvHelper:
         self.AZURE_COSMOSDB_ENABLE_FEEDBACK = (
             os.getenv("AZURE_COSMOSDB_ENABLE_FEEDBACK", "false").lower() == "true"
         )
-        self.CHAT_HISTORY_ENABLED = (
-            os.getenv("CHAT_HISTORY_ENABLED", "false").lower() == "true"
-        )
 
     def should_use_data(self) -> bool:
         if (
@@ -334,8 +331,9 @@ class SecretHelper:
             None
 
         """
+        secret_name_value = os.getenv(secret_name, "")
         return (
-            self.secret_client.get_secret(os.getenv(secret_name, "")).value
-            if self.USE_KEY_VAULT
+            self.secret_client.get_secret(secret_name_value).value
+            if self.USE_KEY_VAULT and secret_name_value
             else os.getenv(secret_name, "")
         )

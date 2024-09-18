@@ -28,7 +28,6 @@ param speechKeyName string = ''
 param authType string
 param dockerFullImageName string = ''
 param useDocker bool = dockerFullImageName != ''
-param cosmosDBKeyName string = ''
 
 module adminweb '../core/host/appservice.bicep' = {
   name: '${name}-app-module'
@@ -125,17 +124,6 @@ module adminweb '../core/host/appservice.bicep' = {
             ),
             '2023-05-01'
           ).key1
-      AZURE_COSMOS_ACCOUNT_KEY: (useKeyVault || cosmosDBKeyName == '')
-        ? cosmosDBKeyName
-        : listKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.DocumentDB/databaseAccounts',
-              cosmosDBKeyName
-            ),
-            '2022-08-15'
-        ).primaryMasterKey
     })
   }
 }

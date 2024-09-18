@@ -14,7 +14,7 @@ param formRecognizerKeyName string = 'AZURE-FORM-RECOGNIZER-KEY'
 param contentSafetyKeyName string = 'AZURE-CONTENT-SAFETY-KEY'
 param speechKeyName string = 'AZURE-SPEECH-KEY'
 param computerVisionKeyName string = 'AZURE-COMPUTER-VISION-KEY'
-param cosmosAccountKeyName string = 'AZURE-COSMOS-ACCOUNT-KEY'
+param cosmosAccountKeyName string = 'AZURE-COSMOSDB-ACCOUNT-KEY'
 param cosmosAccountName string = ''
 
 resource storageAccountKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
