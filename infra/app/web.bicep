@@ -121,7 +121,7 @@ module web '../core/host/appservice.bicep' = {
             ),
             '2023-05-01'
           ).key1
-      AZURE_COSMOS_ACCOUNT_KEY: (useKeyVault || cosmosDBKeyName == '')
+      AZURE_COSMOSDB_ACCOUNT_KEY: (useKeyVault || cosmosDBKeyName == '')
       ? cosmosDBKeyName
       : listKeys(
           resourceId(
