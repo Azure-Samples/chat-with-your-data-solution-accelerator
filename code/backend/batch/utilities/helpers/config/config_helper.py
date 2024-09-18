@@ -57,6 +57,7 @@ class Config:
             if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
             else None
         )
+        self.enable_chat_history = config["enable_chat_history"]
 
     def get_available_document_types(self) -> list[str]:
         document_types = {
@@ -184,11 +185,27 @@ class ConfigHelper:
             config["prompts"]["conversational_flow"] = default_config["prompts"][
                 "conversational_flow"
             ]
+        if config.get("enable_chat_history") is None:
+            config["enable_chat_history"] = default_config["enable_chat_history"]
 
     @staticmethod
     @functools.cache
     def get_active_config_or_default():
+        env_helper = EnvHelper()
         config = ConfigHelper.get_default_config()
+
+        if env_helper.LOAD_CONFIG_FROM_BLOB_STORAGE:
+            blob_client = AzureBlobStorageClient(container_name=CONFIG_CONTAINER_NAME)
+
+            if blob_client.file_exists(CONFIG_FILE_NAME):
+                default_config = config
+                config_file = blob_client.download_file(CONFIG_FILE_NAME)
+                config = json.loads(config_file)
+
+                ConfigHelper._set_new_config_properties(config, default_config)
+            else:
+                logger.info("Returning default config")
+
         return Config(config)
 
     @staticmethod
@@ -257,12 +274,14 @@ class ConfigHelper:
     @staticmethod
     @functools.cache
     def get_default_employee_assistant():
-        employee_file_path = os.path.join(os.path.dirname(__file__), "default_employee_assistant_prompt.txt")
+        employee_file_path = os.path.join(
+            os.path.dirname(__file__), "default_employee_assistant_prompt.txt"
+        )
         employee_assistant = ""
         with open(employee_file_path, encoding="utf-8") as f:
             employee_assistant = f.readlines()
 
-        return ''.join([str(elem) for elem in employee_assistant])
+        return "".join([str(elem) for elem in employee_assistant])
 
     @staticmethod
     def clear_config():

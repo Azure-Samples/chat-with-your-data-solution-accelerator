@@ -2,10 +2,13 @@ import os
 import logging
 from uuid import uuid4
 from dotenv import load_dotenv
-from flask import Flask, Response, request, Request, jsonify, Blueprint
+from flask import request, jsonify, Blueprint
 from openai import AsyncAzureOpenAI
 from backend.batch.utilities.chat_history.cosmosdb import CosmosConversationClient
-from backend.batch.utilities.chat_history.auth_utils import get_authenticated_user_details
+from backend.batch.utilities.chat_history.auth_utils import (
+    get_authenticated_user_details,
+)
+from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from azure.identity.aio import DefaultAzureCredential
 from backend.batch.utilities.helpers.env_helper import EnvHelper
 
@@ -19,7 +22,8 @@ env_helper: EnvHelper = EnvHelper()
 
 def init_cosmosdb_client():
     cosmos_conversation_client = None
-    if env_helper.CHAT_HISTORY_ENABLED:
+    config = ConfigHelper.get_active_config_or_default()
+    if config.enable_chat_history:
         try:
             cosmos_endpoint = (
                 f"https://{env_helper.AZURE_COSMOSDB_ACCOUNT}.documents.azure.com:443/"
@@ -38,7 +42,7 @@ def init_cosmosdb_client():
                 enable_message_feedback=env_helper.AZURE_COSMOSDB_ENABLE_FEEDBACK,
             )
         except Exception as e:
-            logger.exception("Exception in CosmosDB initialization")
+            logger.exception("Exception in CosmosDB initialization: %s", e)
             cosmos_conversation_client = None
             raise e
     else:
@@ -63,14 +67,14 @@ def init_openai_client():
             )
         return azure_openai_client
     except Exception as e:
-        logging.exception("Exception in Azure OpenAI initialization", e)
+        logging.exception("Exception in Azure OpenAI initialization: %s", e)
         raise e
 
 
 @bp_chat_history_response.route("/history/list", methods=["GET"])
 async def list_conversations():
-    print("list_conversations")
-    if not env_helper.CHAT_HISTORY_ENABLED:
+    config = ConfigHelper.get_active_config_or_default()
+    if not config.enable_chat_history:
         return (jsonify({"error": "Chat history is not avaliable"}), 400)
 
     try:
@@ -83,7 +87,7 @@ async def list_conversations():
         if not cosmos_conversation_client:
             return (jsonify({"error": "database not available"}), 500)
 
-        ## get the conversations from cosmos
+        # get the conversations from cosmos
         conversations = await cosmos_conversation_client.get_conversations(
             user_id, offset=offset, limit=25
         )
@@ -102,8 +106,8 @@ async def list_conversations():
 
 @bp_chat_history_response.route("/history/rename", methods=["POST"])
 async def rename_conversation():
-    print("rename_conversation")
-    if not env_helper.CHAT_HISTORY_ENABLED:
+    config = ConfigHelper.get_active_config_or_default()
+    if not config.enable_chat_history:
         return (jsonify({"error": "Chat history is not avaliable"}), 400)
     try:
         authenticated_user = get_authenticated_user_details(
@@ -111,20 +115,19 @@ async def rename_conversation():
         )
         user_id = authenticated_user["user_principal_id"]
 
-        ## check request for conversation_id
+        # check request for conversation_id
         request_json = request.get_json()
         conversation_id = request_json.get("conversation_id", None)
 
         if not conversation_id:
             return (jsonify({"error": "conversation_id is required"}), 400)
 
-        ## make sure cosmos is configured
-
+        # make sure cosmos is configured
         cosmos_conversation_client = init_cosmosdb_client()
         if not cosmos_conversation_client:
             return (jsonify({"error": "database not available"}), 500)
 
-        ## get the conversation from cosmos
+        # get the conversation from cosmos
         conversation = await cosmos_conversation_client.get_conversation(
             user_id, conversation_id
         )
@@ -138,7 +141,7 @@ async def rename_conversation():
                 400,
             )
 
-        ## update the title
+        # update the title
         title = request_json.get("title", None)
         if not title:
             return (jsonify({"error": "title is required"}), 400)
@@ -155,8 +158,8 @@ async def rename_conversation():
 
 @bp_chat_history_response.route("/history/read", methods=["POST"])
 async def get_conversation():
-    print("get_conversation")
-    if not env_helper.CHAT_HISTORY_ENABLED:
+    config = ConfigHelper.get_active_config_or_default()
+    if not config.enable_chat_history:
         return (jsonify({"error": "Chat history is not avaliable"}), 400)
 
     try:
@@ -165,24 +168,23 @@ async def get_conversation():
         )
         user_id = authenticated_user["user_principal_id"]
 
-        ## check request for conversation_id
+        # check request for conversation_id
         request_json = request.get_json()
         conversation_id = request_json.get("conversation_id", None)
 
         if not conversation_id:
             return (jsonify({"error": "conversation_id is required"}), 400)
 
-        ## make sure cosmos is configured
-
+        # make sure cosmos is configured
         cosmos_conversation_client = init_cosmosdb_client()
         if not cosmos_conversation_client:
             return (jsonify({"error": "database not available"}), 500)
 
-        ## get the conversation object and the related messages from cosmos
+        # get the conversation object and the related messages from cosmos
         conversation = await cosmos_conversation_client.get_conversation(
             user_id, conversation_id
         )
-        ## return the conversation id and the messages in the bot frontend format
+        # return the conversation id and the messages in the bot frontend format
         if not conversation:
             return (
                 jsonify(
@@ -198,7 +200,7 @@ async def get_conversation():
             user_id, conversation_id
         )
 
-        ## format the messages in the bot frontend format
+        # format the messages in the bot frontend format
         messages = [
             {
                 "id": msg["id"],
@@ -221,17 +223,17 @@ async def get_conversation():
 
 @bp_chat_history_response.route("/history/delete", methods=["DELETE"])
 async def delete_conversation():
-    print("delete_conversation")
-    if not env_helper.CHAT_HISTORY_ENABLED:
+    config = ConfigHelper.get_active_config_or_default()
+    if not config.enable_chat_history:
         return (jsonify({"error": "Chat history is not avaliable"}), 400)
 
     try:
-        ## get the user id from the request headers
+        # get the user id from the request headers
         authenticated_user = get_authenticated_user_details(
             request_headers=request.headers
         )
         user_id = authenticated_user["user_principal_id"]
-        ## check request for conversation_id
+        # check request for conversation_id
         request_json = request.get_json()
         conversation_id = request_json.get("conversation_id", None)
         if not conversation_id:
@@ -248,15 +250,11 @@ async def delete_conversation():
         if not cosmos_conversation_client:
             return (jsonify({"error": "database not available"}), 500)
 
-        ## delete the conversation messages from cosmos first
-        deleted_messages = await cosmos_conversation_client.delete_messages(
-            conversation_id, user_id
-        )
+        # delete the conversation messages from cosmos first
+        await cosmos_conversation_client.delete_messages(conversation_id, user_id)
 
-        ## Now delete the conversation
-        deleted_conversation = await cosmos_conversation_client.delete_conversation(
-            user_id, conversation_id
-        )
+        # Now delete the conversation
+        await cosmos_conversation_client.delete_conversation(user_id, conversation_id)
 
         return (
             jsonify(
@@ -274,19 +272,19 @@ async def delete_conversation():
 
 @bp_chat_history_response.route("/history/delete_all", methods=["DELETE"])
 async def delete_all_conversations():
-    print("delete_all_conversations")
-    if not env_helper.CHAT_HISTORY_ENABLED:
+    config = ConfigHelper.get_active_config_or_default()
+    if not config.enable_chat_history:
         return (jsonify({"error": "Chat history is not avaliable"}), 400)
 
     try:
-        ## get the user id from the request headers
+        # get the user id from the request headers
         authenticated_user = get_authenticated_user_details(
             request_headers=request.headers
         )
         user_id = authenticated_user["user_principal_id"]
 
         # get conversations for user
-        ## make sure cosmos is configured
+        # make sure cosmos is configured
         cosmos_conversation_client = init_cosmosdb_client()
         if not cosmos_conversation_client:
             return (jsonify({"error": "database not available"}), 500)
@@ -302,13 +300,13 @@ async def delete_all_conversations():
 
         # delete each conversation
         for conversation in conversations:
-            ## delete the conversation messages from cosmos first
-            deleted_messages = await cosmos_conversation_client.delete_messages(
+            # delete the conversation messages from cosmos first
+            await cosmos_conversation_client.delete_messages(
                 conversation["id"], user_id
             )
 
-            ## Now delete the conversation
-            deleted_conversation = await cosmos_conversation_client.delete_conversation(
+            # Now delete the conversation
+            await cosmos_conversation_client.delete_conversation(
                 user_id, conversation["id"]
             )
 
@@ -328,7 +326,8 @@ async def delete_all_conversations():
 
 @bp_chat_history_response.route("/history/update", methods=["POST"])
 async def update_conversation():
-    if not env_helper.CHAT_HISTORY_ENABLED:
+    config = ConfigHelper.get_active_config_or_default()
+    if not config.enable_chat_history:
         return (jsonify({"error": "Chat history is not avaliable"}), 400)
 
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
@@ -420,7 +419,9 @@ async def update_conversation():
 @bp_chat_history_response.route("/history/frontend_settings", methods=["GET"])
 def get_frontend_settings():
     try:
-        return (jsonify({"CHAT_HISTORY_ENABLED": env_helper.CHAT_HISTORY_ENABLED}), 200)
+        ConfigHelper.get_active_config_or_default.cache_clear()
+        config = ConfigHelper.get_active_config_or_default()
+        return (jsonify({"CHAT_HISTORY_ENABLED": config.enable_chat_history}), 200)
     except Exception as e:
         logger.exception("Exception in /frontend_settings")
         return (jsonify({"error": str(e)}), 500)
@@ -431,7 +432,8 @@ async def generate_title(conversation_messages):
 
     messages = [
         {"role": msg["role"], "content": msg["content"]}
-        for msg in conversation_messages if msg["role"] == "user"
+        for msg in conversation_messages
+        if msg["role"] == "user"
     ]
     messages.append({"role": "user", "content": title_prompt})
 
