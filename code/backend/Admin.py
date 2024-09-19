@@ -51,6 +51,7 @@ st.write(
     """
          * If you want to ingest data (pdf, websites, etc.), then use the `Ingest Data` tab
          * If you want to explore how your data was chunked, check the `Explore Data` tab
+         * If you want to delete your data, check the `Delete Data` tab
          * If you want to adapt the underlying prompts, logging settings and others, use the `Configuration` tab
          """
 )

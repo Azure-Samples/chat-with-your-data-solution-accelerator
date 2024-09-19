@@ -11,7 +11,7 @@ let filteredCitations = [] as Citation[];
 
 // Define a function to check if a citation with the same Chunk_Id already exists in filteredCitations
 const isDuplicate = (citation: Citation,citationIndex:string) => {
-    return filteredCitations.some((c) => c.chunk_id === citation.chunk_id) && !filteredCitations.find((c) => c.id === citationIndex) ;
+    return filteredCitations.some((c) => c.chunk_id === citation.chunk_id) ;
 };
 
 export function parseAnswer(answer: AskResponse): ParsedAnswer {

@@ -19,7 +19,8 @@ def config_dict():
             "post_answering_prompt": "mock_post_answering_prompt",
             "enable_post_answering_prompt": False,
             "enable_content_safety": True,
-            "ai_assistant_type": "default"
+            "ai_assistant_type": "default",
+            "conversational_flow": "custom",
         },
         "messages": {
             "post_answering_filter": "mock_post_answering_filter",
@@ -357,6 +358,13 @@ def test_get_default_contract_assistant():
     assert contract_assistant_prompt is not None
     assert isinstance(contract_assistant_prompt, str)
 
+def test_get_default_employee_assistant():
+    # when
+    employee_assistant_prompt = ConfigHelper.get_default_employee_assistant()
+
+    # then
+    assert employee_assistant_prompt is not None
+    assert isinstance(employee_assistant_prompt, str)
 
 def test_get_document_processors(config_dict: dict):
     # given

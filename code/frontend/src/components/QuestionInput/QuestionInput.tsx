@@ -8,16 +8,16 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMicrophone } from "@fortawesome/free-solid-svg-icons";
 interface Props {
   onSend: (question: string) => void;
-  onMicrophoneClick: () => void;
-  onStopClick: () => void;
+  onMicrophoneClick: (e: React.KeyboardEvent | React.MouseEvent) => void;
+  onStopClick: (e: React.KeyboardEvent | React.MouseEvent) => void;
   disabled: boolean;
-  isSendButtonDisabled:boolean;
+  isSendButtonDisabled: boolean;
   placeholder?: string;
   clearOnSend?: boolean;
   recognizedText: string;
   isListening: boolean;
   isRecognizing: boolean;
-  isTextToSpeachActive : boolean;
+  isTextToSpeachActive: boolean;
   setRecognizedText: (text: string) => void;
 }
 
@@ -33,27 +33,27 @@ export const QuestionInput = ({
   isListening,
   isRecognizing,
   setRecognizedText,
-  isTextToSpeachActive
+  isTextToSpeachActive,
 }: Props) => {
   const [question, setQuestion] = useState<string>("");
   const [liveRecognizedText, setLiveRecognizedText] = useState<string>("");
   const [microphoneIconActive, setMicrophoneIconActive] =
     useState<boolean>(false);
-  const [isMicrophoneDisabled , setIsMicrophoneDisabled] = useState(false);
+  const [isMicrophoneDisabled, setIsMicrophoneDisabled] = useState(false);
   const [isTextAreaDisabled, setIsTextAreaDisabled] = useState(false);
   useEffect(() => {
     if (isRecognizing) {
       setLiveRecognizedText(recognizedText);
-      setIsTextAreaDisabled(true)
+      setIsTextAreaDisabled(true);
       setMicrophoneIconActive(true); // Set microphone icon to active (blue)
     } else {
-      setIsTextAreaDisabled(false)
+      setIsTextAreaDisabled(false);
       setMicrophoneIconActive(false); // Set microphone icon to inactive
     }
   }, [recognizedText, isRecognizing]);
-  useEffect(()=>{
+  useEffect(() => {
     setIsMicrophoneDisabled(isTextToSpeachActive);
-  },[isTextToSpeachActive])
+  }, [isTextToSpeachActive]);
   const sendQuestion = () => {
     if (disabled || (!question.trim() && !liveRecognizedText.trim())) {
       return;
@@ -91,7 +91,7 @@ export const QuestionInput = ({
     <Stack horizontal className={styles.questionInputContainer}>
       {/* Text Input Field */}
       <TextField
-        style={{backgroundColor: 'white'}}
+        style={{ backgroundColor: "white" }}
         disabled={isTextAreaDisabled}
         className={styles.questionInputTextArea}
         placeholder={placeholder}
@@ -109,16 +109,18 @@ export const QuestionInput = ({
       />
       <div className={styles.microphoneAndSendContainer}>
         {/* Microphone Icon */}
-        <button 
-        type="button"
-          disabled={(isMicrophoneDisabled) ? true : false}
+        <button
+          type="button"
+          disabled={isMicrophoneDisabled ? true : false}
           className={styles.questionInputMicrophone}
-          onClick={(isListening) ? onStopClick : onMicrophoneClick}
+          onClick={
+            isListening ? (e) => onStopClick(e) : (e) => onMicrophoneClick(e)
+          }
           onKeyDown={(e) =>
             e.key === "Enter" || e.key === " "
-              ? (isListening)
-                ? onStopClick()
-                : onMicrophoneClick()
+              ? isListening
+                ? () => onStopClick(e)
+                : () => onMicrophoneClick(e)
               : null
           }
           role="button"
@@ -132,7 +134,7 @@ export const QuestionInput = ({
               style={{ color: isMicrophoneDisabled ? "lightgray" : "blue" }}
             />
           ) : (
-              <img
+            <img
               src={MicrophoneIcon}
               className={styles.microphoneIcon}
               alt="Microphone"
@@ -141,27 +143,29 @@ export const QuestionInput = ({
         </button>
 
         {/* Send Button */}
-        {isSendButtonDisabled?( <SendRegular className={styles.SendButtonDisabled} />):(
-              <div
-              role="button"
-              tabIndex={0}
-              aria-label="Ask question button"
-              onClick={sendQuestion}
-              onKeyDown={(e) =>
-                e.key === "Enter" || e.key === " " ? sendQuestion() : null
-              }
-              className={styles.questionInputSendButtonContainer}
-              >
-              {disabled? (
-                <SendRegular className={styles.questionInputSendButtonDisabled} />
-              ) : (
-                <img
-                  src={Send}
-                  className={styles.questionInputSendButton}
-                  alt="Send"
-                />
-              )}
-              </div>
+        {isSendButtonDisabled ? (
+          <SendRegular className={styles.SendButtonDisabled} />
+        ) : (
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label="Ask question button"
+            onClick={sendQuestion}
+            onKeyDown={(e) =>
+              e.key === "Enter" || e.key === " " ? sendQuestion() : null
+            }
+            className={styles.questionInputSendButtonContainer}
+          >
+            {disabled ? (
+              <SendRegular className={styles.questionInputSendButtonDisabled} />
+            ) : (
+              <img
+                src={Send}
+                className={styles.questionInputSendButton}
+                alt="Send"
+              />
+            )}
+          </div>
         )}
       </div>
     </Stack>

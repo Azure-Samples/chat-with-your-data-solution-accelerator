@@ -550,6 +550,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
+    cosmosDBKeyName: useKeyVault ? storekeys.outputs.COSMOS_ACCOUNT_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
@@ -603,6 +604,11 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       CONVERSATION_FLOW: conversationFlow
       LOGLEVEL: logLevel
+      AZURE_COSMOSDB_ACCOUNT: cosmosDBModule.outputs.cosmosOutput.cosmosAccountName
+      AZURE_COSMOSDB_DATABASE: cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName
+      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDBModule.outputs.cosmosOutput.cosmosContainerName
+      AZURE_COSMOSDB_ENABLE_FEEDBACK: true
+      CHAT_HISTORY_ENABLED: true
     }
   }
 }
@@ -798,7 +804,6 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-    cosmosDBKeyName: useKeyVault ? storekeys.outputs.COSMOS_ACCOUNT_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
     useKeyVault: useKeyVault
@@ -853,11 +858,6 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
-      AZURE_COSMOSDB_ACCOUNT: cosmosDBModule.outputs.cosmosOutput.cosmosAccountName
-      AZURE_COSMOSDB_DATABASE: cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName
-      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDBModule.outputs.cosmosOutput.cosmosContainerName
-      AZURE_COSMOSDB_ENABLE_FEEDBACK: true
-      CHAT_HISTORY_ENABLED: true
     }
   }
 }
@@ -989,7 +989,6 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
-    cosmosDBKeyName: useKeyVault ? storekeys.outputs.COSMOS_ACCOUNT_KEY_NAME : ''
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
@@ -1028,11 +1027,6 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
       LOGLEVEL: logLevel
       AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
       AZURE_SEARCH_TOP_K: azureSearchTopK
-      AZURE_COSMOSDB_ACCOUNT: cosmosDBModule.outputs.cosmosOutput.cosmosAccountName
-      AZURE_COSMOSDB_DATABASE: cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName
-      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDBModule.outputs.cosmosOutput.cosmosContainerName
-      AZURE_COSMOSDB_ENABLE_FEEDBACK: true
-      CHAT_HISTORY_ENABLED: true
     }
   }
 }
