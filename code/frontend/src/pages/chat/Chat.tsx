@@ -859,9 +859,7 @@ const Chat = () => {
                 aria-label="chat history panel content"
                 style={{
                   display: "flex",
-                  flexGrow: 1,
-                  flexDirection: "column",
-                  flexWrap: "wrap",
+                  height: '100%',
                   padding: "1px",
                 }}
               >
