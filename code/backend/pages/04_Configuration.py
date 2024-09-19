@@ -7,6 +7,7 @@ from batch.utilities.helpers.env_helper import EnvHelper
 from batch.utilities.helpers.config.config_helper import ConfigHelper
 from azure.core.exceptions import ResourceNotFoundError
 from batch.utilities.helpers.config.assistant_strategy import AssistantStrategy
+from batch.utilities.helpers.config.conversation_flow import ConversationFlow
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
@@ -65,6 +66,10 @@ if "orchestrator_strategy" not in st.session_state:
     st.session_state["orchestrator_strategy"] = config.orchestrator.strategy.value
 if "ai_assistant_type" not in st.session_state:
     st.session_state["ai_assistant_type"] = config.prompts.ai_assistant_type
+if "conversational_flow" not in st.session_state:
+    st.session_state["conversational_flow"] = config.prompts.conversational_flow
+if "enable_chat_history" not in st.session_state:
+    st.session_state["enable_chat_history"] = config.enable_chat_history
 
 if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
     if "max_page_length" not in st.session_state:
@@ -92,10 +97,13 @@ def validate_answering_user_prompt():
         st.warning("Your answering prompt doesn't contain the variable `{question}`")
 
 
-def config_contract_assistant_prompt():
+def config_assistant_prompt():
     if st.session_state["ai_assistant_type"] == AssistantStrategy.CONTRACT_ASSISTANT.value:
         st.success("Contract Assistant Prompt")
         st.session_state["answering_user_prompt"] = ConfigHelper.get_default_contract_assistant()
+    elif st.session_state["ai_assistant_type"] == AssistantStrategy.EMPLOYEE_ASSISTANT.value:
+        st.success("Employee Assistant Prompt")
+        st.session_state["answering_user_prompt"] = ConfigHelper.get_default_employee_assistant()
     else:
         st.success("Default Assistant Prompt")
         st.session_state["answering_user_prompt"] = (
@@ -163,6 +171,17 @@ def validate_documents():
 
 
 try:
+    conversational_flow_help = "Whether to use the custom conversational flow or byod conversational flow. Refer to the Conversational flow options README for more details."
+    with st.expander("Conversational flow configuration", expanded=True):
+        cols = st.columns([2, 4])
+        with cols[0]:
+            conv_flow = st.selectbox(
+                "Conversational flow",
+                key="conversational_flow",
+                options=config.get_available_conversational_flows(),
+                help=conversational_flow_help,
+            )
+
     with st.expander("Orchestrator configuration", expanded=True):
         cols = st.columns([2, 4])
         with cols[0]:
@@ -170,6 +189,12 @@ try:
                 "Orchestrator strategy",
                 key="orchestrator_strategy",
                 options=config.get_available_orchestration_strategies(),
+                disabled=(
+                    True
+                    if st.session_state["conversational_flow"]
+                    == ConversationFlow.BYOD.value
+                    else False
+                ),
             )
 
     # # # condense_question_prompt_help = "This prompt is used to convert the user's input to a standalone question, using the context of the chat history."
@@ -216,7 +241,7 @@ try:
             st.selectbox(
                 "Assistant Type",
                 key="ai_assistant_type",
-                on_change=config_contract_assistant_prompt,
+                on_change=config_assistant_prompt,
                 options=config.get_available_ai_assistant_types(),
                 help=ai_assistant_type_help,
             )
@@ -334,6 +359,9 @@ try:
                 },
             )
 
+    with st.expander("Chat history configuration", expanded=True):
+        st.checkbox("Enable chat history", key="enable_chat_history")
+
     with st.expander("Logging configuration", expanded=True):
         st.checkbox(
             "Log user input and output (questions, answers, chat history, sources)",
@@ -377,6 +405,7 @@ try:
                 ],
                 "enable_content_safety": st.session_state["enable_content_safety"],
                 "ai_assistant_type": st.session_state["ai_assistant_type"],
+                "conversational_flow": st.session_state["conversational_flow"],
             },
             "messages": {
                 "post_answering_filter": st.session_state[
@@ -399,6 +428,7 @@ try:
                 if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
                 else None
             ),
+            "enable_chat_history": st.session_state["enable_chat_history"],
         }
         ConfigHelper.save_config_as_active(current_config)
         st.success(

@@ -123,17 +123,6 @@ module function '../core/host/functions.bicep' = {
             ),
             '2023-05-01'
           ).key1
-      AZURE_COSMOS_ACCOUNT_KEY: (useKeyVault || cosmosDBKeyName == '')
-        ? cosmosDBKeyName
-        : listKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.DocumentDB/databaseAccounts',
-              cosmosDBKeyName
-            ),
-            '2022-08-15'
-          ).primaryMasterKey
     })
   }
 }
