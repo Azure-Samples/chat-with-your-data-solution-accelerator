@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.29.47.4906",
-      "templateHash": "9975660614015683026"
+      "templateHash": "5381707032966472551"
     }
   },
   "parameters": {
@@ -610,6 +610,17 @@
       "defaultValue": "[format('aml-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Azure Machine Learning Name"
+      }
+    },
+    "chatHistoryEnabled": {
+      "type": "string",
+      "defaultValue": "true",
+      "allowedValues": [
+        "true",
+        "false"
+      ],
+      "metadata": {
+        "description": "Whether or not to enable chat history"
       }
     }
   },
@@ -2309,7 +2320,7 @@
               "AZURE_COSMOSDB_DATABASE": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosDatabaseName]",
               "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosContainerName]",
               "AZURE_COSMOSDB_ENABLE_FEEDBACK": true,
-              "CHAT_HISTORY_ENABLED": true
+              "CHAT_HISTORY_ENABLED": "[parameters('chatHistoryEnabled')]"
             }
           }
         },
@@ -3282,7 +3293,7 @@
               "AZURE_COSMOSDB_DATABASE": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosDatabaseName]",
               "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosContainerName]",
               "AZURE_COSMOSDB_ENABLE_FEEDBACK": true,
-              "CHAT_HISTORY_ENABLED": true
+              "CHAT_HISTORY_ENABLED": "[parameters('chatHistoryEnabled')]"
             }
           }
         },

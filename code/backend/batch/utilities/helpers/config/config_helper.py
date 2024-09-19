@@ -57,7 +57,7 @@ class Config:
             if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
             else None
         )
-        self.enable_chat_history = config["enable_chat_history"]
+        self.enable_chat_history = self.env_helper.CHAT_HISTORY_ENABLED
 
     def get_available_document_types(self) -> list[str]:
         document_types = {
@@ -251,7 +251,8 @@ class ConfigHelper:
                 logger.info("Loading default config from %s", config_file_path)
                 ConfigHelper._default_config = json.loads(
                     Template(f.read()).substitute(
-                        ORCHESTRATION_STRATEGY=env_helper.ORCHESTRATION_STRATEGY
+                        ORCHESTRATION_STRATEGY=env_helper.ORCHESTRATION_STRATEGY,
+                        CHAT_HISTORY_ENABLED=env_helper.CHAT_HISTORY_ENABLED,
                     )
                 )
                 if env_helper.USE_ADVANCED_IMAGE_PROCESSING:

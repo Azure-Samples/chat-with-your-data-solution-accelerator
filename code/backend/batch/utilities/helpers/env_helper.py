@@ -88,7 +88,7 @@ class EnvHelper:
         )
 
         print(os.getenv("AZURE_AUTH_TYPE"))
-        self.AZURE_AUTH_TYPE =  os.getenv("AZURE_AUTH_TYPE", "keys")
+        self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "keys")
         print(f"AZURE_AUTH_TYPE: {self.AZURE_AUTH_TYPE}")
         # Azure OpenAI
         self.AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE", "")
@@ -252,6 +252,9 @@ class EnvHelper:
         )
         self.AZURE_COSMOSDB_ENABLE_FEEDBACK = (
             os.getenv("AZURE_COSMOSDB_ENABLE_FEEDBACK", "false").lower() == "true"
+        )
+        self.CHAT_HISTORY_ENABLED = self.get_env_var_bool(
+            "CHAT_HISTORY_ENABLED", "true"
         )
 
     def should_use_data(self) -> bool:

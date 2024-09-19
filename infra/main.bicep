@@ -10,7 +10,6 @@ param resourceToken string = toLower(uniqueString(subscription().id, environment
 @description('Location for all resources.')
 param location string
 
-
 @description('Name of App Service plan')
 param hostingPlanName string = 'hosting-plan-${resourceToken}'
 
@@ -301,6 +300,13 @@ param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
 
 @description('Azure Machine Learning Name')
 param azureMachineLearningName string = 'aml-${resourceToken}'
+
+@description('Whether or not to enable chat history')
+@allowed([
+  'true'
+  'false'
+])
+param chatHistoryEnabled string = 'true'
 
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
@@ -608,7 +614,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_COSMOSDB_DATABASE: cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName
       AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDBModule.outputs.cosmosOutput.cosmosContainerName
       AZURE_COSMOSDB_ENABLE_FEEDBACK: true
-      CHAT_HISTORY_ENABLED: true
+      CHAT_HISTORY_ENABLED: chatHistoryEnabled
     }
   }
 }
@@ -696,7 +702,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_COSMOSDB_DATABASE: cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName
       AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDBModule.outputs.cosmosOutput.cosmosContainerName
       AZURE_COSMOSDB_ENABLE_FEEDBACK: true
-      CHAT_HISTORY_ENABLED: true
+      CHAT_HISTORY_ENABLED: chatHistoryEnabled
     }
   }
 }
