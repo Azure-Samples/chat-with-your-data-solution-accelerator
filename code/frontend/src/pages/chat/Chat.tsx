@@ -70,7 +70,7 @@ const Chat = () => {
   const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showLoadingMessage, setShowLoadingMessage] = useState<boolean>(false);
-
+  const [isAssistantAPILoading, setIsAssistantAPILoading] = useState(false);
   const [isSendButtonDisabled, setSendButtonDisabled] = useState(false);
   const [activeCitation, setActiveCitation] =
     useState<
@@ -378,10 +378,12 @@ const Chat = () => {
     chatMessageStreamEnd.current?.scrollIntoView({ behavior: "smooth" });
     const fetchAssistantType = async () => {
       try {
+          setIsAssistantAPILoading(true);
         const result = await getAssistantTypeApi();
         if (result) {
           setAssistantType(result.ai_assistant_type);
         }
+          setIsAssistantAPILoading(false);
         return result;
       } catch (error) {
         console.error("Error fetching assistant type:", error);
@@ -605,7 +607,8 @@ const Chat = () => {
                       This chatbot is configured to answer your questions
                     </h2>
                   </>
-                ) : (
+                ) : null}
+                {isAssistantAPILoading && (
                   <div className={styles.loadingContainer}>
                     <div className={styles.loadingIcon}></div>
                     <p>Loading...</p>
