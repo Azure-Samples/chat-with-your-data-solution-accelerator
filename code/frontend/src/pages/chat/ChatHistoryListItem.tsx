@@ -73,7 +73,7 @@ export const ChatHistoryListItemCell: React.FC<
     type: DialogType.close,
     title: "Are you sure you want to delete this item?",
     closeButtonAriaLabel: "Close",
-    subText: "The history of this chat session will permanently removed.",
+    subText: "The history of this chat session will be permanently removed.",
   };
 
   const modalProps = {
