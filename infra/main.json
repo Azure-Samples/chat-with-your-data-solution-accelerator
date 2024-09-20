@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.29.47.4906",
-      "templateHash": "5381707032966472551"
+      "templateHash": "3804643920103148518"
     }
   },
   "parameters": {
@@ -612,6 +612,13 @@
         "description": "Azure Machine Learning Name"
       }
     },
+    "azureCosmosDBAccountName": {
+      "type": "string",
+      "defaultValue": "[format('cosmos-{0}', parameters('resourceToken'))]",
+      "metadata": {
+        "description": "Azure Cosmos DB Account Name"
+      }
+    },
     "chatHistoryEnabled": {
       "type": "string",
       "defaultValue": "true",
@@ -681,10 +688,10 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "solutionName": {
-            "value": "[parameters('environmentName')]"
+          "name": {
+            "value": "[parameters('azureCosmosDBAccountName')]"
           },
-          "solutionLocation": {
+          "location": {
             "value": "[parameters('location')]"
           }
         },
@@ -695,24 +702,22 @@
             "_generator": {
               "name": "bicep",
               "version": "0.29.47.4906",
-              "templateHash": "4768626235519880181"
+              "templateHash": "4507438194893692755"
             }
           },
           "parameters": {
-            "solutionName": {
+            "name": {
               "type": "string",
-              "minLength": 3,
-              "maxLength": 15,
               "metadata": {
-                "description": "Solution Name"
+                "description": "Azure Cosmos DB Account Name"
               }
             },
-            "solutionLocation": {
+            "location": {
               "type": "string"
             },
             "accountName": {
               "type": "string",
-              "defaultValue": "[format('{0}-cosmos', parameters('solutionName'))]",
+              "defaultValue": "[parameters('name')]",
               "metadata": {
                 "description": "Name"
               }
@@ -778,7 +783,7 @@
               "apiVersion": "2022-08-15",
               "name": "[parameters('accountName')]",
               "kind": "[parameters('kind')]",
-              "location": "[parameters('solutionLocation')]",
+              "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "properties": {
                 "consistencyPolicy": {
@@ -786,7 +791,7 @@
                 },
                 "locations": [
                   {
-                    "locationName": "[parameters('solutionLocation')]",
+                    "locationName": "[parameters('location')]",
                     "failoverPriority": 0,
                     "isZoneRedundant": false
                   }
@@ -4259,7 +4264,8 @@
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "FUNCTION_KEY": "[variables('clientKey')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "LOGLEVEL": "[parameters('logLevel')]"
+              "LOGLEVEL": "[parameters('logLevel')]",
+              "CHAT_HISTORY_ENABLED": "[parameters('chatHistoryEnabled')]"
             }
           }
         },
@@ -5210,7 +5216,8 @@
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "FUNCTION_KEY": "[variables('clientKey')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "LOGLEVEL": "[parameters('logLevel')]"
+              "LOGLEVEL": "[parameters('logLevel')]",
+              "CHAT_HISTORY_ENABLED": "[parameters('chatHistoryEnabled')]"
             }
           }
         },
