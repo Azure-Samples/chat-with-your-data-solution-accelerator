@@ -502,7 +502,7 @@ const Chat = () => {
   };
 
   useEffect(() => {
-    chatMessageStreamEnd.current?.scrollIntoView({ behavior: "smooth" });
+    chatMessageStreamEnd.current?.scrollIntoView({ behavior: "instant" });
   }, [selectedConvId]);
 
   const onHistoryTitleChange = (id: string, newTitle: string) => {
