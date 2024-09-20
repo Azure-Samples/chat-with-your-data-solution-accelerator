@@ -57,7 +57,9 @@ class Config:
             if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
             else None
         )
-        self.enable_chat_history = self.env_helper.CHAT_HISTORY_ENABLED
+        self.enable_chat_history = config.get(
+            "enable_chat_history", self.env_helper.CHAT_HISTORY_ENABLED
+        )
 
     def get_available_document_types(self) -> list[str]:
         document_types = {

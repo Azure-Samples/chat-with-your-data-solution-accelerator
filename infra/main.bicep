@@ -301,6 +301,9 @@ param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
 @description('Azure Machine Learning Name')
 param azureMachineLearningName string = 'aml-${resourceToken}'
 
+@description('Azure Cosmos DB Account Name')
+param azureCosmosDBAccountName string = 'cosmos-${resourceToken}'
+
 @description('Whether or not to enable chat history')
 @allowed([
   'true'
@@ -326,8 +329,8 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 module cosmosDBModule './core/database/cosmosdb.bicep' = {
   name: 'deploy_cosmos_db'
   params: {
-    solutionName: environmentName
-    solutionLocation: location
+    name: azureCosmosDBAccountName
+    location: location
   }
   scope: rg
 }
@@ -784,6 +787,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
+      CHAT_HISTORY_ENABLED: chatHistoryEnabled
     }
   }
 }
@@ -864,6 +868,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
+      CHAT_HISTORY_ENABLED: chatHistoryEnabled
     }
   }
 }
