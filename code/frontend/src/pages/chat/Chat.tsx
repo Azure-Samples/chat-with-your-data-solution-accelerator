@@ -501,6 +501,10 @@ const Chat = () => {
     setSelectedConvId(id);
   };
 
+  useEffect(() => {
+    chatMessageStreamEnd.current?.scrollIntoView({ behavior: "instant" });
+  }, [selectedConvId]);
+
   const onHistoryTitleChange = (id: string, newTitle: string) => {
     const tempChatHistory = [...chatHistory];
     const index = tempChatHistory.findIndex((obj) => obj.id === id);
