@@ -69,7 +69,13 @@ if "ai_assistant_type" not in st.session_state:
 if "conversational_flow" not in st.session_state:
     st.session_state["conversational_flow"] = config.prompts.conversational_flow
 if "enable_chat_history" not in st.session_state:
-    st.session_state["enable_chat_history"] = config.enable_chat_history
+    st.session_state["enable_chat_history"] = st.session_state[
+        "enable_chat_history"
+    ] = (
+        config.enable_chat_history.lower() == "true"
+        if isinstance(config.enable_chat_history, str)
+        else config.enable_chat_history
+    )
 
 if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
     if "max_page_length" not in st.session_state:
@@ -98,12 +104,22 @@ def validate_answering_user_prompt():
 
 
 def config_assistant_prompt():
-    if st.session_state["ai_assistant_type"] == AssistantStrategy.CONTRACT_ASSISTANT.value:
+    if (
+        st.session_state["ai_assistant_type"]
+        == AssistantStrategy.CONTRACT_ASSISTANT.value
+    ):
         st.success("Contract Assistant Prompt")
-        st.session_state["answering_user_prompt"] = ConfigHelper.get_default_contract_assistant()
-    elif st.session_state["ai_assistant_type"] == AssistantStrategy.EMPLOYEE_ASSISTANT.value:
+        st.session_state["answering_user_prompt"] = (
+            ConfigHelper.get_default_contract_assistant()
+        )
+    elif (
+        st.session_state["ai_assistant_type"]
+        == AssistantStrategy.EMPLOYEE_ASSISTANT.value
+    ):
         st.success("Employee Assistant Prompt")
-        st.session_state["answering_user_prompt"] = ConfigHelper.get_default_employee_assistant()
+        st.session_state["answering_user_prompt"] = (
+            ConfigHelper.get_default_employee_assistant()
+        )
     else:
         st.success("Default Assistant Prompt")
         st.session_state["answering_user_prompt"] = (
@@ -438,7 +454,7 @@ try:
                     else None
                 ),
                 "enable_chat_history": st.session_state["enable_chat_history"],
-        }
+            }
             ConfigHelper.save_config_as_active(current_config)
             st.success(
                 "Configuration saved successfully! Please restart the chat service for these changes to take effect."

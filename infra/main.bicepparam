@@ -1,7 +1,6 @@
 using './main.bicep'
 
-param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', 'env_name')
-param location = readEnvironmentVariable('AZURE_LOCATION', 'location')
+var location = readEnvironmentVariable('AZURE_LOCATION', 'location')
 param principalId = readEnvironmentVariable('AZURE_PRINCIPAL_ID', 'principal_id')
 
 
@@ -64,7 +63,8 @@ param computerVisionVectorizeImageModelVersion = readEnvironmentVariable('AZURE_
 
 // We need the resourceToken to be unique for each deployment (copied from the main.bicep)
 var subscriptionId = readEnvironmentVariable('AZURE_SUBSCRIPTION_ID', 'subscription_id')
-param resourceToken = toLower(uniqueString(subscriptionId, environmentName, location))
+var resourceGroupName = readEnvironmentVariable('AZURE_RESOURCE_GROUP', 'azure_resource_group')
+param resourceToken = toLower(uniqueString(subscriptionId, resourceGroupName, location))
 
 
 // Retrieve the Search Name from the Search Endpoint which will be in the format
@@ -80,3 +80,4 @@ param azureAISearchName = searchServiceName == '' ? 'search-${resourceToken}' : 
 param azureSearchIndex = readEnvironmentVariable('AZURE_SEARCH_INDEX', 'index-${resourceToken}')
 param azureOpenAIResourceName = readEnvironmentVariable('AZURE_OPENAI_RESOURCE', 'openai-${resourceToken}')
 param storageAccountName = readEnvironmentVariable('AZURE_BLOB_ACCOUNT_NAME', 'str${resourceToken}')
+
