@@ -364,8 +364,8 @@ try:
                     },
                 )
 
-    with st.expander("Chat history configuration", expanded=True):
-        st.checkbox("Enable chat history", key="enable_chat_history")
+        with st.expander("Chat history configuration", expanded=True):
+            st.checkbox("Enable chat history", key="enable_chat_history")
 
         with st.expander("Logging configuration", expanded=True):
             st.checkbox(
