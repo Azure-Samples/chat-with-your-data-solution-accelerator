@@ -15,7 +15,7 @@ if os.getenv("APPLICATIONINSIGHTS_ENABLED", "false").lower() == "true":
     configure_azure_monitor()
 
 app = func.FunctionApp(
-    http_auth_level=func.AuthLevel.ANONYMOUS,
+    http_auth_level=func.AuthLevel.FUNCTION,
 )  # change to ANONYMOUS for local debugging
 app.register_functions(bp_add_url_embeddings)
 app.register_functions(bp_batch_push_results)
