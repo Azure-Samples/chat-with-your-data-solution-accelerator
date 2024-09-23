@@ -428,6 +428,7 @@ const Chat = () => {
       toggleClearAllDialog();
       setShowContextualPopup(false);
       setAnswers([]);
+      setSelectedConvId("")
     }
     setClearing(false);
     toggleToggleSpinner(false);
