@@ -135,7 +135,7 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
             answer = Answer(question=user_message, answer=text)
 
         if answer.answer is None:
-            answer.answer = "Sorry, but I'm not able to help with that request. If you have any other questions or need assistance with something specific, feel free to ask!"
+            answer.answer = "The requested information is not available in the retrieved data. Please try another query or topic."
 
         # Call Content Safety tool
         if self.config.prompts.enable_content_safety:
