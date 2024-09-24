@@ -421,7 +421,12 @@ def get_frontend_settings():
     try:
         ConfigHelper.get_active_config_or_default.cache_clear()
         config = ConfigHelper.get_active_config_or_default()
-        return (jsonify({"CHAT_HISTORY_ENABLED": config.enable_chat_history}), 200)
+        chat_history_enabled = (
+            config.enable_chat_history.lower() == "true"
+            if isinstance(config.enable_chat_history, str)
+            else config.enable_chat_history
+        )
+        return jsonify({"CHAT_HISTORY_ENABLED": chat_history_enabled}), 200
     except Exception as e:
         logger.exception("Exception in /frontend_settings")
         return (jsonify({"error": str(e)}), 500)

@@ -1,10 +1,4 @@
-
-@minLength(1)
-@maxLength(20)
-@description('Name of the the environment which is used to generate a short unique hash used in all resources.')
-param environmentName string
-
-param resourceToken string = toLower(uniqueString(subscription().id, environmentName, resourceGroup().location))
+param resourceToken string = toLower(uniqueString(subscription().id, resourceGroup().name, resourceGroup().location))
 
 @description('Name of App Service plan')
 param hostingPlanName string = 'hosting-plan-${resourceToken}'
@@ -311,11 +305,10 @@ var blobContainerName = 'documents'
 var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
 var eventGridSystemTopicName = 'doc-processing'
-var tags = { 'azd-env-name': environmentName }
 var resourceGroupName = resourceGroup().name
+var tags = { 'azd-env-name': resourceGroupName }
 var location = resourceGroup().location
 var keyVaultName = 'kv-${resourceToken}'
-
 
 module cosmosDBModule './core/database/cosmosdb.bicep' = {
   name: 'deploy_cosmos_db'
