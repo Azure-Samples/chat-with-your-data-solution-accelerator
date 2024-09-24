@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.29.47.4906",
-      "templateHash": "9456659190616840262"
+      "templateHash": "4918818153021968173"
     }
   },
   "parameters": {
@@ -681,7 +681,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.29.47.4906",
-              "templateHash": "4507438194893692755"
+              "templateHash": "10162367437414363838"
             }
           },
           "parameters": {
@@ -783,7 +783,8 @@
                   {
                     "name": "EnableServerless"
                   }
-                ]
+                ],
+                "disableKeyBasedMetadataWriteAccess": true
               }
             },
             {
