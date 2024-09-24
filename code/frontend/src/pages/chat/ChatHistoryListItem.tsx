@@ -21,7 +21,7 @@ import { useBoolean } from "@fluentui/react-hooks";
 
 import { historyRename, historyDelete } from "../../api";
 import { Conversation } from "../../api/models";
-
+import _ from 'lodash';
 import { GroupedChatHistory } from "./ChatHistoryList";
 
 import styles from "./ChatHistoryPanel.module.css";
@@ -129,15 +129,10 @@ export const ChatHistoryListItemCell: React.FC<
     if (errorRename || renameLoading) {
       return;
     }
-    if (editTitle == item.title) {
-      setErrorRename("Error: Enter a new title to proceed.");
-      setTimeout(() => {
-        setErrorRename(undefined);
-        setTextFieldFocused(true);
-        if (textFieldRef.current) {
-          textFieldRef.current.focus();
-        }
-      }, 5000);
+
+    if (_.trim(editTitle) === _.trim(item?.title)) {
+      setEdit(false);
+      setTextFieldFocused(false);
       return;
     }
     setRenameLoading(true);
