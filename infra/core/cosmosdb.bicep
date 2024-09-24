@@ -34,6 +34,7 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2022-08-15' = {
         isZoneRedundant: false
       }
     ]
+    disableKeyBasedMetadataWriteAccess: true
     databaseAccountOfferType: 'Standard'
     enableAutomaticFailover: false
     enableMultipleWriteLocations: false
