@@ -56,5 +56,3 @@
 - **Deleting All Chat History**:
   - Admin users can clear all chat history via the CWYD dashboard by selecting the **"Clear All Chat History"** option.
   - It is important to notify users before mass deletion, especially in applications where data retention is critical.
-
-  *(Use the screenshot showing the “Clear All Chat History” button to demonstrate this feature)*
