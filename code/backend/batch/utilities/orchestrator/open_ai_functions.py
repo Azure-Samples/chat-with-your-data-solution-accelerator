@@ -125,10 +125,17 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
                     prompt_tokens=answer.prompt_tokens,
                     completion_tokens=answer.completion_tokens,
                 )
+            else:
+                logger.info("Unknown function call detected")
+                text = result.choices[0].message.content
+                answer = Answer(question=user_message, answer=text)
         else:
             logger.info("No function call detected")
             text = result.choices[0].message.content
             answer = Answer(question=user_message, answer=text)
+
+        if answer.answer is None:
+            answer.answer = "Sorry, but I'm not able to help with that request. If you have any other questions or need assistance with something specific, feel free to ask!"
 
         # Call Content Safety tool
         if self.config.prompts.enable_content_safety:
