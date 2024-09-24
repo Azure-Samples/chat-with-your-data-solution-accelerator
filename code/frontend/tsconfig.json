@@ -21,7 +21,7 @@
     "jsx": "react-jsx",
     "typeRoots": ["node_modules/@types"],
     "types": [
-      "vite/client", "jest", "node","node-fetch"
+      "vite/client", "jest", "node",
     ],
   },
   "exclude": ["node_modules"],
