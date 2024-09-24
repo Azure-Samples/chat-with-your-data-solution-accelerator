@@ -1,3 +1,4 @@
+import json
 import os
 import logging
 import threading
@@ -90,10 +91,15 @@ class EnvHelper:
         self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "keys")
         # Azure OpenAI
         self.AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE", "")
-        self.AZURE_OPENAI_MODEL = os.getenv("AZURE_OPENAI_MODEL", "")
-        self.AZURE_OPENAI_MODEL_NAME = os.getenv(
-            "AZURE_OPENAI_MODEL_NAME", "gpt-35-turbo"
+
+        default_azure_openai_model_info = '{"model":"gpt-35-turbo-16k","modelName":"gpt-35-turbo-16k","modelVersion":"0613"}'
+        azure_openai_model_info_str = os.getenv(
+            "AZURE_OPENAI_MODEL_INFO", default_azure_openai_model_info
         )
+        azure_openai_model_info = json.loads(azure_openai_model_info_str)
+        self.AZURE_OPENAI_MODEL = azure_openai_model_info.get("model")
+        self.AZURE_OPENAI_MODEL_NAME = azure_openai_model_info.get("modelName")
+
         self.AZURE_OPENAI_VISION_MODEL = os.getenv("AZURE_OPENAI_VISION_MODEL", "gpt-4")
         self.AZURE_OPENAI_TEMPERATURE = os.getenv("AZURE_OPENAI_TEMPERATURE", "0")
         self.AZURE_OPENAI_TOP_P = os.getenv("AZURE_OPENAI_TOP_P", "1.0")
@@ -107,9 +113,19 @@ class EnvHelper:
             "AZURE_OPENAI_API_VERSION", "2024-02-01"
         )
         self.AZURE_OPENAI_STREAM = os.getenv("AZURE_OPENAI_STREAM", "true")
-        self.AZURE_OPENAI_EMBEDDING_MODEL = os.getenv(
-            "AZURE_OPENAI_EMBEDDING_MODEL", ""
+
+        default_azure_openai_embedding_model_info = '{"model":"text-embedding-ada-002","modelName":"text-embedding-ada-002","modelVersion":"2"}'
+        azure_openai_embedding_model_info_str = os.getenv(
+            "AZURE_OPENAI_EMBEDDING_MODEL_INFO",
+            default_azure_openai_embedding_model_info,
         )
+        azure_openai_embedding_model_info = json.loads(
+            azure_openai_embedding_model_info_str
+        )
+        self.AZURE_OPENAI_EMBEDDING_MODEL = azure_openai_embedding_model_info.get(
+            "model"
+        )
+
         self.SHOULD_STREAM = (
             True if self.AZURE_OPENAI_STREAM.lower() == "true" else False
         )
