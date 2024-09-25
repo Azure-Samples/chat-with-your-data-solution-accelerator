@@ -4,8 +4,8 @@ WORKDIR /home/node/app
 COPY ./code/frontend/package*.json ./
 USER node
 RUN rm -rf node_modules package-lock.json
-RUN npm install --force
-# RUN npm ci
+# RUN npm install --force
+RUN npm ci
 COPY --chown=node:node ./code/frontend ./frontend
 WORKDIR /home/node/app/frontend
 RUN npm run build
