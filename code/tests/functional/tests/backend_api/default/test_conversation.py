@@ -35,7 +35,7 @@ def completions_mocking(httpserver: HTTPServer, app_config: AppConfig):
             "id": "chatcmpl-6v7mkQj980V1yBec6ETrKPRqFjNw9",
             "object": "chat.completion",
             "created": 1679072642,
-            "model": app_config.get("AZURE_OPENAI_MODEL"),
+            "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),
             "usage": {
                 "prompt_tokens": 58,
                 "completion_tokens": 68,
@@ -110,7 +110,7 @@ def test_post_responds_successfully(app_url: str, app_config: AppConfig):
         ],
         "created": "response.created",
         "id": "response.id",
-        "model": app_config.get("AZURE_OPENAI_MODEL"),
+        "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),
         "object": "response.object",
     }
     assert response.headers["Content-Type"] == "application/json"
@@ -126,7 +126,7 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_get_vector_dimensions(
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
-            path=f"/openai/deployments/{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}/embeddings",
+            path=f"/openai/deployments/{app_config.get_from_json('AZURE_OPENAI_EMBEDDING_MODEL_INFO','model')}/embeddings",
             method="POST",
             json={
                 "input": [[1199]],
@@ -155,13 +155,15 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question_to_sear
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
-            path=f"/openai/deployments/{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}/embeddings",
+            path=f"/openai/deployments/{app_config.get_from_json('AZURE_OPENAI_EMBEDDING_MODEL_INFO','model')}/embeddings",
             method="POST",
             json={
                 "input": [
                     [3923, 374, 279, 7438, 315, 2324, 30]
                 ],  # Embedding of "What is the meaning of life?"
-                "model": app_config.get("AZURE_OPENAI_EMBEDDING_MODEL"),
+                "model": app_config.get_from_json(
+                    "AZURE_OPENAI_EMBEDDING_MODEL_INFO", "model"
+                ),
                 "encoding_format": "base64",
             },
             headers={
@@ -188,7 +190,7 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question_to_stor
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
-            path=f"/openai/deployments/{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}/embeddings",
+            path=f"/openai/deployments/{app_config.get_from_json('AZURE_OPENAI_EMBEDDING_MODEL_INFO','model')}/embeddings",
             method="POST",
             json={
                 "input": [
@@ -589,7 +591,7 @@ def test_post_makes_correct_call_to_openai_chat_completions_with_documents(
                         "role": "user",
                     },
                 ],
-                "model": app_config.get("AZURE_OPENAI_MODEL"),
+                "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),
                 "max_tokens": int(app_config.get("AZURE_OPENAI_MAX_TOKENS")),
                 "temperature": 0,
             },

@@ -41,7 +41,9 @@ data: {"id":"chatcmpl-99tA6ZsoSvjQ0tGV3nGBCdBuEg3KJ","object":"chat.completion.c
 
 data: [DONE]
 """
-        ).substitute(model=app_config.get("AZURE_OPENAI_MODEL")),
+        ).substitute(
+            model=app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model")
+        ),
     )
 
     yield
@@ -84,7 +86,7 @@ def test_azure_byod_responds_successfully_when_streaming(
     final_response_json = json.loads(response_lines[-1])
     assert final_response_json == {
         "id": "chatcmpl-99tA6ZsoSvjQ0tGV3nGBCdBuEg3KJ",
-        "model": app_config.get("AZURE_OPENAI_MODEL"),
+        "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),
         "created": 1712144022,
         "object": "chat.completion.chunk",
         "choices": [
@@ -128,7 +130,7 @@ def test_post_makes_correct_call_to_azure_openai(
                     },
                 ]
                 + body["messages"],
-                "model": app_config.get("AZURE_OPENAI_MODEL"),
+                "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),
                 "temperature": 0.0,
                 "max_tokens": 1000,
                 "top_p": 1.0,

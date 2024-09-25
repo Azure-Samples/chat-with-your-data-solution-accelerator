@@ -51,7 +51,7 @@ def completions_mocking(httpserver: HTTPServer, app_config: AppConfig):
             ],
             "created": 1714576877,
             "id": "chatcmpl-9K63hMvVH1DyQJqqM7rFE4oRPFCeR",
-            "model": app_config.get("AZURE_OPENAI_MODEL"),
+            "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),
             "object": "chat.completion",
             "prompt_filter_results": [
                 {
@@ -96,7 +96,7 @@ def completions_mocking(httpserver: HTTPServer, app_config: AppConfig):
             ],
             "created": 1714576891,
             "id": "chatcmpl-9K63vDGs3slJFynnpi2K6RcVPwgrT",
-            "model": app_config.get("AZURE_OPENAI_MODEL"),
+            "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),
             "object": "chat.completion",
             "prompt_filter_results": [
                 {
@@ -144,7 +144,7 @@ def test_post_responds_successfully(app_url: str, app_config: AppConfig):
         ],
         "created": "response.created",
         "id": "response.id",
-        "model": app_config.get("AZURE_OPENAI_MODEL"),
+        "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),
         "object": "response.object",
     }
     assert response.headers["Content-Type"] == "application/json"
@@ -252,7 +252,7 @@ def test_post_makes_correct_call_to_openai_chat_completions_in_question_answer_t
                         "role": "user",
                     },
                 ],
-                "model": app_config.get("AZURE_OPENAI_MODEL"),
+                "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),
                 "max_tokens": int(app_config.get("AZURE_OPENAI_MAX_TOKENS")),
                 "temperature": 0,
             },
