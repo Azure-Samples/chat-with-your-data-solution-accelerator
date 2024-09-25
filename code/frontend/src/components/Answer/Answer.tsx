@@ -317,11 +317,16 @@ export const Answer = ({
                   horizontal
                   horizontalAlign="start"
                   verticalAlign="center"
+                  tabIndex={0}
+                  onClick={handleChevronClick}
+                  role="button"
+                  onKeyDown={(e) =>
+                    e.key === " " || e.key === "Enter"
+                      ? handleChevronClick()
+                      : null
+                  }
                 >
-                  <Text
-                    className={styles.accordionTitle}
-                    onClick={toggleIsRefAccordionOpen}
-                  >
+                  <Text className={styles.accordionTitle}>
                     <span>
                       {parsedAnswer.citations.length > 1
                         ? parsedAnswer.citations.length + " references"
@@ -330,18 +335,10 @@ export const Answer = ({
                   </Text>
                   <FontIcon
                     className={styles.accordionIcon}
-                    onClick={handleChevronClick}
                     iconName={
                       chevronIsExpanded ? "ChevronDown" : "ChevronRight"
                     }
                     aria-hidden={false}
-                    role="button"
-                    onKeyDown={(e) =>
-                      e.key === " " || e.key === "Enter"
-                        ? handleChevronClick()
-                        : null
-                    }
-                    tabIndex={0}
                   />
                 </Stack>
               </Stack>
