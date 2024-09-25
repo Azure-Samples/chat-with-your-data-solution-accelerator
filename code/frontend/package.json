@@ -7,7 +7,7 @@
         "dev": "tsc && vite",
         "build": "tsc && vite build",
         "watch": "tsc && vite build --watch",
-        "test": "vitest run"
+        "test": "jest --coverage --watchAll --verbose"
     },
     "dependencies": {
         "@babel/traverse": "^7.25.6",
@@ -27,18 +27,31 @@
         "rehype-raw": "^7.0.0",
         "remark-gfm": "^4.0.0",
         "remark-supersub": "^1.0.0",
+        "undici": "^6.19.8",
         "uuid": "^10.0.0"
     },
     "devDependencies": {
+        "@testing-library/jest-dom": "^6.5.0",
+        "@testing-library/react": "^16.0.1",
+        "@testing-library/user-event": "^14.5.2",
+        "@types/isomorphic-fetch": "^0.0.39",
+        "@types/jest": "^29.5.13",
         "@types/lodash-es": "^4.17.12",
         "@types/node": "^22.5.4",
         "@types/react": "^18.3.5",
         "@types/react-dom": "^18.3.0",
+        "@types/testing-library__user-event": "^4.2.0",
         "@types/uuid": "^10.0.0",
         "@vitejs/plugin-react": "^4.3.1",
+        "identity-obj-proxy": "^3.0.0",
+        "isomorphic-fetch": "^3.0.0",
+        "jest": "^29.7.0",
+        "jest-environment-jsdom": "^29.7.0",
+        "msw": "^2.4.9",
         "prettier": "^3.3.3",
+        "ts-jest": "^29.2.5",
+        "ts-node": "^10.9.2",
         "typescript": "^5.6.2",
-        "vite": "^5.4.3",
-        "vitest": "^2.1.1"
+        "vite": "^5.4.3"
     }
 }
