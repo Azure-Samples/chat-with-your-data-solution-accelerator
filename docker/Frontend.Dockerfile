@@ -4,12 +4,6 @@ WORKDIR /home/node/app
 COPY ./code/frontend/package*.json ./
 USER node
 RUN npm ci
-# Install dependencies
-RUN npm install
-
-# Install type definitions
-RUN npm install --save-dev @types/jest @types/node
-
 COPY --chown=node:node ./code/frontend ./frontend
 WORKDIR /home/node/app/frontend
 RUN npm run build
