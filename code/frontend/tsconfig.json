@@ -21,7 +21,7 @@
     "jsx": "react-jsx",
     "typeRoots": ["node_modules/@types"],
     "types": [
-      "vite/client", "jest", "node","@testing-library/jest-dom"
+      "vite/client", "jest", "node",
     ],
   },
   "exclude": ["node_modules"],
