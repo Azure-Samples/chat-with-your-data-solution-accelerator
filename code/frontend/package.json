@@ -7,7 +7,7 @@
         "dev": "tsc && vite",
         "build": "tsc && vite build",
         "watch": "tsc && vite build --watch",
-        "test": "jest --coverage"
+        "test": "jest --coverage --watchAll --verbose"
     },
     "dependencies": {
         "@babel/traverse": "^7.25.6",
