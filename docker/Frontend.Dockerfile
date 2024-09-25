@@ -2,9 +2,9 @@ FROM node:20-alpine AS frontend
 RUN mkdir -p /home/node/app/node_modules && chown -R node:node /home/node/app
 WORKDIR /home/node/app
 COPY ./code/frontend/package.json ./
+COPY ./code/frontend/package-lock.json ./
 USER node
-RUN npm ci 
-# RUN npm install --force
+RUN npm ci
 COPY --chown=node:node ./code/frontend ./frontend
 WORKDIR /home/node/app/frontend
 RUN npm run build
