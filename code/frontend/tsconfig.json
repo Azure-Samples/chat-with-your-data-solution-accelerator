@@ -21,12 +21,12 @@
     "jsx": "react-jsx",
     "typeRoots": ["node_modules/@types"],
     "types": [
-      "vite/client", "jest", "node",
+      "vite/client", "jest", "node","@testing-library/jest-dom"
     ],
   },
   "exclude": ["node_modules"],
   "include": [
-    "src"
+    "src", "setupTests.ts"
   ],
   "references": [
     {

@@ -7,7 +7,7 @@
         "dev": "tsc && vite",
         "build": "tsc && vite build",
         "watch": "tsc && vite build --watch",
-        "test": "jest --coverage"
+        "test": "jest --coverage --watchAll --verbose"
     },
     "dependencies": {
         "@babel/traverse": "^7.25.6",
@@ -40,6 +40,7 @@
         "@types/node": "^22.5.4",
         "@types/react": "^18.3.5",
         "@types/react-dom": "^18.3.0",
+        "@types/testing-library__jest-dom": "^6.0.0",
         "@types/testing-library__user-event": "^4.2.0",
         "@types/uuid": "^10.0.0",
         "@vitejs/plugin-react": "^4.3.1",
