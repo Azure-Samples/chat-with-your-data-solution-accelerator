@@ -280,8 +280,9 @@ export const Answer = ({
                   <Text
                     className={styles.accordionTitle}
                     onClick={toggleIsRefAccordionOpen}
+                    data-testid="toggle-citations-list"
                   >
-                    <span>{parsedAnswer.citations.length > 1 ? parsedAnswer.citations.length + " references" : "1 reference"}</span>
+                    <span data-testid="no-of-references">{parsedAnswer.citations.length > 1 ? parsedAnswer.citations.length + " references" : "1 reference"}</span>
                   </Text>
                   <FontIcon className={styles.accordionIcon}
                     onClick={handleChevronClick} iconName={chevronIsExpanded ? 'ChevronDown' : 'ChevronRight'}
@@ -294,10 +295,10 @@ export const Answer = ({
 
         </Stack>
         {chevronIsExpanded &&
-          <div ref={refContainer} style={{ marginTop: 8, display: "flex", flexDirection: "column", height: "100%", gap: "4px", maxWidth: "100%" }}>
+          <div data-testid="citations-container" ref={refContainer} style={{ marginTop: 8, display: "flex", flexDirection: "column", height: "100%", gap: "4px", maxWidth: "100%" }}>
             {parsedAnswer.citations.map((citation, idx) => {
               return (
-                <span title={createCitationFilepath(citation, ++idx)} key={idx} onClick={() => onCitationClicked(citation)} className={styles.citationContainer}>
+                <span data-testid="citation-block" title={createCitationFilepath(citation, ++idx)} key={idx} onClick={() => onCitationClicked(citation)} className={styles.citationContainer}>
                   <div className={styles.citation} key={idx}>{idx}</div>
                   {createCitationFilepath(citation, idx, true)}
                 </span>);
