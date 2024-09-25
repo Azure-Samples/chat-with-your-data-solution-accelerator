@@ -4,9 +4,9 @@ WORKDIR /home/node/app
 COPY ./code/frontend/package*.json ./
 USER node
 RUN npm ci
+RUN npm install --force
 COPY --chown=node:node ./code/frontend ./frontend
 WORKDIR /home/node/app/frontend
-RUN npm install --force
 RUN npm run build
 
 FROM python:3.11.7-bookworm
