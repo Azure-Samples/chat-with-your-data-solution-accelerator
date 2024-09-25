@@ -96,7 +96,7 @@ class AppConfig:
         return self.config[key]
 
     def get_from_json(self, config_key: str, field: str) -> str | None:
-        config_json = json.loads(config_key)
+        config_json = json.loads(self.config[config_key])
         return config_json.get(field)
 
     def get_all(self) -> dict[str, str | None]:

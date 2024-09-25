@@ -58,7 +58,7 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
 
     httpserver.expect_request(
         re.compile(
-            f"/openai/deployments/({app_config.get('AZURE_OPENAI_MODEL')}|{app_config.get('AZURE_OPENAI_VISION_MODEL')})/chat/completions"
+            f"/openai/deployments/({app_config.get_from_json('AZURE_OPENAI_MODEL_INFO','model')}|{app_config.get('AZURE_OPENAI_VISION_MODEL')})/chat/completions"
         ),
         method="POST",
     ).respond_with_json(
