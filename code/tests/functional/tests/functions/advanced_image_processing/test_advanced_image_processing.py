@@ -209,11 +209,13 @@ def test_embeddings_generated_for_caption(
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
-            path=f"/openai/deployments/{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}/embeddings",
+            path=f"/openai/deployments/{app_config.get_from_json('AZURE_OPENAI_EMBEDDING_MODEL_INFO','model')}/embeddings",
             method="POST",
             json={
                 "input": ["This is a caption for the image"],
-                "model": app_config.get("AZURE_OPENAI_EMBEDDING_MODEL"),
+                "model": app_config.get_from_json(
+                    "AZURE_OPENAI_EMBEDDING_MODEL_INFO", "model"
+                ),
                 "encoding_format": "base64",
             },
             headers={
@@ -387,8 +389,13 @@ def test_makes_correct_call_to_create_documents_search_index(
                                 "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG"
                             ),
                             "prioritizedFields": {
-                                "prioritizedContentFields":
-                                    [{"fieldName": app_config.get("AZURE_SEARCH_CONTENT_COLUMN")}]
+                                "prioritizedContentFields": [
+                                    {
+                                        "fieldName": app_config.get(
+                                            "AZURE_SEARCH_CONTENT_COLUMN"
+                                        )
+                                    }
+                                ]
                             },
                         }
                     ]

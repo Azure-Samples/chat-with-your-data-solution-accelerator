@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.28.1.47646",
-      "templateHash": "306983932277203040"
+      "version": "0.29.47.4906",
+      "templateHash": "16379088322434354396"
     }
   },
   "parameters": {
@@ -623,6 +623,8 @@
     },
     "rgName": "[format('rg-{0}', parameters('environmentName'))]",
     "keyVaultName": "[format('kv-{0}', parameters('resourceToken'))]",
+    "azureOpenAIModelInfo": "[string(createObject('model', parameters('azureOpenAIModel'), 'modelName', parameters('azureOpenAIModelName'), 'modelVersion', parameters('azureOpenAIModelVersion')))]",
+    "azureOpenAIEmbeddingModelInfo": "[string(createObject('model', parameters('azureOpenAIEmbeddingModel'), 'modelName', parameters('azureOpenAIEmbeddingModelName'), 'modelVersion', parameters('azureOpenAIEmbeddingModelVersion')))]",
     "defaultOpenAiDeployments": [
       {
         "name": "[parameters('azureOpenAIModel')]",
@@ -690,8 +692,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "3615364066329169756"
+              "version": "0.29.47.4906",
+              "templateHash": "17778708028830863146"
             },
             "description": "Creates an Azure Key Vault."
           },
@@ -787,8 +789,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "7514893090820700577"
+              "version": "0.29.47.4906",
+              "templateHash": "13930677902562058633"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -946,8 +948,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "7514893090820700577"
+              "version": "0.29.47.4906",
+              "templateHash": "13930677902562058633"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -1099,8 +1101,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "4781574865545118092"
+              "version": "0.29.47.4906",
+              "templateHash": "12421327006867392541"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1170,8 +1172,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "4781574865545118092"
+              "version": "0.29.47.4906",
+              "templateHash": "12421327006867392541"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1241,8 +1243,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "4781574865545118092"
+              "version": "0.29.47.4906",
+              "templateHash": "12421327006867392541"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1312,8 +1314,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "4781574865545118092"
+              "version": "0.29.47.4906",
+              "templateHash": "12421327006867392541"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1387,8 +1389,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "7514893090820700577"
+              "version": "0.29.47.4906",
+              "templateHash": "13930677902562058633"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -1556,8 +1558,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "2245374151378693467"
+              "version": "0.29.47.4906",
+              "templateHash": "12684510657123056213"
             }
           },
           "parameters": {
@@ -1769,8 +1771,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "9322258851357800042"
+              "version": "0.29.47.4906",
+              "templateHash": "3186814620975722299"
             },
             "description": "Creates an Azure AI Search instance."
           },
@@ -1938,8 +1940,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "15465909238121035232"
+              "version": "0.29.47.4906",
+              "templateHash": "11910849835579950339"
             },
             "description": "Creates an Azure App Service plan."
           },
@@ -2076,9 +2078,7 @@
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
-              "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
-              "AZURE_OPENAI_MODEL_NAME": "[parameters('azureOpenAIModelName')]",
-              "AZURE_OPENAI_MODEL_VERSION": "[parameters('azureOpenAIModelVersion')]",
+              "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
               "AZURE_OPENAI_TEMPERATURE": "[parameters('azureOpenAITemperature')]",
               "AZURE_OPENAI_TOP_P": "[parameters('azureOpenAITopP')]",
               "AZURE_OPENAI_MAX_TOKENS": "[parameters('azureOpenAIMaxTokens')]",
@@ -2086,9 +2086,7 @@
               "AZURE_OPENAI_SYSTEM_MESSAGE": "[parameters('azureOpenAISystemMessage')]",
               "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
               "AZURE_OPENAI_STREAM": "[parameters('azureOpenAIStream')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('azureOpenAIEmbeddingModel')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL_NAME": "[parameters('azureOpenAIEmbeddingModelName')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL_VERSION": "[parameters('azureOpenAIEmbeddingModelVersion')]",
+              "AZURE_OPENAI_EMBEDDING_MODEL_INFO": "[variables('azureOpenAIEmbeddingModelInfo')]",
               "AZURE_SEARCH_USE_SEMANTIC_SEARCH": "[parameters('azureSearchUseSemanticSearch')]",
               "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
               "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
@@ -2126,8 +2124,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "9524388029482194271"
+              "version": "0.29.47.4906",
+              "templateHash": "1421553854733051300"
             }
           },
           "parameters": {
@@ -2304,8 +2302,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "14262267256571278851"
+                      "version": "0.29.47.4906",
+                      "templateHash": "16756175373379165193"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -2531,8 +2529,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.28.1.47646",
-                              "templateHash": "1172957779666771475"
+                              "version": "0.29.47.4906",
+                              "templateHash": "103667315154160978"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -2609,8 +2607,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -2678,8 +2676,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -2747,8 +2745,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -2816,8 +2814,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -2882,8 +2880,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "17016224891593731674"
+                      "version": "0.29.47.4906",
+                      "templateHash": "1133867179681914334"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -3038,9 +3036,7 @@
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
-              "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
-              "AZURE_OPENAI_MODEL_NAME": "[parameters('azureOpenAIModelName')]",
-              "AZURE_OPENAI_MODEL_VERSION": "[parameters('azureOpenAIModelVersion')]",
+              "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
               "AZURE_OPENAI_TEMPERATURE": "[parameters('azureOpenAITemperature')]",
               "AZURE_OPENAI_TOP_P": "[parameters('azureOpenAITopP')]",
               "AZURE_OPENAI_MAX_TOKENS": "[parameters('azureOpenAIMaxTokens')]",
@@ -3048,9 +3044,7 @@
               "AZURE_OPENAI_SYSTEM_MESSAGE": "[parameters('azureOpenAISystemMessage')]",
               "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
               "AZURE_OPENAI_STREAM": "[parameters('azureOpenAIStream')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('azureOpenAIEmbeddingModel')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL_NAME": "[parameters('azureOpenAIEmbeddingModelName')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL_VERSION": "[parameters('azureOpenAIEmbeddingModelVersion')]",
+              "AZURE_OPENAI_EMBEDDING_MODEL_INFO": "[variables('azureOpenAIEmbeddingModelInfo')]",
               "AZURE_SEARCH_USE_SEMANTIC_SEARCH": "[parameters('azureSearchUseSemanticSearch')]",
               "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
               "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
@@ -3088,8 +3082,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "9524388029482194271"
+              "version": "0.29.47.4906",
+              "templateHash": "1421553854733051300"
             }
           },
           "parameters": {
@@ -3266,8 +3260,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "14262267256571278851"
+                      "version": "0.29.47.4906",
+                      "templateHash": "16756175373379165193"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -3493,8 +3487,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.28.1.47646",
-                              "templateHash": "1172957779666771475"
+                              "version": "0.29.47.4906",
+                              "templateHash": "103667315154160978"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -3571,8 +3565,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -3640,8 +3634,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -3709,8 +3703,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -3778,8 +3772,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -3844,8 +3838,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "17016224891593731674"
+                      "version": "0.29.47.4906",
+                      "templateHash": "1133867179681914334"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -4000,9 +3994,7 @@
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
-              "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
-              "AZURE_OPENAI_MODEL_NAME": "[parameters('azureOpenAIModelName')]",
-              "AZURE_OPENAI_MODEL_VERSION": "[parameters('azureOpenAIModelVersion')]",
+              "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
               "AZURE_OPENAI_TEMPERATURE": "[parameters('azureOpenAITemperature')]",
               "AZURE_OPENAI_TOP_P": "[parameters('azureOpenAITopP')]",
               "AZURE_OPENAI_MAX_TOKENS": "[parameters('azureOpenAIMaxTokens')]",
@@ -4010,9 +4002,7 @@
               "AZURE_OPENAI_SYSTEM_MESSAGE": "[parameters('azureOpenAISystemMessage')]",
               "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
               "AZURE_OPENAI_STREAM": "[parameters('azureOpenAIStream')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('azureOpenAIEmbeddingModel')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL_NAME": "[parameters('azureOpenAIEmbeddingModelName')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL_VERSION": "[parameters('azureOpenAIEmbeddingModelVersion')]",
+              "AZURE_OPENAI_EMBEDDING_MODEL_INFO": "[variables('azureOpenAIEmbeddingModelInfo')]",
               "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
               "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
               "AZURE_SEARCH_USE_SEMANTIC_SEARCH": "[parameters('azureSearchUseSemanticSearch')]",
@@ -4049,8 +4039,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "14570374157253523494"
+              "version": "0.29.47.4906",
+              "templateHash": "17327750493694934622"
             }
           },
           "parameters": {
@@ -4220,8 +4210,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "14262267256571278851"
+                      "version": "0.29.47.4906",
+                      "templateHash": "16756175373379165193"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -4447,8 +4437,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.28.1.47646",
-                              "templateHash": "1172957779666771475"
+                              "version": "0.29.47.4906",
+                              "templateHash": "103667315154160978"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -4525,8 +4515,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -4594,8 +4584,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -4663,8 +4653,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -4732,8 +4722,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -4798,8 +4788,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "17016224891593731674"
+                      "version": "0.29.47.4906",
+                      "templateHash": "1133867179681914334"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -4951,9 +4941,7 @@
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
-              "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
-              "AZURE_OPENAI_MODEL_NAME": "[parameters('azureOpenAIModelName')]",
-              "AZURE_OPENAI_MODEL_VERSION": "[parameters('azureOpenAIModelVersion')]",
+              "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
               "AZURE_OPENAI_TEMPERATURE": "[parameters('azureOpenAITemperature')]",
               "AZURE_OPENAI_TOP_P": "[parameters('azureOpenAITopP')]",
               "AZURE_OPENAI_MAX_TOKENS": "[parameters('azureOpenAIMaxTokens')]",
@@ -4961,9 +4949,7 @@
               "AZURE_OPENAI_SYSTEM_MESSAGE": "[parameters('azureOpenAISystemMessage')]",
               "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
               "AZURE_OPENAI_STREAM": "[parameters('azureOpenAIStream')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('azureOpenAIEmbeddingModel')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL_NAME": "[parameters('azureOpenAIEmbeddingModelName')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL_VERSION": "[parameters('azureOpenAIEmbeddingModelVersion')]",
+              "AZURE_OPENAI_EMBEDDING_MODEL_INFO": "[variables('azureOpenAIEmbeddingModelInfo')]",
               "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
               "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
               "AZURE_SEARCH_USE_SEMANTIC_SEARCH": "[parameters('azureSearchUseSemanticSearch')]",
@@ -5000,8 +4986,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "14570374157253523494"
+              "version": "0.29.47.4906",
+              "templateHash": "17327750493694934622"
             }
           },
           "parameters": {
@@ -5171,8 +5157,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "14262267256571278851"
+                      "version": "0.29.47.4906",
+                      "templateHash": "16756175373379165193"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -5398,8 +5384,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.28.1.47646",
-                              "templateHash": "1172957779666771475"
+                              "version": "0.29.47.4906",
+                              "templateHash": "103667315154160978"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -5476,8 +5462,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -5545,8 +5531,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -5614,8 +5600,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -5683,8 +5669,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -5749,8 +5735,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "17016224891593731674"
+                      "version": "0.29.47.4906",
+                      "templateHash": "1133867179681914334"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -5864,8 +5850,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "6932660993264101661"
+              "version": "0.29.47.4906",
+              "templateHash": "14824672405902859193"
             },
             "description": "Creates an Application Insights instance and a Log Analytics workspace."
           },
@@ -5916,8 +5902,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4411803171372203725"
+                      "version": "0.29.47.4906",
+                      "templateHash": "3321614781233750399"
                     },
                     "description": "Creates a Log Analytics workspace."
                   },
@@ -5997,8 +5983,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "11643435303947380859"
+                      "version": "0.29.47.4906",
+                      "templateHash": "53484624287673645"
                     },
                     "description": "Creates an Application Insights instance based on an existing Log Analytics workspace."
                   },
@@ -6062,8 +6048,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.28.1.47646",
-                              "templateHash": "14575977876683967619"
+                              "version": "0.29.47.4906",
+                              "templateHash": "14911212182563532861"
                             },
                             "description": "Creates a dashboard for an Application Insights instance."
                           },
@@ -7401,8 +7387,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "15964344188120348249"
+              "version": "0.29.47.4906",
+              "templateHash": "2751741336760825109"
             }
           },
           "parameters": {
@@ -7484,8 +7470,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "1761446928932158043"
+                      "version": "0.29.47.4906",
+                      "templateHash": "20443133125141617"
                     }
                   },
                   "parameters": {
@@ -7648,12 +7634,8 @@
               "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION": "[parameters('computerVisionVectorizeImageModelVersion')]",
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
-              "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
-              "AZURE_OPENAI_MODEL_NAME": "[parameters('azureOpenAIModelName')]",
-              "AZURE_OPENAI_MODEL_VERSION": "[parameters('azureOpenAIModelVersion')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('azureOpenAIEmbeddingModel')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL_NAME": "[parameters('azureOpenAIEmbeddingModelName')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL_VERSION": "[parameters('azureOpenAIEmbeddingModelVersion')]",
+              "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
+              "AZURE_OPENAI_EMBEDDING_MODEL_INFO": "[variables('azureOpenAIEmbeddingModelInfo')]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
               "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
               "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
@@ -7684,8 +7666,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "2435369246185691934"
+              "version": "0.29.47.4906",
+              "templateHash": "15997085284618312589"
             }
           },
           "parameters": {
@@ -7873,8 +7855,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4659883628761739984"
+                      "version": "0.29.47.4906",
+                      "templateHash": "15094851132007588437"
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -8081,8 +8063,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.28.1.47646",
-                              "templateHash": "14262267256571278851"
+                              "version": "0.29.47.4906",
+                              "templateHash": "16756175373379165193"
                             },
                             "description": "Creates an Azure App Service in an existing Azure App Service plan."
                           },
@@ -8308,8 +8290,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.28.1.47646",
-                                      "templateHash": "1172957779666771475"
+                                      "version": "0.29.47.4906",
+                                      "templateHash": "103667315154160978"
                                     },
                                     "description": "Updates app settings for an Azure App Service."
                                   },
@@ -8404,8 +8386,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8473,8 +8455,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8542,8 +8524,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8611,8 +8593,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8680,8 +8662,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8746,8 +8728,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "17016224891593731674"
+                      "version": "0.29.47.4906",
+                      "templateHash": "1133867179681914334"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -8897,12 +8879,8 @@
               "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION": "[parameters('computerVisionVectorizeImageModelVersion')]",
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
-              "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
-              "AZURE_OPENAI_MODEL_NAME": "[parameters('azureOpenAIModelName')]",
-              "AZURE_OPENAI_MODEL_VERSION": "[parameters('azureOpenAIModelVersion')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('azureOpenAIEmbeddingModel')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL_NAME": "[parameters('azureOpenAIEmbeddingModelName')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL_VERSION": "[parameters('azureOpenAIEmbeddingModelVersion')]",
+              "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
+              "AZURE_OPENAI_EMBEDDING_MODEL_INFO": "[variables('azureOpenAIEmbeddingModelInfo')]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
               "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
               "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
@@ -8933,8 +8911,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "2435369246185691934"
+              "version": "0.29.47.4906",
+              "templateHash": "15997085284618312589"
             }
           },
           "parameters": {
@@ -9122,8 +9100,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4659883628761739984"
+                      "version": "0.29.47.4906",
+                      "templateHash": "15094851132007588437"
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -9330,8 +9308,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.28.1.47646",
-                              "templateHash": "14262267256571278851"
+                              "version": "0.29.47.4906",
+                              "templateHash": "16756175373379165193"
                             },
                             "description": "Creates an Azure App Service in an existing Azure App Service plan."
                           },
@@ -9557,8 +9535,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.28.1.47646",
-                                      "templateHash": "1172957779666771475"
+                                      "version": "0.29.47.4906",
+                                      "templateHash": "103667315154160978"
                                     },
                                     "description": "Updates app settings for an Azure App Service."
                                   },
@@ -9653,8 +9631,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -9722,8 +9700,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -9791,8 +9769,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -9860,8 +9838,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -9929,8 +9907,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "4781574865545118092"
+                      "version": "0.29.47.4906",
+                      "templateHash": "12421327006867392541"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -9995,8 +9973,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.28.1.47646",
-                      "templateHash": "17016224891593731674"
+                      "version": "0.29.47.4906",
+                      "templateHash": "1133867179681914334"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -10101,8 +10079,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "7514893090820700577"
+              "version": "0.29.47.4906",
+              "templateHash": "13930677902562058633"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -10256,8 +10234,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "7514893090820700577"
+              "version": "0.29.47.4906",
+              "templateHash": "13930677902562058633"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -10414,8 +10392,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "5895555282161133397"
+              "version": "0.29.47.4906",
+              "templateHash": "10992796846575118308"
             }
           },
           "parameters": {
@@ -10544,8 +10522,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "16998952628947606682"
+              "version": "0.29.47.4906",
+              "templateHash": "6009030871838517804"
             },
             "description": "Creates an Azure storage account."
           },
@@ -10769,8 +10747,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "4781574865545118092"
+              "version": "0.29.47.4906",
+              "templateHash": "12421327006867392541"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -10839,8 +10817,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "4781574865545118092"
+              "version": "0.29.47.4906",
+              "templateHash": "12421327006867392541"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -10909,8 +10887,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "4781574865545118092"
+              "version": "0.29.47.4906",
+              "templateHash": "12421327006867392541"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -10979,8 +10957,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "4781574865545118092"
+              "version": "0.29.47.4906",
+              "templateHash": "12421327006867392541"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -11065,8 +11043,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.28.1.47646",
-              "templateHash": "18438613076567100409"
+              "version": "0.29.47.4906",
+              "templateHash": "648404900818606545"
             }
           },
           "parameters": {
@@ -11240,13 +11218,9 @@
       "type": "string",
       "value": "[parameters('location')]"
     },
-    "AZURE_OPENAI_MODEL_NAME": {
+    "AZURE_OPENAI_MODEL_INFO": {
       "type": "string",
-      "value": "[parameters('azureOpenAIModelName')]"
-    },
-    "AZURE_OPENAI_MODEL_VERSION": {
-      "type": "string",
-      "value": "[parameters('azureOpenAIModelVersion')]"
+      "value": "[variables('azureOpenAIModelInfo')]"
     },
     "AZURE_OPENAI_STREAM": {
       "type": "string",
@@ -11280,13 +11254,9 @@
       "type": "string",
       "value": "[parameters('azureOpenAIResourceName')]"
     },
-    "AZURE_OPENAI_EMBEDDING_MODEL_NAME": {
+    "AZURE_OPENAI_EMBEDDING_MODEL_INFO": {
       "type": "string",
-      "value": "[parameters('azureOpenAIEmbeddingModelName')]"
-    },
-    "AZURE_OPENAI_EMBEDDING_MODEL_VERSION": {
-      "type": "string",
-      "value": "[parameters('azureOpenAIEmbeddingModelVersion')]"
+      "value": "[variables('azureOpenAIEmbeddingModelInfo')]"
     },
     "AZURE_OPENAI_API_KEY": {
       "type": "string",

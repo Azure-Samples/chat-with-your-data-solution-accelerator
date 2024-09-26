@@ -1,3 +1,4 @@
+import json
 import os
 import logging
 import threading
@@ -92,11 +93,19 @@ class EnvHelper:
 
         self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "keys")
         # Azure OpenAI
+        # Default model info
+        default_azure_openai_model_info = '{"model":"gpt-35-turbo-16k","modelName":"gpt-35-turbo-16k","modelVersion":"0613"}'
+        default_azure_openai_embedding_model_info = '{"model":"text-embedding-ada-002","modelName":"text-embedding-ada-002","modelVersion":"2"}'
+
         self.AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE", "")
-        self.AZURE_OPENAI_MODEL = os.getenv("AZURE_OPENAI_MODEL", "")
-        self.AZURE_OPENAI_MODEL_NAME = os.getenv(
-            "AZURE_OPENAI_MODEL_NAME", "gpt-35-turbo"
+
+        # Fetch and assign model info
+        azure_openai_model_info = self.get_info_from_env(
+            "AZURE_OPENAI_MODEL_INFO", default_azure_openai_model_info
         )
+        self.AZURE_OPENAI_MODEL = azure_openai_model_info.get("model")
+        self.AZURE_OPENAI_MODEL_NAME = azure_openai_model_info.get("modelName")
+
         self.AZURE_OPENAI_VISION_MODEL = os.getenv("AZURE_OPENAI_VISION_MODEL", "gpt-4")
         self.AZURE_OPENAI_TEMPERATURE = os.getenv("AZURE_OPENAI_TEMPERATURE", "0")
         self.AZURE_OPENAI_TOP_P = os.getenv("AZURE_OPENAI_TOP_P", "1.0")
@@ -110,9 +119,16 @@ class EnvHelper:
             "AZURE_OPENAI_API_VERSION", "2024-02-01"
         )
         self.AZURE_OPENAI_STREAM = os.getenv("AZURE_OPENAI_STREAM", "true")
-        self.AZURE_OPENAI_EMBEDDING_MODEL = os.getenv(
-            "AZURE_OPENAI_EMBEDDING_MODEL", ""
+
+        # Fetch and assign embedding model info
+        azure_openai_embedding_model_info = self.get_info_from_env(
+            "AZURE_OPENAI_EMBEDDING_MODEL_INFO",
+            default_azure_openai_embedding_model_info,
         )
+        self.AZURE_OPENAI_EMBEDDING_MODEL = azure_openai_embedding_model_info.get(
+            "model"
+        )
+
         self.SHOULD_STREAM = (
             True if self.AZURE_OPENAI_STREAM.lower() == "true" else False
         )
@@ -266,6 +282,14 @@ class EnvHelper:
 
     def is_auth_type_keys(self):
         return self.AZURE_AUTH_TYPE == "keys"
+
+    def get_info_from_env(self, env_var: str, default_info: str) -> dict:
+        # Fetch and parse model info from the environment variable.
+        info_str = os.getenv(env_var, default_info)
+        # Handle escaped characters in the JSON string by wrapping it in double quotes for parsing.
+        if "\\" in info_str:
+            info_str = json.loads(f'"{info_str}"')
+        return {} if not info_str else json.loads(info_str)
 
     @staticmethod
     def check_env():
