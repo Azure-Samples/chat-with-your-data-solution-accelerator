@@ -4,6 +4,7 @@ import {
   screen,
   fireEvent,
   act,
+  waitFor,
 } from "@testing-library/react";
 import { Answer } from "./Answer";
 
@@ -23,6 +24,40 @@ const speechMockData = {
   region: "uksouth",
   token: "some-token",
 };
+
+// Mock the Speech SDK
+jest.mock("microsoft-cognitiveservices-speech-sdk", () => {
+  return {
+    SpeechConfig: {
+      fromSubscription: jest.fn(),
+      fromSpeakerOutput: jest.fn().mockReturnValue({}),
+    },
+    AudioConfig: {
+      fromDefaultSpeakerOutput: jest.fn(),
+      fromSpeakerOutput: jest.fn().mockReturnValue({}),
+    },
+    SpeechSynthesizer: jest.fn().mockImplementation(() => ({
+      speakTextAsync: jest.fn((text, callback) => {
+        callback({
+          audioData: new ArrayBuffer(1024),
+          audioDuration: 999999999999,
+          reason: 10,
+        });
+      }),
+      close: jest.fn(),
+    })),
+
+    SpeakerAudioDestination: jest.fn().mockImplementation(() => ({
+      pause: jest.fn(),
+      resume: jest.fn(),
+      close: jest.fn(),
+    })),
+    ResultReason: {
+      SynthesizingAudioCompleted: 10,
+      Canceled: 1,
+    },
+  };
+});
 
 const componentPropsWithCitations = {
   answer: {
@@ -61,12 +96,14 @@ const componentPropsWithCitations = {
       },
       {
         content:
-          "[/documents/MSFT_FY23Q4_10K.docx](https://str5z43dncphzu3k.blob.core.windows.net/documents/MSFT_FY23Q4_10K.docx?se=2024-09-25T10%3A24%3A29Z&sp=r&sv=2024-05-04&sr=c&sig=A0VRcSG23IfL3O1lCh34x7IxIvE0/Fq6vT3zCqWSLig%3D)\n\n\n<p>PART I</p>\n<p>ITEM 1. BUSINESS</p>\n<p>GENERAL</p>\n<p>Embracing Our Future</p>\n<p>Microsoft is a technology company whose mission is to empower every person and every organization on the planet to achieve more. We strive to create local opportunity, growth, and impact in every country around the world. We are creating the platforms and tools, powered by artificial intelligence (“AI”), that deliver better, faster, and more effective solutions to support small and large business competitiveness, improve educational and health outcomes, grow public-sector efficiency, and empower human ingenuity. From infrastructure and data, to business applications and collaboration, we provide unique, differentiated value to customers. </p>\n<p>In a world of increasing economic complexity, AI has the power to revolutionize many types of work. Microsoft is now innovating and expanding our portfolio with AI capabilities to help people and organizations overcome today’s challenges and emerge stronger. Customers are looking to unlock value from their digital spend and innovate for this next generation of AI, while simplifying security and management. Those leveraging the Microsoft Cloud are best positioned to take advantage of technological advancements and drive innovation. Our investment in AI spans the entire company, from Microsoft Teams and Outlook, to Bing and Xbox, and we are infusing generative AI capability into our consumer and commercial offerings to deliver copilot capability for all services across the Microsoft Cloud. </p>\n<p>We’re committed to making the promise of AI real – and doing it responsibly. Our work is guided by a core set of principles: fairness, reliability and safety, privacy and security, inclusiveness, transparency, and accountability. </p>\n<p>What We Offer</p>\n<p>Founded in 1975, we develop and support software, services, devices, and solutions that deliver new value for customers and help people and businesses realize their full potential.</p>\n<p>We offer an array of services, including cloud-based solutions that provide customers with software, services, platforms, and content, and we provide solution support and consulting services. We also deliver relevant online advertising to a global audience.</p>",
+          "[/documents/MSFT_FY23Q4_10K_DOCUMENT_FOLDER_SRC_IMPORTANT_CHUNKS_LIST_VALID_CHUNKS_ACCESS_TO_MSFT_WINDOWS_BLOBS_CORE_WINDOWS.docx](https://str5z43dncphzu3k.blob.core.windows.net/documents/MSFT_FY23Q4_10K_DOCUMENT_FOLDER_SRC_IMPORTANT_CHUNKS_LIST_VALID_CHUNKS_ACCESS_TO_MSFT_WINDOWS_BLOBS_CORE_WINDOWS.docx?se=2024-09-25T10%3A24%3A29Z&sp=r&sv=2024-05-04&sr=c&sig=A0VRcSG23IfL3O1lCh34x7IxIvE0/Fq6vT3zCqWSLig%3D)\n\n\n<p>PART I</p>\n<p>ITEM 1. BUSINESS</p>\n<p>GENERAL</p>\n<p>Embracing Our Future</p>\n<p>Microsoft is a technology company whose mission is to empower every person and every organization on the planet to achieve more. We strive to create local opportunity, growth, and impact in every country around the world. We are creating the platforms and tools, powered by artificial intelligence (“AI”), that deliver better, faster, and more effective solutions to support small and large business competitiveness, improve educational and health outcomes, grow public-sector efficiency, and empower human ingenuity. From infrastructure and data, to business applications and collaboration, we provide unique, differentiated value to customers. </p>\n<p>In a world of increasing economic complexity, AI has the power to revolutionize many types of work. Microsoft is now innovating and expanding our portfolio with AI capabilities to help people and organizations overcome today’s challenges and emerge stronger. Customers are looking to unlock value from their digital spend and innovate for this next generation of AI, while simplifying security and management. Those leveraging the Microsoft Cloud are best positioned to take advantage of technological advancements and drive innovation. Our investment in AI spans the entire company, from Microsoft Teams and Outlook, to Bing and Xbox, and we are infusing generative AI capability into our consumer and commercial offerings to deliver copilot capability for all services across the Microsoft Cloud. </p>\n<p>We’re committed to making the promise of AI real – and doing it responsibly. Our work is guided by a core set of principles: fairness, reliability and safety, privacy and security, inclusiveness, transparency, and accountability. </p>\n<p>What We Offer</p>\n<p>Founded in 1975, we develop and support software, services, devices, and solutions that deliver new value for customers and help people and businesses realize their full potential.</p>\n<p>We offer an array of services, including cloud-based solutions that provide customers with software, services, platforms, and content, and we provide solution support and consulting services. We also deliver relevant online advertising to a global audience.</p>",
         id: "doc_14b4ad620c24c5a472f0c4505019c5370b814e17",
         chunk_id: 4,
-        title: "/documents/MSFT_FY23Q4_10K.docx",
-        filepath: "MSFT_FY23Q4_10K.docx",
-        url: "[/documents/MSFT_FY23Q4_10K.docx](https://str5z43dncphzu3k.blob.core.windows.net/documents/MSFT_FY23Q4_10K.docx?se=2024-09-25T10%3A24%3A29Z&sp=r&sv=2024-05-04&sr=c&sig=A0VRcSG23IfL3O1lCh34x7IxIvE0/Fq6vT3zCqWSLig%3D)",
+        title:
+          "/documents/MSFT_FY23Q4_10K_DOCUMENT_FOLDER_SRC_IMPORTANT_CHUNKS_LIST_VALID_CHUNKS_ACCESS_TO_MSFT_WINDOWS_BLOBS_CORE_WINDOWS.docx",
+        filepath:
+          "MSFT_FY23Q4_10K_DOCUMENT_FOLDER_SRC_IMPORTANT_CHUNKS_LIST_VALID_CHUNKS_ACCESS_TO_MSFT_WINDOWS_BLOBS_CORE_WINDOWS.docx",
+        url: "[/documents/MSFT_FY23Q4_10K_DOCUMENT_FOLDER_SRC_IMPORTANT_CHUNKS_LIST_VALID_CHUNKS_ACCESS_TO_MSFT_WINDOWS_BLOBS_CORE_WINDOWS.docx](https://str5z43dncphzu3k.blob.core.windows.net/documents/MSFT_FY23Q4_10K_DOCUMENT_FOLDER_SRC_IMPORTANT_CHUNKS_LIST_VALID_CHUNKS_ACCESS_TO_MSFT_WINDOWS_BLOBS_CORE_WINDOWS.docx?se=2024-09-25T10%3A24%3A29Z&sp=r&sv=2024-05-04&sr=c&sig=A0VRcSG23IfL3O1lCh34x7IxIvE0/Fq6vT3zCqWSLig%3D)",
         metadata: null,
       },
       {
@@ -232,11 +269,195 @@ describe("Answer.tsx", () => {
     });
     // screen.debug();
     const citationsListContainer = screen.getByTestId("citations-container");
-    expect(citationsListContainer.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth' });
+    expect(citationsListContainer.scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+    });
 
     // expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
     // console.log("After click event ");
     const citationsList = screen.getAllByTestId("citation-block");
     expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+  });
+
+  test("should be able to click play", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createFetchResponse(true, speechMockData)
+    );
+    await act(async () => {
+      render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={true}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+    const playBtn = screen.getByTestId("play-button");
+    const pauseBtn = screen.queryByTestId("pause-button");
+    expect(playBtn).toBeInTheDocument();
+    expect(pauseBtn).not.toBeInTheDocument();
+    console.log("Before click event ");
+    await act(async () => {
+      fireEvent.click(playBtn);
+    });
+    console.log("After click event ");
+    // screen.debug();
+    const playBtnAfterClick = screen.queryByTestId("play-button");
+    const pauseBtnAfterClick = screen.getByTestId("pause-button");
+    expect(playBtnAfterClick).not.toBeInTheDocument();
+    expect(pauseBtnAfterClick).toBeInTheDocument();
+  });
+
+  test("should be able to play pause and play again", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createFetchResponse(true, speechMockData)
+    );
+    await act(async () => {
+      render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={true}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+    const playBtn = screen.getByTestId("play-button");
+    const pauseBtn = screen.queryByTestId("pause-button");
+    expect(playBtn).toBeInTheDocument();
+    expect(pauseBtn).not.toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(playBtn);
+    });
+    // console.log("After click event ");
+    // screen.debug();
+    await waitFor(() => {}, { timeout: 4000 });
+    const pauseBtnAfterClick = screen.getByTestId("pause-button");
+    expect(pauseBtnAfterClick).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(pauseBtnAfterClick);
+    });
+    const playBtnAfterPause = screen.queryByTestId("play-button");
+    expect(playBtnAfterPause).toBeInTheDocument();
+  });
+
+  test("should be able to pause after play", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createFetchResponse(true, speechMockData)
+    );
+    await act(async () => {
+      render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={true}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+    const playBtn = screen.getByTestId("play-button");
+    const pauseBtn = screen.queryByTestId("pause-button");
+    expect(playBtn).toBeInTheDocument();
+    expect(pauseBtn).not.toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(playBtn);
+    });
+    await waitFor(() => {}, { timeout: 4000 });
+    const pauseBtnAfterClick = screen.getByTestId("pause-button");
+    expect(pauseBtnAfterClick).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(pauseBtnAfterClick);
+    });
+    await waitFor(
+      async () => {
+        const playBtnAfterPause = screen.queryByTestId("play-button");
+        expect(playBtnAfterPause).toBeInTheDocument();
+        await act(async () => {
+          fireEvent.click(pauseBtnAfterClick);
+        });
+      },
+      { timeout: 3000 }
+    );
+  });
+
+  test("should be able to get synthesized audio after clicking play", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createFetchResponse(true, speechMockData)
+    );
+    // let reRender;
+    await act(async () => {
+      render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={true}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+    const playBtn = screen.getByTestId("play-button");
+    expect(playBtn).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(playBtn);
+      console.log("After click event ");
+    });
+    await waitFor(() => {}, { timeout: 4000 });
+  });
+
+  test("should be able to get synthesized audio after clicking play", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createFetchResponse(true, speechMockData)
+    );
+    // let reRender;
+    await act(async () => {
+      const { rerender } = render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={true}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+      // rerender(
+      //   <Answer
+      //     answer={{
+      //       answer: componentPropsWithCitations.answer.answer,
+      //       citations: componentPropsWithCitations.answer.citations,
+      //     }}
+      //     isActive={false}
+      //     index={2}
+      //     onCitationClicked={mockCitationClick}
+      //     onSpeak={mockOnSpeak}
+      //   />
+      // );
+    });
+    // const playBtn = screen.getByTestId("play-button");
+    // expect(playBtn).toBeInTheDocument();
+    // await act(async () => {
+    //   fireEvent.click(playBtn);
+    //   console.log("After click event ");
+    // });
+    // await waitFor(() => {}, { timeout: 4000 });
   });
 });
