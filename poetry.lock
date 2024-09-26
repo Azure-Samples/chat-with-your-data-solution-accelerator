@@ -706,23 +706,23 @@ aio = ["azure-core[aio] (>=1.28.0)"]
 
 [[package]]
 name = "azure-storage-queue"
-version = "12.11.0"
+version = "12.12.0"
 description = "Microsoft Azure Azure Queue Storage Client Library for Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "azure-storage-queue-12.11.0.tar.gz", hash = "sha256:0a8c777839dba5c50824cac48afa3cc56be044faa45ca61b7269eb319ebf0171"},
-    {file = "azure_storage_queue-12.11.0-py3-none-any.whl", hash = "sha256:b9bdff3da5f0fb6ec4daa48ef4b465c780e0a3df5e065d875e105229acec0798"},
+    {file = "azure_storage_queue-12.12.0-py3-none-any.whl", hash = "sha256:9305f724e0df6a93e3645bf075b5a7e3fc0a1eb1ee47c85912c7aff6b6fd490d"},
+    {file = "azure_storage_queue-12.12.0.tar.gz", hash = "sha256:baf2f1bc82b7d4f5291922c3ea4f23ce2243e942dbe7494fca1782290b37f1e4"},
 ]
 
 [package.dependencies]
-azure-core = ">=1.28.0"
+azure-core = ">=1.30.0"
 cryptography = ">=2.1.4"
 isodate = ">=0.6.1"
 typing-extensions = ">=4.6.0"
 
 [package.extras]
-aio = ["azure-core[aio] (>=1.28.0)"]
+aio = ["azure-core[aio] (>=1.30.0)"]
 
 [[package]]
 name = "babel"
@@ -7102,4 +7102,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "f11aeae1eafbcc89835cd741fb6f99e8d7e1810deeed468a3b3655174934ce19"
+content-hash = "5bc90c749ac070f236388c164a55211a040ae98231a7e2d111108feaab49bc62"
