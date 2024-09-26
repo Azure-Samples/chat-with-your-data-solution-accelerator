@@ -138,7 +138,16 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
             azure_ad_token_provider=env_helper.AZURE_TOKEN_PROVIDER,
         )
 
-    messages = conversation.json["messages"]
+    request_messages = conversation.json["messages"]
+    messages = []
+    config = ConfigHelper.get_active_config_or_default()
+    if config.prompts.use_on_your_data_format:
+        messages.append(
+            {"role": "system", "content": config.prompts.answering_system_prompt}
+        )
+
+    for message in request_messages:
+        messages.append({"role": message["role"], "content": message["content"]})
 
     # Azure OpenAI takes the deployment name as the model name, "AZURE_OPENAI_MODEL" means
     # deployment name.
@@ -501,5 +510,6 @@ def create_app():
         ConfigHelper.get_active_config_or_default.cache_clear()
         result = ConfigHelper.get_active_config_or_default()
         return jsonify({"ai_assistant_type": result.prompts.ai_assistant_type})
-    app.register_blueprint(bp_chat_history_response, url_prefix='/api')
+
+    app.register_blueprint(bp_chat_history_response, url_prefix="/api")
     return app
