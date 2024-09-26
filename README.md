@@ -138,6 +138,7 @@ Note: Some of the sample data included with this accelerator was generated using
 - Azure Search Service
 - Azure Storage Account
 - Azure Speech Service
+- Azure CosmosDB
 - Teams (optional: Teams extension only)
 
 ### Required licenses
