@@ -48,7 +48,7 @@ def test_post_responds_successfully(app_url: str, app_config: AppConfig):
         ],
         "created": "response.created",
         "id": "response.id",
-        "model": app_config.get("AZURE_OPENAI_MODEL"),
+        "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),
         "object": "response.object",
     }
     assert response.headers["Content-Type"] == "application/json"
@@ -64,7 +64,7 @@ def test_post_makes_correct_call_to_openai_embeddings(
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
-            path=f"/openai/deployments/{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}/embeddings",
+            path=f"/openai/deployments/{app_config.get_from_json('AZURE_OPENAI_EMBEDDING_MODEL_INFO','model')}/embeddings",
             method="POST",
             json={
                 "input": [
@@ -157,7 +157,7 @@ def test_post_makes_correct_call_to_openai_chat_completions(
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
-            path=f"/openai/deployments/{app_config.get('AZURE_OPENAI_MODEL')}/chat/completions",
+            path=f"/openai/deployments/{app_config.get_from_json('AZURE_OPENAI_MODEL_INFO','model')}/chat/completions",
             method="POST",
             json={
                 "messages": [
@@ -169,7 +169,7 @@ def test_post_makes_correct_call_to_openai_chat_completions(
                     {"role": "assistant", "content": "Hi, how can I help?"},
                     {"role": "user", "content": "What is the meaning of life?"},
                 ],
-                "model": app_config.get("AZURE_OPENAI_MODEL"),
+                "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),
                 "max_tokens": int(app_config.get("AZURE_OPENAI_MAX_TOKENS")),
                 "stream": False,
                 "temperature": 0.0,

@@ -257,7 +257,7 @@ def test_integrated_vectorization_index_created(
                             "kind": "azureOpenAI",
                             "azureOpenAIParameters": {
                                 "resourceUri": f"https://localhost:{httpserver.port}/",
-                                "deploymentId": f"{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}",
+                                "deploymentId": f"{app_config.get_from_json('AZURE_OPENAI_EMBEDDING_MODEL_INFO','model')}",
                                 "apiKey": f"{app_config.get('AZURE_OPENAI_API_KEY')}",
                             },
                         }
@@ -343,7 +343,7 @@ def test_integrated_vectorization_skillset_created(
                             {"name": "embedding", "targetName": "content_vector"}
                         ],
                         "resourceUri": f"https://localhost:{httpserver.port}/",
-                        "deploymentId": f"{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}",
+                        "deploymentId": f"{app_config.get_from_json('AZURE_OPENAI_EMBEDDING_MODEL_INFO','model')}",
                         "apiKey": f"{app_config.get('AZURE_OPENAI_API_KEY')}",
                     },
                 ],
