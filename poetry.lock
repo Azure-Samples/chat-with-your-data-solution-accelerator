@@ -583,28 +583,28 @@ azure-core = ">=1.26.2,<2.0.0"
 
 [[package]]
 name = "azure-monitor-opentelemetry"
-version = "1.6.1"
+version = "1.6.2"
 description = "Microsoft Azure Monitor Opentelemetry Distro Client Library for Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "azure-monitor-opentelemetry-1.6.1.tar.gz", hash = "sha256:69151ac27cdeef70c372124bc68d75bb12e2d2cc2f99c4ef89dae3dac1000b51"},
-    {file = "azure_monitor_opentelemetry-1.6.1-py3-none-any.whl", hash = "sha256:0ecd160054afa8fdf0442c73b3d3f6b9e41af45b935acf502de12f81d05edd2d"},
+    {file = "azure_monitor_opentelemetry-1.6.2-py3-none-any.whl", hash = "sha256:f3ae67ab8da3d47cbd9eb2a29e6b75c42739dfca28aff15e049d857bd412728a"},
+    {file = "azure_monitor_opentelemetry-1.6.2.tar.gz", hash = "sha256:bfd7dff797b8197e4b22722ef861f8111e2ccb50012555db03a7716b6b148e22"},
 ]
 
 [package.dependencies]
 azure-core = ">=1.28.0,<2.0.0"
 azure-core-tracing-opentelemetry = ">=1.0.0b11,<1.1.0"
 azure-monitor-opentelemetry-exporter = ">=1.0.0b28,<1.1.0"
-opentelemetry-instrumentation-django = ">=0.47b0,<1.0"
-opentelemetry-instrumentation-fastapi = ">=0.47b0,<1.0"
-opentelemetry-instrumentation-flask = ">=0.47b0,<1.0"
-opentelemetry-instrumentation-psycopg2 = ">=0.47b0,<1.0"
-opentelemetry-instrumentation-requests = ">=0.47b0,<1.0"
-opentelemetry-instrumentation-urllib = ">=0.47b0,<1.0"
-opentelemetry-instrumentation-urllib3 = ">=0.47b0,<1.0"
+opentelemetry-instrumentation-django = ">=0.48b0,<1.0"
+opentelemetry-instrumentation-fastapi = ">=0.48b0,<1.0"
+opentelemetry-instrumentation-flask = ">=0.48b0,<1.0"
+opentelemetry-instrumentation-psycopg2 = ">=0.48b0,<1.0"
+opentelemetry-instrumentation-requests = ">=0.48b0,<1.0"
+opentelemetry-instrumentation-urllib = ">=0.48b0,<1.0"
+opentelemetry-instrumentation-urllib3 = ">=0.48b0,<1.0"
 opentelemetry-resource-detector-azure = ">=0.1.4,<0.2.0"
-opentelemetry-sdk = ">=1.26,<2.0"
+opentelemetry-sdk = ">=1.27,<2.0"
 
 [[package]]
 name = "azure-monitor-opentelemetry-exporter"
@@ -7102,4 +7102,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "72ed979bd0f6ed1cbe4600ff7fa751534fa47960e07ac5398ae9577d55027093"
+content-hash = "f11aeae1eafbcc89835cd741fb6f99e8d7e1810deeed468a3b3655174934ce19"
