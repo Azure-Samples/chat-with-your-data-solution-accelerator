@@ -16,7 +16,6 @@ describe("NoPage.tsx", () => {
   test("renders NoPage Component with Correct Text", () => {
     render(<NoPage />);
     const ErrorElement = screen.getByText("404");
-    console.log("ErrorElement.textContent", ErrorElement.textContent);
     expect(ErrorElement.textContent).toEqual("404");
   });
 
