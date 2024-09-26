@@ -1,13 +1,11 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import "@testing-library/jest-dom";
 import { QuestionInput } from "./QuestionInput";
 import fetch from 'isomorphic-fetch';
+
 globalThis.fetch = fetch;
 
 const mockOnSend = jest.fn();
-
 const onStopClick = jest.fn();
-
 const onMicrophoneClick = jest.fn();
 
 describe("QuestionInput Component", () => {
