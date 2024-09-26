@@ -258,7 +258,6 @@ describe("Answer.tsx", () => {
         />
       );
     });
-    // screen.debug();
     const referencesElement = screen.getByTestId("no-of-references");
     expect(referencesElement).toBeInTheDocument();
     expect(referencesElement.textContent).toEqual("5 references");
@@ -282,19 +281,14 @@ describe("Answer.tsx", () => {
         />
       );
     });
-    // screen.debug();
     const referencesElement = screen.getByTestId("toggle-citations-list");
-    // screen.debug();
-    console.log("Before click event ");
     await act(async () => {
       fireEvent.click(referencesElement);
     });
-    // screen.debug();
     const citationsListContainer = screen.getByTestId("citations-container");
     expect(citationsListContainer.scrollIntoView).toHaveBeenCalledWith({
       behavior: "smooth",
     });
-    const citationsList = screen.getAllByTestId("citation-block");
     expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
   });
 
@@ -320,7 +314,6 @@ describe("Answer.tsx", () => {
     await act(async () => {
       fireEvent.click(chevronIcon);
     });
-    // screen.debug();
     const citationsListContainer = screen.getByTestId("citations-container");
     expect(citationsListContainer.scrollIntoView).toHaveBeenCalledWith({
       behavior: "smooth",
@@ -349,12 +342,9 @@ describe("Answer.tsx", () => {
     const pauseBtn = screen.queryByTestId("pause-button");
     expect(playBtn).toBeInTheDocument();
     expect(pauseBtn).not.toBeInTheDocument();
-    console.log("Before click event ");
     await act(async () => {
       fireEvent.click(playBtn);
     });
-    console.log("After click event ");
-    // screen.debug();
     const playBtnAfterClick = screen.queryByTestId("play-button");
     const pauseBtnAfterClick = screen.getByTestId("pause-button");
     expect(playBtnAfterClick).not.toBeInTheDocument();
@@ -386,8 +376,6 @@ describe("Answer.tsx", () => {
     await act(async () => {
       fireEvent.click(playBtn);
     });
-    // console.log("After click event ");
-    // screen.debug();
     await waitFor(() => {}, { timeout: 4000 });
     const pauseBtnAfterClick = screen.getByTestId("pause-button");
     expect(pauseBtnAfterClick).toBeInTheDocument();
@@ -487,7 +475,6 @@ describe("Answer.tsx", () => {
         />
       );
       reRender = rerender;
-      screen.debug();
     });
 
     const playBtn = screen.getByTestId("play-button");
@@ -535,7 +522,6 @@ describe("Answer.tsx", () => {
         />
       );
       reRender = rerender;
-      screen.debug();
     });
 
     const playBtn = screen.getByTestId("play-button");
