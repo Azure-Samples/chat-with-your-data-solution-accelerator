@@ -78,6 +78,9 @@ class EnvHelper:
         self.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = os.getenv(
             "AZURE_SEARCH_CONVERSATIONS_LOG_INDEX", "conversations"
         )
+        self.AZURE_SEARCH_DOC_UPLOAD_BATCH_SIZE = os.getenv(
+            "AZURE_SEARCH_DOC_UPLOAD_BATCH_SIZE", 100
+        )
         # Integrated Vectorization
         self.AZURE_SEARCH_DATASOURCE_NAME = os.getenv(
             "AZURE_SEARCH_DATASOURCE_NAME", ""

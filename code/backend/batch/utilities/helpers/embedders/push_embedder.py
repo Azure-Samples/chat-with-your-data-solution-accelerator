@@ -79,12 +79,18 @@ class PushEmbedder(EmbedderBase):
             for document in documents:
                 documents_to_upload.append(self.__convert_to_search_document(document))
 
-        response = self.azure_search_helper.get_search_client().upload_documents(
-            documents_to_upload
-        )
-        if not all([r.succeeded for r in response]):
-            logger.error("Failed to upload documents to search index")
-            raise Exception(response)
+        # Upload documents (which are chunks) to search index in batches
+        if documents_to_upload:
+            batch_size = self.env_helper.AZURE_SEARCH_DOC_UPLOAD_BATCH_SIZE
+            search_client = self.azure_search_helper.get_search_client()
+            for i in range(0, len(documents_to_upload), batch_size):
+                batch = documents_to_upload[i : i + batch_size]
+                response = search_client.upload_documents(batch)
+                if not all(r.succeeded for r in response if response):
+                    logger.error("Failed to upload documents to search index")
+                    raise RuntimeError(f"Upload failed for some documents: {response}")
+        else:
+            logger.warning("No documents to upload.")
 
     def __generate_image_caption(self, source_url):
         model = self.env_helper.AZURE_OPENAI_VISION_MODEL
