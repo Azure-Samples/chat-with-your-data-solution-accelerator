@@ -90,13 +90,16 @@ class EnvHelper:
 
         self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "keys")
         # Azure OpenAI
+        # Default model info
+        default_azure_openai_model_info = '{"model":"gpt-35-turbo-16k","modelName":"gpt-35-turbo-16k","modelVersion":"0613"}'
+        default_azure_openai_embedding_model_info = '{"model":"text-embedding-ada-002","modelName":"text-embedding-ada-002","modelVersion":"2"}'
+
         self.AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE", "")
 
-        default_azure_openai_model_info = '{"model":"gpt-35-turbo-16k","modelName":"gpt-35-turbo-16k","modelVersion":"0613"}'
-        azure_openai_model_info_str = os.getenv(
+        # Fetch and assign model info
+        azure_openai_model_info = self.get_info_from_env(
             "AZURE_OPENAI_MODEL_INFO", default_azure_openai_model_info
         )
-        azure_openai_model_info = json.loads(azure_openai_model_info_str)
         self.AZURE_OPENAI_MODEL = azure_openai_model_info.get("model")
         self.AZURE_OPENAI_MODEL_NAME = azure_openai_model_info.get("modelName")
 
@@ -114,13 +117,10 @@ class EnvHelper:
         )
         self.AZURE_OPENAI_STREAM = os.getenv("AZURE_OPENAI_STREAM", "true")
 
-        default_azure_openai_embedding_model_info = '{"model":"text-embedding-ada-002","modelName":"text-embedding-ada-002","modelVersion":"2"}'
-        azure_openai_embedding_model_info_str = os.getenv(
+        # Fetch and assign embedding model info
+        azure_openai_embedding_model_info = self.get_info_from_env(
             "AZURE_OPENAI_EMBEDDING_MODEL_INFO",
             default_azure_openai_embedding_model_info,
-        )
-        azure_openai_embedding_model_info = json.loads(
-            azure_openai_embedding_model_info_str
         )
         self.AZURE_OPENAI_EMBEDDING_MODEL = azure_openai_embedding_model_info.get(
             "model"
@@ -279,6 +279,14 @@ class EnvHelper:
 
     def is_auth_type_keys(self):
         return self.AZURE_AUTH_TYPE == "keys"
+
+    def get_info_from_env(self, env_var: str, default_info: str) -> dict:
+        # Fetch and parse model info from the environment variable.
+        info_str = os.getenv(env_var, default_info)
+        # Handle escaped characters in the JSON string by wrapping it in double quotes for parsing.
+        if "\\" in info_str:
+            info_str = json.loads(f'"{info_str}"')
+        return {} if not info_str else json.loads(info_str)
 
     @staticmethod
     def check_env():

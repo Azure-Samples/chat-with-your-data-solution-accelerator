@@ -31,7 +31,7 @@ param azureSearchOffsetColumn = readEnvironmentVariable('AZURE_SEARCH_OFFSET_COL
 
 // OpenAI parameters
 var azureOpenAIModelInfo = readEnvironmentVariable('AZURE_OPENAI_MODEL_INFO', '{"model":"gpt-35-turbo-16k","modelName":"gpt-35-turbo-16k","modelVersion":"0613"}')
-var azureOpenAIModelInfoParsed = json(azureOpenAIModelInfo)
+var azureOpenAIModelInfoParsed = json(replace(azureOpenAIModelInfo, '\\', '')) // Remove escape characters
 param azureOpenAIModel = azureOpenAIModelInfoParsed.model
 param azureOpenAIModelName = azureOpenAIModelInfoParsed.modelName
 param azureOpenAIModelVersion = azureOpenAIModelInfoParsed.modelVersion
@@ -44,7 +44,7 @@ param azureOpenAIVisionModelName = readEnvironmentVariable('AZURE_OPENAI_VISION_
 param azureOpenAIVisionModelVersion = readEnvironmentVariable('AZURE_OPENAI_VISION_MODEL_VERSION', 'vision-preview')
 param azureOpenAIVisionModelCapacity = int(readEnvironmentVariable('AZURE_OPENAI_VISION_MODEL_CAPACITY', '10'))
 var azureOpenAIEmbeddingModelInfo = readEnvironmentVariable('AZURE_OPENAI_EMBEDDING_MODEL_INFO', '{"model":"text-embedding-ada-002","modelName":"text-embedding-ada-002","modelVersion":"2"}')
-var azureOpenAIEmbeddingModelInfoParsed = json(azureOpenAIEmbeddingModelInfo)
+var azureOpenAIEmbeddingModelInfoParsed = json(replace(azureOpenAIEmbeddingModelInfo, '\\', '')) // Remove escape characters
 param azureOpenAIEmbeddingModel = azureOpenAIEmbeddingModelInfoParsed.model
 param azureOpenAIEmbeddingModelName = azureOpenAIEmbeddingModelInfoParsed.modelName
 param azureOpenAIEmbeddingModelVersion = azureOpenAIEmbeddingModelInfoParsed.modelVersion
