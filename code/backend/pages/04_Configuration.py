@@ -385,7 +385,7 @@ try:
 
         with st.expander("Logging configuration", expanded=True):
             st.checkbox(
-                "Log user input and output (questions, answers, chat history, sources)",
+                "Log user input and output (questions, answers, conversation history, sources)",
                 key="log_user_interactions",
             )
             st.checkbox("Log tokens", key="log_tokens")
