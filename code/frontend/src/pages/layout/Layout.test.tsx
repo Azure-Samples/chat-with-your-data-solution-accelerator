@@ -1,4 +1,3 @@
-import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import Layout from "./Layout";
 
