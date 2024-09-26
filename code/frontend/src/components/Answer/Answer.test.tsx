@@ -218,6 +218,28 @@ describe("Answer.tsx", () => {
     expect(AIGeneratedContentElement).toBeInTheDocument();
   });
 
+  // test("on speech response failure handled properly", async () => {
+  //   (global.fetch as jest.Mock).mockResolvedValue(
+  //     createFetchResponse(false, "Error response message")
+  //   );
+
+  //   await act(async () => {
+  //     render(
+  //       <Answer
+  //         answer={{ answer: "User Question 1", citations: [] }}
+  //         onCitationClicked={mockCitationClick}
+  //         onSpeak={mockOnSpeak}
+  //         isActive={true}
+  //         index={0}
+  //       />
+  //     );
+  //   });
+  //   const AIGeneratedContentElement = screen.getByText(
+  //     /ai\-generated content may be incorrect/i
+  //   );
+  //   expect(AIGeneratedContentElement).toBeInTheDocument();
+  // });
+
   test("No Of Citations Should Show 5 references", async () => {
     (global.fetch as jest.Mock).mockResolvedValue(
       createFetchResponse(true, speechMockData)
@@ -272,11 +294,37 @@ describe("Answer.tsx", () => {
     expect(citationsListContainer.scrollIntoView).toHaveBeenCalledWith({
       behavior: "smooth",
     });
-
-    // expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
-    // console.log("After click event ");
     const citationsList = screen.getAllByTestId("citation-block");
     expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+  });
+
+  test("Should be able click Chevron to get citation list", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createFetchResponse(true, speechMockData)
+    );
+    await act(async () => {
+      render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={true}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+    const chevronIcon = screen.getByTestId("chevron-icon");
+    await act(async () => {
+      fireEvent.click(chevronIcon);
+    });
+    // screen.debug();
+    const citationsListContainer = screen.getByTestId("citations-container");
+    expect(citationsListContainer.scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+    });
   });
 
   test("should be able to click play", async () => {
@@ -416,16 +464,15 @@ describe("Answer.tsx", () => {
     expect(playBtn).toBeInTheDocument();
     await act(async () => {
       fireEvent.click(playBtn);
-      console.log("After click event ");
     });
     await waitFor(() => {}, { timeout: 4000 });
   });
 
-  test("should be able to get synthesized audio after clicking play", async () => {
+  test("on change of isActive prop playing audio should stop", async () => {
     (global.fetch as jest.Mock).mockResolvedValue(
       createFetchResponse(true, speechMockData)
     );
-    // let reRender;
+    let reRender: (ui: React.ReactNode) => void;
     await act(async () => {
       const { rerender } = render(
         <Answer
@@ -439,25 +486,81 @@ describe("Answer.tsx", () => {
           onSpeak={mockOnSpeak}
         />
       );
-      // rerender(
-      //   <Answer
-      //     answer={{
-      //       answer: componentPropsWithCitations.answer.answer,
-      //       citations: componentPropsWithCitations.answer.citations,
-      //     }}
-      //     isActive={false}
-      //     index={2}
-      //     onCitationClicked={mockCitationClick}
-      //     onSpeak={mockOnSpeak}
-      //   />
-      // );
+      reRender = rerender;
+      screen.debug();
     });
-    // const playBtn = screen.getByTestId("play-button");
-    // expect(playBtn).toBeInTheDocument();
-    // await act(async () => {
-    //   fireEvent.click(playBtn);
-    //   console.log("After click event ");
-    // });
-    // await waitFor(() => {}, { timeout: 4000 });
+
+    const playBtn = screen.getByTestId("play-button");
+    expect(playBtn).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(playBtn);
+    });
+
+    await act(async () => {
+      const pauseBtn = screen.getByTestId("pause-button");
+      expect(pauseBtn).toBeInTheDocument();
+      reRender(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={false}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+    const playAfterActiveFalse = screen.getByTestId("play-button");
+    expect(playAfterActiveFalse).toBeInTheDocument();
+  });
+
+  test("on index prop update new synthesizer to be initialized", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createFetchResponse(true, speechMockData)
+    );
+    let reRender: (ui: React.ReactNode) => void;
+    await act(async () => {
+      const { rerender } = render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={true}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+      reRender = rerender;
+      screen.debug();
+    });
+
+    const playBtn = screen.getByTestId("play-button");
+    expect(playBtn).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(playBtn);
+    });
+
+    await act(async () => {
+      const pauseBtn = screen.getByTestId("pause-button");
+      expect(pauseBtn).toBeInTheDocument();
+      reRender(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={false}
+          index={3}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+    const playAfterActiveFalse = screen.getByTestId("play-button");
+    expect(playAfterActiveFalse).toBeInTheDocument();
   });
 });

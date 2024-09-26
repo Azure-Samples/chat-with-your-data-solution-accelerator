@@ -243,13 +243,13 @@ export const Answer = ({
       case 'Speak':
       case 'Resume':
         return (
-          <button id="speakerbtn" title={"Read aloud"} onClick={handleSpeakPauseResume} style={{ border: 0, backgroundColor: 'transparent' }}>
+          <button data-testid="play-button" id="speakerbtn" title={"Read aloud"} onClick={handleSpeakPauseResume} style={{ border: 0, backgroundColor: 'transparent' }}>
             <img src={speakerIcon} alt="Speak" />
           </button>
         )
       case 'Pause':
         return (
-          <button id="pausebtn" title={"Pause"} onClick={handleSpeakPauseResume} style={{ border: 0, backgroundColor: 'transparent' }} >
+          <button data-testid="pause-button" id="pausebtn" title={"Pause"} onClick={handleSpeakPauseResume} style={{ border: 0, backgroundColor: 'transparent' }} >
             <img src={pauseIcon} alt={isPaused ? 'Resume' : 'Pause'} />
           </button>
         )
@@ -284,8 +284,11 @@ export const Answer = ({
                   >
                     <span data-testid="no-of-references">{parsedAnswer.citations.length > 1 ? parsedAnswer.citations.length + " references" : "1 reference"}</span>
                   </Text>
-                  <FontIcon className={styles.accordionIcon}
-                    onClick={handleChevronClick} iconName={chevronIsExpanded ? 'ChevronDown' : 'ChevronRight'}
+                  <FontIcon
+                    className={styles.accordionIcon}
+                    data-testid="chevron-icon"
+                    onClick={handleChevronClick}
+                    iconName={chevronIsExpanded ? 'ChevronDown' : 'ChevronRight'}
                   />
                 </Stack>
 
