@@ -226,4 +226,3 @@ A [Bicep file](./infra/main.bicep) is used to generate the [ARM template](./infr
 ```sh
 az deployment sub create --template-file ./infra/main.bicep --subscription {your_azure_subscription_id} --location {search_location}
  ```
-# Marktayl access test
