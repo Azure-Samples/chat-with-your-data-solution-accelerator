@@ -254,6 +254,22 @@ class EnvHelper:
 
         self.PROMPT_FLOW_DEPLOYMENT_NAME = os.getenv("PROMPT_FLOW_DEPLOYMENT_NAME", "")
 
+        # Chat History CosmosDB Integration Settings
+        self.AZURE_COSMOSDB_DATABASE = os.getenv("AZURE_COSMOSDB_DATABASE", "")
+        self.AZURE_COSMOSDB_ACCOUNT = os.getenv("AZURE_COSMOSDB_ACCOUNT", "")
+        self.AZURE_COSMOSDB_CONVERSATIONS_CONTAINER = os.getenv(
+            "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER", ""
+        )
+        self.AZURE_COSMOSDB_ACCOUNT_KEY = self.secretHelper.get_secret(
+            "AZURE_COSMOSDB_ACCOUNT_KEY"
+        )
+        self.AZURE_COSMOSDB_ENABLE_FEEDBACK = (
+            os.getenv("AZURE_COSMOSDB_ENABLE_FEEDBACK", "false").lower() == "true"
+        )
+        self.CHAT_HISTORY_ENABLED = self.get_env_var_bool(
+            "CHAT_HISTORY_ENABLED", "true"
+        )
+
     def should_use_data(self) -> bool:
         if (
             self.AZURE_SEARCH_SERVICE
@@ -339,8 +355,9 @@ class SecretHelper:
             None
 
         """
+        secret_name_value = os.getenv(secret_name, "")
         return (
-            self.secret_client.get_secret(os.getenv(secret_name, "")).value
-            if self.USE_KEY_VAULT
+            self.secret_client.get_secret(secret_name_value).value
+            if self.USE_KEY_VAULT and secret_name_value
             else os.getenv(secret_name, "")
         )
