@@ -140,10 +140,10 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
 
     request_messages = conversation.json["messages"]
     messages = []
-    configttt = ConfigHelper.get_active_config_or_default()
-    if configttt.prompts.use_on_your_data_format:
+    config = ConfigHelper.get_active_config_or_default()
+    if config.prompts.use_on_your_data_format:
         messages.append(
-            {"role": "system", "content": configttt.prompts.answering_system_prompt}
+            {"role": "system", "content": config.prompts.answering_system_prompt}
         )
 
     for message in request_messages:
