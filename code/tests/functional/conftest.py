@@ -20,7 +20,7 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     ).respond_with_data()
 
     httpserver.expect_request(
-        f"/openai/deployments/{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}/embeddings",
+        f"/openai/deployments/{app_config.get_from_json('AZURE_OPENAI_EMBEDDING_MODEL_INFO','model')}/embeddings",
         method="POST",
     ).respond_with_json(
         {
@@ -58,7 +58,7 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
 
     httpserver.expect_request(
         re.compile(
-            f"/openai/deployments/({app_config.get('AZURE_OPENAI_MODEL')}|{app_config.get('AZURE_OPENAI_VISION_MODEL')})/chat/completions"
+            f"/openai/deployments/({app_config.get_from_json('AZURE_OPENAI_MODEL_INFO','model')}|{app_config.get('AZURE_OPENAI_VISION_MODEL')})/chat/completions"
         ),
         method="POST",
     ).respond_with_json(
@@ -66,7 +66,7 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
             "id": "chatcmpl-6v7mkQj980V1yBec6ETrKPRqFjNw9",
             "object": "chat.completion",
             "created": 1679072642,
-            "model": app_config.get("AZURE_OPENAI_MODEL"),
+            "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),
             "usage": {
                 "prompt_tokens": 58,
                 "completion_tokens": 68,
@@ -194,7 +194,7 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
                     "inputs": [{"name": "text", "source": "/document/pages/*"}],
                     "outputs": [{"name": "embedding", "targetName": "content_vector"}],
                     "resourceUri": f"https://localhost:{httpserver.port}/",
-                    "deploymentId": f"{app_config.get('AZURE_OPENAI_EMBEDDING_MODEL')}",
+                    "deploymentId": f"{app_config.get_from_json('AZURE_OPENAI_EMBEDDING_MODEL_INFO','model')}",
                     "apiKey": f"{app_config.get('AZURE_OPENAI_API_KEY')}",
                 },
             ],

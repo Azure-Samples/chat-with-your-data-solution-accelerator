@@ -1,4 +1,5 @@
 import base64
+import json
 import logging
 import os
 from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
@@ -24,11 +25,10 @@ class AppConfig:
         "AZURE_KEY_VAULT_ENDPOINT": "some-key-vault-endpoint",
         "AZURE_OPENAI_API_KEY": "some-azure-openai-api-key",
         "AZURE_OPENAI_API_VERSION": "2024-02-01",
-        "AZURE_OPENAI_EMBEDDING_MODEL": "some-embedding-model",
+        "AZURE_OPENAI_EMBEDDING_MODEL_INFO": '{"model":"some-embedding-model","modelName":"some-embedding-model-name","modelVersion":"some-embedding-model-version"}',
         "AZURE_OPENAI_ENDPOINT": "some-openai-endpoint",
         "AZURE_OPENAI_MAX_TOKENS": "1000",
-        "AZURE_OPENAI_MODEL": "some-openai-model",
-        "AZURE_OPENAI_MODEL_NAME": "some-openai-model-name",
+        "AZURE_OPENAI_MODEL_INFO": '{"model":"some-openai-model","modelName":"some-openai-model-name","modelVersion":"some-openai-model-version"}',
         "AZURE_OPENAI_VISION_MODEL": "some-openai-vision-model",
         "AZURE_OPENAI_RESOURCE": "some-openai-resource",
         "AZURE_OPENAI_STREAM": "True",
@@ -94,6 +94,10 @@ class AppConfig:
 
     def get(self, key: str) -> str | None:
         return self.config[key]
+
+    def get_from_json(self, config_key: str, field: str) -> str | None:
+        config_json = json.loads(self.config[config_key])
+        return config_json.get(field)
 
     def get_all(self) -> dict[str, str | None]:
         return self.config

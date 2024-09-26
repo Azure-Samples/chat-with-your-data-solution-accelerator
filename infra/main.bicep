@@ -309,6 +309,16 @@ var resourceGroupName = resourceGroup().name
 var tags = { 'azd-env-name': resourceGroupName }
 var location = resourceGroup().location
 var keyVaultName = 'kv-${resourceToken}'
+var azureOpenAIModelInfo = string({
+  model: azureOpenAIModel
+  modelName: azureOpenAIModelName
+  modelVersion: azureOpenAIModelVersion
+})
+var azureOpenAIEmbeddingModelInfo = string({
+  model: azureOpenAIEmbeddingModel
+  modelName: azureOpenAIEmbeddingModelName
+  modelVersion: azureOpenAIEmbeddingModelVersion
+})
 
 module cosmosDBModule './core/database/cosmosdb.bicep' = {
   name: 'deploy_cosmos_db'
@@ -556,9 +566,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-      AZURE_OPENAI_MODEL: azureOpenAIModel
-      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
-      AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
+      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
       AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
       AZURE_OPENAI_TOP_P: azureOpenAITopP
       AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
@@ -566,9 +574,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_OPENAI_STREAM: azureOpenAIStream
-      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-      AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
-      AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
+      AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -644,9 +650,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-      AZURE_OPENAI_MODEL: azureOpenAIModel
-      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
-      AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
+      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
       AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
       AZURE_OPENAI_TOP_P: azureOpenAITopP
       AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
@@ -654,9 +658,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_OPENAI_STREAM: azureOpenAIStream
-      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-      AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
-      AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
+      AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -731,9 +733,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-      AZURE_OPENAI_MODEL: azureOpenAIModel
-      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
-      AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
+      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
       AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
       AZURE_OPENAI_TOP_P: azureOpenAITopP
       AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
@@ -741,9 +741,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_OPENAI_STREAM: azureOpenAIStream
-      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-      AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
-      AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
+      AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
@@ -812,9 +810,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-      AZURE_OPENAI_MODEL: azureOpenAIModel
-      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
-      AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
+      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
       AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
       AZURE_OPENAI_TOP_P: azureOpenAITopP
       AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
@@ -822,9 +818,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_OPENAI_STREAM: azureOpenAIStream
-      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-      AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
-      AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
+      AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
       AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
       AZURE_SEARCH_INDEX: azureSearchIndex
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
@@ -928,12 +922,8 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-      AZURE_OPENAI_MODEL: azureOpenAIModel
-      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
-      AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
-      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-      AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
-      AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
+      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
+      AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -995,12 +985,8 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-      AZURE_OPENAI_MODEL: azureOpenAIModel
-      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
-      AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
-      AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-      AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
-      AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
+      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
+      AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_SEARCH_INDEX: azureSearchIndex
@@ -1174,8 +1160,7 @@ output AZURE_FORM_RECOGNIZER_KEY string = useKeyVault ? storekeys.outputs.FORM_R
 output AZURE_KEY_VAULT_ENDPOINT string = useKeyVault ? keyvault.outputs.endpoint : ''
 output AZURE_KEY_VAULT_NAME string = useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
 output AZURE_LOCATION string = location
-output AZURE_OPENAI_MODEL_NAME string = azureOpenAIModelName
-output AZURE_OPENAI_MODEL_VERSION string = azureOpenAIModelVersion
+output AZURE_OPENAI_MODEL_INFO string = azureOpenAIModelInfo
 output AZURE_OPENAI_STREAM string = azureOpenAIStream
 output AZURE_OPENAI_SYSTEM_MESSAGE string = azureOpenAISystemMessage
 output AZURE_OPENAI_STOP_SEQUENCE string = azureOpenAIStopSequence
@@ -1184,8 +1169,7 @@ output AZURE_OPENAI_TOP_P string = azureOpenAITopP
 output AZURE_OPENAI_TEMPERATURE string = azureOpenAITemperature
 output AZURE_OPENAI_API_VERSION string = azureOpenAIApiVersion
 output AZURE_OPENAI_RESOURCE string = azureOpenAIResourceName
-output AZURE_OPENAI_EMBEDDING_MODEL_NAME string = azureOpenAIEmbeddingModelName
-output AZURE_OPENAI_EMBEDDING_MODEL_VERSION string = azureOpenAIEmbeddingModelVersion
+output AZURE_OPENAI_EMBEDDING_MODEL_INFO string = azureOpenAIEmbeddingModelInfo
 output AZURE_OPENAI_API_KEY string = useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
 output AZURE_RESOURCE_GROUP string = resourceGroupName
 output AZURE_SEARCH_KEY string = useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''

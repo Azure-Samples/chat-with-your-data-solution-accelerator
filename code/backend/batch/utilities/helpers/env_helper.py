@@ -1,3 +1,4 @@
+import json
 import os
 import logging
 import threading
@@ -22,6 +23,7 @@ class EnvHelper:
 
     def __load_config(self, **kwargs) -> None:
         load_dotenv()
+
         logger.info("Initializing EnvHelper")
 
         # Wrapper for Azure Key Vault
@@ -77,6 +79,9 @@ class EnvHelper:
         self.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = os.getenv(
             "AZURE_SEARCH_CONVERSATIONS_LOG_INDEX", "conversations"
         )
+        self.AZURE_SEARCH_DOC_UPLOAD_BATCH_SIZE = os.getenv(
+            "AZURE_SEARCH_DOC_UPLOAD_BATCH_SIZE", 100
+        )
         # Integrated Vectorization
         self.AZURE_SEARCH_DATASOURCE_NAME = os.getenv(
             "AZURE_SEARCH_DATASOURCE_NAME", ""
@@ -88,11 +93,19 @@ class EnvHelper:
 
         self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "keys")
         # Azure OpenAI
+        # Default model info
+        default_azure_openai_model_info = '{"model":"gpt-35-turbo-16k","modelName":"gpt-35-turbo-16k","modelVersion":"0613"}'
+        default_azure_openai_embedding_model_info = '{"model":"text-embedding-ada-002","modelName":"text-embedding-ada-002","modelVersion":"2"}'
+
         self.AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE", "")
-        self.AZURE_OPENAI_MODEL = os.getenv("AZURE_OPENAI_MODEL", "gpt-35-turbo-16k")
-        self.AZURE_OPENAI_MODEL_NAME = os.getenv(
-            "AZURE_OPENAI_MODEL_NAME", "gpt-35-turbo-16k"
+
+        # Fetch and assign model info
+        azure_openai_model_info = self.get_info_from_env(
+            "AZURE_OPENAI_MODEL_INFO", default_azure_openai_model_info
         )
+        self.AZURE_OPENAI_MODEL = azure_openai_model_info.get("model")
+        self.AZURE_OPENAI_MODEL_NAME = azure_openai_model_info.get("modelName")
+
         self.AZURE_OPENAI_VISION_MODEL = os.getenv("AZURE_OPENAI_VISION_MODEL", "gpt-4")
         self.AZURE_OPENAI_TEMPERATURE = os.getenv("AZURE_OPENAI_TEMPERATURE", "0")
         self.AZURE_OPENAI_TOP_P = os.getenv("AZURE_OPENAI_TOP_P", "1.0")
@@ -106,9 +119,16 @@ class EnvHelper:
             "AZURE_OPENAI_API_VERSION", "2024-02-01"
         )
         self.AZURE_OPENAI_STREAM = os.getenv("AZURE_OPENAI_STREAM", "true")
-        self.AZURE_OPENAI_EMBEDDING_MODEL = os.getenv(
-            "AZURE_OPENAI_EMBEDDING_MODEL", ""
+
+        # Fetch and assign embedding model info
+        azure_openai_embedding_model_info = self.get_info_from_env(
+            "AZURE_OPENAI_EMBEDDING_MODEL_INFO",
+            default_azure_openai_embedding_model_info,
         )
+        self.AZURE_OPENAI_EMBEDDING_MODEL = azure_openai_embedding_model_info.get(
+            "model"
+        )
+
         self.SHOULD_STREAM = (
             True if self.AZURE_OPENAI_STREAM.lower() == "true" else False
         )
@@ -137,7 +157,6 @@ class EnvHelper:
 
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
-
         if self.AZURE_AUTH_TYPE == "rbac":
             self.AZURE_SEARCH_KEY = None
             self.AZURE_OPENAI_API_KEY = ""
@@ -235,22 +254,6 @@ class EnvHelper:
 
         self.PROMPT_FLOW_DEPLOYMENT_NAME = os.getenv("PROMPT_FLOW_DEPLOYMENT_NAME", "")
 
-        # Chat History CosmosDB Integration Settings
-        self.AZURE_COSMOSDB_DATABASE = os.getenv("AZURE_COSMOSDB_DATABASE", "")
-        self.AZURE_COSMOSDB_ACCOUNT = os.getenv("AZURE_COSMOSDB_ACCOUNT", "")
-        self.AZURE_COSMOSDB_CONVERSATIONS_CONTAINER = os.getenv(
-            "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER", ""
-        )
-        self.AZURE_COSMOSDB_ACCOUNT_KEY = self.secretHelper.get_secret(
-            "AZURE_COSMOSDB_ACCOUNT_KEY"
-        )
-        self.AZURE_COSMOSDB_ENABLE_FEEDBACK = (
-            os.getenv("AZURE_COSMOSDB_ENABLE_FEEDBACK", "false").lower() == "true"
-        )
-        self.CHAT_HISTORY_ENABLED = self.get_env_var_bool(
-            "CHAT_HISTORY_ENABLED", "true"
-        )
-
     def should_use_data(self) -> bool:
         if (
             self.AZURE_SEARCH_SERVICE
@@ -279,6 +282,14 @@ class EnvHelper:
 
     def is_auth_type_keys(self):
         return self.AZURE_AUTH_TYPE == "keys"
+
+    def get_info_from_env(self, env_var: str, default_info: str) -> dict:
+        # Fetch and parse model info from the environment variable.
+        info_str = os.getenv(env_var, default_info)
+        # Handle escaped characters in the JSON string by wrapping it in double quotes for parsing.
+        if "\\" in info_str:
+            info_str = json.loads(f'"{info_str}"')
+        return {} if not info_str else json.loads(info_str)
 
     @staticmethod
     def check_env():
@@ -328,9 +339,8 @@ class SecretHelper:
             None
 
         """
-        secret_name_value = os.getenv(secret_name, "")
         return (
-            self.secret_client.get_secret(secret_name_value).value
-            if self.USE_KEY_VAULT and secret_name_value
+            self.secret_client.get_secret(os.getenv(secret_name, "")).value
+            if self.USE_KEY_VAULT
             else os.getenv(secret_name, "")
         )
