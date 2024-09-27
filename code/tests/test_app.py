@@ -941,6 +941,9 @@ class TestConversationAzureByod:
             "Please wait a moment and try again."
         }
 
+    @patch(
+        "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
+    )
     @patch("create_app.AzureOpenAI")
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
@@ -949,6 +952,7 @@ class TestConversationAzureByod:
         self,
         get_active_config_or_default_mock,
         azure_openai_mock,
+        index_not_exists_mock,
         env_helper_mock,
         client,
     ):
@@ -958,7 +962,7 @@ class TestConversationAzureByod:
         get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
             "byod"
         )
-
+        index_not_exists_mock.return_value = True
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
 
@@ -1014,6 +1018,9 @@ class TestConversationAzureByod:
             stream=False,
         )
 
+    @patch(
+        "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
+    )
     @patch("create_app.AzureOpenAI")
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
@@ -1022,6 +1029,7 @@ class TestConversationAzureByod:
         self,
         get_active_config_or_default_mock,
         azure_openai_mock,
+        index_not_exists_mock,
         env_helper_mock,
         client,
     ):
@@ -1033,6 +1041,7 @@ class TestConversationAzureByod:
         get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
             "byod"
         )
+        index_not_exists_mock.return_value = True
 
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
@@ -1089,6 +1098,9 @@ class TestConversationAzureByod:
             stream=False,
         )
 
+    @patch(
+        "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
+    )
     @patch("create_app.AzureOpenAI")
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
@@ -1097,6 +1109,7 @@ class TestConversationAzureByod:
         self,
         get_active_config_or_default_mock,
         azure_openai_mock,
+        index_not_exists_mock,
         env_helper_mock,
         client,
     ):
@@ -1105,7 +1118,7 @@ class TestConversationAzureByod:
         get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
             "byod"
         )
-
+        index_not_exists_mock.return_value = True
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
 
