@@ -84,7 +84,6 @@ def env_helper_mock():
         )
         env_helper.SHOULD_STREAM = True
         env_helper.is_auth_type_keys.return_value = True
-        env_helper.should_use_data.return_value = True
         env_helper.CONVERSATION_FLOW = ConversationFlow.CUSTOM.value
 
         yield env_helper
@@ -599,6 +598,9 @@ class TestConversationAzureByod:
             ),
         ]
 
+    @patch(
+        "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
+    )
     @patch("create_app.AzureOpenAI")
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
@@ -611,6 +613,7 @@ class TestConversationAzureByod:
         generate_container_sas_mock: MagicMock,
         get_active_config_or_default_mock,
         azure_openai_mock: MagicMock,
+        index_not_exists_mock,
         env_helper_mock: MagicMock,
         client: FlaskClient,
     ):
@@ -625,6 +628,7 @@ class TestConversationAzureByod:
             "byod"
         )
         generate_container_sas_mock.return_value = "mock-sas"
+        index_not_exists_mock.return_value = False
 
         # when
         response = client.post(
@@ -694,6 +698,9 @@ class TestConversationAzureByod:
             },
         )
 
+    @patch(
+        "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
+    )
     @patch("create_app.AzureOpenAI")
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
@@ -706,6 +713,7 @@ class TestConversationAzureByod:
         generate_container_sas_mock: MagicMock,
         get_active_config_or_default_mock,
         azure_openai_mock: MagicMock,
+        index_not_exists_mock,
         env_helper_mock: MagicMock,
         client: FlaskClient,
     ):
@@ -720,6 +728,7 @@ class TestConversationAzureByod:
         openai_client_mock.chat.completions.create.return_value = (
             self.mock_streamed_response
         )
+        index_not_exists_mock.return_value = False
 
         # when
         response = client.post(
@@ -755,6 +764,9 @@ class TestConversationAzureByod:
             "type": "system_assigned_managed_identity",
         }
 
+    @patch(
+        "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
+    )
     @patch("create_app.AzureOpenAI")
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
@@ -767,6 +779,7 @@ class TestConversationAzureByod:
         generate_container_sas_mock: MagicMock,
         get_active_config_or_default_mock,
         azure_openai_mock: MagicMock,
+        index_not_exists_mock,
         env_helper_mock: MagicMock,
         client: FlaskClient,
     ):
@@ -777,7 +790,7 @@ class TestConversationAzureByod:
             "byod"
         )
         generate_container_sas_mock.return_value = "mock-sas"
-
+        index_not_exists_mock.return_value = False
         openai_client_mock = azure_openai_mock.return_value
         openai_client_mock.chat.completions.create.return_value = self.mock_response
 
@@ -878,6 +891,9 @@ class TestConversationAzureByod:
             "administrator."
         }
 
+    @patch(
+        "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
+    )
     @patch("create_app.conversation_with_data")
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
@@ -886,6 +902,7 @@ class TestConversationAzureByod:
         self,
         get_active_config_or_default_mock,
         conversation_with_data_mock,
+        index_not_exists_mock,
         client,
     ):
         """Test that a 429 response is returned on RateLimitError for BYOD conversation."""
@@ -908,6 +925,7 @@ class TestConversationAzureByod:
         get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
             "byod"
         )
+        index_not_exists_mock.return_value = False
 
         # when
         response = client.post(
@@ -923,6 +941,9 @@ class TestConversationAzureByod:
             "Please wait a moment and try again."
         }
 
+    @patch(
+        "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
+    )
     @patch("create_app.AzureOpenAI")
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
@@ -931,17 +952,17 @@ class TestConversationAzureByod:
         self,
         get_active_config_or_default_mock,
         azure_openai_mock,
+        index_not_exists_mock,
         env_helper_mock,
         client,
     ):
         """Test that the Azure BYOD conversation endpoint returns the correct response."""
         # given
-        env_helper_mock.should_use_data.return_value = False
         env_helper_mock.SHOULD_STREAM = False
         get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
             "byod"
         )
-
+        index_not_exists_mock.return_value = True
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
 
@@ -997,6 +1018,9 @@ class TestConversationAzureByod:
             stream=False,
         )
 
+    @patch(
+        "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
+    )
     @patch("create_app.AzureOpenAI")
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
@@ -1005,18 +1029,19 @@ class TestConversationAzureByod:
         self,
         get_active_config_or_default_mock,
         azure_openai_mock,
+        index_not_exists_mock,
         env_helper_mock,
         client,
     ):
         """Test that the Azure BYOD conversation endpoint returns the correct response."""
         # given
-        env_helper_mock.should_use_data.return_value = False
         env_helper_mock.SHOULD_STREAM = False
         env_helper_mock.AZURE_AUTH_TYPE = "rbac"
         env_helper_mock.AZURE_OPENAI_STOP_SEQUENCE = ""
         get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
             "byod"
         )
+        index_not_exists_mock.return_value = True
 
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
@@ -1073,6 +1098,9 @@ class TestConversationAzureByod:
             stream=False,
         )
 
+    @patch(
+        "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
+    )
     @patch("create_app.AzureOpenAI")
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
@@ -1081,16 +1109,16 @@ class TestConversationAzureByod:
         self,
         get_active_config_or_default_mock,
         azure_openai_mock,
+        index_not_exists_mock,
         env_helper_mock,
         client,
     ):
         """Test that the Azure BYOD conversation endpoint returns the correct response."""
         # given
-        env_helper_mock.should_use_data.return_value = False
         get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
             "byod"
         )
-
+        index_not_exists_mock.return_value = True
         openai_client_mock = MagicMock()
         azure_openai_mock.return_value = openai_client_mock
 
@@ -1120,6 +1148,9 @@ class TestConversationAzureByod:
             == '{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"role": "assistant", "content": "mock content"}]}]}\n'
         )
 
+    @patch(
+        "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
+    )
     @patch("create_app.AzureOpenAI")
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
@@ -1132,6 +1163,7 @@ class TestConversationAzureByod:
         generate_container_sas_mock: MagicMock,
         get_active_config_or_default_mock,
         azure_openai_mock: MagicMock,
+        index_not_exists_mock,
         client: FlaskClient,
     ):
         """Test that the Azure BYOD conversation endpoint uses the semantic configuration."""
@@ -1144,7 +1176,7 @@ class TestConversationAzureByod:
         openai_client_mock.chat.completions.create.return_value = (
             self.mock_streamed_response
         )
-
+        index_not_exists_mock.return_value = False
         # when
         response = client.post(
             "/api/conversation",
