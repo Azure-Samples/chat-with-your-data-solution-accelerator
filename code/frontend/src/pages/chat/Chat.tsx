@@ -29,7 +29,7 @@ import {
 } from "../../api";
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
-import Cards from "./Cards_contract/Cards";
+import {Cards} from "./Cards_contract/Cards";
 
 const Chat = () => {
   const lastQuestionRef = useRef<string>("");
@@ -87,6 +87,7 @@ const Chat = () => {
         request,
         abortController.signal
       );
+      console.log(">>>>> Response of call ",response)
       if (response?.body) {
         const reader = response.body.getReader();
         let runningText = "";
@@ -101,6 +102,7 @@ const Chat = () => {
               runningText += obj;
               result = JSON.parse(runningText);
               setShowLoadingMessage(false);
+              console.log("ErrorLog",result);
               if (result.error) {
                 setAnswers([
                   ...answers,
@@ -121,6 +123,8 @@ const Chat = () => {
         setAnswers([...answers, userMessage, ...result.choices[0].messages]);
       }
     } catch (e) {
+      console.log("cached errr in here", e);
+
       if (!abortController.signal.aborted) {
         if (e instanceof Error) {
           alert(e.message);
@@ -221,10 +225,12 @@ const Chat = () => {
 
   useEffect(
     () => {
+      console.log("chatMessageStreamEnd", chatMessageStreamEnd);
       chatMessageStreamEnd.current?.scrollIntoView({ behavior: "smooth" })
       const fetchAssistantType = async () => {
         try {
           const result = await getAssistantTypeApi();
+          console.log(result);
           if (result) {
             setAssistantType(result.ai_assistant_type);
           }
@@ -310,7 +316,7 @@ const Chat = () => {
                       </div>
                     </div>
                   ) : answer.role === "assistant" || answer.role === "error" ? (
-                    <div className={styles.chatMessageGpt}>
+                    <div data-testid="errorOccurredMessage" className={styles.chatMessageGpt}>
                       <Answer
                         answer={{
                           answer:
@@ -339,7 +345,7 @@ const Chat = () => {
                       {lastQuestionRef.current}
                     </div>
                   </div>
-                  <div className={styles.chatMessageGpt}>
+                  <div data-testid="generatingAnswer"className={styles.chatMessageGpt}>
                     <Answer
                       answer={{
                         answer: "Generating answer...",
@@ -351,7 +357,7 @@ const Chat = () => {
                   </div>
                 </>
               )}
-              <div ref={chatMessageStreamEnd} />
+              <div data-testid="streamendref-id" ref={chatMessageStreamEnd} />
             </div>
           )}
           <div>
