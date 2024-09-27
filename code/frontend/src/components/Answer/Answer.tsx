@@ -260,7 +260,7 @@ export const Answer = ({
 
   return (
     <>
-      <MyStackComponent className={styles.answerContainer} id={messageBoxId} ref={answerContainerRef}>
+      <MyStackComponent data-testid="message-box" className={styles.answerContainer} id={messageBoxId} ref={answerContainerRef}>
         <Stack.Item grow>
           <ReactMarkdown
             remarkPlugins={[remarkGfm, supersub]}

@@ -41,7 +41,7 @@ jest.mock("microsoft-cognitiveservices-speech-sdk", () => {
       speakTextAsync: jest.fn((text, callback) => {
         callback({
           audioData: new ArrayBuffer(1024),
-          audioDuration: 999999999999,
+          audioDuration: 52375000,
           reason: 10,
         });
       }),
@@ -60,7 +60,7 @@ jest.mock("microsoft-cognitiveservices-speech-sdk", () => {
   };
 });
 
-const componentPropsWithCitations = conversationResponseWithCitations
+const componentPropsWithCitations = conversationResponseWithCitations;
 
 const createFetchResponse = (ok: boolean, data: any) => {
   return { ok: ok, json: () => new Promise((resolve) => resolve(data)) };
@@ -72,6 +72,7 @@ describe("Answer.tsx", () => {
   beforeEach(() => {
     global.fetch = jest.fn();
     Element.prototype.scrollIntoView = jest.fn();
+    window.alert = jest.fn();
   });
   afterEach(() => {
     jest.clearAllMocks();
@@ -97,28 +98,6 @@ describe("Answer.tsx", () => {
     );
     expect(AIGeneratedContentElement).toBeInTheDocument();
   });
-
-  // test("on speech response failure handled properly", async () => {
-  //   (global.fetch as jest.Mock).mockResolvedValue(
-  //     createFetchResponse(false, "Error response message")
-  //   );
-
-  //   await act(async () => {
-  //     render(
-  //       <Answer
-  //         answer={{ answer: "User Question 1", citations: [] }}
-  //         onCitationClicked={mockCitationClick}
-  //         onSpeak={mockOnSpeak}
-  //         isActive={true}
-  //         index={0}
-  //       />
-  //     );
-  //   });
-  //   const AIGeneratedContentElement = screen.getByText(
-  //     /ai\-generated content may be incorrect/i
-  //   );
-  //   expect(AIGeneratedContentElement).toBeInTheDocument();
-  // });
 
   test("No Of Citations Should Show 5 references", async () => {
     (global.fetch as jest.Mock).mockResolvedValue(
@@ -428,5 +407,64 @@ describe("Answer.tsx", () => {
     });
     const playAfterActiveFalse = screen.getByTestId("play-button");
     expect(playAfterActiveFalse).toBeInTheDocument();
+  });
+
+  test("After duration completing it should show Play button", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createFetchResponse(true, speechMockData)
+    );
+    await act(async () => {
+      render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={true}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+    const playBtn = screen.getByTestId("play-button");
+    const pauseBtn = screen.queryByTestId("pause-button");
+    expect(playBtn).toBeInTheDocument();
+    expect(pauseBtn).not.toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(playBtn);
+    });
+    await waitFor(
+      () => {
+        const playBtnAfterClick = screen.getByTestId("play-button");
+        expect(playBtnAfterClick).toBeInTheDocument();
+      },
+      { timeout: 7000 }
+    );
+  }, 8000);
+
+  test("window should Alert when copying the answer", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createFetchResponse(true, speechMockData)
+    );
+    await act(async () => {
+      render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={true}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+
+    const messageBox = screen.getByTestId("message-box");
+    expect(messageBox).toBeInTheDocument();
+    fireEvent.copy(messageBox);
+    expect(window.alert).toHaveBeenCalledWith("Please consider where you paste this content.");
   });
 });
