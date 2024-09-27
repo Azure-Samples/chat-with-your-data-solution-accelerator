@@ -48,15 +48,19 @@ data: [DONE]
 
 
 @patch(
+    "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
+)
+@patch(
     "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
 )
 def test_azure_byod_responds_successfully_when_streaming(
     get_active_config_or_default_mock,
+    index_not_exists_mock,
     app_url: str,
     app_config: AppConfig,
 ):
     get_active_config_or_default_mock.return_value.prompts.conversational_flow = "byod"
-
+    index_not_exists_mock.return_value = False
     # when
     response = requests.post(f"{app_url}{path}", json=body)
 
@@ -93,16 +97,20 @@ def test_azure_byod_responds_successfully_when_streaming(
 
 
 @patch(
+    "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
+)
+@patch(
     "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
 )
 def test_post_makes_correct_call_to_azure_openai(
     get_active_config_or_default_mock,
+    index_not_exists_mock,
     app_url: str,
     app_config: AppConfig,
     httpserver: HTTPServer,
 ):
     get_active_config_or_default_mock.return_value.prompts.conversational_flow = "byod"
-
+    index_not_exists_mock.return_value = False
     # when
     requests.post(f"{app_url}{path}", json=body)
 

@@ -254,15 +254,6 @@ class EnvHelper:
 
         self.PROMPT_FLOW_DEPLOYMENT_NAME = os.getenv("PROMPT_FLOW_DEPLOYMENT_NAME", "")
 
-    def should_use_data(self) -> bool:
-        if (
-            self.AZURE_SEARCH_SERVICE
-            and self.AZURE_SEARCH_INDEX
-            and (self.AZURE_SEARCH_KEY or self.AZURE_AUTH_TYPE == "rbac")
-        ):
-            return True
-        return False
-
     def is_chat_model(self):
         if "gpt-4" in self.AZURE_OPENAI_MODEL_NAME.lower():
             return True

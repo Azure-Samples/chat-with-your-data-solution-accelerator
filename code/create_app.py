@@ -16,6 +16,7 @@ from flask import Flask, Response, request, Request, jsonify
 from dotenv import load_dotenv
 from urllib.parse import quote
 from backend.batch.utilities.helpers.env_helper import EnvHelper
+from backend.batch.utilities.helpers.azure_search_helper import AzureSearchHelper
 from backend.batch.utilities.helpers.orchestrator_helper import Orchestrator
 from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
@@ -67,6 +68,19 @@ def get_citations(citation_list):
             }
         )
     return citations_dict
+
+
+def should_use_data(
+    env_helper: EnvHelper, azure_search_helper: AzureSearchHelper
+) -> bool:
+    if (
+        env_helper.AZURE_SEARCH_SERVICE
+        and env_helper.AZURE_SEARCH_INDEX
+        and (env_helper.AZURE_SEARCH_KEY or env_helper.AZURE_AUTH_TYPE == "rbac")
+        and not azure_search_helper._index_not_exists(env_helper.AZURE_SEARCH_INDEX)
+    ):
+        return True
+    return False
 
 
 def stream_with_data(response: Stream[ChatCompletionChunk]):
@@ -371,6 +385,7 @@ def create_app():
 
     app = Flask(__name__)
     env_helper: EnvHelper = EnvHelper()
+    azure_search_helper: AzureSearchHelper = AzureSearchHelper()
 
     logger.debug("Starting web app")
 
@@ -385,7 +400,7 @@ def create_app():
 
     def conversation_azure_byod():
         try:
-            if env_helper.should_use_data():
+            if should_use_data(env_helper, azure_search_helper):
                 return conversation_with_data(request, env_helper)
             else:
                 return conversation_without_data(request, env_helper)
