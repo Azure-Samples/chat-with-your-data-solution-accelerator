@@ -57,7 +57,7 @@ param azureSearchIndexIsPrechunked string = 'false'
 param azureSearchTopK string = '5'
 
 @description('Enable in domain')
-param azureSearchEnableInDomain string = 'false'
+param azureSearchEnableInDomain string = 'true'
 
 @description('Id columns')
 param azureSearchFieldId string = 'id'
@@ -527,6 +527,12 @@ module hostingplan './core/host/appserviceplan.bicep' = {
   }
 }
 
+var azureCosmosDBInfo = string({
+  accountName: cosmosDBModule.outputs.cosmosOutput.cosmosAccountName
+  databaseName: cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName
+  containerName: cosmosDBModule.outputs.cosmosOutput.cosmosContainerName
+})
+
 module web './app/web.bicep' = if (hostingModel == 'code') {
   name: websiteName
   scope: resourceGroup()
@@ -603,9 +609,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       CONVERSATION_FLOW: conversationFlow
       LOGLEVEL: logLevel
-      AZURE_COSMOSDB_ACCOUNT: cosmosDBModule.outputs.cosmosOutput.cosmosAccountName
-      AZURE_COSMOSDB_DATABASE: cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName
-      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDBModule.outputs.cosmosOutput.cosmosContainerName
+      AZURE_COSMOSDB_INFO: azureCosmosDBInfo
       AZURE_COSMOSDB_ENABLE_FEEDBACK: true
       CHAT_HISTORY_ENABLED: chatHistoryEnabled
     }
@@ -687,9 +691,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       CONVERSATION_FLOW: conversationFlow
       LOGLEVEL: logLevel
-      AZURE_COSMOSDB_ACCOUNT: cosmosDBModule.outputs.cosmosOutput.cosmosAccountName
-      AZURE_COSMOSDB_DATABASE: cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName
-      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDBModule.outputs.cosmosOutput.cosmosContainerName
+      AZURE_COSMOSDB_INFO: azureCosmosDBInfo
       AZURE_COSMOSDB_ENABLE_FEEDBACK: true
       CHAT_HISTORY_ENABLED: chatHistoryEnabled
     }
@@ -922,7 +924,9 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
+      AZURE_OPENAI_MODEL: azureOpenAIModel
+      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
+      AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
       AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
@@ -985,7 +989,9 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
+      AZURE_OPENAI_MODEL: azureOpenAIModel
+      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
+      AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
       AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
@@ -1211,3 +1217,4 @@ output AZURE_ML_WORKSPACE_NAME string = orchestrationStrategy == 'prompt_flow'
   ? machineLearning.outputs.workspaceName
   : ''
 output RESOURCE_TOKEN string = resourceToken
+output AZURE_COSMOSDB_INFO string = azureCosmosDBInfo
