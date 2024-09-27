@@ -5,7 +5,8 @@
   - CWYD (Chat With Your Data) allows users to interact with their datasets conversationally. A key feature of this system is **Chat History**, which enables users to revisit past interactions for reference, auditing, or compliance purposes.
 
 - **Purpose of this Tutorial**:
-  - This tutorial guides software engineers on how to **implement** and **manage** chat history in CWYD, including enabling/disabling it and interacting with stored conversations.
+  - This tutorial guides software engineers on how to **implement** and **manage** chat history in CWYD, including enabling/disabling it.
+
 
 
 
