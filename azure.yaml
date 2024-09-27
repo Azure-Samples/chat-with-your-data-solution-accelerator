@@ -29,24 +29,8 @@ services:
     project: ./code/backend
     language: py
     host: appservice
-    hooks:
-      prepackage:
-        windows:
-          shell: pwsh
-          run: poetry install; poetry export -o requirements.txt
-        posix:
-          shell: sh
-          run: poetry install; poetry export -o requirements.txt
 
   function:
     project: ./code/backend/batch
     language: py
     host: function
-    hooks:
-      prepackage:
-        windows:
-          shell: pwsh
-          run: poetry install; poetry export -o requirements.txt
-        posix:
-          shell: sh
-          run: poetry install; poetry export -o requirements.txt
