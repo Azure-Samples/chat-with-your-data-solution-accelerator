@@ -924,9 +924,7 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-      AZURE_OPENAI_MODEL: azureOpenAIModel
-      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
-      AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
+      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
       AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
@@ -989,9 +987,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
       AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-      AZURE_OPENAI_MODEL: azureOpenAIModel
-      AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
-      AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
+      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
       AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion

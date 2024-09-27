@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.29.47.4906",
-      "templateHash": "4808875910949233899"
+      "templateHash": "4843965256692050769"
     }
   },
   "parameters": {
@@ -7785,9 +7785,7 @@
               "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION": "[parameters('computerVisionVectorizeImageModelVersion')]",
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(resourceId('Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(resourceId('Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
-              "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
-              "AZURE_OPENAI_MODEL_NAME": "[parameters('azureOpenAIModelName')]",
-              "AZURE_OPENAI_MODEL_VERSION": "[parameters('azureOpenAIModelVersion')]",
+              "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
               "AZURE_OPENAI_EMBEDDING_MODEL_INFO": "[variables('azureOpenAIEmbeddingModelInfo')]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
               "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
@@ -9034,9 +9032,7 @@
               "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION": "[parameters('computerVisionVectorizeImageModelVersion')]",
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(resourceId('Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(resourceId('Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
-              "AZURE_OPENAI_MODEL": "[parameters('azureOpenAIModel')]",
-              "AZURE_OPENAI_MODEL_NAME": "[parameters('azureOpenAIModelName')]",
-              "AZURE_OPENAI_MODEL_VERSION": "[parameters('azureOpenAIModelVersion')]",
+              "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
               "AZURE_OPENAI_EMBEDDING_MODEL_INFO": "[variables('azureOpenAIEmbeddingModelInfo')]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
               "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
