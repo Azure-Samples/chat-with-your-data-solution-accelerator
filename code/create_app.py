@@ -70,6 +70,19 @@ def get_citations(citation_list):
     return citations_dict
 
 
+def should_use_data(
+    env_helper: EnvHelper, azure_search_helper: AzureSearchHelper
+) -> bool:
+    if (
+        env_helper.AZURE_SEARCH_SERVICE
+        and env_helper.AZURE_SEARCH_INDEX
+        and (env_helper.AZURE_SEARCH_KEY or env_helper.AZURE_AUTH_TYPE == "rbac")
+        and not azure_search_helper._index_not_exists(env_helper.AZURE_SEARCH_INDEX)
+    ):
+        return True
+    return False
+
+
 def stream_with_data(response: Stream[ChatCompletionChunk]):
     """This function streams the response from Azure OpenAI with data."""
     response_obj = {
@@ -387,12 +400,7 @@ def create_app():
 
     def conversation_azure_byod():
         try:
-            if (
-                env_helper.should_use_data()
-                and not azure_search_helper._index_not_exists(
-                    env_helper.AZURE_SEARCH_INDEX
-                )
-            ):
+            if should_use_data(env_helper, azure_search_helper):
                 return conversation_with_data(request, env_helper)
             else:
                 return conversation_without_data(request, env_helper)
