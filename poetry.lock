@@ -4483,35 +4483,35 @@ wcwidth = "*"
 
 [[package]]
 name = "promptflow"
-version = "1.15.0"
+version = "1.15.1"
 description = "Prompt flow Python SDK - build high-quality LLM apps"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "promptflow-1.15.0-py3-none-any.whl", hash = "sha256:f953175295a9da7409127da9759f1e2e2093834b2a9207f455f82bb8048f99e9"},
+    {file = "promptflow-1.15.1-py3-none-any.whl", hash = "sha256:362244c90d95a2fb58c5e622e98a0fc39bf5a2c9c34d07752fabae65d3c9eb52"},
 ]
 
 [package.dependencies]
-promptflow-azure = {version = "1.15.0", optional = true, markers = "extra == \"azure\""}
-promptflow-core = "1.15.0"
-promptflow-devkit = "1.15.0"
-promptflow-tracing = "1.15.0"
+promptflow-azure = {version = "1.15.1", optional = true, markers = "extra == \"azure\""}
+promptflow-core = "1.15.1"
+promptflow-devkit = "1.15.1"
+promptflow-tracing = "1.15.1"
 
 [package.extras]
-all = ["promptflow-azure (==1.15.0)", "promptflow-core[executor-service] (==1.15.0)", "promptflow-devkit[all] (==1.15.0)"]
-azure = ["promptflow-azure (==1.15.0)"]
-azureml-serving = ["promptflow-core[azureml-serving] (==1.15.0)"]
-executable = ["promptflow-devkit[executable] (==1.15.0)"]
-executor-service = ["promptflow-core[executor-service] (==1.15.0)"]
+all = ["promptflow-azure (==1.15.1)", "promptflow-core[executor-service] (==1.15.1)", "promptflow-devkit[all] (==1.15.1)"]
+azure = ["promptflow-azure (==1.15.1)"]
+azureml-serving = ["promptflow-core[azureml-serving] (==1.15.1)"]
+executable = ["promptflow-devkit[executable] (==1.15.1)"]
+executor-service = ["promptflow-core[executor-service] (==1.15.1)"]
 
 [[package]]
 name = "promptflow-azure"
-version = "1.15.0"
+version = "1.15.1"
 description = "Prompt flow azure"
 optional = false
 python-versions = "!=2.7.*,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,!=3.7.*,>=3.8"
 files = [
-    {file = "promptflow_azure-1.15.0-py3-none-any.whl", hash = "sha256:1e7382eb9595db828c239231bac861ec8532d150bcedb9a3eabf7b3751e60e75"},
+    {file = "promptflow_azure-1.15.1-py3-none-any.whl", hash = "sha256:d58e81176777cbabde9d147bd1bfab54e80dde7fe4b94b252ef277d36d3bea58"},
 ]
 
 [package.dependencies]
@@ -4520,17 +4520,17 @@ azure-core = ">=1.26.4,<2.0.0"
 azure-cosmos = ">=4.5.1,<5.0.0"
 azure-identity = ">=1.12.0,<2.0.0"
 azure-storage-blob = {version = ">=12.17.0,<13.0.0", extras = ["aio"]}
-promptflow-devkit = ">=1.15.0,<2.0.0"
+promptflow-devkit = ">=1.15.1,<2.0.0"
 pyjwt = ">=2.4.0,<3.0.0"
 
 [[package]]
 name = "promptflow-core"
-version = "1.15.0"
+version = "1.15.1"
 description = "Prompt flow core"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "promptflow_core-1.15.0-py3-none-any.whl", hash = "sha256:46674e52eef0541509f6dc69b2203e63f711aacddd5aa06c7b55359f9fefbfeb"},
+    {file = "promptflow_core-1.15.1-py3-none-any.whl", hash = "sha256:06bd84a70539caa9a1e5657f20483b66023f7ba9a63dc65d5dbe5d987a2cbe37"},
 ]
 
 [package.dependencies]
@@ -4539,7 +4539,7 @@ fastapi = ">=0.109.0,<1.0.0"
 filetype = ">=1.2.0"
 flask = ">=2.2.3,<4.0.0"
 jsonschema = ">=4.0.0,<5.0.0"
-promptflow-tracing = "1.15.0"
+promptflow-tracing = "1.15.1"
 psutil = "*"
 python-dateutil = ">=2.1.0,<3.0.0"
 "ruamel.yaml" = ">=0.17.10,<1.0.0"
@@ -4549,12 +4549,12 @@ azureml-serving = ["azure-ai-ml (>=1.14.0,<2.0.0)", "azure-identity (>=1.12.0,<2
 
 [[package]]
 name = "promptflow-devkit"
-version = "1.15.0"
+version = "1.15.1"
 description = "Prompt flow devkit"
 optional = false
 python-versions = "!=2.7.*,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,!=3.7.*,>=3.8"
 files = [
-    {file = "promptflow_devkit-1.15.0-py3-none-any.whl", hash = "sha256:7c9f3286b8e745e70d8513c449c47ec8db7d0f5d3b2934b33533d7009fea1dfd"},
+    {file = "promptflow_devkit-1.15.1-py3-none-any.whl", hash = "sha256:5a01921909a78552cacadadd1fd416191cd65808e0c0f59eecf188486c8d0534"},
 ]
 
 [package.dependencies]
@@ -4572,7 +4572,7 @@ marshmallow = ">=3.5,<4.0.0"
 opentelemetry-exporter-otlp-proto-http = ">=1.22.0,<2.0.0"
 pandas = ">=1.5.3,<3.0.0"
 pillow = ">=10.1.0,<11.0.0"
-promptflow-core = ">=1.15.0,<2.0.0"
+promptflow-core = ">=1.15.1,<2.0.0"
 pydash = ">=6.0.0,<8.0.0"
 python-dotenv = ">=1.0.0,<2.0.0"
 pywin32 = {version = "*", markers = "sys_platform == \"win32\""}
@@ -4587,12 +4587,12 @@ pyarrow = ["pyarrow (>=14.0.1,<15.0.0)"]
 
 [[package]]
 name = "promptflow-tracing"
-version = "1.15.0"
+version = "1.15.1"
 description = "Prompt flow tracing"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "promptflow_tracing-1.15.0-py3-none-any.whl", hash = "sha256:776be489a2d8d70c3434d361c9576b4be1abd72b20912406fee02bca785d33ca"},
+    {file = "promptflow_tracing-1.15.1-py3-none-any.whl", hash = "sha256:3b2bd7d5ac3f224c62a1360f75cc204f1c9e8a31fabcd501382abebab75e9758"},
 ]
 
 [package.dependencies]
@@ -7111,4 +7111,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "9e0e87930803d9372e745de053b778f43885547bbb6abc37ca5aac5e065f9261"
+content-hash = "5b47ac6e4f47d47d209d5b2dd2228c4392cbb163e4e915f0d2544d42871dc771"
