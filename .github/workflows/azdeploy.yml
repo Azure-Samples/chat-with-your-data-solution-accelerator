@@ -46,6 +46,14 @@ on:
         description: 'The conversationFlow for the deployment'
         required: true
         default: "custom"
+      cleanupStep:
+        description: 'Do you want to cleanup the resources? if yes type `clean`'
+        required: true
+        default: 'unclean'
+      resourceGroupName:
+        description: 'Enter the resource group name you want to delete'
+        required: true
+        default: 'test'
 
 jobs:
   deploy:
@@ -85,3 +93,11 @@ jobs:
             azureSearchUseIntegratedVectorization=${{ github.event.inputs.azureSearchUseIntegratedVectorization }} azureOpenAIModel=${{ github.event.inputs.azureOpenAIModel }} \
             azureOpenAIModelName=${{ github.event.inputs.azureOpenAIModelName }} azureOpenAIModelVersion=${{ github.event.inputs.azureOpenAIModelVersion }} \
             orchestrationStrategy=${{ github.event.inputs.orchestrationStrategy }} conversationFlow=${{ github.event.inputs.conversationFlow }}
+
+      - name: Delete Bicep Deployment
+        run: |
+          if: ${{ github.event.inputs.cleanupStep == 'clean' }}
+          az group delete \
+              --name ${{ github.event.inputs.resourceGroupName }} \
+              --yes \
+              --no-wait
