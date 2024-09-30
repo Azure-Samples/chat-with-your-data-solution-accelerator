@@ -1,0 +1,23 @@
+.historyButtonRoot {
+    border: 1px solid #d1d1d1;
+  }
+
+  .historyButtonRoot:hover {
+    border: 1px solid #d1d1d1;
+  }
+
+  .historyButtonRoot:active {
+    border: 1px solid #d1d1d1;
+  }
+
+  @media (max-width: 480px) {
+    .shareButtonRoot {
+      width: auto;
+      padding: 5px 8px;
+    }
+
+    .historyButtonRoot {
+      width: auto;
+      padding: 0 8px;
+    }
+  }

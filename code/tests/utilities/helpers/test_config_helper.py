@@ -65,6 +65,7 @@ def config_dict():
         "orchestrator": {
             "strategy": "langchain",
         },
+        "enable_chat_history": True,
     }
 
 
@@ -359,6 +360,15 @@ def test_get_default_contract_assistant():
     assert isinstance(contract_assistant_prompt, str)
 
 
+def test_get_default_employee_assistant():
+    # when
+    employee_assistant_prompt = ConfigHelper.get_default_employee_assistant()
+
+    # then
+    assert employee_assistant_prompt is not None
+    assert isinstance(employee_assistant_prompt, str)
+
+
 def test_get_document_processors(config_dict: dict):
     # given
     config_dict["document_processors"] = [
@@ -430,7 +440,20 @@ def test_get_available_document_types_when_advanced_image_processing_enabled(
 
     # then
     assert sorted(document_types) == sorted(
-        ["txt", "pdf", "url", "html", "htm", "md", "jpeg", "jpg", "png", "docx", "tiff", "bmp"]
+        [
+            "txt",
+            "pdf",
+            "url",
+            "html",
+            "htm",
+            "md",
+            "jpeg",
+            "jpg",
+            "png",
+            "docx",
+            "tiff",
+            "bmp",
+        ]
     )
 
 

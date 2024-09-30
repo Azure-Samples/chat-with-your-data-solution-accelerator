@@ -141,5 +141,6 @@
   },
   "orchestrator": {
     "strategy": "${ORCHESTRATION_STRATEGY}"
-  }
+  },
+  "enable_chat_history": "${CHAT_HISTORY_ENABLED}"
 }

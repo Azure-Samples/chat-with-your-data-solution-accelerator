@@ -109,6 +109,9 @@ def test_post_makes_correct_call_to_azure_openai(
     app_config: AppConfig,
     httpserver: HTTPServer,
 ):
+    get_active_config_or_default_mock.return_value.prompts.use_on_your_data_format = (
+        False
+    )
     get_active_config_or_default_mock.return_value.prompts.conversational_flow = "byod"
     index_not_exists_mock.return_value = False
     # when

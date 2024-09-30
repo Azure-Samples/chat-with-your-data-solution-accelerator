@@ -29,6 +29,7 @@ param authType string
 param dockerFullImageName string = ''
 param useDocker bool = dockerFullImageName != ''
 param healthCheckPath string = ''
+param cosmosDBKeyName string = ''
 
 module web '../core/host/appservice.bicep' = {
   name: '${name}-app-module'
@@ -120,6 +121,17 @@ module web '../core/host/appservice.bicep' = {
             ),
             '2023-05-01'
           ).key1
+      AZURE_COSMOSDB_ACCOUNT_KEY: (useKeyVault || cosmosDBKeyName == '')
+      ? cosmosDBKeyName
+      : listKeys(
+          resourceId(
+            subscription().subscriptionId,
+            resourceGroup().name,
+            'Microsoft.DocumentDB/databaseAccounts',
+            cosmosDBKeyName
+          ),
+          '2022-08-15'
+        ).primaryMasterKey
     })
     keyVaultName: keyVaultName
     runtimeName: runtimeName
