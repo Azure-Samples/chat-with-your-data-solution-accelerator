@@ -27,6 +27,7 @@ AZURE_SEARCH_OFFSET_COLUMN = "mock-offset"
 AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = "default"
 AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = "mock-log-index"
 USE_ADVANCED_IMAGE_PROCESSING = False
+AZURE_SEARCH_DOC_UPLOAD_BATCH_SIZE = 100
 
 
 @pytest.fixture(autouse=True)
@@ -49,7 +50,9 @@ def llm_helper_mock():
 
 @pytest.fixture(autouse=True)
 def env_helper_mock():
-    with patch("backend.batch.utilities.helpers.embedders.push_embedder.EnvHelper") as mock:
+    with patch(
+        "backend.batch.utilities.helpers.embedders.push_embedder.EnvHelper"
+    ) as mock:
         env_helper = mock.return_value
         env_helper.AZURE_AUTH_TYPE = AZURE_AUTH_TYPE
         env_helper.AZURE_SEARCH_KEY = AZURE_SEARCH_KEY
@@ -58,7 +61,9 @@ def env_helper_mock():
         env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH = AZURE_SEARCH_USE_SEMANTIC_SEARCH
         env_helper.AZURE_SEARCH_FIELDS_ID = AZURE_SEARCH_FIELDS_ID
         env_helper.AZURE_SEARCH_CONTENT_COLUMN = AZURE_SEARCH_CONTENT_COLUMN
-        env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN = AZURE_SEARCH_CONTENT_VECTOR_COLUMN
+        env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN = (
+            AZURE_SEARCH_CONTENT_VECTOR_COLUMN
+        )
         env_helper.AZURE_SEARCH_TITLE_COLUMN = AZURE_SEARCH_TITLE_COLUMN
         env_helper.AZURE_SEARCH_FIELDS_METADATA = AZURE_SEARCH_FIELDS_METADATA
         env_helper.AZURE_SEARCH_SOURCE_COLUMN = AZURE_SEARCH_SOURCE_COLUMN
@@ -73,6 +78,9 @@ def env_helper_mock():
 
         env_helper.USE_ADVANCED_IMAGE_PROCESSING = USE_ADVANCED_IMAGE_PROCESSING
         env_helper.is_auth_type_keys.return_value = True
+        env_helper.AZURE_SEARCH_DOC_UPLOAD_BATCH_SIZE = (
+            AZURE_SEARCH_DOC_UPLOAD_BATCH_SIZE
+        )
         yield env_helper
 
 
@@ -291,7 +299,10 @@ def test_embed_file_advanced_image_processing_raises_exception_on_failure(
 
 
 def test_embed_file_use_advanced_image_processing_does_not_vectorize_image_if_unsupported(
-    azure_computer_vision_mock, mock_config_helper, azure_search_helper_mock, env_helper_mock
+    azure_computer_vision_mock,
+    mock_config_helper,
+    azure_search_helper_mock,
+    env_helper_mock,
 ):
     # given
     mock_config_helper.document_processors = [
@@ -331,7 +342,9 @@ def test_embed_file_loads_documents(document_loading_mock, env_helper_mock):
     )
 
 
-def test_embed_file_chunks_documents(document_loading_mock, document_chunking_mock, env_helper_mock):
+def test_embed_file_chunks_documents(
+    document_loading_mock, document_chunking_mock, env_helper_mock
+):
     # given
     push_embedder = PushEmbedder(MagicMock(), env_helper_mock)
 
@@ -347,7 +360,9 @@ def test_embed_file_chunks_documents(document_loading_mock, document_chunking_mo
     )
 
 
-def test_embed_file_chunks_documents_upper_case(document_loading_mock, document_chunking_mock, env_helper_mock):
+def test_embed_file_chunks_documents_upper_case(
+    document_loading_mock, document_chunking_mock, env_helper_mock
+):
     # given
     push_embedder = PushEmbedder(MagicMock(), env_helper_mock)
 
@@ -363,7 +378,9 @@ def test_embed_file_chunks_documents_upper_case(document_loading_mock, document_
     )
 
 
-def test_embed_file_generates_embeddings_for_documents(llm_helper_mock, env_helper_mock):
+def test_embed_file_generates_embeddings_for_documents(
+    llm_helper_mock, env_helper_mock
+):
     # given
     push_embedder = PushEmbedder(MagicMock(), env_helper_mock)
 
@@ -382,7 +399,8 @@ def test_embed_file_generates_embeddings_for_documents(llm_helper_mock, env_help
 def test_embed_file_stores_documents_in_search_index(
     document_chunking_mock,
     llm_helper_mock,
-    azure_search_helper_mock: MagicMock, env_helper_mock
+    azure_search_helper_mock: MagicMock,
+    env_helper_mock,
 ):
     # given
     push_embedder = PushEmbedder(MagicMock(), env_helper_mock)
@@ -404,10 +422,14 @@ def test_embed_file_stores_documents_in_search_index(
                 AZURE_SEARCH_FIELDS_METADATA: json.dumps(
                     {
                         AZURE_SEARCH_FIELDS_ID: expected_chunked_documents[0].id,
-                        AZURE_SEARCH_SOURCE_COLUMN: expected_chunked_documents[0].source,
+                        AZURE_SEARCH_SOURCE_COLUMN: expected_chunked_documents[
+                            0
+                        ].source,
                         AZURE_SEARCH_TITLE_COLUMN: expected_chunked_documents[0].title,
                         AZURE_SEARCH_CHUNK_COLUMN: expected_chunked_documents[0].chunk,
-                        AZURE_SEARCH_OFFSET_COLUMN: expected_chunked_documents[0].offset,
+                        AZURE_SEARCH_OFFSET_COLUMN: expected_chunked_documents[
+                            0
+                        ].offset,
                         "page_number": expected_chunked_documents[0].page_number,
                         "chunk_id": expected_chunked_documents[0].chunk_id,
                     }
@@ -424,10 +446,14 @@ def test_embed_file_stores_documents_in_search_index(
                 AZURE_SEARCH_FIELDS_METADATA: json.dumps(
                     {
                         AZURE_SEARCH_FIELDS_ID: expected_chunked_documents[1].id,
-                        AZURE_SEARCH_SOURCE_COLUMN: expected_chunked_documents[1].source,
+                        AZURE_SEARCH_SOURCE_COLUMN: expected_chunked_documents[
+                            1
+                        ].source,
                         AZURE_SEARCH_TITLE_COLUMN: expected_chunked_documents[1].title,
                         AZURE_SEARCH_CHUNK_COLUMN: expected_chunked_documents[1].chunk,
-                        AZURE_SEARCH_OFFSET_COLUMN: expected_chunked_documents[1].offset,
+                        AZURE_SEARCH_OFFSET_COLUMN: expected_chunked_documents[
+                            1
+                        ].offset,
                         "page_number": expected_chunked_documents[1].page_number,
                         "chunk_id": expected_chunked_documents[1].chunk_id,
                     }
@@ -438,6 +464,30 @@ def test_embed_file_stores_documents_in_search_index(
                 AZURE_SEARCH_OFFSET_COLUMN: expected_chunked_documents[1].offset,
             },
         ]
+    )
+
+
+def test_embed_file_stores_documents_in_search_index_in_batches(
+    document_chunking_mock,
+    llm_helper_mock,
+    azure_search_helper_mock: MagicMock,
+    env_helper_mock,
+):
+    # given
+    env_helper_mock.AZURE_SEARCH_DOC_UPLOAD_BATCH_SIZE = 1
+    push_embedder = PushEmbedder(MagicMock(), env_helper_mock)
+
+    # when
+    push_embedder.embed_file(
+        "some-url",
+        "some-file-name.pdf",
+    )
+
+    # then
+    azure_search_helper_mock.return_value.get_search_client.return_value.upload_documents.assert_called()
+    assert (
+        azure_search_helper_mock.return_value.get_search_client.return_value.upload_documents.call_count
+        == 2
     )
 
 

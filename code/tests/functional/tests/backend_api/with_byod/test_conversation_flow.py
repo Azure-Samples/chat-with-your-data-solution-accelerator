@@ -27,7 +27,7 @@ body = {
 @pytest.fixture(scope="function", autouse=True)
 def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
     httpserver.expect_request(
-        f"/openai/deployments/{app_config.get('AZURE_OPENAI_MODEL')}/chat/completions",
+        f"/openai/deployments/{app_config.get_from_json('AZURE_OPENAI_MODEL_INFO','model')}/chat/completions",
         method="POST",
     ).respond_with_data(
         Template(
@@ -39,7 +39,7 @@ data: {"id":"92f715be-cfc4-4ae6-80f8-c86b7955f6af","model":"$model","created":17
 
 data: [DONE]
 """
-        ).substitute(model=app_config.get("AZURE_OPENAI_MODEL"))
+        ).substitute(model=app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"))
     )
 
     yield
@@ -48,15 +48,19 @@ data: [DONE]
 
 
 @patch(
+    "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
+)
+@patch(
     "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
 )
 def test_azure_byod_responds_successfully_when_streaming(
     get_active_config_or_default_mock,
+    index_not_exists_mock,
     app_url: str,
     app_config: AppConfig,
 ):
     get_active_config_or_default_mock.return_value.prompts.conversational_flow = "byod"
-
+    index_not_exists_mock.return_value = False
     # when
     response = requests.post(f"{app_url}{path}", json=body)
 
@@ -70,7 +74,7 @@ def test_azure_byod_responds_successfully_when_streaming(
     final_response_json = json.loads(response_lines[-1])
     assert final_response_json == {
         "id": "92f715be-cfc4-4ae6-80f8-c86b7955f6af",
-        "model": app_config.get("AZURE_OPENAI_MODEL"),
+        "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),
         "created": 1712077271,
         "object": "extensions.chat.completion.chunk",
         "choices": [
@@ -93,16 +97,20 @@ def test_azure_byod_responds_successfully_when_streaming(
 
 
 @patch(
+    "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
+)
+@patch(
     "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
 )
 def test_post_makes_correct_call_to_azure_openai(
     get_active_config_or_default_mock,
+    index_not_exists_mock,
     app_url: str,
     app_config: AppConfig,
     httpserver: HTTPServer,
 ):
     get_active_config_or_default_mock.return_value.prompts.conversational_flow = "byod"
-
+    index_not_exists_mock.return_value = False
     # when
     requests.post(f"{app_url}{path}", json=body)
 
@@ -110,11 +118,11 @@ def test_post_makes_correct_call_to_azure_openai(
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
-            path=f"/openai/deployments/{app_config.get('AZURE_OPENAI_MODEL')}/chat/completions",
+            path=f"/openai/deployments/{app_config.get_from_json('AZURE_OPENAI_MODEL_INFO','model')}/chat/completions",
             method="POST",
             json={
                 "messages": body["messages"],
-                "model": app_config.get("AZURE_OPENAI_MODEL"),
+                "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),
                 "temperature": 0.0,
                 "max_tokens": 1000,
                 "top_p": 1.0,

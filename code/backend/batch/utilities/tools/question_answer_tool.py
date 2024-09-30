@@ -115,16 +115,17 @@ class QuestionAnswerTool(AnsweringToolBase):
 
         return [
             {
-                "content": self.config.prompts.answering_system_prompt,
                 "role": "system",
+                "content": self.config.prompts.answering_system_prompt,
             },
             *examples,
             {
-                "content": self.env_helper.AZURE_OPENAI_SYSTEM_MESSAGE,
                 "role": "system",
+                "content": self.env_helper.AZURE_OPENAI_SYSTEM_MESSAGE,
             },
             *QuestionAnswerTool.clean_chat_history(chat_history),
             {
+                "role": "user",
                 "content": [
                     {
                         "type": "text",
@@ -143,7 +144,6 @@ class QuestionAnswerTool(AnsweringToolBase):
                         ]
                     ),
                 ],
-                "role": "user",
             },
         ]
 

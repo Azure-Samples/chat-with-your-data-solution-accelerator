@@ -26,14 +26,14 @@ body = {
 @pytest.fixture(autouse=True)
 def completions_mocking(httpserver: HTTPServer, app_config: AppConfig):
     httpserver.expect_oneshot_request(
-        f"/openai/deployments/{app_config.get('AZURE_OPENAI_MODEL')}/chat/completions",
+        f"/openai/deployments/{app_config.get_from_json('AZURE_OPENAI_MODEL_INFO','model')}/chat/completions",
         method="POST",
     ).respond_with_json(
         {
             "id": "chatcmpl-6v7mkQj980V1yBec6ETrKPRqFjNw9",
             "object": "chat.completion",
             "created": 1679072642,
-            "model": app_config.get("AZURE_OPENAI_MODEL"),
+            "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),
             "usage": {
                 "prompt_tokens": 58,
                 "completion_tokens": 68,
@@ -56,7 +56,7 @@ def completions_mocking(httpserver: HTTPServer, app_config: AppConfig):
     )
 
     httpserver.expect_oneshot_request(
-        f"/openai/deployments/{app_config.get('AZURE_OPENAI_MODEL')}/chat/completions",
+        f"/openai/deployments/{app_config.get_from_json('AZURE_OPENAI_MODEL_INFO','model')}/chat/completions",
         method="POST",
     ).respond_with_json(
         {
@@ -108,7 +108,7 @@ def test_post_responds_successfully(app_url: str, app_config: AppConfig):
         ],
         "created": "response.created",
         "id": "response.id",
-        "model": app_config.get("AZURE_OPENAI_MODEL"),
+        "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),
         "object": "response.object",
     }
     assert response.headers["Content-Type"] == "application/json"
@@ -203,7 +203,7 @@ def test_post_makes_correct_call_to_openai_chat_completions_in_question_answer_t
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
-            path=f"/openai/deployments/{app_config.get('AZURE_OPENAI_MODEL')}/chat/completions",
+            path=f"/openai/deployments/{app_config.get_from_json('AZURE_OPENAI_MODEL_INFO','model')}/chat/completions",
             method="POST",
             json={
                 "messages": [
@@ -237,7 +237,7 @@ def test_post_makes_correct_call_to_openai_chat_completions_in_question_answer_t
                         "role": "user",
                     },
                 ],
-                "model": app_config.get("AZURE_OPENAI_MODEL"),
+                "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),
                 "max_tokens": int(app_config.get("AZURE_OPENAI_MAX_TOKENS")),
                 "temperature": 0,
             },
