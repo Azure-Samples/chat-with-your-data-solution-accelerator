@@ -2,3 +2,4 @@
 max-line-length = 88
 extend-ignore = E501
 exclude = .venv
+ignore = E203, W503
