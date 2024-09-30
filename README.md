@@ -115,7 +115,10 @@ In this scenario, a financial advisor is preparing for a meeting with a potentia
 Now that the financial advisor is more informed about Woodgrove’s Emerging Markets Funds, they're better equipped to respond to questions about this fund from their client.
 
 #### Legal Review and Summarization Assistant scenario
-Additionally, we have implemented a Legal Review and Summarization Assistant scenario to demonstrate how this accelerator can be utilized in any industry. The Legal Review and Summarization Assistant helps professionals manage and interact with a large collection of documents efficiently. For more details, refer to the [Legal Review and Summarization Assistant README](docs/contract_assistance.md).
+We have implemented a Legal Review and Summarization Assistant scenario to demonstrate how this accelerator can be utilized in any industry. The Legal Review and Summarization Assistant helps professionals manage and interact with a large collection of documents efficiently. For more details, refer to the [Legal Review and Summarization Assistant README](docs/contract_assistance.md).
+
+#### Employee Review and Summarization Assistant scenario
+We have implemented an Employee Review and Summarization Assistant scenario to demonstrate how this accelerator can be utilized in any industry. The Employee Review and Summarization Assistant helps professionals navigate their organizations and stay up to date with the latest policies and requirements efficiently. For more details, refer to the [Employee Review and Summarization Assistant README](docs/employee_assistance.md).
 
 Note: Some of the sample data included with this accelerator was generated using AI and is for illustrative purposes only.
 
