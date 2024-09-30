@@ -95,11 +95,10 @@ class EnvHelper:
         # Azure OpenAI
         self.AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE", "")
         # Fetch AZURE_OPENAI_MODEL_INFO from environment
-        azure_openai_model_info_str = os.getenv("AZURE_OPENAI_MODEL_INFO", "")
+        azure_openai_model_info = self.get_info_from_env("AZURE_OPENAI_MODEL_INFO", "")
 
-        if azure_openai_model_info_str:
-            # If AZURE_OPENAI_MODEL_INFO exists, parse it
-            azure_openai_model_info = json.loads(azure_openai_model_info_str)
+        if azure_openai_model_info:
+            # If AZURE_OPENAI_MODEL_INFO exists
             self.AZURE_OPENAI_MODEL = azure_openai_model_info.get("model", "")
             self.AZURE_OPENAI_MODEL_NAME = azure_openai_model_info.get("modelName", "")
         else:
@@ -126,14 +125,11 @@ class EnvHelper:
         self.AZURE_OPENAI_STREAM = os.getenv("AZURE_OPENAI_STREAM", "true")
 
         # Fetch AZURE_OPENAI_EMBEDDING_MODEL_INFO from environment
-        azure_openai_embedding_model_info_str = os.getenv(
+        azure_openai_embedding_model_info = self.get_info_from_env(
             "AZURE_OPENAI_EMBEDDING_MODEL_INFO", ""
         )
-        if azure_openai_embedding_model_info_str:
-            # If AZURE_OPENAI_EMBEDDING_MODEL_INFO exists, parse it
-            azure_openai_embedding_model_info = json.loads(
-                azure_openai_embedding_model_info_str
-            )
+        if azure_openai_embedding_model_info:
+            # If AZURE_OPENAI_EMBEDDING_MODEL_INFO exists
             self.AZURE_OPENAI_EMBEDDING_MODEL = azure_openai_embedding_model_info.get(
                 "model", ""
             )
