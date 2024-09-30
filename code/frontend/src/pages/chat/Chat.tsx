@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, Fragment } from "react";
 import { Stack } from "@fluentui/react";
 import {
   BroomRegular,
@@ -302,7 +302,7 @@ const Chat = () => {
               style={{ marginBottom: isLoading ? "40px" : "0px" }}
             >
               {answers.map((answer, index) => (
-                <>
+                <Fragment key={answer.role + index}>
                   {answer.role === "user" ? (
                     <div className={styles.chatMessageUser}>
                       <div className={styles.chatMessageUserMessage}>
@@ -330,7 +330,7 @@ const Chat = () => {
                       />
                     </div>
                   ) : null}
-                </>
+                </Fragment>
               ))}
               {showLoadingMessage && (
                 <>
@@ -339,7 +339,7 @@ const Chat = () => {
                       {lastQuestionRef.current}
                     </div>
                   </div>
-                  <div className={styles.chatMessageGpt}>
+                  <div className={styles.chatMessageGpt} data-testid="generatingAnswer">
                     <Answer
                       answer={{
                         answer: "Generating answer...",
@@ -351,7 +351,7 @@ const Chat = () => {
                   </div>
                 </>
               )}
-              <div ref={chatMessageStreamEnd} />
+              <div data-testid="streamendref-id" ref={chatMessageStreamEnd}  />
             </div>
           )}
           <div>
