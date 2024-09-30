@@ -53,7 +53,7 @@ on:
       resourceGroupName:
         description: 'Enter the resource group name you want to delete'
         required: true
-        default: 'test'
+        default: 'test2'
 
 jobs:
   deploy:
