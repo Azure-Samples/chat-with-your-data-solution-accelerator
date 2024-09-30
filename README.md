@@ -123,7 +123,7 @@ Note: Some of the sample data included with this accelerator was generated using
 #### Employee Onboarding Scenario
 The sample data illustrates how this accelerator could be used for an employee onboarding scenario in across industries.
 
-In this scenario, a newly hired employee is in the process of onboarding to their organization. Leveraging the solution accelerator, she navigates through the extensive offerings of her organization’s health and retirement benefits. With the newly integrated chat history capabilities, they can revisit previous conversations, ensuring continuity and context across multiple days of research. This functionality allows the new employee to efficiently gather and consolidate information, streamlining her onboarding experience. Moreover, the application's user-friendly interface and robust features empower helps users to be informed about their benefits, enhancing the overall onboarding journey. [Employee Onboarding Scenario README](docs/employee_assistance.md).
+In this scenario, a newly hired employee is in the process of onboarding to their organization. Leveraging the solution accelerator, she navigates through the extensive offerings of her organization’s health and retirement benefits. With the newly integrated chat history capabilities, they can revisit previous conversations, ensuring continuity and context across multiple days of research. This functionality allows the new employee to efficiently gather and consolidate information, streamlining their onboarding experience. [For more details, refer to the README](docs/employee_assistance.md).
 
 
 ---
