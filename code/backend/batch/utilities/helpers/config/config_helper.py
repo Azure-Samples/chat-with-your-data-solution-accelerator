@@ -57,6 +57,9 @@ class Config:
             if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
             else None
         )
+        self.enable_chat_history = config.get(
+            "enable_chat_history", self.env_helper.CHAT_HISTORY_ENABLED
+        )
 
     def get_available_document_types(self) -> list[str]:
         document_types = {
@@ -184,6 +187,8 @@ class ConfigHelper:
             config["prompts"]["conversational_flow"] = default_config["prompts"][
                 "conversational_flow"
             ]
+        if config.get("enable_chat_history") is None:
+            config["enable_chat_history"] = default_config["enable_chat_history"]
 
     @staticmethod
     @functools.cache
@@ -248,7 +253,8 @@ class ConfigHelper:
                 logger.info("Loading default config from %s", config_file_path)
                 ConfigHelper._default_config = json.loads(
                     Template(f.read()).substitute(
-                        ORCHESTRATION_STRATEGY=env_helper.ORCHESTRATION_STRATEGY
+                        ORCHESTRATION_STRATEGY=env_helper.ORCHESTRATION_STRATEGY,
+                        CHAT_HISTORY_ENABLED=env_helper.CHAT_HISTORY_ENABLED,
                     )
                 )
                 if env_helper.USE_ADVANCED_IMAGE_PROCESSING:
@@ -267,6 +273,18 @@ class ConfigHelper:
             contract_assistant = f.readlines()
 
         return "".join([str(elem) for elem in contract_assistant])
+
+    @staticmethod
+    @functools.cache
+    def get_default_employee_assistant():
+        employee_file_path = os.path.join(
+            os.path.dirname(__file__), "default_employee_assistant_prompt.txt"
+        )
+        employee_assistant = ""
+        with open(employee_file_path, encoding="utf-8") as f:
+            employee_assistant = f.readlines()
+
+        return "".join([str(elem) for elem in employee_assistant])
 
     @staticmethod
     def clear_config():

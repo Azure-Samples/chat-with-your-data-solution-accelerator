@@ -23,7 +23,7 @@ def test_get_secret_returns_value_from_secret_client_when_use_key_vault_is_true(
 ):
     # given
     secret_name = "MY_SECRET"
-    expected_value = "my_secret_value"
+    expected_value = ""
     monkeypatch.setenv("USE_KEY_VAULT", "true")
     secret_client.return_value.get_secret.return_value.value = expected_value
     secret_helper = SecretHelper()

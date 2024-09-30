@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState, useRef, forwardRef } from "react";
-import { useBoolean } from "@fluentui/react-hooks"
+import { useBoolean } from "@fluentui/react-hooks";
 import { FontIcon, Stack, Text } from "@fluentui/react";
 import styles from "./Answer.module.css";
 import { AskResponse, Citation } from "../../api";
 import { parseAnswer } from "./AnswerParser";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import supersub from 'remark-supersub'
+import supersub from "remark-supersub";
 import pauseIcon from "../../assets/pauseIcon.svg";
 import speakerIcon from "../../assets/speakerIcon.svg";
-import * as sdk from 'microsoft-cognitiveservices-speech-sdk';
+import * as sdk from "microsoft-cognitiveservices-speech-sdk";
 
-import * as SpeechSDK from 'microsoft-cognitiveservices-speech-sdk';
+import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk";
 
 declare global {
   interface Window {
@@ -36,23 +36,31 @@ export const Answer = ({
   isActive,
   index,
 }: Props) => {
-  const [isRefAccordionOpen, { toggle: toggleIsRefAccordionOpen }] = useBoolean(false);
+  const [isRefAccordionOpen, { toggle: toggleIsRefAccordionOpen }] =
+    useBoolean(false);
   const filePathTruncationLimit = 50;
-  const answerContainerRef = useRef<HTMLDivElement>(null);// read the text from the container
+  const answerContainerRef = useRef<HTMLDivElement>(null); // read the text from the container
   const messageBoxId = "message-" + index;
   const [isSpeaking, setIsSpeaking] = useState(false); // for speaker on
   const [showSpeaker, setShowSpeaker] = useState(true); //for show and hide the speaker icon
   const [isPaused, setIsPaused] = useState(false); //for pause
   const parsedAnswer = useMemo(() => parseAnswer(answer), [answer]);
-  const [chevronIsExpanded, setChevronIsExpanded] = useState(isRefAccordionOpen);
+  const [chevronIsExpanded, setChevronIsExpanded] =
+    useState(isRefAccordionOpen);
   const refContainer = useRef<HTMLDivElement>(null);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null); //Manully  manage the audio context eg pausing resuming
 
-
-  const [synthesizerData, setSynthesizerData] = useState({ key: '', region: '' });
-  const [synthesizer, setSynthesizer] = useState<SpeechSDK.SpeechSynthesizer | null>(null);
-  const [audioDestination, setAudioDestination] = useState<SpeechSDK.SpeakerAudioDestination | null>(null);
-  const [playbackTimeout, setPlaybackTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [synthesizerData, setSynthesizerData] = useState({
+    key: "",
+    region: "",
+  });
+  const [synthesizer, setSynthesizer] =
+    useState<SpeechSDK.SpeechSynthesizer | null>(null);
+  const [audioDestination, setAudioDestination] =
+    useState<SpeechSDK.SpeakerAudioDestination | null>(null);
+  const [playbackTimeout, setPlaybackTimeout] = useState<NodeJS.Timeout | null>(
+    null
+  );
   const [remainingDuration, setRemainingDuration] = useState<number>(0);
   const [startTime, setStartTime] = useState<number | null>(null);
 
@@ -62,20 +70,27 @@ export const Answer = ({
   };
 
   const initializeSynthesizer = () => {
-    const speechConfig = sdk.SpeechConfig.fromSubscription(synthesizerData.key, synthesizerData.region);
+    const speechConfig = sdk.SpeechConfig.fromSubscription(
+      synthesizerData.key,
+      synthesizerData.region
+    );
     const newAudioDestination = new SpeechSDK.SpeakerAudioDestination();
-    const audioConfig = SpeechSDK.AudioConfig.fromSpeakerOutput(newAudioDestination);
-    const newSynthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig, audioConfig);
+    const audioConfig =
+      SpeechSDK.AudioConfig.fromSpeakerOutput(newAudioDestination);
+    const newSynthesizer = new SpeechSDK.SpeechSynthesizer(
+      speechConfig,
+      audioConfig
+    );
     setSynthesizer(newSynthesizer);
     setAudioDestination(newAudioDestination);
     if (playbackTimeout) {
       clearTimeout(playbackTimeout);
     }
     setRemainingDuration(0);
-  }
+  };
 
   useEffect(() => {
-    if (synthesizerData.key != '') {
+    if (synthesizerData.key != "") {
       initializeSynthesizer();
 
       return () => {
@@ -90,35 +105,31 @@ export const Answer = ({
         }
       };
     }
-
   }, [index, synthesizerData]);
 
   useEffect(() => {
     const fetchSythesizerData = async () => {
-      const response = await fetch('/api/speech');
+      const response = await fetch("/api/speech");
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error("Network response was not ok");
       }
       const data = await response.json();
       setSynthesizerData({ key: data.key, region: data.region });
-    }
+    };
     fetchSythesizerData();
-  }, [])
+  }, []);
 
   useEffect(() => {
     if (!isActive && synthesizer && isSpeaking) {
-      resetSpeech()
+      resetSpeech();
     }
   }, [isActive, synthesizer]);
 
   useEffect(() => {
     setChevronIsExpanded(isRefAccordionOpen);
-    if (chevronIsExpanded && refContainer.current) {
-      refContainer.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [chevronIsExpanded, isRefAccordionOpen])
-
-  useEffect(() => {
+    // if (chevronIsExpanded && refContainer.current) {
+    //   refContainer.current.scrollIntoView({ behavior: 'smooth' });
+    // }
     // After genrating answer then only show speaker icon
     if (parsedAnswer.markdownFormatText === "Generating answer...") {
       setShowSpeaker(false);
@@ -127,30 +138,32 @@ export const Answer = ({
     }
   }, [parsedAnswer]);
 
-  const createCitationFilepath = (citation: Citation, index: number, truncate: boolean = false) => {
+  const createCitationFilepath = (
+    citation: Citation,
+    index: number,
+    truncate: boolean = false
+  ) => {
     let citationFilename = "";
 
     if (citation.filepath && citation.chunk_id != null) {
       if (truncate && citation.filepath.length > filePathTruncationLimit) {
         const citationLength = citation.filepath.length;
         citationFilename = `${citation.filepath.substring(0, 20)}...${citation.filepath.substring(citationLength - 20)} - Part ${citation.chunk_id}`;
-      }
-      else {
+      } else {
         citationFilename = `${citation.filepath} - Part ${citation.chunk_id}`;
       }
-    }
-    else {
+    } else {
       citationFilename = `Citation ${index}`;
     }
     return citationFilename;
-  }
+  };
 
   const getAnswerText = () => {
     if (answerContainerRef.current) {
-      const text = answerContainerRef.current.textContent ?? '';
+      const text = answerContainerRef.current.textContent ?? "";
       return text;
     }
-    return '';
+    return "";
   };
 
   const startSpeech = () => {
@@ -158,8 +171,10 @@ export const Answer = ({
       const text = getAnswerText();
       synthesizer?.speakTextAsync(
         text,
-        result => {
-          if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+        (result) => {
+          if (
+            result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted
+          ) {
             const duration = result.audioDuration / 10000;
             setRemainingDuration(duration);
             setStartTime(Date.now());
@@ -168,11 +183,11 @@ export const Answer = ({
             setIsSpeaking(false);
             setIsPaused(false);
           } else {
-            console.error('Synthesis failed: ', result.errorDetails);
+            console.error("Synthesis failed: ", result.errorDetails);
           }
         },
-        error => {
-          console.error('Synthesis error: ', error);
+        (error) => {
+          console.error("Synthesis error: ", error);
           setIsSpeaking(false);
           setIsPaused(false);
         }
@@ -186,7 +201,7 @@ export const Answer = ({
       setTimeout(() => {
         setIsSpeaking(false);
         setIsPaused(false);
-        onSpeak(index, 'stop');
+        onSpeak(index, "stop");
       }, remainingDuration)
     );
   };
@@ -198,17 +213,17 @@ export const Answer = ({
     setIsPaused(false);
     //synthesizer?.close();
     initializeSynthesizer();
-  }
+  };
   const handleSpeakPauseResume = () => {
     if (isSpeaking) {
       if (isPaused) {
-        onSpeak(index, 'speak');
+        onSpeak(index, "speak");
         audioDestination?.resume();
         setIsPaused(false);
         setStartTime(Date.now());
         handleTimeout(remainingDuration);
       } else {
-        onSpeak(index, 'pause');
+        onSpeak(index, "pause");
         audioDestination?.pause();
         setIsPaused(true);
         const elapsed = Date.now() - (startTime || 0);
@@ -219,7 +234,7 @@ export const Answer = ({
         }
       }
     } else {
-      onSpeak(index, 'speak');
+      onSpeak(index, "speak");
       startSpeech();
     }
   };
@@ -236,31 +251,49 @@ export const Answer = ({
   }, []);
 
   const getSpeechButtons = () => {
-    const speechStatus = !showSpeaker ? "none" : showSpeaker && !isSpeaking ? "Speak"
-      : isSpeaking && isPaused ? "Resume" : "Pause";
-
+    const speechStatus = !showSpeaker
+      ? "none"
+      : showSpeaker && !isSpeaking
+        ? "Speak"
+        : isSpeaking && isPaused
+          ? "Resume"
+          : "Pause";
     switch (speechStatus) {
-      case 'Speak':
-      case 'Resume':
+      case "Speak":
+      case "Resume":
         return (
-          <button id="speakerbtn" title={"Read aloud"} onClick={handleSpeakPauseResume} style={{ border: 0, backgroundColor: 'transparent' }}>
+          <button
+            id="speakerbtn"
+            title={"Read aloud"}
+            onClick={handleSpeakPauseResume}
+            style={{ border: 0, backgroundColor: "transparent" }}
+          >
             <img src={speakerIcon} alt="Speak" />
           </button>
-        )
-      case 'Pause':
+        );
+      case "Pause":
         return (
-          <button id="pausebtn" title={"Pause"} onClick={handleSpeakPauseResume} style={{ border: 0, backgroundColor: 'transparent' }} >
-            <img src={pauseIcon} alt={isPaused ? 'Resume' : 'Pause'} />
+          <button
+            id="pausebtn"
+            title={"Pause"}
+            onClick={handleSpeakPauseResume}
+            style={{ border: 0, backgroundColor: "transparent" }}
+          >
+            <img src={pauseIcon} alt={isPaused ? "Resume" : "Pause"} />
           </button>
-        )
+        );
       default:
         return null;
     }
-  }
+  };
 
   return (
     <>
-      <MyStackComponent className={styles.answerContainer} id={messageBoxId} ref={answerContainerRef}>
+      <MyStackComponent
+        className={styles.answerContainer}
+        id={messageBoxId}
+        ref={answerContainerRef}
+      >
         <Stack.Item grow>
           <ReactMarkdown
             remarkPlugins={[remarkGfm, supersub]}
@@ -270,43 +303,85 @@ export const Answer = ({
         </Stack.Item>
         <Stack horizontal className={styles.answerFooter} verticalAlign="start">
           <Stack.Item className={styles.answerDisclaimerContainer}>
-            <span className={`${styles.answerDisclaimer} ${styles.mobileAnswerDisclaimer}`}>AI-generated content may be incorrect</span>
+            <span
+              className={`${styles.answerDisclaimer} ${styles.mobileAnswerDisclaimer}`}
+            >
+              AI-generated content may be incorrect
+            </span>
           </Stack.Item>
 
           {!!parsedAnswer.citations.length && (
             <Stack.Item aria-label="References">
-              <Stack style={{ width: "100%" }} >
-                <Stack horizontal horizontalAlign='start' verticalAlign='center'>
-                  <Text
-                    className={styles.accordionTitle}
-                    onClick={toggleIsRefAccordionOpen}
-                  >
-                    <span>{parsedAnswer.citations.length > 1 ? parsedAnswer.citations.length + " references" : "1 reference"}</span>
+              <Stack style={{ width: "100%" }}>
+                <Stack
+                  horizontal
+                  horizontalAlign="start"
+                  verticalAlign="center"
+                  tabIndex={0}
+                  onClick={handleChevronClick}
+                  role="button"
+                  onKeyDown={(e) =>
+                    e.key === " " || e.key === "Enter"
+                      ? handleChevronClick()
+                      : null
+                  }
+                >
+                  <Text className={styles.accordionTitle}>
+                    <span>
+                      {parsedAnswer.citations.length > 1
+                        ? parsedAnswer.citations.length + " references"
+                        : "1 reference"}
+                    </span>
                   </Text>
-                  <FontIcon className={styles.accordionIcon}
-                    onClick={handleChevronClick} iconName={chevronIsExpanded ? 'ChevronDown' : 'ChevronRight'}
+                  <FontIcon
+                    className={styles.accordionIcon}
+                    iconName={
+                      chevronIsExpanded ? "ChevronDown" : "ChevronRight"
+                    }
+                    aria-hidden={false}
                   />
                 </Stack>
-
               </Stack>
             </Stack.Item>
           )}
-
         </Stack>
-        {chevronIsExpanded &&
-          <div ref={refContainer} style={{ marginTop: 8, display: "flex", flexDirection: "column", height: "100%", gap: "4px", maxWidth: "100%" }}>
+        {chevronIsExpanded && (
+          <div
+            ref={refContainer}
+            style={{
+              marginTop: 8,
+              display: "flex",
+              flexDirection: "column",
+              height: "100%",
+              gap: "4px",
+              maxWidth: "100%",
+            }}
+          >
             {parsedAnswer.citations.map((citation, idx) => {
               return (
-                <span title={createCitationFilepath(citation, ++idx)} key={idx} onClick={() => onCitationClicked(citation)} className={styles.citationContainer}>
-                  <div className={styles.citation} key={idx}>{idx}</div>
+                <span
+                  role="button"
+                  onKeyDown={(e) =>
+                    e.key === " " || e.key === "Enter"
+                      ? onCitationClicked(citation)
+                      : () => {}
+                  }
+                  tabIndex={0}
+                  title={createCitationFilepath(citation, ++idx)}
+                  key={idx}
+                  onClick={() => onCitationClicked(citation)}
+                  className={styles.citationContainer}
+                >
+                  <div className={styles.citation} key={idx}>
+                    {idx}
+                  </div>
                   {createCitationFilepath(citation, idx, true)}
-                </span>);
+                </span>
+              );
             })}
           </div>
-        }
-        <Stack.Item>
-          {getSpeechButtons()}
-        </Stack.Item>
+        )}
+        <Stack.Item>{getSpeechButtons()}</Stack.Item>
       </MyStackComponent>
     </>
   );

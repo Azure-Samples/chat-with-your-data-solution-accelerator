@@ -1,8 +1,8 @@
 using './main.bicep'
 
-param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', 'env_name')
-param location = readEnvironmentVariable('AZURE_LOCATION', 'location')
+var location = readEnvironmentVariable('AZURE_LOCATION', 'location')
 param principalId = readEnvironmentVariable('AZURE_PRINCIPAL_ID', 'principal_id')
+
 
 // Please make sure to set this value to false when using rbac with AZURE_AUTH_TYPE
 param useKeyVault = bool(readEnvironmentVariable('USE_KEY_VAULT', 'true'))
@@ -18,6 +18,7 @@ param orchestrationStrategy = readEnvironmentVariable('ORCHESTRATION_STRATEGY', 
 param logLevel = readEnvironmentVariable('LOGLEVEL', 'INFO')
 param recognizedLanguages = readEnvironmentVariable('AZURE_SPEECH_RECOGNIZER_LANGUAGES', 'en-US,fr-FR,de-DE,it-IT')
 param conversationFlow = readEnvironmentVariable('CONVERSATION_FLOW', 'custom')
+param chatHistoryEnabled = readEnvironmentVariable('CHAT_HISTORY_ENABLED', 'true')
 
 //Azure Search
 param azureSearchFieldId = readEnvironmentVariable('AZURE_SEARCH_FIELDS_ID', 'id')
@@ -66,7 +67,8 @@ param computerVisionVectorizeImageModelVersion = readEnvironmentVariable('AZURE_
 
 // We need the resourceToken to be unique for each deployment (copied from the main.bicep)
 var subscriptionId = readEnvironmentVariable('AZURE_SUBSCRIPTION_ID', 'subscription_id')
-param resourceToken = toLower(uniqueString(subscriptionId, environmentName, location))
+var resourceGroupName = readEnvironmentVariable('AZURE_RESOURCE_GROUP', 'azure_resource_group')
+param resourceToken = toLower(uniqueString(subscriptionId, resourceGroupName, location))
 
 
 // Retrieve the Search Name from the Search Endpoint which will be in the format
