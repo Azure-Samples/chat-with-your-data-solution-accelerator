@@ -9,27 +9,33 @@ import {
 import Chat from "./Chat";
 import * as api from "../../api";
 import { multiLingualSpeechRecognizer } from "../../util/SpeechToText";
-import { decodedConversationResponseWithCitations } from "../../../__mocks__/SampleData";
+import {
+  citationObj,
+  decodedConversationResponseWithCitations,
+} from "../../../__mocks__/SampleData";
 
 jest.mock("../../components/QuestionInput", () => ({
   QuestionInput: jest.fn((props) => {
     console.log("QuestionInput props", props);
     const { isListening, onStopClick, onMicrophoneClick } = props;
     return (
-      <div
-        data-testid="questionInputPrompt"
-        onClick={() => props.onSend("Let me know upcoming meeting scheduled")}
-      >
-        {props.placeholder}
+      <>
         <div
+          data-testid="questionInputPrompt"
+          onClick={() => props.onSend("Let me know upcoming meeting scheduled")}
+        >
+          {props.placeholder}
+          <div data-testid="recognized_text">{props.recognizedText}</div>
+        </div>
+        <button
           data-testid="microphone_btn"
           // onClick={() => props.onMicrophoneClick()}
           onClick={isListening ? onStopClick : onMicrophoneClick}
+          disabled={props.isTextToSpeachActive}
         >
           Microphone button
-        </div>
-        <div data-testid="recognized_text">{props.recognizedText}</div>
-      </div>
+        </button>
+      </>
     );
   }),
 }));
@@ -61,22 +67,34 @@ jest.mock("../../components/Answer", () => ({
     return (
       <div data-testid="answerInputPrompt">
         <div data-testid="answer-response">{props.answer.answer}</div>
+        {/* onSpeak(index, 'speak'); */}
+        <button
+          data-testid="speak-btn"
+          onClick={() => props.onSpeak(props.index, "speak")}
+        >
+          Speak
+        </button>
+        <button
+          data-testid="pause-btn"
+          onClick={() => props.onSpeak(props.index, "pause")}
+        >
+          Speak
+        </button>
         {props.answer.citations.map((_citationObj: any, index: number) => (
           <div data-testid={`citation-${index}`} key={index}>
             citation-{index}
           </div>
         ))}
+        <button
+          data-testid="mocked-view-citation-btn"
+          onClick={() => props.onCitationClicked(citationObj)}
+        >
+          Click Citation
+        </button>
       </div>
     );
   },
 }));
-
-// jest.mock("./Cards_contract/Cards", () => ({
-//   Cards: (props: any) => {
-//     console.log("Card Props", props);
-//     return <div>Card Component</div>;
-//   },
-// }));
 
 jest.mock("./Cards_contract/Cards", () => {
   const Cards = () => (
@@ -307,7 +325,7 @@ describe("Chat Component", () => {
 
   test("handles microphone click and starts speech recognition", async () => {
     // Mock the API response
-    mockCallConversationApi.mockResolvedValueOnce({
+    mockGetAssistantTypeApi.mockResolvedValueOnce({
       ai_assistant_type: "default",
     });
 
@@ -337,6 +355,8 @@ describe("Chat Component", () => {
 
     // Verify that the recognizer's method was called
     expect(mockedRecognizer.startContinuousRecognitionAsync).toHaveBeenCalled();
+    // stop again
+    fireEvent.click(micButton);
   });
 
   test("handles stopping speech recognition when microphone is clicked again", async () => {
@@ -419,9 +439,121 @@ describe("Chat Component", () => {
     await waitFor(() => {
       screen.debug();
       const recognizedTextElement = screen.getByTestId("recognized_text");
-      expect(screen.queryByText(/Hello AI Explain me Microsoft AI in detail/i)).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Hello AI Explain me Microsoft AI in detail/i)
+      ).toBeInTheDocument();
       // expect(recognizedTextElement.textContent).toEqual("Hello AI Explain me Microsoft AI in detail ");
     });
+  });
+
+  test("while speaking response text speech recognizing mic to be disabled", async () => {
+    // Mock the assistant type API response
+    mockGetAssistantTypeApi.mockResolvedValueOnce({
+      ai_assistant_type: "default",
+    });
+    const responseContent =
+      "Microsoft AI refers to the artificial intelligence capabilities and offerings provided by Microsoft. It encompasses a range of technologies and solutions that leverage AI to empower individuals and organizations to achieve more. Microsoft's AI platform, Azure AI, enables organizations to transform their operations by bringing intelligence and insights to employees and customers. It offers AI-optimized infrastructure, advanced models, and AI services designed for developers and data scientists is an ";
+    // Mock the conversation API response
+    mockCallConversationApi.mockResolvedValueOnce({
+      body: {
+        getReader: jest.fn().mockReturnValue({
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                JSON.stringify({
+                  choices: [
+                    {
+                      messages: [
+                        { role: "assistant", content: responseContent },
+                      ],
+                    },
+                  ],
+                })
+              ),
+            })
+            .mockResolvedValueOnce({ done: true }), // Mark the stream as done
+        }),
+      },
+    });
+
+    render(<Chat />);
+    // Simulate user input
+    const submitQuestion = screen.getByTestId("questionInputPrompt");
+
+    // await fireEvent.change(await input, { target: { value: 'What is AI?' } });
+    await act(async () => {
+      fireEvent.click(submitQuestion);
+    });
+
+    const answerElement = screen.getByTestId("answer-response");
+    // Question Component
+    expect(answerElement.textContent).toEqual(responseContent);
+
+    const speakerButton = screen.getByTestId("speak-btn");
+    await act(async () => {
+      fireEvent.click(speakerButton);
+    });
+    const QuestionInputMicrophoneBtn = screen.getByTestId("microphone_btn");
+    expect(QuestionInputMicrophoneBtn).toBeDisabled();
+  });
+
+  test("After pause speech to text Question input mic should be enabled mode", async () => {
+    mockGetAssistantTypeApi.mockResolvedValueOnce({
+      ai_assistant_type: "default",
+    });
+    const responseContent =
+      "Microsoft AI refers to the artificial intelligence capabilities and offerings provided by Microsoft. It encompasses a range of technologies and solutions that leverage AI to empower individuals and organizations to achieve more. Microsoft's AI platform, Azure AI, enables organizations to transform their operations by bringing intelligence and insights to employees and customers. It offers AI-optimized infrastructure, advanced models, and AI services designed for developers and data scientists is an ";
+    // Mock the conversation API response
+    mockCallConversationApi.mockResolvedValueOnce({
+      body: {
+        getReader: jest.fn().mockReturnValue({
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                JSON.stringify({
+                  choices: [
+                    {
+                      messages: [
+                        { role: "assistant", content: responseContent },
+                      ],
+                    },
+                  ],
+                })
+              ),
+            })
+            .mockResolvedValueOnce({ done: true }), // Mark the stream as done
+        }),
+      },
+    });
+
+    render(<Chat />);
+    // Simulate user input
+    const submitQuestion = screen.getByTestId("questionInputPrompt");
+
+    // await fireEvent.change(await input, { target: { value: 'What is AI?' } });
+    await act(async () => {
+      fireEvent.click(submitQuestion);
+    });
+
+    const answerElement = screen.getByTestId("answer-response");
+
+    expect(answerElement.textContent).toEqual(responseContent);
+
+    const speakerButton = screen.getByTestId("speak-btn");
+    await act(async () => {
+      fireEvent.click(speakerButton);
+    });
+    const pauseButton = screen.getByTestId("pause-btn");
+
+    await act(async () => {
+      fireEvent.click(pauseButton);
+    });
+    const QuestionInputMicrophoneBtn = screen.getByTestId("microphone_btn");
+    expect(QuestionInputMicrophoneBtn).not.toBeDisabled();
   });
 
   // test('handles recognition errors gracefully', async () => {
@@ -453,7 +585,7 @@ describe("Chat Component", () => {
   //   // Check if the appropriate error handling occurs (e.g., alert or message)
   // expect(window.alert).toHaveBeenCalledWith('An error occurred during speech recognition.');
   //});
-  test("shows citations when available", async () => {
+  test("shows citations list when available", async () => {
     // Mock the API responses
     mockGetAssistantTypeApi.mockResolvedValueOnce({
       ai_assistant_type: "default",
@@ -490,7 +622,68 @@ describe("Chat Component", () => {
     // Wait for citations to appear in the document
 
     screen.debug();
-    expect(screen.getByTestId("citation-1")).toBeInTheDocument();
-    expect(screen.getByTestId("citation-2")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("citation-1")).toBeInTheDocument();
+      expect(screen.getByTestId("citation-2")).toBeInTheDocument();
+    })
+  });
+
+  test("shows citation panel when clicked on reference", async () => {
+    // Mock the API responses
+    mockGetAssistantTypeApi.mockResolvedValueOnce({
+      ai_assistant_type: "default",
+    });
+    mockCallConversationApi.mockResolvedValueOnce({
+      body: {
+        getReader: jest.fn().mockReturnValue({
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                JSON.stringify(decodedConversationResponseWithCitations)
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: true,
+              value: new TextEncoder().encode(JSON.stringify({})),
+            }),
+        }),
+      },
+    });
+
+    // Render the Chat component
+    render(<Chat />);
+
+    // Get the input element and submit button
+    const submitButton = screen.getByTestId("questionInputPrompt");
+
+    // Simulate user interaction
+    await act(async () => {
+      fireEvent.click(submitButton);
+    });
+    screen.debug();
+
+    const citationReferenceElement = screen.getByTestId(
+      "mocked-view-citation-btn"
+    );
+
+    await act(async () => {
+      fireEvent.click(citationReferenceElement);
+    });
+
+    await waitFor(() => {
+      const citationPanelHeaderElement = screen.getByTestId("citation-panel-header");
+      expect(citationPanelHeaderElement).toBeInTheDocument();
+
+      const citationPanelDisclaimerElement = screen.getByTestId("citation-panel-disclaimer");
+      expect(citationPanelDisclaimerElement).toBeInTheDocument();
+
+      const citationMarkdownContent = screen.getByTestId("mock-react-markdown");
+      expect(citationMarkdownContent).toBeInTheDocument();
+
+    });
+
   });
 });

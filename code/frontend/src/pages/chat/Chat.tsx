@@ -422,14 +422,14 @@ const Chat = () => {
               horizontalAlign="space-between"
               verticalAlign="center"
             >
-              <span className={styles.citationPanelHeader}>Citations</span>
+              <span data-testid="citation-panel-header" className={styles.citationPanelHeader}>Citations</span>
               <DismissRegular
                 className={styles.citationPanelDismiss}
                 onClick={() => setIsCitationPanelOpen(false)}
               />
             </Stack>
             <h5 className={`${styles.citationPanelTitle} ${styles.mobileCitationPanelTitle}`}>{activeCitation[2]}</h5>
-            <div className={`${styles.citationPanelDisclaimer} ${styles.mobileCitationPanelDisclaimer}`}>Tables, images, and other special formatting not shown in this preview. Please follow the link to review the original document.</div>
+            <div data-testid="citation-panel-disclaimer" className={`${styles.citationPanelDisclaimer} ${styles.mobileCitationPanelDisclaimer}`}>Tables, images, and other special formatting not shown in this preview. Please follow the link to review the original document.</div>
             <ReactMarkdown
               className={`${styles.citationPanelContent} ${styles.mobileCitationPanelContent}`}
               children={activeCitation[0]}
