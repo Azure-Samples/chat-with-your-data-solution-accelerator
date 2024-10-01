@@ -9,11 +9,12 @@ import {
 import Chat from "./Chat";
 import * as api from "../../api";
 import { multiLingualSpeechRecognizer } from "../../util/SpeechToText";
-
+import { decodedConversationResponseWithCitations } from "../../../__mocks__/SampleData";
 
 jest.mock("../../components/QuestionInput", () => ({
   QuestionInput: jest.fn((props) => {
-    // console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", props);
+    console.log("QuestionInput props", props);
+    const { isListening, onStopClick, onMicrophoneClick } = props;
     return (
       <div
         data-testid="questionInputPrompt"
@@ -22,11 +23,12 @@ jest.mock("../../components/QuestionInput", () => ({
         {props.placeholder}
         <div
           data-testid="microphone_btn"
-          onClick={() => props.onMicrophoneClick()}
+          // onClick={() => props.onMicrophoneClick()}
+          onClick={isListening ? onStopClick : onMicrophoneClick}
         >
           Microphone button
         </div>
-        <div data-testid="recognise_txt">{props.recognizedText} </div>
+        <div data-testid="recognized_text">{props.recognizedText}</div>
       </div>
     );
   }),
@@ -55,10 +57,15 @@ jest.mock("../../util/SpeechToText", () => ({
 }));
 jest.mock("../../components/Answer", () => ({
   Answer: (props: any) => {
-    // console.log("AnswerProps", props);
+    console.log("AnswerProps", props);
     return (
       <div data-testid="answerInputPrompt">
         <div data-testid="answer-response">{props.answer.answer}</div>
+        {props.answer.citations.map((_citationObj: any, index: number) => (
+          <div data-testid={`citation-${index}`} key={index}>
+            citation-{index}
+          </div>
+        ))}
       </div>
     );
   },
@@ -71,9 +78,9 @@ jest.mock("../../components/Answer", () => ({
 //   },
 // }));
 
-jest.mock('./Cards_contract/Cards', () => {
+jest.mock("./Cards_contract/Cards", () => {
   const Cards = () => (
-    <div data-testid='note-list-component'>Mocked Card Component</div>
+    <div data-testid="note-list-component">Mocked Card Component</div>
   );
   return Cards;
 });
@@ -364,39 +371,58 @@ describe("Chat Component", () => {
     }); // Check if "Listening..." is removed
   });
 
-  // test('correctly processes recognized speech', async () => {
-  //   const mockedRecognizer = {
-  //     recognized: jest.fn(),
-  //     startContinuousRecognitionAsync: jest.fn((success) => success()),
-  //     stopContinuousRecognitionAsync: jest.fn((success) => success()),
-  //     close: jest.fn(),
-  //   };
+  test("correctly processes recognized speech", async () => {
+    const mockedRecognizer = {
+      recognized: jest.fn(),
+      startContinuousRecognitionAsync: jest.fn((success) => success()),
+      stopContinuousRecognitionAsync: jest.fn((success) => success()),
+      close: jest.fn(),
+    };
 
-  //   mockedMultiLingualSpeechRecognizer.mockImplementation(() => mockedRecognizer);
+    mockedMultiLingualSpeechRecognizer.mockImplementation(
+      () => mockedRecognizer
+    );
 
-  //   render(<Chat />);
+    render(<Chat />);
 
-  //   const micButton = screen.getByTestId("microphone_btn");
+    const micButton = screen.getByTestId("microphone_btn");
 
-  //   // Start recognition
-  //   fireEvent.click(micButton);
+    // click mic button
+    fireEvent.click(micButton);
+    // initiate continuous recognization
+    await waitFor(() => {
+      // once listening availble
+      expect(screen.queryByText(/Listening.../i)).not.toBeInTheDocument();
 
-  //   // Simulate recognized speech
-  //   act(() => {
-  //     mockedRecognizer.recognized(null, {
-  //       result: {
-  //         reason: 3,
-  //         text: 'Hello, how can I help you?',
-  //       },
-  //     });
-  //   });
+      // Simulate recognized speech
 
-  //   // Verify that the recognized text is set
-  //   await waitFor(() => {
-  //     const recognisedTxt = screen.getByTestId('recognise_txt');
-  //     //expect(recognisedTxt.textContent).toEqual('Hello, how can I help you?');
-  //   });
-  // });
+      fireEvent.click(micButton);
+    });
+    expect(mockedRecognizer.startContinuousRecognitionAsync).toHaveBeenCalled();
+    act(() => {
+      // let rec = mockedMultiLingualSpeechRecognizer();
+      mockedRecognizer.recognized(null, {
+        result: {
+          reason: 3,
+          text: "Hello AI",
+        },
+      });
+      mockedRecognizer.recognized(null, {
+        result: {
+          reason: 3,
+          text: "Explain me Microsoft AI in detail",
+        },
+      });
+    });
+
+    // Verify that the recognized text is set
+    await waitFor(() => {
+      screen.debug();
+      const recognizedTextElement = screen.getByTestId("recognized_text");
+      expect(screen.queryByText(/Hello AI Explain me Microsoft AI in detail/i)).toBeInTheDocument();
+      // expect(recognizedTextElement.textContent).toEqual("Hello AI Explain me Microsoft AI in detail ");
+    });
+  });
 
   // test('handles recognition errors gracefully', async () => {
   //   const mockedRecognizer = {
@@ -435,25 +461,18 @@ describe("Chat Component", () => {
     mockCallConversationApi.mockResolvedValueOnce({
       body: {
         getReader: jest.fn().mockReturnValue({
-          read: jest.fn().mockResolvedValueOnce({
-            done: false,
-            value: new TextEncoder().encode(
-              JSON.stringify({
-                choices: [
-                  {
-                    messages: [
-                      {
-                        role: "tool",
-                        content: JSON.stringify({
-                          citations: ["Citation 1", "Citation 2"],
-                        }),
-                      },
-                    ],
-                  },
-                ],
-              })
-            ),
-          }),
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                JSON.stringify(decodedConversationResponseWithCitations)
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: true,
+              value: new TextEncoder().encode(JSON.stringify({})),
+            }),
         }),
       },
     });
@@ -468,10 +487,10 @@ describe("Chat Component", () => {
     await act(async () => {
       fireEvent.click(submitButton);
     });
-    // screen.debug();
     // Wait for citations to appear in the document
-    expect(screen.getByText(/Citation 1/i)).toBeInTheDocument();
-    expect(screen.getByText(/Citation 2/i)).toBeInTheDocument();
 
+    screen.debug();
+    expect(screen.getByTestId("citation-1")).toBeInTheDocument();
+    expect(screen.getByTestId("citation-2")).toBeInTheDocument();
   });
 });
