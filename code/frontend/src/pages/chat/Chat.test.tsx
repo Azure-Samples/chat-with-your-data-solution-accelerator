@@ -10,6 +10,7 @@ import Chat from "./Chat";
 import * as api from "../../api";
 import { multiLingualSpeechRecognizer } from "../../util/SpeechToText";
 import {
+  AIResponseContent,
   citationObj,
   decodedConversationResponseWithCitations,
 } from "../../../__mocks__/SampleData";
@@ -31,7 +32,6 @@ jest.mock("../../components/QuestionInput", () => ({
         </div>
         <button
           data-testid="microphone_btn"
-          // onClick={() => props.onMicrophoneClick()}
           onClick={isListening ? onStopClick : onMicrophoneClick}
           disabled={props.isTextToSpeachActive}
         >
@@ -57,7 +57,6 @@ jest.mock(
 jest.mock("uuid", () => ({
   v4: jest.fn(() => "mocked-uuid"),
 }));
-// jest.mock("react-markdown", () => () => {})
 jest.mock("remark-gfm", () => () => {});
 jest.mock("rehype-raw", () => () => {});
 jest.mock("../../util/SpeechToText", () => ({
@@ -116,7 +115,7 @@ describe("Chat Component", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     Element.prototype.scrollIntoView = jest.fn();
-    // chatMessageStreamEnd
+    window.alert = jest.fn(); // Mock window alert
   });
 
   test("renders the component and shows the empty state", async () => {
@@ -140,11 +139,6 @@ describe("Chat Component", () => {
     await act(async () => {
       render(<Chat />);
     });
-
-    // Wait for loading to finish
-    // await waitFor(() => {
-    //     expect(screen.queryByText(/Loading.../i)).not.toBeInTheDocument();
-    // });
 
     // Check for the presence of the assistant type title
     expect(await screen.findByText(/Contract Summarizer/i)).toBeInTheDocument();
@@ -238,8 +232,6 @@ describe("Chat Component", () => {
   test("should handle API failure correctly", async () => {
     const mockError = new Error("API request failed");
     mockCallConversationApi.mockRejectedValueOnce(mockError); // Simulate API failure
-    window.alert = jest.fn(); // Mock window alert
-    // mockResponse = { body: { getReader: () => ({ read: jest.fn().mockResolvedValueOnce({ done: false, value: new TextEncoder().encode(JSON.stringify({ error: "An error occurred" })) }).mockResolvedValueOnce({ done: true }), }), }, };
     render(<Chat />); // Render the Chat component
 
     // Find the QuestionInput component and simulate a send action
@@ -250,13 +242,6 @@ describe("Chat Component", () => {
     await waitFor(() => {
       expect(window.alert).toHaveBeenCalledWith("API request failed");
     });
-
-    // await waitFor(() => {
-    //   //expect(mockCallConversationApi).toHaveBeenCalledTimes(1); // Ensure the API was called
-
-    //   // Use regex to match the error message
-    //   expect(mockCallConversationApi).toThrow("API request failed");
-    // });
   });
 
   test("clears chat when clear button is clicked", async () => {
@@ -291,7 +276,6 @@ describe("Chat Component", () => {
     // Simulate user input
     const submitQuestion = screen.getByTestId("questionInputPrompt");
 
-    // await fireEvent.change(await input, { target: { value: 'What is AI?' } });
     await act(async () => {
       fireEvent.click(submitQuestion);
     });
@@ -444,8 +428,6 @@ describe("Chat Component", () => {
     mockGetAssistantTypeApi.mockResolvedValueOnce({
       ai_assistant_type: "default",
     });
-    const responseContent =
-      "Microsoft AI refers to the artificial intelligence capabilities and offerings provided by Microsoft. It encompasses a range of technologies and solutions that leverage AI to empower individuals and organizations to achieve more. Microsoft's AI platform, Azure AI, enables organizations to transform their operations by bringing intelligence and insights to employees and customers. It offers AI-optimized infrastructure, advanced models, and AI services designed for developers and data scientists is an ";
     // Mock the conversation API response
     mockCallConversationApi.mockResolvedValueOnce({
       body: {
@@ -459,7 +441,7 @@ describe("Chat Component", () => {
                   choices: [
                     {
                       messages: [
-                        { role: "assistant", content: responseContent },
+                        { role: "assistant", content: AIResponseContent },
                       ],
                     },
                   ],
@@ -475,14 +457,13 @@ describe("Chat Component", () => {
     // Simulate user input
     const submitQuestion = screen.getByTestId("questionInputPrompt");
 
-    // await fireEvent.change(await input, { target: { value: 'What is AI?' } });
     await act(async () => {
       fireEvent.click(submitQuestion);
     });
 
     const answerElement = screen.getByTestId("answer-response");
     // Question Component
-    expect(answerElement.textContent).toEqual(responseContent);
+    expect(answerElement.textContent).toEqual(AIResponseContent);
 
     const speakerButton = screen.getByTestId("speak-btn");
     await act(async () => {
@@ -496,8 +477,7 @@ describe("Chat Component", () => {
     mockGetAssistantTypeApi.mockResolvedValueOnce({
       ai_assistant_type: "default",
     });
-    const responseContent =
-      "Microsoft AI refers to the artificial intelligence capabilities and offerings provided by Microsoft. It encompasses a range of technologies and solutions that leverage AI to empower individuals and organizations to achieve more. Microsoft's AI platform, Azure AI, enables organizations to transform their operations by bringing intelligence and insights to employees and customers. It offers AI-optimized infrastructure, advanced models, and AI services designed for developers and data scientists is an ";
+
     // Mock the conversation API response
     mockCallConversationApi.mockResolvedValueOnce({
       body: {
@@ -511,7 +491,7 @@ describe("Chat Component", () => {
                   choices: [
                     {
                       messages: [
-                        { role: "assistant", content: responseContent },
+                        { role: "assistant", content: AIResponseContent },
                       ],
                     },
                   ],
@@ -527,14 +507,13 @@ describe("Chat Component", () => {
     // Simulate user input
     const submitQuestion = screen.getByTestId("questionInputPrompt");
 
-    // await fireEvent.change(await input, { target: { value: 'What is AI?' } });
     await act(async () => {
       fireEvent.click(submitQuestion);
     });
 
     const answerElement = screen.getByTestId("answer-response");
 
-    expect(answerElement.textContent).toEqual(responseContent);
+    expect(answerElement.textContent).toEqual(AIResponseContent);
 
     const speakerButton = screen.getByTestId("speak-btn");
     await act(async () => {
@@ -548,36 +527,6 @@ describe("Chat Component", () => {
     const QuestionInputMicrophoneBtn = screen.getByTestId("microphone_btn");
     expect(QuestionInputMicrophoneBtn).not.toBeDisabled();
   });
-
-  // test('handles recognition errors gracefully', async () => {
-  //   const mockedRecognizer = {
-  //     recognized: jest.fn(),
-  //     startContinuousRecognitionAsync: jest.fn((success) => success()),
-  //     stopContinuousRecognitionAsync: jest.fn((success) => success()),
-  //     close: jest.fn(),
-  //   };
-
-  //   mockedMultiLingualSpeechRecognizer.mockImplementation(() => mockedRecognizer);
-
-  //   render(<Chat />);
-
-  //   const micButton = await screen.findByLabelText(/Microphone/i);
-
-  //   // Start recognition
-  //   fireEvent.click(micButton);
-
-  //   // Simulate an error during recognition
-  //   act(() => {
-  //     mockedRecognizer.recognized(null, {
-  //       result: {
-  //         reason: 'Error',
-  //       },
-  //     });
-  //   });
-
-  //   // Check if the appropriate error handling occurs (e.g., alert or message)
-  // expect(window.alert).toHaveBeenCalledWith('An error occurred during speech recognition.');
-  //});
   test("shows citations list when available", async () => {
     // Mock the API responses
     mockGetAssistantTypeApi.mockResolvedValueOnce({
@@ -714,7 +663,6 @@ describe("Chat Component", () => {
     // Simulate user input
     const submitQuestion = screen.getByTestId("questionInputPrompt");
 
-    // await fireEvent.change(await input, { target: { value: 'What is AI?' } });
     await act(async () => {
       fireEvent.click(submitQuestion);
     });

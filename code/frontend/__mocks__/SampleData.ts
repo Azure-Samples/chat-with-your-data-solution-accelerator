@@ -159,3 +159,6 @@ export const citationObj = {
   },
   reindex_id: "1",
 };
+
+export const AIResponseContent =
+  "Microsoft AI refers to the artificial intelligence capabilities and offerings provided by Microsoft. It encompasses a range of technologies and solutions that leverage AI to empower individuals and organizations to achieve more. Microsoft's AI platform, Azure AI, enables organizations to transform their operations by bringing intelligence and insights to employees and customers. It offers AI-optimized infrastructure, advanced models, and AI services designed for developers and data scientists is an ";
