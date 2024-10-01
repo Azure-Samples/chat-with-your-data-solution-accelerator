@@ -14,6 +14,8 @@ import {
   decodedConversationResponseWithCitations,
 } from "../../../__mocks__/SampleData";
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 jest.mock("../../components/QuestionInput", () => ({
   QuestionInput: jest.fn((props) => {
     console.log("QuestionInput props", props);
@@ -155,15 +157,12 @@ describe("Chat Component", () => {
 
     render(<Chat />);
 
-    // Wait for loading to finish
+    // Wait for loading
     await waitFor(() => {
       expect(screen.queryByText(/Loading.../i)).not.toBeInTheDocument();
     });
-    // screen.debug()
-    const input = await screen.getByTestId("questionInputPrompt");
-    // Question Component
+    const input = screen.getByTestId("questionInputPrompt");
     expect(input).toBeInTheDocument();
-    //  // Simulate user input
   });
 
   test("sends a question and displays the response", async () => {
@@ -198,10 +197,8 @@ describe("Chat Component", () => {
     });
 
     render(<Chat />);
-    // Simulate user input
     const submitQuestion = screen.getByTestId("questionInputPrompt");
 
-    // await fireEvent.change(await input, { target: { value: 'What is AI?' } });
     await act(async () => {
       fireEvent.click(submitQuestion);
     });
@@ -210,9 +207,7 @@ describe("Chat Component", () => {
       behavior: "smooth",
     });
 
-    // screen.debug()
     const answerElement = screen.getByTestId("answer-response");
-    // Question Component
     expect(answerElement.textContent).toEqual("response from AI");
   });
 
@@ -220,12 +215,11 @@ describe("Chat Component", () => {
     mockGetAssistantTypeApi.mockResolvedValueOnce({
       ai_assistant_type: "default",
     });
-    mockCallConversationApi.mockResolvedValueOnce(new Promise(() => {})); // Keep it pending
+    mockCallConversationApi.mockResolvedValueOnce(new Promise(() => {}));
 
     render(<Chat />);
 
     const input = screen.getByTestId("questionInputPrompt");
-    // await fireEvent.change(await input, { target: { value: 'What is AI?' } });
     await act(async () => {
       fireEvent.click(input);
     });
@@ -306,7 +300,6 @@ describe("Chat Component", () => {
       behavior: "smooth",
     });
 
-    // screen.debug()
     const answerElement = await screen.findByTestId("answer-response");
 
     await waitFor(() => {
@@ -351,7 +344,6 @@ describe("Chat Component", () => {
     await waitFor(() => {
       expect(screen.getByText(/Listening.../i)).toBeInTheDocument();
     });
-    // screen.debug()
 
     // Verify that the recognizer's method was called
     expect(mockedRecognizer.startContinuousRecognitionAsync).toHaveBeenCalled();
@@ -437,12 +429,13 @@ describe("Chat Component", () => {
 
     // Verify that the recognized text is set
     await waitFor(() => {
-      screen.debug();
       const recognizedTextElement = screen.getByTestId("recognized_text");
       expect(
         screen.queryByText(/Hello AI Explain me Microsoft AI in detail/i)
       ).toBeInTheDocument();
-      // expect(recognizedTextElement.textContent).toEqual("Hello AI Explain me Microsoft AI in detail ");
+      expect(recognizedTextElement.textContent).toEqual(
+        "Hello AI Explain me Microsoft AI in detail"
+      );
     });
   });
 
@@ -626,7 +619,7 @@ describe("Chat Component", () => {
     await waitFor(() => {
       expect(screen.getByTestId("citation-1")).toBeInTheDocument();
       expect(screen.getByTestId("citation-2")).toBeInTheDocument();
-    })
+    });
   });
 
   test("shows citation panel when clicked on reference", async () => {
@@ -674,16 +667,71 @@ describe("Chat Component", () => {
     });
 
     await waitFor(() => {
-      const citationPanelHeaderElement = screen.getByTestId("citation-panel-header");
+      const citationPanelHeaderElement = screen.getByTestId(
+        "citation-panel-header"
+      );
       expect(citationPanelHeaderElement).toBeInTheDocument();
 
-      const citationPanelDisclaimerElement = screen.getByTestId("citation-panel-disclaimer");
+      const citationPanelDisclaimerElement = screen.getByTestId(
+        "citation-panel-disclaimer"
+      );
       expect(citationPanelDisclaimerElement).toBeInTheDocument();
 
       const citationMarkdownContent = screen.getByTestId("mock-react-markdown");
       expect(citationMarkdownContent).toBeInTheDocument();
+    });
+  });
 
+  test("On click of stop generating btn, it should hide stop generating btn", async () => {
+    // Mock the assistant type API response
+    mockGetAssistantTypeApi.mockResolvedValueOnce({
+      ai_assistant_type: "default",
     });
 
+    // Mock the conversation API response
+    mockCallConversationApi.mockResolvedValueOnce({
+      body: {
+        getReader: jest.fn().mockReturnValue({
+          read: jest
+            .fn()
+            .mockResolvedValueOnce(
+              delay(5000).then(() => ({
+                done: false,
+                value: new TextEncoder().encode(
+                  JSON.stringify(decodedConversationResponseWithCitations)
+                ),
+              }))
+            )
+            .mockResolvedValueOnce({
+              done: true,
+              value: new TextEncoder().encode(JSON.stringify({})),
+            }),
+        }),
+      },
+    });
+
+    render(<Chat />);
+    // Simulate user input
+    const submitQuestion = screen.getByTestId("questionInputPrompt");
+
+    // await fireEvent.change(await input, { target: { value: 'What is AI?' } });
+    await act(async () => {
+      fireEvent.click(submitQuestion);
+    });
+    const streamMessage = screen.getByTestId("streamendref-id");
+    expect(streamMessage.scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+    });
+
+    screen.debug();
+    const stopButton = screen.getByRole("button", { name: /stop generating/i });
+
+    // Assertions
+    expect(stopButton).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(stopButton);
+    });
+
+    expect(stopButton).not.toBeInTheDocument();
   });
 });
