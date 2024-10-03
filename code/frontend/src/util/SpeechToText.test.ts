@@ -1,5 +1,5 @@
 
-import { multiLingualSpeechRecognizer } from "../util/SpeechToText";
+import { multiLingualSpeechRecognizer } from "./SpeechToText";
 
 global.fetch = jest.fn();
 const createFetchResponse = (ok: boolean, data: any) => {

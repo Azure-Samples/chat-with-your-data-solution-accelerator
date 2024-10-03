@@ -17,6 +17,17 @@ const config: Config.InitialOptions = {
     '/node_modules/(?!react-markdown|vfile|unist-util-stringify-position|unist-util-visit|bail|is-plain-obj)',
   ],
   collectCoverageFrom: ['src/**/*.{ts,tsx,js,jsx}'],
+  coveragePathIgnorePatterns: [
+    '<rootDir>/node_modules/', // Ignore node_modules
+    '<rootDir>/__mocks__/', // Ignore mocks
+    '<rootDir>/src/api/',
+    '<rootDir>/src/mocks/',
+    '<rootDir>/src/test/',
+    '<rootDir>/src/index.tsx',
+    '<rootDir>/src/vite-env.d.ts',
+    '<rootDir>/src/components/QuestionInput/index.ts',
+    '<rootDir>/src/components/Answer/index.ts',
+  ],
 };
 
 export default config;
