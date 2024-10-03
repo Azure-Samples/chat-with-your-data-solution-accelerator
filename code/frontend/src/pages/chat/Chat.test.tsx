@@ -300,6 +300,67 @@ describe("Chat Component", () => {
     });
   });
 
+  test("clears chat when clear button is in focus and Enter key triggered", async () => {
+    mockGetAssistantTypeApi.mockResolvedValueOnce({
+      ai_assistant_type: "default",
+    });
+    mockCallConversationApi.mockResolvedValueOnce({
+      body: {
+        getReader: jest.fn().mockReturnValue({
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                JSON.stringify({
+                  choices: [
+                    {
+                      messages: [
+                        { role: "assistant", content: "response from AI" },
+                      ],
+                    },
+                  ],
+                })
+              ),
+            })
+            .mockResolvedValueOnce({ done: true }), // Mark the stream as done
+        }),
+      },
+    });
+
+    render(<Chat />);
+    // Simulate user input
+    const submitQuestion = screen.getByTestId("questionInputPrompt");
+
+    await act(async () => {
+      fireEvent.click(submitQuestion);
+    });
+    const streamMessage = screen.getByTestId("streamendref-id");
+    expect(streamMessage.scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+    });
+
+    const answerElement = await screen.findByTestId("answer-response");
+
+    await waitFor(() => {
+      expect(answerElement.textContent).toEqual("response from AI");
+    });
+
+    const clearButton = screen.getByLabelText(/Clear session/i);
+
+    await act(async () => {
+      // fireEvent.click(clearButton);
+
+      clearButton.focus();
+
+      // Trigger the Enter key
+      fireEvent.keyDown(clearButton, { key: 'Enter', code: 'Enter', charCode: 13 });
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("answer-response")).not.toBeInTheDocument();
+    });
+  });
+
   test("handles microphone click and starts speech recognition", async () => {
     // Mock the API response
     mockGetAssistantTypeApi.mockResolvedValueOnce({
