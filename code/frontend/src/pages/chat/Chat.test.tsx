@@ -19,7 +19,6 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 jest.mock("../../components/QuestionInput", () => ({
   QuestionInput: jest.fn((props) => {
-    console.log("QuestionInput props", props);
     const { isListening, onStopClick, onMicrophoneClick } = props;
     return (
       <>
@@ -64,7 +63,6 @@ jest.mock("../../util/SpeechToText", () => ({
 }));
 jest.mock("../../components/Answer", () => ({
   Answer: (props: any) => {
-    console.log("AnswerProps", props);
     return (
       <div data-testid="answerInputPrompt">
         <div data-testid="answer-response">{props.answer.answer}</div>
@@ -361,6 +359,66 @@ describe("Chat Component", () => {
     });
   });
 
+  test("clears chat when clear button is in focus and space bar triggered", async () => {
+    mockGetAssistantTypeApi.mockResolvedValueOnce({
+      ai_assistant_type: "default",
+    });
+    mockCallConversationApi.mockResolvedValueOnce({
+      body: {
+        getReader: jest.fn().mockReturnValue({
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                JSON.stringify({
+                  choices: [
+                    {
+                      messages: [
+                        { role: "assistant", content: "response from AI" },
+                      ],
+                    },
+                  ],
+                })
+              ),
+            })
+            .mockResolvedValueOnce({ done: true }), // Mark the stream as done
+        }),
+      },
+    });
+
+    render(<Chat />);
+    // Simulate user input
+    const submitQuestion = screen.getByTestId("questionInputPrompt");
+
+    await act(async () => {
+      fireEvent.click(submitQuestion);
+    });
+    const streamMessage = screen.getByTestId("streamendref-id");
+    expect(streamMessage.scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+    });
+
+    const answerElement = await screen.findByTestId("answer-response");
+
+    await waitFor(() => {
+      expect(answerElement.textContent).toEqual("response from AI");
+    });
+
+    const clearButton = screen.getByLabelText(/Clear session/i);
+
+    await act(async () => {
+
+      clearButton.focus();
+
+      fireEvent.keyDown(clearButton, { key: ' ', code: 'Space', charCode: 32, keyCode: 32 });
+      fireEvent.keyUp(clearButton, { key: ' ', code: 'Space', charCode: 32, keyCode: 32 });
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("answer-response")).not.toBeInTheDocument();
+    });
+  });
+
   test("handles microphone click and starts speech recognition", async () => {
     // Mock the API response
     mockGetAssistantTypeApi.mockResolvedValueOnce({
@@ -624,8 +682,6 @@ describe("Chat Component", () => {
     });
     // Wait for citations to appear in the document
 
-    screen.debug();
-
     await waitFor(() => {
       expect(screen.getByTestId("citation-1")).toBeInTheDocument();
       expect(screen.getByTestId("citation-2")).toBeInTheDocument();
@@ -666,7 +722,6 @@ describe("Chat Component", () => {
     await act(async () => {
       fireEvent.click(submitButton);
     });
-    screen.debug();
 
     const citationReferenceElement = screen.getByTestId(
       "mocked-view-citation-btn"
@@ -732,13 +787,117 @@ describe("Chat Component", () => {
       behavior: "smooth",
     });
 
-    screen.debug();
     const stopButton = screen.getByRole("button", { name: /stop generating/i });
 
     // Assertions
     expect(stopButton).toBeInTheDocument();
     await act(async () => {
       fireEvent.click(stopButton);
+    });
+
+    expect(stopButton).not.toBeInTheDocument();
+  });
+
+  test("On focus on stop generating btn, and triggering Enter key it should hide stop generating btn", async () => {
+    // Mock the assistant type API response
+    mockGetAssistantTypeApi.mockResolvedValueOnce({
+      ai_assistant_type: "default",
+    });
+
+    // Mock the conversation API response
+    mockCallConversationApi.mockResolvedValueOnce({
+      body: {
+        getReader: jest.fn().mockReturnValue({
+          read: jest
+            .fn()
+            .mockResolvedValueOnce(
+              delay(5000).then(() => ({
+                done: false,
+                value: new TextEncoder().encode(
+                  JSON.stringify(decodedConversationResponseWithCitations)
+                ),
+              }))
+            )
+            .mockResolvedValueOnce({
+              done: true,
+              value: new TextEncoder().encode(JSON.stringify({})),
+            }),
+        }),
+      },
+    });
+
+    render(<Chat />);
+    // Simulate user input
+    const submitQuestion = screen.getByTestId("questionInputPrompt");
+
+    await act(async () => {
+      fireEvent.click(submitQuestion);
+    });
+    const streamMessage = screen.getByTestId("streamendref-id");
+    expect(streamMessage.scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+    });
+
+    const stopButton = screen.getByRole("button", { name: /stop generating/i });
+    // Assertions
+    expect(stopButton).toBeInTheDocument();
+    await act(async () => {
+      stopButton.focus();
+      // Trigger the Enter key
+      fireEvent.keyDown(stopButton, { key: 'Enter', code: 'Enter', charCode: 13 });
+    });
+
+    expect(stopButton).not.toBeInTheDocument();
+  });
+
+  test("On focus on stop generating btn, and triggering Space bar key it should hide stop generating btn", async () => {
+    // Mock the assistant type API response
+    mockGetAssistantTypeApi.mockResolvedValueOnce({
+      ai_assistant_type: "default",
+    });
+
+    // Mock the conversation API response
+    mockCallConversationApi.mockResolvedValueOnce({
+      body: {
+        getReader: jest.fn().mockReturnValue({
+          read: jest
+            .fn()
+            .mockResolvedValueOnce(
+              delay(5000).then(() => ({
+                done: false,
+                value: new TextEncoder().encode(
+                  JSON.stringify(decodedConversationResponseWithCitations)
+                ),
+              }))
+            )
+            .mockResolvedValueOnce({
+              done: true,
+              value: new TextEncoder().encode(JSON.stringify({})),
+            }),
+        }),
+      },
+    });
+
+    render(<Chat />);
+    // Simulate user input
+    const submitQuestion = screen.getByTestId("questionInputPrompt");
+
+    await act(async () => {
+      fireEvent.click(submitQuestion);
+    });
+    const streamMessage = screen.getByTestId("streamendref-id");
+    expect(streamMessage.scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+    });
+
+    const stopButton = screen.getByRole("button", { name: /stop generating/i });
+    // Assertions
+    expect(stopButton).toBeInTheDocument();
+    await act(async () => {
+      // Trigger the Enter key
+      stopButton.focus()
+      fireEvent.keyDown(stopButton, { key: ' ', code: 'Space', charCode: 32, keyCode: 32 });
+      fireEvent.keyUp(stopButton, { key: ' ', code: 'Space', charCode: 32, keyCode: 32 });
     });
 
     expect(stopButton).not.toBeInTheDocument();
