@@ -624,6 +624,9 @@ class TestConversationAzureByod:
             self.mock_streamed_response
         )
 
+        get_active_config_or_default_mock.return_value.prompts.use_on_your_data_format = (
+            False
+        )
         get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
             "byod"
         )

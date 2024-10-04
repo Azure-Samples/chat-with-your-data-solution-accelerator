@@ -27,6 +27,7 @@ param contentSafetyKeyName string = ''
 param speechKeyName string = ''
 param authType string
 param dockerFullImageName string = ''
+param cosmosDBKeyName string = ''
 
 module function '../core/host/functions.bicep' = {
   name: '${name}-app-module'

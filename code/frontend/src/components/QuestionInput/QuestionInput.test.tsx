@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { QuestionInput } from "./QuestionInput";
-import fetch from 'isomorphic-fetch';
+import fetch from "isomorphic-fetch";
+import userEvent from "@testing-library/user-event";
 
 globalThis.fetch = fetch;
 
@@ -251,7 +252,9 @@ describe("QuestionInput Component", () => {
     expect(microphonebtn).toBeDisabled();
   });
 
-  test("Microphone button click onStopClick", () => {
+  test("Microphone button click onStopClick", async () => {
+    userEvent.setup();
+    const mockMethod = jest.fn();
     render(
       <QuestionInput
         isRecognizing={true}
@@ -261,7 +264,7 @@ describe("QuestionInput Component", () => {
         onMicrophoneClick={function (): void {
           throw new Error("Function not implemented.");
         }}
-        onStopClick={onStopClick}
+        onStopClick={mockMethod}
         isSendButtonDisabled={false}
         recognizedText={"recognized text"}
         isListening={true}
@@ -274,17 +277,12 @@ describe("QuestionInput Component", () => {
     const microphonebtn = screen.getByRole("button", {
       name: "Microphone button",
     });
+    await userEvent.click(microphonebtn);
 
-    fireEvent.keyDown(microphonebtn, {
-      key: "Enter",
-      code: "Enter",
-      charCode: 13,
-    });
-
-    expect(onStopClick).toHaveBeenCalled();
+    expect(mockMethod).toHaveBeenCalled();
   });
 
-  test("Microphone button click onMicrophoneClick", () => {
+  test("Microphone button Enter key event", async () => {
     render(
       <QuestionInput
         isRecognizing={true}
@@ -306,11 +304,10 @@ describe("QuestionInput Component", () => {
       name: "Microphone button",
     });
 
-    fireEvent.keyDown(microphonebtn, {
-      key: "Enter",
-      code: "Enter",
-      charCode: 13,
-    });
+    microphonebtn.focus();
+
+    // Simulate pressing the Enter key
+    await userEvent.keyboard("{enter}");
 
     expect(onMicrophoneClick).toHaveBeenCalled();
   });

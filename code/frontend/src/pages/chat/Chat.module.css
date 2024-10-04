@@ -5,6 +5,14 @@
     gap: 20px
 }
 
+.historyContainer {
+    width: 20vw;
+    background: radial-gradient(108.78% 108.78% at 50.02% 19.78%, #FFFFFF 57.29%, #EEF6FE 100%);
+    border-radius: 8px;
+    max-height: calc(100vh - 88px);
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.14), 0px 0px 2px rgba(0, 0, 0, 0.12);
+    overflow-y: hidden;
+}
 .chatRoot {
     flex: 1;
     display: flex;
@@ -15,6 +23,9 @@
     gap: 20px;
 }
 
+.chatHistoryListContainer {
+    height: 100%;
+}
 .chatContainer {
     flex: 1;
     display: flex;
@@ -24,7 +35,7 @@
     box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.14), 0px 0px 2px rgba(0, 0, 0, 0.12);
     border-radius: 8px;
     overflow-y: auto;
-    max-height: calc(100vh - 100px);
+    max-height: calc(100vh - 88px);
 }
 .loadingContainer {
     display: flex;
@@ -64,16 +75,15 @@
     display: flex;
     align-items: flex-end;
     text-align: center;
-    line-height: 24px;
-    margin-top: 36px;
+    margin-top: 24px;
     margin-bottom: 0px;
 }
 
 .chatEmptyStateSubtitle {
-    margin-top: 20px;
+    margin-top: 16px;
     font-family: "Segoe UI";
     font-style: normal;
-    font-weight: 400;
+    font-weight: 600;
     font-size: 16px;
     line-height: 150%;
     display: flex;
@@ -285,6 +295,13 @@
 
 }
 
+.fetchMessagesSpinner {
+    margin-top: 30vh;
+}
+.historyPanelTopRightButtons {
+    height: 48px;
+}
+
 .MobileChatContainer {
     @media screen and (max-width: 600px) {
         max-width: 100%;
@@ -332,6 +349,12 @@
         font-weight: 250;
         font-size: 10px;
     }
+}
+
+.dataText {
+    background: linear-gradient(90deg, #464FEB 10.42%, #8330E9 100%);
+    color: transparent;
+    background-clip: text;
 }
 
 @media screen and (max-width: 600px) {

@@ -14,6 +14,8 @@ param formRecognizerKeyName string = 'AZURE-FORM-RECOGNIZER-KEY'
 param contentSafetyKeyName string = 'AZURE-CONTENT-SAFETY-KEY'
 param speechKeyName string = 'AZURE-SPEECH-KEY'
 param computerVisionKeyName string = 'AZURE-COMPUTER-VISION-KEY'
+param cosmosAccountKeyName string = 'AZURE-COSMOSDB-ACCOUNT-KEY'
+param cosmosAccountName string = ''
 
 resource storageAccountKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: keyVault
@@ -94,6 +96,18 @@ resource computerVisionKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' 
   }
 }
 
+// add cosmos db account key
+resource cosmosDbAccountKey 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+  parent: keyVault
+  name: cosmosAccountKeyName
+  properties: {
+    value: listKeys(
+      resourceId(subscription().subscriptionId, rgName, 'Microsoft.DocumentDB/databaseAccounts', cosmosAccountName),
+      '2022-08-15'
+    ).primaryMasterKey
+  }
+}
+
 resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
   name: keyVaultName
 }
@@ -105,3 +119,4 @@ output OPENAI_KEY_NAME string = openAIKeySecret.name
 output STORAGE_ACCOUNT_KEY_NAME string = storageAccountKeySecret.name
 output SPEECH_KEY_NAME string = speechKeySecret.name
 output COMPUTER_VISION_KEY_NAME string = computerVisionName != '' ? computerVisionKeySecret.name : ''
+output COSMOS_ACCOUNT_KEY_NAME string = cosmosDbAccountKey.name

@@ -93,18 +93,22 @@ class EnvHelper:
 
         self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "keys")
         # Azure OpenAI
-        # Default model info
-        default_azure_openai_model_info = '{"model":"gpt-35-turbo-16k","modelName":"gpt-35-turbo-16k","modelVersion":"0613"}'
-        default_azure_openai_embedding_model_info = '{"model":"text-embedding-ada-002","modelName":"text-embedding-ada-002","modelVersion":"2"}'
-
         self.AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE", "")
+        # Fetch AZURE_OPENAI_MODEL_INFO from environment
+        azure_openai_model_info = self.get_info_from_env("AZURE_OPENAI_MODEL_INFO", "")
 
-        # Fetch and assign model info
-        azure_openai_model_info = self.get_info_from_env(
-            "AZURE_OPENAI_MODEL_INFO", default_azure_openai_model_info
-        )
-        self.AZURE_OPENAI_MODEL = azure_openai_model_info.get("model")
-        self.AZURE_OPENAI_MODEL_NAME = azure_openai_model_info.get("modelName")
+        if azure_openai_model_info:
+            # If AZURE_OPENAI_MODEL_INFO exists
+            self.AZURE_OPENAI_MODEL = azure_openai_model_info.get("model", "")
+            self.AZURE_OPENAI_MODEL_NAME = azure_openai_model_info.get("modelName", "")
+        else:
+            # Otherwise, fallback to individual environment variables
+            self.AZURE_OPENAI_MODEL = os.getenv(
+                "AZURE_OPENAI_MODEL", "gpt-35-turbo-16k"
+            )
+            self.AZURE_OPENAI_MODEL_NAME = os.getenv(
+                "AZURE_OPENAI_MODEL_NAME", "gpt-35-turbo-16k"
+            )
 
         self.AZURE_OPENAI_VISION_MODEL = os.getenv("AZURE_OPENAI_VISION_MODEL", "gpt-4")
         self.AZURE_OPENAI_TEMPERATURE = os.getenv("AZURE_OPENAI_TEMPERATURE", "0")
@@ -120,14 +124,20 @@ class EnvHelper:
         )
         self.AZURE_OPENAI_STREAM = os.getenv("AZURE_OPENAI_STREAM", "true")
 
-        # Fetch and assign embedding model info
+        # Fetch AZURE_OPENAI_EMBEDDING_MODEL_INFO from environment
         azure_openai_embedding_model_info = self.get_info_from_env(
-            "AZURE_OPENAI_EMBEDDING_MODEL_INFO",
-            default_azure_openai_embedding_model_info,
+            "AZURE_OPENAI_EMBEDDING_MODEL_INFO", ""
         )
-        self.AZURE_OPENAI_EMBEDDING_MODEL = azure_openai_embedding_model_info.get(
-            "model"
-        )
+        if azure_openai_embedding_model_info:
+            # If AZURE_OPENAI_EMBEDDING_MODEL_INFO exists
+            self.AZURE_OPENAI_EMBEDDING_MODEL = azure_openai_embedding_model_info.get(
+                "model", ""
+            )
+        else:
+            # Otherwise, fallback to individual environment variable
+            self.AZURE_OPENAI_EMBEDDING_MODEL = os.getenv(
+                "AZURE_OPENAI_EMBEDDING_MODEL", "text-embedding-ada-002"
+            )
 
         self.SHOULD_STREAM = (
             True if self.AZURE_OPENAI_STREAM.lower() == "true" else False
@@ -254,6 +264,23 @@ class EnvHelper:
 
         self.PROMPT_FLOW_DEPLOYMENT_NAME = os.getenv("PROMPT_FLOW_DEPLOYMENT_NAME", "")
 
+        # Chat History CosmosDB Integration Settings
+        azure_cosmosdb_info = self.get_info_from_env("AZURE_COSMOSDB_INFO", "")
+        self.AZURE_COSMOSDB_DATABASE = azure_cosmosdb_info.get("databaseName", "")
+        self.AZURE_COSMOSDB_ACCOUNT = azure_cosmosdb_info.get("accountName", "")
+        self.AZURE_COSMOSDB_CONVERSATIONS_CONTAINER = azure_cosmosdb_info.get(
+            "containerName", ""
+        )
+        self.AZURE_COSMOSDB_ACCOUNT_KEY = self.secretHelper.get_secret(
+            "AZURE_COSMOSDB_ACCOUNT_KEY"
+        )
+        self.AZURE_COSMOSDB_ENABLE_FEEDBACK = (
+            os.getenv("AZURE_COSMOSDB_ENABLE_FEEDBACK", "false").lower() == "true"
+        )
+        self.CHAT_HISTORY_ENABLED = self.get_env_var_bool(
+            "CHAT_HISTORY_ENABLED", "true"
+        )
+
     def is_chat_model(self):
         if "gpt-4" in self.AZURE_OPENAI_MODEL_NAME.lower():
             return True
@@ -330,8 +357,9 @@ class SecretHelper:
             None
 
         """
+        secret_name_value = os.getenv(secret_name, "")
         return (
-            self.secret_client.get_secret(os.getenv(secret_name, "")).value
-            if self.USE_KEY_VAULT
+            self.secret_client.get_secret(secret_name_value).value
+            if self.USE_KEY_VAULT and secret_name_value
             else os.getenv(secret_name, "")
         )

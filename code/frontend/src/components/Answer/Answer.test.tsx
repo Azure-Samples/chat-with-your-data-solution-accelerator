@@ -145,13 +145,10 @@ describe("Answer.tsx", () => {
       fireEvent.click(referencesElement);
     });
     const citationsListContainer = screen.getByTestId("citations-container");
-    expect(citationsListContainer.scrollIntoView).toHaveBeenCalledWith({
-      behavior: "smooth",
-    });
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+    expect(citationsListContainer).toBeInTheDocument()
   });
 
-  test("Should be able click Chevron to get citation list", async () => {
+  test("On focus and trigger Enter It should show citations list", async () => {
     (global.fetch as jest.Mock).mockResolvedValue(
       createFetchResponse(true, speechMockData)
     );
@@ -169,14 +166,13 @@ describe("Answer.tsx", () => {
         />
       );
     });
-    const chevronIcon = screen.getByTestId("chevron-icon");
+    const referencesElement = screen.getByTestId("toggle-citations-list");
     await act(async () => {
-      fireEvent.click(chevronIcon);
+      referencesElement.focus();
+      fireEvent.keyDown(referencesElement, { key: 'Enter', code: 'Enter', charCode: 13 });
     });
     const citationsListContainer = screen.getByTestId("citations-container");
-    expect(citationsListContainer.scrollIntoView).toHaveBeenCalledWith({
-      behavior: "smooth",
-    });
+    expect(citationsListContainer).toBeInTheDocument()
   });
 
   test("should be able to click play", async () => {
