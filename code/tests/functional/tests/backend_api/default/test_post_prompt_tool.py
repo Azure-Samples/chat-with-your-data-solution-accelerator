@@ -34,7 +34,7 @@ def setup_config_mocking(httpserver: HTTPServer):
             "prompts": {
                 "condense_question_prompt": "",
                 "answering_system_prompt": "system prompt",
-                "answering_user_prompt": "## Retrieved Documents\n{sources}\n\n## User Question\n{question}",
+                "answering_user_prompt": "## Retrieved Documents\n{sources}\n\n## User Question\nUse the Retrieved Documents to answer the question: {question}",
                 "use_on_your_data_format": True,
                 "post_answering_prompt": "post answering prompt\n{question}\n{answer}\n{sources}",
                 "enable_post_answering_prompt": True,
