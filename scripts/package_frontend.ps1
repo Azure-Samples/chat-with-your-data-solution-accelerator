@@ -3,9 +3,10 @@ rm dist/* -r -Force
 
 # Python
 poetry install
-poetry export -o dist/requirements.txt
 cp *.py dist -Force
 cp backend dist -r -Force
+cp ../pyproject.toml dist -Force
+cp ../poetry.lock dist -Force
 
 # Node
 cd frontend
