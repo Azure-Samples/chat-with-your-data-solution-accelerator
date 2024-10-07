@@ -222,7 +222,7 @@ try:
 {sources}
 
 ## User Question
-{question}
+Use the Retrieved Documents to answer the question: {question}
 ```"""
     )
     post_answering_prompt_help = "You can configure a post prompt that allows to fact-check or process the answer, given the sources, question and answer. This prompt needs to return `True` or `False`."
