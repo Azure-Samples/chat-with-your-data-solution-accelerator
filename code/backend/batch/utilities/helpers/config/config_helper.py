@@ -29,16 +29,8 @@ class Config:
         self.document_processors = [
             EmbeddingConfig(
                 document_type=c["document_type"],
-                chunking=(
-                    ChunkingSettings(c["chunking"])
-                    if c.get("use_advanced_image_processing", False) is False
-                    else None
-                ),
-                loading=(
-                    LoadingSettings(c["loading"])
-                    if c.get("use_advanced_image_processing", False) is False
-                    else None
-                ),
+                chunking=ChunkingSettings(c["chunking"]),
+                loading=LoadingSettings(c["loading"]),
                 use_advanced_image_processing=c.get(
                     "use_advanced_image_processing", False
                 ),
