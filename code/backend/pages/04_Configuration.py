@@ -333,14 +333,14 @@ Use the Retrieved Documents to answer the question: {question}
                 lambda x: {
                     "document_type": x.document_type,
                     "chunking_strategy": (
-                        x.chunking.chunking_strategy.value if x.chunking else None
+                        x.chunking.chunking_strategy.value if x.chunking else "layout"
                     ),
                     "chunking_size": x.chunking.chunk_size if x.chunking else None,
                     "chunking_overlap": (
                         x.chunking.chunk_overlap if x.chunking else None
                     ),
                     "loading_strategy": (
-                        x.loading.loading_strategy.value if x.loading else None
+                        x.loading.loading_strategy.value if x.loading else "layout"
                     ),
                     "use_advanced_image_processing": x.use_advanced_image_processing,
                 },
@@ -391,74 +391,96 @@ Use the Retrieved Documents to answer the question: {question}
             st.checkbox("Log tokens", key="log_tokens")
 
         if st.form_submit_button("Save configuration"):
-            document_processors = (
-                list(
-                    map(
-                        lambda x: {
-                            "document_type": x["document_type"],
-                            "chunking": {
-                                "strategy": x["chunking_strategy"],
-                                "size": x["chunking_size"],
-                                "overlap": x["chunking_overlap"],
-                            },
-                            "loading": {
-                                "strategy": x["loading_strategy"],
-                            },
-                            "use_advanced_image_processing": x[
-                                "use_advanced_image_processing"
-                            ],
-                        },
-                        edited_document_processors,
-                    )
+            valid = all(
+                row["document_type"]
+                and row["chunking_strategy"]
+                and row["loading_strategy"]
+                for row in edited_document_processors
+            )
+
+            if not valid:
+                st.error(
+                    "Please ensure all fields are selected and not left blank in Document processing configuration."
                 )
-                if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION is False
-                else []
-            )
-            current_config = {
-                "prompts": {
-                    "condense_question_prompt": "",  # st.session_state['condense_question_prompt'],
-                    "answering_system_prompt": st.session_state[
-                        "answering_system_prompt"
-                    ],
-                    "answering_user_prompt": st.session_state["answering_user_prompt"],
-                    "use_on_your_data_format": st.session_state[
-                        "use_on_your_data_format"
-                    ],
-                    "post_answering_prompt": st.session_state["post_answering_prompt"],
-                    "enable_post_answering_prompt": st.session_state[
-                        "enable_post_answering_prompt"
-                    ],
-                    "enable_content_safety": st.session_state["enable_content_safety"],
-                    "ai_assistant_type": st.session_state["ai_assistant_type"],
-                    "conversational_flow": st.session_state["conversational_flow"],
-                },
-                "messages": {
-                    "post_answering_filter": st.session_state[
-                        "post_answering_filter_message"
-                    ]
-                },
-                "example": {
-                    "documents": st.session_state["example_documents"],
-                    "user_question": st.session_state["example_user_question"],
-                    "answer": st.session_state["example_answer"],
-                },
-                "document_processors": document_processors,
-                "logging": {
-                    "log_user_interactions": st.session_state["log_user_interactions"],
-                    "log_tokens": st.session_state["log_tokens"],
-                },
-                "orchestrator": {"strategy": st.session_state["orchestrator_strategy"]},
-                "integrated_vectorization_config": (
-                    integrated_vectorization_config
-                    if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
-                    else None
-                ),
-                "enable_chat_history": st.session_state["enable_chat_history"],
-            }
-            ConfigHelper.save_config_as_active(current_config)
-            st.success(
-                "Configuration saved successfully! Please restart the chat service for these changes to take effect."
-            )
+            else:
+                document_processors = (
+                    list(
+                        map(
+                            lambda x: {
+                                "document_type": x["document_type"],
+                                "chunking": {
+                                    "strategy": x["chunking_strategy"],
+                                    "size": x["chunking_size"],
+                                    "overlap": x["chunking_overlap"],
+                                },
+                                "loading": {
+                                    "strategy": x["loading_strategy"],
+                                },
+                                "use_advanced_image_processing": x[
+                                    "use_advanced_image_processing"
+                                ],
+                            },
+                            edited_document_processors,
+                        )
+                    )
+                    if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION is False
+                    else []
+                )
+                current_config = {
+                    "prompts": {
+                        "condense_question_prompt": "",  # st.session_state['condense_question_prompt'],
+                        "answering_system_prompt": st.session_state[
+                            "answering_system_prompt"
+                        ],
+                        "answering_user_prompt": st.session_state[
+                            "answering_user_prompt"
+                        ],
+                        "use_on_your_data_format": st.session_state[
+                            "use_on_your_data_format"
+                        ],
+                        "post_answering_prompt": st.session_state[
+                            "post_answering_prompt"
+                        ],
+                        "enable_post_answering_prompt": st.session_state[
+                            "enable_post_answering_prompt"
+                        ],
+                        "enable_content_safety": st.session_state[
+                            "enable_content_safety"
+                        ],
+                        "ai_assistant_type": st.session_state["ai_assistant_type"],
+                        "conversational_flow": st.session_state["conversational_flow"],
+                    },
+                    "messages": {
+                        "post_answering_filter": st.session_state[
+                            "post_answering_filter_message"
+                        ]
+                    },
+                    "example": {
+                        "documents": st.session_state["example_documents"],
+                        "user_question": st.session_state["example_user_question"],
+                        "answer": st.session_state["example_answer"],
+                    },
+                    "document_processors": document_processors,
+                    "logging": {
+                        "log_user_interactions": st.session_state[
+                            "log_user_interactions"
+                        ],
+                        "log_tokens": st.session_state["log_tokens"],
+                    },
+                    "orchestrator": {
+                        "strategy": st.session_state["orchestrator_strategy"]
+                    },
+                    "integrated_vectorization_config": (
+                        integrated_vectorization_config
+                        if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
+                        else None
+                    ),
+                    "enable_chat_history": st.session_state["enable_chat_history"],
+                }
+                ConfigHelper.save_config_as_active(current_config)
+                st.success(
+                    "Configuration saved successfully! Please restart the chat service for these changes to take effect."
+                )
 
     with st.popover(":red[Reset configuration to defaults]"):
 
