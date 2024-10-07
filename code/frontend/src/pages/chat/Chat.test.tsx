@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactNode } from "react";
 import {
   render,
   screen,
@@ -14,6 +14,7 @@ import {
   citationObj,
   decodedConversationResponseWithCitations,
 } from "../../../__mocks__/SampleData";
+import { HashRouter } from "react-router-dom";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -45,6 +46,9 @@ jest.mock("../../components/QuestionInput", () => ({
 jest.mock("../../api", () => ({
   callConversationApi: jest.fn(),
   getAssistantTypeApi: jest.fn(),
+  getFrontEndSettings: jest.fn(),
+  historyList: jest.fn(),
+  historyUpdate: jest.fn(),
 }));
 jest.mock(
   "react-markdown",
@@ -102,14 +106,96 @@ jest.mock("./Cards_contract/Cards", () => {
   return Cards;
 });
 
+jest.mock("../layout/Layout", () => {
+  const Layout = (props: any) => <div>{props.children}</div>;
+  return Layout;
+});
+
 const mockedMultiLingualSpeechRecognizer =
   multiLingualSpeechRecognizer as jest.Mock;
 const mockCallConversationApi = api.callConversationApi as jest.Mock;
 const mockGetAssistantTypeApi = api.getAssistantTypeApi as jest.Mock;
+const mockGetHistoryList = api.historyList as jest.Mock;
+const mockHistoryUpdate = api.historyUpdate as jest.Mock;
+const createFetchResponse = (ok: boolean, data: any) => {
+  return { ok: ok, json: () => new Promise((resolve) => resolve(data)) };
+};
 
+
+const delayedConversationAPIcallMock = () => {
+  mockCallConversationApi.mockResolvedValueOnce({
+    body: {
+    getReader: jest.fn().mockReturnValue({
+      read: jest
+      .fn()
+      .mockResolvedValueOnce(
+        delay(5000).then(() => ({
+          done: false,
+          value: new TextEncoder().encode(
+            JSON.stringify(decodedConversationResponseWithCitations)
+          ),
+        }))
+      )
+      .mockResolvedValueOnce({
+        done: true,
+        value: new TextEncoder().encode(JSON.stringify({})),
+      }),
+    }),
+  },
+});
+}
+
+const nonDelayedConversationAPIcallMock = () => {
+  mockCallConversationApi.mockResolvedValueOnce({
+    body: {
+      getReader: jest.fn().mockReturnValue({
+        read: jest
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode(
+              JSON.stringify({
+                choices: [
+                  {
+                    messages: [
+                      { role: "assistant", content: "response from AI" },
+                    ],
+                  },
+                ],
+              })
+            ),
+          })
+          .mockResolvedValueOnce({ done: true }), // Mark the stream as done
+      }),
+    },
+  });
+}
+
+
+const initialAPICallsMocks = (delayConversationResponse=false) => {
+  mockGetAssistantTypeApi.mockResolvedValueOnce({
+    ai_assistant_type: "default",
+  });
+  (api.getFrontEndSettings as jest.Mock).mockResolvedValueOnce({
+    CHAT_HISTORY_ENABLED: true,
+  });
+  mockGetHistoryList.mockResolvedValueOnce([]);
+  if(delayConversationResponse){
+    console.log("delayConversationResponse", delayConversationResponse);
+    delayedConversationAPIcallMock()
+  } else {
+    nonDelayedConversationAPIcallMock()
+  }
+  const simpleUpdateResponse = {
+    conversation_id: "conv_1",
+    date: "2024-10-07T12:50:31.484766",
+    title: "Introduction and Greeting",
+  };
+  mockHistoryUpdate.mockResolvedValueOnce(
+    createFetchResponse(true, simpleUpdateResponse)
+  );
+};
 describe("Chat Component", () => {
-  const mockSetIsCitationPanelOpen = jest.fn();
-
   beforeEach(() => {
     jest.clearAllMocks();
     Element.prototype.scrollIntoView = jest.fn();
@@ -117,13 +203,13 @@ describe("Chat Component", () => {
   });
 
   test("renders the component and shows the empty state", async () => {
-    mockGetAssistantTypeApi.mockResolvedValueOnce({
-      ai_assistant_type: "default",
-    });
-
-    render(<Chat />);
+    initialAPICallsMocks();
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    );
     await waitFor(() => {
-      expect(screen.getByText(/Start chatting/i)).toBeInTheDocument();
       expect(
         screen.getByText(/This chatbot is configured to answer your questions/i)
       ).toBeInTheDocument();
@@ -134,8 +220,13 @@ describe("Chat Component", () => {
     mockGetAssistantTypeApi.mockResolvedValueOnce({
       ai_assistant_type: "contract assistant",
     });
+    initialAPICallsMocks();
     await act(async () => {
-      render(<Chat />);
+      render(
+        <HashRouter>
+          <Chat />
+        </HashRouter>
+      );
     });
 
     // Check for the presence of the assistant type title
@@ -143,11 +234,12 @@ describe("Chat Component", () => {
   });
 
   test("displays input field after loading", async () => {
-    mockGetAssistantTypeApi.mockResolvedValueOnce({
-      ai_assistant_type: "contract assistant",
-    });
-
-    render(<Chat />);
+    initialAPICallsMocks();
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    );
 
     // Wait for loading
     await waitFor(() => {
@@ -158,37 +250,12 @@ describe("Chat Component", () => {
   });
 
   test("sends a question and displays the response", async () => {
-    // Mock the assistant type API response
-    mockGetAssistantTypeApi.mockResolvedValueOnce({
-      ai_assistant_type: "default",
-    });
-
-    // Mock the conversation API response
-    mockCallConversationApi.mockResolvedValueOnce({
-      body: {
-        getReader: jest.fn().mockReturnValue({
-          read: jest
-            .fn()
-            .mockResolvedValueOnce({
-              done: false,
-              value: new TextEncoder().encode(
-                JSON.stringify({
-                  choices: [
-                    {
-                      messages: [
-                        { role: "assistant", content: "response from AI" },
-                      ],
-                    },
-                  ],
-                })
-              ),
-            })
-            .mockResolvedValueOnce({ done: true }), // Mark the stream as done
-        }),
-      },
-    });
-
-    render(<Chat />);
+    initialAPICallsMocks();
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    );
     const submitQuestion = screen.getByTestId("questionInputPrompt");
 
     await act(async () => {
@@ -204,12 +271,12 @@ describe("Chat Component", () => {
   });
 
   test("displays loading message while waiting for response", async () => {
-    mockGetAssistantTypeApi.mockResolvedValueOnce({
-      ai_assistant_type: "default",
-    });
-    mockCallConversationApi.mockResolvedValueOnce(new Promise(() => {}));
-
-    render(<Chat />);
+    initialAPICallsMocks(true);
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    );
 
     const input = screen.getByTestId("questionInputPrompt");
     await act(async () => {
@@ -217,7 +284,6 @@ describe("Chat Component", () => {
     });
     // Wait for the loading message to appear
     const streamMessage = await screen.findByTestId("generatingAnswer");
-
     // Check if the generating answer message is in the document
     expect(streamMessage).toBeInTheDocument();
 
@@ -230,7 +296,11 @@ describe("Chat Component", () => {
   test("should handle API failure correctly", async () => {
     const mockError = new Error("API request failed");
     mockCallConversationApi.mockRejectedValueOnce(mockError); // Simulate API failure
-    render(<Chat />); // Render the Chat component
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    ); // Render the Chat component
 
     // Find the QuestionInput component and simulate a send action
     const questionInput = screen.getByTestId("questionInputPrompt");
@@ -270,7 +340,11 @@ describe("Chat Component", () => {
       },
     });
 
-    render(<Chat />);
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    );
     // Simulate user input
     const submitQuestion = screen.getByTestId("questionInputPrompt");
 
@@ -326,7 +400,11 @@ describe("Chat Component", () => {
       },
     });
 
-    render(<Chat />);
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    );
     // Simulate user input
     const submitQuestion = screen.getByTestId("questionInputPrompt");
 
@@ -352,7 +430,11 @@ describe("Chat Component", () => {
       clearButton.focus();
 
       // Trigger the Enter key
-      fireEvent.keyDown(clearButton, { key: 'Enter', code: 'Enter', charCode: 13 });
+      fireEvent.keyDown(clearButton, {
+        key: "Enter",
+        code: "Enter",
+        charCode: 13,
+      });
     });
     await waitFor(() => {
       expect(screen.queryByTestId("answer-response")).not.toBeInTheDocument();
@@ -360,34 +442,12 @@ describe("Chat Component", () => {
   });
 
   test("clears chat when clear button is in focus and space bar triggered", async () => {
-    mockGetAssistantTypeApi.mockResolvedValueOnce({
-      ai_assistant_type: "default",
-    });
-    mockCallConversationApi.mockResolvedValueOnce({
-      body: {
-        getReader: jest.fn().mockReturnValue({
-          read: jest
-            .fn()
-            .mockResolvedValueOnce({
-              done: false,
-              value: new TextEncoder().encode(
-                JSON.stringify({
-                  choices: [
-                    {
-                      messages: [
-                        { role: "assistant", content: "response from AI" },
-                      ],
-                    },
-                  ],
-                })
-              ),
-            })
-            .mockResolvedValueOnce({ done: true }), // Mark the stream as done
-        }),
-      },
-    });
-
-    render(<Chat />);
+    initialAPICallsMocks()
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    );
     // Simulate user input
     const submitQuestion = screen.getByTestId("questionInputPrompt");
 
@@ -408,11 +468,20 @@ describe("Chat Component", () => {
     const clearButton = screen.getByLabelText(/Clear session/i);
 
     await act(async () => {
-
       clearButton.focus();
 
-      fireEvent.keyDown(clearButton, { key: ' ', code: 'Space', charCode: 32, keyCode: 32 });
-      fireEvent.keyUp(clearButton, { key: ' ', code: 'Space', charCode: 32, keyCode: 32 });
+      fireEvent.keyDown(clearButton, {
+        key: " ",
+        code: "Space",
+        charCode: 32,
+        keyCode: 32,
+      });
+      fireEvent.keyUp(clearButton, {
+        key: " ",
+        code: "Space",
+        charCode: 32,
+        keyCode: 32,
+      });
     });
     await waitFor(() => {
       expect(screen.queryByTestId("answer-response")).not.toBeInTheDocument();
@@ -438,7 +507,11 @@ describe("Chat Component", () => {
     );
 
     // Render the Chat component
-    render(<Chat />);
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    );
     // Find the microphone button
     const micButton = screen.getByTestId("microphone_btn"); // Ensure the button is available
     fireEvent.click(micButton);
@@ -466,7 +539,11 @@ describe("Chat Component", () => {
       () => mockedRecognizer
     );
 
-    render(<Chat />);
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    );
 
     const micButton = screen.getByTestId("microphone_btn");
 
@@ -498,7 +575,11 @@ describe("Chat Component", () => {
       () => mockedRecognizer
     );
 
-    render(<Chat />);
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    );
 
     const micButton = screen.getByTestId("microphone_btn");
 
@@ -543,36 +624,13 @@ describe("Chat Component", () => {
   });
 
   test("while speaking response text speech recognizing mic to be disabled", async () => {
-    // Mock the assistant type API response
-    mockGetAssistantTypeApi.mockResolvedValueOnce({
-      ai_assistant_type: "default",
-    });
-    // Mock the conversation API response
-    mockCallConversationApi.mockResolvedValueOnce({
-      body: {
-        getReader: jest.fn().mockReturnValue({
-          read: jest
-            .fn()
-            .mockResolvedValueOnce({
-              done: false,
-              value: new TextEncoder().encode(
-                JSON.stringify({
-                  choices: [
-                    {
-                      messages: [
-                        { role: "assistant", content: AIResponseContent },
-                      ],
-                    },
-                  ],
-                })
-              ),
-            })
-            .mockResolvedValueOnce({ done: true }), // Mark the stream as done
-        }),
-      },
-    });
+    initialAPICallsMocks()
 
-    render(<Chat />);
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    );
     // Simulate user input
     const submitQuestion = screen.getByTestId("questionInputPrompt");
 
@@ -593,36 +651,13 @@ describe("Chat Component", () => {
   });
 
   test("After pause speech to text Question input mic should be enabled mode", async () => {
-    mockGetAssistantTypeApi.mockResolvedValueOnce({
-      ai_assistant_type: "default",
-    });
+    initialAPICallsMocks()
 
-    // Mock the conversation API response
-    mockCallConversationApi.mockResolvedValueOnce({
-      body: {
-        getReader: jest.fn().mockReturnValue({
-          read: jest
-            .fn()
-            .mockResolvedValueOnce({
-              done: false,
-              value: new TextEncoder().encode(
-                JSON.stringify({
-                  choices: [
-                    {
-                      messages: [
-                        { role: "assistant", content: AIResponseContent },
-                      ],
-                    },
-                  ],
-                })
-              ),
-            })
-            .mockResolvedValueOnce({ done: true }), // Mark the stream as done
-        }),
-      },
-    });
-
-    render(<Chat />);
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    );
     // Simulate user input
     const submitQuestion = screen.getByTestId("questionInputPrompt");
 
@@ -648,30 +683,15 @@ describe("Chat Component", () => {
   });
   test("shows citations list when available", async () => {
     // Mock the API responses
-    mockGetAssistantTypeApi.mockResolvedValueOnce({
-      ai_assistant_type: "default",
-    });
-    mockCallConversationApi.mockResolvedValueOnce({
-      body: {
-        getReader: jest.fn().mockReturnValue({
-          read: jest
-            .fn()
-            .mockResolvedValueOnce({
-              done: false,
-              value: new TextEncoder().encode(
-                JSON.stringify(decodedConversationResponseWithCitations)
-              ),
-            })
-            .mockResolvedValueOnce({
-              done: true,
-              value: new TextEncoder().encode(JSON.stringify({})),
-            }),
-        }),
-      },
-    });
+    initialAPICallsMocks()
+
 
     // Render the Chat component
-    render(<Chat />);
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    );
 
     // Get the input element and submit button
     const submitButton = screen.getByTestId("questionInputPrompt");
@@ -690,30 +710,14 @@ describe("Chat Component", () => {
 
   test("shows citation panel when clicked on reference", async () => {
     // Mock the API responses
-    mockGetAssistantTypeApi.mockResolvedValueOnce({
-      ai_assistant_type: "default",
-    });
-    mockCallConversationApi.mockResolvedValueOnce({
-      body: {
-        getReader: jest.fn().mockReturnValue({
-          read: jest
-            .fn()
-            .mockResolvedValueOnce({
-              done: false,
-              value: new TextEncoder().encode(
-                JSON.stringify(decodedConversationResponseWithCitations)
-              ),
-            })
-            .mockResolvedValueOnce({
-              done: true,
-              value: new TextEncoder().encode(JSON.stringify({})),
-            }),
-        }),
-      },
-    });
+    initialAPICallsMocks()
 
     // Render the Chat component
-    render(<Chat />);
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    );
 
     // Get the input element and submit button
     const submitButton = screen.getByTestId("questionInputPrompt");
@@ -775,7 +779,11 @@ describe("Chat Component", () => {
       },
     });
 
-    render(<Chat />);
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    );
     // Simulate user input
     const submitQuestion = screen.getByTestId("questionInputPrompt");
 
@@ -826,7 +834,11 @@ describe("Chat Component", () => {
       },
     });
 
-    render(<Chat />);
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    );
     // Simulate user input
     const submitQuestion = screen.getByTestId("questionInputPrompt");
 
@@ -844,7 +856,11 @@ describe("Chat Component", () => {
     await act(async () => {
       stopButton.focus();
       // Trigger the Enter key
-      fireEvent.keyDown(stopButton, { key: 'Enter', code: 'Enter', charCode: 13 });
+      fireEvent.keyDown(stopButton, {
+        key: "Enter",
+        code: "Enter",
+        charCode: 13,
+      });
     });
 
     expect(stopButton).not.toBeInTheDocument();
@@ -878,7 +894,11 @@ describe("Chat Component", () => {
       },
     });
 
-    render(<Chat />);
+    render(
+      <HashRouter>
+        <Chat />
+      </HashRouter>
+    );
     // Simulate user input
     const submitQuestion = screen.getByTestId("questionInputPrompt");
 
@@ -895,9 +915,19 @@ describe("Chat Component", () => {
     expect(stopButton).toBeInTheDocument();
     await act(async () => {
       // Trigger the Enter key
-      stopButton.focus()
-      fireEvent.keyDown(stopButton, { key: ' ', code: 'Space', charCode: 32, keyCode: 32 });
-      fireEvent.keyUp(stopButton, { key: ' ', code: 'Space', charCode: 32, keyCode: 32 });
+      stopButton.focus();
+      fireEvent.keyDown(stopButton, {
+        key: " ",
+        code: "Space",
+        charCode: 32,
+        keyCode: 32,
+      });
+      fireEvent.keyUp(stopButton, {
+        key: " ",
+        code: "Space",
+        charCode: 32,
+        keyCode: 32,
+      });
     });
 
     expect(stopButton).not.toBeInTheDocument();

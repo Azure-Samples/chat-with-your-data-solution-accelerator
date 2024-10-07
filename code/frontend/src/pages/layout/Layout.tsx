@@ -65,11 +65,6 @@ const Layout = ({ children,toggleSpinner, ...props }: LayoutProps) => {
   };
 
   useEffect(() => {
-    if (firstRender.current && import.meta.env.MODE === "development") {
-      firstRender.current = false;
-      return;
-    }
-    console.log("calling list ");
     getUserInfoList();
   }, []);
 
