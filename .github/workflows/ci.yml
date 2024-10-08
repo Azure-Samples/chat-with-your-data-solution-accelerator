@@ -35,6 +35,7 @@ jobs:
       - name: Pre-build image and run make in dev container
         uses: devcontainers/ci@v0.3
         env:
+          echo "Generated SubscriptionID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           AZURE_ENV_NAME: ${{ github.run_id }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
         with:
