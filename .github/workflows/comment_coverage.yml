@@ -13,9 +13,9 @@ jobs:
   comment:
     name: Comment coverage
     runs-on: ubuntu-latest
-    # if: >
-    #   github.event.workflow_run.event == 'pull_request' &&
-    #   github.event.workflow_run.conclusion != 'cancelled'
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion != 'cancelled'
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
