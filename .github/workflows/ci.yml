@@ -32,14 +32,9 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Print Generated SubscriptionID
-        run: |
-          echo "Generated SubscriptionID: ${{ secrets.AZURE_TENANT_ID }}"
-
       - name: Pre-build image and run make in dev container
         uses: devcontainers/ci@v0.3
         env:
-          echo "Generated SubscriptionID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           AZURE_ENV_NAME: ${{ github.run_id }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
         with:
