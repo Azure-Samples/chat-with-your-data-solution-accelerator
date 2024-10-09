@@ -72,7 +72,9 @@ def env_helper_mock():
         env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH = AZURE_SEARCH_USE_SEMANTIC_SEARCH
         env_helper.AZURE_SEARCH_FIELDS_ID = AZURE_SEARCH_FIELDS_ID
         env_helper.AZURE_SEARCH_CONTENT_COLUMN = AZURE_SEARCH_CONTENT_COLUMN
-        env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN = AZURE_SEARCH_CONTENT_VECTOR_COLUMN
+        env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN = (
+            AZURE_SEARCH_CONTENT_VECTOR_COLUMN
+        )
         env_helper.AZURE_SEARCH_TITLE_COLUMN = AZURE_SEARCH_TITLE_COLUMN
         env_helper.AZURE_SEARCH_FIELDS_METADATA = AZURE_SEARCH_FIELDS_METADATA
         env_helper.AZURE_SEARCH_SOURCE_COLUMN = AZURE_SEARCH_SOURCE_COLUMN
@@ -242,7 +244,9 @@ def test_creates_search_index_if_not_exists(
                         name=AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
                         prioritized_fields=SemanticPrioritizedFields(
                             title_field=None,
-                            content_fields=[SemanticField(field_name=AZURE_SEARCH_CONTENT_COLUMN)],
+                            content_fields=[
+                                SemanticField(field_name=AZURE_SEARCH_CONTENT_COLUMN)
+                            ],
                         ),
                     )
                 ]
