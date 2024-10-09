@@ -34,7 +34,7 @@ jobs:
 
       - name: Print Generated SubscriptionID
         run: |
-          echo "Generated SubscriptionID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          echo "Generated SubscriptionID: ${{ secrets.AZURE_TENANT_ID }}"
 
       - name: Pre-build image and run make in dev container
         uses: devcontainers/ci@v0.3
