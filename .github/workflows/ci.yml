@@ -38,8 +38,8 @@ jobs:
           AZURE_ENV_NAME: ${{ github.run_id }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
         with:
-          imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
-          cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+          imageName: ghcr.io/roopan-microsoft/chat-with-your-data-solution-accelerator
+          cacheFrom: ghcr.io/roopan-microsoft/chat-with-your-data-solution-accelerator
           runCmd: make ci && make deploy
           refFilterForPush: refs/heads/main
           env: |
@@ -58,7 +58,7 @@ jobs:
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
         with:
           push: never
-          imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+          imageName: ghcr.io/roopan-microsoft/chat-with-your-data-solution-accelerator
           runCmd: make destroy
           env: |
             AZURE_CLIENT_ID
