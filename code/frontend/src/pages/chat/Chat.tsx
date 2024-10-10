@@ -112,7 +112,7 @@ const Chat = () => {
   const [clearingError, setClearingError] = React.useState(false);
   const [fetchingConvMessages, setFetchingConvMessages] = React.useState(false);
   const [isSavingToDB, setIsSavingToDB] = React.useState(false);
-
+  const [isInitialAPItriggered, setIsInitialAPItriggered] = useState(false);
   const clearAllDialogContentProps = {
     type: DialogType.close,
     title: !clearingError
@@ -520,18 +520,20 @@ const Chat = () => {
   };
 
   useEffect(() => {
-    if (firstRender.current && import.meta.env.MODE === "development") {
-      firstRender.current = false;
-      return;
-    }
-    (async () => {
-      const response = await getFrontEndSettings();
-      if (response.CHAT_HISTORY_ENABLED) {
-        handleFetchHistory();
-        setShowHistoryBtn(true);
-      }
-    })();
+    setIsInitialAPItriggered(true);
   }, []);
+
+  useEffect(() => {
+    if (isInitialAPItriggered) {
+      (async () => {
+        const response = await getFrontEndSettings();
+        if (response.CHAT_HISTORY_ENABLED) {
+          handleFetchHistory();
+          setShowHistoryBtn(true);
+        }
+      })();
+    }
+  }, [isInitialAPItriggered]);
 
   const onHistoryDelete = (id: string) => {
     const tempChatHistory = [...chatHistory];
@@ -676,7 +678,7 @@ const Chat = () => {
                         {lastQuestionRef.current}
                       </div>
                     </div>
-                    <div className={styles.chatMessageGpt}>
+                    <div className={styles.chatMessageGpt} data-testid="generatingAnswer">
                       <Answer
                         answer={{
                           answer: "Generating answer...",
@@ -688,7 +690,7 @@ const Chat = () => {
                     </div>
                   </React.Fragment>
                 )}
-                <div ref={chatMessageStreamEnd} />
+                <div data-testid="streamendref-id" ref={chatMessageStreamEnd} />
               </div>
             )}
             <div>

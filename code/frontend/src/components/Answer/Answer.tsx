@@ -263,6 +263,7 @@ export const Answer = ({
       case "Resume":
         return (
           <button
+            data-testid="play-button"
             id="speakerbtn"
             title={"Read aloud"}
             onClick={handleSpeakPauseResume}
@@ -274,6 +275,7 @@ export const Answer = ({
       case "Pause":
         return (
           <button
+            data-testid="pause-button"
             id="pausebtn"
             title={"Pause"}
             onClick={handleSpeakPauseResume}
@@ -290,6 +292,7 @@ export const Answer = ({
   return (
     <>
       <MyStackComponent
+        data-testid="message-box"
         className={styles.answerContainer}
         id={messageBoxId}
         ref={answerContainerRef}
@@ -325,9 +328,10 @@ export const Answer = ({
                       ? handleChevronClick()
                       : null
                   }
+                  data-testid="toggle-citations-list"
                 >
-                  <Text className={styles.accordionTitle}>
-                    <span>
+                  <Text  className={styles.accordionTitle}>
+                    <span data-testid="no-of-references">
                       {parsedAnswer.citations.length > 1
                         ? parsedAnswer.citations.length + " references"
                         : "1 reference"}
@@ -339,6 +343,7 @@ export const Answer = ({
                       chevronIsExpanded ? "ChevronDown" : "ChevronRight"
                     }
                     aria-hidden={false}
+                    data-testid="chevron-icon"
                   />
                 </Stack>
               </Stack>
@@ -347,6 +352,7 @@ export const Answer = ({
         </Stack>
         {chevronIsExpanded && (
           <div
+            data-testid="citations-container"
             ref={refContainer}
             style={{
               marginTop: 8,
@@ -360,6 +366,7 @@ export const Answer = ({
             {parsedAnswer.citations.map((citation, idx) => {
               return (
                 <span
+                  data-testid="citation-block"
                   role="button"
                   onKeyDown={(e) =>
                     e.key === " " || e.key === "Enter"

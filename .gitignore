@@ -5,6 +5,7 @@
 
 # generated frontend files
 code/dist/
+code/frontend/coverage
 
 # User-specific files
 *.rsuser
