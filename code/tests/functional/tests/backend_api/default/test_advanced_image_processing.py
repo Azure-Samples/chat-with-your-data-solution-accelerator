@@ -245,7 +245,7 @@ def test_image_urls_included_in_call_to_openai(
                         "role": "system",
                     },
                     {
-                        "content": '## Retrieved Documents\n{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}\n\n## User Question\nuser question',
+                        "content": '## Retrieved Documents\n{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}\n\n## User Question\nUse the Retrieved Documents to answer the question: user question',
                         "name": "example_user",
                         "role": "system",
                     },
@@ -264,7 +264,7 @@ def test_image_urls_included_in_call_to_openai(
                         "content": [
                             {
                                 "type": "text",
-                                "text": '## Retrieved Documents\n{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}\n\n## User Question\nWhat is the meaning of life?',
+                                "text": '## Retrieved Documents\n{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}\n\n## User Question\nUse the Retrieved Documents to answer the question: What is the meaning of life?',
                             },
                             {"type": "image_url", "image_url": {"url": ANY}},
                         ],
