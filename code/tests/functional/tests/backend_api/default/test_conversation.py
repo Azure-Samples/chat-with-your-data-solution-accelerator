@@ -566,7 +566,7 @@ def test_post_makes_correct_call_to_openai_chat_completions_with_documents(
                         "role": "system",
                     },
                     {
-                        "content": '## Retrieved Documents\n{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}\n\n## User Question\nuser question',
+                        "content": '## Retrieved Documents\n{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}\n\n## User Question\nUse the Retrieved Documents to answer the question: user question',
                         "name": "example_user",
                         "role": "system",
                     },
@@ -585,7 +585,7 @@ def test_post_makes_correct_call_to_openai_chat_completions_with_documents(
                         "content": [
                             {
                                 "type": "text",
-                                "text": '## Retrieved Documents\n{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}\n\n## User Question\nWhat is the meaning of life?',
+                                "text": '## Retrieved Documents\n{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}\n\n## User Question\nUse the Retrieved Documents to answer the question: What is the meaning of life?',
                             }
                         ],
                         "role": "user",
