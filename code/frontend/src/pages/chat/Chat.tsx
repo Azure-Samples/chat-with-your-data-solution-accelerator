@@ -9,8 +9,6 @@ import {
   ICommandBarStyles,
   IContextualMenuItem,
   PrimaryButton,
-  Spinner,
-  SpinnerSize,
   Stack,
   StackItem,
   Text,
@@ -37,7 +35,6 @@ import {
   ConversationRequest,
   callConversationApi,
   Citation,
-  ToolMessageContent,
   ChatResponse,
   getAssistantTypeApi,
   historyList,
@@ -52,6 +49,7 @@ import { QuestionInput } from "../../components/QuestionInput";
 import Layout from "../layout/Layout";
 import ChatHistoryList from "./ChatHistoryList";
 import { AssistantTypeSection } from "../../components/AssistantTypeSection/AssistantTypeSection";
+import { ChatMessageContainer } from "../../components/ChatMessageContainer/ChatMessageContainer";
 
 const OFFSET_INCREMENT = 25;
 const [ASSISTANT, TOOL, ERROR] = ["assistant", "tool", "error"];
@@ -404,18 +402,6 @@ const Chat = () => {
     setShowHistoryPanel(false);
   };
 
-  const parseCitationFromMessage = (message: ChatMessage) => {
-    if (message.role === TOOL) {
-      try {
-        const toolMessage = JSON.parse(message.content) as ToolMessageContent;
-        return toolMessage.citations;
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  };
-
   const onClearAllChatHistory = async () => {
     toggleToggleSpinner(true);
     setClearing(true);
@@ -570,7 +556,8 @@ const Chat = () => {
       return response;
     });
   };
-
+  const showAssistantTypeSection =
+    !fetchingConvMessages && !lastQuestionRef.current && answers.length === 0;
   return (
     <Layout
       toggleSpinner={toggleSpinner}
@@ -583,9 +570,7 @@ const Chat = () => {
           <div
             className={`${styles.chatContainer} ${styles.MobileChatContainer}`}
           >
-            {!fetchingConvMessages &&
-            !lastQuestionRef.current &&
-            answers.length === 0 ? (
+            {showAssistantTypeSection ? (
               <AssistantTypeSection
                 assistantType={assistantType}
                 isAssistantAPILoading={isAssistantAPILoading}
@@ -595,50 +580,13 @@ const Chat = () => {
                 className={styles.chatMessageStream}
                 style={{ marginBottom: isLoading ? "40px" : "0px" }}
               >
-                {fetchingConvMessages && (
-                  <div className={styles.fetchMessagesSpinner}>
-                    <Spinner size={SpinnerSize.medium} />
-                  </div>
-                )}
-                {!fetchingConvMessages &&
-                  answers.map((answer, index) => (
-                    <React.Fragment key={`${answer?.role}-${index}`}>
-                      {answer.role === "user" ? (
-                        <div
-                          className={styles.chatMessageUser}
-                          key={`${answer?.role}-${index}`}
-                        >
-                          <div className={styles.chatMessageUserMessage}>
-                            {answer.content}
-                          </div>
-                        </div>
-                      ) : answer.role === ASSISTANT ||
-                        answer.role === "error" ? (
-                        <div
-                          className={styles.chatMessageGpt}
-                          key={`${answer?.role}-${index}`}
-                        >
-                          <Answer
-                            answer={{
-                              answer:
-                                answer.role === ASSISTANT
-                                  ? answer.content
-                                  : "Sorry, an error occurred. Try refreshing the conversation or waiting a few minutes. If the issue persists, contact your system administrator. Error: " +
-                                    answer.content,
-                              citations:
-                                answer.role === ASSISTANT
-                                  ? parseCitationFromMessage(answers[index - 1])
-                                  : [],
-                            }}
-                            onSpeak={handleSpeech}
-                            isActive={activeCardIndex === index}
-                            onCitationClicked={(c) => onShowCitation(c)}
-                            index={index}
-                          />
-                        </div>
-                      ) : null}
-                    </React.Fragment>
-                  ))}
+                <ChatMessageContainer
+                  activeCardIndex={activeCardIndex}
+                  answers={answers}
+                  fetchingConvMessages={fetchingConvMessages}
+                  handleSpeech={handleSpeech}
+                  onShowCitation={onShowCitation}
+                />
                 {showLoadingMessage && (
                   <React.Fragment key="generating-answer">
                     <div className={styles.chatMessageUser}>

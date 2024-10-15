@@ -11,10 +11,8 @@ type AssistantTypeSectionProps = {
 
 enum assistantTypes {
   default = "default",
-  contractAssistant = "contract assistant"
+  contractAssistant = "contract assistant",
 }
-console.log("contract type", assistantTypes.contractAssistant, assistantTypes);
-
 
 export const AssistantTypeSection: React.FC<AssistantTypeSectionProps> = ({
   assistantType,
