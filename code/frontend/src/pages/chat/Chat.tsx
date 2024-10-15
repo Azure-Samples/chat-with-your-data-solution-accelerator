@@ -30,7 +30,6 @@ import rehypeRaw from "rehype-raw";
 import { v4 as uuidv4 } from "uuid";
 
 import styles from "./Chat.module.css";
-import Azure from "../../assets/Azure.svg";
 import { multiLingualSpeechRecognizer } from "../../util/SpeechToText";
 import { useBoolean } from "@fluentui/react-hooks";
 import {
@@ -50,9 +49,9 @@ import {
 } from "../../api";
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
-import Cards from "./Cards_contract/Cards";
 import Layout from "../layout/Layout";
 import ChatHistoryList from "./ChatHistoryList";
+import { AssistantTypeSection } from "../../components/AssistantTypeSection/AssistantTypeSection";
 
 const OFFSET_INCREMENT = 25;
 const [ASSISTANT, TOOL, ERROR] = ["assistant", "tool", "error"];
@@ -378,12 +377,12 @@ const Chat = () => {
     chatMessageStreamEnd.current?.scrollIntoView({ behavior: "smooth" });
     const fetchAssistantType = async () => {
       try {
-          setIsAssistantAPILoading(true);
+        setIsAssistantAPILoading(true);
         const result = await getAssistantTypeApi();
         if (result) {
           setAssistantType(result.ai_assistant_type);
         }
-          setIsAssistantAPILoading(false);
+        setIsAssistantAPILoading(false);
         return result;
       } catch (error) {
         console.error("Error fetching assistant type:", error);
@@ -428,7 +427,7 @@ const Chat = () => {
       toggleClearAllDialog();
       setShowContextualPopup(false);
       setAnswers([]);
-      setSelectedConvId("")
+      setSelectedConvId("");
     }
     setClearing(false);
     toggleToggleSpinner(false);
@@ -587,41 +586,10 @@ const Chat = () => {
             {!fetchingConvMessages &&
             !lastQuestionRef.current &&
             answers.length === 0 ? (
-              <Stack className={styles.chatEmptyState}>
-                <img
-                  src={Azure}
-                  className={styles.chatIcon}
-                  aria-hidden="true"
-                  alt="Chat with your data"
-                />
-                {assistantType === "contract assistant" ? (
-                  <>
-                    <h1 className={styles.chatEmptyStateTitle}>
-                      Contract Summarizer
-                    </h1>
-                    <h2 className={styles.chatEmptyStateSubtitle}>
-                      AI-Powered assistant for simplified summarization
-                    </h2>
-                    <Cards />
-                  </>
-                ) : assistantType === "default" ? (
-                  <>
-                    <h1 className={styles.chatEmptyStateTitle}>
-                      Chat with your
-                      <span className={styles.dataText}>&nbsp;Data</span>
-                    </h1>
-                    <h2 className={styles.chatEmptyStateSubtitle}>
-                      This chatbot is configured to answer your questions
-                    </h2>
-                  </>
-                ) : null}
-                {isAssistantAPILoading && (
-                  <div className={styles.loadingContainer}>
-                    <div className={styles.loadingIcon}></div>
-                    <p>Loading...</p>
-                  </div>
-                )}
-              </Stack>
+              <AssistantTypeSection
+                assistantType={assistantType}
+                isAssistantAPILoading={isAssistantAPILoading}
+              />
             ) : (
               <div
                 className={styles.chatMessageStream}
@@ -678,7 +646,10 @@ const Chat = () => {
                         {lastQuestionRef.current}
                       </div>
                     </div>
-                    <div className={styles.chatMessageGpt} data-testid="generatingAnswer">
+                    <div
+                      className={styles.chatMessageGpt}
+                      data-testid="generatingAnswer"
+                    >
                       <Answer
                         answer={{
                           answer: "Generating answer...",
@@ -866,7 +837,7 @@ const Chat = () => {
                 aria-label="chat history panel content"
                 style={{
                   display: "flex",
-                  height: '100%',
+                  height: "100%",
                   padding: "1px",
                 }}
               >
