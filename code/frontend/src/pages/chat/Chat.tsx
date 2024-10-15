@@ -15,16 +15,12 @@ import {
 } from "@fluentui/react";
 import {
   BroomRegular,
-  DismissRegular,
   SquareRegular,
 } from "@fluentui/react-icons";
 import {
   SpeechRecognizer,
   ResultReason,
 } from "microsoft-cognitiveservices-speech-sdk";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
 import { v4 as uuidv4 } from "uuid";
 
 import styles from "./Chat.module.css";
@@ -50,6 +46,7 @@ import Layout from "../layout/Layout";
 import ChatHistoryList from "./ChatHistoryList";
 import { AssistantTypeSection } from "../../components/AssistantTypeSection/AssistantTypeSection";
 import { ChatMessageContainer } from "../../components/ChatMessageContainer/ChatMessageContainer";
+import { CitationPanel } from "../../components/CitationPanel/CitationPanel";
 
 const OFFSET_INCREMENT = 25;
 const [ASSISTANT, TOOL, ERROR] = ["assistant", "tool", "error"];
@@ -558,6 +555,8 @@ const Chat = () => {
   };
   const showAssistantTypeSection =
     !fetchingConvMessages && !lastQuestionRef.current && answers.length === 0;
+  const showCitationPanel =
+    answers.length > 0 && isCitationPanelOpen && activeCitation;
   return (
     <Layout
       toggleSpinner={toggleSpinner}
@@ -675,47 +674,11 @@ const Chat = () => {
               />
             </Stack>
           </div>
-          {answers.length > 0 && isCitationPanelOpen && activeCitation && (
-            <Stack.Item
-              className={`${styles.citationPanel} ${styles.mobileStyles}`}
-            >
-              <Stack
-                horizontal
-                className={styles.citationPanelHeaderContainer}
-                horizontalAlign="space-between"
-                verticalAlign="center"
-              >
-                <span className={styles.citationPanelHeader}>Citations</span>
-                <DismissRegular
-                  role="button"
-                  onKeyDown={(e) =>
-                    e.key === " " || e.key === "Enter"
-                      ? setIsCitationPanelOpen(false)
-                      : () => {}
-                  }
-                  tabIndex={0}
-                  className={styles.citationPanelDismiss}
-                  onClick={() => setIsCitationPanelOpen(false)}
-                />
-              </Stack>
-              <h5
-                className={`${styles.citationPanelTitle} ${styles.mobileCitationPanelTitle}`}
-              >
-                {activeCitation[2]}
-              </h5>
-              <div
-                className={`${styles.citationPanelDisclaimer} ${styles.mobileCitationPanelDisclaimer}`}
-              >
-                Tables, images, and other special formatting not shown in this
-                preview. Please follow the link to review the original document.
-              </div>
-              <ReactMarkdown
-                className={`${styles.citationPanelContent} ${styles.mobileCitationPanelContent}`}
-                children={activeCitation[0]}
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw]}
-              />
-            </Stack.Item>
+          {showCitationPanel && (
+            <CitationPanel
+              activeCitation={activeCitation}
+              setIsCitationPanelOpen={setIsCitationPanelOpen}
+            />
           )}
 
           {showHistoryPanel && (
