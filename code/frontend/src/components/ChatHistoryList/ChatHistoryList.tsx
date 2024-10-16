@@ -1,6 +1,6 @@
 import React from "react";
 import { Conversation } from "../../api/models";
-import { ChatHistoryListItemGroups } from "./ChatHistoryListItem";
+import { ChatHistoryListItemGroups } from "../ChatHistoryListItemGroups/ChatHistoryListItemGroups";
 
 interface ChatHistoryListProps {
   fetchingChatHistory: boolean;

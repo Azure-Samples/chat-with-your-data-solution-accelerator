@@ -15,7 +15,7 @@ import {
 } from "@fluentui/react";
 
 import styles from "./ChatHistoryPanel.module.css";
-import ChatHistoryList from "../../pages/chat/ChatHistoryList";
+import ChatHistoryList from "../ChatHistoryList/ChatHistoryList";
 import { type Conversation } from "../../api";
 
 const commandBarStyle: ICommandBarStyles = {
