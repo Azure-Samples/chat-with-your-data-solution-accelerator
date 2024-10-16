@@ -38,8 +38,8 @@ jobs:
           AZURE_ENV_NAME: ${{ github.run_id }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
         with:
-          imageName: ghcr.io/prashant-microsoft/PSL-CWYD-Prashant
-          cacheFrom: ghcr.io/prashant-microsoft/PSL-CWYD-Prashant
+          imageName: ghcr.io/prashant-microsoft/psl-cwyd-prashant
+          cacheFrom: ghcr.io/prashant-microsoft/psl-cwyd-prashant
           runCmd: make ci && make deploy
           refFilterForPush: refs/heads/main
           env: |
@@ -58,7 +58,7 @@ jobs:
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
         with:
           push: never
-          imageName: ghcr.io/prashant-microsoft/PSL-CWYD-Prashant
+          imageName: ghcr.io/prashant-microsoft/psl-cwyd-prashant
           runCmd: make destroy
           env: |
             AZURE_CLIENT_ID
