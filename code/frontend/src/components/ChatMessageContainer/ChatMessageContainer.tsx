@@ -10,7 +10,7 @@ import {
 
 const [ASSISTANT, TOOL, ERROR, USER] = ["assistant", "tool", "error", "user"];
 
-type ChatMessageContainerProps = {
+export type ChatMessageContainerProps = {
   fetchingConvMessages: boolean;
   answers: ChatMessage[];
   activeCardIndex: number | null;

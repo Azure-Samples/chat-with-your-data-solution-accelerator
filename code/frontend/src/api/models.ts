@@ -10,7 +10,7 @@ export type Citation = {
     title: string | null;
     filepath: string | null;
     url: string | null;
-    metadata: string | null;
+    metadata: string | null | Record<string, string| number>;
     chunk_id: string | null | number;
     reindex_id?: string | null;
 }

@@ -13,7 +13,7 @@ import { getUserInfo } from "../../api";
 import SpinnerComponent from '../../components/Spinner/Spinner';
 
 
-type LayoutProps = {
+export type LayoutProps = {
   children: ReactNode;
   toggleSpinner: boolean;
   onSetShowHistoryPanel: () => void;

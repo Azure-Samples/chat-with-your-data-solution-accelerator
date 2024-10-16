@@ -27,7 +27,7 @@ const commandBarStyle: ICommandBarStyles = {
   },
 };
 
-type ChatHistoryPanelProps = {
+export type ChatHistoryPanelProps = {
   onShowContextualMenu: (ev: React.MouseEvent<HTMLElement>) => void;
   showContextualMenu: boolean;
   clearingError: boolean;
