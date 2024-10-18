@@ -71,7 +71,11 @@ module functions 'appservice.bicep' = {
         FUNCTIONS_EXTENSION_VERSION: extensionVersion
       },
       !useDocker ? { FUNCTIONS_WORKER_RUNTIME: runtimeName } : {},
-      useKeyVault ? { AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'} : {AzureWebJobsStorage__accountName: storage.name}
+      useKeyVault
+        ? {
+            AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
+          }
+        : { AzureWebJobsStorage__accountName: storage.name }
     )
     clientAffinityEnabled: clientAffinityEnabled
     enableOryxBuild: enableOryxBuild

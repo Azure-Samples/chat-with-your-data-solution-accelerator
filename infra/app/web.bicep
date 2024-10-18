@@ -122,16 +122,16 @@ module web '../core/host/appservice.bicep' = {
             '2023-05-01'
           ).key1
       AZURE_COSMOSDB_ACCOUNT_KEY: (useKeyVault || cosmosDBKeyName == '')
-      ? cosmosDBKeyName
-      : listKeys(
-          resourceId(
-            subscription().subscriptionId,
-            resourceGroup().name,
-            'Microsoft.DocumentDB/databaseAccounts',
-            cosmosDBKeyName
-          ),
-          '2022-08-15'
-        ).primaryMasterKey
+        ? cosmosDBKeyName
+        : listKeys(
+            resourceId(
+              subscription().subscriptionId,
+              resourceGroup().name,
+              'Microsoft.DocumentDB/databaseAccounts',
+              cosmosDBKeyName
+            ),
+            '2022-08-15'
+          ).primaryMasterKey
     })
     keyVaultName: keyVaultName
     runtimeName: runtimeName
@@ -201,7 +201,6 @@ module cosmosRoleDefinition '../core/database/cosmos-sql-role-def.bicep' = {
     web
   ]
 }
-
 
 module cosmosUserRole '../core/database/cosmos-sql-role-assign.bicep' = {
   name: 'cosmos-sql-user-role-${web.name}'
