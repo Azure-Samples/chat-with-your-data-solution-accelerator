@@ -333,14 +333,14 @@ Use the Retrieved Documents to answer the question: {question}
                 lambda x: {
                     "document_type": x.document_type,
                     "chunking_strategy": (
-                        x.chunking.chunking_strategy.value if x.chunking else None
+                        x.chunking.chunking_strategy.value if x.chunking else "layout"
                     ),
                     "chunking_size": x.chunking.chunk_size if x.chunking else None,
                     "chunking_overlap": (
                         x.chunking.chunk_overlap if x.chunking else None
                     ),
                     "loading_strategy": (
-                        x.loading.loading_strategy.value if x.loading else None
+                        x.loading.loading_strategy.value if x.loading else "layout"
                     ),
                     "use_advanced_image_processing": x.use_advanced_image_processing,
                 },
@@ -391,8 +391,19 @@ Use the Retrieved Documents to answer the question: {question}
             st.checkbox("Log tokens", key="log_tokens")
 
         if st.form_submit_button("Save configuration"):
-            document_processors = (
-                list(
+            document_processors = []
+            if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION is False:
+                valid = all(
+                    row["document_type"]
+                    and row["chunking_strategy"]
+                    and row["loading_strategy"]
+                    for row in edited_document_processors
+                )
+                if not valid:
+                    st.error(
+                        "Please ensure all fields are selected and not left blank in Document processing configuration."
+                    )
+                document_processors = list(
                     map(
                         lambda x: {
                             "document_type": x["document_type"],
@@ -411,9 +422,6 @@ Use the Retrieved Documents to answer the question: {question}
                         edited_document_processors,
                     )
                 )
-                if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION is False
-                else []
-            )
             current_config = {
                 "prompts": {
                     "condense_question_prompt": "",  # st.session_state['condense_question_prompt'],

@@ -1,4 +1,5 @@
 from os import path
+import re
 import streamlit as st
 import traceback
 import requests
@@ -56,6 +57,11 @@ def add_urls():
     add_url_embeddings(urls)
 
 
+def sanitize_metadata_value(value):
+    # Remove invalid characters
+    return re.sub(r"[^a-zA-Z0-9-_ .]", "?", value)
+
+
 def add_url_embeddings(urls: list[str]):
     params = {}
     if env_helper.FUNCTION_KEY is not None:
@@ -89,7 +95,7 @@ try:
             for up in uploaded_files:
                 # To read file as bytes:
                 bytes_data = up.getvalue()
-                title = up.name.encode("latin-1", "replace").decode("latin-1")
+                title = sanitize_metadata_value(up.name)
                 if st.session_state.get("filename", "") != up.name:
                     # Upload a new file
                     st.session_state["filename"] = up.name
