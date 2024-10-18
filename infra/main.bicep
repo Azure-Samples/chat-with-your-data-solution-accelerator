@@ -1054,6 +1054,7 @@ module storage 'core/storage/storage-account.bicep' = {
   params: {
     name: storageAccountName
     location: location
+    useKeyVault: useKeyVault
     sku: {
       name: 'Standard_GRS'
     }
@@ -1086,7 +1087,7 @@ module storage 'core/storage/storage-account.bicep' = {
 
 // USER ROLES
 // Storage Blob Data Contributor
-module storageRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
+module storageRoleUser 'core/security/role.bicep' = if (authType == 'rbac' && principalId != '') {
   scope: resourceGroup()
   name: 'storage-role-user'
   params: {
@@ -1097,7 +1098,7 @@ module storageRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
 }
 
 // Cognitive Services User
-module openaiRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
+module openaiRoleUser 'core/security/role.bicep' = if (authType == 'rbac' && principalId != '') {
   scope: resourceGroup()
   name: 'openai-role-user'
   params: {
@@ -1108,7 +1109,7 @@ module openaiRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
 }
 
 // Contributor
-module openaiRoleUserContributor 'core/security/role.bicep' = if (authType == 'rbac') {
+module openaiRoleUserContributor 'core/security/role.bicep' = if (authType == 'rbac' && principalId != '') {
   scope: resourceGroup()
   name: 'openai-role-user-contributor'
   params: {
@@ -1119,7 +1120,7 @@ module openaiRoleUserContributor 'core/security/role.bicep' = if (authType == 'r
 }
 
 // Search Index Data Contributor
-module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
+module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac' && principalId != '') {
   scope: resourceGroup()
   name: 'search-role-user'
   params: {
