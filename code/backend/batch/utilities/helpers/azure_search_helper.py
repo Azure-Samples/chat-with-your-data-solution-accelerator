@@ -155,7 +155,11 @@ class AzureSearchHelper:
                             name=self.env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
                             prioritized_fields=SemanticPrioritizedFields(
                                 title_field=None,
-                                content_fields=[SemanticField(field_name=self.env_helper.AZURE_SEARCH_CONTENT_COLUMN)],
+                                content_fields=[
+                                    SemanticField(
+                                        field_name=self.env_helper.AZURE_SEARCH_CONTENT_COLUMN
+                                    )
+                                ],
                             ),
                         )
                     ]

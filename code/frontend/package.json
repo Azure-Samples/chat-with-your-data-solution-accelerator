@@ -10,8 +10,8 @@
         "test": "vitest run"
     },
     "dependencies": {
-        "@babel/traverse": "^7.25.6",
-        "@fluentui/react": "^8.121.1",
+        "@babel/traverse": "^7.25.7",
+        "@fluentui/react": "^8.121.4",
         "@fluentui/react-icons": "^2.0.259",
         "@fortawesome/fontawesome-svg-core": "^6.6.0",
         "@fortawesome/free-solid-svg-icons": "^6.6.0",
@@ -39,6 +39,6 @@
         "prettier": "^3.3.3",
         "typescript": "^5.6.2",
         "vite": "^5.4.7",
-        "vitest": "^2.1.1"
+        "vitest": "^2.1.3"
     }
 }
