@@ -104,7 +104,6 @@ async def list_conversations():
         return (jsonify({"error": "Error While listing historical conversations"}), 500)
 
 
-
 @bp_chat_history_response.route("/history/rename", methods=["POST"])
 async def rename_conversation():
     config = ConfigHelper.get_active_config_or_default()
