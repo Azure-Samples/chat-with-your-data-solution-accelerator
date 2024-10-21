@@ -100,7 +100,7 @@ async def list_conversations():
         return (jsonify(conversations), 200)
 
     except Exception as e:
-        logger.exception("Exception in /list")
+        logger.exception("Exception in /list" + str(e))
         return (jsonify({"error": "Error While listing historical conversations"}), 500)
 
 
@@ -153,7 +153,7 @@ async def rename_conversation():
         return (jsonify(updated_conversation), 200)
 
     except Exception as e:
-        logger.exception("Exception in /rename")
+        logger.exception("Exception in /rename" + str(e))
         return (jsonify({"error": "Error renaming is fail"}), 500)
 
 
@@ -218,7 +218,7 @@ async def get_conversation():
             200,
         )
     except Exception as e:
-        logger.exception("Exception in /read")
+        logger.exception("Exception in /read" + str(e))
         return (jsonify({"error": "Error while fetching history conversation"}), 500)
 
 
@@ -267,7 +267,7 @@ async def delete_conversation():
             200,
         )
     except Exception as e:
-        logger.exception("Exception in /delete")
+        logger.exception("Exception in /delete" + str(e))
         return (jsonify({"error": "Error while deleting history conversation"}), 500)
 
 
@@ -321,7 +321,7 @@ async def delete_all_conversations():
         )
 
     except Exception as e:
-        logger.exception("Exception in /delete")
+        logger.exception("Exception in /delete" + str(e))
         return (jsonify({"error": "Error while deleting all history conversation"}), 500)
 
 
@@ -413,7 +413,7 @@ async def update_conversation():
         )
 
     except Exception as e:
-        logger.exception("Exception in /update")
+        logger.exception("Exception in /update" + str(e))
         return (jsonify({"error": "Error while update the history conversation"}), 500)
 
 
@@ -429,7 +429,7 @@ def get_frontend_settings():
         )
         return jsonify({"CHAT_HISTORY_ENABLED": chat_history_enabled}), 200
     except Exception as e:
-        logger.exception("Exception in /frontend_settings")
+        logger.exception("Exception in /frontend_settings" + str(e))
         return (jsonify({"error": "Error while getting frontend settings"}), 500)
 
 
