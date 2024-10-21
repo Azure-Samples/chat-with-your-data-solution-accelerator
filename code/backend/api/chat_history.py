@@ -154,7 +154,7 @@ async def rename_conversation():
 
     except Exception as e:
         logger.exception("Exception in /rename")
-        return (jsonify({"error": "Error renameing is fail"}), 500)
+        return (jsonify({"error": "Error renaming is fail"}), 500)
 
 
 @bp_chat_history_response.route("/history/read", methods=["POST"])
@@ -219,7 +219,7 @@ async def get_conversation():
         )
     except Exception as e:
         logger.exception("Exception in /read")
-        return (jsonify({"error": "Error while fatching history conversation"}), 500)
+        return (jsonify({"error": "Error while fetching history conversation"}), 500)
 
 
 @bp_chat_history_response.route("/history/delete", methods=["DELETE"])
