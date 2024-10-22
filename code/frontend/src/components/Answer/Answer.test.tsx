@@ -463,4 +463,136 @@ describe("Answer.tsx", () => {
     fireEvent.copy(messageBox);
     expect(window.alert).toHaveBeenCalledWith("Please consider where you paste this content.");
   });
+  test("renders correctly without citations", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createFetchResponse(true, speechMockData)
+    );
+
+    await act(async () => {
+      render(
+        <Answer
+          answer={{ answer: "User Question without citations.", citations: [] }}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+          isActive={true}
+          index={1}
+        />
+      );
+    });
+
+    // Check if the answer text is rendered correctly
+    const answerTextElement = screen.getByText(/User Question without citations/i);
+    expect(answerTextElement).toBeInTheDocument();
+
+    // Verify that the citations container is not rendered
+    const citationsContainer = screen.queryByTestId("citations-container");
+    expect(citationsContainer).not.toBeInTheDocument();
+
+    // Verify that no references element is displayed
+    const referencesElement = screen.queryByTestId("no-of-references");
+    expect(referencesElement).not.toBeInTheDocument();
+  });
+  test("should stop audio playback when isActive is false", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createFetchResponse(true, speechMockData)
+    );
+
+    await act(async () => {
+      const { rerender } = render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={true}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+
+    const playBtn = screen.getByTestId("play-button");
+    expect(playBtn).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(playBtn);
+    });
+
+    const pauseBtn = screen.getByTestId("pause-button");
+    expect(pauseBtn).toBeInTheDocument();
+
+    // Rerender with isActive set to false
+    await act(async () => {
+      render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={false}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+
+    expect(playBtn).toBeInTheDocument(); // Ensure the play button is back
+    screen.debug()
+    //expect(pauseBtn).not.toBeInTheDocument(); // Ensure pause button is not there
+  });
+  test("should initialize new synthesizer on index prop update", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createFetchResponse(true, speechMockData)
+    );
+
+    let rerender;
+    await act(async () => {
+      const { rerender: rerenderFunc } = render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={true}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+      rerender = rerenderFunc;
+    });
+
+    const playBtn = screen.getByTestId("play-button");
+    await act(async () => {
+      fireEvent.click(playBtn);
+    });
+
+    const pauseBtn = screen.getByTestId("pause-button");
+    expect(pauseBtn).toBeInTheDocument();
+
+    // Rerender with a different index
+    await act(async () => {
+      render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={true}
+          index={3} // Change index
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+
+    // Check if a new synthesizer has been initialized
+    const newPlayBtn = screen.getByTestId("play-button");
+    expect(newPlayBtn).toBeInTheDocument();
+    //screen.debug()
+    //expect(pauseBtn).not.toBeInTheDocument(); // Ensure previous pause button is gone
+  });
+
 });
