@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+  schedule:
+    - cron: '0 6,18 * * *'  # Runs at 6:00 AM and 6:00 PM GMT
 
 permissions:
   contents: read
@@ -39,8 +41,8 @@ jobs:
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
           AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
         with:
-          imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
-          cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+          imageName: ghcr.io/roopan-microsoft/psl-cwyd-main
+          cacheFrom: ghcr.io/roopan-microsoft/psl-cwyd-main
           runCmd: make ci && make deploy
           refFilterForPush: refs/heads/main
           env: |
@@ -61,7 +63,7 @@ jobs:
           AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
         with:
           push: never
-          imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+          imageName: ghcr.io/roopan-microsoft/psl-cwyd-main
           runCmd: make destroy
           env: |
             AZURE_CLIENT_ID
@@ -70,4 +72,21 @@ jobs:
             AZURE_SUBSCRIPTION_ID
             AZURE_ENV_NAME
             AZURE_LOCATION
-            AZURE_RESOURCE_GROUP
+
+      - name: Send Notification on Failure
+        if: failure()
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          # Construct the email body
+          EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>We would like to inform you that the CWYD Automation process has encountered an issue and has failed to complete successfully.</p><p><strong>Build URL:</strong> ${RUN_URL}<br> ${OUTPUT}</p><p>Please investigate the matter at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>"
+          }
+          EOF
+          )
+
+          # Send the notification
+          curl -X POST "${{ secrets.LOGIC_APP_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send notification"

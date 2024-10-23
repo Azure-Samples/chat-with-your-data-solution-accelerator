@@ -372,11 +372,10 @@ def test_get_default_employee_assistant():
 def test_get_document_processors(config_dict: dict):
     # given
     config_dict["document_processors"] = [
-        {"document_type": "jpg", "use_advanced_image_processing": True},
         {
             "document_type": "png",
-            "chunking": {"strategy": None, "size": None, "overlap": None},
-            "loading": {"strategy": None},
+            "chunking": {"strategy": "layout", "size": 500, "overlap": 100},
+            "loading": {"strategy": "read"},
             "use_advanced_image_processing": True,
         },
         {
@@ -397,15 +396,11 @@ def test_get_document_processors(config_dict: dict):
     # then
     assert config.document_processors == [
         EmbeddingConfig(
-            document_type="jpg",
-            chunking=None,
-            loading=None,
-            use_advanced_image_processing=True,
-        ),
-        EmbeddingConfig(
             document_type="png",
-            chunking=None,
-            loading=None,
+            chunking=ChunkingSettings(
+                {"strategy": "layout", "size": 500, "overlap": 100}
+            ),
+            loading=LoadingSettings({"strategy": "read"}),
             use_advanced_image_processing=True,
         ),
         EmbeddingConfig(
