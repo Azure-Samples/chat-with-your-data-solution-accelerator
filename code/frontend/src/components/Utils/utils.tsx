@@ -1,25 +1,6 @@
-import React from "react";
-import { Conversation } from "../../api/models";
-import { ChatHistoryListItemGroups } from "./ChatHistoryListItem";
+import { Conversation } from "../../api";
 
-interface ChatHistoryListProps {
-  fetchingChatHistory: boolean;
-  handleFetchHistory: () => Promise<void>;
-  chatHistory: Conversation[];
-  onSelectConversation: (id: string) => void;
-  selectedConvId: string;
-  onHistoryTitleChange: (id: string, newTitle: string) => void;
-  onHistoryDelete: (id: string) => void;
-  isGenerating: boolean;
-  toggleToggleSpinner: (toggler: boolean) => void;
-}
-
-export interface GroupedChatHistory {
-  title: string;
-  entries: Conversation[];
-}
-
-function isLastSevenDaysRange(dateToCheck: any) {
+export function isLastSevenDaysRange(dateToCheck: any) {
   // Get the current date
   const currentDate = new Date();
   // Calculate the date 2 days ago
@@ -33,7 +14,7 @@ function isLastSevenDaysRange(dateToCheck: any) {
   return dateToCheck >= eightDaysAgo && dateToCheck <= twoDaysAgo;
 }
 
-const segregateItems = (items: Conversation[]) => {
+export const segregateItems = (items: Conversation[]) => {
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
@@ -89,33 +70,3 @@ const segregateItems = (items: Conversation[]) => {
 
   return finalResult;
 };
-
-const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
-  handleFetchHistory,
-  chatHistory,
-  fetchingChatHistory,
-  onSelectConversation,
-  selectedConvId,
-  onHistoryTitleChange,
-  onHistoryDelete,
-  isGenerating,
-  toggleToggleSpinner
-}) => {
-  let groupedChatHistory;
-  groupedChatHistory = segregateItems(chatHistory);
-  return (
-    <ChatHistoryListItemGroups
-      fetchingChatHistory={fetchingChatHistory}
-      handleFetchHistory={handleFetchHistory}
-      groupedChatHistory={groupedChatHistory}
-      onSelectConversation={onSelectConversation}
-      selectedConvId={selectedConvId}
-      onHistoryTitleChange={onHistoryTitleChange}
-      onHistoryDelete={onHistoryDelete}
-      isGenerating={isGenerating}
-      toggleToggleSpinner={toggleToggleSpinner}
-    />
-  );
-};
-
-export default ChatHistoryList;

@@ -5,14 +5,6 @@
     gap: 20px
 }
 
-.historyContainer {
-    width: 20vw;
-    background: radial-gradient(108.78% 108.78% at 50.02% 19.78%, #FFFFFF 57.29%, #EEF6FE 100%);
-    border-radius: 8px;
-    max-height: calc(100vh - 88px);
-    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.14), 0px 0px 2px rgba(0, 0, 0, 0.12);
-    overflow-y: hidden;
-}
 .chatRoot {
     flex: 1;
     display: flex;
@@ -23,9 +15,6 @@
     gap: 20px;
 }
 
-.chatHistoryListContainer {
-    height: 100%;
-}
 .chatContainer {
     flex: 1;
     display: flex;
@@ -37,66 +26,12 @@
     overflow-y: auto;
     max-height: calc(100vh - 88px);
 }
-.loadingContainer {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh; /* Full viewport height */
-  }
-
-  .loadingIcon {
-    border: 8px solid #f3f3f3; /* Light grey */
-    border-top: 8px solid #3498db; /* Blue */
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    animation: spin 1s linear infinite;
-  }
 
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
 
-.chatEmptyState {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-}
-
-.chatEmptyStateTitle {
-    font-family: "Segoe UI";
-    font-style: normal;
-    font-weight: 700;
-    font-size: 36px;
-    display: flex;
-    align-items: flex-end;
-    text-align: center;
-    margin-top: 24px;
-    margin-bottom: 0px;
-}
-
-.chatEmptyStateSubtitle {
-    margin-top: 16px;
-    font-family: "Segoe UI";
-    font-style: normal;
-    font-weight: 600;
-    font-size: 16px;
-    line-height: 150%;
-    display: flex;
-    align-items: flex-end;
-    text-align: center;
-    letter-spacing: -0.01em;
-    color: #616161;
-}
-
-.chatIcon {
-    height: 62px;
-    width: 62px;
-}
 
 .chatMessageStream {
     flex-grow: 1;
@@ -211,96 +146,6 @@
     flex-grow: 0;
 }
 
-.citationPanel {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 16px 16px;
-    gap: 8px;
-    background: #FFFFFF;
-    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.14), 0px 0px 2px rgba(0, 0, 0, 0.12);
-    border-radius: 8px;
-    flex: auto;
-    order: 0;
-    align-self: stretch;
-    flex-grow: 0.3;
-    max-width: 30%;
-    overflow-y: scroll;
-    max-height: calc(100vh - 100px);
-}
-
-.citationPanelHeaderContainer {
-    width: 100%;
-}
-
-.citationPanelHeader {
-    font-family: "Segoe UI";
-    font-style: normal;
-    font-weight: 600;
-    font-size: 18px;
-    line-height: 24px;
-    color: #000000;
-    flex: none;
-    order: 0;
-    flex-grow: 0;
-}
-
-.citationPanelDismiss {
-    width: 18px;
-    height: 18px;
-    color: #424242;
-}
-
-.citationPanelDismiss:hover {
-    background-color: #D1D1D1;
-    cursor: pointer;
-}
-
-.citationPanelTitle {
-    font-family: "Segoe UI";
-    font-style: normal;
-    font-weight: 600;
-    font-size: 16px;
-    line-height: 22px;
-    color: #323130;
-    margin-top: 12px;
-    margin-bottom: 12px;
-}
-
-.citationPanelContent {
-    font-family: "Segoe UI";
-    font-style: normal;
-    font-weight: 400;
-    font-size: 14px;
-    line-height: 20px;
-    color: #000000;
-    flex: none;
-    order: 1;
-    align-self: stretch;
-    flex-grow: 0;
-}
-
-.citationPanelDisclaimer {
-    font-family: "Segoe UI";
-    font-style: normal;
-    font-weight: 400;
-    font-size: 12px;
-    display: flex;
-    color: #707070;
-}
-
-.citationPanelContent h1 {
-
-    line-height: 30px;
-
-}
-
-.fetchMessagesSpinner {
-    margin-top: 30vh;
-}
-.historyPanelTopRightButtons {
-    height: 48px;
-}
 
 .MobileChatContainer {
     @media screen and (max-width: 600px) {
@@ -351,12 +196,6 @@
     }
 }
 
-.dataText {
-    background: linear-gradient(90deg, #464FEB 10.42%, #8330E9 100%);
-    color: transparent;
-    background-clip: text;
-}
-
 @media screen and (max-width: 600px) {
     h1 {
         font-weight: 300;
@@ -372,13 +211,6 @@
   /* High contrast mode specific styles */
   @media screen and (-ms-high-contrast: active), (forced-colors: active) {
     .chatContainer, .chatMessageUserMessage {
-        border: 2px solid WindowText;
-        padding: 10px;
-        background-color: Window;
-        color: WindowText;
-    }
-
-    .citationPanel , .citationPanelHeader, .citationPanelTitle, .citationPanelContent{
         border: 2px solid WindowText;
         padding: 10px;
         background-color: Window;

@@ -162,3 +162,65 @@ export const citationObj = {
 
 export const AIResponseContent =
   "Microsoft AI refers to the artificial intelligence capabilities and offerings provided by Microsoft. It encompasses a range of technologies and solutions that leverage AI to empower individuals and organizations to achieve more. Microsoft's AI platform, Azure AI, enables organizations to transform their operations by bringing intelligence and insights to employees and customers. It offers AI-optimized infrastructure, advanced models, and AI services designed for developers and data scientists is an ";
+export const chatHistoryListData = [
+  {
+    id: "conv_id_1",
+    title: "mocked conversation title 1",
+    date: "2024-10-16T07:02:16.238267",
+    updatedAt: "2024-10-16T07:02:18.470231",
+    messages: [
+      {
+        id: "785e393a-defc-4ef4-8c0a-27ad41631c76",
+        role: "user",
+        date: "2024-10-16T07:02:16.798628",
+        content: "Hi",
+        feedback: "",
+      },
+      {
+        id: "dfc65527-5bb5-48a8-aaa4-5fba74b67a85",
+        role: "tool",
+        date: "2024-10-16T07:02:17.609894",
+        content: '{"citations": [], "intent": "Hi"}',
+        feedback: "",
+      },
+      {
+        id: "18fd8f70-ec1c-42bc-93d2-765d52c184eb",
+        role: "assistant",
+        date: "2024-10-16T07:02:18.470231",
+        content: "Hello! How can I assist you today?",
+        feedback: "",
+      },
+    ],
+  },
+  {
+    id: "conv_id_2",
+    title: "mocked conversation title 2",
+    date: "2024-10-16T07:02:16.238267",
+    updatedAt: "2024-10-16T07:02:18.470231",
+    messages: [],
+  },
+];
+
+export const historyReadAPIResponse = [
+  {
+    content: "Hi",
+    createdAt: "2024-10-16T07:02:16.798628",
+    feedback: "",
+    id: "785e393a-defc-4ef4-8c0a-27ad41631c76",
+    role: "user",
+  },
+  {
+    content: '{"citations": [], "intent": "Hi"}',
+    createdAt: "2024-10-16T07:02:17.609894",
+    feedback: "",
+    id: "dfc65527-5bb5-48a8-aaa4-5fba74b67a85",
+    role: "tool",
+  },
+  {
+    content: "Hello! How can I assist you today?",
+    createdAt: "2024-10-16T07:02:18.470231",
+    feedback: "",
+    id: "18fd8f70-ec1c-42bc-93d2-765d52c184eb",
+    role: "assistant",
+  },
+];
