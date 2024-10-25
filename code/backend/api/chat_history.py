@@ -143,8 +143,8 @@ async def rename_conversation():
 
         # update the title
         title = request_json.get("title", None)
-        if not title:
-            return (jsonify({"error": "title is required"}), 400)
+        if not title or title.strip() == "":
+            return jsonify({"error": "title is required"}), 400
         conversation["title"] = title
         updated_conversation = await cosmos_conversation_client.upsert_conversation(
             conversation
@@ -321,7 +321,10 @@ async def delete_all_conversations():
 
     except Exception as e:
         logger.exception("Exception in /delete" + str(e))
-        return (jsonify({"error": "Error while deleting all history conversation"}), 500)
+        return (
+            jsonify({"error": "Error while deleting all history conversation"}),
+            500,
+        )
 
 
 @bp_chat_history_response.route("/history/update", methods=["POST"])
