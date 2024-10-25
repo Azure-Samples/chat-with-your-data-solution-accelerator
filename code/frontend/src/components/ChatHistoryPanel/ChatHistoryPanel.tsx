@@ -15,8 +15,9 @@ import {
 } from "@fluentui/react";
 
 import styles from "./ChatHistoryPanel.module.css";
-import ChatHistoryList from "../ChatHistoryList/ChatHistoryList";
 import { type Conversation } from "../../api";
+import { ChatHistoryListItemGroups } from "../ChatHistoryListItemGroups/ChatHistoryListItemGroups";
+import { segregateItems } from "../Utils/utils";
 
 const commandBarStyle: ICommandBarStyles = {
   root: {
@@ -111,6 +112,7 @@ export const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = (props) => {
       iconProps: { iconName: "Delete" },
     },
   ];
+  const groupedChatHistory = segregateItems(chatHistory);
   return (
     <section
       className={styles.historyContainer}
@@ -180,17 +182,17 @@ export const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = (props) => {
         }}
       >
         <Stack className={styles.chatHistoryListContainer}>
-          <ChatHistoryList
-            fetchingChatHistory={fetchingChatHistory}
-            handleFetchHistory={handleFetchHistory}
-            chatHistory={chatHistory}
-            onSelectConversation={onSelectConversation}
-            selectedConvId={selectedConvId}
-            onHistoryTitleChange={onHistoryTitleChange}
-            onHistoryDelete={onHistoryDelete}
-            isGenerating={showLoadingMessage || isSavingToDB}
-            toggleToggleSpinner={toggleToggleSpinner}
-          />
+        <ChatHistoryListItemGroups
+              fetchingChatHistory={fetchingChatHistory}
+              handleFetchHistory={handleFetchHistory}
+              groupedChatHistory={groupedChatHistory}
+              onSelectConversation={onSelectConversation}
+              selectedConvId={selectedConvId}
+              onHistoryTitleChange={onHistoryTitleChange}
+              onHistoryDelete={onHistoryDelete}
+              isGenerating={showLoadingMessage || isSavingToDB}
+              toggleToggleSpinner={toggleToggleSpinner}
+            />
         </Stack>
       </Stack>
       {showContextualPopup && (
