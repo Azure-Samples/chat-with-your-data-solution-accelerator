@@ -126,7 +126,7 @@ export const ChatHistoryListItemCell: React.FC<
 
   const handleSaveEdit = async (e: any) => {
     e.preventDefault();
-    if (errorRename || renameLoading) {
+    if (errorRename || renameLoading || _.trim(editTitle) === "") {
       return;
     }
 
@@ -219,7 +219,7 @@ export const ChatHistoryListItemCell: React.FC<
                     disabled={errorRename ? true : false}
                   />
                 </Stack.Item>
-                {editTitle && (
+                {_.trim(editTitle) && (
                   <Stack.Item>
                     <Stack
                       aria-label="action button group"

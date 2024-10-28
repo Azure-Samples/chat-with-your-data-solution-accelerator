@@ -100,8 +100,8 @@ async def list_conversations():
         return (jsonify(conversations), 200)
 
     except Exception as e:
-        logger.exception("Exception in /list")
-        return (jsonify({"error": str(e)}), 500)
+        logger.exception("Exception in /list" + str(e))
+        return (jsonify({"error": "Error While listing historical conversations"}), 500)
 
 
 @bp_chat_history_response.route("/history/rename", methods=["POST"])
@@ -143,8 +143,8 @@ async def rename_conversation():
 
         # update the title
         title = request_json.get("title", None)
-        if not title:
-            return (jsonify({"error": "title is required"}), 400)
+        if not title or title.strip() == "":
+            return jsonify({"error": "title is required"}), 400
         conversation["title"] = title
         updated_conversation = await cosmos_conversation_client.upsert_conversation(
             conversation
@@ -152,8 +152,8 @@ async def rename_conversation():
         return (jsonify(updated_conversation), 200)
 
     except Exception as e:
-        logger.exception("Exception in /rename")
-        return (jsonify({"error": str(e)}), 500)
+        logger.exception("Exception in /rename" + str(e))
+        return (jsonify({"error": "Error renaming is fail"}), 500)
 
 
 @bp_chat_history_response.route("/history/read", methods=["POST"])
@@ -217,8 +217,8 @@ async def get_conversation():
             200,
         )
     except Exception as e:
-        logger.exception("Exception in /read")
-        return (jsonify({"error": str(e)}), 500)
+        logger.exception("Exception in /read" + str(e))
+        return (jsonify({"error": "Error while fetching history conversation"}), 500)
 
 
 @bp_chat_history_response.route("/history/delete", methods=["DELETE"])
@@ -266,8 +266,8 @@ async def delete_conversation():
             200,
         )
     except Exception as e:
-        logger.exception("Exception in /delete")
-        return (jsonify({"error": str(e)}), 500)
+        logger.exception("Exception in /delete" + str(e))
+        return (jsonify({"error": "Error while deleting history conversation"}), 500)
 
 
 @bp_chat_history_response.route("/history/delete_all", methods=["DELETE"])
@@ -320,8 +320,11 @@ async def delete_all_conversations():
         )
 
     except Exception as e:
-        logger.exception("Exception in /delete")
-        return (jsonify({"error": str(e)}), 500)
+        logger.exception("Exception in /delete" + str(e))
+        return (
+            jsonify({"error": "Error while deleting all history conversation"}),
+            500,
+        )
 
 
 @bp_chat_history_response.route("/history/update", methods=["POST"])
@@ -412,8 +415,8 @@ async def update_conversation():
         )
 
     except Exception as e:
-        logger.exception("Exception in /update")
-        return (jsonify({"error": str(e)}), 500)
+        logger.exception("Exception in /update" + str(e))
+        return (jsonify({"error": "Error while update the history conversation"}), 500)
 
 
 @bp_chat_history_response.route("/history/frontend_settings", methods=["GET"])
@@ -428,8 +431,8 @@ def get_frontend_settings():
         )
         return jsonify({"CHAT_HISTORY_ENABLED": chat_history_enabled}), 200
     except Exception as e:
-        logger.exception("Exception in /frontend_settings")
-        return (jsonify({"error": str(e)}), 500)
+        logger.exception("Exception in /frontend_settings" + str(e))
+        return (jsonify({"error": "Error while getting frontend settings"}), 500)
 
 
 async def generate_title(conversation_messages):
