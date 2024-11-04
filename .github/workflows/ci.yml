@@ -41,8 +41,8 @@ jobs:
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
           AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
         with:
-          imageName: ghcr.io/roopan-microsoft/psl-cwyd-main
-          cacheFrom: ghcr.io/roopan-microsoft/psl-cwyd-main
+          imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+          cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           runCmd: make ci && make deploy
           refFilterForPush: refs/heads/main
           env: |
@@ -63,7 +63,7 @@ jobs:
           AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
         with:
           push: never
-          imageName: ghcr.io/roopan-microsoft/psl-cwyd-main
+          imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           runCmd: make destroy
           env: |
             AZURE_CLIENT_ID
