@@ -27,7 +27,7 @@
         "rehype-raw": "^7.0.0",
         "remark-gfm": "^4.0.0",
         "remark-supersub": "^1.0.0",
-        "uuid": "^10.0.0"
+        "uuid": "^11.0.2"
     },
     "devDependencies": {
         "@types/lodash-es": "^4.17.12",
