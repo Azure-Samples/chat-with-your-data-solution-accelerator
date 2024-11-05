@@ -8,12 +8,16 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+
     commit-message:
       prefix: "build"
+    target-branch: "dependabotchanges"
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "weekly"
+
+
     commit-message:
       prefix: "build"
     groups:
@@ -21,17 +25,24 @@ updates:
         patterns:
           - "langchain*"
     open-pull-requests-limit: 50
+    target-branch: "dependabotchanges"
   - package-ecosystem: "npm"
     directory: "/code/frontend"
     schedule:
       interval: "weekly"
+
+
     commit-message:
       prefix: "build"
     open-pull-requests-limit: 50
+    target-branch: "dependabotchanges"
   - package-ecosystem: "npm"
     directory: "/tests/integration/ui"
     schedule:
       interval: "weekly"
+
+
     commit-message:
       prefix: "build"
     open-pull-requests-limit: 50
+    target-branch: "dependabotchanges"
