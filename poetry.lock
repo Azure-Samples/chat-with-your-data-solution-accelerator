@@ -505,13 +505,13 @@ typing-extensions = ">=4.6.0"
 
 [[package]]
 name = "azure-functions"
-version = "1.21.0"
+version = "1.21.3"
 description = "Azure Functions for Python"
 optional = false
 python-versions = "*"
 files = [
-    {file = "azure-functions-1.21.0.tar.gz", hash = "sha256:740344c6a3bb7c0be7df7eef5b46820a83dd60053fd12b6734a3b6fabfab3640"},
-    {file = "azure_functions-1.21.0-py3-none-any.whl", hash = "sha256:c71f34c39ca163c8d3c5956b4f9ab745fcc1ebc5cb709a85b92f74cae62d03f0"},
+    {file = "azure-functions-1.21.3.tar.gz", hash = "sha256:c359b9dbd2998c84d8595e31a28ffad4e8ca8dcfb4a3798327f776a67f964351"},
+    {file = "azure_functions-1.21.3-py3-none-any.whl", hash = "sha256:6c45f5e61fe59328c81928a428d43c838e9ead52f1cde1628fcabb372fa10cc8"},
 ]
 
 [package.extras]
@@ -6627,4 +6627,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "826226f49f211954e1a565360e48f0e655807b7e7f370780bd1fed30f2bccac4"
+content-hash = "a39769ccfdd0d9884a10e799db582fcdb49f5ae537dd8534fe3cff002f9aea95"

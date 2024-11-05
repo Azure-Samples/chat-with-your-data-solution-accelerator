@@ -10,7 +10,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-azure-functions = "1.21.0"
+azure-functions = "1.21.3"
 streamlit = "1.39.0"
 python-dotenv = "1.0.1"
 azure-ai-formrecognizer = "3.3.3"
