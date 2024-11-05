@@ -48,7 +48,7 @@ flake8 = "7.1.1"
 black = "24.10.0"
 pre-commit = "4.0.1"
 pytest_httpserver = "1.1.0"
-trustme = "1.1.0"
+trustme = "1.2.0"
 jupyter = "1.1.1"
 pytest-asyncio = "^0.24.0"
 
