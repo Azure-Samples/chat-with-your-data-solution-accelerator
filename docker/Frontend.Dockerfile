@@ -19,6 +19,7 @@ RUN pip install --upgrade pip && pip install poetry uwsgi && poetry export -o re
 COPY ./code/*.py /usr/src/app/
 COPY ./code/backend /usr/src/app/backend
 COPY --from=frontend /home/node/app/dist/static /usr/src/app/static/
-ENV PYTHONPATH "${PYTHONPATH}:/usr/src/app"
+# https://github.com/docker/buildx/issues/2751
+ENV PYTHONPATH="${PYTHONPATH}:/usr/src/app"
 EXPOSE 80
 CMD ["uwsgi", "--http", ":80", "--wsgi-file", "app.py", "--callable", "app", "-b", "32768", "--http-timeout", "230"]
