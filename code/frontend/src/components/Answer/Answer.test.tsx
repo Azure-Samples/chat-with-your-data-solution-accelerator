@@ -1,3 +1,4 @@
+import * as sdk from 'microsoft-cognitiveservices-speech-sdk';
 import "@testing-library/jest-dom";
 import {
   render,
@@ -8,6 +9,26 @@ import {
 } from "@testing-library/react";
 import { Answer } from "./Answer";
 import { conversationResponseWithCitations } from "../../../__mocks__/SampleData";
+
+jest.mock('microsoft-cognitiveservices-speech-sdk', () => {
+  return {
+    SpeechConfig: {
+      fromSubscription: jest.fn(),
+    },
+    AudioConfig: {
+      fromDefaultSpeakerOutput: jest.fn(),
+    },
+    SpeechSynthesizer: jest.fn().mockImplementation(() => ({
+      speakTextAsync: jest.fn(),
+      stopSpeakingAsync: jest.fn(),
+      close: jest.fn(),
+    })),
+    ResultReason: {
+      SynthesizingAudioCompleted: 'SynthesizingAudioCompleted',
+      Canceled: 'Canceled',
+    },
+  };
+});
 
 jest.mock(
   "react-markdown",
@@ -539,7 +560,6 @@ describe("Answer.tsx", () => {
     });
 
     expect(playBtn).toBeInTheDocument(); // Ensure the play button is back
-    screen.debug()
     //expect(pauseBtn).not.toBeInTheDocument(); // Ensure pause button is not there
   });
   test("should initialize new synthesizer on index prop update", async () => {
@@ -594,5 +614,178 @@ describe("Answer.tsx", () => {
     //screen.debug()
     //expect(pauseBtn).not.toBeInTheDocument(); // Ensure previous pause button is gone
   });
-
+  test("test the reference is clickabel", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createFetchResponse(true, speechMockData)
+    );
+    await act(async () => {
+      render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={true}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+    fireEvent.click(screen.getByTestId(/toggle-citations-list/i));
+    fireEvent.click(screen.getByRole('button', {
+      name: /1 msft_fy23q4_10k\.docx \- part 7/i
+    }));
+    expect(screen.getByRole('button', {
+      name: /1 msft_fy23q4_10k\.docx \- part 7/i
+    })).toBeInTheDocument()
+  });
+  test("test the reference is key enter", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createFetchResponse(true, speechMockData)
+    );
+    await act(async () => {
+      render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={true}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+    fireEvent.click(screen.getByTestId(/toggle-citations-list/i));
+    fireEvent.keyDown (screen.getByRole('button', {
+      name: /1 msft_fy23q4_10k\.docx \- part 7/i
+    }), { key : 'Enter' });
+    expect(screen.getByRole('button', {
+      name: /1 msft_fy23q4_10k\.docx \- part 7/i
+    })).toBeInTheDocument()
+  });
+  test("test the reference is key space", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createFetchResponse(true, speechMockData)
+    );
+    await act(async () => {
+      render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={true}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+    fireEvent.click(screen.getByTestId(/toggle-citations-list/i));
+    fireEvent.keyDown (screen.getByRole('button', {
+      name: /1 msft_fy23q4_10k\.docx \- part 7/i
+    }), { key : " " });
+    expect(screen.getByRole('button', {
+      name: /1 msft_fy23q4_10k\.docx \- part 7/i
+    })).toBeInTheDocument()
+  });
+  test("test the reference is on key enter/space", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createFetchResponse(true, speechMockData)
+    );
+    await act(async () => {
+      render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={true}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+    fireEvent.click(screen.getByTestId(/toggle-citations-list/i));
+    fireEvent.keyDown (screen.getByRole('button', {
+      name: /1 msft_fy23q4_10k\.docx \- part 7/i
+    }), { key : "a" });
+    expect(screen.getByRole('button', {
+      name: /1 msft_fy23q4_10k\.docx \- part 7/i
+    })).toBeInTheDocument()
+  });
+  test('test Generating answer... ', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createFetchResponse(true, speechMockData)
+    );
+    await act(async () => {
+      render(
+        <Answer
+          answer={{ answer: "Generating answer...", citations: [] }}
+          isActive={true}
+          index={3}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+    expect(screen.getByText(/Generating answer.../i)).toBeInTheDocument()
+  });
+  test('test the api thow error', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false })
+    const consoleSpy = jest.spyOn(console, 'log');
+    let renderref
+    await act(async () => {
+      renderref = render(
+        <Answer
+          answer={{
+            answer: componentPropsWithCitations.answer.answer,
+            citations: componentPropsWithCitations.answer.citations,
+          }}
+          isActive={true}
+          index={2}
+          onCitationClicked={mockCitationClick}
+          onSpeak={mockOnSpeak}
+        />
+      );
+    });
+    expect(consoleSpy).toHaveBeenCalled();
+    // Restore the original console.log
+    consoleSpy.mockRestore();
+  });
+  // test('test speech', async () => {
+  //   (global.fetch as jest.Mock).mockResolvedValue(
+  //     createFetchResponse(true, speechMockData)
+  //   );
+  //   await act(async () => {
+  //     render(
+  //       <Answer
+  //         answer={{
+  //           answer: componentPropsWithCitations.answer.answer,
+  //           citations: componentPropsWithCitations.answer.citations,
+  //         }}
+  //         isActive={true}
+  //         index={2}
+  //         onCitationClicked={mockCitationClick}
+  //         onSpeak={mockOnSpeak}
+  //       />
+  //     );
+  //   });
+  //   const playBtn = screen.getByRole('button', {
+  //     name: /speak/i
+  //   });
+  //   await act(async () => {
+  //     fireEvent.click(playBtn);
+  //   });
+  //   await waitFor(() => {}, { timeout: 5000 });
+  //   const pauseBtnAfterClick = screen.getByTestId("pause-button");
+  //   await act(async () => {
+  //     fireEvent.click(pauseBtnAfterClick);
+  //   });
+  //   screen.logTestingPlaygroundURL()
+  // });
 });

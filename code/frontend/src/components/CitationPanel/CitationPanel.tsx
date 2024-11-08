@@ -27,7 +27,7 @@ export const CitationPanel: React.FC<CitationPanelProps> = (props) => {
           onKeyDown={(e) =>
             e.key === " " || e.key === "Enter"
               ? setIsCitationPanelOpen(false)
-              : () => {}
+              : null
           }
           tabIndex={0}
           className={styles.citationPanelDismiss}
