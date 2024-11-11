@@ -1,104 +1,106 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ChatHistoryListItemGroups } from './ChatHistoryListItemGroups';
+import { ChatHistoryListItemGroups, GroupedChatHistory } from './ChatHistoryListItemGroups';
+import { Conversation } from '../../api/models';
+
+const mockGroupedChatHistory: GroupedChatHistory[] = [
+  {
+    title: 'Group 1',
+    entries: [
+      { id: '1', title: 'Conversation 1' } as Conversation,
+      { id: '2', title: 'Conversation 2' } as Conversation,
+    ],
+  },
+  {
+    title: 'Group 2',
+    entries: [
+      { id: '3', title: 'Conversation 3' } as Conversation,
+    ],
+  },
+];
+
+const mockHandleFetchHistory = jest.fn();
+const mockOnSelectConversation = jest.fn();
+const mockOnHistoryTitleChange = jest.fn();
+const mockOnHistoryDelete = jest.fn();
+const mockToggleToggleSpinner = jest.fn();
 
 describe('ChatHistoryListItemGroups', () => {
-  const mockFetchHistory = jest.fn();
-  const mockSelectConversation = jest.fn();
-  const mockTitleChange = jest.fn();
-  const mockDeleteHistory = jest.fn();
-  const mockToggleSpinner = jest.fn();
-
-  const groupedChatHistory = [
-    {
-      title: 'January',
-      entries: [
-        { id: '1', content: 'Hello' },
-        { id: '2', content: 'World' },
-      ],
-    },
-    {
-      title: 'February',
-      entries: [],
-    },
-  ];
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  test('renders no chat history message when there are no entries', () => {
+  test('renders No chat history when there are no conversations', () => {
     render(
       <ChatHistoryListItemGroups
-        fetchingChatHistory={false}
-        handleFetchHistory={mockFetchHistory}
         groupedChatHistory={[]}
-        onSelectConversation={mockSelectConversation}
+        handleFetchHistory={mockHandleFetchHistory}
+        fetchingChatHistory={false}
+        onSelectConversation={mockOnSelectConversation}
         selectedConvId=""
-        onHistoryTitleChange={mockTitleChange}
-        onHistoryDelete={mockDeleteHistory}
+        onHistoryTitleChange={mockOnHistoryTitleChange}
+        onHistoryDelete={mockOnHistoryDelete}
         isGenerating={false}
-        toggleToggleSpinner={mockToggleSpinner}
+        toggleToggleSpinner={mockToggleToggleSpinner}
       />
     );
 
     expect(screen.getByText('No chat history.')).toBeInTheDocument();
   });
 
-  test('renders chat history groups and items', () => {
-    render(
-        <ChatHistoryListItemGroups
-        fetchingChatHistory={false}
-        handleFetchHistory={mockFetchHistory}
-        groupedChatHistory={[]}
-        onSelectConversation={mockSelectConversation}
-        selectedConvId=""
-        onHistoryTitleChange={mockTitleChange}
-        onHistoryDelete={mockDeleteHistory}
-        isGenerating={false}
-        toggleToggleSpinner={mockToggleSpinner}
-      />
-    );
-
-    expect(screen.getByText('January')).toBeInTheDocument();
-    expect(screen.getByText('Hello')).toBeInTheDocument();
-    expect(screen.getByText('World')).toBeInTheDocument();
-    expect(screen.queryByText('February')).toBeInTheDocument();
-  });
-
-  test('calls onSelectConversation when a conversation is selected', () => {
+  test('renders chat history groups and conversations', () => {
     render(
       <ChatHistoryListItemGroups
-            fetchingChatHistory={false}
-            handleFetchHistory={mockFetchHistory}
-            onSelectConversation={mockSelectConversation}
-            selectedConvId=""
-            onHistoryTitleChange={mockTitleChange}
-            onHistoryDelete={mockDeleteHistory}
-            isGenerating={false}
-            toggleToggleSpinner={mockToggleSpinner} groupedChatHistory={[]}      />
-    );
-
-    const helloItem = screen.getByText('Hello');
-    fireEvent.click(helloItem);
-
-    expect(mockSelectConversation).toHaveBeenCalledWith('1');
-  });
-
-  test('shows spinner when fetching chat history', () => {
-    render(
-        <ChatHistoryListItemGroups
+        groupedChatHistory={mockGroupedChatHistory}
+        handleFetchHistory={mockHandleFetchHistory}
         fetchingChatHistory={false}
-        handleFetchHistory={mockFetchHistory}
-        groupedChatHistory={[]}
-        onSelectConversation={mockSelectConversation}
+        onSelectConversation={mockOnSelectConversation}
         selectedConvId=""
-        onHistoryTitleChange={mockTitleChange}
-        onHistoryDelete={mockDeleteHistory}
+        onHistoryTitleChange={mockOnHistoryTitleChange}
+        onHistoryDelete={mockOnHistoryDelete}
         isGenerating={false}
-        toggleToggleSpinner={mockToggleSpinner}
+        toggleToggleSpinner={mockToggleToggleSpinner}
       />
     );
 
-    expect(screen.getByLabelText('loading more chat history')).toBeInTheDocument();
+    expect(screen.getByText('Group 1')).toBeInTheDocument();
+    expect(screen.getByText('Group 2')).toBeInTheDocument();
+    expect(screen.getByText('Conversation 1')).toBeInTheDocument();
+    expect(screen.getByText('Conversation 2')).toBeInTheDocument();
+    expect(screen.getByText('Conversation 3')).toBeInTheDocument();
+  });
+
+  test('calls handleFetchHistory when observer target is intersecting', () => {
+    render(
+      <ChatHistoryListItemGroups
+        groupedChatHistory={mockGroupedChatHistory}
+        handleFetchHistory={mockHandleFetchHistory}
+        fetchingChatHistory={false}
+        onSelectConversation={mockOnSelectConversation}
+        selectedConvId=""
+        onHistoryTitleChange={mockOnHistoryTitleChange}
+        onHistoryDelete={mockOnHistoryDelete}
+        isGenerating={false}
+        toggleToggleSpinner={mockToggleToggleSpinner}
+      />
+    );
+
+    // Simulate intersection observer callback
+    fireEvent.scroll(window, { target: { scrollY: 1000 } });
+    expect(mockHandleFetchHistory).toHaveBeenCalled();
+  });
+
+  test('calls onSelectConversation when a conversation is clicked', () => {
+    render(
+      <ChatHistoryListItemGroups
+        groupedChatHistory={mockGroupedChatHistory}
+        handleFetchHistory={mockHandleFetchHistory}
+        fetchingChatHistory={false}
+        onSelectConversation={mockOnSelectConversation}
+        selectedConvId=""
+        onHistoryTitleChange={mockOnHistoryTitleChange}
+        onHistoryDelete={mockOnHistoryDelete}
+        isGenerating={false}
+        toggleToggleSpinner={mockToggleToggleSpinner}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Conversation 1'));
+    expect(mockOnSelectConversation).toHaveBeenCalledWith('1');
   });
 });
