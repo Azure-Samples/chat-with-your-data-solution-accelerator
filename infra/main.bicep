@@ -553,8 +553,8 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
     speechServiceName: speechService.outputs.name
     computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    azureBlobStorageInfo: azureBlobStorageInfo
+    azureFormRecognizerInfo: azureFormRecognizerInfo
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
@@ -564,13 +564,10 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
     appSettings: {
-      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-      AZURE_BLOB_CONTAINER_NAME: blobContainerName
       AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
       AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
@@ -635,8 +632,8 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
     speechServiceName: speechService.outputs.name
     computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    azureBlobStorageInfo: azureBlobStorageInfo
+    azureFormRecognizerInfo: azureFormRecognizerInfo
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
@@ -646,13 +643,10 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
     appSettings: {
-      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-      AZURE_BLOB_CONTAINER_NAME: blobContainerName
       AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
       AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
@@ -717,8 +711,8 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     speechServiceName: speechService.outputs.name
     computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    azureBlobStorageInfo: azureBlobStorageInfo
+    azureFormRecognizerInfo: azureFormRecognizerInfo
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
@@ -727,13 +721,10 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
     appSettings: {
-      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-      AZURE_BLOB_CONTAINER_NAME: blobContainerName
       AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
       AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
@@ -794,8 +785,8 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     speechServiceName: speechService.outputs.name
     computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    azureBlobStorageInfo: azureBlobStorageInfo
+    azureFormRecognizerInfo: azureFormRecognizerInfo
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
@@ -804,13 +795,10 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
     appSettings: {
-      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-      AZURE_BLOB_CONTAINER_NAME: blobContainerName
       AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
       AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
       AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
@@ -907,8 +895,8 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     clientKey: clientKey
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    azureBlobStorageInfo: azureBlobStorageInfo
+    azureFormRecognizerInfo: azureFormRecognizerInfo
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
@@ -917,13 +905,10 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
     appSettings: {
-      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-      AZURE_BLOB_CONTAINER_NAME: blobContainerName
       AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
       AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
@@ -970,8 +955,8 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     clientKey: clientKey
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    azureBlobStorageInfo: azureBlobStorageInfo
+    azureFormRecognizerInfo: azureFormRecognizerInfo
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
@@ -980,13 +965,10 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
     appSettings: {
-      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-      AZURE_BLOB_CONTAINER_NAME: blobContainerName
       AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
       AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
       AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
       AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
       AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
@@ -1024,6 +1006,11 @@ module formrecognizer 'core/ai/cognitiveservices.bicep' = {
     kind: 'FormRecognizer'
   }
 }
+
+var azureFormRecognizerInfo = string({
+  endpoint: formrecognizer.outputs.endpoint
+  key: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : '$FORM_RECOGNIZER_KEY'
+})
 
 module contentsafety 'core/ai/cognitiveservices.bicep' = {
   name: contentSafetyName
@@ -1096,6 +1083,12 @@ module storageRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
   }
 }
 
+var azureBlobStorageInfo = string({
+  containerName: blobContainerName
+  accountName: storageAccountName
+  accountKey: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : '$STORAGE_ACCOUNT_KEY'
+})
+
 // Cognitive Services User
 module openaiRoleUser 'core/security/role.bicep' = if (authType == 'rbac') {
   scope: resourceGroup()
@@ -1147,9 +1140,7 @@ module machineLearning 'app/machinelearning.bicep' = if (orchestrationStrategy =
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
-output AZURE_BLOB_CONTAINER_NAME string = blobContainerName
-output AZURE_BLOB_ACCOUNT_NAME string = storageAccountName
-output AZURE_BLOB_ACCOUNT_KEY string = useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+output AZURE_BLOB_STORAGE_INFO string = replace(azureBlobStorageInfo, '$STORAGE_ACCOUNT_KEY','')
 output AZURE_COMPUTER_VISION_ENDPOINT string = useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
 output AZURE_COMPUTER_VISION_LOCATION string = useAdvancedImageProcessing ? computerVision.outputs.location : ''
 output AZURE_COMPUTER_VISION_KEY string = useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
@@ -1157,8 +1148,7 @@ output AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION string = computerVision
 output AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION string = computerVisionVectorizeImageModelVersion
 output AZURE_CONTENT_SAFETY_ENDPOINT string = contentsafety.outputs.endpoint
 output AZURE_CONTENT_SAFETY_KEY string = useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-output AZURE_FORM_RECOGNIZER_ENDPOINT string = formrecognizer.outputs.endpoint
-output AZURE_FORM_RECOGNIZER_KEY string = useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+output AZURE_FORM_RECOGNIZER_INFO string = replace(azureFormRecognizerInfo, '$FORM_RECOGNIZER_KEY','')
 output AZURE_KEY_VAULT_ENDPOINT string = useKeyVault ? keyvault.outputs.endpoint : ''
 output AZURE_KEY_VAULT_NAME string = useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
 output AZURE_LOCATION string = location
