@@ -5,14 +5,14 @@ import os
 from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
 
 logger = logging.getLogger(__name__)
-
+encoded_account_key = str(base64.b64encode(b"some-blob-account-key"), "utf-8")
 
 class AppConfig:
     before_config: dict[str, str] = {}
     config: dict[str, str | None] = {
         "APPLICATIONINSIGHTS_ENABLED": "False",
         "AZURE_AUTH_TYPE": "keys",
-        "AZURE_BLOB_STORAGE_INFO":'{"accountName": "some-blob-account-name","containerName": "some-blob-container-name","accountKey": "some-blob-account-key"}',
+        "AZURE_BLOB_STORAGE_INFO": '{"accountName": "some-blob-account-name", "containerName": "some-blob-container-name", "accountKey": "' + encoded_account_key + '"}',
         "AZURE_COMPUTER_VISION_KEY": "some-computer-vision-key",
         "AZURE_CONTENT_SAFETY_ENDPOINT": "some-content-safety-endpoint",
         "AZURE_CONTENT_SAFETY_KEY": "some-content-safety-key",
