@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.29.47.4906",
-      "templateHash": "4843965256692050769"
+      "version": "0.30.23.60470",
+      "templateHash": "16553051506563672417"
     }
   },
   "parameters": {
@@ -682,8 +682,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "10162367437414363838"
+              "version": "0.30.23.60470",
+              "templateHash": "14453122839528928942"
             }
           },
           "parameters": {
@@ -847,8 +847,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "17778708028830863146"
+              "version": "0.30.23.60470",
+              "templateHash": "12121357715793816510"
             },
             "description": "Creates an Azure Key Vault."
           },
@@ -940,8 +940,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "13930677902562058633"
+              "version": "0.30.23.60470",
+              "templateHash": "13123022401063321803"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -1095,8 +1095,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "13930677902562058633"
+              "version": "0.30.23.60470",
+              "templateHash": "13123022401063321803"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -1244,8 +1244,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "12421327006867392541"
+              "version": "0.30.23.60470",
+              "templateHash": "14973584850527407631"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1313,8 +1313,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "12421327006867392541"
+              "version": "0.30.23.60470",
+              "templateHash": "14973584850527407631"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1382,8 +1382,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "12421327006867392541"
+              "version": "0.30.23.60470",
+              "templateHash": "14973584850527407631"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1451,8 +1451,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "12421327006867392541"
+              "version": "0.30.23.60470",
+              "templateHash": "14973584850527407631"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -1524,8 +1524,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "13930677902562058633"
+              "version": "0.30.23.60470",
+              "templateHash": "13123022401063321803"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -1692,8 +1692,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "7149284552544081554"
+              "version": "0.30.23.60470",
+              "templateHash": "15528430944298201007"
             }
           },
           "parameters": {
@@ -1924,8 +1924,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "3186814620975722299"
+              "version": "0.30.23.60470",
+              "templateHash": "13584246975784398226"
             },
             "description": "Creates an Azure AI Search instance."
           },
@@ -2089,8 +2089,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "11910849835579950339"
+              "version": "0.30.23.60470",
+              "templateHash": "9286637480882627742"
             },
             "description": "Creates an Azure App Service plan."
           },
@@ -2200,8 +2200,12 @@
           },
           "computerVisionName": "[if(parameters('useAdvancedImageProcessing'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.name.value), createObject('value', ''))]",
           "openAIKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.OPENAI_KEY_NAME.value), createObject('value', ''))]",
-          "storageAccountKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value), createObject('value', ''))]",
-          "formRecognizerKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value), createObject('value', ''))]",
+          "azureBlobStorageInfo": {
+            "value": "[string(createObject('containerName', variables('blobContainerName'), 'accountName', parameters('storageAccountName'), 'accountKey', if(parameters('useKeyVault'), reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value, '$STORAGE_ACCOUNT_KEY')))]"
+          },
+          "azureFormRecognizerInfo": {
+            "value": "[string(createObject('endpoint', reference(resourceId('Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value, 'key', if(parameters('useKeyVault'), reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value, '$FORM_RECOGNIZER_KEY')))]"
+          },
           "searchKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SEARCH_KEY_NAME.value), createObject('value', ''))]",
           "contentSafetyKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.CONTENT_SAFETY_KEY_NAME.value), createObject('value', ''))]",
           "speechKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SPEECH_KEY_NAME.value), createObject('value', ''))]",
@@ -2216,13 +2220,10 @@
           },
           "appSettings": {
             "value": {
-              "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
-              "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
               "AZURE_COMPUTER_VISION_ENDPOINT": "[if(parameters('useAdvancedImageProcessing'), reference(resourceId('Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, '')]",
               "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION": "[parameters('computerVisionVectorizeImageApiVersion')]",
               "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION": "[parameters('computerVisionVectorizeImageModelVersion')]",
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(resourceId('Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
-              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(resourceId('Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
               "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
               "AZURE_OPENAI_TEMPERATURE": "[parameters('azureOpenAITemperature')]",
@@ -2273,8 +2274,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "15380721951101386205"
+              "version": "0.30.23.60470",
+              "templateHash": "12750836139153854515"
             }
           },
           "parameters": {
@@ -2355,11 +2356,11 @@
               "type": "string",
               "defaultValue": ""
             },
-            "storageAccountKeyName": {
+            "azureBlobStorageInfo": {
               "type": "string",
               "defaultValue": ""
             },
-            "formRecognizerKeyName": {
+            "azureFormRecognizerInfo": {
               "type": "string",
               "defaultValue": ""
             },
@@ -2430,7 +2431,7 @@
                     "value": "[parameters('appServicePlanId')]"
                   },
                   "appSettings": {
-                    "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_ACCOUNT_KEY', if(parameters('useKeyVault'), parameters('storageAccountKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value), 'AZURE_FORM_RECOGNIZER_KEY', if(parameters('useKeyVault'), parameters('formRecognizerKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1), 'AZURE_COSMOSDB_ACCOUNT_KEY', if(or(parameters('useKeyVault'), equals(parameters('cosmosDBKeyName'), '')), parameters('cosmosDBKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDBKeyName')), '2022-08-15').primaryMasterKey)))]"
+                    "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1), 'AZURE_COSMOSDB_ACCOUNT_KEY', if(or(parameters('useKeyVault'), equals(parameters('cosmosDBKeyName'), '')), parameters('cosmosDBKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDBKeyName')), '2022-08-15').primaryMasterKey)))]"
                   },
                   "keyVaultName": {
                     "value": "[parameters('keyVaultName')]"
@@ -2455,8 +2456,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "16756175373379165193"
+                      "version": "0.30.23.60470",
+                      "templateHash": "7732628295698757767"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -2682,8 +2683,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.29.47.4906",
-                              "templateHash": "103667315154160978"
+                              "version": "0.30.23.60470",
+                              "templateHash": "16930852302813854027"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -2760,8 +2761,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -2829,8 +2830,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -2898,8 +2899,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -2967,8 +2968,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -3033,8 +3034,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "1133867179681914334"
+                      "version": "0.30.23.60470",
+                      "templateHash": "465622386717580763"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -3165,8 +3166,12 @@
           },
           "computerVisionName": "[if(parameters('useAdvancedImageProcessing'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.name.value), createObject('value', ''))]",
           "openAIKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.OPENAI_KEY_NAME.value), createObject('value', ''))]",
-          "storageAccountKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value), createObject('value', ''))]",
-          "formRecognizerKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value), createObject('value', ''))]",
+          "azureBlobStorageInfo": {
+            "value": "[string(createObject('containerName', variables('blobContainerName'), 'accountName', parameters('storageAccountName'), 'accountKey', if(parameters('useKeyVault'), reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value, '$STORAGE_ACCOUNT_KEY')))]"
+          },
+          "azureFormRecognizerInfo": {
+            "value": "[string(createObject('endpoint', reference(resourceId('Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value, 'key', if(parameters('useKeyVault'), reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value, '$FORM_RECOGNIZER_KEY')))]"
+          },
           "searchKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SEARCH_KEY_NAME.value), createObject('value', ''))]",
           "computerVisionKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.COMPUTER_VISION_KEY_NAME.value), createObject('value', ''))]",
           "contentSafetyKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.CONTENT_SAFETY_KEY_NAME.value), createObject('value', ''))]",
@@ -3181,13 +3186,10 @@
           },
           "appSettings": {
             "value": {
-              "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
-              "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
               "AZURE_COMPUTER_VISION_ENDPOINT": "[if(parameters('useAdvancedImageProcessing'), reference(resourceId('Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, '')]",
               "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION": "[parameters('computerVisionVectorizeImageApiVersion')]",
               "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION": "[parameters('computerVisionVectorizeImageModelVersion')]",
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(resourceId('Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
-              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(resourceId('Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
               "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
               "AZURE_OPENAI_TEMPERATURE": "[parameters('azureOpenAITemperature')]",
@@ -3238,8 +3240,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "15380721951101386205"
+              "version": "0.30.23.60470",
+              "templateHash": "12750836139153854515"
             }
           },
           "parameters": {
@@ -3320,11 +3322,11 @@
               "type": "string",
               "defaultValue": ""
             },
-            "storageAccountKeyName": {
+            "azureBlobStorageInfo": {
               "type": "string",
               "defaultValue": ""
             },
-            "formRecognizerKeyName": {
+            "azureFormRecognizerInfo": {
               "type": "string",
               "defaultValue": ""
             },
@@ -3395,7 +3397,7 @@
                     "value": "[parameters('appServicePlanId')]"
                   },
                   "appSettings": {
-                    "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_ACCOUNT_KEY', if(parameters('useKeyVault'), parameters('storageAccountKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value), 'AZURE_FORM_RECOGNIZER_KEY', if(parameters('useKeyVault'), parameters('formRecognizerKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1), 'AZURE_COSMOSDB_ACCOUNT_KEY', if(or(parameters('useKeyVault'), equals(parameters('cosmosDBKeyName'), '')), parameters('cosmosDBKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDBKeyName')), '2022-08-15').primaryMasterKey)))]"
+                    "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1), 'AZURE_COSMOSDB_ACCOUNT_KEY', if(or(parameters('useKeyVault'), equals(parameters('cosmosDBKeyName'), '')), parameters('cosmosDBKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDBKeyName')), '2022-08-15').primaryMasterKey)))]"
                   },
                   "keyVaultName": {
                     "value": "[parameters('keyVaultName')]"
@@ -3420,8 +3422,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "16756175373379165193"
+                      "version": "0.30.23.60470",
+                      "templateHash": "7732628295698757767"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -3647,8 +3649,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.29.47.4906",
-                              "templateHash": "103667315154160978"
+                              "version": "0.30.23.60470",
+                              "templateHash": "16930852302813854027"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -3725,8 +3727,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -3794,8 +3796,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -3863,8 +3865,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -3932,8 +3934,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -3998,8 +4000,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "1133867179681914334"
+                      "version": "0.30.23.60470",
+                      "templateHash": "465622386717580763"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -4130,8 +4132,12 @@
           },
           "computerVisionName": "[if(parameters('useAdvancedImageProcessing'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.name.value), createObject('value', ''))]",
           "openAIKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.OPENAI_KEY_NAME.value), createObject('value', ''))]",
-          "storageAccountKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value), createObject('value', ''))]",
-          "formRecognizerKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value), createObject('value', ''))]",
+          "azureBlobStorageInfo": {
+            "value": "[string(createObject('containerName', variables('blobContainerName'), 'accountName', parameters('storageAccountName'), 'accountKey', if(parameters('useKeyVault'), reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value, '$STORAGE_ACCOUNT_KEY')))]"
+          },
+          "azureFormRecognizerInfo": {
+            "value": "[string(createObject('endpoint', reference(resourceId('Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value, 'key', if(parameters('useKeyVault'), reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value, '$FORM_RECOGNIZER_KEY')))]"
+          },
           "searchKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SEARCH_KEY_NAME.value), createObject('value', ''))]",
           "computerVisionKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.COMPUTER_VISION_KEY_NAME.value), createObject('value', ''))]",
           "contentSafetyKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.CONTENT_SAFETY_KEY_NAME.value), createObject('value', ''))]",
@@ -4145,13 +4151,10 @@
           },
           "appSettings": {
             "value": {
-              "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
-              "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
               "AZURE_COMPUTER_VISION_ENDPOINT": "[if(parameters('useAdvancedImageProcessing'), reference(resourceId('Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, '')]",
               "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION": "[parameters('computerVisionVectorizeImageApiVersion')]",
               "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION": "[parameters('computerVisionVectorizeImageModelVersion')]",
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(resourceId('Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
-              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(resourceId('Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
               "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
               "AZURE_OPENAI_TEMPERATURE": "[parameters('azureOpenAITemperature')]",
@@ -4199,8 +4202,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "17327750493694934622"
+              "version": "0.30.23.60470",
+              "templateHash": "12567732396765618168"
             }
           },
           "parameters": {
@@ -4281,11 +4284,11 @@
               "type": "string",
               "defaultValue": ""
             },
-            "storageAccountKeyName": {
+            "azureBlobStorageInfo": {
               "type": "string",
               "defaultValue": ""
             },
-            "formRecognizerKeyName": {
+            "azureFormRecognizerInfo": {
               "type": "string",
               "defaultValue": ""
             },
@@ -4361,7 +4364,7 @@
                     "value": "[parameters('appServicePlanId')]"
                   },
                   "appSettings": {
-                    "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_ACCOUNT_KEY', if(parameters('useKeyVault'), parameters('storageAccountKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value), 'AZURE_FORM_RECOGNIZER_KEY', if(parameters('useKeyVault'), parameters('formRecognizerKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
+                    "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
                   }
                 },
                 "template": {
@@ -4370,8 +4373,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "16756175373379165193"
+                      "version": "0.30.23.60470",
+                      "templateHash": "7732628295698757767"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -4597,8 +4600,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.29.47.4906",
-                              "templateHash": "103667315154160978"
+                              "version": "0.30.23.60470",
+                              "templateHash": "16930852302813854027"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -4675,8 +4678,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -4744,8 +4747,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -4813,8 +4816,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -4882,8 +4885,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -4948,8 +4951,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "1133867179681914334"
+                      "version": "0.30.23.60470",
+                      "templateHash": "465622386717580763"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -5076,8 +5079,12 @@
           },
           "computerVisionName": "[if(parameters('useAdvancedImageProcessing'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.name.value), createObject('value', ''))]",
           "openAIKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.OPENAI_KEY_NAME.value), createObject('value', ''))]",
-          "storageAccountKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value), createObject('value', ''))]",
-          "formRecognizerKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value), createObject('value', ''))]",
+          "azureBlobStorageInfo": {
+            "value": "[string(createObject('containerName', variables('blobContainerName'), 'accountName', parameters('storageAccountName'), 'accountKey', if(parameters('useKeyVault'), reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value, '$STORAGE_ACCOUNT_KEY')))]"
+          },
+          "azureFormRecognizerInfo": {
+            "value": "[string(createObject('endpoint', reference(resourceId('Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value, 'key', if(parameters('useKeyVault'), reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value, '$FORM_RECOGNIZER_KEY')))]"
+          },
           "searchKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SEARCH_KEY_NAME.value), createObject('value', ''))]",
           "contentSafetyKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.CONTENT_SAFETY_KEY_NAME.value), createObject('value', ''))]",
           "speechKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SPEECH_KEY_NAME.value), createObject('value', ''))]",
@@ -5091,13 +5098,10 @@
           },
           "appSettings": {
             "value": {
-              "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
-              "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
               "AZURE_COMPUTER_VISION_ENDPOINT": "[if(parameters('useAdvancedImageProcessing'), reference(resourceId('Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, '')]",
               "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION": "[parameters('computerVisionVectorizeImageApiVersion')]",
               "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION": "[parameters('computerVisionVectorizeImageModelVersion')]",
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(resourceId('Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
-              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(resourceId('Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
               "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
               "AZURE_OPENAI_TEMPERATURE": "[parameters('azureOpenAITemperature')]",
@@ -5145,8 +5149,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "17327750493694934622"
+              "version": "0.30.23.60470",
+              "templateHash": "12567732396765618168"
             }
           },
           "parameters": {
@@ -5227,11 +5231,11 @@
               "type": "string",
               "defaultValue": ""
             },
-            "storageAccountKeyName": {
+            "azureBlobStorageInfo": {
               "type": "string",
               "defaultValue": ""
             },
-            "formRecognizerKeyName": {
+            "azureFormRecognizerInfo": {
               "type": "string",
               "defaultValue": ""
             },
@@ -5307,7 +5311,7 @@
                     "value": "[parameters('appServicePlanId')]"
                   },
                   "appSettings": {
-                    "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_ACCOUNT_KEY', if(parameters('useKeyVault'), parameters('storageAccountKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value), 'AZURE_FORM_RECOGNIZER_KEY', if(parameters('useKeyVault'), parameters('formRecognizerKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
+                    "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
                   }
                 },
                 "template": {
@@ -5316,8 +5320,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "16756175373379165193"
+                      "version": "0.30.23.60470",
+                      "templateHash": "7732628295698757767"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -5543,8 +5547,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.29.47.4906",
-                              "templateHash": "103667315154160978"
+                              "version": "0.30.23.60470",
+                              "templateHash": "16930852302813854027"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -5621,8 +5625,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -5690,8 +5694,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -5759,8 +5763,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -5828,8 +5832,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -5894,8 +5898,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "1133867179681914334"
+                      "version": "0.30.23.60470",
+                      "templateHash": "465622386717580763"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -6007,8 +6011,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "14824672405902859193"
+              "version": "0.30.23.60470",
+              "templateHash": "2390666818608223959"
             },
             "description": "Creates an Application Insights instance and a Log Analytics workspace."
           },
@@ -6059,8 +6063,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "3321614781233750399"
+                      "version": "0.30.23.60470",
+                      "templateHash": "19694557100387265"
                     },
                     "description": "Creates a Log Analytics workspace."
                   },
@@ -6140,8 +6144,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "53484624287673645"
+                      "version": "0.30.23.60470",
+                      "templateHash": "16993757720869129667"
                     },
                     "description": "Creates an Application Insights instance based on an existing Log Analytics workspace."
                   },
@@ -6205,8 +6209,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.29.47.4906",
-                              "templateHash": "14911212182563532861"
+                              "version": "0.30.23.60470",
+                              "templateHash": "12524466040979787143"
                             },
                             "description": "Creates a dashboard for an Application Insights instance."
                           },
@@ -7540,8 +7544,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "2751741336760825109"
+              "version": "0.30.23.60470",
+              "templateHash": "15151749822990864279"
             }
           },
           "parameters": {
@@ -7623,8 +7627,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "20443133125141617"
+                      "version": "0.30.23.60470",
+                      "templateHash": "15030863077610448627"
                     }
                   },
                   "parameters": {
@@ -7763,8 +7767,12 @@
             "value": "[variables('clientKey')]"
           },
           "openAIKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.OPENAI_KEY_NAME.value), createObject('value', ''))]",
-          "storageAccountKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value), createObject('value', ''))]",
-          "formRecognizerKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value), createObject('value', ''))]",
+          "azureBlobStorageInfo": {
+            "value": "[string(createObject('containerName', variables('blobContainerName'), 'accountName', parameters('storageAccountName'), 'accountKey', if(parameters('useKeyVault'), reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value, '$STORAGE_ACCOUNT_KEY')))]"
+          },
+          "azureFormRecognizerInfo": {
+            "value": "[string(createObject('endpoint', reference(resourceId('Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value, 'key', if(parameters('useKeyVault'), reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value, '$FORM_RECOGNIZER_KEY')))]"
+          },
           "searchKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SEARCH_KEY_NAME.value), createObject('value', ''))]",
           "contentSafetyKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.CONTENT_SAFETY_KEY_NAME.value), createObject('value', ''))]",
           "speechKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SPEECH_KEY_NAME.value), createObject('value', ''))]",
@@ -7778,13 +7786,10 @@
           },
           "appSettings": {
             "value": {
-              "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
-              "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
               "AZURE_COMPUTER_VISION_ENDPOINT": "[if(parameters('useAdvancedImageProcessing'), reference(resourceId('Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, '')]",
               "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION": "[parameters('computerVisionVectorizeImageApiVersion')]",
               "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION": "[parameters('computerVisionVectorizeImageModelVersion')]",
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(resourceId('Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
-              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(resourceId('Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
               "AZURE_OPENAI_EMBEDDING_MODEL_INFO": "[variables('azureOpenAIEmbeddingModelInfo')]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
@@ -7817,8 +7822,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "17585935035261876784"
+              "version": "0.30.23.60470",
+              "templateHash": "829406794789220597"
             }
           },
           "parameters": {
@@ -7894,11 +7899,11 @@
               "type": "string",
               "defaultValue": ""
             },
-            "storageAccountKeyName": {
+            "azureBlobStorageInfo": {
               "type": "string",
               "defaultValue": ""
             },
-            "formRecognizerKeyName": {
+            "azureFormRecognizerInfo": {
               "type": "string",
               "defaultValue": ""
             },
@@ -8001,7 +8006,7 @@
                     "value": "[parameters('dockerFullImageName')]"
                   },
                   "appSettings": {
-                    "value": "[union(parameters('appSettings'), createObject('WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'false', 'AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_ACCOUNT_KEY', if(parameters('useKeyVault'), parameters('storageAccountKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value), 'AZURE_FORM_RECOGNIZER_KEY', if(parameters('useKeyVault'), parameters('formRecognizerKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
+                    "value": "[union(parameters('appSettings'), createObject('WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'false', 'AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
                   }
                 },
                 "template": {
@@ -8010,8 +8015,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "15094851132007588437"
+                      "version": "0.30.23.60470",
+                      "templateHash": "3077544357242613291"
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -8218,8 +8223,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.29.47.4906",
-                              "templateHash": "16756175373379165193"
+                              "version": "0.30.23.60470",
+                              "templateHash": "7732628295698757767"
                             },
                             "description": "Creates an Azure App Service in an existing Azure App Service plan."
                           },
@@ -8445,8 +8450,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.29.47.4906",
-                                      "templateHash": "103667315154160978"
+                                      "version": "0.30.23.60470",
+                                      "templateHash": "16930852302813854027"
                                     },
                                     "description": "Updates app settings for an Azure App Service."
                                   },
@@ -8541,8 +8546,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8610,8 +8615,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8679,8 +8684,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8748,8 +8753,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8817,8 +8822,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -8883,8 +8888,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "1133867179681914334"
+                      "version": "0.30.23.60470",
+                      "templateHash": "465622386717580763"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -9010,8 +9015,12 @@
             "value": "[variables('clientKey')]"
           },
           "openAIKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.OPENAI_KEY_NAME.value), createObject('value', ''))]",
-          "storageAccountKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value), createObject('value', ''))]",
-          "formRecognizerKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value), createObject('value', ''))]",
+          "azureBlobStorageInfo": {
+            "value": "[string(createObject('containerName', variables('blobContainerName'), 'accountName', parameters('storageAccountName'), 'accountKey', if(parameters('useKeyVault'), reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value, '$STORAGE_ACCOUNT_KEY')))]"
+          },
+          "azureFormRecognizerInfo": {
+            "value": "[string(createObject('endpoint', reference(resourceId('Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value, 'key', if(parameters('useKeyVault'), reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value, '$FORM_RECOGNIZER_KEY')))]"
+          },
           "searchKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SEARCH_KEY_NAME.value), createObject('value', ''))]",
           "contentSafetyKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.CONTENT_SAFETY_KEY_NAME.value), createObject('value', ''))]",
           "speechKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SPEECH_KEY_NAME.value), createObject('value', ''))]",
@@ -9025,13 +9034,10 @@
           },
           "appSettings": {
             "value": {
-              "AZURE_BLOB_ACCOUNT_NAME": "[parameters('storageAccountName')]",
-              "AZURE_BLOB_CONTAINER_NAME": "[variables('blobContainerName')]",
               "AZURE_COMPUTER_VISION_ENDPOINT": "[if(parameters('useAdvancedImageProcessing'), reference(resourceId('Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, '')]",
               "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION": "[parameters('computerVisionVectorizeImageApiVersion')]",
               "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION": "[parameters('computerVisionVectorizeImageModelVersion')]",
               "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(resourceId('Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
-              "AZURE_FORM_RECOGNIZER_ENDPOINT": "[reference(resourceId('Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]",
               "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
               "AZURE_OPENAI_EMBEDDING_MODEL_INFO": "[variables('azureOpenAIEmbeddingModelInfo')]",
               "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
@@ -9064,8 +9070,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "17585935035261876784"
+              "version": "0.30.23.60470",
+              "templateHash": "829406794789220597"
             }
           },
           "parameters": {
@@ -9141,11 +9147,11 @@
               "type": "string",
               "defaultValue": ""
             },
-            "storageAccountKeyName": {
+            "azureBlobStorageInfo": {
               "type": "string",
               "defaultValue": ""
             },
-            "formRecognizerKeyName": {
+            "azureFormRecognizerInfo": {
               "type": "string",
               "defaultValue": ""
             },
@@ -9248,7 +9254,7 @@
                     "value": "[parameters('dockerFullImageName')]"
                   },
                   "appSettings": {
-                    "value": "[union(parameters('appSettings'), createObject('WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'false', 'AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_ACCOUNT_KEY', if(parameters('useKeyVault'), parameters('storageAccountKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value), 'AZURE_FORM_RECOGNIZER_KEY', if(parameters('useKeyVault'), parameters('formRecognizerKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
+                    "value": "[union(parameters('appSettings'), createObject('WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'false', 'AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
                   }
                 },
                 "template": {
@@ -9257,8 +9263,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "15094851132007588437"
+                      "version": "0.30.23.60470",
+                      "templateHash": "3077544357242613291"
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -9465,8 +9471,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.29.47.4906",
-                              "templateHash": "16756175373379165193"
+                              "version": "0.30.23.60470",
+                              "templateHash": "7732628295698757767"
                             },
                             "description": "Creates an Azure App Service in an existing Azure App Service plan."
                           },
@@ -9692,8 +9698,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.29.47.4906",
-                                      "templateHash": "103667315154160978"
+                                      "version": "0.30.23.60470",
+                                      "templateHash": "16930852302813854027"
                                     },
                                     "description": "Updates app settings for an Azure App Service."
                                   },
@@ -9788,8 +9794,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -9857,8 +9863,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -9926,8 +9932,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -9995,8 +10001,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -10064,8 +10070,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "12421327006867392541"
+                      "version": "0.30.23.60470",
+                      "templateHash": "14973584850527407631"
                     },
                     "description": "Creates a role assignment for a service principal."
                   },
@@ -10130,8 +10136,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.29.47.4906",
-                      "templateHash": "1133867179681914334"
+                      "version": "0.30.23.60470",
+                      "templateHash": "465622386717580763"
                     },
                     "description": "Assigns an Azure Key Vault access policy."
                   },
@@ -10234,8 +10240,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "13930677902562058633"
+              "version": "0.30.23.60470",
+              "templateHash": "13123022401063321803"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -10385,8 +10391,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "13930677902562058633"
+              "version": "0.30.23.60470",
+              "templateHash": "13123022401063321803"
             },
             "description": "Creates an Azure Cognitive Services instance."
           },
@@ -10539,8 +10545,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "10992796846575118308"
+              "version": "0.30.23.60470",
+              "templateHash": "6699069410959282929"
             }
           },
           "parameters": {
@@ -10667,8 +10673,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "6009030871838517804"
+              "version": "0.30.23.60470",
+              "templateHash": "7157574004190707979"
             },
             "description": "Creates an Azure storage account."
           },
@@ -10888,8 +10894,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "12421327006867392541"
+              "version": "0.30.23.60470",
+              "templateHash": "14973584850527407631"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -10954,8 +10960,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "12421327006867392541"
+              "version": "0.30.23.60470",
+              "templateHash": "14973584850527407631"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -11020,8 +11026,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "12421327006867392541"
+              "version": "0.30.23.60470",
+              "templateHash": "14973584850527407631"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -11086,8 +11092,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "12421327006867392541"
+              "version": "0.30.23.60470",
+              "templateHash": "14973584850527407631"
             },
             "description": "Creates a role assignment for a service principal."
           },
@@ -11168,8 +11174,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.29.47.4906",
-              "templateHash": "648404900818606545"
+              "version": "0.30.23.60470",
+              "templateHash": "17372485166957435450"
             }
           },
           "parameters": {
@@ -11282,17 +11288,9 @@
       "type": "string",
       "value": "[parameters('hostingModel')]"
     },
-    "AZURE_BLOB_CONTAINER_NAME": {
+    "AZURE_BLOB_STORAGE_INFO": {
       "type": "string",
-      "value": "[variables('blobContainerName')]"
-    },
-    "AZURE_BLOB_ACCOUNT_NAME": {
-      "type": "string",
-      "value": "[parameters('storageAccountName')]"
-    },
-    "AZURE_BLOB_ACCOUNT_KEY": {
-      "type": "string",
-      "value": "[if(parameters('useKeyVault'), reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value, '')]"
+      "value": "[replace(string(createObject('containerName', variables('blobContainerName'), 'accountName', parameters('storageAccountName'), 'accountKey', if(parameters('useKeyVault'), reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.STORAGE_ACCOUNT_KEY_NAME.value, '$STORAGE_ACCOUNT_KEY'))), '$STORAGE_ACCOUNT_KEY', '')]"
     },
     "AZURE_COMPUTER_VISION_ENDPOINT": {
       "type": "string",
@@ -11322,13 +11320,9 @@
       "type": "string",
       "value": "[if(parameters('useKeyVault'), reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.CONTENT_SAFETY_KEY_NAME.value, '')]"
     },
-    "AZURE_FORM_RECOGNIZER_ENDPOINT": {
+    "AZURE_FORM_RECOGNIZER_INFO": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value]"
-    },
-    "AZURE_FORM_RECOGNIZER_KEY": {
-      "type": "string",
-      "value": "[if(parameters('useKeyVault'), reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value, '')]"
+      "value": "[replace(string(createObject('endpoint', reference(resourceId('Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value, 'key', if(parameters('useKeyVault'), reference(resourceId('Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FORM_RECOGNIZER_KEY_NAME.value, '$FORM_RECOGNIZER_KEY'))), '$FORM_RECOGNIZER_KEY', '')]"
     },
     "AZURE_KEY_VAULT_ENDPOINT": {
       "type": "string",

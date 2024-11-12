@@ -205,22 +205,43 @@ class EnvHelper:
             "DOCUMENT_PROCESSING_QUEUE_NAME", "doc-processing"
         )
         # Azure Blob Storage
-        self.AZURE_BLOB_ACCOUNT_NAME = os.getenv("AZURE_BLOB_ACCOUNT_NAME", "")
-        self.AZURE_BLOB_ACCOUNT_KEY = self.secretHelper.get_secret(
-            "AZURE_BLOB_ACCOUNT_KEY"
-        )
-        self.AZURE_BLOB_CONTAINER_NAME = os.getenv("AZURE_BLOB_CONTAINER_NAME", "")
+        azure_blob_storage_info = self.get_info_from_env("AZURE_BLOB_STORAGE_INFO", "")
+        if azure_blob_storage_info:
+            # If AZURE_BLOB_STORAGE_INFO exists
+            self.AZURE_BLOB_ACCOUNT_NAME = azure_blob_storage_info.get("accountName", "")
+            self.AZURE_BLOB_ACCOUNT_KEY = self.secretHelper.get_secret_from_json(
+                azure_blob_storage_info.get("accountKey", "")
+            )
+            self.AZURE_BLOB_CONTAINER_NAME = azure_blob_storage_info.get("containerName", "")
+        else:
+            # Otherwise, fallback to individual environment variables
+            self.AZURE_BLOB_ACCOUNT_NAME = os.getenv("AZURE_BLOB_ACCOUNT_NAME", "")
+            self.AZURE_BLOB_ACCOUNT_KEY = self.secretHelper.get_secret(
+                "AZURE_BLOB_ACCOUNT_KEY"
+            )
+            self.AZURE_BLOB_CONTAINER_NAME = os.getenv("AZURE_BLOB_CONTAINER_NAME", "")
         self.AZURE_STORAGE_ACCOUNT_ENDPOINT = os.getenv(
             "AZURE_STORAGE_ACCOUNT_ENDPOINT",
             f"https://{self.AZURE_BLOB_ACCOUNT_NAME}.blob.core.windows.net/",
         )
+
         # Azure Form Recognizer
-        self.AZURE_FORM_RECOGNIZER_ENDPOINT = os.getenv(
-            "AZURE_FORM_RECOGNIZER_ENDPOINT", ""
-        )
-        self.AZURE_FORM_RECOGNIZER_KEY = self.secretHelper.get_secret(
-            "AZURE_FORM_RECOGNIZER_KEY"
-        )
+        azure_form_recognizer_info = self.get_info_from_env("AZURE_FORM_RECOGNIZER_INFO", "")
+        if azure_form_recognizer_info:
+            # If AZURE_FORM_RECOGNIZER_INFO exists
+            self.AZURE_FORM_RECOGNIZER_ENDPOINT = azure_form_recognizer_info.get("endpoint", "")
+            self.AZURE_FORM_RECOGNIZER_KEY = self.secretHelper.get_secret_from_json(
+                azure_form_recognizer_info.get("key", "")
+            )
+        else:
+            # Otherwise, fallback to individual environment variables
+            self.AZURE_FORM_RECOGNIZER_ENDPOINT = os.getenv(
+                "AZURE_FORM_RECOGNIZER_ENDPOINT", ""
+            )
+            self.AZURE_FORM_RECOGNIZER_KEY = self.secretHelper.get_secret(
+                "AZURE_FORM_RECOGNIZER_KEY"
+            )
+
         # Azure App Insights
         # APPLICATIONINSIGHTS_ENABLED will be True when the application runs in App Service
         self.APPLICATIONINSIGHTS_ENABLED = self.get_env_var_bool(
@@ -362,4 +383,11 @@ class SecretHelper:
             self.secret_client.get_secret(secret_name_value).value
             if self.USE_KEY_VAULT and secret_name_value
             else os.getenv(secret_name, "")
+        )
+
+    def get_secret_from_json(self, secret_name: str) -> str:
+        return (
+            self.secret_client.get_secret(secret_name).value
+            if self.USE_KEY_VAULT and secret_name
+            else secret_name
         )
