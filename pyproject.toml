@@ -41,6 +41,7 @@ semantic-kernel = {version = "1.3.0", python = "<3.13"}
 azure-ai-ml = "^1.21.1"
 azure-cosmos = "^4.7.0"
 asyncpg = {extras = ["gssauth"], version = "^0.30.0"}
+psycopg2 = "^2.9.10"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
