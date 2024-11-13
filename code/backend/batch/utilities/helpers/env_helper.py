@@ -285,22 +285,26 @@ class EnvHelper:
 
         self.PROMPT_FLOW_DEPLOYMENT_NAME = os.getenv("PROMPT_FLOW_DEPLOYMENT_NAME", "")
 
-        # Chat History CosmosDB Integration Settings
-        azure_cosmosdb_info = self.get_info_from_env("AZURE_COSMOSDB_INFO", "")
-        self.AZURE_COSMOSDB_DATABASE = azure_cosmosdb_info.get("databaseName", "")
-        self.AZURE_COSMOSDB_ACCOUNT = azure_cosmosdb_info.get("accountName", "")
-        self.AZURE_COSMOSDB_CONVERSATIONS_CONTAINER = azure_cosmosdb_info.get(
-            "containerName", ""
-        )
-        self.AZURE_COSMOSDB_ACCOUNT_KEY = self.secretHelper.get_secret(
-            "AZURE_COSMOSDB_ACCOUNT_KEY"
-        )
-        self.AZURE_COSMOSDB_ENABLE_FEEDBACK = (
-            os.getenv("AZURE_COSMOSDB_ENABLE_FEEDBACK", "false").lower() == "true"
-        )
-        self.CHAT_HISTORY_ENABLED = self.get_env_var_bool(
-            "CHAT_HISTORY_ENABLED", "true"
-        )
+        # Chat History DB Integration Settings
+        # Set default values based on DATABASE_TYPE
+        self.DATABASE_TYPE = os.getenv("DATABASE_TYPE", "CosmosDB")
+        self.CHAT_HISTORY_ENABLED = self.get_env_var_bool("CHAT_HISTORY_ENABLED", "true")
+        # Cosmos DB configuration
+        if self.DATABASE_TYPE == "CosmosDB":
+            azure_cosmosdb_info = self.get_info_from_env("AZURE_COSMOSDB_INFO", "")
+            self.AZURE_COSMOSDB_DATABASE = azure_cosmosdb_info.get("databaseName", "")
+            self.AZURE_COSMOSDB_ACCOUNT = azure_cosmosdb_info.get("accountName", "")
+            self.AZURE_COSMOSDB_CONVERSATIONS_CONTAINER = azure_cosmosdb_info.get("containerName", "")
+            self.AZURE_COSMOSDB_ACCOUNT_KEY = self.secretHelper.get_secret("AZURE_COSMOSDB_ACCOUNT_KEY")
+            self.AZURE_COSMOSDB_ENABLE_FEEDBACK = (os.getenv("AZURE_COSMOSDB_ENABLE_FEEDBACK", "false").lower() == "true")
+        # PostgreSQL configuration
+        elif self.DATABASE_TYPE == "PostgreSQL":
+            azure_postgresql_info = self.get_info_from_env("AZURE_POSTGRESQL_INFO", "")
+            self.POSTGRESQL_USER = azure_postgresql_info.get("user", "")
+            self.POSTGRESQL_DATABASE = azure_postgresql_info.get("dbname", "")
+            self.POSTGRESQL_HOST = azure_postgresql_info.get("host", "")
+        else:
+            raise ValueError("Unsupported DATABASE_TYPE. Please set DATABASE_TYPE to 'CosmosDB' or 'PostgreSQL'.")
 
     def is_chat_model(self):
         if "gpt-4" in self.AZURE_OPENAI_MODEL_NAME.lower():
