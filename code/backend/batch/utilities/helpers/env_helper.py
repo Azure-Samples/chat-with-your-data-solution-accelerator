@@ -300,9 +300,9 @@ class EnvHelper:
         # PostgreSQL configuration
         elif self.DATABASE_TYPE == "PostgreSQL":
             azure_postgresql_info = self.get_info_from_env("AZURE_POSTGRESQL_INFO", "")
-            self.POSTGRESQL_USER = azure_postgresql_info.get("postgresdbuser", "")
-            self.POSTGRESQL_DATABASE = azure_postgresql_info.get("postgresdbname", "")
-            self.POSTGRESQL_HOST = azure_postgresql_info.get("postgresdbhost", "")
+            self.POSTGRESQL_USER = azure_postgresql_info.get("user", "")
+            self.POSTGRESQL_DATABASE = azure_postgresql_info.get("dbname", "")
+            self.POSTGRESQL_HOST = azure_postgresql_info.get("host", "")
         else:
             raise ValueError("Unsupported DATABASE_TYPE. Please set DATABASE_TYPE to 'CosmosDB' or 'PostgreSQL'.")
 
