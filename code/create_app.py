@@ -159,6 +159,14 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
         messages.append(
             {"role": "system", "content": config.prompts.answering_system_prompt}
         )
+        messages.append(
+            {
+                "role": "user",
+                "content": config.prompts.answering_user_prompt.format(
+                    question=request_messages[-1]["content"]
+                ),
+            }
+        )
 
     for message in request_messages:
         messages.append({"role": message["role"], "content": message["content"]})
