@@ -208,11 +208,15 @@ class EnvHelper:
         azure_blob_storage_info = self.get_info_from_env("AZURE_BLOB_STORAGE_INFO", "")
         if azure_blob_storage_info:
             # If AZURE_BLOB_STORAGE_INFO exists
-            self.AZURE_BLOB_ACCOUNT_NAME = azure_blob_storage_info.get("accountName", "")
+            self.AZURE_BLOB_ACCOUNT_NAME = azure_blob_storage_info.get(
+                "accountName", ""
+            )
             self.AZURE_BLOB_ACCOUNT_KEY = self.secretHelper.get_secret_from_json(
                 azure_blob_storage_info.get("accountKey", "")
             )
-            self.AZURE_BLOB_CONTAINER_NAME = azure_blob_storage_info.get("containerName", "")
+            self.AZURE_BLOB_CONTAINER_NAME = azure_blob_storage_info.get(
+                "containerName", ""
+            )
         else:
             # Otherwise, fallback to individual environment variables
             self.AZURE_BLOB_ACCOUNT_NAME = os.getenv("AZURE_BLOB_ACCOUNT_NAME", "")
@@ -226,10 +230,14 @@ class EnvHelper:
         )
 
         # Azure Form Recognizer
-        azure_form_recognizer_info = self.get_info_from_env("AZURE_FORM_RECOGNIZER_INFO", "")
+        azure_form_recognizer_info = self.get_info_from_env(
+            "AZURE_FORM_RECOGNIZER_INFO", ""
+        )
         if azure_form_recognizer_info:
             # If AZURE_FORM_RECOGNIZER_INFO exists
-            self.AZURE_FORM_RECOGNIZER_ENDPOINT = azure_form_recognizer_info.get("endpoint", "")
+            self.AZURE_FORM_RECOGNIZER_ENDPOINT = azure_form_recognizer_info.get(
+                "endpoint", ""
+            )
             self.AZURE_FORM_RECOGNIZER_KEY = self.secretHelper.get_secret_from_json(
                 azure_form_recognizer_info.get("key", "")
             )
@@ -287,16 +295,24 @@ class EnvHelper:
 
         # Chat History DB Integration Settings
         # Set default values based on DATABASE_TYPE
-        self.DATABASE_TYPE = os.getenv("DATABASE_TYPE", "CosmosDB")
-        self.CHAT_HISTORY_ENABLED = self.get_env_var_bool("CHAT_HISTORY_ENABLED", "true")
+        self.DATABASE_TYPE = os.getenv("DATABASE_TYPE", "").strip() or "CosmosDB"
+        self.CHAT_HISTORY_ENABLED = self.get_env_var_bool(
+            "CHAT_HISTORY_ENABLED", "true"
+        )
         # Cosmos DB configuration
         if self.DATABASE_TYPE == "CosmosDB":
             azure_cosmosdb_info = self.get_info_from_env("AZURE_COSMOSDB_INFO", "")
             self.AZURE_COSMOSDB_DATABASE = azure_cosmosdb_info.get("databaseName", "")
             self.AZURE_COSMOSDB_ACCOUNT = azure_cosmosdb_info.get("accountName", "")
-            self.AZURE_COSMOSDB_CONVERSATIONS_CONTAINER = azure_cosmosdb_info.get("containerName", "")
-            self.AZURE_COSMOSDB_ACCOUNT_KEY = self.secretHelper.get_secret("AZURE_COSMOSDB_ACCOUNT_KEY")
-            self.AZURE_COSMOSDB_ENABLE_FEEDBACK = (os.getenv("AZURE_COSMOSDB_ENABLE_FEEDBACK", "false").lower() == "true")
+            self.AZURE_COSMOSDB_CONVERSATIONS_CONTAINER = azure_cosmosdb_info.get(
+                "containerName", ""
+            )
+            self.AZURE_COSMOSDB_ACCOUNT_KEY = self.secretHelper.get_secret(
+                "AZURE_COSMOSDB_ACCOUNT_KEY"
+            )
+            self.AZURE_COSMOSDB_ENABLE_FEEDBACK = (
+                os.getenv("AZURE_COSMOSDB_ENABLE_FEEDBACK", "false").lower() == "true"
+            )
         # PostgreSQL configuration
         elif self.DATABASE_TYPE == "PostgreSQL":
             azure_postgresql_info = self.get_info_from_env("AZURE_POSTGRESQL_INFO", "")
@@ -304,7 +320,9 @@ class EnvHelper:
             self.POSTGRESQL_DATABASE = azure_postgresql_info.get("dbname", "")
             self.POSTGRESQL_HOST = azure_postgresql_info.get("host", "")
         else:
-            raise ValueError("Unsupported DATABASE_TYPE. Please set DATABASE_TYPE to 'CosmosDB' or 'PostgreSQL'.")
+            raise ValueError(
+                "Unsupported DATABASE_TYPE. Please set DATABASE_TYPE to 'CosmosDB' or 'PostgreSQL'."
+            )
 
     def is_chat_model(self):
         if "gpt-4" in self.AZURE_OPENAI_MODEL_NAME.lower():
