@@ -72,8 +72,8 @@ async def list_conversations():
             )
             if not isinstance(conversations, list):
                 return (
-                    jsonify({"error": f"No conversations found for user {user_id}"}),
-                    404,
+                    jsonify({"error": f"No conversations for {user_id} were found"}),
+                    400,
                 )
 
             return jsonify(conversations), 200
@@ -123,11 +123,10 @@ async def rename_conversation():
                 return (
                     jsonify(
                         {
-                            "error": f"Conversation {conversation_id} was not found. "
-                            "It may not exist or the user may not have access."
+                            "error": f"Conversation {conversation_id} was not found. It either does not exist or the logged in user does not have access to it."
                         }
                     ),
-                    404,
+                    400,
                 )
 
             # Update the title and save changes
@@ -177,10 +176,10 @@ async def get_conversation():
                 return (
                     jsonify(
                         {
-                            "error": f"Conversation {conversation_id} was not found or the user lacks access."
+                            "error": f"Conversation {conversation_id} was not found. It either does not exist or the logged in user does not have access to it."
                         }
                     ),
-                    404,
+                    400,
                 )
 
             # Fetch conversation messages
@@ -227,7 +226,14 @@ async def delete_conversation():
         request_json = request.get_json()
         conversation_id = request_json.get("conversation_id", None)
         if not conversation_id:
-            return jsonify({"error": "conversation_id is required"}), 400
+            return (
+                jsonify(
+                    {
+                        "error": f"Conversation {conversation_id} was not found. It either does not exist or the logged in user does not have access to it."
+                    }
+                ),
+                400,
+            )
 
         # Initialize and connect to the database client
         conversation_client = init_database_client()
