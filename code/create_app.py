@@ -159,14 +159,6 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
         messages.append(
             {"role": "system", "content": config.prompts.answering_system_prompt}
         )
-        messages.append(
-            {
-                "role": "user",
-                "content": config.prompts.answering_user_prompt.format(
-                    question=request_messages[-1]["content"]
-                ),
-            }
-        )
 
     for message in request_messages:
         messages.append({"role": message["role"], "content": message["content"]})
@@ -236,7 +228,11 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
                             and env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
                             else ""
                         ),
-                        "role_information": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE,
+                        # "role_information": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE,
+                        "role_information": config.prompts.answering_system_prompt
+                        if config.prompts.use_on_your_data_format
+                        else
+                        env_helper.AZURE_OPENAI_SYSTEM_MESSAGE,
                     },
                 }
             ]
