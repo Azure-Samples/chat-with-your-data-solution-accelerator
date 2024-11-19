@@ -52,7 +52,6 @@ jobs:
         env:
           AZURE_ENV_NAME: ${{ github.run_id }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
-          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
         with:
           imageName: ghcr.io/roopan-microsoft/psl-cwyd-main
           cacheFrom: ghcr.io/roopan-microsoft/psl-cwyd-main
@@ -66,7 +65,6 @@ jobs:
             AZURE_SUBSCRIPTION_ID
             AZURE_ENV_NAME
             AZURE_LOCATION
-            AZURE_RESOURCE_GROUP
 
       - name: Tidy up
         uses: devcontainers/ci@v0.3
@@ -74,7 +72,6 @@ jobs:
         env:
           AZURE_ENV_NAME: ${{ github.run_id }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
-          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
         with:
           push: never
           imageName: ghcr.io/roopan-microsoft/psl-cwyd-main
@@ -87,7 +84,6 @@ jobs:
             AZURE_SUBSCRIPTION_ID
             AZURE_ENV_NAME
             AZURE_LOCATION
-            AZURE_RESOURCE_GROUP
 
       - name: Send Notification on Failure
         if: failure()
