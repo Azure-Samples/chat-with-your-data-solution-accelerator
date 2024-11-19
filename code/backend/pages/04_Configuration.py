@@ -8,6 +8,7 @@ from batch.utilities.helpers.config.config_helper import ConfigHelper
 from azure.core.exceptions import ResourceNotFoundError
 from batch.utilities.helpers.config.assistant_strategy import AssistantStrategy
 from batch.utilities.helpers.config.conversation_flow import ConversationFlow
+from batch.utilities.helpers.config.database_type import DatabaseType
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
@@ -69,13 +70,13 @@ if "ai_assistant_type" not in st.session_state:
 if "conversational_flow" not in st.session_state:
     st.session_state["conversational_flow"] = config.prompts.conversational_flow
 if "enable_chat_history" not in st.session_state:
-    st.session_state["enable_chat_history"] = st.session_state[
-        "enable_chat_history"
-    ] = (
+    st.session_state["enable_chat_history"] = (
         config.enable_chat_history.lower() == "true"
         if isinstance(config.enable_chat_history, str)
         else config.enable_chat_history
     )
+if "database_type" not in st.session_state:
+    st.session_state["database_type"] = config.database_type
 
 if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
     if "max_page_length" not in st.session_state:
@@ -196,6 +197,11 @@ try:
                 key="conversational_flow",
                 options=config.get_available_conversational_flows(),
                 help=conversational_flow_help,
+                disabled=(
+                    True
+                    if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value
+                    else False
+                ),
             )
 
     with st.expander("Orchestrator configuration", expanded=True):
@@ -209,6 +215,7 @@ try:
                     True
                     if st.session_state["conversational_flow"]
                     == ConversationFlow.BYOD.value
+                    or env_helper.DATABASE_TYPE == "PostgreSQL"
                     else False
                 ),
             )

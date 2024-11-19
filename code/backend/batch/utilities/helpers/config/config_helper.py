@@ -13,6 +13,7 @@ from ...orchestrator import OrchestrationSettings
 from ..env_helper import EnvHelper
 from .assistant_strategy import AssistantStrategy
 from .conversation_flow import ConversationFlow
+from .database_type import DatabaseType
 
 CONFIG_CONTAINER_NAME = "config"
 CONFIG_FILE_NAME = "active.json"
@@ -52,6 +53,7 @@ class Config:
         self.enable_chat_history = config.get(
             "enable_chat_history", self.env_helper.CHAT_HISTORY_ENABLED
         )
+        self.database_type = config.get("database_type", self.env_helper.DATABASE_TYPE)
 
     def get_available_document_types(self) -> list[str]:
         document_types = {
@@ -245,8 +247,13 @@ class ConfigHelper:
                 logger.info("Loading default config from %s", config_file_path)
                 ConfigHelper._default_config = json.loads(
                     Template(f.read()).substitute(
-                        ORCHESTRATION_STRATEGY=env_helper.ORCHESTRATION_STRATEGY,
+                        ORCHESTRATION_STRATEGY=(
+                            OrchestrationStrategy.SEMANTIC_KERNEL.value
+                            if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value
+                            else env_helper.ORCHESTRATION_STRATEGY
+                        ),
                         CHAT_HISTORY_ENABLED=env_helper.CHAT_HISTORY_ENABLED,
+                        DATABASE_TYPE=env_helper.DATABASE_TYPE,
                     )
                 )
                 if env_helper.USE_ADVANCED_IMAGE_PROCESSING:
