@@ -14,7 +14,7 @@
 
 ![Add Provider](images/AppAuthIdentityProvider.png)
 
-4. Select the first option `Microsoft Entra Id` from the drop-down list. If `Create new app registration` is disabled, go to [Step 1a](https://github.com/Roopan-Microsoft/psl-cwyd-main/blob/main/docs/app_service_auth_setup.md#step-1-add-authentication-in-azure-app-service-configuration).
+4. Select the first option `Microsoft Entra Id` from the drop-down list. If `Create new app registration` is disabled, go to [Step 1a](#step-1a-creating-a-new-app-registration).
 
 ![Add Provider](images/AppAuthIdentityProviderAdd.png)
 
@@ -52,7 +52,7 @@
 
 ![Web](images/Web.png)
 
-8. Enter the `web app URL` (Provide the app service name in place of XXXX) and Save. Then go back to [Step 1](https://github.com/Roopan-Microsoft/psl-cwyd-main/blob/main/docs/app_service_auth_setup.md#step-1-add-authentication-in-azure-app-service-configuration) and follow from _Point 4_ choose `Pick an existing app registration in this directory` from the Add an Identity Provider page and provide the newly registered App Name.
+8. Enter the `web app URL` (Provide the app service name in place of XXXX) and Save. Then go back to [Step 1](#step-1-add-authentication-in-azure-app-service-configuration) and follow from _Point 4_ choose `Pick an existing app registration in this directory` from the Add an Identity Provider page and provide the newly registered App Name.
 E.g. https://appservicename.azurewebsites.net/.auth/login/aad/callback
 
 ![Add Details](images/WebAppURL.png)
