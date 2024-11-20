@@ -59,10 +59,11 @@ if "example_user_question" not in st.session_state:
 if "example_answer" not in st.session_state:
     st.session_state["example_answer"] = config.example.answer
 if "log_user_interactions" not in st.session_state:
-    st.session_state["log_user_interactions"] = config.logging.log_user_interactions
+    st.session_state["log_user_interactions"] = (
+        str(config.logging.log_user_interactions).lower() == "true"
+    )
 if "log_tokens" not in st.session_state:
-    st.session_state["log_tokens"] = config.logging.log_tokens
-
+    st.session_state["log_tokens"] = str(config.logging.log_tokens).lower() == "true"
 if "orchestrator_strategy" not in st.session_state:
     st.session_state["orchestrator_strategy"] = config.orchestrator.strategy.value
 if "ai_assistant_type" not in st.session_state:
@@ -71,9 +72,7 @@ if "conversational_flow" not in st.session_state:
     st.session_state["conversational_flow"] = config.prompts.conversational_flow
 if "enable_chat_history" not in st.session_state:
     st.session_state["enable_chat_history"] = (
-        config.enable_chat_history.lower() == "true"
-        if isinstance(config.enable_chat_history, str)
-        else config.enable_chat_history
+        str(config.enable_chat_history).lower() == "true"
     )
 if "database_type" not in st.session_state:
     st.session_state["database_type"] = config.database_type
@@ -391,11 +390,21 @@ Use the Retrieved Documents to answer the question: {question}
             st.checkbox("Enable chat history", key="enable_chat_history")
 
         with st.expander("Logging configuration", expanded=True):
+            disable_checkboxes = (
+                True
+                if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value
+                else False
+            )
             st.checkbox(
                 "Log user input and output (questions, answers, conversation history, sources)",
                 key="log_user_interactions",
+                disabled=disable_checkboxes,
             )
-            st.checkbox("Log tokens", key="log_tokens")
+            st.checkbox(
+                "Log tokens",
+                key="log_tokens",
+                disabled=disable_checkboxes,
+            )
 
         if st.form_submit_button("Save configuration"):
             document_processors = []

@@ -50,9 +50,7 @@ class Config:
             if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
             else None
         )
-        self.enable_chat_history = config.get(
-            "enable_chat_history", self.env_helper.CHAT_HISTORY_ENABLED
-        )
+        self.enable_chat_history = config["enable_chat_history"]
         self.database_type = config.get("database_type", self.env_helper.DATABASE_TYPE)
 
     def get_available_document_types(self) -> list[str]:
@@ -120,8 +118,10 @@ class Messages:
 
 class Logging:
     def __init__(self, logging: dict):
-        self.log_user_interactions = logging["log_user_interactions"]
-        self.log_tokens = logging["log_tokens"]
+        self.log_user_interactions = (
+            str(logging["log_user_interactions"]).lower() == "true"
+        )
+        self.log_tokens = str(logging["log_tokens"]).lower() == "true"
 
 
 class IntegratedVectorizationConfig:
@@ -252,7 +252,16 @@ class ConfigHelper:
                             if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value
                             else env_helper.ORCHESTRATION_STRATEGY
                         ),
-                        CHAT_HISTORY_ENABLED=env_helper.CHAT_HISTORY_ENABLED,
+                        LOG_USER_INTERACTIONS=(
+                            False
+                            if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value
+                            else True
+                        ),
+                        LOG_TOKENS=(
+                            False
+                            if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value
+                            else True
+                        ),
                         DATABASE_TYPE=env_helper.DATABASE_TYPE,
                     )
                 )
