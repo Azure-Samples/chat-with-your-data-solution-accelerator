@@ -611,7 +611,6 @@ describe("Answer.tsx", () => {
     // Check if a new synthesizer has been initialized
     const newPlayBtn = screen.getByTestId("play-button");
     expect(newPlayBtn).toBeInTheDocument();
-    //screen.debug()
     //expect(pauseBtn).not.toBeInTheDocument(); // Ensure previous pause button is gone
   });
   test("test the reference is clickabel", async () => {
