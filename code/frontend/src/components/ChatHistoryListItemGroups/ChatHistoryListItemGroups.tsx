@@ -135,7 +135,7 @@ export const ChatHistoryListItemGroups: React.FC<
             </Stack>
           )
       )}
-      <div id="chatHistoryListItemObserver" ref={observerTarget} />
+      <div role="scrollDiv" id="chatHistoryListItemObserver" ref={observerTarget} />
       <Separator
         styles={{
           root: {
