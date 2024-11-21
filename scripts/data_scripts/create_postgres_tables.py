@@ -5,16 +5,16 @@ from pgvector.psycopg2 import register_vector
 
 # Acquire the access token
 credential = DefaultAzureCredential()
-token = credential.get_token(
-    "https://ossrdbms-aad.database.windows.net/.default"
-).token
+token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default").token
 
-#TODO FIX THIS
-conn_string = "host=your_postgresql_server.postgres.database.azure.com dbname=your_database "
-conn = psycopg2.connect(conn_string + ' password=' + token)
+# TODO FIX THIS
+conn_string = (
+    "host=your_postgresql_server.postgres.database.azure.com dbname=your_database "
+)
+conn = psycopg2.connect(conn_string + " password=" + token)
 cursor = conn.cursor()
 
-cursor.execute('DROP TABLE IF EXISTS conversations')
+cursor.execute("DROP TABLE IF EXISTS conversations")
 conn.commit()
 
 create_cs_sql = """CREATE TABLE conversations (
@@ -31,7 +31,7 @@ conn.commit()
 
 cursor = conn.cursor()
 
-cursor.execute('DROP TABLE IF EXISTS messages')
+cursor.execute("DROP TABLE IF EXISTS messages")
 conn.commit()
 
 create_cs_sql = """CREATE TABLE messages (
@@ -52,11 +52,11 @@ conn.commit()
 cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_diskann CASCADE;")
 conn.commit()
 
-#TODO review if this command is necessary for creating the table
+# TODO review if this command is necessary for creating the table
 # Register the vector type with psycopg2
 register_vector(conn)
 
-cursor.execute('DROP TABLE IF EXISTS search_indexes;')
+cursor.execute("DROP TABLE IF EXISTS search_indexes;")
 # Create table to store embeddings and metadata
 
 table_create_command = """

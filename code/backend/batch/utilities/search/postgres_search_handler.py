@@ -4,11 +4,10 @@ from pgvector.psycopg2 import register_vector
 from openai import AzureOpenAI
 import time
 
-class PostgresSearchClient():
 
-    def __init__(
-        self, user: str, host: str, database: str
-    ):
+class PostgresSearchClient:
+
+    def __init__(self, user: str, host: str, database: str):
         self.user = user
         self.host = host
         self.database = database
@@ -39,35 +38,51 @@ class PostgresSearchClient():
         token = credential.get_token(
             "https://ossrdbms-aad.database.windows.net/.default"
         ).token
-        #TODO FIX THIS
+        # TODO FIX THIS
         conn_string = "host=your_postgresql_server.postgres.database.azure.com dbname=your_database "
-        self.conn = psycopg2.connect(conn_string + ' passwor=' + token)
-    
+        self.conn = psycopg2.connect(conn_string + " passwor=" + token)
 
-    async def get_embeddings(self, text: str,openai_api_base,openai_api_version,openai_api_key):
+    async def get_embeddings(
+        self, text: str, openai_api_base, openai_api_version, openai_api_key
+    ):
         model_id = "text-embedding-ada-002"
         client = AzureOpenAI(
             api_version=openai_api_version,
             azure_endpoint=openai_api_base,
-            api_key = openai_api_key
+            api_key=openai_api_key,
         )
-        
-        embedding = client.embeddings.create(input=text, model=model_id).data[0].embedding
+
+        embedding = (
+            client.embeddings.create(input=text, model=model_id).data[0].embedding
+        )
         return embedding
-    
+
     async def create_vector(self):
         try:
-            v_contentVector = self.get_embeddings(d["content"],openai_api_base,openai_api_version,openai_api_key)
+            v_contentVector = self.get_embeddings(
+                d["content"], openai_api_base, openai_api_version, openai_api_key
+            )
         except:
             time.sleep(30)
-            v_contentVector = self.get_embeddings(d["content"],openai_api_base,openai_api_version,openai_api_key)
+            v_contentVector = self.get_embeddings(
+                d["content"], openai_api_base, openai_api_version, openai_api_key
+            )
         return v_contentVector
-    
+
     async def insert_vector(self):
-        #TODO FIX THIS
+        # TODO FIX THIS
         self.connect()
         cur = self.conn.cursor()
-        cur.execute(f"INSERT INTO search_index (id,chunk_id, client_id, content, sourceurl, contentVector) VALUES (%s,%s,%s,%s,%s,%s)", (id, d["chunk_id"], d["client_id"], d["content"], path.name.split('/')[-1], v_contentVector))
+        cur.execute(
+            f"INSERT INTO search_index (id,chunk_id, client_id, content, sourceurl, contentVector) VALUES (%s,%s,%s,%s,%s,%s)",
+            (
+                id,
+                d["chunk_id"],
+                d["client_id"],
+                d["content"],
+                path.name.split("/")[-1],
+                v_contentVector,
+            ),
+        )
         cur.close()
         self.conn.commit()
-
