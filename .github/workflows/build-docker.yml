@@ -51,7 +51,7 @@ jobs:
         context: .
         file: ${{ inputs.dockerfile }}
         push: ${{ inputs.push }}
-        cache-from: type=registry,ref=${{ inputs.registry }}/${{ inputs.app_name}}:latest
+        cache-from: type=registry,ref=${{ inputs.registry }}/${{ inputs.app_name}}:dev
         tags: |
-          ${{ inputs.registry }}/${{ inputs.app_name}}:latest
+          ${{ inputs.registry }}/${{ inputs.app_name}}:dev
           ${{ inputs.registry }}/${{ inputs.app_name}}:${{ steps.date.outputs.date }}_${{ github.run_number }}

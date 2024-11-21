@@ -122,16 +122,16 @@ module web '../core/host/appservice.bicep' = {
             '2023-05-01'
           ).key1
       AZURE_COSMOSDB_ACCOUNT_KEY: (useKeyVault || cosmosDBKeyName == '')
-      ? cosmosDBKeyName
-      : listKeys(
-          resourceId(
-            subscription().subscriptionId,
-            resourceGroup().name,
-            'Microsoft.DocumentDB/databaseAccounts',
-            cosmosDBKeyName
-          ),
-          '2022-08-15'
-        ).primaryMasterKey
+        ? cosmosDBKeyName
+        : listKeys(
+            resourceId(
+              subscription().subscriptionId,
+              resourceGroup().name,
+              'Microsoft.DocumentDB/databaseAccounts',
+              cosmosDBKeyName
+            ),
+            '2022-08-15'
+          ).primaryMasterKey
     })
     keyVaultName: keyVaultName
     runtimeName: runtimeName
@@ -190,6 +190,22 @@ module webaccess '../core/security/keyvault-access.bicep' = if (useKeyVault) {
     keyVaultName: keyVaultName
     principalId: web.outputs.identityPrincipalId
   }
+}
+
+resource cosmosRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-05-15' existing = {
+  name: '${json(appSettings.AZURE_COSMOSDB_INFO).accountName}/00000000-0000-0000-0000-000000000002'
+}
+
+module cosmosUserRole '../core/database/cosmos-sql-role-assign.bicep' = {
+  name: 'cosmos-sql-user-role-${web.name}'
+  params: {
+    accountName: json(appSettings.AZURE_COSMOSDB_INFO).accountName
+    roleDefinitionId: cosmosRoleDefinition.id
+    principalId: web.outputs.identityPrincipalId
+  }
+  dependsOn: [
+    cosmosRoleDefinition
+  ]
 }
 
 output FRONTEND_API_IDENTITY_PRINCIPAL_ID string = web.outputs.identityPrincipalId
