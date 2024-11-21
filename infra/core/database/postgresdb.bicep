@@ -11,8 +11,8 @@ param skuSizeGB int = 32
 param dbInstanceType string = 'Standard_B1ms'
 // param haMode string = 'ZoneRedundant'
 param availabilityZone string = '1'
-param allowAllIPsFirewall bool = true
-param allowAzureIPsFirewall bool = true
+param allowAllIPsFirewall bool = false
+param allowAzureIPsFirewall bool = false
 @description('PostgreSQL version')
 @allowed([
   '11'
