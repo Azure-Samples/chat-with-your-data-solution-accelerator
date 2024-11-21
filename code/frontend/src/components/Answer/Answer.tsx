@@ -110,11 +110,15 @@ export const Answer = ({
   useEffect(() => {
     const fetchSythesizerData = async () => {
       const response = await fetch("/api/speech");
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
+      try {
+        if (!response.ok) {
+         throw new Error("Network response was not ok");
+        }
       const data = await response.json();
       setSynthesizerData({ key: data.key, region: data.region });
+      } catch(e) {
+        console.log(e)
+      }
     };
     fetchSythesizerData();
   }, []);

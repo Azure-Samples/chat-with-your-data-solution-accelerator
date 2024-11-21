@@ -181,8 +181,6 @@ jest.mock("../../components/CitationPanel/CitationPanel", () => ({
 
 jest.mock("../../components/ChatHistoryPanel/ChatHistoryPanel", () => ({
   ChatHistoryPanel: (props: ChatHistoryPanelProps) => {
-    console.log("props in Chat History Panel", props);
-
     return (
       <>
         ChatHistoryPanel Component
@@ -286,7 +284,6 @@ const initialAPICallsMocks = (
   });
   mockGetHistoryList.mockResolvedValueOnce(chatHistoryListData);
   if (delayConversationResponse) {
-    console.log("delayConversationResponse", delayConversationResponse);
     delayedConversationAPIcallMock();
   } else {
     nonDelayedConversationAPIcallMock();
@@ -399,8 +396,6 @@ describe("Chat Component", () => {
     await act(async () => {
       fireEvent.click(submitQuestion);
     });
-    screen.debug();
-
     await waitFor(() => {
       expect(consoleErrorMock).toHaveBeenCalledWith(
         "Error: while saving data",

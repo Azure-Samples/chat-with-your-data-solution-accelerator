@@ -11,11 +11,13 @@ import {
 } from "@fluentui/react";
 import { Conversation } from "../../api/models";
 import _ from "lodash";
-import { type GroupedChatHistory } from "../ChatHistoryList/ChatHistoryList";
-
 import styles from "./ChatHistoryListItemGroups.module.css";
 import { ChatHistoryListItemCell } from "../ChatHistoryListItemCell/ChatHistoryListItemCell";
 
+export interface GroupedChatHistory {
+  title: string;
+  entries: Conversation[];
+}
 interface ChatHistoryListItemGroupsProps {
   fetchingChatHistory: boolean;
   handleFetchHistory: () => Promise<void>;
