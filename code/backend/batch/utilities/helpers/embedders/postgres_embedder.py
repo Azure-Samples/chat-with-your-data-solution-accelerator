@@ -69,35 +69,7 @@ class PostgresEmbedder(EmbedderBase):
                 documents_to_upload.append(self.__convert_to_search_document(document))
 
         if documents_to_upload:
-            search_client = self.azure_postgres_helper.get_search_client()
-            try:
-                cur = search_client.cursor()
-                for d in documents_to_upload:
-                    cur.execute(
-                        """
-                        INSERT INTO search_indexes (
-                            id, title, chunk, chunk_id, "offset", page_number,
-                            content, source, metadata, content_vector
-                        )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        """,
-                        (
-                            d["id"],
-                            d["title"],
-                            d["chunk"],
-                            d["chunk_id"],
-                            d["offset"],
-                            d["page_number"],
-                            d["content"],
-                            d["source"],
-                            d["metadata"],
-                            d["content_vector"],
-                        ),
-                    )
-                cur.close()
-                search_client.commit()
-            finally:
-                search_client.close()
+            self.azure_postgres_helper.create_search_indexes(documents_to_upload)
         else:
             logger.warning("No documents to upload.")
 

@@ -18,24 +18,11 @@ class AzurePostgresHandler(SearchHandlerBase):
             user_input
         )
 
-        embedding_array = np.array(query_embedding).tolist()  # Convert to a list
+        embedding_array = np.array(query_embedding).tolist()
 
-        conn = self.azure_postgres_helper.get_search_client()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                """
-                SELECT id, title, chunk, "offset", page_number, content, source
-                FROM search_indexes
-                ORDER BY content_vector <=> %s::vector
-                LIMIT 3
-                """,
-                (embedding_array,),
-            )
-            search_results = cur.fetchall()
-            return self._convert_to_source_documents(search_results)
-        finally:
-            conn.close()
+        search_results = self.azure_postgres_helper.get_search_indexes(embedding_array)
+
+        return self._convert_to_source_documents(search_results)
 
     def _convert_to_source_documents(self, search_results) -> List[SourceDocument]:
         source_documents = []
@@ -55,6 +42,9 @@ class AzurePostgresHandler(SearchHandlerBase):
 
     def create_search_client(self):
         return self.azure_postgres_helper.get_search_client()
+
+    def create_search_indexes(self, documents_to_upload):
+        return self.azure_postgres_helper.create_search_indexes(documents_to_upload)
 
     def perform_search(self, filename):
         raise NotImplementedError(
