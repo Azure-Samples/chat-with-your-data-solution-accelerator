@@ -161,5 +161,3 @@ export const ChatHistoryListItemGroups: React.FC<
     </div>
   );
 };
-
-export default GroupedChatHistory ;

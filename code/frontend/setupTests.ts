@@ -6,7 +6,6 @@ initializeIcons();
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
-initializeIcons();
 // Mock IntersectionObserver
 class IntersectionObserverMock {
   callback: IntersectionObserverCallback;
@@ -42,3 +41,4 @@ afterAll(() => {
   // Restore the original IntersectionObserver
   window.IntersectionObserver = originalIntersectionObserver;
 });
+
