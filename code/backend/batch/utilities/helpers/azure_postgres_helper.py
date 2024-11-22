@@ -12,8 +12,9 @@ class AzurePostgresHelper:
     def __init__(self):
         self.llm_helper = LLMHelper()
         self.env_helper = EnvHelper()
+        self.conn = None
 
-    def connect(self):
+    def _create_search_client(self):
         user = self.env_helper.POSTGRESQL_USER
         host = self.env_helper.POSTGRESQL_HOST
         dbname = self.env_helper.POSTGRESQL_DATABASE
@@ -27,8 +28,8 @@ class AzurePostgresHelper:
         conn_string = "host={0} user={1} dbname={2} password={3}".format(
             host, user, dbname, accessToken.token
         )
-        conn = psycopg2.connect(conn_string)
-        return conn
+        self.conn = psycopg2.connect(conn_string)
+        return self.conn
 
     def get_search_client(self):
-        return self.connect()
+        return self._create_search_client()

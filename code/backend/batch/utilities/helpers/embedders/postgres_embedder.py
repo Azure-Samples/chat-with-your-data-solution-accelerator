@@ -1,12 +1,9 @@
-import hashlib
 import json
 import logging
 from typing import List
-from urllib.parse import urlparse
 
 from ...helpers.llm_helper import LLMHelper
 from ...helpers.env_helper import EnvHelper
-from ...helpers.azure_postgres_helper import AzurePostgresHandler
 from ..azure_blob_storage_client import AzureBlobStorageClient
 
 from ..config.embedding_config import EmbeddingConfig
@@ -70,53 +67,60 @@ class PostgresEmbedder(EmbedderBase):
 
             for document in documents:
                 documents_to_upload.append(self.__convert_to_search_document(document))
-        # TODO fix this
-        # Upload documents (which are chunks) to search index in batches
-        if documents_to_upload:
-            search_client = self.azure_postgres_handler.get_search_client()
-            cur = search_client.cursor()
-            for d in documents_to_upload:
-                # SourceDocument
-                #  self.id = id
-                # self.content = content
-                # self.source = source
-                # self.title = title
-                # self.chunk = chunk
-                # self.offset = offset
-                # self.page_number = page_number
-                # self.chunk_id = chunk_id
 
-                # table
-                # id text,
-                # title text,
-                # chunk integer,
-                # chunk_id text,
-                # "offset" integer,
-                # page_number integer,
-                # content text,
-                # source text,
-                # metadata text,
-                # content_vector vector(1536)O
-                # TODO FIX THIS
-                content_vector = get_embeddings(
-                    d["content"], openai_api_base, openai_api_version, openai_api_key
-                )
-                cur.execute(
-                    f"INSERT INTO search_indexes (id,title,chunk,chunk_id,offset,page_number,content,source,metadata,content_vector) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                    (
-                        d.id,
-                        d.title,
-                        d.chunk,
-                        d.chunk_id,
-                        d.offset,
-                        d.page_number,
-                        d.content,
-                        d.source,
-                        json.dumps("TBD"),
-                        content_vector,
-                    ),
-                )
-            cur.close()
-            search_client.commit()
+        if documents_to_upload:
+            search_client = self.azure_postgres_helper.get_search_client()
+            try:
+                cur = search_client.cursor()
+                for d in documents_to_upload:
+                    cur.execute(
+                        """
+                        INSERT INTO search_indexes (
+                            id, title, chunk, chunk_id, "offset", page_number,
+                            content, source, metadata, content_vector
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (
+                            d["id"],
+                            d["title"],
+                            d["chunk"],
+                            d["chunk_id"],
+                            d["offset"],
+                            d["page_number"],
+                            d["content"],
+                            d["source"],
+                            d["metadata"],
+                            d["content_vector"],
+                        ),
+                    )
+                cur.close()
+                search_client.commit()
+            finally:
+                search_client.close()
         else:
             logger.warning("No documents to upload.")
+
+    def __convert_to_search_document(self, document: SourceDocument):
+        embedded_content = self.llm_helper.generate_embeddings(document.content)
+        metadata = {
+            "id": document.id,
+            "source": document.source,
+            "title": document.title,
+            "chunk": document.chunk,
+            "chunk_id": document.chunk_id,
+            "offset": document.offset,
+            "page_number": document.page_number,
+        }
+        return {
+            "id": document.id,
+            "content": document.content,
+            "content_vector": embedded_content,
+            "metadata": json.dumps(metadata),
+            "title": document.title,
+            "source": document.source,
+            "chunk": document.chunk,
+            "chunk_id": document.chunk_id,
+            "offset": document.offset,
+            "page_number": document.page_number,
+        }
