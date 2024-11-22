@@ -138,11 +138,11 @@ describe('ChatHistoryListItemGroups', () => {
 
       // Click on the first cell
       fireEvent.click(cells[0]);
-
+      screen.debug()
       // Wait for the mock function to be called with the correct item
-      // await waitFor(() => {
-      //     expect(handleSelectMock).toHaveBeenCalledWith(mockGroupedChatHistory[0].entries[0]);
-      // });
+      await waitFor(() => {
+          expect(mockOnSelectConversation).toHaveBeenCalledWith(mockGroupedChatHistory[0].entries[0].id);
+      });
 
     });
 
