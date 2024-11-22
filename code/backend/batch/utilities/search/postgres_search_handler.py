@@ -9,8 +9,8 @@ from ..common.source_document import SourceDocument
 class AzurePostgresHandler(SearchHandlerBase):
 
     def __init__(self, env_helper):
-        super().__init__(env_helper)
         self.azure_postgres_helper = AzurePostgresHelper()
+        super().__init__(env_helper)
 
     def query_search(self, question) -> List[SourceDocument]:
         user_input = question
@@ -18,40 +18,33 @@ class AzurePostgresHandler(SearchHandlerBase):
             user_input
         )
 
-        embedding_array = np.array(query_embedding)
+        embedding_array = np.array(query_embedding).tolist()
 
-        conn = self.azure_postgres_helper.connect()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                "SELECT * FROM search_indexes ORDER BY content_vector <=> %s LIMIT 5",
-                (embedding_array,),
-            )
-            search_results = cur.fetchall()
-            return self._convert_to_source_documents(search_results)
-        finally:
-            conn.close()
+        search_results = self.azure_postgres_helper.get_search_indexes(embedding_array)
+
+        return self._convert_to_source_documents(search_results)
 
     def _convert_to_source_documents(self, search_results) -> List[SourceDocument]:
         source_documents = []
         for source in search_results:
             source_documents.append(
                 SourceDocument(
-                    id=source.get("id"),
-                    content=source.get("content"),
-                    title=source.get("title"),
-                    source=source.get("source"),
-                    chunk=source.get("chunk"),
-                    offset=source.get("offset"),
-                    page_number=source.get("page_number"),
+                    id=source[0],
+                    title=source[1],
+                    chunk=source[2],
+                    offset=source[3],
+                    page_number=source[4],
+                    content=source[5],
+                    source=source[6],
                 )
             )
         return source_documents
 
     def create_search_client(self):
-        raise NotImplementedError(
-            "The method create_search_client is not implemented in AzurePostgresHandler."
-        )
+        return self.azure_postgres_helper.get_search_client()
+
+    def create_search_indexes(self, documents_to_upload):
+        return self.azure_postgres_helper.create_search_indexes(documents_to_upload)
 
     def perform_search(self, filename):
         raise NotImplementedError(
