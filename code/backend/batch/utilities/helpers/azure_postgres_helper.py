@@ -29,3 +29,6 @@ class AzurePostgresHelper:
         )
         conn = psycopg2.connect(conn_string)
         return conn
+
+    def get_search_client(self):
+        return self.connect()
