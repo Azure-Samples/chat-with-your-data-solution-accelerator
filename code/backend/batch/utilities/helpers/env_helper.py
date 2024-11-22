@@ -5,7 +5,7 @@ import threading
 from dotenv import load_dotenv
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.keyvault.secrets import SecretClient
-
+from ..database_type import DatabaseType
 logger = logging.getLogger(__name__)
 
 
@@ -297,7 +297,7 @@ class EnvHelper:
         # Set default values based on DATABASE_TYPE
         self.DATABASE_TYPE = os.getenv("DATABASE_TYPE", "").strip() or "CosmosDB"
         # Cosmos DB configuration
-        if self.DATABASE_TYPE == "CosmosDB":
+        if self.DATABASE_TYPE == DatabaseType.COSMOS_DB.value:
             azure_cosmosdb_info = self.get_info_from_env("AZURE_COSMOSDB_INFO", "")
             self.AZURE_COSMOSDB_DATABASE = azure_cosmosdb_info.get("databaseName", "")
             self.AZURE_COSMOSDB_ACCOUNT = azure_cosmosdb_info.get("accountName", "")
@@ -311,7 +311,7 @@ class EnvHelper:
                 os.getenv("AZURE_COSMOSDB_ENABLE_FEEDBACK", "false").lower() == "true"
             )
         # PostgreSQL configuration
-        elif self.DATABASE_TYPE == "PostgreSQL":
+        elif self.DATABASE_TYPE == DatabaseType.POSTGRESQL.value:
             azure_postgresql_info = self.get_info_from_env("AZURE_POSTGRESQL_INFO", "")
             self.POSTGRESQL_USER = azure_postgresql_info.get("user", "")
             self.POSTGRESQL_DATABASE = azure_postgresql_info.get("dbname", "")
