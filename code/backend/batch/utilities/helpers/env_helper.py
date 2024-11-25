@@ -313,6 +313,9 @@ class EnvHelper:
             )
         # PostgreSQL configuration
         elif self.DATABASE_TYPE == DatabaseType.POSTGRESQL.value:
+            self.AZURE_POSTGRE_SEARCH_TOP_K = self.get_env_var_int(
+                "AZURE_POSTGRES_SEARCH_TOP_K", 5
+            )
             azure_postgresql_info = self.get_info_from_env("AZURE_POSTGRESQL_INFO", "")
             self.POSTGRESQL_USER = azure_postgresql_info.get("user", "")
             self.POSTGRESQL_DATABASE = azure_postgresql_info.get("dbname", "")

@@ -60,9 +60,12 @@ class AzurePostgresHelper:
                     SELECT id, title, chunk, "offset", page_number, content, source
                     FROM search_indexes
                     ORDER BY content_vector <=> %s::vector
-                    LIMIT 3
+                    LIMIT %s
                     """,
-                    (embedding_array,),
+                    (
+                        embedding_array,
+                        self.env_helper.AZURE_POSTGRES_SEARCH_TOP_K,
+                    ),
                 )
                 search_results = cur.fetchall()
                 logger.info(f"Retrieved {len(search_results)} search results.")
