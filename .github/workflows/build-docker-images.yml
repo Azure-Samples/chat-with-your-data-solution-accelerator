@@ -1,6 +1,8 @@
 name: Build Docker Images
 
 on:
+  push:
+    branches: [main, dev, demo]
   workflow_run:
     workflows: [Tests]
     types: [completed]
