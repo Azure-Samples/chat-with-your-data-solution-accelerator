@@ -1,0 +1,44 @@
+name: Sync Main to dependabotchanges
+
+on:
+  # Schedule the sync job to run daily or customize as needed
+  schedule:
+    - cron: '0 1 * * *'  # Runs every day at 1 AM UTC
+  # Trigger the sync job on pushes to the main branch
+  push:
+    branches:
+      - main
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history for accurate branch comparison
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync main to dependabotchanges
+        run: |
+          # Ensure we're on the main branch
+          git checkout main
+          # Fetch the latest changes
+          git pull origin main
+
+          # Switch to dependabotchanges branch
+          git checkout dependabotchanges
+          # Merge main branch changes
+          git merge main --no-edit
+
+          # Push changes back to dependabotchanges branch
+          git push origin dependabotchanges
+
+      - name: Notify on Failure
+        if: failure()
+        run: echo "Sync from main to dependabotchanges failed!"
