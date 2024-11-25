@@ -66,17 +66,19 @@ async def list_conversations():
 
         await conversation_client.connect()
         try:
-            # Fetch conversations
             conversations = await conversation_client.get_conversations(
                 user_id, offset=offset, limit=25
             )
             if not isinstance(conversations, list):
                 return (
                     jsonify({"error": f"No conversations for {user_id} were found"}),
-                    400,
+                    404,
                 )
 
             return jsonify(conversations), 200
+        except Exception as e:
+            logger.exception(f"Error fetching conversations: {e}")
+            raise
         finally:
             await conversation_client.close()
 
@@ -135,9 +137,13 @@ async def rename_conversation():
                 conversation
             )
             return jsonify(updated_conversation), 200
+        except Exception as e:
+            logger.exception(
+                f"Error updating conversation: user_id={user_id}, conversation_id={conversation_id}, error={e}"
+            )
+            raise
         finally:
             await conversation_client.close()
-
     except Exception as e:
         logger.exception(f"Exception in /history/rename: {e}")
         return jsonify({"error": "Error while renaming conversation"}), 500
@@ -202,6 +208,11 @@ async def get_conversation():
                 jsonify({"conversation_id": conversation_id, "messages": messages}),
                 200,
             )
+        except Exception as e:
+            logger.exception(
+                f"Error fetching conversation or messages: user_id={user_id}, conversation_id={conversation_id}, error={e}"
+            )
+            raise
         finally:
             await conversation_client.close()
 
@@ -257,6 +268,11 @@ async def delete_conversation():
                 ),
                 200,
             )
+        except Exception as e:
+            logger.exception(
+                f"Error deleting conversation: user_id={user_id}, conversation_id={conversation_id}, error={e}"
+            )
+            raise
         finally:
             await conversation_client.close()
 
@@ -323,7 +339,11 @@ async def delete_all_conversations():
                 ),
                 200,
             )
-
+        except Exception as e:
+            logger.exception(
+                f"Error deleting all conversations for user {user_id}: {e}"
+            )
+            raise
         finally:
             await conversation_client.close()
 
@@ -358,69 +378,75 @@ async def update_conversation():
         if not conversation_client:
             return jsonify({"error": "Database not available"}), 500
         await conversation_client.connect()
-
-        # Get or create the conversation
-        conversation = await conversation_client.get_conversation(
-            user_id, conversation_id
-        )
-        if not conversation:
-            title = await generate_title(messages)
-            conversation = await conversation_client.create_conversation(
-                user_id=user_id, conversation_id=conversation_id, title=title
+        try:
+            # Get or create the conversation
+            conversation = await conversation_client.get_conversation(
+                user_id, conversation_id
             )
+            if not conversation:
+                title = await generate_title(messages)
+                conversation = await conversation_client.create_conversation(
+                    user_id=user_id, conversation_id=conversation_id, title=title
+                )
 
-        # Process and save user and assistant messages
-        # Process user message
-        if messages[0]["role"] == "user":
-            user_message = next(
-                (msg for msg in reversed(messages) if msg["role"] == "user"), None
-            )
-            if not user_message:
-                return jsonify({"error": "User message not found"}), 400
+            # Process and save user and assistant messages
+            # Process user message
+            if messages[0]["role"] == "user":
+                user_message = next(
+                    (msg for msg in reversed(messages) if msg["role"] == "user"), None
+                )
+                if not user_message:
+                    return jsonify({"error": "User message not found"}), 400
 
-            created_message = await conversation_client.create_message(
-                uuid=str(uuid4()),
-                conversation_id=conversation_id,
-                user_id=user_id,
-                input_message=user_message,
-            )
-            if created_message == "Conversation not found":
-                return jsonify({"error": "Conversation not found"}), 400
+                created_message = await conversation_client.create_message(
+                    uuid=str(uuid4()),
+                    conversation_id=conversation_id,
+                    user_id=user_id,
+                    input_message=user_message,
+                )
+                if created_message == "Conversation not found":
+                    return jsonify({"error": "Conversation not found"}), 400
 
-        # Process assistant and tool messages if available
-        if messages[-1]["role"] == "assistant":
-            if len(messages) > 1 and messages[-2].get("role") == "tool":
-                # Write the tool message first if it exists
+            # Process assistant and tool messages if available
+            if messages[-1]["role"] == "assistant":
+                if len(messages) > 1 and messages[-2].get("role") == "tool":
+                    # Write the tool message first if it exists
+                    await conversation_client.create_message(
+                        uuid=str(uuid4()),
+                        conversation_id=conversation_id,
+                        user_id=user_id,
+                        input_message=messages[-2],
+                    )
+                # Write the assistant message
                 await conversation_client.create_message(
                     uuid=str(uuid4()),
                     conversation_id=conversation_id,
                     user_id=user_id,
-                    input_message=messages[-2],
+                    input_message=messages[-1],
                 )
-            # Write the assistant message
-            await conversation_client.create_message(
-                uuid=str(uuid4()),
-                conversation_id=conversation_id,
-                user_id=user_id,
-                input_message=messages[-1],
-            )
-        else:
-            return jsonify({"error": "No assistant message found"}), 400
+            else:
+                return jsonify({"error": "No assistant message found"}), 400
 
-        await conversation_client.close()
-        return (
-            jsonify(
-                {
-                    "success": True,
-                    "data": {
-                        "title": conversation["title"],
-                        "date": conversation["updatedAt"],
-                        "conversation_id": conversation["id"],
-                    },
-                }
-            ),
-            200,
-        )
+            return (
+                jsonify(
+                    {
+                        "success": True,
+                        "data": {
+                            "title": conversation["title"],
+                            "date": conversation["updatedAt"],
+                            "conversation_id": conversation["id"],
+                        },
+                    }
+                ),
+                200,
+            )
+        except Exception as e:
+            logger.exception(
+                f"Error updating conversation or messages: user_id={user_id}, conversation_id={conversation_id}, error={e}"
+            )
+            raise
+        finally:
+            await conversation_client.close()
 
     except Exception as e:
         logger.exception(f"Exception in /history/update: {e}")
