@@ -1,8 +1,11 @@
+import logging
 import asyncpg
 from datetime import datetime, timezone
 from azure.identity import DefaultAzureCredential
 
 from .database_client_base import DatabaseClientBase
+
+logger = logging.getLogger(__name__)
 
 
 class PostgresConversationClient(DatabaseClientBase):
@@ -17,18 +20,22 @@ class PostgresConversationClient(DatabaseClientBase):
         self.conn = None
 
     async def connect(self):
-        credential = DefaultAzureCredential()
-        token = credential.get_token(
-            "https://ossrdbms-aad.database.windows.net/.default"
-        ).token
-        self.conn = await asyncpg.connect(
-            user=self.user,
-            host=self.host,
-            database=self.database,
-            password=token,
-            port=5432,
-            ssl="require",
-        )
+        try:
+            credential = DefaultAzureCredential()
+            token = credential.get_token(
+                "https://ossrdbms-aad.database.windows.net/.default"
+            ).token
+            self.conn = await asyncpg.connect(
+                user=self.user,
+                host=self.host,
+                database=self.database,
+                password=token,
+                port=5432,
+                ssl="require",
+            )
+        except Exception as e:
+            logger.error("Failed to connect to PostgreSQL: %s", e)
+            raise
 
     async def close(self):
         if self.conn:
