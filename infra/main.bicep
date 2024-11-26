@@ -291,8 +291,19 @@ param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
 @description('Azure Machine Learning Name')
 param azureMachineLearningName string = 'aml-${resourceToken}'
 
+@description('The type of database to deploy (cosmos or postgres)')
+@allowed([
+  'cosmos'
+  'postgres'
+])
+param databaseType string = 'cosmos'
+
+
 @description('Azure Cosmos DB Account Name')
 param azureCosmosDBAccountName string = 'cosmos-${resourceToken}'
+
+@description('Azure Postgres DB Account Name')
+param azurePostgresDBAccountName string = 'postgres-${resourceToken}'
 
 @description('Whether or not to enable chat history')
 @allowed([
@@ -320,13 +331,22 @@ var azureOpenAIEmbeddingModelInfo = string({
   modelVersion: azureOpenAIEmbeddingModelVersion
 })
 
-module cosmosDBModule './core/database/cosmosdb.bicep' = {
+module cosmosDBModule './core/database/cosmosdb.bicep' = if (databaseType == 'cosmos') {
   name: 'deploy_cosmos_db'
   params: {
     name: azureCosmosDBAccountName
     location: location
   }
   scope: resourceGroup()
+}
+
+module postgresDBModule './core/database/postgresdb.bicep' = if (databaseType == 'postgres') {
+  name: 'deploy_postgres_sql'
+  params: {
+    solutionName: azurePostgresDBAccountName
+    solutionLocation: 'eastus2'
+  }
+  scope: resourceGroup(resourceGroup().name)
 }
 
 // Store secrets in a keyvault
@@ -486,7 +506,11 @@ module storekeys './app/storekeys.bicep' = if (useKeyVault) {
     contentSafetyName: contentsafety.outputs.name
     speechServiceName: speechServiceName
     computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
-    cosmosAccountName: cosmosDBModule.outputs.cosmosOutput.cosmosAccountName
+    cosmosAccountName: databaseType == 'cosmos' ? cosmosDBModule.outputs.cosmosOutput.cosmosAccountName : ''
+    postgresServerName: databaseType == 'postgres' ? postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName : ''
+    postgresDatabaseName: databaseType == 'postgres' ? 'postgres' : ''
+    postgresDatabaseAdminUserName: databaseType == 'postgres' ? postgresDBModule.outputs.postgresDbOutput.postgreSQLDbUser : ''
+    postgresDatabaseAdminPassword: databaseType == 'postgres' ? postgresDBModule.outputs.postgresDbOutput.postgreSQLDbPwd : ''
     rgName: resourceGroupName
   }
 }
@@ -528,9 +552,16 @@ module hostingplan './core/host/appserviceplan.bicep' = {
 }
 
 var azureCosmosDBInfo = string({
-  accountName: cosmosDBModule.outputs.cosmosOutput.cosmosAccountName
-  databaseName: cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName
-  containerName: cosmosDBModule.outputs.cosmosOutput.cosmosContainerName
+  accountName: databaseType == 'cosmos' ? cosmosDBModule.outputs.cosmosOutput.cosmosAccountName : ''
+  databaseName: databaseType == 'cosmos' ? cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName : ''
+  containerName: databaseType == 'cosmos' ? cosmosDBModule.outputs.cosmosOutput.cosmosContainerName : ''
+})
+
+var azurePostgresDBInfo = string({
+  serverName: '${postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName}.postgres.database.azure.com'
+  databaseName: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+  userName: postgresDBModule.outputs.postgresDbOutput.postgreSQLDbUser
+  password: postgresDBModule.outputs.postgresDbOutput.postgreSQLDbPwd
 })
 
 module web './app/web.bicep' = if (hostingModel == 'code') {
@@ -552,6 +583,11 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
     contentSafetyName: contentsafety.outputs.name
     speechServiceName: speechService.outputs.name
     computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
+
+    // New database-related parameters
+    databaseType: databaseType // Add this parameter to specify 'postgres' or 'cosmos'
+
+    // Conditional key vault key names
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
     azureBlobStorageInfo: azureBlobStorageInfo
     azureFormRecognizerInfo: azureFormRecognizerInfo
@@ -559,11 +595,17 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
-    cosmosDBKeyName: useKeyVault ? storekeys.outputs.COSMOS_ACCOUNT_KEY_NAME : ''
+
+    // Conditionally set database key names
+    cosmosDBKeyName: databaseType == 'cosmos' && useKeyVault ? storekeys.outputs.COSMOS_ACCOUNT_KEY_NAME : ''
+    postgresInfoName: databaseType == 'postgres' && useKeyVault ? storekeys.outputs.POSTGRESQL_INFO_NAME : ''
+
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
-    appSettings: {
+
+    appSettings: union({
+      // Existing app settings
       AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
@@ -606,10 +648,17 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       CONVERSATION_FLOW: conversationFlow
       LOGLEVEL: logLevel
+
+      // Add database type to settings
+      AZURE_DATABASE_TYPE: databaseType
+    },
+    // Conditionally add database-specific settings
+    databaseType == 'cosmos' ? {
       AZURE_COSMOSDB_INFO: azureCosmosDBInfo
       AZURE_COSMOSDB_ENABLE_FEEDBACK: true
-      CHAT_HISTORY_ENABLED: chatHistoryEnabled
-    }
+    } : databaseType == 'postgres' ? {
+      AZURE_POSTGRES_INFO: azurePostgresDBInfo
+    } : {})
   }
 }
 
@@ -631,6 +680,11 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
     contentSafetyName: contentsafety.outputs.name
     speechServiceName: speechService.outputs.name
     computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
+
+    // New database-related parameters
+    databaseType: databaseType
+
+    // Conditional key vault key names
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
     azureBlobStorageInfo: azureBlobStorageInfo
     azureFormRecognizerInfo: azureFormRecognizerInfo
@@ -638,11 +692,17 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
     computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-    cosmosDBKeyName: useKeyVault ? storekeys.outputs.COSMOS_ACCOUNT_KEY_NAME : ''
+
+    // Conditionally set database key names
+    cosmosDBKeyName: databaseType == 'cosmos' && useKeyVault ? storekeys.outputs.COSMOS_ACCOUNT_KEY_NAME : ''
+    postgresInfoName: databaseType == 'postgres' && useKeyVault ? storekeys.outputs.POSTGRESQL_INFO_NAME : ''
+
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
-    appSettings: {
+
+    appSettings: union({
+      // Existing app settings
       AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
@@ -685,10 +745,18 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       CONVERSATION_FLOW: conversationFlow
       LOGLEVEL: logLevel
+      CHAT_HISTORY_ENABLED: chatHistoryEnabled
+
+      // Add database type to settings
+      AZURE_DATABASE_TYPE: databaseType
+    },
+    // Conditionally add database-specific settings
+    databaseType == 'cosmos' ? {
       AZURE_COSMOSDB_INFO: azureCosmosDBInfo
       AZURE_COSMOSDB_ENABLE_FEEDBACK: true
-      CHAT_HISTORY_ENABLED: chatHistoryEnabled
-    }
+    } : databaseType == 'postgres' ? {
+      AZURE_POSTGRESDB_INFO: azurePostgresDBInfo
+    } : {})
   }
 }
 
@@ -1204,3 +1272,4 @@ output AZURE_ML_WORKSPACE_NAME string = orchestrationStrategy == 'prompt_flow'
   : ''
 output RESOURCE_TOKEN string = resourceToken
 output AZURE_COSMOSDB_INFO string = azureCosmosDBInfo
+output AZURE_POSTGRESDB_INFO string = azurePostgresDBInfo
