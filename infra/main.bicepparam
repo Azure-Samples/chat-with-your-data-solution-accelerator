@@ -18,7 +18,6 @@ param orchestrationStrategy = readEnvironmentVariable('ORCHESTRATION_STRATEGY', 
 param logLevel = readEnvironmentVariable('LOGLEVEL', 'INFO')
 param recognizedLanguages = readEnvironmentVariable('AZURE_SPEECH_RECOGNIZER_LANGUAGES', 'en-US,fr-FR,de-DE,it-IT')
 param conversationFlow = readEnvironmentVariable('CONVERSATION_FLOW', 'custom')
-param chatHistoryEnabled = readEnvironmentVariable('CHAT_HISTORY_ENABLED', 'true')
 
 //Azure Search
 param azureSearchFieldId = readEnvironmentVariable('AZURE_SEARCH_FIELDS_ID', 'id')

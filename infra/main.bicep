@@ -138,7 +138,7 @@ param azureOpenAIVisionModelCapacity int = 10
   'langchain'
   'prompt_flow'
 ])
-param orchestrationStrategy string = 'openai_function'
+param orchestrationStrategy string = 'semantic_kernel'
 
 @description('Chat conversation type: custom or byod.')
 @allowed([
@@ -304,13 +304,6 @@ param azureCosmosDBAccountName string = 'cosmos-${resourceToken}'
 
 @description('Azure Postgres DB Account Name')
 param azurePostgresDBAccountName string = 'postgres-${resourceToken}'
-
-@description('Whether or not to enable chat history')
-@allowed([
-  'true'
-  'false'
-])
-param chatHistoryEnabled string = 'true'
 
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
@@ -745,7 +738,6 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       CONVERSATION_FLOW: conversationFlow
       LOGLEVEL: logLevel
-      CHAT_HISTORY_ENABLED: chatHistoryEnabled
 
       // Add database type to settings
       AZURE_DATABASE_TYPE: databaseType
@@ -830,7 +822,6 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
-      CHAT_HISTORY_ENABLED: chatHistoryEnabled
     }
   }
 }
@@ -904,7 +895,6 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
-      CHAT_HISTORY_ENABLED: chatHistoryEnabled
     }
   }
 }
