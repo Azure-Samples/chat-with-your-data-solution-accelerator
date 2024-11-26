@@ -15,6 +15,9 @@ on:
       dockerfile:
         required: true
         type: string
+      branch:
+        required: true
+        type: string
       push:
         required: true
         type: boolean
@@ -26,7 +29,10 @@ jobs:
   docker-build:
     runs-on: ubuntu-latest
     steps:
-
+    - name: Print target branch name
+      run: |
+        echo "Target branch:" ${{ inputs.branch }}
+        echo "Target branch status:" ${{ inputs.push }}
     - name: Checkout
       uses: actions/checkout@v4
 
@@ -45,13 +51,13 @@ jobs:
       id: date
       run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
-    - name: Build Docker Image and optionally push
-      uses: docker/build-push-action@v6
-      with:
-        context: .
-        file: ${{ inputs.dockerfile }}
-        push: ${{ inputs.push }}
-        cache-from: type=registry,ref=${{ inputs.registry }}/${{ inputs.app_name}}:latest
-        tags: |
-          ${{ inputs.registry }}/${{ inputs.app_name}}:latest
-          ${{ inputs.registry }}/${{ inputs.app_name}}:${{ steps.date.outputs.date }}_${{ github.run_number }}
+    # - name: Build Docker Image and optionally push
+    #   uses: docker/build-push-action@v6
+    #   with:
+    #     context: .
+    #     file: ${{ inputs.dockerfile }}
+    #     push: ${{ inputs.push }}
+    #     cache-from: type=registry,ref=${{ inputs.registry }}/${{ inputs.app_name}}:latest
+    #     tags: |
+    #       ${{ inputs.registry }}/${{ inputs.app_name}}:latest
+    #       ${{ inputs.registry }}/${{ inputs.app_name}}:${{ steps.date.outputs.date }}_${{ github.run_number }}
