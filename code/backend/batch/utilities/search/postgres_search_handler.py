@@ -29,13 +29,13 @@ class AzurePostgresHandler(SearchHandlerBase):
         for source in search_results:
             source_documents.append(
                 SourceDocument(
-                    id=source[0],
-                    title=source[1],
-                    chunk=source[2],
-                    offset=source[3],
-                    page_number=source[4],
-                    content=source[5],
-                    source=source[6],
+                    id=source["id"],
+                    title=source["title"],
+                    chunk=source["chunk"],
+                    offset=source["offset"],
+                    page_number=source["page_number"],
+                    content=source["content"],
+                    source=source["source"],
                 )
             )
         return source_documents
@@ -57,19 +57,33 @@ class AzurePostgresHandler(SearchHandlerBase):
         )
 
     def get_files(self):
-        raise NotImplementedError(
-            "The method get_files is not implemented in AzurePostgresHandler."
-        )
+        results = self.azure_postgres_helper.get_files()
+        if results is None or len(results) == 0:
+            return []
+        return results
 
     def output_results(self, results):
-        raise NotImplementedError(
-            "The method output_results is not implemented in AzurePostgresHandler."
-        )
+        files = {}
+        for result in results:
+            id = result["id"]
+            filename = result["title"]
+            if filename in files:
+                files[filename].append(id)
+            else:
+                files[filename] = [id]
+
+        return files
 
     def delete_files(self, files):
-        raise NotImplementedError(
-            "The method delete_files is not implemented in AzurePostgresHandler."
-        )
+        ids_to_delete = []
+        files_to_delete = []
+
+        for filename, ids in files.items():
+            files_to_delete.append(filename)
+            ids_to_delete += [{"id": id} for id in ids]
+        self.azure_postgres_helper.delete_documents(ids_to_delete)
+
+        return ", ".join(files_to_delete)
 
     def search_by_blob_url(self, blob_url):
         raise NotImplementedError(
