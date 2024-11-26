@@ -329,9 +329,6 @@ var azureOpenAIEmbeddingModelInfo = string({
   modelVersion: azureOpenAIEmbeddingModelVersion
 })
 
-var appversion = 'latest'  // Update GIT deployment branch
-var registryName = 'fruoccopublic'  // Update Registry name
-
 // Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: rgName
@@ -642,7 +639,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
     name: '${websiteName}-docker'
     location: location
     tags: union(tags, { 'azd-service-name': 'web-docker' })
-    dockerFullImageName: '${registryName}.azurecr.io/rag-webapp:${appversion}'
+    dockerFullImageName: 'fruoccopublic.azurecr.io/rag-webapp:latest'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     healthCheckPath: '/api/health'
@@ -802,7 +799,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     name: '${adminWebsiteName}-docker'
     location: location
     tags: union(tags, { 'azd-service-name': 'adminweb-docker' })
-    dockerFullImageName: '${registryName}.azurecr.io/rag-adminwebapp:${appversion}'
+    dockerFullImageName: 'fruoccopublic.azurecr.io/rag-adminwebapp:latest'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
@@ -977,7 +974,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     name: '${functionName}-docker'
     location: location
     tags: union(tags, { 'azd-service-name': 'function-docker' })
-    dockerFullImageName: '${registryName}.azurecr.io/rag-backend:${appversion}'
+    dockerFullImageName: 'fruoccopublic.azurecr.io/rag-backend:latest'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
