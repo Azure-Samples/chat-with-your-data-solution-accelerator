@@ -10,6 +10,8 @@ param computerVisionName string = ''
 param postgresServerName string = ''  // PostgreSQL server name
 param postgresDatabaseName string = 'postgres'  // Default database name
 param postgresInfoName string = 'AZURE-POSTGRESQL-INFO'  // Secret name for PostgreSQL info
+param postgresDatabaseAdminUserName string = ''
+param postgresDatabaseAdminPassword string = ''
 param storageAccountKeyName string = 'AZURE-STORAGE-ACCOUNT-KEY'
 param openAIKeyName string = 'AZURE-OPENAI-API-KEY'
 param searchKeyName string = 'AZURE-SEARCH-KEY'
@@ -106,10 +108,10 @@ resource postgresInfoSecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if 
   properties: {
     value: postgresServerName != ''
       ? string({
-          user: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.DBforPostgreSQL/flexibleServers', postgresServerName), '2022-12-01').username
+          user: postgresDatabaseAdminUserName
           dbname: postgresDatabaseName
           host: '${postgresServerName}.postgres.database.azure.com'
-          password: listKeys(resourceId(subscription().subscriptionId, rgName, 'Microsoft.DBforPostgreSQL/flexibleServers', postgresServerName), '2022-12-01').password
+          password: postgresDatabaseAdminPassword
         })
       : ''
   }

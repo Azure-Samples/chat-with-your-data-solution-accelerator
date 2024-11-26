@@ -509,6 +509,8 @@ module storekeys './app/storekeys.bicep' = if (useKeyVault) {
     cosmosAccountName: databaseType == 'cosmos' ? cosmosDBModule.outputs.cosmosOutput.cosmosAccountName : ''
     postgresServerName: databaseType == 'postgres' ? postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName : ''
     postgresDatabaseName: databaseType == 'postgres' ? 'postgres' : ''
+    postgresDatabaseAdminUserName: databaseType == 'postgres' ? postgresDBModule.outputs.postgresDbOutput.postgreSQLDbUser : ''
+    postgresDatabaseAdminPassword: databaseType == 'postgres' ? postgresDBModule.outputs.postgresDbOutput.postgreSQLDbPwd : ''
     rgName: resourceGroupName
   }
 }
@@ -550,13 +552,13 @@ module hostingplan './core/host/appserviceplan.bicep' = {
 }
 
 var azureCosmosDBInfo = string({
-  accountName: cosmosDBModule.outputs.cosmosOutput.cosmosAccountName
-  databaseName: cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName
-  containerName: cosmosDBModule.outputs.cosmosOutput.cosmosContainerName
+  accountName: databaseType == 'cosmos' ? cosmosDBModule.outputs.cosmosOutput.cosmosAccountName : ''
+  databaseName: databaseType == 'cosmos' ? cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName : ''
+  containerName: databaseType == 'cosmos' ? cosmosDBModule.outputs.cosmosOutput.cosmosContainerName : ''
 })
 
 var azurePostgresDBInfo = string({
-  serverName: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+  serverName: '${postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName}.postgres.database.azure.com'
   databaseName: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
   userName: postgresDBModule.outputs.postgresDbOutput.postgreSQLDbUser
   password: postgresDBModule.outputs.postgresDbOutput.postgreSQLDbPwd
