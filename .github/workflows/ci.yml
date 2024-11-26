@@ -54,8 +54,8 @@ jobs:
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
           AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
         with:
-          imageName: ghcr.io/roopan-microsoft/psl-cwyd-main
-          cacheFrom: ghcr.io/roopan-microsoft/psl-cwyd-main
+          imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+          cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           imageTag: ${{ env.imageTag }}
           runCmd: make ci && make deploy
           refFilterForPush: refs/heads/${{ github.event_name == 'schedule' && 'main' || github.ref_name }}
@@ -77,7 +77,7 @@ jobs:
           AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
         with:
           push: never
-          imageName: ghcr.io/roopan-microsoft/psl-cwyd-main
+          imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           imageTag: ${{ env.imageTag }}
           runCmd: make destroy
           env: |
@@ -92,7 +92,6 @@ jobs:
         if: failure()
         run: |
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
           # Construct the email body
           EMAIL_BODY=$(cat <<EOF
           {

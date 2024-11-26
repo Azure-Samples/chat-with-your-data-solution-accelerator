@@ -42,7 +42,7 @@ def get_markdown_url(source, title, container_sas):
 
 
 def get_citations(citation_list):
-    """Returns Formated Citations"""
+    """Returns Formated Citations."""
     blob_client = AzureBlobStorageClient()
     container_sas = blob_client.get_container_sas()
     citations_dict = {"citations": []}
