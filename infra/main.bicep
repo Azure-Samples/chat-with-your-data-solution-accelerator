@@ -296,7 +296,7 @@ param azureMachineLearningName string = 'aml-${resourceToken}'
   'cosmos'
   'postgres'
 ])
-param databaseType string
+param databaseType string = 'cosmos'
 
 
 @description('Azure Cosmos DB Account Name')
