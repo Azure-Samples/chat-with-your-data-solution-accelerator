@@ -22,4 +22,6 @@ sed -i "s/kv_to-be-replaced/${keyvaultName}/g" "create_postgres_tables.py"
 
 pip install -r requirements.txt
 
+pip show azure-identity
+
 python create_postgres_tables.py
