@@ -6,8 +6,8 @@ baseUrl="$1"
 keyvaultName="$2"
 requirementFile="requirements.txt"
 requirementFileUrl=${baseUrl}"scripts/data_scripts/requirements.txt"
-serverName="postgres-3ygkwbdjmavwa-postgres"
-resourceGroup="rg-prdc-pgsql-py4"
+resourceGroup="$3"
+serverName="$4"
 
 echo "Script Started"
 
