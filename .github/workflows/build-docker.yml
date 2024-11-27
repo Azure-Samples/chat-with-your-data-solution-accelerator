@@ -38,6 +38,8 @@ jobs:
         echo "Target registry status:" ${{ inputs.registry }}
     - name: Checkout
       uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.workflow_run.head_branch }}
 
     - name: Docker Login
       if: ${{ inputs.push == true && inputs.branch == 'main' }}
