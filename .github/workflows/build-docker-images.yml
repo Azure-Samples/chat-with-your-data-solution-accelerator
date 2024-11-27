@@ -30,9 +30,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: List files in workflows directory
-        run: ls -R .github/workflows/
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
 
       - name: Build Docker Image
         uses: ./.github/workflows/build-docker.yml
@@ -43,5 +42,6 @@ jobs:
           dockerfile: ${{ matrix.dockerfile }}
           branch: ${{ github.event.workflow_run.head_branch }}
           push: ${{ github.event_name == 'workflow_run' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'dev' || github.event.workflow_run.head_branch == 'demo') }}
+        env:
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           DEV_DOCKER_PASSWORD: ${{ secrets.DEV_DOCKER_PASSWORD }}
