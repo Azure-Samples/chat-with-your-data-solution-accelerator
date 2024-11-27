@@ -313,6 +313,7 @@ var resourceGroupName = resourceGroup().name
 var tags = { 'azd-env-name': resourceGroupName }
 var location = resourceGroup().location
 var keyVaultName = 'kv-${resourceToken}'
+var baseUrl = 'https://raw.githubusercontent.com/Fr4nc3/chat-with-your-data-solution-accelerator/bicepdefaults/'
 var azureOpenAIModelInfo = string({
   model: azureOpenAIModel
   modelName: azureOpenAIModelName
@@ -323,6 +324,16 @@ var azureOpenAIEmbeddingModelInfo = string({
   modelName: azureOpenAIEmbeddingModelName
   modelVersion: azureOpenAIEmbeddingModelVersion
 })
+
+// ========== Managed Identity ========== //
+module managedIdentityModule './core/security/managed-identity.bicep' = if (databaseType == 'postgres') {
+  name: 'deploy_managed_identity'
+  params: {
+    solutionName: resourceToken
+    solutionLocation: location
+  }
+  scope: resourceGroup(resourceGroup().name)
+}
 
 module cosmosDBModule './core/database/cosmosdb.bicep' = if (databaseType == 'cosmos') {
   name: 'deploy_cosmos_db'
@@ -1194,6 +1205,17 @@ module machineLearning 'app/machinelearning.bicep' = if (orchestrationStrategy =
     azureAISearchEndpoint: search.outputs.endpoint
     azureOpenAIEndpoint: openai.outputs.endpoint
   }
+}
+
+module createIndex './core/database/deploy_create_table_script.bicep' = {
+  name : 'deploy_create_table_script'
+  params:{
+    solutionLocation: resourceToken
+    identity:managedIdentityModule.outputs.managedIdentityOutput.id
+    baseUrl:baseUrl
+    keyVaultName:keyvault.outputs.name
+  }
+  dependsOn:[keyvault]
 }
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
