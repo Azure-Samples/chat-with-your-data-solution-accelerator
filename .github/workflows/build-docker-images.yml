@@ -33,6 +33,9 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
 
+      - name: List files in workflows directory
+        run: ls -R .github/workflows/
+        
       - name: Build Docker Image
         uses: ./.github/workflows/build-docker.yml
         with:
