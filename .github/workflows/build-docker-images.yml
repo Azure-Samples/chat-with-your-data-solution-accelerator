@@ -31,6 +31,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: List files in workflows directory
+        run: ls -R .github/workflows/
+        
       - name: Build Docker Image
         uses: ./.github/workflows/build-docker.yml
         with:
