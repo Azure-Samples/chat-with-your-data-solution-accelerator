@@ -12,10 +12,7 @@ resourceGroup="rg-prdc-pgsql-py4"
 echo "Script Started"
 
 # Get the public IP address of the machine running the script
-$publicIp = Invoke-RestMethod -Uri "https://api.ipify.org"
-
-echo "Publis Ip is"
-echo $publicIp
+publicIp=$(curl -s https://api.ipify.org)
 
 # Use Azure CLI to add the public IP to the PostgreSQL firewall rule
 az postgres server firewall-rule create --resource-group $resourceGroup --server-name $serverName --name "allowScriptIp" --start-ip-address $publicIp --end-ip-address $publicIp
