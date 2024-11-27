@@ -15,7 +15,7 @@ echo "Script Started"
 publicIp=$(curl -s https://api.ipify.org)
 
 # Use Azure CLI to add the public IP to the PostgreSQL firewall rule
-az postgres server firewall-rule create --resource-group $resourceGroup --server-name $serverName --name "allowScriptIp" --start-ip-address $publicIp --end-ip-address $publicIp
+az postgres flexible-server firewall-rule create --resource-group $resourceGroup --name $serverName --start-ip-address $publicIp --end-ip-address $publicIp
 
 # Download the create table python file
 curl --output "create_postgres_tables.py" ${baseUrl}"scripts/data_scripts/create_postgres_tables.py"
