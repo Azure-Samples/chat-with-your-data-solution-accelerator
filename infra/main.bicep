@@ -349,6 +349,8 @@ module postgresDBModule './core/database/postgresdb.bicep' = if (databaseType ==
   params: {
     solutionName: azurePostgresDBAccountName
     solutionLocation: 'eastus2'
+    managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+    managedIdentityObjectName: managedIdentityModule.outputs.managedIdentityOutput.name
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -362,6 +364,7 @@ module keyvault './core/security/keyvault.bicep' = if (useKeyVault || authType =
     location: location
     tags: tags
     principalId: principalId
+    managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
   }
 }
 
@@ -1207,15 +1210,16 @@ module machineLearning 'app/machinelearning.bicep' = if (orchestrationStrategy =
   }
 }
 
-module createIndex './core/database/deploy_create_table_script.bicep' = {
+module createIndex './core/database/deploy_create_table_script.bicep' =  if (databaseType == 'postgres') {
   name : 'deploy_create_table_script'
   params:{
-    solutionLocation: resourceToken
+    solutionLocation: location
     identity:managedIdentityModule.outputs.managedIdentityOutput.id
     baseUrl:baseUrl
     keyVaultName:keyvault.outputs.name
+    postgresSqlServerName: postgresDBModule.outputs.postgresDbOutput.postgresSQLName
   }
-  dependsOn:[keyvault]
+  dependsOn:[keyvault, postgresDBModule, storekeys]
 }
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.30.23.60470",
-      "templateHash": "9132274249307928589"
+      "templateHash": "106067340422892734"
     }
   },
   "parameters": {
@@ -635,6 +635,7 @@
     },
     "location": "[resourceGroup().location]",
     "keyVaultName": "[format('kv-{0}', parameters('resourceToken'))]",
+    "baseUrl": "https://raw.githubusercontent.com/Fr4nc3/chat-with-your-data-solution-accelerator/bicepdefaults/",
     "azureOpenAIModelInfo": "[string(createObject('model', parameters('azureOpenAIModel'), 'modelName', parameters('azureOpenAIModelName'), 'modelVersion', parameters('azureOpenAIModelVersion')))]",
     "azureOpenAIEmbeddingModelInfo": "[string(createObject('model', parameters('azureOpenAIEmbeddingModel'), 'modelName', parameters('azureOpenAIEmbeddingModelName'), 'modelVersion', parameters('azureOpenAIEmbeddingModelVersion')))]",
     "defaultOpenAiDeployments": [
@@ -666,6 +667,96 @@
     "openAiDeployments": "[concat(variables('defaultOpenAiDeployments'), if(parameters('useAdvancedImageProcessing'), createArray(createObject('name', parameters('azureOpenAIVisionModel'), 'model', createObject('format', 'OpenAI', 'name', parameters('azureOpenAIVisionModelName'), 'version', parameters('azureOpenAIVisionModelVersion')), 'sku', createObject('name', 'Standard', 'capacity', parameters('azureOpenAIVisionModelCapacity')))), createArray()))]"
   },
   "resources": [
+    {
+      "condition": "[equals(parameters('databaseType'), 'postgres')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "deploy_managed_identity",
+      "resourceGroup": "[resourceGroup().name]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "solutionName": {
+            "value": "[parameters('resourceToken')]"
+          },
+          "solutionLocation": {
+            "value": "[variables('location')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.30.23.60470",
+              "templateHash": "8775325455752085588"
+            }
+          },
+          "parameters": {
+            "solutionName": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 15,
+              "metadata": {
+                "description": "Solution Name"
+              }
+            },
+            "solutionLocation": {
+              "type": "string",
+              "metadata": {
+                "description": "Solution Location"
+              }
+            },
+            "miName": {
+              "type": "string",
+              "defaultValue": "[format('{0}-managed-identity', parameters('solutionName'))]",
+              "metadata": {
+                "description": "Name"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2023-01-31",
+              "name": "[parameters('miName')]",
+              "location": "[parameters('solutionLocation')]",
+              "tags": {
+                "app": "[parameters('solutionName')]",
+                "location": "[parameters('solutionLocation')]"
+              }
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(resourceGroup().id, resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('miName')), resourceId('Microsoft.Authorization/roleDefinitions', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'))]",
+              "properties": {
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('miName')), '2023-01-31').principalId]",
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635')]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('miName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "managedIdentityOutput": {
+              "type": "object",
+              "value": {
+                "id": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('miName'))]",
+                "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('miName')), '2023-01-31').principalId]",
+                "name": "[parameters('miName')]"
+              }
+            }
+          }
+        }
+      }
+    },
     {
       "condition": "[equals(parameters('databaseType'), 'cosmos')]",
       "type": "Microsoft.Resources/deployments",
@@ -842,6 +933,12 @@
           },
           "solutionLocation": {
             "value": "eastus2"
+          },
+          "managedIdentityObjectId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2022-09-01').outputs.managedIdentityOutput.value.objectId]"
+          },
+          "managedIdentityObjectName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2022-09-01').outputs.managedIdentityOutput.value.name]"
           }
         },
         "template": {
@@ -851,7 +948,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "17825575027061010483"
+              "templateHash": "1846653496210046668"
             }
           },
           "parameters": {
@@ -859,6 +956,12 @@
               "type": "string"
             },
             "solutionLocation": {
+              "type": "string"
+            },
+            "managedIdentityObjectId": {
+              "type": "string"
+            },
+            "managedIdentityObjectName": {
               "type": "string"
             },
             "serverName": {
@@ -930,6 +1033,11 @@
                 "version": "[parameters('version')]",
                 "administratorLogin": "[parameters('administratorLogin')]",
                 "administratorLoginPassword": "[parameters('administratorLoginPassword')]",
+                "authConfig": {
+                  "tenantId": "[subscription().tenantId]",
+                  "activeDirectoryAuth": "Enabled",
+                  "passwordAuth": "Enabled"
+                },
                 "highAvailability": {
                   "mode": "Disabled"
                 },
@@ -947,6 +1055,36 @@
               }
             },
             {
+              "type": "Microsoft.Resources/deploymentScripts",
+              "apiVersion": "2020-10-01",
+              "name": "waitForServerReady",
+              "location": "[resourceGroup().location]",
+              "kind": "AzureCLI",
+              "properties": {
+                "azCliVersion": "2.38.0",
+                "timeout": "PT5M",
+                "scriptContent": "      echo \"Waiting for PostgreSQL server to be ready...\"\n      for i in {1..30}; do\n        state=$(az postgres flexible-server show --name ${serverName_resource.name} --resource-group ${resourceGroup().name} --query userVisibleState -o tsv)\n        if [ \"$state\" == \"Ready\" ]; then\n          echo \"Server is ready!\"\n          exit 0\n        fi\n        echo \"Server state: $state. Retrying in 10 seconds...\"\n        sleep 10\n      done\n      echo \"Server did not become ready in time.\"\n      exit 1\n    ",
+                "retentionInterval": "P1D"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('serverName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers/administrators",
+              "apiVersion": "2022-12-01",
+              "name": "[format('{0}/{1}', parameters('serverName'), parameters('managedIdentityObjectId'))]",
+              "properties": {
+                "principalType": "SERVICEPRINCIPAL",
+                "principalName": "[parameters('managedIdentityObjectName')]",
+                "tenantId": "[subscription().tenantId]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deploymentScripts', 'waitForServerReady')]",
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('serverName'))]"
+              ]
+            },
+            {
               "condition": "[parameters('allowAllIPsFirewall')]",
               "type": "Microsoft.DBforPostgreSQL/flexibleServers/firewallRules",
               "apiVersion": "2023-12-01-preview",
@@ -956,6 +1094,7 @@
                 "endIpAddress": "255.255.255.255"
               },
               "dependsOn": [
+                "[resourceId('Microsoft.Resources/deploymentScripts', 'waitForServerReady')]",
                 "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('serverName'))]"
               ]
             },
@@ -969,7 +1108,7 @@
                 "endIpAddress": "0.0.0.0"
               },
               "dependsOn": [
-                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers/firewallRules', parameters('serverName'), 'allow-all-IPs')]",
+                "[resourceId('Microsoft.Resources/deploymentScripts', 'waitForServerReady')]",
                 "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('serverName'))]"
               ]
             },
@@ -978,7 +1117,7 @@
               "apiVersion": "2023-12-01-preview",
               "name": "[format('{0}/{1}', parameters('serverName'), 'azure.extensions')]",
               "properties": {
-                "value": "vector",
+                "value": "pg_diskann",
                 "source": "user-override"
               },
               "dependsOn": [
@@ -993,7 +1132,7 @@
               "type": "object",
               "value": {
                 "postgresSQLName": "[parameters('serverName')]",
-                "postgreSQLServerName": "[parameters('serverName')]",
+                "postgreSQLServerName": "[format('{0}.postgres.database.azure.com', parameters('serverName'))]",
                 "postgreSQLDatabaseName": "postgres",
                 "postgreSQLDbUser": "[parameters('administratorLogin')]",
                 "postgreSQLDbPwd": "[parameters('administratorLoginPassword')]",
@@ -1002,7 +1141,10 @@
             }
           }
         }
-      }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity')]"
+      ]
     },
     {
       "condition": "[or(parameters('useKeyVault'), equals(parameters('authType'), 'rbac'))]",
@@ -1026,6 +1168,9 @@
           },
           "principalId": {
             "value": "[parameters('principalId')]"
+          },
+          "managedIdentityObjectId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2022-09-01').outputs.managedIdentityOutput.value.objectId]"
           }
         },
         "template": {
@@ -1035,7 +1180,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "12121357715793816510"
+              "templateHash": "12623823360057072578"
             },
             "description": "Creates an Azure Key Vault."
           },
@@ -1050,6 +1195,9 @@
             "tags": {
               "type": "object",
               "defaultValue": {}
+            },
+            "managedIdentityObjectId": {
+              "type": "string"
             },
             "principalId": {
               "type": "string",
@@ -1069,7 +1217,7 @@
                   "family": "A",
                   "name": "standard"
                 },
-                "accessPolicies": "[if(not(empty(parameters('principalId'))), createArray(createObject('objectId', parameters('principalId'), 'permissions', createObject('secrets', createArray('get', 'list')), 'tenantId', subscription().tenantId)), createArray())]"
+                "accessPolicies": "[if(not(empty(parameters('principalId'))), createArray(createObject('objectId', parameters('principalId'), 'permissions', createObject('secrets', createArray('get', 'list')), 'tenantId', subscription().tenantId), createObject('objectId', parameters('managedIdentityObjectId'), 'permissions', createObject('secrets', createArray('get', 'list')), 'tenantId', subscription().tenantId)), createArray(createObject('objectId', parameters('managedIdentityObjectId'), 'permissions', createObject('secrets', createArray('get', 'list')), 'tenantId', subscription().tenantId)))]"
               }
             }
           ],
@@ -1088,7 +1236,10 @@
             }
           }
         }
-      }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity')]"
+      ]
     },
     {
       "type": "Microsoft.Resources/deployments",
@@ -1882,7 +2033,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "9414716950134790266"
+              "templateHash": "4301444608123274670"
             }
           },
           "parameters": {
@@ -2043,7 +2194,7 @@
               "apiVersion": "2022-07-01",
               "name": "[format('{0}/{1}', parameters('keyVaultName'), parameters('postgresInfoName'))]",
               "properties": {
-                "value": "[if(not(equals(parameters('postgresServerName'), '')), string(createObject('user', parameters('postgresDatabaseAdminUserName'), 'dbname', parameters('postgresDatabaseName'), 'host', format('{0}.postgres.database.azure.com', parameters('postgresServerName')), 'password', parameters('postgresDatabaseAdminPassword'))), '')]"
+                "value": "[if(not(equals(parameters('postgresServerName'), '')), string(createObject('user', parameters('postgresDatabaseAdminUserName'), 'dbname', parameters('postgresDatabaseName'), 'host', parameters('postgresServerName'), 'password', parameters('postgresDatabaseAdminPassword'))), '')]"
               }
             },
             {
@@ -11432,6 +11583,95 @@
         "[resourceId('Microsoft.Resources/deployments', parameters('azureOpenAIResourceName'))]",
         "[resourceId('Microsoft.Resources/deployments', parameters('azureAISearchName'))]",
         "[resourceId('Microsoft.Resources/deployments', parameters('storageAccountName'))]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('databaseType'), 'postgres')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "deploy_create_table_script",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "solutionLocation": {
+            "value": "[variables('location')]"
+          },
+          "identity": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2022-09-01').outputs.managedIdentityOutput.value.id]"
+          },
+          "baseUrl": {
+            "value": "[variables('baseUrl')]"
+          },
+          "keyVaultName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'keyvault'), '2022-09-01').outputs.name.value]"
+          },
+          "postgresSqlServerName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgresSQLName]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.30.23.60470",
+              "templateHash": "754015545513025215"
+            }
+          },
+          "parameters": {
+            "solutionLocation": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the location for resources."
+              }
+            },
+            "baseUrl": {
+              "type": "string"
+            },
+            "keyVaultName": {
+              "type": "string"
+            },
+            "identity": {
+              "type": "string"
+            },
+            "postgresSqlServerName": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/deploymentScripts",
+              "apiVersion": "2020-10-01",
+              "name": "create_postgres_table",
+              "kind": "AzureCLI",
+              "location": "[parameters('solutionLocation')]",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', parameters('identity'))]": {}
+                }
+              },
+              "properties": {
+                "azCliVersion": "2.52.0",
+                "primaryScriptUri": "[format('{0}scripts/run_create_table_script.sh', parameters('baseUrl'))]",
+                "arguments": "[format('{0} {1} {2} {3}', parameters('baseUrl'), parameters('keyVaultName'), resourceGroup().name, parameters('postgresSqlServerName'))]",
+                "timeout": "PT1H",
+                "retentionInterval": "PT1H",
+                "cleanupPreference": "OnSuccess"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'keyvault')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_postgres_sql')]",
+        "[resourceId('Microsoft.Resources/deployments', 'storekeys')]"
       ]
     }
   ],
