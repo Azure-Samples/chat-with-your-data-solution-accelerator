@@ -4,15 +4,9 @@ on:
   workflow_run:
     workflows: [Tests]
     types: [completed]
-    branches:
-      - main
-      - dev
-      - demo
+    branches: [main, dev, demo]
   pull_request:
-    branches:
-      - main
-      - dev
-      - demo
+    branches: [main, dev, demo]
     types:
     - opened
     - ready_for_review
@@ -38,5 +32,6 @@ jobs:
       username: ${{ github.event.workflow_run.head_branch == 'main' && 'fruoccopublic' || 'cwydcontainerreg'}}
       app_name: ${{ matrix.app_name }}
       dockerfile: ${{ matrix.dockerfile }}
-      push: ${{ github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'dev' || github.event.workflow_run.head_branch == 'demo' }}
+      branch: ${{ github.event.workflow_run.head_branch }}
+      push: ${{ github.event_name == 'workflow_run' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'dev' || github.event.workflow_run.head_branch == 'demo') }}
     secrets: inherit
