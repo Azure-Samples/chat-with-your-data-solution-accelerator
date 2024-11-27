@@ -168,4 +168,90 @@ describe('ChatHistoryListItemGroups', () => {
         expect(screen.queryByLabelText(/loading/i)).not.toBeInTheDocument();
       });
     });
+    it('should render "No chat history" when there are no chat entries', () => {
+      render(<ChatHistoryListItemGroups {...componentProps}  groupedChatHistory={[]} />);
+
+      // Check that the "No chat history." text is in the document
+      expect(screen.getByText('No chat history.')).toBeInTheDocument();
+
+    });
+
+    it('should render chat history when data is provided', () => {
+      const mockGroupedChatHistoryWithData = [
+        {
+          title: 'Group 1',
+          entries: [
+            { id: '1', title: 'Chat 1', messages: [], date: new Date().toISOString(), updatedAt: new Date().toISOString() },
+            { id: '2', title: 'Chat 2', messages: [], date: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          ]
+        }
+      ];
+
+      const updatedProps = {
+        ...componentProps,
+        groupedChatHistory: mockGroupedChatHistoryWithData
+      };
+
+      render(<ChatHistoryListItemGroups {...updatedProps} />);
+
+      // Check that the "No chat history." text is NOT in the document
+      expect(screen.queryByText('No chat history.')).toBeNull();
+
+      // Check that the group title is rendered
+      expect(screen.getByText('Group 1')).toBeInTheDocument();
+
+      // Ensure the individual chat entries are rendered (we mock the ChatHistoryListItemCell component)
+      expect(screen.getByTestId('mock-cell-1')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-cell-2')).toBeInTheDocument();
+    });
+    it('should render the component and display the chat groups correctly', () => {
+      render(<ChatHistoryListItemGroups {...componentProps} groupedChatHistory={mockGroupedChatHistory}/>);
+
+      // Check if group titles are rendered
+      expect(screen.getByText('Group 1')).toBeInTheDocument();
+      expect(screen.getByText('Group 2')).toBeInTheDocument();
+
+      // Check if chat items are rendered within each group
+      expect(screen.getByTestId('mock-cell-1')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-cell-2')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-cell-3')).toBeInTheDocument();
+    });
+
+    it('should trigger the onSelectConversation when a chat is clicked', async () => {
+      render(<ChatHistoryListItemGroups {...componentProps} groupedChatHistory={mockGroupedChatHistory}/>);
+
+      // Simulate clicking on a chat item
+      fireEvent.click(screen.getByTestId('mock-cell-1'));
+
+      // Ensure the onSelectConversation is called with the correct item
+      expect(mockOnSelectConversation).toHaveBeenCalledWith("1");
+    });
+
+    it('should show the spinner when fetchingChatHistory is true', async () => {
+      const propsWithSpinner = {
+        ...componentProps,
+        fetchingChatHistory: true,
+      };
+
+      render(<ChatHistoryListItemGroups {...propsWithSpinner} groupedChatHistory={mockGroupedChatHistory}/>);
+
+      // Ensure spinner is visible when fetchingChatHistory is true
+      const spinner = screen.getByLabelText('loading more chat history');
+      expect(spinner).toBeInTheDocument();
+    });
+
+    it('should not show the spinner when fetchingChatHistory is false', async () => {
+      render(<ChatHistoryListItemGroups {...componentProps} groupedChatHistory={mockGroupedChatHistory}/>);
+
+      // Ensure spinner is not visible when fetchingChatHistory is false
+      const spinner = screen.queryByTestId('spinner');
+      expect(spinner).toBeNull();
+    });
+
+    it('should call handleFetchHistory when the component mounts', async () => {
+      render(<ChatHistoryListItemGroups {...componentProps} groupedChatHistory={mockGroupedChatHistory}/>);
+
+      // Check that handleFetchHistory was called on mount
+      expect(mockHandleFetchHistory).toHaveBeenCalledTimes(1);
+    });
   });
