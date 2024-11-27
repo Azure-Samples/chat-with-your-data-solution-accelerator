@@ -21,11 +21,6 @@ on:
       push:
         required: true
         type: boolean
-    secrets:
-      DOCKER_PASSWORD:
-        required: false
-      DEV_DOCKER_PASSWORD:
-        required: false
 
 jobs:
   docker-build:
@@ -39,7 +34,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
       with:
-        ref: ${{ github.event.workflow_run.head_branch }}
+        ref: ${{ inputs.branch }}
 
     - name: Docker Login
       if: ${{ inputs.push == true && inputs.branch == 'main' }}
@@ -47,7 +42,7 @@ jobs:
       with:
         registry: ${{ inputs.registry }}
         username: ${{ inputs.username }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+        password: ${{ env.DOCKER_PASSWORD }}
 
     - name: Dev Docker Login
       if: ${{ inputs.push == true && (inputs.branch == 'dev' || inputs.branch == 'demo') }}
@@ -55,7 +50,7 @@ jobs:
       with:
         registry: ${{ inputs.registry }}
         username: ${{ inputs.username }}
-        password: ${{ secrets.DEV_DOCKER_PASSWORD }}
+        password: ${{ env.DEV_DOCKER_PASSWORD }}
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3

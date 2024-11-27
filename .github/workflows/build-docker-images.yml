@@ -16,6 +16,7 @@ on:
 
 jobs:
   docker-build:
+    runs-on: ubuntu-latest
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     strategy:
       matrix:
@@ -26,12 +27,21 @@ jobs:
             dockerfile: docker/Backend.Dockerfile
           - app_name: rag-webapp
             dockerfile: docker/Frontend.Dockerfile
-    uses: ./.github/workflows/build-docker.yml
-    with:
-      registry: ${{ github.event.workflow_run.head_branch == 'main' && 'fruoccopublic.azurecr.io' || 'cwydcontainerreg.azurecr.io'}}
-      username: ${{ github.event.workflow_run.head_branch == 'main' && 'fruoccopublic' || 'cwydcontainerreg'}}
-      app_name: ${{ matrix.app_name }}
-      dockerfile: ${{ matrix.dockerfile }}
-      branch: ${{ github.event.workflow_run.head_branch }}
-      push: ${{ github.event_name == 'workflow_run' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'dev' || github.event.workflow_run.head_branch == 'demo') }}
-    secrets: inherit
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+
+      - name: Build Docker Image
+        uses: ./.github/workflows/build-docker.yml
+        with:
+          registry: ${{ github.event.workflow_run.head_branch == 'main' && 'fruoccopublic.azurecr.io' || 'cwydcontainerreg.azurecr.io'}}
+          username: ${{ github.event.workflow_run.head_branch == 'main' && 'fruoccopublic' || 'cwydcontainerreg'}}
+          app_name: ${{ matrix.app_name }}
+          dockerfile: ${{ matrix.dockerfile }}
+          branch: ${{ github.event.workflow_run.head_branch }}
+          push: ${{ github.event_name == 'workflow_run' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'dev' || github.event.workflow_run.head_branch == 'demo') }}
+        env:
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          DEV_DOCKER_PASSWORD: ${{ secrets.DEV_DOCKER_PASSWORD }}
