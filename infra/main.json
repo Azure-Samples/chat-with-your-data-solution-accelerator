@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.30.23.60470",
-      "templateHash": "16603120665121801714"
+      "templateHash": "9132274249307928589"
     }
   },
   "parameters": {
@@ -290,7 +290,7 @@
     },
     "orchestrationStrategy": {
       "type": "string",
-      "defaultValue": "openai_function",
+      "defaultValue": "semantic_kernel",
       "allowedValues": [
         "openai_function",
         "semantic_kernel",
@@ -600,6 +600,7 @@
     },
     "databaseType": {
       "type": "string",
+      "defaultValue": "cosmos",
       "allowedValues": [
         "cosmos",
         "postgres"
@@ -620,17 +621,6 @@
       "defaultValue": "[format('postgres-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Azure Postgres DB Account Name"
-      }
-    },
-    "chatHistoryEnabled": {
-      "type": "string",
-      "defaultValue": "true",
-      "allowedValues": [
-        "true",
-        "false"
-      ],
-      "metadata": {
-        "description": "Whether or not to enable chat history"
       }
     }
   },
@@ -3390,7 +3380,7 @@
             "value": "[parameters('authType')]"
           },
           "appSettings": {
-            "value": "[union(createObject('AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference(resourceId('Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference(resourceId('Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value, 'AZURE_OPENAI_RESOURCE', parameters('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL_INFO', variables('azureOpenAIModelInfo'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL_INFO', variables('azureOpenAIEmbeddingModelInfo'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', parameters('azureSearchUseSemanticSearch'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', parameters('azureAISearchName')), 'AZURE_SEARCH_INDEX', parameters('azureSearchIndex'), 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', parameters('azureSearchConversationLogIndex'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', parameters('azureSearchUseIntegratedVectorization'), 'AZURE_SPEECH_SERVICE_NAME', parameters('speechServiceName'), 'AZURE_SPEECH_SERVICE_REGION', variables('location'), 'AZURE_SPEECH_RECOGNIZER_LANGUAGES', parameters('recognizedLanguages'), 'USE_ADVANCED_IMAGE_PROCESSING', parameters('useAdvancedImageProcessing'), 'ADVANCED_IMAGE_PROCESSING_MAX_IMAGES', parameters('advancedImageProcessingMaxImages'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'CHAT_HISTORY_ENABLED', parameters('chatHistoryEnabled'), 'AZURE_DATABASE_TYPE', parameters('databaseType')), if(equals(parameters('databaseType'), 'cosmos'), createObject('AZURE_COSMOSDB_INFO', string(createObject('accountName', if(equals(parameters('databaseType'), 'cosmos'), reference(resourceId('Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosAccountName, ''), 'databaseName', if(equals(parameters('databaseType'), 'cosmos'), reference(resourceId('Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosDatabaseName, ''), 'containerName', if(equals(parameters('databaseType'), 'cosmos'), reference(resourceId('Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosContainerName, ''))), 'AZURE_COSMOSDB_ENABLE_FEEDBACK', true()), if(equals(parameters('databaseType'), 'postgres'), createObject('AZURE_POSTGRESDB_INFO', string(createObject('serverName', format('{0}.postgres.database.azure.com', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName), 'databaseName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'userName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbUser, 'password', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbPwd))), createObject())))]"
+            "value": "[union(createObject('AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference(resourceId('Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference(resourceId('Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value, 'AZURE_OPENAI_RESOURCE', parameters('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL_INFO', variables('azureOpenAIModelInfo'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL_INFO', variables('azureOpenAIEmbeddingModelInfo'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', parameters('azureSearchUseSemanticSearch'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', parameters('azureAISearchName')), 'AZURE_SEARCH_INDEX', parameters('azureSearchIndex'), 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', parameters('azureSearchConversationLogIndex'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', parameters('azureSearchUseIntegratedVectorization'), 'AZURE_SPEECH_SERVICE_NAME', parameters('speechServiceName'), 'AZURE_SPEECH_SERVICE_REGION', variables('location'), 'AZURE_SPEECH_RECOGNIZER_LANGUAGES', parameters('recognizedLanguages'), 'USE_ADVANCED_IMAGE_PROCESSING', parameters('useAdvancedImageProcessing'), 'ADVANCED_IMAGE_PROCESSING_MAX_IMAGES', parameters('advancedImageProcessingMaxImages'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'AZURE_DATABASE_TYPE', parameters('databaseType')), if(equals(parameters('databaseType'), 'cosmos'), createObject('AZURE_COSMOSDB_INFO', string(createObject('accountName', if(equals(parameters('databaseType'), 'cosmos'), reference(resourceId('Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosAccountName, ''), 'databaseName', if(equals(parameters('databaseType'), 'cosmos'), reference(resourceId('Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosDatabaseName, ''), 'containerName', if(equals(parameters('databaseType'), 'cosmos'), reference(resourceId('Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosContainerName, ''))), 'AZURE_COSMOSDB_ENABLE_FEEDBACK', true()), if(equals(parameters('databaseType'), 'postgres'), createObject('AZURE_POSTGRESDB_INFO', string(createObject('serverName', format('{0}.postgres.database.azure.com', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName), 'databaseName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'userName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbUser, 'password', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbPwd))), createObject())))]"
           }
         },
         "template": {
@@ -4359,8 +4349,7 @@
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "FUNCTION_KEY": "[variables('clientKey')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "LOGLEVEL": "[parameters('logLevel')]",
-              "CHAT_HISTORY_ENABLED": "[parameters('chatHistoryEnabled')]"
+              "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
         },
@@ -5306,8 +5295,7 @@
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "FUNCTION_KEY": "[variables('clientKey')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "LOGLEVEL": "[parameters('logLevel')]",
-              "CHAT_HISTORY_ENABLED": "[parameters('chatHistoryEnabled')]"
+              "LOGLEVEL": "[parameters('logLevel')]"
             }
           }
         },
