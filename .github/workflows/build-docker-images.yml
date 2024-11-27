@@ -33,9 +33,6 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
 
-      - name: List files in workflows directory
-        run: ls -R .github/workflows/
-        
       - name: Build Docker Image
         uses: ./.github/workflows/build-docker.yml
         with:
@@ -45,4 +42,4 @@ jobs:
           dockerfile: ${{ matrix.dockerfile }}
           branch: ${{ github.event.workflow_run.head_branch }}
           push: ${{ github.event_name == 'workflow_run' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'dev' || github.event.workflow_run.head_branch == 'demo') }}
-          secrets: inherit
+        secrets: inherit
