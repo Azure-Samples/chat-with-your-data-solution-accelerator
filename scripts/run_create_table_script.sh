@@ -6,15 +6,16 @@ baseUrl="$1"
 keyvaultName="$2"
 requirementFile="requirements.txt"
 requirementFileUrl=${baseUrl}"scripts/data_scripts/requirements.txt"
-
-# PostgreSQL server name and resource group
-$serverName = "postgres-3ygkwbdjmavwa-postgres"
-$resourceGroup = "rg-prdc-pgsql-py4"
+serverName="postgres-3ygkwbdjmavwa-postgres"
+resourceGroup="rg-prdc-pgsql-py4"
 
 echo "Script Started"
 
 # Get the public IP address of the machine running the script
 $publicIp = Invoke-RestMethod -Uri "https://api.ipify.org"
+
+echo "Publis Ip is"
+echo $publicIp
 
 # Use Azure CLI to add the public IP to the PostgreSQL firewall rule
 az postgres server firewall-rule create --resource-group $resourceGroup --server-name $serverName --name "allowScriptIp" --start-ip-address $publicIp --end-ip-address $publicIp
