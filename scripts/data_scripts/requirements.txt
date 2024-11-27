@@ -1,4 +1,3 @@
-azure_storage==0.37.0
 psycopg2==2.9.10
 azure-identity
 azure-keyvault-secrets
