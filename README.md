@@ -171,6 +171,8 @@ The demo, which uses containers pre-built from the main branch is available by c
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fchat-with-your-data-solution-accelerator%2Fmain%2Finfra%2Fmain.json)
 
+When Deployment is complete, follow steps in [Set Up Authentication in Azure App Service](./docs/azure_app_service_auth_setup.md) to add app authentication to your web app running on Azure App Service
+
 **Note**: The default configuration deploys an OpenAI Model "gpt-35-turbo" with version 0613. However, not all
 locations support this version. If you're deploying to a location that doesn't support version 0613, you'll need to
 switch to a lower version. To find out which versions are supported in different regions, visit the
