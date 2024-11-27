@@ -16,7 +16,7 @@ on:
         required: true
         type: string
       branch:
-        required: false
+        required: true
         type: string
       push:
         required: true
@@ -31,7 +31,11 @@ jobs:
   docker-build:
     runs-on: ubuntu-latest
     steps:
-
+    - name: Print target branch detail
+      run: |
+        echo "Target branch:" ${{ inputs.branch }}
+        echo "Target branch status:" ${{ inputs.push }}
+        echo "Target registry status:" ${{ inputs.registry }}
     - name: Checkout
       uses: actions/checkout@v4
       with:
