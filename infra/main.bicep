@@ -148,7 +148,7 @@ param azureOpenAIVisionModelCapacity int = 10
   'langchain'
   'prompt_flow'
 ])
-param orchestrationStrategy string = 'openai_function'
+param orchestrationStrategy string = 'semantic_kernel'
 
 @description('Chat conversation type: custom or byod.')
 @allowed([
@@ -315,13 +315,6 @@ param azureCosmosDBAccountName string = 'cosmos-${resourceToken}'
 @description('Azure Postgres DB Account Name')
 param azurePostgresDBAccountName string = 'postgres-${resourceToken}'
 
-@description('Whether or not to enable chat history')
-@allowed([
-  'true'
-  'false'
-])
-param chatHistoryEnabled string = 'true'
-
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
@@ -329,6 +322,7 @@ var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
 var rgName = 'rg-${environmentName}'
 var keyVaultName = 'kv-${resourceToken}'
+var baseUrl = 'https://raw.githubusercontent.com/Fr4nc3/chat-with-your-data-solution-accelerator/bicepdefaults/'
 var azureOpenAIModelInfo = string({
   model: azureOpenAIModel
   modelName: azureOpenAIModelName
@@ -350,6 +344,16 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   tags: tags
 }
 
+// ========== Managed Identity ========== //
+module managedIdentityModule './core/security/managed-identity.bicep' = if (databaseType == 'postgres') {
+  name: 'deploy_managed_identity'
+  params: {
+    solutionName: resourceToken
+    solutionLocation: location
+  }
+  scope: rg
+}
+
 module cosmosDBModule './core/database/cosmosdb.bicep' = if (databaseType == 'cosmos') {
   name: 'deploy_cosmos_db'
   params: {
@@ -364,8 +368,10 @@ module postgresDBModule './core/database/postgresdb.bicep' = if (databaseType ==
   params: {
     solutionName: azurePostgresDBAccountName
     solutionLocation: 'eastus2'
+    managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+    managedIdentityObjectName: managedIdentityModule.outputs.managedIdentityOutput.name
   }
-  scope: resourceGroup(resourceGroup().name)
+  scope: rg
 }
 
 // Store secrets in a keyvault
@@ -377,6 +383,7 @@ module keyvault './core/security/keyvault.bicep' = if (useKeyVault || authType =
     location: location
     tags: tags
     principalId: principalId
+    managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
   }
 }
 
@@ -764,7 +771,6 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       CONVERSATION_FLOW: conversationFlow
       LOGLEVEL: logLevel
-      CHAT_HISTORY_ENABLED: chatHistoryEnabled
 
       // Add database type to settings
       AZURE_DATABASE_TYPE: databaseType
@@ -849,7 +855,6 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
-      CHAT_HISTORY_ENABLED: chatHistoryEnabled
     }
   }
 }
@@ -923,7 +928,6 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
-      CHAT_HISTORY_ENABLED: chatHistoryEnabled
     }
   }
 }
@@ -1224,6 +1228,19 @@ module machineLearning 'app/machinelearning.bicep' = if (orchestrationStrategy =
     azureAISearchEndpoint: search.outputs.endpoint
     azureOpenAIEndpoint: openai.outputs.endpoint
   }
+}
+
+module createIndex './core/database/deploy_create_table_script.bicep' =  if (databaseType == 'postgres') {
+  name : 'deploy_create_table_script'
+  params:{
+    solutionLocation: location
+    identity:managedIdentityModule.outputs.managedIdentityOutput.id
+    baseUrl:baseUrl
+    keyVaultName:keyvault.outputs.name
+    postgresSqlServerName: postgresDBModule.outputs.postgresDbOutput.postgresSQLName
+  }
+  scope: rg
+  dependsOn:[keyvault, postgresDBModule, storekeys]
 }
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString

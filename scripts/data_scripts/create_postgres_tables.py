@@ -1,21 +1,23 @@
+import json
 from azure.keyvault.secrets import SecretClient
 from azure.identity import DefaultAzureCredential
 import psycopg2
 
 key_vault_name = "kv_to-be-replaced"
 
-
 def get_secrets_from_kv(kv_name, secret_name):
     credential = DefaultAzureCredential()
     secret_client = SecretClient(
-        vault_url=f"https://{kv_name}.vault.azure.net/", credential=credential
+        vault_url=f"https://{key_vault_name}.vault.azure.net/", credential=credential
     )  # Create a secret client object using the credential and Key Vault name
     return secret_client.get_secret(secret_name).value
 
 
-host = get_secrets_from_kv(key_vault_name, "POSTGRESQL-HOST")
-user = get_secrets_from_kv(key_vault_name, "POSTGRESQL-USERNAME")
-dbname = get_secrets_from_kv(key_vault_name, "POSTGRESQL-DBNAME")
+postgres_details =  json.loads(get_secrets_from_kv(key_vault_name, "AZURE-POSTGRESQL-INFO"))
+host = postgres_details.get("host", "")
+user = postgres_details.get("user", "")
+dbname = postgres_details.get("dbname", "")
+password = postgres_details.get("password", "")
 
 # Acquire the access token
 cred = DefaultAzureCredential()
@@ -23,7 +25,7 @@ access_token = cred.get_token("https://ossrdbms-aad.database.windows.net/.defaul
 
 # Combine the token with the connection string to establish the connection.
 conn_string = "host={0} user={1} dbname={2} password={3}".format(
-    host, user, dbname, access_token.token
+    host, user, dbname, password
 )
 conn = psycopg2.connect(conn_string)
 cursor = conn.cursor()

@@ -1,5 +1,7 @@
 param solutionName string
 param solutionLocation string
+param managedIdentityObjectId string
+param managedIdentityObjectName string
 @description('The name of the SQL logical server.')
 param serverName string = '${solutionName}-postgres'
 
@@ -35,7 +37,11 @@ resource serverName_resource 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-
     version: version
     administratorLogin: administratorLogin
     administratorLoginPassword: administratorLoginPassword
-
+    authConfig: {
+      tenantId: subscription().tenantId
+      activeDirectoryAuth: 'Enabled'
+      passwordAuth: 'Enabled'
+    }
     highAvailability: {
       mode: 'Disabled'
     }
@@ -51,6 +57,34 @@ resource serverName_resource 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-
     }
     availabilityZone: availabilityZone
   }
+}
+
+resource delayScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+  name: 'waitForServerReady'
+  location: resourceGroup().location
+  kind: 'AzurePowerShell'
+  properties: {
+    azPowerShellVersion: '3.0'
+    scriptContent: 'start-sleep -Seconds 180'
+    cleanupPreference: 'Always'
+    retentionInterval: 'PT1H'
+  }
+  dependsOn: [
+    serverName_resource
+  ]
+}
+
+resource azureADAdministrator 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2022-12-01' = {
+  parent: serverName_resource
+  name: managedIdentityObjectId
+  properties: {
+    principalType: 'SERVICEPRINCIPAL'
+    principalName: managedIdentityObjectName
+    tenantId: subscription().tenantId
+  }
+  dependsOn: [
+    delayScript
+  ]
 }
 
 // resource serverName_firewallrules 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2021-06-01' = [for rule in firewallrules: {
@@ -71,7 +105,7 @@ resource firewall_all 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2
     endIpAddress: '255.255.255.255'
   }
   dependsOn: [
-    serverName_resource
+    delayScript
   ]
 }
 
@@ -83,7 +117,7 @@ resource firewall_azure 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules
     endIpAddress: '0.0.0.0'
   }
   dependsOn: [
-    firewall_all
+    delayScript
   ]
 }
 
@@ -91,7 +125,7 @@ resource configurations 'Microsoft.DBforPostgreSQL/flexibleServers/configuration
   name: 'azure.extensions'
   parent: serverName_resource
   properties: {
-    value: 'vector'
+    value: 'pg_diskann'
     source: 'user-override'
   }
   dependsOn: [
@@ -102,7 +136,7 @@ resource configurations 'Microsoft.DBforPostgreSQL/flexibleServers/configuration
 
 output postgresDbOutput object = {
   postgresSQLName: serverName_resource.name
-  postgreSQLServerName: serverName_resource.name
+  postgreSQLServerName: '${serverName_resource.name}.postgres.database.azure.com'
   postgreSQLDatabaseName: 'postgres'
   postgreSQLDbUser: administratorLogin
   postgreSQLDbPwd: administratorLoginPassword

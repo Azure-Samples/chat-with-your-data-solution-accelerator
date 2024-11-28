@@ -110,7 +110,7 @@ resource postgresInfoSecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if 
       ? string({
           user: postgresDatabaseAdminUserName
           dbname: postgresDatabaseName
-          host: '${postgresServerName}.postgres.database.azure.com'
+          host: postgresServerName
           password: postgresDatabaseAdminPassword
         })
       : ''
