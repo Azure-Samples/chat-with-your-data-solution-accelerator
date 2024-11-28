@@ -351,7 +351,7 @@ module managedIdentityModule './core/security/managed-identity.bicep' = if (data
     solutionName: resourceToken
     solutionLocation: location
   }
-  scope: resourceGroup(resourceGroup().name)
+  scope: rg
 }
 
 module cosmosDBModule './core/database/cosmosdb.bicep' = if (databaseType == 'cosmos') {
@@ -371,7 +371,7 @@ module postgresDBModule './core/database/postgresdb.bicep' = if (databaseType ==
     managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
     managedIdentityObjectName: managedIdentityModule.outputs.managedIdentityOutput.name
   }
-  scope: resourceGroup(resourceGroup().name)
+  scope: rg
 }
 
 // Store secrets in a keyvault
@@ -1239,6 +1239,7 @@ module createIndex './core/database/deploy_create_table_script.bicep' =  if (dat
     keyVaultName:keyvault.outputs.name
     postgresSqlServerName: postgresDBModule.outputs.postgresDbOutput.postgresSQLName
   }
+  scope: rg
   dependsOn:[keyvault, postgresDBModule, storekeys]
 }
 
