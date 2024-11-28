@@ -26,6 +26,14 @@ def grant_permissions(cursor, dbname, schema_name, principal_name):
     - schema_name: Name of the schema to grant table-level permissions.
     - principal_name: Name of the principal (role or user) to grant permissions.
     """
+
+    add_principal_user_query = "SELECT * FROM pgaadauth_create_principal({principal}, false, false)"
+    cursor.execute(
+        add_principal_user_query.format(
+            principal=sql.Identifier(principal_name),
+        )
+    )
+
     # Grant CONNECT on database
     grant_connect_query = sql.SQL("GRANT CONNECT ON DATABASE {database} TO {principal}")
     cursor.execute(
