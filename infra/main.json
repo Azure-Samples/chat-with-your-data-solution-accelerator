@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.30.23.60470",
-      "templateHash": "106067340422892734"
+      "templateHash": "6490762584259163057"
     }
   },
   "parameters": {
@@ -948,7 +948,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "1846653496210046668"
+              "templateHash": "7878676541226628436"
             }
           },
           "parameters": {
@@ -1059,12 +1059,12 @@
               "apiVersion": "2020-10-01",
               "name": "waitForServerReady",
               "location": "[resourceGroup().location]",
-              "kind": "AzureCLI",
+              "kind": "AzurePowerShell",
               "properties": {
-                "azCliVersion": "2.38.0",
-                "timeout": "PT5M",
-                "scriptContent": "      echo \"Waiting for PostgreSQL server to be ready...\"\n      for i in {1..30}; do\n        state=$(az postgres flexible-server show --name ${serverName_resource.name} --resource-group ${resourceGroup().name} --query userVisibleState -o tsv)\n        if [ \"$state\" == \"Ready\" ]; then\n          echo \"Server is ready!\"\n          exit 0\n        fi\n        echo \"Server state: $state. Retrying in 10 seconds...\"\n        sleep 10\n      done\n      echo \"Server did not become ready in time.\"\n      exit 1\n    ",
-                "retentionInterval": "P1D"
+                "azPowerShellVersion": "3.0",
+                "scriptContent": "start-sleep -Seconds 180",
+                "cleanupPreference": "Always",
+                "retentionInterval": "PT1H"
               },
               "dependsOn": [
                 "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('serverName'))]"
