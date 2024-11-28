@@ -7,6 +7,7 @@ from backend.batch.utilities.helpers.config.conversation_flow import Conversatio
 logger = logging.getLogger(__name__)
 encoded_account_key = str(base64.b64encode(b"some-blob-account-key"), "utf-8")
 
+
 class AppConfig:
     before_config: dict[str, str] = {}
     config: dict[str, str | None] = {
