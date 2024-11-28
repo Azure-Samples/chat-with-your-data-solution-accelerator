@@ -813,6 +813,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
+    databaseType: databaseType
     appSettings: {
       AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
@@ -886,6 +887,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
+    databaseType: databaseType
     appSettings: {
       AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
@@ -1238,8 +1240,8 @@ module createIndex './core/database/deploy_create_table_script.bicep' =  if (dat
     baseUrl:baseUrl
     keyVaultName:keyvault.outputs.name
     postgresSqlServerName: postgresDBModule.outputs.postgresDbOutput.postgresSQLName
-    webAppPrincipalName: hostingModel == 'code' ? web.outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID : web_docker.outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID
-    adminAppPrincipalName: hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID : adminweb_docker.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
+    webAppPrincipalName: hostingModel == 'code' ? web.outputs.FRONTEND_API_NAME : web_docker.outputs.FRONTEND_API_NAME
+    adminAppPrincipalName: hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_NAME : adminweb_docker.outputs.WEBSITE_ADMIN_NAME
   }
   scope: rg
   dependsOn: hostingModel == 'code' ? [keyvault, postgresDBModule, storekeys, web, adminweb] : [

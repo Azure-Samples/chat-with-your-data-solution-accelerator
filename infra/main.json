@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.30.23.60470",
-      "templateHash": "831473305954833848"
+      "templateHash": "8458218652856054228"
     }
   },
   "parameters": {
@@ -977,7 +977,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "7878676541226628436"
+              "templateHash": "17455459966134467610"
             }
           },
           "parameters": {
@@ -1091,7 +1091,7 @@
               "kind": "AzurePowerShell",
               "properties": {
                 "azPowerShellVersion": "3.0",
-                "scriptContent": "start-sleep -Seconds 180",
+                "scriptContent": "start-sleep -Seconds 300",
                 "cleanupPreference": "Always",
                 "retentionInterval": "PT1H"
               },
@@ -2671,7 +2671,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "8216675081949619536"
+              "templateHash": "8696900365541524252"
             }
           },
           "parameters": {
@@ -3490,6 +3490,7 @@
               ]
             },
             {
+              "condition": "[equals(parameters('databaseType'), 'cosmos')]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2022-09-01",
               "name": "[format('cosmos-sql-user-role-{0}', format('{0}-app-module', parameters('name')))]",
@@ -3670,7 +3671,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "8216675081949619536"
+              "templateHash": "8696900365541524252"
             }
           },
           "parameters": {
@@ -4489,6 +4490,7 @@
               ]
             },
             {
+              "condition": "[equals(parameters('databaseType'), 'cosmos')]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2022-09-01",
               "name": "[format('cosmos-sql-user-role-{0}', format('{0}-app-module', parameters('name')))]",
@@ -4652,6 +4654,9 @@
           "keyVaultName": "[if(or(parameters('useKeyVault'), equals(parameters('authType'), 'rbac')), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'keyvault'), '2022-09-01').outputs.name.value), createObject('value', ''))]",
           "authType": {
             "value": "[parameters('authType')]"
+          },
+          "databaseType": {
+            "value": "[parameters('databaseType')]"
           },
           "appSettings": {
             "value": {
@@ -5607,6 +5612,9 @@
           "keyVaultName": "[if(or(parameters('useKeyVault'), equals(parameters('authType'), 'rbac')), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'keyvault'), '2022-09-01').outputs.name.value), createObject('value', ''))]",
           "authType": {
             "value": "[parameters('authType')]"
+          },
+          "databaseType": {
+            "value": "[parameters('databaseType')]"
           },
           "appSettings": {
             "value": {
@@ -12020,8 +12028,8 @@
           "postgresSqlServerName": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgresSQLName]"
           },
-          "webAppPrincipalName": "[if(equals(parameters('hostingModel'), 'code'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('websiteName')), '2022-09-01').outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('websiteName'))), '2022-09-01').outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID.value))]",
-          "adminAppPrincipalName": "[if(equals(parameters('hostingModel'), 'code'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('adminWebsiteName')), '2022-09-01').outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID.value))]"
+          "webAppPrincipalName": "[if(equals(parameters('hostingModel'), 'code'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('websiteName')), '2022-09-01').outputs.FRONTEND_API_NAME.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('websiteName'))), '2022-09-01').outputs.FRONTEND_API_NAME.value))]",
+          "adminAppPrincipalName": "[if(equals(parameters('hostingModel'), 'code'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('adminWebsiteName')), '2022-09-01').outputs.WEBSITE_ADMIN_NAME.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_NAME.value))]"
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",

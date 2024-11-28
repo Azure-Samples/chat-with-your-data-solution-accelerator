@@ -27,7 +27,7 @@ def grant_permissions(cursor, dbname, schema_name, principal_name):
     - principal_name: Name of the principal (role or user) to grant permissions.
     """
 
-    add_principal_user_query = "SELECT * FROM pgaadauth_create_principal({principal}, false, false)"
+    add_principal_user_query = sql.SQL("SELECT * FROM pgaadauth_create_principal({principal}, false, false)")
     cursor.execute(
         add_principal_user_query.format(
             principal=sql.Identifier(principal_name),

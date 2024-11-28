@@ -65,7 +65,7 @@ resource delayScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   kind: 'AzurePowerShell'
   properties: {
     azPowerShellVersion: '3.0'
-    scriptContent: 'start-sleep -Seconds 180'
+    scriptContent: 'start-sleep -Seconds 300'
     cleanupPreference: 'Always'
     retentionInterval: 'PT1H'
   }
