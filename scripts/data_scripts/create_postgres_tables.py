@@ -57,7 +57,7 @@ def grant_permissions(cursor, dbname, schema_name, principal_name):
 
 postgres_details =  json.loads(get_secrets_from_kv(key_vault_name, "AZURE-POSTGRESQL-INFO"))
 host = postgres_details.get("host", "")
-user = postgres_details.get("user", "")
+user = "wpvykucviclze-managed-identity"
 dbname = postgres_details.get("dbname", "")
 password = postgres_details.get("password", "")
 
@@ -67,7 +67,7 @@ access_token = cred.get_token("https://ossrdbms-aad.database.windows.net/.defaul
 
 # Combine the token with the connection string to establish the connection.
 conn_string = "host={0} user={1} dbname={2} password={3}".format(
-    host, user, dbname, password
+    host, user, dbname, access_token
 )
 conn = psycopg2.connect(conn_string)
 cursor = conn.cursor()
