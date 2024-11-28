@@ -1,3 +1,4 @@
+import json
 from typing import List
 import numpy as np
 
@@ -47,14 +48,16 @@ class AzurePostgresHandler(SearchHandlerBase):
         return self.azure_postgres_helper.create_search_indexes(documents_to_upload)
 
     def perform_search(self, filename):
-        raise NotImplementedError(
-            "The method perform_search is not implemented in AzurePostgresHandler."
-        )
+        return self.azure_postgres_helper.perform_search(filename)
 
     def process_results(self, results):
-        raise NotImplementedError(
-            "The method process_results is not implemented in AzurePostgresHandler."
-        )
+        if results is None:
+            return []
+        data = [
+            [json.loads(result["metadata"]).get("chunk", i), result["content"]]
+            for i, result in enumerate(results)
+        ]
+        return data
 
     def get_files(self):
         results = self.azure_postgres_helper.get_files()
@@ -86,6 +89,16 @@ class AzurePostgresHandler(SearchHandlerBase):
         return ", ".join(files_to_delete)
 
     def search_by_blob_url(self, blob_url):
-        raise NotImplementedError(
-            "The method search_by_blob_url is not implemented in AzurePostgresHandler."
-        )
+        return self.azure_postgres_helper.search_by_blob_url(blob_url)
+
+    def delete_from_index(self, blob_url) -> None:
+        documents = self.search_by_blob_url(blob_url)
+        if documents is None or len(documents) == 0:
+            return
+        files_to_delete = self.output_results(documents)
+        self.delete_files(files_to_delete)
+
+    def get_unique_files(self):
+        results = self.azure_postgres_helper.get_unique_files()
+        unique_titles = [row["title"] for row in results]
+        return unique_titles

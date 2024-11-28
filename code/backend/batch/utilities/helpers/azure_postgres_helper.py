@@ -197,3 +197,79 @@ class AzurePostgresHelper:
             raise
         finally:
             conn.close()
+
+    def perform_search(self, title):
+        """
+        Fetches search results from PostgreSQL based on the title.
+        """
+        # Establish connection to PostgreSQL
+        conn = self.get_search_client()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Execute query to fetch title, content, and metadata
+                cur.execute(
+                    """
+                    SELECT title, content, metadata
+                    FROM search_indexes
+                    WHERE title = %s
+                    """,
+                    (title,),
+                )
+                results = cur.fetchall()  # Fetch all matching results
+                logger.info(f"Retrieved {len(results)} search result(s).")
+                return results
+        except Exception as e:
+            logger.error(f"Error executing search query: {e}")
+            raise
+        finally:
+            conn.close()
+
+    def get_unique_files(self):
+        """
+        Fetches unique titles from PostgreSQL.
+        """
+        # Establish connection to PostgreSQL
+        conn = self.get_search_client()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Execute query to fetch distinct titles
+                cur.execute(
+                    """
+                    SELECT DISTINCT title
+                    FROM search_indexes
+                    """
+                )
+                results = cur.fetchall()  # Fetch all results as RealDictRow objects
+                logger.info(f"Retrieved {len(results)} unique title(s).")
+                return results
+        except Exception as e:
+            logger.error(f"Error executing search query: {e}")
+            raise
+        finally:
+            conn.close()
+
+    def search_by_blob_url(self, blob_url):
+        """
+        Fetches unique titles from PostgreSQL based on a given blob URL.
+        """
+        # Establish connection to PostgreSQL
+        conn = self.get_search_client()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Execute parameterized query to fetch results
+                cur.execute(
+                    """
+                    SELECT id, title
+                    FROM search_indexes
+                    WHERE source = %s
+                    """,
+                    (f"{blob_url}_SAS_TOKEN_PLACEHOLDER_",),
+                )
+                results = cur.fetchall()  # Fetch all results as RealDictRow objects
+                logger.info(f"Retrieved {len(results)} unique title(s).")
+                return results
+        except Exception as e:
+            logger.error(f"Error executing search query: {e}")
+            raise
+        finally:
+            conn.close()
