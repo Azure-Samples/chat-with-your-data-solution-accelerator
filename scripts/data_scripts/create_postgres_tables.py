@@ -2,8 +2,11 @@ import json
 from azure.keyvault.secrets import SecretClient
 from azure.identity import DefaultAzureCredential
 import psycopg2
+from psycopg2 import sql
 
 key_vault_name = "kv_to-be-replaced"
+principal_name = "webAppPrincipalName"
+admin_principal_name = "adminAppPrincipalName"
 
 def get_secrets_from_kv(kv_name, secret_name):
     credential = DefaultAzureCredential()
@@ -12,6 +15,37 @@ def get_secrets_from_kv(kv_name, secret_name):
     )  # Create a secret client object using the credential and Key Vault name
     return secret_client.get_secret(secret_name).value
 
+
+def grant_permissions(cursor, dbname, schema_name, principal_name):
+    """
+    Grants database and schema-level permissions to a specified principal.
+
+    Parameters:
+    - cursor: psycopg2 cursor object for database operations.
+    - dbname: Name of the database to grant CONNECT permission.
+    - schema_name: Name of the schema to grant table-level permissions.
+    - principal_name: Name of the principal (role or user) to grant permissions.
+    """
+    # Grant CONNECT on database
+    grant_connect_query = sql.SQL("GRANT CONNECT ON DATABASE {database} TO {principal}")
+    cursor.execute(
+        grant_connect_query.format(
+            database=sql.Identifier(dbname),
+            principal=sql.Identifier(principal_name),
+        )
+    )
+    print(f"Granted CONNECT on database '{dbname}' to '{principal_name}'")
+
+    # Grant SELECT, INSERT, UPDATE, DELETE on schema tables
+    grant_permissions_query = sql.SQL(
+        "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA {schema} TO {principal}"
+    )
+    cursor.execute(
+        grant_permissions_query.format(
+            schema=sql.Identifier(schema_name),
+            principal=sql.Identifier(principal_name),
+        )
+    )
 
 postgres_details =  json.loads(get_secrets_from_kv(key_vault_name, "AZURE-POSTGRESQL-INFO"))
 host = postgres_details.get("host", "")
@@ -29,6 +63,10 @@ conn_string = "host={0} user={1} dbname={2} password={3}".format(
 )
 conn = psycopg2.connect(conn_string)
 cursor = conn.cursor()
+
+grant_permissions(cursor, dbname, "public", principal_name)
+grant_permissions(cursor, dbname, "public", admin_principal_name)
+conn.commit()
 
 # Drop and recreate the conversations table
 cursor.execute("DROP TABLE IF EXISTS conversations")

@@ -8,6 +8,8 @@ requirementFile="requirements.txt"
 requirementFileUrl=${baseUrl}"scripts/data_scripts/requirements.txt"
 resourceGroup="$3"
 serverName="$4"
+webAppPrincipalName = "$5"
+adminAppPrincipalName = "$6"
 
 echo "Script Started"
 
@@ -27,6 +29,8 @@ echo "Download completed"
 
 #Replace key vault name
 sed -i "s/kv_to-be-replaced/${keyvaultName}/g" "create_postgres_tables.py"
+sed -i "s/webAppPrincipalName/${webAppPrincipalName}/g" "create_postgres_tables.py"
+sed -i "s/adminAppPrincipalName/${adminAppPrincipalName}/g" "create_postgres_tables.py"
 
 pip install -r requirements.txt
 

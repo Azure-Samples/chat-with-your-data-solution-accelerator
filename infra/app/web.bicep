@@ -155,6 +155,7 @@ module web '../core/host/appservice.bicep' = {
     dockerFullImageName: dockerFullImageName
     scmDoBuildDuringDeployment: useDocker ? false : true
     healthCheckPath: healthCheckPath
+    managedIdentity: databaseType == 'postgres'
   }
 }
 

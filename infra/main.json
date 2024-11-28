@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.30.23.60470",
-      "templateHash": "16387401552448615008"
+      "templateHash": "9521961093814280778"
     }
   },
   "parameters": {
@@ -2671,7 +2671,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "64857797928052295"
+              "templateHash": "8216675081949619536"
             }
           },
           "parameters": {
@@ -2852,6 +2852,9 @@
                   "scmDoBuildDuringDeployment": "[if(parameters('useDocker'), createObject('value', false()), createObject('value', true()))]",
                   "healthCheckPath": {
                     "value": "[parameters('healthCheckPath')]"
+                  },
+                  "managedIdentity": {
+                    "value": "[equals(parameters('databaseType'), 'postgres')]"
                   }
                 },
                 "template": {
@@ -3667,7 +3670,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "64857797928052295"
+              "templateHash": "8216675081949619536"
             }
           },
           "parameters": {
@@ -3848,6 +3851,9 @@
                   "scmDoBuildDuringDeployment": "[if(parameters('useDocker'), createObject('value', false()), createObject('value', true()))]",
                   "healthCheckPath": {
                     "value": "[parameters('healthCheckPath')]"
+                  },
+                  "managedIdentity": {
+                    "value": "[equals(parameters('databaseType'), 'postgres')]"
                   }
                 },
                 "template": {
@@ -4700,7 +4706,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "12567732396765618168"
+              "templateHash": "14757216181799932354"
             }
           },
           "parameters": {
@@ -4815,6 +4821,10 @@
             "useDocker": {
               "type": "bool",
               "defaultValue": "[not(equals(parameters('dockerFullImageName'), ''))]"
+            },
+            "databaseType": {
+              "type": "string",
+              "defaultValue": "cosmos"
             }
           },
           "resources": [
@@ -4859,6 +4869,9 @@
                   },
                   "appServicePlanId": {
                     "value": "[parameters('appServicePlanId')]"
+                  },
+                  "managedIdentity": {
+                    "value": "[equals(parameters('databaseType'), 'postgres')]"
                   },
                   "appSettings": {
                     "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
@@ -5648,7 +5661,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "12567732396765618168"
+              "templateHash": "14757216181799932354"
             }
           },
           "parameters": {
@@ -5763,6 +5776,10 @@
             "useDocker": {
               "type": "bool",
               "defaultValue": "[not(equals(parameters('dockerFullImageName'), ''))]"
+            },
+            "databaseType": {
+              "type": "string",
+              "defaultValue": "cosmos"
             }
           },
           "resources": [
@@ -5807,6 +5824,9 @@
                   },
                   "appServicePlanId": {
                     "value": "[parameters('appServicePlanId')]"
+                  },
+                  "managedIdentity": {
+                    "value": "[equals(parameters('databaseType'), 'postgres')]"
                   },
                   "appSettings": {
                     "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
@@ -11999,6 +12019,12 @@
           },
           "postgresSqlServerName": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgresSQLName]"
+          },
+          "webAppPrincipalName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('websiteName'))), '2022-09-01').outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID.value]"
+          },
+          "adminAppPrincipalName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID.value]"
           }
         },
         "template": {
@@ -12008,7 +12034,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "754015545513025215"
+              "templateHash": "12297908402052822068"
             }
           },
           "parameters": {
@@ -12029,6 +12055,12 @@
             },
             "postgresSqlServerName": {
               "type": "string"
+            },
+            "webAppPrincipalName": {
+              "type": "string"
+            },
+            "adminAppPrincipalName": {
+              "type": "string"
             }
           },
           "resources": [
@@ -12047,7 +12079,7 @@
               "properties": {
                 "azCliVersion": "2.52.0",
                 "primaryScriptUri": "[format('{0}scripts/run_create_table_script.sh', parameters('baseUrl'))]",
-                "arguments": "[format('{0} {1} {2} {3}', parameters('baseUrl'), parameters('keyVaultName'), resourceGroup().name, parameters('postgresSqlServerName'))]",
+                "arguments": "[format('{0} {1} {2} {3} {4} {5}', parameters('baseUrl'), parameters('keyVaultName'), resourceGroup().name, parameters('postgresSqlServerName'), parameters('webAppPrincipalName'), parameters('adminAppPrincipalName'))]",
                 "timeout": "PT1H",
                 "retentionInterval": "PT1H",
                 "cleanupPreference": "OnSuccess"
@@ -12057,11 +12089,13 @@
         }
       },
       "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName')))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'keyvault')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_managed_identity')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql')]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys')]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('websiteName')))]"
       ]
     }
   ],

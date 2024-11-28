@@ -1238,6 +1238,8 @@ module createIndex './core/database/deploy_create_table_script.bicep' =  if (dat
     baseUrl:baseUrl
     keyVaultName:keyvault.outputs.name
     postgresSqlServerName: postgresDBModule.outputs.postgresDbOutput.postgresSQLName
+    webAppPrincipalName: web_docker.outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID
+    adminAppPrincipalName: adminweb_docker.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
   }
   scope: rg
   dependsOn:[keyvault, postgresDBModule, storekeys]
