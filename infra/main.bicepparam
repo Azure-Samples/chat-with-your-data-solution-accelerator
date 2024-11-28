@@ -1,6 +1,7 @@
 using './main.bicep'
 
-var location = readEnvironmentVariable('AZURE_LOCATION', 'location')
+param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', 'env_name')
+param location = readEnvironmentVariable('AZURE_LOCATION', 'location')
 param principalId = readEnvironmentVariable('AZURE_PRINCIPAL_ID', 'principal_id')
 
 
@@ -67,8 +68,7 @@ param computerVisionVectorizeImageModelVersion = readEnvironmentVariable('AZURE_
 
 // We need the resourceToken to be unique for each deployment (copied from the main.bicep)
 var subscriptionId = readEnvironmentVariable('AZURE_SUBSCRIPTION_ID', 'subscription_id')
-var resourceGroupName = readEnvironmentVariable('AZURE_RESOURCE_GROUP', 'azure_resource_group')
-param resourceToken = toLower(uniqueString(subscriptionId, resourceGroupName, location))
+param resourceToken = toLower(uniqueString(subscriptionId, environmentName, location))
 
 
 // Retrieve the Search Name from the Search Endpoint which will be in the format

@@ -206,6 +206,22 @@ module webaccess '../core/security/keyvault-access.bicep' = if (useKeyVault) {
   }
 }
 
+resource cosmosRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-05-15' existing = {
+  name: '${json(appSettings.AZURE_COSMOSDB_INFO).accountName}/00000000-0000-0000-0000-000000000002'
+}
+
+module cosmosUserRole '../core/database/cosmos-sql-role-assign.bicep' = {
+  name: 'cosmos-sql-user-role-${web.name}'
+  params: {
+    accountName: json(appSettings.AZURE_COSMOSDB_INFO).accountName
+    roleDefinitionId: cosmosRoleDefinition.id
+    principalId: web.outputs.identityPrincipalId
+  }
+  dependsOn: [
+    cosmosRoleDefinition
+  ]
+}
+
 output FRONTEND_API_IDENTITY_PRINCIPAL_ID string = web.outputs.identityPrincipalId
 output FRONTEND_API_NAME string = web.outputs.name
 output FRONTEND_API_URI string = web.outputs.uri
