@@ -8,8 +8,8 @@ requirementFile="requirements.txt"
 requirementFileUrl=${baseUrl}"scripts/data_scripts/requirements.txt"
 resourceGroup="$3"
 serverName="$4"
-webAppPrincipalName = "$5"
-adminAppPrincipalName = "$6"
+webAppPrincipalName="$5"
+adminAppPrincipalName="$6"
 
 echo "Script Started"
 
