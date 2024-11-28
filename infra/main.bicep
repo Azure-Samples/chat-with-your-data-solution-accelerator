@@ -1238,11 +1238,13 @@ module createIndex './core/database/deploy_create_table_script.bicep' =  if (dat
     baseUrl:baseUrl
     keyVaultName:keyvault.outputs.name
     postgresSqlServerName: postgresDBModule.outputs.postgresDbOutput.postgresSQLName
-    webAppPrincipalName: web_docker.outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID
-    adminAppPrincipalName: adminweb_docker.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
+    webAppPrincipalName: hostingModel == 'code' ? web.outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID : web_docker.outputs.FRONTEND_API_IDENTITY_PRINCIPAL_ID
+    adminAppPrincipalName: hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID : adminweb_docker.outputs.WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID
   }
   scope: rg
-  dependsOn:[keyvault, postgresDBModule, storekeys]
+  dependsOn: hostingModel == 'code' ? [keyvault, postgresDBModule, storekeys, web, adminweb] : [
+    [keyvault, postgresDBModule, storekeys, web_docker, adminweb_docker]
+  ]
 }
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
