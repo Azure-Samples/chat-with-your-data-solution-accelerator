@@ -46,7 +46,11 @@ try:
 
     search_handler = Search.get_search_handler(env_helper)
     results = search_handler.get_files()
-    if results is None or results.get_count() == 0:
+    if (
+        results is None
+        or (hasattr(results, "get_count") and results.get_count() == 0)
+        or len(results) == 0
+    ):
         st.info("No files to delete")
         st.stop()
     else:
