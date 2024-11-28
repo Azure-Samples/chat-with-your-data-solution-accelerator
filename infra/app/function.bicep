@@ -66,6 +66,7 @@ module function '../core/host/functions.bicep' = {
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
     dockerFullImageName: dockerFullImageName
+    useKeyVault: useKeyVault
     appSettings: union(appSettings, {
       WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
       AZURE_AUTH_TYPE: authType

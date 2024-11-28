@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      - dev
+      - demo
   schedule:
     - cron: '0 6,18 * * *'  # Runs at 6:00 AM and 6:00 PM GMT
 
@@ -34,6 +36,17 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set imageTag
+        id: set-image-tag
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "imageTag=latest" >> $GITHUB_ENV
+          elif [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "imageTag=latest" >> $GITHUB_ENV
+          else
+            echo "imageTag=${{ github.ref_name }}" >> $GITHUB_ENV
+          fi
+
       - name: Pre-build image and run make in dev container
         uses: devcontainers/ci@v0.3
         env:
@@ -43,8 +56,9 @@ jobs:
         with:
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+          imageTag: ${{ env.imageTag }}
           runCmd: make ci && make deploy
-          refFilterForPush: refs/heads/main
+          refFilterForPush: refs/heads/${{ github.event_name == 'schedule' && 'main' || github.ref_name }}
           env: |
             AZURE_CLIENT_ID
             AZURE_CLIENT_SECRET
@@ -64,6 +78,7 @@ jobs:
         with:
           push: never
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+          imageTag: ${{ env.imageTag }}
           runCmd: make destroy
           env: |
             AZURE_CLIENT_ID
@@ -78,7 +93,6 @@ jobs:
         if: failure()
         run: |
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
           # Construct the email body
           EMAIL_BODY=$(cat <<EOF
           {
