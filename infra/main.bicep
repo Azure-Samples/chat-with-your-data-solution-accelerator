@@ -1242,6 +1242,7 @@ module createIndex './core/database/deploy_create_table_script.bicep' =  if (dat
     postgresSqlServerName: postgresDBModule.outputs.postgresDbOutput.postgresSQLName
     webAppPrincipalName: hostingModel == 'code' ? web.outputs.FRONTEND_API_NAME : web_docker.outputs.FRONTEND_API_NAME
     adminAppPrincipalName: hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_NAME : adminweb_docker.outputs.WEBSITE_ADMIN_NAME
+    managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
   }
   scope: rg
   dependsOn: hostingModel == 'code' ? [keyvault, postgresDBModule, storekeys, web, adminweb] : [

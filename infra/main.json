@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.30.23.60470",
-      "templateHash": "8458218652856054228"
+      "templateHash": "936545603138294666"
     }
   },
   "parameters": {
@@ -12029,7 +12029,10 @@
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgresSQLName]"
           },
           "webAppPrincipalName": "[if(equals(parameters('hostingModel'), 'code'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('websiteName')), '2022-09-01').outputs.FRONTEND_API_NAME.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('websiteName'))), '2022-09-01').outputs.FRONTEND_API_NAME.value))]",
-          "adminAppPrincipalName": "[if(equals(parameters('hostingModel'), 'code'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('adminWebsiteName')), '2022-09-01').outputs.WEBSITE_ADMIN_NAME.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_NAME.value))]"
+          "adminAppPrincipalName": "[if(equals(parameters('hostingModel'), 'code'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('adminWebsiteName')), '2022-09-01').outputs.WEBSITE_ADMIN_NAME.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_NAME.value))]",
+          "managedIdentityName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2022-09-01').outputs.managedIdentityOutput.value.name]"
+          }
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -12038,7 +12041,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "12297908402052822068"
+              "templateHash": "5666855677780801837"
             }
           },
           "parameters": {
@@ -12065,6 +12068,9 @@
             },
             "adminAppPrincipalName": {
               "type": "string"
+            },
+            "managedIdentityName": {
+              "type": "string"
             }
           },
           "resources": [
@@ -12083,7 +12089,7 @@
               "properties": {
                 "azCliVersion": "2.52.0",
                 "primaryScriptUri": "[format('{0}scripts/run_create_table_script.sh', parameters('baseUrl'))]",
-                "arguments": "[format('{0} {1} {2} {3} {4} {5}', parameters('baseUrl'), parameters('keyVaultName'), resourceGroup().name, parameters('postgresSqlServerName'), parameters('webAppPrincipalName'), parameters('adminAppPrincipalName'))]",
+                "arguments": "[format('{0} {1} {2} {3} {4} {5} {6}', parameters('baseUrl'), parameters('keyVaultName'), resourceGroup().name, parameters('postgresSqlServerName'), parameters('webAppPrincipalName'), parameters('adminAppPrincipalName'), parameters('managedIdentityName'))]",
                 "timeout": "PT1H",
                 "retentionInterval": "PT1H",
                 "cleanupPreference": "OnSuccess"

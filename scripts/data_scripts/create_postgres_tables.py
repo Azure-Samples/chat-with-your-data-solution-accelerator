@@ -7,6 +7,7 @@ from psycopg2 import sql
 key_vault_name = "kv_to-be-replaced"
 principal_name = "webAppPrincipalName"
 admin_principal_name = "adminAppPrincipalName"
+user = "managedIdentityName"
 
 def get_secrets_from_kv(kv_name, secret_name):
     credential = DefaultAzureCredential()
@@ -57,7 +58,6 @@ def grant_permissions(cursor, dbname, schema_name, principal_name):
 
 postgres_details =  json.loads(get_secrets_from_kv(key_vault_name, "AZURE-POSTGRESQL-INFO"))
 host = postgres_details.get("host", "")
-user = "wpvykucviclze-managed-identity"
 dbname = postgres_details.get("dbname", "")
 password = postgres_details.get("password", "")
 
