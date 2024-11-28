@@ -30,7 +30,7 @@ def grant_permissions(cursor, dbname, schema_name, principal_name):
     add_principal_user_query = sql.SQL("SELECT * FROM pgaadauth_create_principal({principal}, false, false)")
     cursor.execute(
         add_principal_user_query.format(
-            principal=sql.Identifier(principal_name),
+            principal=sql.Literal(principal_name),
         )
     )
 
