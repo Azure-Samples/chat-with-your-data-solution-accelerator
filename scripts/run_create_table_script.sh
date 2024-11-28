@@ -34,6 +34,4 @@ sed -i "s/adminAppPrincipalName/${adminAppPrincipalName}/g" "create_postgres_tab
 
 pip install -r requirements.txt
 
-pip show azure-identity
-
 python create_postgres_tables.py
