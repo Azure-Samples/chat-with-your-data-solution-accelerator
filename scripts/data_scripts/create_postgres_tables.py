@@ -66,7 +66,7 @@ cred = DefaultAzureCredential()
 access_token = cred.get_token("https://ossrdbms-aad.database.windows.net/.default")
 
 # Combine the token with the connection string to establish the connection.
-conn_string = "host={0} user={1} dbname={2} password={3}".format(
+conn_string = "host={0} user={1} dbname={2} password={3} sslmode=require".format(
     host, user, dbname, access_token.token
 )
 conn = psycopg2.connect(conn_string)
