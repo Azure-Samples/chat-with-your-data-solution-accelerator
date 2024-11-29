@@ -88,9 +88,46 @@ class EnvHelper:
             "AZURE_SEARCH_DATASOURCE_NAME", ""
         )
         self.AZURE_SEARCH_INDEXER_NAME = os.getenv("AZURE_SEARCH_INDEXER_NAME", "")
-        self.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = self.get_env_var_bool(
-            "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION", "False"
-        )
+
+        # Chat History DB Integration Settings
+        # Set default values based on DATABASE_TYPE
+        self.DATABASE_TYPE = os.getenv("DATABASE_TYPE", "").strip() or "CosmosDB"
+        # Cosmos DB configuration
+        if self.DATABASE_TYPE == DatabaseType.COSMOSDB.value:
+            azure_cosmosdb_info = self.get_info_from_env("AZURE_COSMOSDB_INFO", "")
+            self.AZURE_COSMOSDB_DATABASE = azure_cosmosdb_info.get("databaseName", "")
+            self.AZURE_COSMOSDB_ACCOUNT = azure_cosmosdb_info.get("accountName", "")
+            self.AZURE_COSMOSDB_CONVERSATIONS_CONTAINER = azure_cosmosdb_info.get(
+                "containerName", ""
+            )
+            self.AZURE_COSMOSDB_ACCOUNT_KEY = self.secretHelper.get_secret(
+                "AZURE_COSMOSDB_ACCOUNT_KEY"
+            )
+            self.AZURE_COSMOSDB_ENABLE_FEEDBACK = (
+                os.getenv("AZURE_COSMOSDB_ENABLE_FEEDBACK", "false").lower() == "true"
+            )
+            self.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = self.get_env_var_bool(
+                "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION", "False"
+            )
+            self.USE_ADVANCED_IMAGE_PROCESSING = self.get_env_var_bool(
+                "USE_ADVANCED_IMAGE_PROCESSING", "False"
+            )
+        # PostgreSQL configuration
+        elif self.DATABASE_TYPE == DatabaseType.POSTGRESQL.value:
+            self.AZURE_POSTGRES_SEARCH_TOP_K = self.get_env_var_int(
+                "AZURE_POSTGRES_SEARCH_TOP_K", 5
+            )
+            azure_postgresql_info = self.get_info_from_env("AZURE_POSTGRESQL_INFO", "")
+            self.POSTGRESQL_USER = azure_postgresql_info.get("user", "")
+            self.POSTGRESQL_DATABASE = azure_postgresql_info.get("dbname", "")
+            self.POSTGRESQL_HOST = azure_postgresql_info.get("host", "")
+            # Ensure integrated vectorization is disabled for PostgreSQL
+            self.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = "False"
+            self.USE_ADVANCED_IMAGE_PROCESSING = "False"
+        else:
+            raise ValueError(
+                "Unsupported DATABASE_TYPE. Please set DATABASE_TYPE to 'CosmosDB' or 'PostgreSQL'."
+            )
 
         self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "keys")
         # Azure OpenAI
@@ -146,9 +183,6 @@ class EnvHelper:
 
         self.AZURE_TOKEN_PROVIDER = get_bearer_token_provider(
             DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
-        )
-        self.USE_ADVANCED_IMAGE_PROCESSING = self.get_env_var_bool(
-            "USE_ADVANCED_IMAGE_PROCESSING", "False"
         )
         self.ADVANCED_IMAGE_PROCESSING_MAX_IMAGES = self.get_env_var_int(
             "ADVANCED_IMAGE_PROCESSING_MAX_IMAGES", 1
@@ -293,37 +327,6 @@ class EnvHelper:
         self.PROMPT_FLOW_ENDPOINT_NAME = os.getenv("PROMPT_FLOW_ENDPOINT_NAME", "")
 
         self.PROMPT_FLOW_DEPLOYMENT_NAME = os.getenv("PROMPT_FLOW_DEPLOYMENT_NAME", "")
-
-        # Chat History DB Integration Settings
-        # Set default values based on DATABASE_TYPE
-        self.DATABASE_TYPE = os.getenv("DATABASE_TYPE", "").strip() or "CosmosDB"
-        # Cosmos DB configuration
-        if self.DATABASE_TYPE == DatabaseType.COSMOSDB.value:
-            azure_cosmosdb_info = self.get_info_from_env("AZURE_COSMOSDB_INFO", "")
-            self.AZURE_COSMOSDB_DATABASE = azure_cosmosdb_info.get("databaseName", "")
-            self.AZURE_COSMOSDB_ACCOUNT = azure_cosmosdb_info.get("accountName", "")
-            self.AZURE_COSMOSDB_CONVERSATIONS_CONTAINER = azure_cosmosdb_info.get(
-                "containerName", ""
-            )
-            self.AZURE_COSMOSDB_ACCOUNT_KEY = self.secretHelper.get_secret(
-                "AZURE_COSMOSDB_ACCOUNT_KEY"
-            )
-            self.AZURE_COSMOSDB_ENABLE_FEEDBACK = (
-                os.getenv("AZURE_COSMOSDB_ENABLE_FEEDBACK", "false").lower() == "true"
-            )
-        # PostgreSQL configuration
-        elif self.DATABASE_TYPE == DatabaseType.POSTGRESQL.value:
-            self.AZURE_POSTGRES_SEARCH_TOP_K = self.get_env_var_int(
-                "AZURE_POSTGRES_SEARCH_TOP_K", 5
-            )
-            azure_postgresql_info = self.get_info_from_env("AZURE_POSTGRESQL_INFO", "")
-            self.POSTGRESQL_USER = azure_postgresql_info.get("user", "")
-            self.POSTGRESQL_DATABASE = azure_postgresql_info.get("dbname", "")
-            self.POSTGRESQL_HOST = azure_postgresql_info.get("host", "")
-        else:
-            raise ValueError(
-                "Unsupported DATABASE_TYPE. Please set DATABASE_TYPE to 'CosmosDB' or 'PostgreSQL'."
-            )
 
     def is_chat_model(self):
         if "gpt-4" in self.AZURE_OPENAI_MODEL_NAME.lower():

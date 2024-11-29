@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.30.23.60470",
-      "templateHash": "936545603138294666"
+      "templateHash": "15176273744623029817"
     }
   },
   "parameters": {
@@ -215,7 +215,7 @@
       "type": "bool",
       "defaultValue": false,
       "metadata": {
-        "description": "Use Azure Search Integrated Vectorization"
+        "description": "Whether to use Azure Search Integrated Vectorization. If the database type is PostgreSQL, set this to false."
       }
     },
     "azureOpenAIResourceName": {
@@ -264,7 +264,7 @@
       "type": "bool",
       "defaultValue": false,
       "metadata": {
-        "description": "Enables the use of a vision LLM and Computer Vision for embedding images"
+        "description": "Whether to enable the use of a vision LLM and Computer Vision for embedding images. If the database type is PostgreSQL, set this to false."
       }
     },
     "advancedImageProcessingMaxImages": {
@@ -614,10 +614,10 @@
     },
     "databaseType": {
       "type": "string",
-      "defaultValue": "cosmos",
+      "defaultValue": "CosmosDB",
       "allowedValues": [
-        "cosmos",
-        "postgres"
+        "CosmosDB",
+        "PostgreSQL"
       ],
       "metadata": {
         "description": "The type of database to deploy (cosmos or postgres)"
@@ -690,7 +690,7 @@
       "tags": "[variables('tags')]"
     },
     {
-      "condition": "[equals(parameters('databaseType'), 'postgres')]",
+      "condition": "[equals(parameters('databaseType'), 'PostgreSQL')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
       "name": "deploy_managed_identity",
@@ -783,7 +783,7 @@
       ]
     },
     {
-      "condition": "[equals(parameters('databaseType'), 'cosmos')]",
+      "condition": "[equals(parameters('databaseType'), 'CosmosDB')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
       "name": "deploy_cosmos_db",
@@ -946,7 +946,7 @@
       ]
     },
     {
-      "condition": "[equals(parameters('databaseType'), 'postgres')]",
+      "condition": "[equals(parameters('databaseType'), 'PostgreSQL')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
       "name": "deploy_postgres_sql",
@@ -2070,11 +2070,11 @@
             "value": "[parameters('speechServiceName')]"
           },
           "computerVisionName": "[if(parameters('useAdvancedImageProcessing'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.name.value), createObject('value', ''))]",
-          "cosmosAccountName": "[if(equals(parameters('databaseType'), 'cosmos'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosAccountName), createObject('value', ''))]",
-          "postgresServerName": "[if(equals(parameters('databaseType'), 'postgres'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName), createObject('value', ''))]",
-          "postgresDatabaseName": "[if(equals(parameters('databaseType'), 'postgres'), createObject('value', 'postgres'), createObject('value', ''))]",
-          "postgresDatabaseAdminUserName": "[if(equals(parameters('databaseType'), 'postgres'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbUser), createObject('value', ''))]",
-          "postgresDatabaseAdminPassword": "[if(equals(parameters('databaseType'), 'postgres'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbPwd), createObject('value', ''))]",
+          "cosmosAccountName": "[if(equals(parameters('databaseType'), 'CosmosDB'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosAccountName), createObject('value', ''))]",
+          "postgresServerName": "[if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName), createObject('value', ''))]",
+          "postgresDatabaseName": "[if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('value', 'PostgreSQL'), createObject('value', ''))]",
+          "postgresDatabaseAdminUserName": "[if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbUser), createObject('value', ''))]",
+          "postgresDatabaseAdminPassword": "[if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbPwd), createObject('value', ''))]",
           "rgName": {
             "value": "[variables('rgName')]"
           }
@@ -2086,7 +2086,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "4301444608123274670"
+              "templateHash": "10141904934443597449"
             }
           },
           "parameters": {
@@ -2132,7 +2132,7 @@
             },
             "postgresDatabaseName": {
               "type": "string",
-              "defaultValue": "postgres"
+              "defaultValue": "PostgreSQL"
             },
             "postgresInfoName": {
               "type": "string",
@@ -2651,8 +2651,8 @@
           "contentSafetyKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.CONTENT_SAFETY_KEY_NAME.value), createObject('value', ''))]",
           "speechKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SPEECH_KEY_NAME.value), createObject('value', ''))]",
           "computerVisionKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.COMPUTER_VISION_KEY_NAME.value), createObject('value', ''))]",
-          "cosmosDBKeyName": "[if(and(equals(parameters('databaseType'), 'cosmos'), parameters('useKeyVault')), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.COSMOS_ACCOUNT_KEY_NAME.value), createObject('value', ''))]",
-          "postgresInfoName": "[if(and(equals(parameters('databaseType'), 'postgres'), parameters('useKeyVault')), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.POSTGRESQL_INFO_NAME.value), createObject('value', ''))]",
+          "cosmosDBKeyName": "[if(and(equals(parameters('databaseType'), 'CosmosDB'), parameters('useKeyVault')), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.COSMOS_ACCOUNT_KEY_NAME.value), createObject('value', ''))]",
+          "postgresInfoName": "[if(and(equals(parameters('databaseType'), 'PostgreSQL'), parameters('useKeyVault')), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.POSTGRESQL_INFO_NAME.value), createObject('value', ''))]",
           "useKeyVault": {
             "value": "[parameters('useKeyVault')]"
           },
@@ -2661,7 +2661,7 @@
             "value": "[parameters('authType')]"
           },
           "appSettings": {
-            "value": "[union(createObject('AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value, 'AZURE_OPENAI_RESOURCE', parameters('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL_INFO', variables('azureOpenAIModelInfo'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL_INFO', variables('azureOpenAIEmbeddingModelInfo'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', parameters('azureSearchUseSemanticSearch'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', parameters('azureAISearchName')), 'AZURE_SEARCH_INDEX', parameters('azureSearchIndex'), 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', parameters('azureSearchConversationLogIndex'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', parameters('azureSearchUseIntegratedVectorization'), 'AZURE_SPEECH_SERVICE_NAME', parameters('speechServiceName'), 'AZURE_SPEECH_SERVICE_REGION', parameters('location'), 'AZURE_SPEECH_RECOGNIZER_LANGUAGES', parameters('recognizedLanguages'), 'USE_ADVANCED_IMAGE_PROCESSING', parameters('useAdvancedImageProcessing'), 'ADVANCED_IMAGE_PROCESSING_MAX_IMAGES', parameters('advancedImageProcessingMaxImages'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'AZURE_DATABASE_TYPE', parameters('databaseType')), if(equals(parameters('databaseType'), 'cosmos'), createObject('AZURE_COSMOSDB_INFO', string(createObject('accountName', if(equals(parameters('databaseType'), 'cosmos'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosAccountName, ''), 'databaseName', if(equals(parameters('databaseType'), 'cosmos'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosDatabaseName, ''), 'containerName', if(equals(parameters('databaseType'), 'cosmos'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosContainerName, ''))), 'AZURE_COSMOSDB_ENABLE_FEEDBACK', true()), if(equals(parameters('databaseType'), 'postgres'), createObject('AZURE_POSTGRES_INFO', string(createObject('serverName', format('{0}.postgres.database.azure.com', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName), 'databaseName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'userName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbUser, 'password', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbPwd))), createObject())))]"
+            "value": "[union(createObject('AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value, 'AZURE_OPENAI_RESOURCE', parameters('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL_INFO', variables('azureOpenAIModelInfo'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL_INFO', variables('azureOpenAIEmbeddingModelInfo'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', parameters('azureSearchUseSemanticSearch'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', parameters('azureAISearchName')), 'AZURE_SEARCH_INDEX', parameters('azureSearchIndex'), 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', parameters('azureSearchConversationLogIndex'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', parameters('azureSearchUseIntegratedVectorization'), 'AZURE_SPEECH_SERVICE_NAME', parameters('speechServiceName'), 'AZURE_SPEECH_SERVICE_REGION', parameters('location'), 'AZURE_SPEECH_RECOGNIZER_LANGUAGES', parameters('recognizedLanguages'), 'USE_ADVANCED_IMAGE_PROCESSING', parameters('useAdvancedImageProcessing'), 'ADVANCED_IMAGE_PROCESSING_MAX_IMAGES', parameters('advancedImageProcessingMaxImages'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'AZURE_DATABASE_TYPE', parameters('databaseType')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_COSMOSDB_INFO', string(createObject('accountName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosAccountName, ''), 'databaseName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosDatabaseName, ''), 'containerName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosContainerName, ''))), 'AZURE_COSMOSDB_ENABLE_FEEDBACK', true()), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRES_INFO', string(createObject('serverName', format('{0}.postgres.database.azure.com', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName), 'databaseName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'userName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbUser, 'password', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbPwd))), createObject())))]"
           }
         },
         "template": {
@@ -2671,7 +2671,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "8696900365541524252"
+              "templateHash": "13375017292788108601"
             }
           },
           "parameters": {
@@ -2793,7 +2793,7 @@
             },
             "databaseType": {
               "type": "string",
-              "defaultValue": "cosmos"
+              "defaultValue": "CosmosDB"
             },
             "cosmosDBKeyName": {
               "type": "string",
@@ -2835,7 +2835,7 @@
                     "value": "[parameters('appServicePlanId')]"
                   },
                   "appSettings": {
-                    "value": "[union(parameters('appSettings'), union(if(equals(parameters('databaseType'), 'cosmos'), createObject('DATABASE_TYPE', 'cosmos', 'AZURE_COSMOSDB_ACCOUNT_KEY', if(or(parameters('useKeyVault'), equals(parameters('cosmosDBKeyName'), '')), parameters('cosmosDBKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDBKeyName')), '2022-08-15').primaryMasterKey)), createObject('DATABASE_TYPE', 'postgres', 'AZURE_POSTGRESQL_INFO', if(parameters('useKeyVault'), parameters('postgresInfoName'), ''))), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1))))]"
+                    "value": "[union(parameters('appSettings'), union(if(equals(parameters('databaseType'), 'CosmosDB'), createObject('DATABASE_TYPE', 'CosmosDB', 'AZURE_COSMOSDB_ACCOUNT_KEY', if(or(parameters('useKeyVault'), equals(parameters('cosmosDBKeyName'), '')), parameters('cosmosDBKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDBKeyName')), '2022-08-15').primaryMasterKey)), createObject('DATABASE_TYPE', 'PostgreSQL', 'AZURE_POSTGRESQL_INFO', if(parameters('useKeyVault'), parameters('postgresInfoName'), ''))), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1))))]"
                   },
                   "keyVaultName": {
                     "value": "[parameters('keyVaultName')]"
@@ -2854,7 +2854,7 @@
                     "value": "[parameters('healthCheckPath')]"
                   },
                   "managedIdentity": {
-                    "value": "[equals(parameters('databaseType'), 'postgres')]"
+                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
                   }
                 },
                 "template": {
@@ -3490,7 +3490,7 @@
               ]
             },
             {
-              "condition": "[equals(parameters('databaseType'), 'cosmos')]",
+              "condition": "[equals(parameters('databaseType'), 'CosmosDB')]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2022-09-01",
               "name": "[format('cosmos-sql-user-role-{0}', format('{0}-app-module', parameters('name')))]",
@@ -3651,8 +3651,8 @@
           "computerVisionKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.COMPUTER_VISION_KEY_NAME.value), createObject('value', ''))]",
           "contentSafetyKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.CONTENT_SAFETY_KEY_NAME.value), createObject('value', ''))]",
           "speechKeyName": "[if(parameters('useKeyVault'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.SPEECH_KEY_NAME.value), createObject('value', ''))]",
-          "cosmosDBKeyName": "[if(and(equals(parameters('databaseType'), 'cosmos'), parameters('useKeyVault')), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.COSMOS_ACCOUNT_KEY_NAME.value), createObject('value', ''))]",
-          "postgresInfoName": "[if(and(equals(parameters('databaseType'), 'postgres'), parameters('useKeyVault')), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.POSTGRESQL_INFO_NAME.value), createObject('value', ''))]",
+          "cosmosDBKeyName": "[if(and(equals(parameters('databaseType'), 'CosmosDB'), parameters('useKeyVault')), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.COSMOS_ACCOUNT_KEY_NAME.value), createObject('value', ''))]",
+          "postgresInfoName": "[if(and(equals(parameters('databaseType'), 'PostgreSQL'), parameters('useKeyVault')), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.POSTGRESQL_INFO_NAME.value), createObject('value', ''))]",
           "useKeyVault": {
             "value": "[parameters('useKeyVault')]"
           },
@@ -3661,7 +3661,7 @@
             "value": "[parameters('authType')]"
           },
           "appSettings": {
-            "value": "[union(createObject('AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value, 'AZURE_OPENAI_RESOURCE', parameters('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL_INFO', variables('azureOpenAIModelInfo'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL_INFO', variables('azureOpenAIEmbeddingModelInfo'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', parameters('azureSearchUseSemanticSearch'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', parameters('azureAISearchName')), 'AZURE_SEARCH_INDEX', parameters('azureSearchIndex'), 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', parameters('azureSearchConversationLogIndex'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', parameters('azureSearchUseIntegratedVectorization'), 'AZURE_SPEECH_SERVICE_NAME', parameters('speechServiceName'), 'AZURE_SPEECH_SERVICE_REGION', parameters('location'), 'AZURE_SPEECH_RECOGNIZER_LANGUAGES', parameters('recognizedLanguages'), 'USE_ADVANCED_IMAGE_PROCESSING', parameters('useAdvancedImageProcessing'), 'ADVANCED_IMAGE_PROCESSING_MAX_IMAGES', parameters('advancedImageProcessingMaxImages'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'AZURE_DATABASE_TYPE', parameters('databaseType')), if(equals(parameters('databaseType'), 'cosmos'), createObject('AZURE_COSMOSDB_INFO', string(createObject('accountName', if(equals(parameters('databaseType'), 'cosmos'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosAccountName, ''), 'databaseName', if(equals(parameters('databaseType'), 'cosmos'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosDatabaseName, ''), 'containerName', if(equals(parameters('databaseType'), 'cosmos'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosContainerName, ''))), 'AZURE_COSMOSDB_ENABLE_FEEDBACK', true()), if(equals(parameters('databaseType'), 'postgres'), createObject('AZURE_POSTGRESDB_INFO', string(createObject('serverName', format('{0}.postgres.database.azure.com', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName), 'databaseName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'userName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbUser, 'password', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbPwd))), createObject())))]"
+            "value": "[union(createObject('AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value, 'AZURE_OPENAI_RESOURCE', parameters('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL_INFO', variables('azureOpenAIModelInfo'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL_INFO', variables('azureOpenAIEmbeddingModelInfo'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', parameters('azureSearchUseSemanticSearch'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', parameters('azureAISearchName')), 'AZURE_SEARCH_INDEX', parameters('azureSearchIndex'), 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', parameters('azureSearchConversationLogIndex'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', parameters('azureSearchUseIntegratedVectorization'), 'AZURE_SPEECH_SERVICE_NAME', parameters('speechServiceName'), 'AZURE_SPEECH_SERVICE_REGION', parameters('location'), 'AZURE_SPEECH_RECOGNIZER_LANGUAGES', parameters('recognizedLanguages'), 'USE_ADVANCED_IMAGE_PROCESSING', parameters('useAdvancedImageProcessing'), 'ADVANCED_IMAGE_PROCESSING_MAX_IMAGES', parameters('advancedImageProcessingMaxImages'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'AZURE_DATABASE_TYPE', parameters('databaseType')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_COSMOSDB_INFO', string(createObject('accountName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosAccountName, ''), 'databaseName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosDatabaseName, ''), 'containerName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosContainerName, ''))), 'AZURE_COSMOSDB_ENABLE_FEEDBACK', true()), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESDB_INFO', string(createObject('serverName', format('{0}.postgres.database.azure.com', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName), 'databaseName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'userName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbUser, 'password', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbPwd))), createObject())))]"
           }
         },
         "template": {
@@ -3671,7 +3671,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "8696900365541524252"
+              "templateHash": "13375017292788108601"
             }
           },
           "parameters": {
@@ -3793,7 +3793,7 @@
             },
             "databaseType": {
               "type": "string",
-              "defaultValue": "cosmos"
+              "defaultValue": "CosmosDB"
             },
             "cosmosDBKeyName": {
               "type": "string",
@@ -3835,7 +3835,7 @@
                     "value": "[parameters('appServicePlanId')]"
                   },
                   "appSettings": {
-                    "value": "[union(parameters('appSettings'), union(if(equals(parameters('databaseType'), 'cosmos'), createObject('DATABASE_TYPE', 'cosmos', 'AZURE_COSMOSDB_ACCOUNT_KEY', if(or(parameters('useKeyVault'), equals(parameters('cosmosDBKeyName'), '')), parameters('cosmosDBKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDBKeyName')), '2022-08-15').primaryMasterKey)), createObject('DATABASE_TYPE', 'postgres', 'AZURE_POSTGRESQL_INFO', if(parameters('useKeyVault'), parameters('postgresInfoName'), ''))), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1))))]"
+                    "value": "[union(parameters('appSettings'), union(if(equals(parameters('databaseType'), 'CosmosDB'), createObject('DATABASE_TYPE', 'CosmosDB', 'AZURE_COSMOSDB_ACCOUNT_KEY', if(or(parameters('useKeyVault'), equals(parameters('cosmosDBKeyName'), '')), parameters('cosmosDBKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDBKeyName')), '2022-08-15').primaryMasterKey)), createObject('DATABASE_TYPE', 'PostgreSQL', 'AZURE_POSTGRESQL_INFO', if(parameters('useKeyVault'), parameters('postgresInfoName'), ''))), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1))))]"
                   },
                   "keyVaultName": {
                     "value": "[parameters('keyVaultName')]"
@@ -3854,7 +3854,7 @@
                     "value": "[parameters('healthCheckPath')]"
                   },
                   "managedIdentity": {
-                    "value": "[equals(parameters('databaseType'), 'postgres')]"
+                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
                   }
                 },
                 "template": {
@@ -4490,7 +4490,7 @@
               ]
             },
             {
-              "condition": "[equals(parameters('databaseType'), 'cosmos')]",
+              "condition": "[equals(parameters('databaseType'), 'CosmosDB')]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2022-09-01",
               "name": "[format('cosmos-sql-user-role-{0}', format('{0}-app-module', parameters('name')))]",
@@ -4711,7 +4711,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "14757216181799932354"
+              "templateHash": "1041527018081544410"
             }
           },
           "parameters": {
@@ -4829,7 +4829,7 @@
             },
             "databaseType": {
               "type": "string",
-              "defaultValue": "cosmos"
+              "defaultValue": "CosmosDB"
             }
           },
           "resources": [
@@ -4876,7 +4876,7 @@
                     "value": "[parameters('appServicePlanId')]"
                   },
                   "managedIdentity": {
-                    "value": "[equals(parameters('databaseType'), 'postgres')]"
+                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
                   },
                   "appSettings": {
                     "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
@@ -5669,7 +5669,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "14757216181799932354"
+              "templateHash": "1041527018081544410"
             }
           },
           "parameters": {
@@ -5787,7 +5787,7 @@
             },
             "databaseType": {
               "type": "string",
-              "defaultValue": "cosmos"
+              "defaultValue": "CosmosDB"
             }
           },
           "resources": [
@@ -5834,7 +5834,7 @@
                     "value": "[parameters('appServicePlanId')]"
                   },
                   "managedIdentity": {
-                    "value": "[equals(parameters('databaseType'), 'postgres')]"
+                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
                   },
                   "appSettings": {
                     "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
@@ -12002,7 +12002,7 @@
       ]
     },
     {
-      "condition": "[equals(parameters('databaseType'), 'postgres')]",
+      "condition": "[equals(parameters('databaseType'), 'PostgreSQL')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
       "name": "deploy_create_table_script",
@@ -12350,7 +12350,7 @@
     },
     "AZURE_COSMOSDB_INFO": {
       "type": "string",
-      "value": "[string(createObject('accountName', if(equals(parameters('databaseType'), 'cosmos'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosAccountName, ''), 'databaseName', if(equals(parameters('databaseType'), 'cosmos'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosDatabaseName, ''), 'containerName', if(equals(parameters('databaseType'), 'cosmos'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosContainerName, '')))]"
+      "value": "[string(createObject('accountName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosAccountName, ''), 'databaseName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosDatabaseName, ''), 'containerName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosContainerName, '')))]"
     },
     "AZURE_POSTGRESDB_INFO": {
       "type": "string",

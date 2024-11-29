@@ -28,7 +28,7 @@ param speechKeyName string = ''
 param authType string
 param dockerFullImageName string = ''
 param useDocker bool = dockerFullImageName != ''
-param databaseType string = 'cosmos' // 'cosmos' or 'postgres'
+param databaseType string = 'CosmosDB' // 'CosmosDB' or 'PostgreSQL'
 
 var azureFormRecognizerInfoUpdated = useKeyVault
   ? azureFormRecognizerInfo
@@ -69,7 +69,7 @@ module adminweb '../core/host/appservice.bicep' = {
     scmDoBuildDuringDeployment: useDocker ? false : true
     applicationInsightsName: applicationInsightsName
     appServicePlanId: appServicePlanId
-    managedIdentity: databaseType == 'postgres'
+    managedIdentity: databaseType == 'PostgreSQL'
     appSettings: union(appSettings, {
       AZURE_AUTH_TYPE: authType
       USE_KEY_VAULT: useKeyVault ? useKeyVault : ''
