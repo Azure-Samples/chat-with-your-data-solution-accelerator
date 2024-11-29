@@ -59,8 +59,7 @@ def grant_permissions(cursor, dbname, schema_name, principal_name):
 
 postgres_details =  json.loads(get_secrets_from_kv(key_vault_name, "AZURE-POSTGRESQL-INFO"))
 host = postgres_details.get("host", "")
-dbname = postgres_details.get("database", "")
-password = postgres_details.get("password", "")
+dbname = postgres_details.get("dbname", "")
 
 # Acquire the access token
 cred = DefaultAzureCredential()

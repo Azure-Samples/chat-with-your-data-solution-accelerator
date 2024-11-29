@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.30.23.60470",
-      "templateHash": "13094848063702055322"
+      "templateHash": "12968861470765416454"
     }
   },
   "parameters": {
@@ -2085,7 +2085,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "3141925625583847916"
+              "templateHash": "1863464702640092735"
             }
           },
           "parameters": {
@@ -2131,7 +2131,7 @@
             },
             "postgresDatabaseName": {
               "type": "string",
-              "defaultValue": "PostgreSQL"
+              "defaultValue": "postgres"
             },
             "postgresInfoName": {
               "type": "string",
