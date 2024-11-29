@@ -57,8 +57,8 @@ def grant_permissions(cursor, dbname, schema_name, principal_name):
     )
 
 postgres_details =  json.loads(get_secrets_from_kv(key_vault_name, "AZURE-POSTGRESQL-INFO"))
-host = postgres_details.get("host", "")
-dbname = postgres_details.get("dbname", "")
+host = postgres_details.get("POSTGRESQL_HOST", "")
+dbname = postgres_details.get("POSTGRESQL_DATABASE", "")
 password = postgres_details.get("password", "")
 
 # Acquire the access token
@@ -73,8 +73,9 @@ conn = psycopg2.connect(conn_string)
 cursor = conn.cursor()
 
 grant_permissions(cursor, dbname, "public", principal_name)
-grant_permissions(cursor, dbname, "public", admin_principal_name)
 conn.commit()
+# grant_permissions(cursor, dbname, "public", admin_principal_name)
+# conn.commit()
 
 # Drop and recreate the conversations table
 cursor.execute("DROP TABLE IF EXISTS conversations")
