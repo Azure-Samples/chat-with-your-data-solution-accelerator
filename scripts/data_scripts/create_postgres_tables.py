@@ -7,6 +7,7 @@ from psycopg2 import sql
 key_vault_name = "kv_to-be-replaced"
 principal_name = "webAppPrincipalName"
 admin_principal_name = "adminAppPrincipalName"
+function_app_principal_name = "functionAppPrincipalName"
 user = "managedIdentityName"
 
 def get_secrets_from_kv(kv_name, secret_name):
@@ -72,11 +73,6 @@ conn_string = "host={0} user={1} dbname={2} password={3} sslmode=require".format
 conn = psycopg2.connect(conn_string)
 cursor = conn.cursor()
 
-grant_permissions(cursor, dbname, "public", principal_name)
-conn.commit()
-# grant_permissions(cursor, dbname, "public", admin_principal_name)
-# conn.commit()
-
 # Drop and recreate the conversations table
 cursor.execute("DROP TABLE IF EXISTS conversations")
 conn.commit()
@@ -135,6 +131,15 @@ cursor.execute(table_create_command)
 conn.commit()
 
 cursor.execute("CREATE INDEX search_indexes_content_vector_diskann_idx ON search_indexes USING diskann (content_vector vector_cosine_ops);")
+conn.commit()
+
+grant_permissions(cursor, dbname, "public", principal_name)
+conn.commit()
+
+grant_permissions(cursor, dbname, "public", admin_principal_name)
+conn.commit()
+
+grant_permissions(cursor, dbname, "public", function_app_principal_name)
 conn.commit()
 
 cursor.close()

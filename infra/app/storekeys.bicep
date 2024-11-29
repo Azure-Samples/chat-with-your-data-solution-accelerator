@@ -11,7 +11,6 @@ param postgresServerName string = '' // PostgreSQL server name
 param postgresDatabaseName string = 'PostgreSQL' // Default database name
 param postgresInfoName string = 'AZURE-POSTGRESQL-INFO' // Secret name for PostgreSQL info
 param postgresDatabaseAdminUserName string = ''
-param postgresDatabaseAdminPassword string = ''
 param storageAccountKeyName string = 'AZURE-STORAGE-ACCOUNT-KEY'
 param openAIKeyName string = 'AZURE-OPENAI-API-KEY'
 param searchKeyName string = 'AZURE-SEARCH-KEY'
@@ -111,7 +110,6 @@ resource postgresInfoSecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if 
           user: postgresDatabaseAdminUserName
           dbname: postgresDatabaseName
           host: postgresServerName
-          password: postgresDatabaseAdminPassword
         })
       : ''
   }

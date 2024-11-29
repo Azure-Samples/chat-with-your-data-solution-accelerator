@@ -539,9 +539,6 @@ module storekeys './app/storekeys.bicep' = if (useKeyVault) {
     postgresDatabaseAdminUserName: databaseType == 'PostgreSQL'
       ? postgresDBModule.outputs.postgresDbOutput.postgreSQLDbUser
       : ''
-    postgresDatabaseAdminPassword: databaseType == 'PostgreSQL'
-      ? postgresDBModule.outputs.postgresDbOutput.postgreSQLDbPwd
-      : ''
     rgName: rgName
   }
 }
@@ -589,10 +586,9 @@ var azureCosmosDBInfo = string({
 })
 
 var azurePostgresDBInfo = string({
-  serverName: '${postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName}.postgres.database.azure.com'
+  serverName: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
   databaseName: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-  userName: postgresDBModule.outputs.postgresDbOutput.postgreSQLDbUser
-  password: postgresDBModule.outputs.postgresDbOutput.postgreSQLDbPwd
+  userName: ''
 })
 
 module web './app/web.bicep' = if (hostingModel == 'code') {
@@ -692,7 +688,11 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
           }
         : databaseType == 'PostgreSQL'
             ? {
-                AZURE_POSTGRES_INFO: azurePostgresDBInfo
+                AZURE_POSTGRESDB_INFO: string({
+                  host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+                  dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+                  user: websiteName
+              })
               }
             : {}
     )
@@ -795,7 +795,11 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
           }
         : databaseType == 'PostgreSQL'
             ? {
-                AZURE_POSTGRESDB_INFO: azurePostgresDBInfo
+                AZURE_POSTGRESDB_INFO: string({
+                  host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+                  dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+                  user: '${websiteName}-docker'
+                })
               }
             : {}
     )
@@ -873,6 +877,13 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
+      AZURE_POSTGRESDB_INFO: databaseType == 'PostgreSQL'
+            ? string({
+              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+              user: adminWebsiteName
+            })
+            : {}
     }
   }
 }
@@ -947,6 +958,13 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
+      AZURE_POSTGRESDB_INFO: databaseType == 'PostgreSQL'
+            ? string({
+              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+              user: '${adminWebsiteName}-docker'
+            })
+            : {}
     }
   }
 }
@@ -1014,6 +1032,7 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
+    databaseType: databaseType
     appSettings: {
       AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
@@ -1042,6 +1061,13 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
       LOGLEVEL: logLevel
       AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
       AZURE_SEARCH_TOP_K: azureSearchTopK
+      AZURE_POSTGRESDB_INFO: databaseType == 'PostgreSQL'
+            ? string({
+                  host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+                  dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+                  user: functionName
+            })
+            : {}
     }
   }
 }
@@ -1074,6 +1100,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
+    databaseType: databaseType
     appSettings: {
       AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
@@ -1102,6 +1129,13 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
       LOGLEVEL: logLevel
       AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
       AZURE_SEARCH_TOP_K: azureSearchTopK
+      AZURE_POSTGRESDB_INFO: databaseType == 'PostgreSQL'
+            ? string({
+              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+              user: '${functionName}-docker'
+            })
+            : {}
     }
   }
 }
@@ -1259,6 +1293,7 @@ module createIndex './core/database/deploy_create_table_script.bicep' = if (data
     postgresSqlServerName: postgresDBModule.outputs.postgresDbOutput.postgresSQLName
     webAppPrincipalName: hostingModel == 'code' ? web.outputs.FRONTEND_API_NAME : web_docker.outputs.FRONTEND_API_NAME
     adminAppPrincipalName: hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_NAME : adminweb_docker.outputs.WEBSITE_ADMIN_NAME
+    functionAppPrincipalName: hostingModel == 'code' ? function.outputs.functionName : function_docker.outputs.functionName
     managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
   }
   scope: rg

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.30.23.60470",
-      "templateHash": "15176273744623029817"
+      "templateHash": "13094848063702055322"
     }
   },
   "parameters": {
@@ -2074,7 +2074,6 @@
           "postgresServerName": "[if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName), createObject('value', ''))]",
           "postgresDatabaseName": "[if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('value', 'PostgreSQL'), createObject('value', ''))]",
           "postgresDatabaseAdminUserName": "[if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbUser), createObject('value', ''))]",
-          "postgresDatabaseAdminPassword": "[if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbPwd), createObject('value', ''))]",
           "rgName": {
             "value": "[variables('rgName')]"
           }
@@ -2086,7 +2085,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "10141904934443597449"
+              "templateHash": "3141925625583847916"
             }
           },
           "parameters": {
@@ -2139,10 +2138,6 @@
               "defaultValue": "AZURE-POSTGRESQL-INFO"
             },
             "postgresDatabaseAdminUserName": {
-              "type": "string",
-              "defaultValue": ""
-            },
-            "postgresDatabaseAdminPassword": {
               "type": "string",
               "defaultValue": ""
             },
@@ -2247,7 +2242,7 @@
               "apiVersion": "2022-07-01",
               "name": "[format('{0}/{1}', parameters('keyVaultName'), parameters('postgresInfoName'))]",
               "properties": {
-                "value": "[if(not(equals(parameters('postgresServerName'), '')), string(createObject('user', parameters('postgresDatabaseAdminUserName'), 'dbname', parameters('postgresDatabaseName'), 'host', parameters('postgresServerName'), 'password', parameters('postgresDatabaseAdminPassword'))), '')]"
+                "value": "[if(not(equals(parameters('postgresServerName'), '')), string(createObject('user', parameters('postgresDatabaseAdminUserName'), 'dbname', parameters('postgresDatabaseName'), 'host', parameters('postgresServerName'))), '')]"
               }
             },
             {
@@ -2661,7 +2656,7 @@
             "value": "[parameters('authType')]"
           },
           "appSettings": {
-            "value": "[union(createObject('AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value, 'AZURE_OPENAI_RESOURCE', parameters('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL_INFO', variables('azureOpenAIModelInfo'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL_INFO', variables('azureOpenAIEmbeddingModelInfo'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', parameters('azureSearchUseSemanticSearch'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', parameters('azureAISearchName')), 'AZURE_SEARCH_INDEX', parameters('azureSearchIndex'), 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', parameters('azureSearchConversationLogIndex'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', parameters('azureSearchUseIntegratedVectorization'), 'AZURE_SPEECH_SERVICE_NAME', parameters('speechServiceName'), 'AZURE_SPEECH_SERVICE_REGION', parameters('location'), 'AZURE_SPEECH_RECOGNIZER_LANGUAGES', parameters('recognizedLanguages'), 'USE_ADVANCED_IMAGE_PROCESSING', parameters('useAdvancedImageProcessing'), 'ADVANCED_IMAGE_PROCESSING_MAX_IMAGES', parameters('advancedImageProcessingMaxImages'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'AZURE_DATABASE_TYPE', parameters('databaseType')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_COSMOSDB_INFO', string(createObject('accountName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosAccountName, ''), 'databaseName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosDatabaseName, ''), 'containerName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosContainerName, ''))), 'AZURE_COSMOSDB_ENABLE_FEEDBACK', true()), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRES_INFO', string(createObject('serverName', format('{0}.postgres.database.azure.com', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName), 'databaseName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'userName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbUser, 'password', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbPwd))), createObject())))]"
+            "value": "[union(createObject('AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value, 'AZURE_OPENAI_RESOURCE', parameters('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL_INFO', variables('azureOpenAIModelInfo'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL_INFO', variables('azureOpenAIEmbeddingModelInfo'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', parameters('azureSearchUseSemanticSearch'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', parameters('azureAISearchName')), 'AZURE_SEARCH_INDEX', parameters('azureSearchIndex'), 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', parameters('azureSearchConversationLogIndex'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', parameters('azureSearchUseIntegratedVectorization'), 'AZURE_SPEECH_SERVICE_NAME', parameters('speechServiceName'), 'AZURE_SPEECH_SERVICE_REGION', parameters('location'), 'AZURE_SPEECH_RECOGNIZER_LANGUAGES', parameters('recognizedLanguages'), 'USE_ADVANCED_IMAGE_PROCESSING', parameters('useAdvancedImageProcessing'), 'ADVANCED_IMAGE_PROCESSING_MAX_IMAGES', parameters('advancedImageProcessingMaxImages'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'AZURE_DATABASE_TYPE', parameters('databaseType')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_COSMOSDB_INFO', string(createObject('accountName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosAccountName, ''), 'databaseName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosDatabaseName, ''), 'containerName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosContainerName, ''))), 'AZURE_COSMOSDB_ENABLE_FEEDBACK', true()), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESDB_INFO', string(createObject('host', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'dbname', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'user', parameters('websiteName')))), createObject())))]"
           }
         },
         "template": {
@@ -3661,7 +3656,7 @@
             "value": "[parameters('authType')]"
           },
           "appSettings": {
-            "value": "[union(createObject('AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value, 'AZURE_OPENAI_RESOURCE', parameters('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL_INFO', variables('azureOpenAIModelInfo'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL_INFO', variables('azureOpenAIEmbeddingModelInfo'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', parameters('azureSearchUseSemanticSearch'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', parameters('azureAISearchName')), 'AZURE_SEARCH_INDEX', parameters('azureSearchIndex'), 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', parameters('azureSearchConversationLogIndex'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', parameters('azureSearchUseIntegratedVectorization'), 'AZURE_SPEECH_SERVICE_NAME', parameters('speechServiceName'), 'AZURE_SPEECH_SERVICE_REGION', parameters('location'), 'AZURE_SPEECH_RECOGNIZER_LANGUAGES', parameters('recognizedLanguages'), 'USE_ADVANCED_IMAGE_PROCESSING', parameters('useAdvancedImageProcessing'), 'ADVANCED_IMAGE_PROCESSING_MAX_IMAGES', parameters('advancedImageProcessingMaxImages'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'AZURE_DATABASE_TYPE', parameters('databaseType')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_COSMOSDB_INFO', string(createObject('accountName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosAccountName, ''), 'databaseName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosDatabaseName, ''), 'containerName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosContainerName, ''))), 'AZURE_COSMOSDB_ENABLE_FEEDBACK', true()), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESDB_INFO', string(createObject('serverName', format('{0}.postgres.database.azure.com', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName), 'databaseName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'userName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbUser, 'password', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbPwd))), createObject())))]"
+            "value": "[union(createObject('AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value, 'AZURE_OPENAI_RESOURCE', parameters('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL_INFO', variables('azureOpenAIModelInfo'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL_INFO', variables('azureOpenAIEmbeddingModelInfo'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', parameters('azureSearchUseSemanticSearch'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', parameters('azureAISearchName')), 'AZURE_SEARCH_INDEX', parameters('azureSearchIndex'), 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', parameters('azureSearchConversationLogIndex'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', parameters('azureSearchUseIntegratedVectorization'), 'AZURE_SPEECH_SERVICE_NAME', parameters('speechServiceName'), 'AZURE_SPEECH_SERVICE_REGION', parameters('location'), 'AZURE_SPEECH_RECOGNIZER_LANGUAGES', parameters('recognizedLanguages'), 'USE_ADVANCED_IMAGE_PROCESSING', parameters('useAdvancedImageProcessing'), 'ADVANCED_IMAGE_PROCESSING_MAX_IMAGES', parameters('advancedImageProcessingMaxImages'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'AZURE_DATABASE_TYPE', parameters('databaseType')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_COSMOSDB_INFO', string(createObject('accountName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosAccountName, ''), 'databaseName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosDatabaseName, ''), 'containerName', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosContainerName, ''))), 'AZURE_COSMOSDB_ENABLE_FEEDBACK', true()), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESDB_INFO', string(createObject('host', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'dbname', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'user', format('{0}-docker', parameters('websiteName'))))), createObject())))]"
           }
         },
         "template": {
@@ -4700,7 +4695,8 @@
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "FUNCTION_KEY": "[variables('clientKey')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "LOGLEVEL": "[parameters('logLevel')]"
+              "LOGLEVEL": "[parameters('logLevel')]",
+              "AZURE_POSTGRESDB_INFO": "[if(equals(parameters('databaseType'), 'PostgreSQL'), string(createObject('host', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'dbname', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'user', parameters('adminWebsiteName'))), createObject())]"
             }
           }
         },
@@ -5539,6 +5535,7 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'keyvault')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql')]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureAISearchName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('speechServiceName'))]",
@@ -5658,7 +5655,8 @@
               "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
               "FUNCTION_KEY": "[variables('clientKey')]",
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "LOGLEVEL": "[parameters('logLevel')]"
+              "LOGLEVEL": "[parameters('logLevel')]",
+              "AZURE_POSTGRESDB_INFO": "[if(equals(parameters('databaseType'), 'PostgreSQL'), string(createObject('host', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'dbname', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'user', format('{0}-docker', parameters('adminWebsiteName')))), createObject())]"
             }
           }
         },
@@ -6497,6 +6495,7 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'keyvault')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql')]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureAISearchName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('speechServiceName'))]",
@@ -8318,6 +8317,9 @@
           "authType": {
             "value": "[parameters('authType')]"
           },
+          "databaseType": {
+            "value": "[parameters('databaseType')]"
+          },
           "appSettings": {
             "value": {
               "AZURE_COMPUTER_VISION_ENDPOINT": "[if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, '')]",
@@ -8346,7 +8348,8 @@
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
               "LOGLEVEL": "[parameters('logLevel')]",
               "AZURE_OPENAI_SYSTEM_MESSAGE": "[parameters('azureOpenAISystemMessage')]",
-              "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]"
+              "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
+              "AZURE_POSTGRESDB_INFO": "[if(equals(parameters('databaseType'), 'PostgreSQL'), string(createObject('host', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'dbname', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'user', parameters('functionName'))), createObject())]"
             }
           }
         },
@@ -8357,7 +8360,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "17678067728265319370"
+              "templateHash": "11172260966600448386"
             }
           },
           "parameters": {
@@ -8464,9 +8467,8 @@
               "type": "string",
               "defaultValue": ""
             },
-            "cosmosDBKeyName": {
-              "type": "string",
-              "defaultValue": ""
+            "databaseType": {
+              "type": "string"
             }
           },
           "resources": [
@@ -8541,6 +8543,9 @@
                   },
                   "useKeyVault": {
                     "value": "[parameters('useKeyVault')]"
+                  },
+                  "managedIdentity": {
+                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
                   },
                   "appSettings": {
                     "value": "[union(parameters('appSettings'), createObject('WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'false', 'AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
@@ -9565,6 +9570,7 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'keyvault')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql')]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureAISearchName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('speechServiceName'))]",
@@ -9642,6 +9648,9 @@
           "authType": {
             "value": "[parameters('authType')]"
           },
+          "databaseType": {
+            "value": "[parameters('databaseType')]"
+          },
           "appSettings": {
             "value": {
               "AZURE_COMPUTER_VISION_ENDPOINT": "[if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, '')]",
@@ -9670,7 +9679,8 @@
               "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
               "LOGLEVEL": "[parameters('logLevel')]",
               "AZURE_OPENAI_SYSTEM_MESSAGE": "[parameters('azureOpenAISystemMessage')]",
-              "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]"
+              "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
+              "AZURE_POSTGRESDB_INFO": "[if(equals(parameters('databaseType'), 'PostgreSQL'), string(createObject('host', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'dbname', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'user', format('{0}-docker', parameters('functionName')))), createObject())]"
             }
           }
         },
@@ -9681,7 +9691,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "17678067728265319370"
+              "templateHash": "11172260966600448386"
             }
           },
           "parameters": {
@@ -9788,9 +9798,8 @@
               "type": "string",
               "defaultValue": ""
             },
-            "cosmosDBKeyName": {
-              "type": "string",
-              "defaultValue": ""
+            "databaseType": {
+              "type": "string"
             }
           },
           "resources": [
@@ -9865,6 +9874,9 @@
                   },
                   "useKeyVault": {
                     "value": "[parameters('useKeyVault')]"
+                  },
+                  "managedIdentity": {
+                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
                   },
                   "appSettings": {
                     "value": "[union(parameters('appSettings'), createObject('WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'false', 'AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
@@ -10889,6 +10901,7 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'keyvault')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'monitoring')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureOpenAIResourceName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql')]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('rgName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('azureAISearchName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('speechServiceName'))]",
@@ -12030,6 +12043,7 @@
           },
           "webAppPrincipalName": "[if(equals(parameters('hostingModel'), 'code'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('websiteName')), '2022-09-01').outputs.FRONTEND_API_NAME.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('websiteName'))), '2022-09-01').outputs.FRONTEND_API_NAME.value))]",
           "adminAppPrincipalName": "[if(equals(parameters('hostingModel'), 'code'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('adminWebsiteName')), '2022-09-01').outputs.WEBSITE_ADMIN_NAME.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName'))), '2022-09-01').outputs.WEBSITE_ADMIN_NAME.value))]",
+          "functionAppPrincipalName": "[if(equals(parameters('hostingModel'), 'code'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('functionName')), '2022-09-01').outputs.functionName.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('functionName'))), '2022-09-01').outputs.functionName.value))]",
           "managedIdentityName": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2022-09-01').outputs.managedIdentityOutput.value.name]"
           }
@@ -12041,7 +12055,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "5666855677780801837"
+              "templateHash": "7476029520107410469"
             }
           },
           "parameters": {
@@ -12071,6 +12085,9 @@
             },
             "managedIdentityName": {
               "type": "string"
+            },
+            "functionAppPrincipalName": {
+              "type": "string"
             }
           },
           "resources": [
@@ -12089,7 +12106,7 @@
               "properties": {
                 "azCliVersion": "2.52.0",
                 "primaryScriptUri": "[format('{0}scripts/run_create_table_script.sh', parameters('baseUrl'))]",
-                "arguments": "[format('{0} {1} {2} {3} {4} {5} {6}', parameters('baseUrl'), parameters('keyVaultName'), resourceGroup().name, parameters('postgresSqlServerName'), parameters('webAppPrincipalName'), parameters('adminAppPrincipalName'), parameters('managedIdentityName'))]",
+                "arguments": "[format('{0} {1} {2} {3} {4} {5} {6} {7}', parameters('baseUrl'), parameters('keyVaultName'), resourceGroup().name, parameters('postgresSqlServerName'), parameters('webAppPrincipalName'), parameters('adminAppPrincipalName'), parameters('functionAppPrincipalName'), parameters('managedIdentityName'))]",
                 "timeout": "PT1H",
                 "retentionInterval": "PT1H",
                 "cleanupPreference": "OnSuccess"
@@ -12101,6 +12118,8 @@
       "dependsOn": [
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('adminWebsiteName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('adminWebsiteName')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('functionName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('functionName')))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'keyvault')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_managed_identity')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql')]",
@@ -12354,7 +12373,7 @@
     },
     "AZURE_POSTGRESDB_INFO": {
       "type": "string",
-      "value": "[string(createObject('serverName', format('{0}.postgres.database.azure.com', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName), 'databaseName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'userName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbUser, 'password', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbPwd))]"
+      "value": "[string(createObject('serverName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'databaseName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'userName', ''))]"
     }
   }
 }
