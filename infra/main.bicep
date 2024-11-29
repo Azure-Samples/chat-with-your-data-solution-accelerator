@@ -344,7 +344,7 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 }
 
 // ========== Managed Identity ========== //
-module managedIdentityModule './core/security/managed-identity.bicep' = if (databaseType == 'postgres') {
+module managedIdentityModule './core/security/managed-identity.bicep' = if (databaseType == 'PostgreSQL') {
   name: 'deploy_managed_identity'
   params: {
     solutionName: resourceToken
@@ -353,7 +353,7 @@ module managedIdentityModule './core/security/managed-identity.bicep' = if (data
   scope: rg
 }
 
-module cosmosDBModule './core/database/cosmosdb.bicep' = if (databaseType == 'cosmos') {
+module cosmosDBModule './core/database/cosmosdb.bicep' = if (databaseType == 'CosmosDB') {
   name: 'deploy_cosmos_db'
   params: {
     name: azureCosmosDBAccountName
@@ -830,6 +830,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
+    databaseType: databaseType
     appSettings: {
       AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
@@ -903,6 +904,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
+    databaseType: databaseType
     appSettings: {
       AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
       AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
@@ -1247,7 +1249,7 @@ module machineLearning 'app/machinelearning.bicep' = if (orchestrationStrategy =
   }
 }
 
-module createIndex './core/database/deploy_create_table_script.bicep' = if (databaseType == 'postgres') {
+module createIndex './core/database/deploy_create_table_script.bicep' = if (databaseType == 'PostgreSQL') {
   name: 'deploy_create_table_script'
   params: {
     solutionLocation: location
@@ -1255,9 +1257,14 @@ module createIndex './core/database/deploy_create_table_script.bicep' = if (data
     baseUrl: baseUrl
     keyVaultName: keyvault.outputs.name
     postgresSqlServerName: postgresDBModule.outputs.postgresDbOutput.postgresSQLName
+    webAppPrincipalName: hostingModel == 'code' ? web.outputs.FRONTEND_API_NAME : web_docker.outputs.FRONTEND_API_NAME
+    adminAppPrincipalName: hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_NAME : adminweb_docker.outputs.WEBSITE_ADMIN_NAME
+    managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
   }
   scope: rg
-  dependsOn: [keyvault, postgresDBModule, storekeys]
+  dependsOn: hostingModel == 'code' ? [keyvault, postgresDBModule, storekeys, web, adminweb] : [
+    [keyvault, postgresDBModule, storekeys, web_docker, adminweb_docker]
+  ]
 }
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString

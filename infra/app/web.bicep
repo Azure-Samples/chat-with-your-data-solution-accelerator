@@ -168,6 +168,7 @@ module web '../core/host/appservice.bicep' = {
     dockerFullImageName: dockerFullImageName
     scmDoBuildDuringDeployment: useDocker ? false : true
     healthCheckPath: healthCheckPath
+    managedIdentity: databaseType == 'PostgreSQL'
   }
 }
 
@@ -223,7 +224,7 @@ resource cosmosRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefi
   name: '${json(appSettings.AZURE_COSMOSDB_INFO).accountName}/00000000-0000-0000-0000-000000000002'
 }
 
-module cosmosUserRole '../core/database/cosmos-sql-role-assign.bicep' = {
+module cosmosUserRole '../core/database/cosmos-sql-role-assign.bicep' = if(databaseType == 'CosmosDB') {
   name: 'cosmos-sql-user-role-${web.name}'
   params: {
     accountName: json(appSettings.AZURE_COSMOSDB_INFO).accountName
