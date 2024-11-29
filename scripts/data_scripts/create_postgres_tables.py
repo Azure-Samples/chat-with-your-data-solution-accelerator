@@ -107,8 +107,8 @@ cursor.execute(create_ms_sql)
 conn.commit()
 
 # Add pg_diskann extension and search_indexes table
-cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_diskann CASCADE;")
-conn.commit()
+# cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_diskann CASCADE;")
+# conn.commit()
 
 cursor.execute("DROP TABLE IF EXISTS search_indexes;")
 conn.commit()
