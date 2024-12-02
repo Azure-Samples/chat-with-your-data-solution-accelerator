@@ -134,8 +134,11 @@ class TestAzurePostgresHelper(unittest.TestCase):
 
         self.assertEqual(str(context.exception), "Query execution error")
 
+    @patch(
+        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
+    )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
-    def test_create_search_client_connection_error(self, mock_connect):
+    def test_create_search_client_connection_error(self, mock_connect, mock_credential):
         # Arrange
         # Mock the EnvHelper and set required attributes
         mock_env_helper = MagicMock()
@@ -143,6 +146,11 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_env_helper.POSTGRESQL_HOST = "mock_host"
         mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
         mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
 
         def raise_exception(*args, **kwargs):
             raise Exception("Connection error")
@@ -158,14 +166,22 @@ class TestAzurePostgresHelper(unittest.TestCase):
 
         self.assertEqual(str(context.exception), "Connection error")
 
+    @patch(
+        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
+    )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
-    def test_get_files_success(self, mock_env_helper, mock_connect):
+    def test_get_files_success(self, mock_env_helper, mock_connect, mock_credential):
         # Mock the EnvHelper attributes
         mock_env_helper.POSTGRESQL_USER = "mock_user"
         mock_env_helper.POSTGRESQL_HOST = "mock_host"
         mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
         mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
 
         # Arrange: Mock the connection and cursor
         mock_connection = MagicMock()
@@ -191,14 +207,22 @@ class TestAzurePostgresHelper(unittest.TestCase):
         )
         mock_connection.close.assert_called_once()
 
+    @patch(
+        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
+    )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
-    def test_get_files_no_results(self, mock_env_helper, mock_connect):
+    def test_get_files_no_results(self, mock_env_helper, mock_connect, mock_credential):
         # Mock the EnvHelper attributes
         mock_env_helper.POSTGRESQL_USER = "mock_user"
         mock_env_helper.POSTGRESQL_HOST = "mock_host"
         mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
         mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
 
         # Arrange: Mock the connection and cursor
         mock_connection = MagicMock()
@@ -219,15 +243,25 @@ class TestAzurePostgresHelper(unittest.TestCase):
         self.assertIsNone(result)
         mock_connection.close.assert_called_once()
 
+    @patch(
+        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
+    )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
-    def test_get_files_db_error(self, mock_logger, mock_env_helper, mock_connect):
+    def test_get_files_db_error(
+        self, mock_logger, mock_env_helper, mock_connect, mock_credential
+    ):
         # Mock the EnvHelper attributes
         mock_env_helper.POSTGRESQL_USER = "mock_user"
         mock_env_helper.POSTGRESQL_HOST = "mock_host"
         mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
         mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
 
         # Arrange: Mock the connection and cursor
         mock_connection = MagicMock()
@@ -250,17 +284,25 @@ class TestAzurePostgresHelper(unittest.TestCase):
         )
         mock_connection.close.assert_called_once()
 
+    @patch(
+        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
+    )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     def test_get_files_unexpected_error(
-        self, mock_logger, mock_env_helper, mock_connect
+        self, mock_logger, mock_env_helper, mock_connect, mock_credential
     ):
         # Mock the EnvHelper attributes
         mock_env_helper.POSTGRESQL_USER = "mock_user"
         mock_env_helper.POSTGRESQL_HOST = "mock_host"
         mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
         mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
 
         # Arrange: Mock the connection and cursor
         mock_connection = MagicMock()
@@ -283,15 +325,25 @@ class TestAzurePostgresHelper(unittest.TestCase):
         )
         mock_connection.close.assert_called_once()
 
+    @patch(
+        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
+    )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
-    def test_delete_documents_success(self, mock_env_helper, mock_logger, mock_connect):
+    def test_delete_documents_success(
+        self, mock_env_helper, mock_logger, mock_connect, mock_credential
+    ):
         # Arrange: Mock the EnvHelper attributes
         mock_env_helper.POSTGRESQL_USER = "mock_user"
         mock_env_helper.POSTGRESQL_HOST = "mock_host"
         mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
         mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
 
         # Mock the connection and cursor
         mock_connection = MagicMock()
@@ -317,15 +369,25 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_connection.close.assert_called_once()
         mock_logger.info.assert_called_with("Deleted 3 documents.")
 
+    @patch(
+        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
+    )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
-    def test_delete_documents_no_ids(self, mock_env_helper, mock_logger, mock_connect):
+    def test_delete_documents_no_ids(
+        self, mock_env_helper, mock_logger, mock_connect, mock_credential
+    ):
         # Arrange: Mock the EnvHelper attributes
         mock_env_helper.POSTGRESQL_USER = "mock_user"
         mock_env_helper.POSTGRESQL_HOST = "mock_host"
         mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
         mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
 
         # Mock the connection and cursor
         mock_connection = MagicMock()
@@ -347,17 +409,25 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_logger.warning.assert_called_with("No IDs provided for deletion.")
         mock_connection.close.assert_called_once()
 
+    @patch(
+        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
+    )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
     def test_delete_documents_db_error(
-        self, mock_env_helper, mock_logger, mock_connect
+        self, mock_env_helper, mock_logger, mock_connect, mock_credential
     ):
         # Arrange: Mock the EnvHelper attributes
         mock_env_helper.POSTGRESQL_USER = "mock_user"
         mock_env_helper.POSTGRESQL_HOST = "mock_host"
         mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
         mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
 
         # Mock the connection and cursor
         mock_connection = MagicMock()
@@ -383,17 +453,25 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_connection.rollback.assert_called_once()
         mock_connection.close.assert_called_once()
 
+    @patch(
+        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
+    )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
     def test_delete_documents_unexpected_error(
-        self, mock_env_helper, mock_logger, mock_connect
+        self, mock_env_helper, mock_logger, mock_connect, mock_credential
     ):
         # Arrange: Mock the EnvHelper attributes
         mock_env_helper.POSTGRESQL_USER = "mock_user"
         mock_env_helper.POSTGRESQL_HOST = "mock_host"
         mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
         mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
 
         # Mock the connection and cursor
         mock_connection = MagicMock()
@@ -419,15 +497,25 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_connection.rollback.assert_called_once()
         mock_connection.close.assert_called_once()
 
+    @patch(
+        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
+    )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
-    def test_perform_search_success(self, mock_env_helper, mock_logger, mock_connect):
+    def test_perform_search_success(
+        self, mock_env_helper, mock_logger, mock_connect, mock_credential
+    ):
         # Arrange: Mock the EnvHelper attributes
         mock_env_helper.POSTGRESQL_USER = "mock_user"
         mock_env_helper.POSTGRESQL_HOST = "mock_host"
         mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
         mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
 
         # Mock the connection and cursor
         mock_connection = MagicMock()
@@ -462,17 +550,25 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_connection.close.assert_called_once()
         mock_logger.info.assert_called_with("Retrieved 1 search result(s).")
 
+    @patch(
+        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
+    )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
     def test_perform_search_no_results(
-        self, mock_env_helper, mock_logger, mock_connect
+        self, mock_env_helper, mock_logger, mock_connect, mock_credential
     ):
         # Arrange: Mock the EnvHelper attributes
         mock_env_helper.POSTGRESQL_USER = "mock_user"
         mock_env_helper.POSTGRESQL_HOST = "mock_host"
         mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
         mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
 
         # Mock the connection and cursor
         mock_connection = MagicMock()
@@ -498,15 +594,25 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_connection.close.assert_called_once()
         mock_logger.info.assert_called_with("Retrieved 0 search result(s).")
 
+    @patch(
+        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
+    )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
-    def test_perform_search_error(self, mock_env_helper, mock_logger, mock_connect):
+    def test_perform_search_error(
+        self, mock_env_helper, mock_logger, mock_connect, mock_credential
+    ):
         # Arrange: Mock the EnvHelper attributes
         mock_env_helper.POSTGRESQL_USER = "mock_user"
         mock_env_helper.POSTGRESQL_HOST = "mock_host"
         mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
         mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
 
         # Mock the connection and cursor
         mock_connection = MagicMock()
@@ -531,15 +637,25 @@ class TestAzurePostgresHelper(unittest.TestCase):
         )
         mock_connection.close.assert_called_once()
 
+    @patch(
+        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
+    )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
-    def test_get_unique_files_success(self, mock_env_helper, mock_logger, mock_connect):
+    def test_get_unique_files_success(
+        self, mock_env_helper, mock_logger, mock_connect, mock_credential
+    ):
         # Arrange: Mock the EnvHelper attributes
         mock_env_helper.POSTGRESQL_USER = "mock_user"
         mock_env_helper.POSTGRESQL_HOST = "mock_host"
         mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
         mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
 
         # Mock the connection and cursor
         mock_connection = MagicMock()
@@ -568,17 +684,25 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_connection.close.assert_called_once()
         mock_logger.info.assert_called_with("Retrieved 2 unique title(s).")
 
+    @patch(
+        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
+    )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
     def test_get_unique_files_no_results(
-        self, mock_env_helper, mock_logger, mock_connect
+        self, mock_env_helper, mock_logger, mock_connect, mock_credential
     ):
         # Arrange: Mock the EnvHelper attributes
         mock_env_helper.POSTGRESQL_USER = "mock_user"
         mock_env_helper.POSTGRESQL_HOST = "mock_host"
         mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
         mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
 
         # Mock the connection and cursor
         mock_connection = MagicMock()
@@ -602,15 +726,25 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_connection.close.assert_called_once()
         mock_logger.info.assert_called_with("Retrieved 0 unique title(s).")
 
+    @patch(
+        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
+    )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
-    def test_get_unique_files_error(self, mock_env_helper, mock_logger, mock_connect):
+    def test_get_unique_files_error(
+        self, mock_env_helper, mock_logger, mock_connect, mock_credential
+    ):
         # Arrange: Mock the EnvHelper attributes
         mock_env_helper.POSTGRESQL_USER = "mock_user"
         mock_env_helper.POSTGRESQL_HOST = "mock_host"
         mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
         mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
 
         # Mock the connection and cursor
         mock_connection = MagicMock()
@@ -633,17 +767,25 @@ class TestAzurePostgresHelper(unittest.TestCase):
         )
         mock_connection.close.assert_called_once()
 
+    @patch(
+        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
+    )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
     def test_search_by_blob_url_success(
-        self, mock_env_helper, mock_logger, mock_connect
+        self, mock_env_helper, mock_logger, mock_connect, mock_credential
     ):
         # Arrange: Mock the EnvHelper attributes
         mock_env_helper.POSTGRESQL_USER = "mock_user"
         mock_env_helper.POSTGRESQL_HOST = "mock_host"
         mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
         mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
 
         # Mock the connection and cursor
         mock_connection = MagicMock()
