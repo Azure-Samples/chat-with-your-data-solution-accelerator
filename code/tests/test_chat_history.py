@@ -2,7 +2,7 @@
 This module tests the entry point for the application.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from create_app import create_app
@@ -25,20 +25,6 @@ def mock_conversation_client():
         mock_conversation_client = AsyncMock()
         mock.return_value = mock_conversation_client
         yield mock_conversation_client
-
-
-@pytest.fixture
-def mock_config_helper():
-    """Mock the ConfigHelper to control the config behavior."""
-    with patch(
-        "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
-    ) as mock:
-        mock_config = MagicMock()
-        mock_config.enable_chat_history = (
-            True  # Ensure chat history is enabled for the test
-        )
-        mock.return_value = mock_config
-        yield mock_config
 
 
 class TestListConversations:
