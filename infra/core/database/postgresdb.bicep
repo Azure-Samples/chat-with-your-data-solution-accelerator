@@ -74,6 +74,17 @@ resource delayScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   ]
 }
 
+
+resource configurations 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2023-12-01-preview' = {
+  name: 'azure.extensions'
+  parent: serverName_resource
+  properties: {
+    value: 'vector'
+    source: 'user-override'
+  }
+}
+
+
 resource azureADAdministrator 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2022-12-01' = {
   parent: serverName_resource
   name: managedIdentityObjectId
@@ -83,7 +94,7 @@ resource azureADAdministrator 'Microsoft.DBforPostgreSQL/flexibleServers/adminis
     tenantId: subscription().tenantId
   }
   dependsOn: [
-    delayScript
+    configurations
   ]
 }
 
@@ -105,7 +116,7 @@ resource firewall_all 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2
     endIpAddress: '255.255.255.255'
   }
   dependsOn: [
-    delayScript
+    azureADAdministrator
   ]
 }
 
@@ -117,28 +128,14 @@ resource firewall_azure 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules
     endIpAddress: '0.0.0.0'
   }
   dependsOn: [
-    delayScript
+    azureADAdministrator
   ]
 }
-
-resource configurations 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2023-12-01-preview' = {
-  name: 'azure.extensions'
-  parent: serverName_resource
-  properties: {
-    value: 'pg_diskann'
-    source: 'user-override'
-  }
-  dependsOn: [
-    firewall_all,firewall_azure
-  ]
-}
-
 
 output postgresDbOutput object = {
   postgresSQLName: serverName_resource.name
   postgreSQLServerName: '${serverName_resource.name}.postgres.database.azure.com'
   postgreSQLDatabaseName: 'postgres'
   postgreSQLDbUser: administratorLogin
-  postgreSQLDbPwd: administratorLoginPassword
   sslMode: 'Require'
 }
