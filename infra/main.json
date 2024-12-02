@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.30.23.60470",
-      "templateHash": "12968861470765416454"
+      "templateHash": "6080738341036036588"
     }
   },
   "parameters": {
@@ -648,7 +648,7 @@
     },
     "rgName": "[format('rg-{0}', parameters('environmentName'))]",
     "keyVaultName": "[format('kv-{0}', parameters('resourceToken'))]",
-    "baseUrl": "https://raw.githubusercontent.com/Fr4nc3/chat-with-your-data-solution-accelerator/bicepdefaults/",
+    "baseUrl": "https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/",
     "azureOpenAIModelInfo": "[string(createObject('model', parameters('azureOpenAIModel'), 'modelName', parameters('azureOpenAIModelName'), 'modelVersion', parameters('azureOpenAIModelVersion')))]",
     "azureOpenAIEmbeddingModelInfo": "[string(createObject('model', parameters('azureOpenAIEmbeddingModel'), 'modelName', parameters('azureOpenAIEmbeddingModelName'), 'modelVersion', parameters('azureOpenAIEmbeddingModelVersion')))]",
     "appversion": "latest",
@@ -977,7 +977,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "17455459966134467610"
+              "templateHash": "10751990458550607112"
             }
           },
           "parameters": {
@@ -1084,16 +1084,12 @@
               }
             },
             {
-              "type": "Microsoft.Resources/deploymentScripts",
-              "apiVersion": "2020-10-01",
-              "name": "waitForServerReady",
-              "location": "[resourceGroup().location]",
-              "kind": "AzurePowerShell",
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers/configurations",
+              "apiVersion": "2023-12-01-preview",
+              "name": "[format('{0}/{1}', parameters('serverName'), 'azure.extensions')]",
               "properties": {
-                "azPowerShellVersion": "3.0",
-                "scriptContent": "start-sleep -Seconds 300",
-                "cleanupPreference": "Always",
-                "retentionInterval": "PT1H"
+                "value": "vector",
+                "source": "user-override"
               },
               "dependsOn": [
                 "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('serverName'))]"
@@ -1109,7 +1105,7 @@
                 "tenantId": "[subscription().tenantId]"
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Resources/deploymentScripts', 'waitForServerReady')]",
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers/configurations', parameters('serverName'), 'azure.extensions')]",
                 "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('serverName'))]"
               ]
             },
@@ -1123,7 +1119,7 @@
                 "endIpAddress": "255.255.255.255"
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Resources/deploymentScripts', 'waitForServerReady')]",
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers/administrators', parameters('serverName'), parameters('managedIdentityObjectId'))]",
                 "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('serverName'))]"
               ]
             },
@@ -1137,21 +1133,7 @@
                 "endIpAddress": "0.0.0.0"
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Resources/deploymentScripts', 'waitForServerReady')]",
-                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('serverName'))]"
-              ]
-            },
-            {
-              "type": "Microsoft.DBforPostgreSQL/flexibleServers/configurations",
-              "apiVersion": "2023-12-01-preview",
-              "name": "[format('{0}/{1}', parameters('serverName'), 'azure.extensions')]",
-              "properties": {
-                "value": "pg_diskann",
-                "source": "user-override"
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers/firewallRules', parameters('serverName'), 'allow-all-IPs')]",
-                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers/firewallRules', parameters('serverName'), 'allow-all-azure-internal-IPs')]",
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers/administrators', parameters('serverName'), parameters('managedIdentityObjectId'))]",
                 "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('serverName'))]"
               ]
             }
@@ -1164,7 +1146,6 @@
                 "postgreSQLServerName": "[format('{0}.postgres.database.azure.com', parameters('serverName'))]",
                 "postgreSQLDatabaseName": "postgres",
                 "postgreSQLDbUser": "[parameters('administratorLogin')]",
-                "postgreSQLDbPwd": "[parameters('administratorLoginPassword')]",
                 "sslMode": "Require"
               }
             }
@@ -2072,7 +2053,7 @@
           "computerVisionName": "[if(parameters('useAdvancedImageProcessing'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.name.value), createObject('value', ''))]",
           "cosmosAccountName": "[if(equals(parameters('databaseType'), 'CosmosDB'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosAccountName), createObject('value', ''))]",
           "postgresServerName": "[if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName), createObject('value', ''))]",
-          "postgresDatabaseName": "[if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('value', 'PostgreSQL'), createObject('value', ''))]",
+          "postgresDatabaseName": "[if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('value', 'postgres'), createObject('value', ''))]",
           "postgresDatabaseAdminUserName": "[if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDbUser), createObject('value', ''))]",
           "rgName": {
             "value": "[variables('rgName')]"

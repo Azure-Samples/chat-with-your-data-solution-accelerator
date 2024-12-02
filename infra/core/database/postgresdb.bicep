@@ -59,21 +59,20 @@ resource serverName_resource 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-
   }
 }
 
-resource delayScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
-  name: 'waitForServerReady'
-  location: resourceGroup().location
-  kind: 'AzurePowerShell'
-  properties: {
-    azPowerShellVersion: '3.0'
-    scriptContent: 'start-sleep -Seconds 300'
-    cleanupPreference: 'Always'
-    retentionInterval: 'PT1H'
-  }
-  dependsOn: [
-    serverName_resource
-  ]
-}
-
+// resource delayScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+//   name: 'waitForServerReady'
+//   location: resourceGroup().location
+//   kind: 'AzurePowerShell'
+//   properties: {
+//     azPowerShellVersion: '3.0'
+//     scriptContent: 'start-sleep -Seconds 300'
+//     cleanupPreference: 'Always'
+//     retentionInterval: 'PT1H'
+//   }
+//   dependsOn: [
+//     serverName_resource
+//   ]
+// }
 
 resource configurations 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2023-12-01-preview' = {
   name: 'azure.extensions'
@@ -83,7 +82,6 @@ resource configurations 'Microsoft.DBforPostgreSQL/flexibleServers/configuration
     source: 'user-override'
   }
 }
-
 
 resource azureADAdministrator 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2022-12-01' = {
   parent: serverName_resource

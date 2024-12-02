@@ -107,30 +107,30 @@ cursor.execute(create_ms_sql)
 conn.commit()
 
 # Add pg_diskann extension and search_indexes table
-# cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_diskann CASCADE;")
-# conn.commit()
+cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_diskann CASCADE;")
+conn.commit()
 
-# cursor.execute("DROP TABLE IF EXISTS search_indexes;")
-# conn.commit()
+cursor.execute("DROP TABLE IF EXISTS search_indexes;")
+conn.commit()
 
-# table_create_command = """CREATE TABLE IF NOT EXISTS search_indexes(
-#     id text,
-#     title text,
-#     chunk integer,
-#     chunk_id text,
-#     "offset" integer,
-#     page_number integer,
-#     content text,
-#     source text,
-#     metadata text,
-#     content_vector public.vector(1536)
-# );"""
+table_create_command = """CREATE TABLE IF NOT EXISTS search_indexes(
+    id text,
+    title text,
+    chunk integer,
+    chunk_id text,
+    "offset" integer,
+    page_number integer,
+    content text,
+    source text,
+    metadata text,
+    content_vector public.vector(1536)
+);"""
 
-# cursor.execute(table_create_command)
-# conn.commit()
+cursor.execute(table_create_command)
+conn.commit()
 
-# cursor.execute("CREATE INDEX search_indexes_content_vector_diskann_idx ON search_indexes USING diskann (content_vector vector_cosine_ops);")
-# conn.commit()
+cursor.execute("CREATE INDEX search_indexes_content_vector_diskann_idx ON search_indexes USING diskann (content_vector vector_cosine_ops);")
+conn.commit()
 
 grant_permissions(cursor, dbname, "public", principal_name)
 conn.commit()
