@@ -27,7 +27,7 @@ param contentSafetyKeyName string = ''
 param speechKeyName string = ''
 param authType string
 param dockerFullImageName string = ''
-param cosmosDBKeyName string = ''
+param databaseType string
 
 var azureFormRecognizerInfoUpdated = useKeyVault
   ? azureFormRecognizerInfo
@@ -67,6 +67,7 @@ module function '../core/host/functions.bicep' = {
     runtimeVersion: runtimeVersion
     dockerFullImageName: dockerFullImageName
     useKeyVault: useKeyVault
+    managedIdentity: databaseType == 'PostgreSQL'
     appSettings: union(appSettings, {
       WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
       AZURE_AUTH_TYPE: authType
