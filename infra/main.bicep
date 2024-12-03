@@ -1,8 +1,5 @@
 targetScope = 'subscription'
 
-@description('Specify the name of the resource group to use. You can provide an existing resource group name, a new resource group name, or leave it blank to create a default resource group.')
-param resourceGroupName string = ''
-
 @minLength(1)
 @maxLength(20)
 @description('Name of the the environment which is used to generate a short unique hash used in all resources.')
@@ -322,7 +319,7 @@ var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
 var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
-var rgName = resourceGroupName == '' ? 'rg-${environmentName}' : resourceGroupName
+var rgName = 'rg-${environmentName}'
 var keyVaultName = 'kv-${resourceToken}'
 var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
 var azureOpenAIModelInfo = string({

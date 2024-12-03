@@ -135,7 +135,7 @@ conn.commit()
 # PG_DISKANN is not available yet
 # cursor.execute("CREATE INDEX search_indexes_content_vector_diskann_idx ON search_indexes USING diskann (content_vector vector_cosine_ops);")
 
-cursor.execute("CREATE INDEX search_indexes_content_vector_idx ON search_indexes USING vector (content_vector vector_cosine_ops);")
+cursor.execute("CREATE INDEX search_indexes_content_vector_idx ON search_indexes USING hnsw (content_vector vector_cosine_ops);")
 conn.commit()
 
 grant_permissions(cursor, dbname, "public", principal_name)
