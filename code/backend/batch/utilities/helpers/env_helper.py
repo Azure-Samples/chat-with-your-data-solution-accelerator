@@ -91,7 +91,9 @@ class EnvHelper:
 
         # Chat History DB Integration Settings
         # Set default values based on DATABASE_TYPE
-        self.DATABASE_TYPE = os.getenv("DATABASE_TYPE", "").strip() or "CosmosDB"
+        self.DATABASE_TYPE = (
+            os.getenv("DATABASE_TYPE", "").strip() or DatabaseType.POSTGRESQL.value
+        )
         # Cosmos DB configuration
         if self.DATABASE_TYPE == DatabaseType.COSMOSDB.value:
             azure_cosmosdb_info = self.get_info_from_env("AZURE_COSMOSDB_INFO", "")

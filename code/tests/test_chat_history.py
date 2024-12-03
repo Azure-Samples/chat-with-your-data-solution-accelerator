@@ -2,7 +2,7 @@
 This module tests the entry point for the application.
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from create_app import create_app
@@ -555,6 +555,54 @@ class TestListConversations:
             "success": True,
         }
 
+    @patch("backend.api.chat_history.AsyncAzureOpenAI")
+    @patch(
+        "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
+    )
+    def test_update_conversation_new_success(
+        self,
+        get_active_config_or_default_mock,
+        azure_openai_mock: MagicMock,
+        mock_conversation_client,
+        client,
+    ):
+        get_active_config_or_default_mock.return_value.enable_chat_history = True
+        mock_conversation_client.get_conversation.return_value = []
+        mock_conversation_client.create_message.return_value = "success"
+        mock_conversation_client.create_conversation.return_value = {
+            "title": "Test Title",
+            "updatedAt": "2024-12-01",
+            "id": "conv1",
+        }
+        request_json = {
+            "conversation_id": "conv1",
+            "messages": [
+                {"role": "user", "content": "Hello"},
+                {"role": "assistant", "content": "Hi!"},
+            ],
+        }
+
+        openai_client_mock = azure_openai_mock.return_value
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(message=MagicMock(content="Test Title"))]
+
+        openai_client_mock.chat.completions.create = AsyncMock(
+            return_value=mock_response
+        )
+
+        response = client.post("/api/history/update", json=request_json)
+
+        assert response.status_code == 200
+        assert response.json == {
+            "data": {
+                "conversation_id": "conv1",
+                "date": "2024-12-01",
+                "title": "Test Title",
+            },
+            "success": True,
+        }
+
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
     )
@@ -567,6 +615,75 @@ class TestListConversations:
         )
         assert response.status_code == 400
         assert response.json == {"error": "Chat history is not available"}
+
+    @patch(
+        "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
+    )
+    def test_update_conversation_connect_error(
+        self, get_active_config_or_default_mock, mock_conversation_client, client
+    ):
+        get_active_config_or_default_mock.return_value.enable_chat_history = True
+        mock_conversation_client.get_conversation.return_value = {
+            "title": "Test Title",
+            "updatedAt": "2024-12-01",
+            "id": "conv1",
+        }
+        request_json = {
+            "conversation_id": "conv1",
+            "messages": [
+                {"role": "user", "content": "Hello"},
+                {"role": "assistant", "content": "Hi!"},
+            ],
+        }
+        mock_conversation_client.connect.side_effect = Exception("Unexpected error")
+
+        # Make the API call
+        response = client.post(
+            "/api/history/update",
+            json=request_json,
+            headers={"Content-Type": "application/json"},
+        )
+
+        # Assert response
+        assert response.status_code == 500
+        assert response.json == {
+            "error": "Error while updating the conversation history"
+        }
+
+    @patch(
+        "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
+    )
+    def test_update_conversation_error(
+        self, get_active_config_or_default_mock, mock_conversation_client, client
+    ):
+        get_active_config_or_default_mock.return_value.enable_chat_history = True
+        mock_conversation_client.create_message.side_effect = Exception(
+            "Unexpected error"
+        )
+        mock_conversation_client.get_conversation.return_value = {
+            "title": "Test Title",
+            "updatedAt": "2024-12-01",
+            "id": "conv1",
+        }
+        request_json = {
+            "conversation_id": "conv1",
+            "messages": [
+                {"role": "user", "content": "Hello"},
+                {"role": "assistant", "content": "Hi!"},
+            ],
+        }
+
+        response = client.post(
+            "/api/history/update",
+            json=request_json,
+            headers={"Content-Type": "application/json"},
+        )
+
+        # Assert response
+        assert response.status_code == 500
+        assert response.json == {
+            "error": "Error while updating the conversation history"
+        }
 
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"

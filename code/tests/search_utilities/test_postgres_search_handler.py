@@ -1,3 +1,4 @@
+import json
 import pytest
 from unittest.mock import MagicMock, patch
 from backend.batch.utilities.common.source_document import SourceDocument
@@ -122,6 +123,54 @@ def test_get_files(handler):
     assert len(result) == 2
     assert result[0] == "test1.txt"
     assert result[1] == "test2.txt"
+
+
+def test_output_results(handler):
+    results = [
+        {"id": "1", "title": "file1.txt"},
+        {"id": "2", "title": "file2.txt"},
+        {"id": "3", "title": "file1.txt"},
+        {"id": "4", "title": "file3.txt"},
+        {"id": "5", "title": "file2.txt"},
+    ]
+
+    expected_output = {
+        "file1.txt": ["1", "3"],
+        "file2.txt": ["2", "5"],
+        "file3.txt": ["4"],
+    }
+
+    result = handler.output_results(results)
+
+    assert result == expected_output
+    assert len(result) == 3
+    assert "file1.txt" in result
+    assert result["file2.txt"] == ["2", "5"]
+
+
+def test_process_results(handler):
+    results = [
+        {"metadata": json.dumps({"chunk": "Chunk1"}), "content": "Content1"},
+        {"metadata": json.dumps({"chunk": "Chunk2"}), "content": "Content2"},
+    ]
+    expected_output = [["Chunk1", "Content1"], ["Chunk2", "Content2"]]
+    result = handler.process_results(results)
+    assert result == expected_output
+
+
+def test_process_results_none(handler):
+    result = handler.process_results(None)
+    assert result == []
+
+
+def test_process_results_missing_chunk(handler):
+    results = [
+        {"metadata": json.dumps({}), "content": "Content1"},
+        {"metadata": json.dumps({"chunk": "Chunk2"}), "content": "Content2"},
+    ]
+    expected_output = [[0, "Content1"], ["Chunk2", "Content2"]]
+    result = handler.process_results(results)
+    assert result == expected_output
 
 
 def test_delete_files(handler):
