@@ -124,8 +124,8 @@ class EnvHelper:
             self.POSTGRESQL_DATABASE = azure_postgresql_info.get("dbname", "")
             self.POSTGRESQL_HOST = azure_postgresql_info.get("host", "")
             # Ensure integrated vectorization is disabled for PostgreSQL
-            self.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = "False"
-            self.USE_ADVANCED_IMAGE_PROCESSING = "False"
+            self.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = False
+            self.USE_ADVANCED_IMAGE_PROCESSING = False
         else:
             raise ValueError(
                 "Unsupported DATABASE_TYPE. Please set DATABASE_TYPE to 'CosmosDB' or 'PostgreSQL'."
