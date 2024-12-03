@@ -107,7 +107,10 @@ cursor.execute(create_ms_sql)
 conn.commit()
 
 # Add pg_diskann extension and search_indexes table
-cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_diskann CASCADE;")
+# cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_diskann CASCADE;")
+
+# Add Vector extension
+cursor.execute("CREATE EXTENSION IF NOT EXISTS vector CASCADE;")
 conn.commit()
 
 cursor.execute("DROP TABLE IF EXISTS search_indexes;")
@@ -129,7 +132,10 @@ table_create_command = """CREATE TABLE IF NOT EXISTS search_indexes(
 cursor.execute(table_create_command)
 conn.commit()
 
-cursor.execute("CREATE INDEX search_indexes_content_vector_diskann_idx ON search_indexes USING diskann (content_vector vector_cosine_ops);")
+# PG_DISKANN is not available yet
+# cursor.execute("CREATE INDEX search_indexes_content_vector_diskann_idx ON search_indexes USING diskann (content_vector vector_cosine_ops);")
+
+cursor.execute("CREATE INDEX search_indexes_content_vector_idx ON search_indexes USING vector (content_vector vector_cosine_ops);")
 conn.commit()
 
 grant_permissions(cursor, dbname, "public", principal_name)

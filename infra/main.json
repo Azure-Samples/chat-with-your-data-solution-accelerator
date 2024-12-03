@@ -5,10 +5,17 @@
     "_generator": {
       "name": "bicep",
       "version": "0.30.23.60470",
-      "templateHash": "6080738341036036588"
+      "templateHash": "362943193825732749"
     }
   },
   "parameters": {
+    "resourceGroupName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Specify the name of the resource group to use. You can provide an existing resource group name, a new resource group name, or leave it blank to create a default resource group."
+      }
+    },
     "environmentName": {
       "type": "string",
       "minLength": 1,
@@ -646,7 +653,7 @@
     "tags": {
       "azd-env-name": "[parameters('environmentName')]"
     },
-    "rgName": "[format('rg-{0}', parameters('environmentName'))]",
+    "rgName": "[if(equals(parameters('resourceGroupName'), ''), format('rg-{0}', parameters('environmentName')), parameters('resourceGroupName'))]",
     "keyVaultName": "[format('kv-{0}', parameters('resourceToken'))]",
     "baseUrl": "https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/",
     "azureOpenAIModelInfo": "[string(createObject('model', parameters('azureOpenAIModel'), 'modelName', parameters('azureOpenAIModelName'), 'modelVersion', parameters('azureOpenAIModelVersion')))]",
