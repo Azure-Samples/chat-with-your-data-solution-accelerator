@@ -7,6 +7,7 @@ from psycopg2 import sql
 key_vault_name = "kv_to-be-replaced"
 principal_name = "webAppPrincipalName"
 admin_principal_name = "adminAppPrincipalName"
+function_app_principal_name = "functionAppPrincipalName"
 user = "managedIdentityName"
 
 def get_secrets_from_kv(kv_name, secret_name):
@@ -58,8 +59,7 @@ def grant_permissions(cursor, dbname, schema_name, principal_name):
 
 postgres_details =  json.loads(get_secrets_from_kv(key_vault_name, "AZURE-POSTGRESQL-INFO"))
 host = postgres_details.get("host", "")
-dbname = postgres_details.get("database", "")
-password = postgres_details.get("password", "")
+dbname = postgres_details.get("dbname", "")
 
 # Acquire the access token
 cred = DefaultAzureCredential()
@@ -71,11 +71,6 @@ conn_string = "host={0} user={1} dbname={2} password={3} sslmode=require".format
 )
 conn = psycopg2.connect(conn_string)
 cursor = conn.cursor()
-
-grant_permissions(cursor, dbname, "public", principal_name)
-conn.commit()
-# grant_permissions(cursor, dbname, "public", admin_principal_name)
-# conn.commit()
 
 # Drop and recreate the conversations table
 cursor.execute("DROP TABLE IF EXISTS conversations")
@@ -112,7 +107,10 @@ cursor.execute(create_ms_sql)
 conn.commit()
 
 # Add pg_diskann extension and search_indexes table
-cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_diskann CASCADE;")
+# cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_diskann CASCADE;")
+
+# Add Vector extension
+cursor.execute("CREATE EXTENSION IF NOT EXISTS vector CASCADE;")
 conn.commit()
 
 cursor.execute("DROP TABLE IF EXISTS search_indexes;")
@@ -134,7 +132,19 @@ table_create_command = """CREATE TABLE IF NOT EXISTS search_indexes(
 cursor.execute(table_create_command)
 conn.commit()
 
-cursor.execute("CREATE INDEX search_indexes_content_vector_diskann_idx ON search_indexes USING diskann (content_vector vector_cosine_ops);")
+# PG_DISKANN is not available yet
+# cursor.execute("CREATE INDEX search_indexes_content_vector_diskann_idx ON search_indexes USING diskann (content_vector vector_cosine_ops);")
+
+cursor.execute("CREATE INDEX search_indexes_content_vector_idx ON search_indexes USING hnsw (content_vector vector_cosine_ops);")
+conn.commit()
+
+grant_permissions(cursor, dbname, "public", principal_name)
+conn.commit()
+
+grant_permissions(cursor, dbname, "public", admin_principal_name)
+conn.commit()
+
+grant_permissions(cursor, dbname, "public", function_app_principal_name)
 conn.commit()
 
 cursor.close()

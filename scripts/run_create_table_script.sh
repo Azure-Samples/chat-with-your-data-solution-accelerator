@@ -10,7 +10,8 @@ resourceGroup="$3"
 serverName="$4"
 webAppPrincipalName="$5"
 adminAppPrincipalName="$6"
-managedIdentityName="$7"
+functionAppPrincipalName="$7"
+managedIdentityName="$8"
 
 echo "Script Started"
 
@@ -33,6 +34,7 @@ sed -i "s/kv_to-be-replaced/${keyvaultName}/g" "create_postgres_tables.py"
 sed -i "s/webAppPrincipalName/${webAppPrincipalName}/g" "create_postgres_tables.py"
 sed -i "s/adminAppPrincipalName/${adminAppPrincipalName}/g" "create_postgres_tables.py"
 sed -i "s/managedIdentityName/${managedIdentityName}/g" "create_postgres_tables.py"
+sed -i "s/functionAppPrincipalName/${functionAppPrincipalName}/g" "create_postgres_tables.py"
 
 pip install -r requirements.txt
 
