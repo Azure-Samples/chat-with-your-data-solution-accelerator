@@ -369,6 +369,7 @@ module postgresDBModule './core/database/postgresdb.bicep' = if (databaseType ==
     solutionLocation: 'eastus2'
     managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
     managedIdentityObjectName: managedIdentityModule.outputs.managedIdentityOutput.name
+    allowAzureIPsFirewall: true
   }
   scope: rg
 }
@@ -676,9 +677,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
-
-        // Add database type to settings
-        AZURE_DATABASE_TYPE: databaseType
+        DATABASE_TYPE: databaseType
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -688,11 +687,11 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
           }
         : databaseType == 'PostgreSQL'
             ? {
-                AZURE_POSTGRESDB_INFO: string({
+                AZURE_POSTGRESQL_INFO: string({
                   host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
                   dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
                   user: websiteName
-              })
+                })
               }
             : {}
     )
@@ -783,9 +782,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
-
-        // Add database type to settings
-        AZURE_DATABASE_TYPE: databaseType
+        DATABASE_TYPE: databaseType
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -795,7 +792,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
           }
         : databaseType == 'PostgreSQL'
             ? {
-                AZURE_POSTGRESDB_INFO: string({
+                AZURE_POSTGRESQL_INFO: string({
                   host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
                   dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
                   user: '${websiteName}-docker'
@@ -877,13 +874,14 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
-      AZURE_POSTGRESDB_INFO: databaseType == 'PostgreSQL'
-            ? string({
-              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-              user: adminWebsiteName
-            })
-            : {}
+      DATABASE_TYPE: databaseType
+      AZURE_POSTGRESQL_INFO: databaseType == 'PostgreSQL'
+        ? string({
+            host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+            dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+            user: adminWebsiteName
+          })
+        : {}
     }
   }
 }
@@ -958,13 +956,14 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
       FUNCTION_KEY: clientKey
       ORCHESTRATION_STRATEGY: orchestrationStrategy
       LOGLEVEL: logLevel
-      AZURE_POSTGRESDB_INFO: databaseType == 'PostgreSQL'
-            ? string({
-              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-              user: '${adminWebsiteName}-docker'
-            })
-            : {}
+      DATABASE_TYPE: databaseType
+      AZURE_POSTGRESQL_INFO: databaseType == 'PostgreSQL'
+        ? string({
+            host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+            dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+            user: '${adminWebsiteName}-docker'
+          })
+        : {}
     }
   }
 }
@@ -1061,13 +1060,14 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
       LOGLEVEL: logLevel
       AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
       AZURE_SEARCH_TOP_K: azureSearchTopK
-      AZURE_POSTGRESDB_INFO: databaseType == 'PostgreSQL'
-            ? string({
-                  host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-                  dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-                  user: functionName
-            })
-            : {}
+      DATABASE_TYPE: databaseType
+      AZURE_POSTGRESQL_INFO: databaseType == 'PostgreSQL'
+        ? string({
+            host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+            dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+            user: functionName
+          })
+        : {}
     }
   }
 }
@@ -1129,13 +1129,14 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
       LOGLEVEL: logLevel
       AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
       AZURE_SEARCH_TOP_K: azureSearchTopK
-      AZURE_POSTGRESDB_INFO: databaseType == 'PostgreSQL'
-            ? string({
-              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-              user: '${functionName}-docker'
-            })
-            : {}
+      DATABASE_TYPE: databaseType
+      AZURE_POSTGRESQL_INFO: databaseType == 'PostgreSQL'
+        ? string({
+            host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+            dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+            user: '${functionName}-docker'
+          })
+        : {}
     }
   }
 }
@@ -1292,8 +1293,12 @@ module createIndex './core/database/deploy_create_table_script.bicep' = if (data
     keyVaultName: keyvault.outputs.name
     postgresSqlServerName: postgresDBModule.outputs.postgresDbOutput.postgresSQLName
     webAppPrincipalName: hostingModel == 'code' ? web.outputs.FRONTEND_API_NAME : web_docker.outputs.FRONTEND_API_NAME
-    adminAppPrincipalName: hostingModel == 'code' ? adminweb.outputs.WEBSITE_ADMIN_NAME : adminweb_docker.outputs.WEBSITE_ADMIN_NAME
-    functionAppPrincipalName: hostingModel == 'code' ? function.outputs.functionName : function_docker.outputs.functionName
+    adminAppPrincipalName: hostingModel == 'code'
+      ? adminweb.outputs.WEBSITE_ADMIN_NAME
+      : adminweb_docker.outputs.WEBSITE_ADMIN_NAME
+    functionAppPrincipalName: hostingModel == 'code'
+      ? function.outputs.functionName
+      : function_docker.outputs.functionName
     managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
   }
   scope: rg
@@ -1370,4 +1375,4 @@ output AZURE_ML_WORKSPACE_NAME string = orchestrationStrategy == 'prompt_flow'
   : ''
 output RESOURCE_TOKEN string = resourceToken
 output AZURE_COSMOSDB_INFO string = azureCosmosDBInfo
-output AZURE_POSTGRESDB_INFO string = azurePostgresDBInfo
+output AZURE_POSTGRESQL_INFO string = azurePostgresDBInfo

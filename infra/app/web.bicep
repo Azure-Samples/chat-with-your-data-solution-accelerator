@@ -70,7 +70,6 @@ var azureBlobStorageInfoUpdated = useKeyVault
 // Database-specific settings
 var databaseSettings = databaseType == 'CosmosDB'
   ? {
-      DATABASE_TYPE: 'CosmosDB'
       AZURE_COSMOSDB_ACCOUNT_KEY: (useKeyVault || cosmosDBKeyName == '')
         ? cosmosDBKeyName
         : listKeys(
@@ -83,10 +82,7 @@ var databaseSettings = databaseType == 'CosmosDB'
             '2022-08-15'
           ).primaryMasterKey
     }
-  : {
-      DATABASE_TYPE: 'PostgreSQL'
-      AZURE_POSTGRESQL_INFO: useKeyVault ? postgresInfoName : ''
-    }
+  : {}
 
 module web '../core/host/appservice.bicep' = {
   name: '${name}-app-module'
@@ -224,7 +220,7 @@ resource cosmosRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefi
   name: '${json(appSettings.AZURE_COSMOSDB_INFO).accountName}/00000000-0000-0000-0000-000000000002'
 }
 
-module cosmosUserRole '../core/database/cosmos-sql-role-assign.bicep' = if(databaseType == 'CosmosDB') {
+module cosmosUserRole '../core/database/cosmos-sql-role-assign.bicep' = if (databaseType == 'CosmosDB') {
   name: 'cosmos-sql-user-role-${web.name}'
   params: {
     accountName: json(appSettings.AZURE_COSMOSDB_INFO).accountName
