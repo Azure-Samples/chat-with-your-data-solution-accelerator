@@ -91,7 +91,9 @@ class EnvHelper:
 
         # Chat History DB Integration Settings
         # Set default values based on DATABASE_TYPE
-        self.DATABASE_TYPE = os.getenv("DATABASE_TYPE", "").strip() or "CosmosDB"
+        self.DATABASE_TYPE = (
+            os.getenv("DATABASE_TYPE", "").strip() or DatabaseType.POSTGRESQL.value
+        )
         # Cosmos DB configuration
         if self.DATABASE_TYPE == DatabaseType.COSMOSDB.value:
             azure_cosmosdb_info = self.get_info_from_env("AZURE_COSMOSDB_INFO", "")
@@ -122,8 +124,8 @@ class EnvHelper:
             self.POSTGRESQL_DATABASE = azure_postgresql_info.get("dbname", "")
             self.POSTGRESQL_HOST = azure_postgresql_info.get("host", "")
             # Ensure integrated vectorization is disabled for PostgreSQL
-            self.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = "False"
-            self.USE_ADVANCED_IMAGE_PROCESSING = "False"
+            self.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = False
+            self.USE_ADVANCED_IMAGE_PROCESSING = False
         else:
             raise ValueError(
                 "Unsupported DATABASE_TYPE. Please set DATABASE_TYPE to 'CosmosDB' or 'PostgreSQL'."

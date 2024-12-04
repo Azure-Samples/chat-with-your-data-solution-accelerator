@@ -306,7 +306,7 @@ param azureMachineLearningName string = 'aml-${resourceToken}'
   'CosmosDB'
   'PostgreSQL'
 ])
-param databaseType string = 'CosmosDB'
+param databaseType string = 'PostgreSQL'
 
 @description('Azure Cosmos DB Account Name')
 param azureCosmosDBAccountName string = 'cosmos-${resourceToken}'
@@ -1297,9 +1297,11 @@ module createIndex './core/database/deploy_create_table_script.bicep' = if (data
     managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
   }
   scope: rg
-  dependsOn: hostingModel == 'code' ? [keyvault, postgresDBModule, storekeys, web, adminweb] : [
-    [keyvault, postgresDBModule, storekeys, web_docker, adminweb_docker]
-  ]
+  dependsOn: hostingModel == 'code'
+    ? [keyvault, postgresDBModule, storekeys, web, adminweb]
+    : [
+        [keyvault, postgresDBModule, storekeys, web_docker, adminweb_docker]
+      ]
 }
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString

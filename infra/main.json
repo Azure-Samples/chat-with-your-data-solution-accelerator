@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.30.23.60470",
-      "templateHash": "6080738341036036588"
+      "templateHash": "14369776645478790054"
     }
   },
   "parameters": {
@@ -614,7 +614,7 @@
     },
     "databaseType": {
       "type": "string",
-      "defaultValue": "CosmosDB",
+      "defaultValue": "PostgreSQL",
       "allowedValues": [
         "CosmosDB",
         "PostgreSQL"

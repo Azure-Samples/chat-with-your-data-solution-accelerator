@@ -13,7 +13,9 @@ class AppConfig:
     config: dict[str, str | None] = {
         "APPLICATIONINSIGHTS_ENABLED": "False",
         "AZURE_AUTH_TYPE": "keys",
-        "AZURE_BLOB_STORAGE_INFO": '{"accountName": "some-blob-account-name", "containerName": "some-blob-container-name", "accountKey": "' + encoded_account_key + '"}',
+        "AZURE_BLOB_STORAGE_INFO": '{"accountName": "some-blob-account-name", "containerName": "some-blob-container-name", "accountKey": "'
+        + encoded_account_key
+        + '"}',
         "AZURE_COMPUTER_VISION_KEY": "some-computer-vision-key",
         "AZURE_CONTENT_SAFETY_ENDPOINT": "some-content-safety-endpoint",
         "AZURE_CONTENT_SAFETY_KEY": "some-content-safety-key",
@@ -80,6 +82,7 @@ class AppConfig:
         "OPENAI_API_TYPE": None,
         "OPENAI_API_KEY": None,
         "OPENAI_API_VERSION": None,
+        "DATABASE_TYPE": "CosmosDB",
     }
 
     def __init__(self, config_overrides: dict[str, str | None] = {}) -> None:
