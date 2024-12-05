@@ -1291,7 +1291,7 @@ module createIndex './core/database/deploy_create_table_script.bicep' = if (data
     identity: managedIdentityModule.outputs.managedIdentityOutput.id
     baseUrl: baseUrl
     keyVaultName: keyvault.outputs.name
-    postgresSqlServerName: postgresDBModule.outputs.postgresDbOutput.postgresSQLName
+    postgresSqlServerName: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
     webAppPrincipalName: hostingModel == 'code' ? web.outputs.FRONTEND_API_NAME : web_docker.outputs.FRONTEND_API_NAME
     adminAppPrincipalName: hostingModel == 'code'
       ? adminweb.outputs.WEBSITE_ADMIN_NAME
