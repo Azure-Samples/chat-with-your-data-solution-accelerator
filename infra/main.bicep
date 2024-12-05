@@ -277,7 +277,7 @@ param principalId string = ''
   'rbac'
   'keys'
 ])
-param authType string = 'keys'
+param authType string = 'rbac'
 
 @description('Hosting model for the web apps. Containers are prebuilt and can be deployed faster, but code allows for more customization.')
 @allowed([
