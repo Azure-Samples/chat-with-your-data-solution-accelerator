@@ -277,7 +277,7 @@ param principalId string = ''
   'rbac'
   'keys'
 ])
-param authType string = 'keys'
+param authType string = 'rbac'
 
 @description('Hosting model for the web apps. Containers are prebuilt and can be deployed faster, but code allows for more customization.')
 @allowed([
@@ -333,8 +333,8 @@ var azureOpenAIEmbeddingModelInfo = string({
   modelVersion: azureOpenAIEmbeddingModelVersion
 })
 
-var appversion = 'latest' // Update GIT deployment branch
-var registryName = 'fruoccopublic' // Update Registry name
+var appversion = 'devpostgre' // Update GIT deployment branch
+var registryName = 'cwydcontainerregpk' // Update Registry name
 
 // Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.30.23.60470",
-      "templateHash": "11367626989637032545"
+      "templateHash": "7275352967379033991"
     }
   },
   "parameters": {
@@ -567,7 +567,7 @@
     },
     "authType": {
       "type": "string",
-      "defaultValue": "keys",
+      "defaultValue": "rbac",
       "allowedValues": [
         "rbac",
         "keys"
@@ -651,8 +651,8 @@
     "baseUrl": "https://raw.githubusercontent.com/Fr4nc3/chat-with-your-data-solution-accelerator/main/",
     "azureOpenAIModelInfo": "[string(createObject('model', parameters('azureOpenAIModel'), 'modelName', parameters('azureOpenAIModelName'), 'modelVersion', parameters('azureOpenAIModelVersion')))]",
     "azureOpenAIEmbeddingModelInfo": "[string(createObject('model', parameters('azureOpenAIEmbeddingModel'), 'modelName', parameters('azureOpenAIEmbeddingModelName'), 'modelVersion', parameters('azureOpenAIEmbeddingModelVersion')))]",
-    "appversion": "latest",
-    "registryName": "fruoccopublic",
+    "appversion": "devpostgre",
+    "registryName": "cwydcontainerregpk",
     "defaultOpenAiDeployments": [
       {
         "name": "[parameters('azureOpenAIModel')]",
