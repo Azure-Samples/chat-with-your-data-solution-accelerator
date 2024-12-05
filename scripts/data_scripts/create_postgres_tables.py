@@ -147,5 +147,10 @@ conn.commit()
 grant_permissions(cursor, dbname, "public", function_app_principal_name)
 conn.commit()
 
+cursor.execute("ALTER TABLE public.conversations OWNER TO azure_pg_admin;")
+cursor.execute("ALTER TABLE public.messages OWNER TO azure_pg_admin;")
+cursor.execute("ALTER TABLE public.search_indexes OWNER TO azure_pg_admin;")
+conn.commit()
+
 cursor.close()
 conn.close()
