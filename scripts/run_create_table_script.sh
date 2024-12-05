@@ -35,6 +35,7 @@ sed -i "s/webAppPrincipalName/${webAppPrincipalName}/g" "create_postgres_tables.
 sed -i "s/adminAppPrincipalName/${adminAppPrincipalName}/g" "create_postgres_tables.py"
 sed -i "s/managedIdentityName/${managedIdentityName}/g" "create_postgres_tables.py"
 sed -i "s/functionAppPrincipalName/${functionAppPrincipalName}/g" "create_postgres_tables.py"
+sed -i "s/serverName/${serverName}/g" "create_postgres_tables.py"
 
 pip install -r requirements.txt
 

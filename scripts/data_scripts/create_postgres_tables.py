@@ -9,13 +9,8 @@ principal_name = "webAppPrincipalName"
 admin_principal_name = "adminAppPrincipalName"
 function_app_principal_name = "functionAppPrincipalName"
 user = "managedIdentityName"
-
-def get_secrets_from_kv(kv_name, secret_name):
-    credential = DefaultAzureCredential()
-    secret_client = SecretClient(
-        vault_url=f"https://{key_vault_name}.vault.azure.net/", credential=credential
-    )  # Create a secret client object using the credential and Key Vault name
-    return secret_client.get_secret(secret_name).value
+host = "serverName"
+dbname = "postgres"
 
 
 def grant_permissions(cursor, dbname, schema_name, principal_name):
@@ -57,9 +52,6 @@ def grant_permissions(cursor, dbname, schema_name, principal_name):
         )
     )
 
-postgres_details =  json.loads(get_secrets_from_kv(key_vault_name, "AZURE-POSTGRESQL-INFO"))
-host = postgres_details.get("host", "")
-dbname = postgres_details.get("dbname", "")
 
 # Acquire the access token
 cred = DefaultAzureCredential()
