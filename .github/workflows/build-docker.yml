@@ -15,9 +15,6 @@ on:
       dockerfile:
         required: true
         type: string
-      branch:
-        required: true
-        type: string
       push:
         required: true
         type: boolean
@@ -31,18 +28,11 @@ jobs:
   docker-build:
     runs-on: ubuntu-latest
     steps:
-    - name: Print target branch detail
-      run: |
-        echo "Target branch:" ${{ inputs.branch }}
-        echo "Target branch status:" ${{ inputs.push }}
-        echo "Target registry status:" ${{ inputs.registry }}
     - name: Checkout
       uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.workflow_run.head_branch }}
 
     - name: Docker Login
-      if: ${{ inputs.push == true && inputs.branch == 'main' }}
+      if: ${{ inputs.push == true && github.ref_name == 'main' }}
       uses: docker/login-action@v3
       with:
         registry: ${{ inputs.registry }}
@@ -50,7 +40,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Dev Docker Login
-      if: ${{ inputs.push == true && (inputs.branch == 'dev' || inputs.branch == 'demo') }}
+      if: ${{ inputs.push == true && (github.ref_name == 'dev' || github.ref_name == 'demo') }}
       uses: docker/login-action@v3
       with:
         registry: ${{ inputs.registry }}
@@ -70,7 +60,7 @@ jobs:
         context: .
         file: ${{ inputs.dockerfile }}
         push: ${{ inputs.push }}
-        cache-from: type=registry,ref=${{ inputs.registry }}/${{ inputs.app_name}}:${{ inputs.branch == 'main' && 'latest' || inputs.branch == 'dev' && 'dev' || inputs.branch == 'demo' && 'demo' || 'latest' }}
+        cache-from: type=registry,ref=${{ inputs.registry }}/${{ inputs.app_name}}:${{ github.ref_name == 'main' && 'latest' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo' || github.head_ref }}
         tags: |
-          ${{ inputs.registry }}/${{ inputs.app_name}}:${{ inputs.branch == 'main' && 'latest' || inputs.branch == 'dev' && 'dev' || inputs.branch == 'demo' && 'demo' || 'latest' }}
+          ${{ inputs.registry }}/${{ inputs.app_name}}:${{ github.ref_name == 'main' && 'latest' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo' || github.head_ref }}
           ${{ inputs.registry }}/${{ inputs.app_name}}:${{ steps.date.outputs.date }}_${{ github.run_number }}
