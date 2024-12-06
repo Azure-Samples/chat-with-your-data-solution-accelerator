@@ -383,7 +383,7 @@ module keyvault './core/security/keyvault.bicep' = if (useKeyVault || authType =
     location: location
     tags: tags
     principalId: principalId
-    managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+    managedIdentityObjectId: databaseType == 'PostgreSQL' ? managedIdentityModule.outputs.managedIdentityOutput.objectId : ''
   }
 }
 
@@ -587,8 +587,8 @@ var azureCosmosDBInfo = string({
 })
 
 var azurePostgresDBInfo = string({
-  serverName: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-  databaseName: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+  serverName: databaseType == 'PostgreSQL' ? postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName : ''
+  databaseName: databaseType == 'PostgreSQL' ? postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName : ''
   userName: ''
 })
 
@@ -832,57 +832,59 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
     databaseType: databaseType
-    appSettings: {
-      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
-      AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
-      AZURE_OPENAI_TOP_P: azureOpenAITopP
-      AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
-      AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
-      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_OPENAI_STREAM: azureOpenAIStream
-      AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
-      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-      AZURE_SEARCH_INDEX: azureSearchIndex
-      AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
-      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
-      AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
-      AZURE_SEARCH_TOP_K: azureSearchTopK
-      AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
-      AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
-      AZURE_SEARCH_FILTER: azureSearchFilter
-      AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-      AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-      AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-      AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-      AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-      AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-      AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
-      AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-      BACKEND_URL: 'https://${functionName}.azurewebsites.net'
-      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-      FUNCTION_KEY: clientKey
-      ORCHESTRATION_STRATEGY: orchestrationStrategy
-      LOGLEVEL: logLevel
-      DATABASE_TYPE: databaseType
-      AZURE_POSTGRESQL_INFO: databaseType == 'PostgreSQL'
-        ? string({
-            host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-            dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-            user: adminWebsiteName
-          })
-        : {}
-    }
+    appSettings: union(
+      {
+        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
+        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+        AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
+        AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
+        AZURE_OPENAI_TOP_P: azureOpenAITopP
+        AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
+        AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
+        AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+        AZURE_OPENAI_STREAM: azureOpenAIStream
+        AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
+        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+        AZURE_SEARCH_INDEX: azureSearchIndex
+        AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+        AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+        AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+        AZURE_SEARCH_TOP_K: azureSearchTopK
+        AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+        AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+        AZURE_SEARCH_FILTER: azureSearchFilter
+        AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
+        AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+        AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
+        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+        AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
+        AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+        AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
+        AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+        AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+        AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+        AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+        BACKEND_URL: 'https://${functionName}.azurewebsites.net'
+        DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+        FUNCTION_KEY: clientKey
+        ORCHESTRATION_STRATEGY: orchestrationStrategy
+        LOGLEVEL: logLevel
+        DATABASE_TYPE: databaseType
+      },
+      databaseType == 'PostgreSQL' ? {
+        AZURE_POSTGRESQL_INFO: string({
+          host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+          dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+          user: adminWebsiteName
+        })
+      } : {}
+    )
   }
 }
 
@@ -914,57 +916,59 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
     databaseType: databaseType
-    appSettings: {
-      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
-      AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
-      AZURE_OPENAI_TOP_P: azureOpenAITopP
-      AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
-      AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
-      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_OPENAI_STREAM: azureOpenAIStream
-      AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
-      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-      AZURE_SEARCH_INDEX: azureSearchIndex
-      AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
-      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
-      AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
-      AZURE_SEARCH_TOP_K: azureSearchTopK
-      AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
-      AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
-      AZURE_SEARCH_FILTER: azureSearchFilter
-      AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-      AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-      AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-      AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-      AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-      AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-      AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
-      AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-      BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
-      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-      FUNCTION_KEY: clientKey
-      ORCHESTRATION_STRATEGY: orchestrationStrategy
-      LOGLEVEL: logLevel
-      DATABASE_TYPE: databaseType
-      AZURE_POSTGRESQL_INFO: databaseType == 'PostgreSQL'
-        ? string({
-            host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-            dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-            user: '${adminWebsiteName}-docker'
-          })
-        : {}
-    }
+    appSettings: union(
+      {
+        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
+        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+        AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
+        AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
+        AZURE_OPENAI_TOP_P: azureOpenAITopP
+        AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
+        AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
+        AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+        AZURE_OPENAI_STREAM: azureOpenAIStream
+        AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
+        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+        AZURE_SEARCH_INDEX: azureSearchIndex
+        AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+        AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+        AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+        AZURE_SEARCH_TOP_K: azureSearchTopK
+        AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+        AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+        AZURE_SEARCH_FILTER: azureSearchFilter
+        AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
+        AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+        AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
+        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+        AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
+        AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+        AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
+        AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+        AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+        AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+        AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+        BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
+        DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+        FUNCTION_KEY: clientKey
+        ORCHESTRATION_STRATEGY: orchestrationStrategy
+        LOGLEVEL: logLevel
+        DATABASE_TYPE: databaseType
+      },
+      databaseType == 'PostgreSQL' ? {
+        AZURE_POSTGRESQL_INFO: string({
+          host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+          dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+          user: '${adminWebsiteName}-docker'
+        })
+      } : {}
+    )
   }
 }
 
@@ -1032,43 +1036,45 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
     databaseType: databaseType
-    appSettings: {
-      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
-      AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
-      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_SEARCH_INDEX: azureSearchIndex
-      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-      AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-      AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-      AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-      AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-      AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-      AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-      AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
-      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-      ORCHESTRATION_STRATEGY: orchestrationStrategy
-      LOGLEVEL: logLevel
-      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-      AZURE_SEARCH_TOP_K: azureSearchTopK
-      DATABASE_TYPE: databaseType
-      AZURE_POSTGRESQL_INFO: databaseType == 'PostgreSQL'
-        ? string({
+    appSettings: union(
+      {
+        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
+        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+        AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
+        AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
+        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+        AZURE_SEARCH_INDEX: azureSearchIndex
+        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+        AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+        AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+        AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
+        AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+        AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
+        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+        AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
+        AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+        AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
+        AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+        DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+        ORCHESTRATION_STRATEGY: orchestrationStrategy
+        LOGLEVEL: logLevel
+        AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+        AZURE_SEARCH_TOP_K: azureSearchTopK
+        DATABASE_TYPE: databaseType
+      },
+      databaseType == 'PostgreSQL' ? {
+        AZURE_POSTGRESQL_INFO: string({
             host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
             dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
             user: functionName
           })
-        : {}
-    }
+        } : {}
+    )
   }
 }
 
@@ -1101,43 +1107,45 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
     databaseType: databaseType
-    appSettings: {
-      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
-      AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
-      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_SEARCH_INDEX: azureSearchIndex
-      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-      AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-      AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-      AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-      AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-      AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-      AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-      AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
-      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-      ORCHESTRATION_STRATEGY: orchestrationStrategy
-      LOGLEVEL: logLevel
-      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-      AZURE_SEARCH_TOP_K: azureSearchTopK
-      DATABASE_TYPE: databaseType
-      AZURE_POSTGRESQL_INFO: databaseType == 'PostgreSQL'
-        ? string({
+    appSettings: union(
+      {
+        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
+        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+        AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
+        AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
+        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+        AZURE_SEARCH_INDEX: azureSearchIndex
+        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+        AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+        AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+        AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
+        AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+        AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
+        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+        AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
+        AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+        AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
+        AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+        DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+        ORCHESTRATION_STRATEGY: orchestrationStrategy
+        LOGLEVEL: logLevel
+        AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+        AZURE_SEARCH_TOP_K: azureSearchTopK
+        DATABASE_TYPE: databaseType
+      },
+      databaseType == 'PostgreSQL' ? {
+        AZURE_POSTGRESQL_INFO: string({
             host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
             dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
             user: '${functionName}-docker'
           })
-        : {}
-    }
+        } : {}
+    )
   }
 }
 

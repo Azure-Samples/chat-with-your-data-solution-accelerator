@@ -67,7 +67,7 @@ module function '../core/host/functions.bicep' = {
     runtimeVersion: runtimeVersion
     dockerFullImageName: dockerFullImageName
     useKeyVault: useKeyVault
-    managedIdentity: databaseType == 'PostgreSQL'
+    managedIdentity: databaseType == 'PostgreSQL' || !empty(keyVaultName)
     appSettings: union(appSettings, {
       WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
       AZURE_AUTH_TYPE: authType

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.30.23.60470",
-      "templateHash": "13919353598581755306"
+      "templateHash": "8207330457159201967"
     }
   },
   "parameters": {
@@ -1201,9 +1201,7 @@
           "principalId": {
             "value": "[parameters('principalId')]"
           },
-          "managedIdentityObjectId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2022-09-01').outputs.managedIdentityOutput.value.objectId]"
-          }
+          "managedIdentityObjectId": "[if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2022-09-01').outputs.managedIdentityOutput.value.objectId), createObject('value', ''))]"
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -1212,7 +1210,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "12623823360057072578"
+              "templateHash": "6159059556257175429"
             },
             "description": "Creates an Azure Key Vault."
           },
@@ -1229,7 +1227,8 @@
               "defaultValue": {}
             },
             "managedIdentityObjectId": {
-              "type": "string"
+              "type": "string",
+              "defaultValue": ""
             },
             "principalId": {
               "type": "string",
@@ -1249,7 +1248,7 @@
                   "family": "A",
                   "name": "standard"
                 },
-                "accessPolicies": "[if(not(empty(parameters('principalId'))), createArray(createObject('objectId', parameters('principalId'), 'permissions', createObject('secrets', createArray('get', 'list')), 'tenantId', subscription().tenantId), createObject('objectId', parameters('managedIdentityObjectId'), 'permissions', createObject('secrets', createArray('get', 'list')), 'tenantId', subscription().tenantId)), createArray(createObject('objectId', parameters('managedIdentityObjectId'), 'permissions', createObject('secrets', createArray('get', 'list')), 'tenantId', subscription().tenantId)))]"
+                "accessPolicies": "[concat(if(not(equals(parameters('managedIdentityObjectId'), '')), createArray(createObject('objectId', parameters('managedIdentityObjectId'), 'permissions', createObject('keys', createArray('get', 'list'), 'secrets', createArray('get', 'list')), 'tenantId', subscription().tenantId)), createArray()), if(not(equals(parameters('principalId'), '')), createArray(createObject('objectId', parameters('principalId'), 'permissions', createObject('keys', createArray('get', 'list'), 'secrets', createArray('get', 'list')), 'tenantId', subscription().tenantId)), createArray()))]"
               }
             }
           ],
@@ -2667,7 +2666,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "2467145046105891366"
+              "templateHash": "16156160398831650157"
             }
           },
           "parameters": {
@@ -2850,7 +2849,7 @@
                     "value": "[parameters('healthCheckPath')]"
                   },
                   "managedIdentity": {
-                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
+                    "value": "[or(equals(parameters('databaseType'), 'PostgreSQL'), not(empty(parameters('keyVaultName'))))]"
                   }
                 },
                 "template": {
@@ -3667,7 +3666,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "2467145046105891366"
+              "templateHash": "16156160398831650157"
             }
           },
           "parameters": {
@@ -3850,7 +3849,7 @@
                     "value": "[parameters('healthCheckPath')]"
                   },
                   "managedIdentity": {
-                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
+                    "value": "[or(equals(parameters('databaseType'), 'PostgreSQL'), not(empty(parameters('keyVaultName'))))]"
                   }
                 },
                 "template": {
@@ -4655,51 +4654,7 @@
             "value": "[parameters('databaseType')]"
           },
           "appSettings": {
-            "value": {
-              "AZURE_COMPUTER_VISION_ENDPOINT": "[if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, '')]",
-              "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION": "[parameters('computerVisionVectorizeImageApiVersion')]",
-              "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION": "[parameters('computerVisionVectorizeImageModelVersion')]",
-              "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
-              "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
-              "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
-              "AZURE_OPENAI_TEMPERATURE": "[parameters('azureOpenAITemperature')]",
-              "AZURE_OPENAI_TOP_P": "[parameters('azureOpenAITopP')]",
-              "AZURE_OPENAI_MAX_TOKENS": "[parameters('azureOpenAIMaxTokens')]",
-              "AZURE_OPENAI_STOP_SEQUENCE": "[parameters('azureOpenAIStopSequence')]",
-              "AZURE_OPENAI_SYSTEM_MESSAGE": "[parameters('azureOpenAISystemMessage')]",
-              "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
-              "AZURE_OPENAI_STREAM": "[parameters('azureOpenAIStream')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL_INFO": "[variables('azureOpenAIEmbeddingModelInfo')]",
-              "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
-              "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
-              "AZURE_SEARCH_USE_SEMANTIC_SEARCH": "[parameters('azureSearchUseSemanticSearch')]",
-              "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG": "[parameters('azureSearchSemanticSearchConfig')]",
-              "AZURE_SEARCH_INDEX_IS_PRECHUNKED": "[parameters('azureSearchIndexIsPrechunked')]",
-              "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
-              "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
-              "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
-              "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
-              "AZURE_SEARCH_FIELDS_ID": "[parameters('azureSearchFieldId')]",
-              "AZURE_SEARCH_CONTENT_COLUMN": "[parameters('azureSearchContentColumn')]",
-              "AZURE_SEARCH_CONTENT_VECTOR_COLUMN": "[parameters('azureSearchVectorColumn')]",
-              "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
-              "AZURE_SEARCH_FIELDS_METADATA": "[parameters('azureSearchFieldsMetadata')]",
-              "AZURE_SEARCH_SOURCE_COLUMN": "[parameters('azureSearchSourceColumn')]",
-              "AZURE_SEARCH_CHUNK_COLUMN": "[parameters('azureSearchChunkColumn')]",
-              "AZURE_SEARCH_OFFSET_COLUMN": "[parameters('azureSearchOffsetColumn')]",
-              "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
-              "AZURE_SEARCH_DATASOURCE_NAME": "[parameters('azureSearchDatasource')]",
-              "AZURE_SEARCH_INDEXER_NAME": "[parameters('azureSearchIndexer')]",
-              "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
-              "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
-              "BACKEND_URL": "[format('https://{0}.azurewebsites.net', parameters('functionName'))]",
-              "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
-              "FUNCTION_KEY": "[variables('clientKey')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "LOGLEVEL": "[parameters('logLevel')]",
-              "DATABASE_TYPE": "[parameters('databaseType')]",
-              "AZURE_POSTGRESQL_INFO": "[if(equals(parameters('databaseType'), 'PostgreSQL'), string(createObject('host', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'dbname', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'user', parameters('adminWebsiteName'))), createObject())]"
-            }
+            "value": "[union(createObject('AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value, 'AZURE_OPENAI_RESOURCE', parameters('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL_INFO', variables('azureOpenAIModelInfo'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL_INFO', variables('azureOpenAIEmbeddingModelInfo'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', parameters('azureAISearchName')), 'AZURE_SEARCH_INDEX', parameters('azureSearchIndex'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', parameters('azureSearchUseSemanticSearch'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_DATASOURCE_NAME', parameters('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', parameters('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', parameters('azureSearchUseIntegratedVectorization'), 'USE_ADVANCED_IMAGE_PROCESSING', parameters('useAdvancedImageProcessing'), 'BACKEND_URL', format('https://{0}.azurewebsites.net', parameters('functionName')), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'FUNCTION_KEY', variables('clientKey'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'LOGLEVEL', parameters('logLevel'), 'DATABASE_TYPE', parameters('databaseType')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_INFO', string(createObject('host', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'dbname', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'user', parameters('adminWebsiteName')))), createObject()))]"
           }
         },
         "template": {
@@ -4709,7 +4664,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "1041527018081544410"
+              "templateHash": "12836754738443272381"
             }
           },
           "parameters": {
@@ -4874,7 +4829,7 @@
                     "value": "[parameters('appServicePlanId')]"
                   },
                   "managedIdentity": {
-                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
+                    "value": "[or(equals(parameters('databaseType'), 'PostgreSQL'), not(empty(parameters('keyVaultName'))))]"
                   },
                   "appSettings": {
                     "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
@@ -5616,51 +5571,7 @@
             "value": "[parameters('databaseType')]"
           },
           "appSettings": {
-            "value": {
-              "AZURE_COMPUTER_VISION_ENDPOINT": "[if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, '')]",
-              "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION": "[parameters('computerVisionVectorizeImageApiVersion')]",
-              "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION": "[parameters('computerVisionVectorizeImageModelVersion')]",
-              "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
-              "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
-              "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
-              "AZURE_OPENAI_TEMPERATURE": "[parameters('azureOpenAITemperature')]",
-              "AZURE_OPENAI_TOP_P": "[parameters('azureOpenAITopP')]",
-              "AZURE_OPENAI_MAX_TOKENS": "[parameters('azureOpenAIMaxTokens')]",
-              "AZURE_OPENAI_STOP_SEQUENCE": "[parameters('azureOpenAIStopSequence')]",
-              "AZURE_OPENAI_SYSTEM_MESSAGE": "[parameters('azureOpenAISystemMessage')]",
-              "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
-              "AZURE_OPENAI_STREAM": "[parameters('azureOpenAIStream')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL_INFO": "[variables('azureOpenAIEmbeddingModelInfo')]",
-              "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
-              "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
-              "AZURE_SEARCH_USE_SEMANTIC_SEARCH": "[parameters('azureSearchUseSemanticSearch')]",
-              "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG": "[parameters('azureSearchSemanticSearchConfig')]",
-              "AZURE_SEARCH_INDEX_IS_PRECHUNKED": "[parameters('azureSearchIndexIsPrechunked')]",
-              "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
-              "AZURE_SEARCH_ENABLE_IN_DOMAIN": "[parameters('azureSearchEnableInDomain')]",
-              "AZURE_SEARCH_FILENAME_COLUMN": "[parameters('azureSearchFilenameColumn')]",
-              "AZURE_SEARCH_FILTER": "[parameters('azureSearchFilter')]",
-              "AZURE_SEARCH_FIELDS_ID": "[parameters('azureSearchFieldId')]",
-              "AZURE_SEARCH_CONTENT_COLUMN": "[parameters('azureSearchContentColumn')]",
-              "AZURE_SEARCH_CONTENT_VECTOR_COLUMN": "[parameters('azureSearchVectorColumn')]",
-              "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
-              "AZURE_SEARCH_FIELDS_METADATA": "[parameters('azureSearchFieldsMetadata')]",
-              "AZURE_SEARCH_SOURCE_COLUMN": "[parameters('azureSearchSourceColumn')]",
-              "AZURE_SEARCH_CHUNK_COLUMN": "[parameters('azureSearchChunkColumn')]",
-              "AZURE_SEARCH_OFFSET_COLUMN": "[parameters('azureSearchOffsetColumn')]",
-              "AZURE_SEARCH_URL_COLUMN": "[parameters('azureSearchUrlColumn')]",
-              "AZURE_SEARCH_DATASOURCE_NAME": "[parameters('azureSearchDatasource')]",
-              "AZURE_SEARCH_INDEXER_NAME": "[parameters('azureSearchIndexer')]",
-              "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
-              "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
-              "BACKEND_URL": "[format('https://{0}-docker.azurewebsites.net', parameters('functionName'))]",
-              "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
-              "FUNCTION_KEY": "[variables('clientKey')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "LOGLEVEL": "[parameters('logLevel')]",
-              "DATABASE_TYPE": "[parameters('databaseType')]",
-              "AZURE_POSTGRESQL_INFO": "[if(equals(parameters('databaseType'), 'PostgreSQL'), string(createObject('host', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'dbname', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'user', format('{0}-docker', parameters('adminWebsiteName')))), createObject())]"
-            }
+            "value": "[union(createObject('AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value, 'AZURE_OPENAI_RESOURCE', parameters('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL_INFO', variables('azureOpenAIModelInfo'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL_INFO', variables('azureOpenAIEmbeddingModelInfo'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', parameters('azureAISearchName')), 'AZURE_SEARCH_INDEX', parameters('azureSearchIndex'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', parameters('azureSearchUseSemanticSearch'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_DATASOURCE_NAME', parameters('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', parameters('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', parameters('azureSearchUseIntegratedVectorization'), 'USE_ADVANCED_IMAGE_PROCESSING', parameters('useAdvancedImageProcessing'), 'BACKEND_URL', format('https://{0}-docker.azurewebsites.net', parameters('functionName')), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'FUNCTION_KEY', variables('clientKey'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'LOGLEVEL', parameters('logLevel'), 'DATABASE_TYPE', parameters('databaseType')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_INFO', string(createObject('host', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'dbname', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'user', format('{0}-docker', parameters('adminWebsiteName'))))), createObject()))]"
           }
         },
         "template": {
@@ -5670,7 +5581,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "1041527018081544410"
+              "templateHash": "12836754738443272381"
             }
           },
           "parameters": {
@@ -5835,7 +5746,7 @@
                     "value": "[parameters('appServicePlanId')]"
                   },
                   "managedIdentity": {
-                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
+                    "value": "[or(equals(parameters('databaseType'), 'PostgreSQL'), not(empty(parameters('keyVaultName'))))]"
                   },
                   "appSettings": {
                     "value": "[union(parameters('appSettings'), createObject('AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
@@ -8324,37 +8235,7 @@
             "value": "[parameters('databaseType')]"
           },
           "appSettings": {
-            "value": {
-              "AZURE_COMPUTER_VISION_ENDPOINT": "[if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, '')]",
-              "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION": "[parameters('computerVisionVectorizeImageApiVersion')]",
-              "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION": "[parameters('computerVisionVectorizeImageModelVersion')]",
-              "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
-              "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL_INFO": "[variables('azureOpenAIEmbeddingModelInfo')]",
-              "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
-              "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
-              "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
-              "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
-              "AZURE_SEARCH_DATASOURCE_NAME": "[parameters('azureSearchDatasource')]",
-              "AZURE_SEARCH_INDEXER_NAME": "[parameters('azureSearchIndexer')]",
-              "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
-              "AZURE_SEARCH_FIELDS_ID": "[parameters('azureSearchFieldId')]",
-              "AZURE_SEARCH_CONTENT_COLUMN": "[parameters('azureSearchContentColumn')]",
-              "AZURE_SEARCH_CONTENT_VECTOR_COLUMN": "[parameters('azureSearchVectorColumn')]",
-              "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
-              "AZURE_SEARCH_FIELDS_METADATA": "[parameters('azureSearchFieldsMetadata')]",
-              "AZURE_SEARCH_SOURCE_COLUMN": "[parameters('azureSearchSourceColumn')]",
-              "AZURE_SEARCH_CHUNK_COLUMN": "[parameters('azureSearchChunkColumn')]",
-              "AZURE_SEARCH_OFFSET_COLUMN": "[parameters('azureSearchOffsetColumn')]",
-              "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
-              "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "LOGLEVEL": "[parameters('logLevel')]",
-              "AZURE_OPENAI_SYSTEM_MESSAGE": "[parameters('azureOpenAISystemMessage')]",
-              "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
-              "DATABASE_TYPE": "[parameters('databaseType')]",
-              "AZURE_POSTGRESQL_INFO": "[if(equals(parameters('databaseType'), 'PostgreSQL'), string(createObject('host', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'dbname', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'user', parameters('functionName'))), createObject())]"
-            }
+            "value": "[union(createObject('AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value, 'AZURE_OPENAI_MODEL_INFO', variables('azureOpenAIModelInfo'), 'AZURE_OPENAI_EMBEDDING_MODEL_INFO', variables('azureOpenAIEmbeddingModelInfo'), 'AZURE_OPENAI_RESOURCE', parameters('azureOpenAIResourceName'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_SEARCH_INDEX', parameters('azureSearchIndex'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', parameters('azureAISearchName')), 'AZURE_SEARCH_DATASOURCE_NAME', parameters('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', parameters('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', parameters('azureSearchUseIntegratedVectorization'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'USE_ADVANCED_IMAGE_PROCESSING', parameters('useAdvancedImageProcessing'), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'LOGLEVEL', parameters('logLevel'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'DATABASE_TYPE', parameters('databaseType')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_INFO', string(createObject('host', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'dbname', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'user', parameters('functionName')))), createObject()))]"
           }
         },
         "template": {
@@ -8364,7 +8245,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "11172260966600448386"
+              "templateHash": "5143341974057039705"
             }
           },
           "parameters": {
@@ -8549,7 +8430,7 @@
                     "value": "[parameters('useKeyVault')]"
                   },
                   "managedIdentity": {
-                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
+                    "value": "[or(equals(parameters('databaseType'), 'PostgreSQL'), not(empty(parameters('keyVaultName'))))]"
                   },
                   "appSettings": {
                     "value": "[union(parameters('appSettings'), createObject('WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'false', 'AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
@@ -9656,37 +9537,7 @@
             "value": "[parameters('databaseType')]"
           },
           "appSettings": {
-            "value": {
-              "AZURE_COMPUTER_VISION_ENDPOINT": "[if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, '')]",
-              "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION": "[parameters('computerVisionVectorizeImageApiVersion')]",
-              "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION": "[parameters('computerVisionVectorizeImageModelVersion')]",
-              "AZURE_CONTENT_SAFETY_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value]",
-              "AZURE_OPENAI_MODEL_INFO": "[variables('azureOpenAIModelInfo')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL_INFO": "[variables('azureOpenAIEmbeddingModelInfo')]",
-              "AZURE_OPENAI_RESOURCE": "[parameters('azureOpenAIResourceName')]",
-              "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
-              "AZURE_SEARCH_INDEX": "[parameters('azureSearchIndex')]",
-              "AZURE_SEARCH_SERVICE": "[format('https://{0}.search.windows.net', parameters('azureAISearchName'))]",
-              "AZURE_SEARCH_DATASOURCE_NAME": "[parameters('azureSearchDatasource')]",
-              "AZURE_SEARCH_INDEXER_NAME": "[parameters('azureSearchIndexer')]",
-              "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": "[parameters('azureSearchUseIntegratedVectorization')]",
-              "AZURE_SEARCH_FIELDS_ID": "[parameters('azureSearchFieldId')]",
-              "AZURE_SEARCH_CONTENT_COLUMN": "[parameters('azureSearchContentColumn')]",
-              "AZURE_SEARCH_CONTENT_VECTOR_COLUMN": "[parameters('azureSearchVectorColumn')]",
-              "AZURE_SEARCH_TITLE_COLUMN": "[parameters('azureSearchTitleColumn')]",
-              "AZURE_SEARCH_FIELDS_METADATA": "[parameters('azureSearchFieldsMetadata')]",
-              "AZURE_SEARCH_SOURCE_COLUMN": "[parameters('azureSearchSourceColumn')]",
-              "AZURE_SEARCH_CHUNK_COLUMN": "[parameters('azureSearchChunkColumn')]",
-              "AZURE_SEARCH_OFFSET_COLUMN": "[parameters('azureSearchOffsetColumn')]",
-              "USE_ADVANCED_IMAGE_PROCESSING": "[parameters('useAdvancedImageProcessing')]",
-              "DOCUMENT_PROCESSING_QUEUE_NAME": "[variables('queueName')]",
-              "ORCHESTRATION_STRATEGY": "[parameters('orchestrationStrategy')]",
-              "LOGLEVEL": "[parameters('logLevel')]",
-              "AZURE_OPENAI_SYSTEM_MESSAGE": "[parameters('azureOpenAISystemMessage')]",
-              "AZURE_SEARCH_TOP_K": "[parameters('azureSearchTopK')]",
-              "DATABASE_TYPE": "[parameters('databaseType')]",
-              "AZURE_POSTGRESQL_INFO": "[if(equals(parameters('databaseType'), 'PostgreSQL'), string(createObject('host', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'dbname', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'user', format('{0}-docker', parameters('functionName')))), createObject())]"
-            }
+            "value": "[union(createObject('AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value, 'AZURE_OPENAI_MODEL_INFO', variables('azureOpenAIModelInfo'), 'AZURE_OPENAI_EMBEDDING_MODEL_INFO', variables('azureOpenAIEmbeddingModelInfo'), 'AZURE_OPENAI_RESOURCE', parameters('azureOpenAIResourceName'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_SEARCH_INDEX', parameters('azureSearchIndex'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', parameters('azureAISearchName')), 'AZURE_SEARCH_DATASOURCE_NAME', parameters('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', parameters('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', parameters('azureSearchUseIntegratedVectorization'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'USE_ADVANCED_IMAGE_PROCESSING', parameters('useAdvancedImageProcessing'), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'LOGLEVEL', parameters('logLevel'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'DATABASE_TYPE', parameters('databaseType')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_INFO', string(createObject('host', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'dbname', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'user', format('{0}-docker', parameters('functionName'))))), createObject()))]"
           }
         },
         "template": {
@@ -9696,7 +9547,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.30.23.60470",
-              "templateHash": "11172260966600448386"
+              "templateHash": "5143341974057039705"
             }
           },
           "parameters": {
@@ -9881,7 +9732,7 @@
                     "value": "[parameters('useKeyVault')]"
                   },
                   "managedIdentity": {
-                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
+                    "value": "[or(equals(parameters('databaseType'), 'PostgreSQL'), not(empty(parameters('keyVaultName'))))]"
                   },
                   "appSettings": {
                     "value": "[union(parameters('appSettings'), createObject('WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'false', 'AZURE_AUTH_TYPE', parameters('authType'), 'USE_KEY_VAULT', if(parameters('useKeyVault'), parameters('useKeyVault'), ''), 'AZURE_OPENAI_API_KEY', if(parameters('useKeyVault'), parameters('openAIKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('azureOpenAIName')), '2023-05-01').key1), 'AZURE_SEARCH_KEY', if(parameters('useKeyVault'), parameters('searchKeyName'), listAdminKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Search/searchServices', parameters('azureAISearchName')), '2021-04-01-preview').primaryKey), 'AZURE_BLOB_STORAGE_INFO', if(parameters('useKeyVault'), parameters('azureBlobStorageInfo'), replace(parameters('azureBlobStorageInfo'), '$STORAGE_ACCOUNT_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)), 'AZURE_FORM_RECOGNIZER_INFO', if(parameters('useKeyVault'), parameters('azureFormRecognizerInfo'), replace(parameters('azureFormRecognizerInfo'), '$FORM_RECOGNIZER_KEY', listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('formRecognizerName')), '2023-05-01').key1)), 'AZURE_CONTENT_SAFETY_KEY', if(parameters('useKeyVault'), parameters('contentSafetyKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('contentSafetyName')), '2023-05-01').key1), 'AZURE_SPEECH_SERVICE_KEY', if(parameters('useKeyVault'), parameters('speechKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), '2023-05-01').key1), 'AZURE_COMPUTER_VISION_KEY', if(or(parameters('useKeyVault'), equals(parameters('computerVisionName'), '')), parameters('computerVisionKeyName'), listKeys(resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', parameters('computerVisionName')), '2023-05-01').key1)))]"
@@ -12378,7 +12229,7 @@
     },
     "AZURE_POSTGRESQL_INFO": {
       "type": "string",
-      "value": "[string(createObject('serverName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'databaseName', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'userName', ''))]"
+      "value": "[string(createObject('serverName', if(equals(parameters('databaseType'), 'PostgreSQL'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, ''), 'databaseName', if(equals(parameters('databaseType'), 'PostgreSQL'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, ''), 'userName', ''))]"
     }
   }
 }

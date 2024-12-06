@@ -2,7 +2,7 @@ metadata description = 'Creates an Azure Key Vault.'
 param name string
 param location string = resourceGroup().location
 param tags object = {}
-param managedIdentityObjectId string
+param managedIdentityObjectId string = ''
 
 param principalId string = ''
 
@@ -13,25 +13,40 @@ resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' = {
   properties: {
     tenantId: subscription().tenantId
     sku: { family: 'A', name: 'standard' }
-    accessPolicies: !empty(principalId)
-      ? [
+    accessPolicies: concat(
+      managedIdentityObjectId != '' ? [
+        {
+          objectId: managedIdentityObjectId
+          permissions: {
+            keys: [
+              'get'
+              'list'
+            ]
+            secrets: [
+              'get'
+              'list'
+            ]
+          }
+          tenantId: subscription().tenantId
+        }
+      ] : [],
+      principalId != '' ? [
         {
           objectId: principalId
-          permissions: { secrets: [ 'get', 'list' ] }
-          tenantId: subscription().tenantId
-        }, {
-          objectId: managedIdentityObjectId
-          permissions: { secrets: [ 'get', 'list' ] }
-          tenantId: subscription().tenantId
-        }
-      ]
-      : [
-        {
-          objectId: managedIdentityObjectId
-          permissions: { secrets: [ 'get', 'list' ] }
+          permissions: {
+            keys: [
+              'get'
+              'list'
+            ]
+            secrets: [
+              'get'
+              'list'
+            ]
+          }
           tenantId: subscription().tenantId
         }
-      ]
+      ] : []
+    )
   }
 }
 
