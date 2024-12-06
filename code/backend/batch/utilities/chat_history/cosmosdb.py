@@ -2,8 +2,10 @@ from datetime import datetime
 from azure.cosmos.aio import CosmosClient
 from azure.cosmos import exceptions
 
+from .database_client_base import DatabaseClientBase
 
-class CosmosConversationClient:
+
+class CosmosConversationClient(DatabaseClientBase):
 
     def __init__(
         self,
@@ -41,6 +43,12 @@ class CosmosConversationClient:
             )
         except exceptions.CosmosResourceNotFoundError:
             raise ValueError("Invalid CosmosDB container name")
+
+    async def connect(self):
+        pass
+
+    async def close(self):
+        pass
 
     async def ensure(self):
         if (

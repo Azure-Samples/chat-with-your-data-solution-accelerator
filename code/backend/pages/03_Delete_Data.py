@@ -46,7 +46,10 @@ try:
 
     search_handler = Search.get_search_handler(env_helper)
     results = search_handler.get_files()
-    if results is None or results.get_count() == 0:
+    if (
+        env_helper.DATABASE_TYPE == "CosmosDB"
+        and (results is None or results.get_count() == 0)
+    ) or (env_helper.DATABASE_TYPE == "PostgreSQL" and len(results) == 0):
         st.info("No files to delete")
         st.stop()
     else:

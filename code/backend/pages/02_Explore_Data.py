@@ -40,8 +40,17 @@ load_css("pages/common.css")
 try:
     search_handler = Search.get_search_handler(env_helper)
 
-    results = search_handler.search_with_facets("*", "title", facet_count=0)
-    unique_files = search_handler.get_unique_files(results, "title")
+    # Determine unique files based on database type
+    if env_helper.DATABASE_TYPE == "PostgreSQL":
+        unique_files = search_handler.get_unique_files()
+    elif env_helper.DATABASE_TYPE == "CosmosDB":
+        results = search_handler.search_with_facets("*", "title", facet_count=0)
+        unique_files = search_handler.get_unique_files(results, "title")
+    else:
+        raise ValueError(
+            "Unsupported database type. Only 'PostgreSQL' and 'CosmosDB' are allowed."
+        )
+
     filename = st.selectbox("Select your file:", unique_files)
     st.write("Showing chunks for:", filename)
 
