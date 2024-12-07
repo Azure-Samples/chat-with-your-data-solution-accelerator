@@ -403,7 +403,7 @@ FodyWeavers.xsd
 *.sln.iml
 
 # Python
-.env
+#.env
 .venv
 
 temp/
