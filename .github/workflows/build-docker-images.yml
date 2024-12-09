@@ -1,12 +1,16 @@
 name: Build Docker Images
 
 on:
-  workflow_run:
-    workflows: [Tests]
-    types: [completed]
-    branches: [main, dev, demo]
+  push:
+    branches:
+      - main
+      - dev
+      - demo
   pull_request:
-    branches: [main, dev, demo]
+    branches:
+      - main
+      - dev
+      - demo
     types:
     - opened
     - ready_for_review
@@ -16,7 +20,6 @@ on:
 
 jobs:
   docker-build:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     strategy:
       matrix:
         include:
@@ -28,10 +31,10 @@ jobs:
             dockerfile: docker/Frontend.Dockerfile
     uses: ./.github/workflows/build-docker.yml
     with:
-      registry: ${{ github.event.workflow_run.head_branch == 'main' && 'fruoccopublic.azurecr.io' || 'cwydcontainerreg.azurecr.io'}}
-      username: ${{ github.event.workflow_run.head_branch == 'main' && 'fruoccopublic' || 'cwydcontainerreg'}}
+      registry: ${{ github.ref_name == 'main' && 'fruoccopublic.azurecr.io' || 'cwydcontainerreg.azurecr.io'}}
+      username: ${{ github.ref_name == 'main' && 'fruoccopublic' || 'cwydcontainerreg'}}
       app_name: ${{ matrix.app_name }}
       dockerfile: ${{ matrix.dockerfile }}
-      branch: ${{ github.event.workflow_run.head_branch }}
-      push: ${{ github.event_name == 'workflow_run' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'dev' || github.event.workflow_run.head_branch == 'demo') }}
+      branch: ${{ github.ref_name }}
+      push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' }}
     secrets: inherit
