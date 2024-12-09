@@ -76,7 +76,7 @@ All PostgreSQL connections use secure configurations:
 ---
 
 ## Benefits of PostgreSQL Integration
-1  **Scalability**: PostgreSQL offers robust data storage and table indexing capabilities suitable for large-scale deployments
+1. **Scalability**: PostgreSQL offers robust data storage and table indexing capabilities suitable for large-scale deployments
 2. **Flexibility**: Dynamic database switching allows users to choose between PostgreSQL and CosmosDB based on their requirements.
 3. **Ease of Use**: Automated table creation and environment configuration simplify deployment and management.
 4. **Security**: SSL-enabled connections and secure credential handling ensure data protection.
