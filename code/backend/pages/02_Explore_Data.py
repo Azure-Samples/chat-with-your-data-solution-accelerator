@@ -4,6 +4,7 @@ import traceback
 import sys
 import pandas as pd
 from batch.utilities.helpers.env_helper import EnvHelper
+from batch.utilities.helpers.config.database_type import DatabaseType
 from batch.utilities.search.search import Search
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -41,9 +42,9 @@ try:
     search_handler = Search.get_search_handler(env_helper)
 
     # Determine unique files based on database type
-    if env_helper.DATABASE_TYPE == "PostgreSQL":
+    if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value:
         unique_files = search_handler.get_unique_files()
-    elif env_helper.DATABASE_TYPE == "CosmosDB":
+    elif env_helper.DATABASE_TYPE == DatabaseType.COSMOSDB.value:
         results = search_handler.search_with_facets("*", "title", facet_count=0)
         unique_files = search_handler.get_unique_files(results, "title")
     else:
