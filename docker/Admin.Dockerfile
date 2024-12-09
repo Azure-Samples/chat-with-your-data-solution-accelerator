@@ -7,6 +7,7 @@ RUN pip install --upgrade pip && pip install poetry && poetry export -o requirem
 COPY ./code/backend /usr/local/src/myscripts/admin
 COPY ./code/backend/batch/utilities /usr/local/src/myscripts/utilities
 WORKDIR /usr/local/src/myscripts/admin
-ENV PYTHONPATH "${PYTHONPATH}:/usr/local/src/myscripts/"
+# https://github.com/docker/buildx/issues/2751
+ENV PYTHONPATH="${PYTHONPATH}:/usr/local/src/myscripts/"
 EXPOSE 80
 CMD ["streamlit", "run", "Admin.py", "--server.port", "80", "--server.enableXsrfProtection", "false"]

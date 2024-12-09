@@ -7,7 +7,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
     commit-message:
       prefix: "build"
@@ -15,7 +15,7 @@ updates:
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
 
     commit-message:
@@ -29,7 +29,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/code/frontend"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
 
     commit-message:
@@ -39,7 +39,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/tests/integration/ui"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
 
     commit-message:
