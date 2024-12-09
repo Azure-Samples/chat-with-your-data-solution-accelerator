@@ -35,6 +35,5 @@ jobs:
       username: ${{ github.ref_name == 'main' && 'fruoccopublic' || 'cwydcontainerreg'}}
       app_name: ${{ matrix.app_name }}
       dockerfile: ${{ matrix.dockerfile }}
-      branch: ${{ github.ref_name }}
       push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' }}
     secrets: inherit
