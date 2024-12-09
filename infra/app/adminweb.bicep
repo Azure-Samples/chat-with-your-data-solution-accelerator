@@ -19,8 +19,8 @@ param computerVisionName string = ''
 param appSettings object = {}
 param useKeyVault bool
 param openAIKeyName string = ''
-param storageAccountKeyName string = ''
-param formRecognizerKeyName string = ''
+param azureBlobStorageInfo string = ''
+param azureFormRecognizerInfo string = ''
 param searchKeyName string = ''
 param computerVisionKeyName string = ''
 param contentSafetyKeyName string = ''
@@ -28,6 +28,31 @@ param speechKeyName string = ''
 param authType string
 param dockerFullImageName string = ''
 param useDocker bool = dockerFullImageName != ''
+param databaseType string = 'CosmosDB' // 'CosmosDB' or 'PostgreSQL'
+
+var azureFormRecognizerInfoUpdated = useKeyVault
+  ? azureFormRecognizerInfo
+  : replace(azureFormRecognizerInfo, '$FORM_RECOGNIZER_KEY', listKeys(
+      resourceId(
+        subscription().subscriptionId,
+        resourceGroup().name,
+        'Microsoft.CognitiveServices/accounts',
+        formRecognizerName
+      ),
+      '2023-05-01'
+    ).key1)
+
+var azureBlobStorageInfoUpdated = useKeyVault
+  ? azureBlobStorageInfo
+  : replace(azureBlobStorageInfo, '$STORAGE_ACCOUNT_KEY', listKeys(
+      resourceId(
+        subscription().subscriptionId,
+        resourceGroup().name,
+        'Microsoft.Storage/storageAccounts',
+        storageAccountName
+      ),
+      '2021-09-01'
+    ).keys[0].value)
 
 module adminweb '../core/host/appservice.bicep' = {
   name: '${name}-app-module'
@@ -44,6 +69,7 @@ module adminweb '../core/host/appservice.bicep' = {
     scmDoBuildDuringDeployment: useDocker ? false : true
     applicationInsightsName: applicationInsightsName
     appServicePlanId: appServicePlanId
+    managedIdentity: databaseType == 'PostgreSQL' || !empty(keyVaultName)
     appSettings: union(appSettings, {
       AZURE_AUTH_TYPE: authType
       USE_KEY_VAULT: useKeyVault ? useKeyVault : ''
@@ -69,28 +95,8 @@ module adminweb '../core/host/appservice.bicep' = {
             ),
             '2021-04-01-preview'
           ).primaryKey
-      AZURE_BLOB_ACCOUNT_KEY: useKeyVault
-        ? storageAccountKeyName
-        : listKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.Storage/storageAccounts',
-              storageAccountName
-            ),
-            '2021-09-01'
-          ).keys[0].value
-      AZURE_FORM_RECOGNIZER_KEY: useKeyVault
-        ? formRecognizerKeyName
-        : listKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.CognitiveServices/accounts',
-              formRecognizerName
-            ),
-            '2023-05-01'
-          ).key1
+      AZURE_BLOB_STORAGE_INFO: azureBlobStorageInfoUpdated
+      AZURE_FORM_RECOGNIZER_INFO: azureFormRecognizerInfoUpdated
       AZURE_CONTENT_SAFETY_KEY: useKeyVault
         ? contentSafetyKeyName
         : listKeys(

@@ -5,6 +5,7 @@ import sys
 import logging
 from batch.utilities.helpers.env_helper import EnvHelper
 from batch.utilities.search.search import Search
+from batch.utilities.helpers.config.database_type import DatabaseType
 from batch.utilities.helpers.azure_blob_storage_client import AzureBlobStorageClient
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -46,7 +47,10 @@ try:
 
     search_handler = Search.get_search_handler(env_helper)
     results = search_handler.get_files()
-    if results is None or results.get_count() == 0:
+    if (
+        env_helper.DATABASE_TYPE == DatabaseType.COSMOSDB.value
+        and (results is None or results.get_count() == 0)
+    ) or (env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value and len(results) == 0):
         st.info("No files to delete")
         st.stop()
     else:

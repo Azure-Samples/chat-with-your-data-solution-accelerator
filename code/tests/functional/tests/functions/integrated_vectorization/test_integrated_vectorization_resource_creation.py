@@ -20,12 +20,12 @@ FILE_NAME = "test.pdf"
 @pytest.fixture(autouse=True)
 def setup_blob_metadata_mocking(httpserver: HTTPServer, app_config: AppConfig):
     httpserver.expect_request(
-        f"/{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}",
+        f"/{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}/{FILE_NAME}",
         method="HEAD",
     ).respond_with_data()
 
     httpserver.expect_request(
-        f"/{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}",
+        f"/{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}/{FILE_NAME}",
         method="PUT",
     ).respond_with_data()
 
@@ -36,7 +36,7 @@ def message(app_config: AppConfig):
         body=json.dumps(
             {
                 "topic": "topic",
-                "subject": f"/blobServices/default/{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/documents/blobs/{FILE_NAME}",
+                "subject": f"/blobServices/default/{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}/documents/blobs/{FILE_NAME}",
                 "eventType": "Microsoft.Storage.BlobCreated",
                 "id": "id",
                 "data": {
@@ -47,7 +47,7 @@ def message(app_config: AppConfig):
                     "contentType": "application/pdf",
                     "contentLength": 544811,
                     "blobType": "BlockBlob",
-                    "url": f"https://{app_config.get('AZURE_BLOB_ACCOUNT_NAME')}.blob.core.windows.net/documents/{FILE_NAME}",
+                    "url": f"https://{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','accountName')}.blob.core.windows.net/documents/{FILE_NAME}",
                     "sequencer": "00000000000000000000000000036029000000000017251c",
                     "storageDiagnostics": {
                         "batchId": "c98008b9-e006-007c-00bb-a2ae9f000000"
@@ -97,9 +97,9 @@ def test_integrated_vectorization_datasouce_created(
                 "name": app_config.get("AZURE_SEARCH_DATASOURCE_NAME"),
                 "type": "azureblob",
                 "credentials": {
-                    "connectionString": f"DefaultEndpointsProtocol=https;AccountName={app_config.get('AZURE_BLOB_ACCOUNT_NAME')};AccountKey={app_config.get('AZURE_BLOB_ACCOUNT_KEY')};EndpointSuffix=core.windows.net"
+                    "connectionString": f"DefaultEndpointsProtocol=https;AccountName={app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','accountName')};AccountKey={app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','accountKey')};EndpointSuffix=core.windows.net"
                 },
-                "container": {"name": f"{app_config.get('AZURE_BLOB_CONTAINER_NAME')}"},
+                "container": {"name": f"{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}"},
                 "dataDeletionDetectionPolicy": {
                     "@odata.type": "#Microsoft.Azure.Search.NativeBlobSoftDeleteDeletionDetectionPolicy"
                 },
