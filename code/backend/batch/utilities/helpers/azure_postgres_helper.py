@@ -48,7 +48,7 @@ class AzurePostgresHelper:
             self.conn = self._create_search_client()
         return self.conn
 
-    def get_search_indexes(self, embedding_array):
+    def get_vector_store(self, embedding_array):
         """
         Fetches search indexes from PostgreSQL based on an embedding vector.
         """
@@ -58,7 +58,7 @@ class AzurePostgresHelper:
                 cur.execute(
                     """
                     SELECT id, title, chunk, "offset", page_number, content, source
-                    FROM search_indexes
+                    FROM vector_store
                     ORDER BY content_vector <=> %s::vector
                     LIMIT %s
                     """,
@@ -76,9 +76,9 @@ class AzurePostgresHelper:
         finally:
             conn.close()
 
-    def create_search_indexes(self, documents_to_upload):
+    def create_vector_store(self, documents_to_upload):
         """
-        Inserts documents into the `search_indexes` table in batch mode.
+        Inserts documents into the `vector_store` table in batch mode.
         """
         conn = self.get_search_client()
         try:
@@ -101,7 +101,7 @@ class AzurePostgresHelper:
 
                 # Batch insert using execute_values for efficiency
                 query = """
-                    INSERT INTO search_indexes (
+                    INSERT INTO vector_store (
                         id, title, chunk, chunk_id, "offset", page_number,
                         content, source, metadata, content_vector
                     ) VALUES %s
@@ -133,7 +133,7 @@ class AzurePostgresHelper:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 query = """
                     SELECT id, title
-                    FROM search_indexes
+                    FROM vector_store
                     WHERE title IS NOT NULL
                     ORDER BY title;
                 """
@@ -171,7 +171,7 @@ class AzurePostgresHelper:
             with conn.cursor() as cursor:
                 # Construct the DELETE query with the list of ids_to_delete
                 query = """
-                    DELETE FROM search_indexes
+                    DELETE FROM vector_store
                     WHERE id = ANY(%s)
                 """
                 # Extract the 'id' values from the list of dictionaries (ids_to_delete)
@@ -210,7 +210,7 @@ class AzurePostgresHelper:
                 cur.execute(
                     """
                     SELECT title, content, metadata
-                    FROM search_indexes
+                    FROM vector_store
                     WHERE title = %s
                     """,
                     (title,),
@@ -236,7 +236,7 @@ class AzurePostgresHelper:
                 cur.execute(
                     """
                     SELECT DISTINCT title
-                    FROM search_indexes
+                    FROM vector_store
                     """
                 )
                 results = cur.fetchall()  # Fetch all results as RealDictRow objects
@@ -260,7 +260,7 @@ class AzurePostgresHelper:
                 cur.execute(
                     """
                     SELECT id, title
-                    FROM search_indexes
+                    FROM vector_store
                     WHERE source = %s
                     """,
                     (f"{blob_url}_SAS_TOKEN_PLACEHOLDER_",),

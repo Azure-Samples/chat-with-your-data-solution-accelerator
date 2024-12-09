@@ -39,7 +39,7 @@ def test_query_search(handler, mock_search_client):
 
     mock_llm_helper.generate_embeddings.return_value = [1, 2, 3]
 
-    mock_search_client.get_search_indexes.return_value = [
+    mock_search_client.get_vector_store.return_value = [
         {
             "id": "1",
             "title": "Title1",
@@ -66,7 +66,7 @@ def test_query_search(handler, mock_search_client):
     result = handler.query_search("Sample question")
 
     mock_llm_helper.generate_embeddings.assert_called_once_with("Sample question")
-    mock_search_client.get_search_indexes.assert_called_once()
+    mock_search_client.get_vector_store.assert_called_once()
     assert len(result) == 2
     assert isinstance(result[0], SourceDocument)
     assert result[0].id == "1"

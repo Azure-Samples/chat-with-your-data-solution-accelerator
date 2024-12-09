@@ -21,7 +21,7 @@ class AzurePostgresHandler(SearchHandlerBase):
 
         embedding_array = np.array(query_embedding).tolist()
 
-        search_results = self.azure_postgres_helper.get_search_indexes(embedding_array)
+        search_results = self.azure_postgres_helper.get_vector_store(embedding_array)
 
         return self._convert_to_source_documents(search_results)
 
@@ -44,8 +44,8 @@ class AzurePostgresHandler(SearchHandlerBase):
     def create_search_client(self):
         return self.azure_postgres_helper.get_search_client()
 
-    def create_search_indexes(self, documents_to_upload):
-        return self.azure_postgres_helper.create_search_indexes(documents_to_upload)
+    def create_vector_store(self, documents_to_upload):
+        return self.azure_postgres_helper.create_vector_store(documents_to_upload)
 
     def perform_search(self, filename):
         return self.azure_postgres_helper.perform_search(filename)

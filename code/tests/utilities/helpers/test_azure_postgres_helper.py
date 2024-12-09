@@ -57,7 +57,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
     )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.RealDictCursor")
-    def test_get_search_indexes_success(
+    def test_get_vector_store_success(
         self, mock_cursor, mock_connect, mock_credential
     ):
         # Arrange
@@ -93,7 +93,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         embedding_vector = [1, 2, 3]
 
         # Act
-        results = helper.get_search_indexes(embedding_vector)
+        results = helper.get_vector_store(embedding_vector)
 
         # Assert
         self.assertEqual(results, mock_results)
@@ -105,7 +105,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
     )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
-    def test_get_search_indexes_query_error(self, mock_connect, mock_credential):
+    def test_get_vector_store_query_error(self, mock_connect, mock_credential):
         # Arrange
         # Mock the EnvHelper and set required attributes
         mock_env_helper = MagicMock()
@@ -138,7 +138,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
 
         # Act & Assert
         with self.assertRaises(Exception) as context:
-            helper.get_search_indexes(embedding_vector)
+            helper.get_vector_store(embedding_vector)
 
         self.assertEqual(str(context.exception), "Query execution error")
 

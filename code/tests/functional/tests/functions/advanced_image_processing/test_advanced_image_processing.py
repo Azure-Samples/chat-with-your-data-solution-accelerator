@@ -255,7 +255,7 @@ def test_metadata_is_updated_after_processing(
     )
 
 
-def test_makes_correct_call_to_list_search_indexes(
+def test_makes_correct_call_to_list_vector_store(
     message: QueueMessage, httpserver: HTTPServer, app_config: AppConfig
 ):
     # when

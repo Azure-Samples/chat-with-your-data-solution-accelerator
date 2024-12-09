@@ -135,7 +135,7 @@ def test_embed_file(
 
     # Mock methods
     llm_helper_mock.generate_embeddings.return_value = [0.1, 0.2, 0.3]
-    azure_postgres_helper_mock.create_search_indexes.return_value = True
+    azure_postgres_helper_mock.create_vector_store.return_value = True
 
     # Execute
     postgres_embedder.embed_file(source_url, file_name)

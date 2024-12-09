@@ -69,7 +69,7 @@ class PostgresEmbedder(EmbedderBase):
                 documents_to_upload.append(self.__convert_to_search_document(document))
 
         if documents_to_upload:
-            self.azure_postgres_helper.create_search_indexes(documents_to_upload)
+            self.azure_postgres_helper.create_vector_store(documents_to_upload)
         else:
             logger.warning("No documents to upload.")
 

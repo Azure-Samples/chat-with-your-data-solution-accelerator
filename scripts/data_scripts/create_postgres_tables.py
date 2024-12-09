@@ -98,17 +98,15 @@ create_ms_sql = """CREATE TABLE messages (
 cursor.execute(create_ms_sql)
 conn.commit()
 
-# Add pg_diskann extension and search_indexes table
-# cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_diskann CASCADE;")
 
 # Add Vector extension
 cursor.execute("CREATE EXTENSION IF NOT EXISTS vector CASCADE;")
 conn.commit()
 
-cursor.execute("DROP TABLE IF EXISTS search_indexes;")
+cursor.execute("DROP TABLE IF EXISTS vector_store;")
 conn.commit()
 
-table_create_command = """CREATE TABLE IF NOT EXISTS search_indexes(
+table_create_command = """CREATE TABLE IF NOT EXISTS vector_store(
     id text,
     title text,
     chunk integer,
@@ -124,10 +122,8 @@ table_create_command = """CREATE TABLE IF NOT EXISTS search_indexes(
 cursor.execute(table_create_command)
 conn.commit()
 
-# PG_DISKANN is not available yet
-# cursor.execute("CREATE INDEX search_indexes_content_vector_diskann_idx ON search_indexes USING diskann (content_vector vector_cosine_ops);")
 
-cursor.execute("CREATE INDEX search_indexes_content_vector_idx ON search_indexes USING hnsw (content_vector vector_cosine_ops);")
+cursor.execute("CREATE INDEX vector_store_content_vector_idx ON vector_store USING hnsw (content_vector vector_cosine_ops);")
 conn.commit()
 
 grant_permissions(cursor, dbname, "public", principal_name)
@@ -141,7 +137,7 @@ conn.commit()
 
 cursor.execute("ALTER TABLE public.conversations OWNER TO azure_pg_admin;")
 cursor.execute("ALTER TABLE public.messages OWNER TO azure_pg_admin;")
-cursor.execute("ALTER TABLE public.search_indexes OWNER TO azure_pg_admin;")
+cursor.execute("ALTER TABLE public.vector_store OWNER TO azure_pg_admin;")
 conn.commit()
 
 cursor.close()
