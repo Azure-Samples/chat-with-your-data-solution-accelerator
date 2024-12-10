@@ -321,7 +321,7 @@ var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
 var rgName = 'rg-${environmentName}'
 var keyVaultName = 'kv-${resourceToken}'
-var baseUrl = 'https://raw.githubusercontent.com/Fr4nc3/chat-with-your-data-solution-accelerator/main/'
+var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
 var azureOpenAIModelInfo = string({
   model: azureOpenAIModel
   modelName: azureOpenAIModelName
@@ -383,7 +383,9 @@ module keyvault './core/security/keyvault.bicep' = if (useKeyVault || authType =
     location: location
     tags: tags
     principalId: principalId
-    managedIdentityObjectId: databaseType == 'PostgreSQL' ? managedIdentityModule.outputs.managedIdentityOutput.objectId : ''
+    managedIdentityObjectId: databaseType == 'PostgreSQL'
+      ? managedIdentityModule.outputs.managedIdentityOutput.objectId
+      : ''
   }
 }
 
@@ -877,13 +879,15 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
       },
-      databaseType == 'PostgreSQL' ? {
-        AZURE_POSTGRESQL_INFO: string({
-          host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-          dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-          user: adminWebsiteName
-        })
-      } : {}
+      databaseType == 'PostgreSQL'
+        ? {
+            AZURE_POSTGRESQL_INFO: string({
+              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+              user: adminWebsiteName
+            })
+          }
+        : {}
     )
   }
 }
@@ -961,13 +965,15 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
       },
-      databaseType == 'PostgreSQL' ? {
-        AZURE_POSTGRESQL_INFO: string({
-          host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-          dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-          user: '${adminWebsiteName}-docker'
-        })
-      } : {}
+      databaseType == 'PostgreSQL'
+        ? {
+            AZURE_POSTGRESQL_INFO: string({
+              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+              user: '${adminWebsiteName}-docker'
+            })
+          }
+        : {}
     )
   }
 }
@@ -1067,13 +1073,15 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
         AZURE_SEARCH_TOP_K: azureSearchTopK
         DATABASE_TYPE: databaseType
       },
-      databaseType == 'PostgreSQL' ? {
-        AZURE_POSTGRESQL_INFO: string({
-            host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-            dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-            user: functionName
-          })
-        } : {}
+      databaseType == 'PostgreSQL'
+        ? {
+            AZURE_POSTGRESQL_INFO: string({
+              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+              user: functionName
+            })
+          }
+        : {}
     )
   }
 }
@@ -1138,13 +1146,15 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
         AZURE_SEARCH_TOP_K: azureSearchTopK
         DATABASE_TYPE: databaseType
       },
-      databaseType == 'PostgreSQL' ? {
-        AZURE_POSTGRESQL_INFO: string({
-            host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-            dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-            user: '${functionName}-docker'
-          })
-        } : {}
+      databaseType == 'PostgreSQL'
+        ? {
+            AZURE_POSTGRESQL_INFO: string({
+              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+              user: '${functionName}-docker'
+            })
+          }
+        : {}
     )
   }
 }
