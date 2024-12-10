@@ -133,6 +133,7 @@ def test_azure_speech_recognizer_languages_default(monkeypatch: MonkeyPatch):
 )
 def test_use_advanced_image_processing(monkeypatch: MonkeyPatch, value, expected):
     # given
+    monkeypatch.setenv("DATABASE_TYPE", "CosmosDB")
     if value is not None:
         monkeypatch.setenv("USE_ADVANCED_IMAGE_PROCESSING", value)
 

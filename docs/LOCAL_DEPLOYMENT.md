@@ -190,13 +190,9 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 |AZURE_SEARCH_FILTER||Filter to apply to search queries.|
 |AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION ||Whether to use [Integrated Vectorization](https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-vectorization)|
 |AZURE_OPENAI_RESOURCE||the name of your Azure OpenAI resource|
-|AZURE_OPENAI_MODEL||The name of your model deployment|
-|AZURE_OPENAI_MODEL_NAME|gpt-35-turbo|The name of the model|
-|AZURE_OPENAI_MODEL_VERSION|0613|The version of the model to use|
+|AZURE_OPENAI_MODEL_INFO|{"model":"gpt-35-turbo","modelName":"gpt-35-turbo","modelVersion":"0613"}|`model`: The name of your model deployment.<br>`modelName`: The name of the model.<br>`modelVersion`: The version of the model to use.|
 |AZURE_OPENAI_API_KEY||One of the API keys of your Azure OpenAI resource|
-|AZURE_OPENAI_EMBEDDING_MODEL|text-embedding-ada-002|The name of your Azure OpenAI embeddings model deployment|
-|AZURE_OPENAI_EMBEDDING_MODEL_NAME|text-embedding-ada-002|The name of the embeddings model (can be found in Azure AI Studio)|
-|AZURE_OPENAI_EMBEDDING_MODEL_VERSION|2|The version of the embeddings model to use (can be found in Azure AI Studio)|
+|AZURE_OPENAI_EMBEDDING_MODEL_INFO|{"model":"text-embedding-ada-002","modelName":"text-embedding-ada-002","modelVersion":"2"}|`model`: The name of your Azure OpenAI embeddings model deployment.<br>`modelName`: The name of the embeddings model (can be found in Azure AI Studio).<br>`modelVersion`: The version of the embeddings model to use (can be found in Azure AI Studio).|
 |AZURE_OPENAI_TEMPERATURE|0|What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. A value of 0 is recommended when using your data.|
 |AZURE_OPENAI_TOP_P|1.0|An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. We recommend setting this to 1.0 when using your data.|
 |AZURE_OPENAI_MAX_TOKENS|1000|The maximum number of tokens allowed for the generated answer.|
@@ -206,11 +202,8 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 |AzureWebJobsStorage||The connection string to the Azure Blob Storage for the Azure Functions Batch processing|
 |BACKEND_URL||The URL for the Backend Batch Azure Function. Use http://localhost:7071 for local execution|
 |DOCUMENT_PROCESSING_QUEUE_NAME|doc-processing|The name of the Azure Queue to handle the Batch processing|
-|AZURE_BLOB_ACCOUNT_NAME||The name of the Azure Blob Storage for storing the original documents to be processed|
-|AZURE_BLOB_ACCOUNT_KEY||The key of the Azure Blob Storage for storing the original documents to be processed|
-|AZURE_BLOB_CONTAINER_NAME||The name of the Container in the Azure Blob Storage for storing the original documents to be processed|
-|AZURE_FORM_RECOGNIZER_ENDPOINT||The name of the Azure Form Recognizer for extracting the text from the documents|
-|AZURE_FORM_RECOGNIZER_KEY||The key of the Azure Form Recognizer for extracting the text from the documents|
+|AZURE_BLOB_STORAGE_INFO|{"containerName":"documents","accountName":"","accountKey":""}"|`containerName`: The name of the Container in the Azure Blob Storage for storing the original documents to be processed.<br>`accountName`: The name of the Azure Blob Storage for storing the original documents to be processed.<br>`accountKey`: The key of the Azure Blob Storage for storing the original documents to be processed.|
+|AZURE_FORM_RECOGNIZER_INFO|{"endpoint":"","key":""}|`endpoint`: The name of the Azure Form Recognizer for extracting the text from the documents.<br>`key`: The key of the Azure Form Recognizer for extracting the text from the documents.|
 |APPLICATIONINSIGHTS_CONNECTION_STRING||The Application Insights connection string to store the application logs|
 |ORCHESTRATION_STRATEGY | openai_function | Orchestration strategy. Use Azure OpenAI Functions (openai_function), Semantic Kernel (semantic_kernel),  LangChain (langchain) or Prompt Flow (prompt_flow) for messages orchestration. If you are using a new model version 0613 select any strategy, if you are using a 0314 model version select "langchain". Note that both `openai_function` and `semantic_kernel` use OpenAI function calling. Prompt Flow option is still in development and does not support RBAC or integrated vectorization as of yet.|
 |AZURE_CONTENT_SAFETY_ENDPOINT | | The endpoint of the Azure AI Content Safety service |
