@@ -20,17 +20,11 @@ class OutputParserTool(ParserBase):
         results = re.findall(r"\[doc(\d+)\]", answer)
         return [int(i) for i in results]
 
-    def _replace_last(self, text, old, new):
-        """Replaces the last occurence of a substring in a string
-
-        This is done by reversing the string using [::-1], replacing the first occurence of the reversed substring, and
-        reversing the string again.
-        """
-        return (text[::-1].replace(old[::-1], new[::-1], 1))[::-1]
-
-    def _make_doc_references_sequential(self, answer, doc_ids):
-        for i, idx in enumerate(doc_ids):
-            answer = self._replace_last(answer, f"[doc{idx}]", f"[doc{i+1}]")
+    def _make_doc_references_sequential(self, answer):
+        doc_matches = list(re.finditer(r"\[doc\d+\]", answer))
+        for i, match in enumerate(doc_matches):
+            start, end = match.span()
+            answer = answer[:start] + f"[doc{i + 1}]" + answer[end:]
         return answer
 
     def parse(
@@ -42,7 +36,7 @@ class OutputParserTool(ParserBase):
     ) -> List[dict]:
         answer = self._clean_up_answer(answer)
         doc_ids = self._get_source_docs_from_answer(answer)
-        answer = self._make_doc_references_sequential(answer, doc_ids)
+        answer = self._make_doc_references_sequential(answer)
 
         # create return message object
         messages = [
