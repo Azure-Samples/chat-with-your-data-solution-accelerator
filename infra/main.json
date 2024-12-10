@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.30.23.60470",
-      "templateHash": "1160364617098555519"
+      "templateHash": "10622728189310123481"
     }
   },
   "parameters": {
@@ -312,7 +312,7 @@
         "prompt_flow"
       ],
       "metadata": {
-        "description": "Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain"
+        "description": "Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain. If the database type is PostgreSQL, set this to sementic_kernel."
       }
     },
     "conversationFlow": {
@@ -323,7 +323,7 @@
         "byod"
       ],
       "metadata": {
-        "description": "Chat conversation type: custom or byod."
+        "description": "Chat conversation type: custom or byod. If the database type is PostgreSQL, set this to custom."
       }
     },
     "azureOpenAITemperature": {
