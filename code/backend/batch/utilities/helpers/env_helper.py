@@ -92,7 +92,7 @@ class EnvHelper:
         # Chat History DB Integration Settings
         # Set default values based on DATABASE_TYPE
         self.DATABASE_TYPE = (
-            os.getenv("DATABASE_TYPE", "").strip() or DatabaseType.POSTGRESQL.value
+            os.getenv("DATABASE_TYPE", "").strip() or DatabaseType.COSMOSDB.value
         )
         # Cosmos DB configuration
         if self.DATABASE_TYPE == DatabaseType.COSMOSDB.value:
