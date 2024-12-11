@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.30.23.60470",
-      "templateHash": "8207330457159201967"
+      "templateHash": "15536398457562727557"
     }
   },
   "parameters": {
@@ -312,7 +312,7 @@
         "prompt_flow"
       ],
       "metadata": {
-        "description": "Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain"
+        "description": "Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain. If the database type is PostgreSQL, set this to sementic_kernel."
       }
     },
     "conversationFlow": {
@@ -323,7 +323,7 @@
         "byod"
       ],
       "metadata": {
-        "description": "Chat conversation type: custom or byod."
+        "description": "Chat conversation type: custom or byod. If the database type is PostgreSQL, set this to custom."
       }
     },
     "azureOpenAITemperature": {
@@ -648,11 +648,11 @@
     },
     "rgName": "[format('rg-{0}', parameters('environmentName'))]",
     "keyVaultName": "[format('kv-{0}', parameters('resourceToken'))]",
-    "baseUrl": "https://raw.githubusercontent.com/Fr4nc3/chat-with-your-data-solution-accelerator/main/",
+    "baseUrl": "https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/",
     "azureOpenAIModelInfo": "[string(createObject('model', parameters('azureOpenAIModel'), 'modelName', parameters('azureOpenAIModelName'), 'modelVersion', parameters('azureOpenAIModelVersion')))]",
     "azureOpenAIEmbeddingModelInfo": "[string(createObject('model', parameters('azureOpenAIEmbeddingModel'), 'modelName', parameters('azureOpenAIEmbeddingModelName'), 'modelVersion', parameters('azureOpenAIEmbeddingModelVersion')))]",
-    "appversion": "devpostgre",
-    "registryName": "cwydcontainerregpk",
+    "appversion": "latest",
+    "registryName": "fruoccopublic",
     "defaultOpenAiDeployments": [
       {
         "name": "[parameters('azureOpenAIModel')]",

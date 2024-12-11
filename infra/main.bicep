@@ -141,7 +141,7 @@ param azureOpenAIVisionModelVersion string = 'vision-preview'
 @description('Azure OpenAI Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIVisionModelCapacity int = 10
 
-@description('Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain')
+@description('Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain. If the database type is PostgreSQL, set this to sementic_kernel.')
 @allowed([
   'openai_function'
   'semantic_kernel'
@@ -150,7 +150,7 @@ param azureOpenAIVisionModelCapacity int = 10
 ])
 param orchestrationStrategy string = 'semantic_kernel'
 
-@description('Chat conversation type: custom or byod.')
+@description('Chat conversation type: custom or byod. If the database type is PostgreSQL, set this to custom.')
 @allowed([
   'custom'
   'byod'
@@ -321,7 +321,7 @@ var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
 var rgName = 'rg-${environmentName}'
 var keyVaultName = 'kv-${resourceToken}'
-var baseUrl = 'https://raw.githubusercontent.com/Fr4nc3/chat-with-your-data-solution-accelerator/main/'
+var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
 var azureOpenAIModelInfo = string({
   model: azureOpenAIModel
   modelName: azureOpenAIModelName
@@ -333,8 +333,8 @@ var azureOpenAIEmbeddingModelInfo = string({
   modelVersion: azureOpenAIEmbeddingModelVersion
 })
 
-var appversion = 'devpostgre' // Update GIT deployment branch
-var registryName = 'cwydcontainerregpk' // Update Registry name
+var appversion = 'latest' // Update GIT deployment branch
+var registryName = 'fruoccopublic' // Update Registry name
 
 // Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
@@ -383,7 +383,9 @@ module keyvault './core/security/keyvault.bicep' = if (useKeyVault || authType =
     location: location
     tags: tags
     principalId: principalId
-    managedIdentityObjectId: databaseType == 'PostgreSQL' ? managedIdentityModule.outputs.managedIdentityOutput.objectId : ''
+    managedIdentityObjectId: databaseType == 'PostgreSQL'
+      ? managedIdentityModule.outputs.managedIdentityOutput.objectId
+      : ''
   }
 }
 
@@ -877,13 +879,15 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
       },
-      databaseType == 'PostgreSQL' ? {
-        AZURE_POSTGRESQL_INFO: string({
-          host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-          dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-          user: adminWebsiteName
-        })
-      } : {}
+      databaseType == 'PostgreSQL'
+        ? {
+            AZURE_POSTGRESQL_INFO: string({
+              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+              user: adminWebsiteName
+            })
+          }
+        : {}
     )
   }
 }
@@ -961,13 +965,15 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
       },
-      databaseType == 'PostgreSQL' ? {
-        AZURE_POSTGRESQL_INFO: string({
-          host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-          dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-          user: '${adminWebsiteName}-docker'
-        })
-      } : {}
+      databaseType == 'PostgreSQL'
+        ? {
+            AZURE_POSTGRESQL_INFO: string({
+              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+              user: '${adminWebsiteName}-docker'
+            })
+          }
+        : {}
     )
   }
 }
@@ -1067,13 +1073,15 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
         AZURE_SEARCH_TOP_K: azureSearchTopK
         DATABASE_TYPE: databaseType
       },
-      databaseType == 'PostgreSQL' ? {
-        AZURE_POSTGRESQL_INFO: string({
-            host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-            dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-            user: functionName
-          })
-        } : {}
+      databaseType == 'PostgreSQL'
+        ? {
+            AZURE_POSTGRESQL_INFO: string({
+              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+              user: functionName
+            })
+          }
+        : {}
     )
   }
 }
@@ -1138,13 +1146,15 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
         AZURE_SEARCH_TOP_K: azureSearchTopK
         DATABASE_TYPE: databaseType
       },
-      databaseType == 'PostgreSQL' ? {
-        AZURE_POSTGRESQL_INFO: string({
-            host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-            dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-            user: '${functionName}-docker'
-          })
-        } : {}
+      databaseType == 'PostgreSQL'
+        ? {
+            AZURE_POSTGRESQL_INFO: string({
+              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+              user: '${functionName}-docker'
+            })
+          }
+        : {}
     )
   }
 }
