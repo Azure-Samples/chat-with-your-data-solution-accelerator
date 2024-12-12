@@ -215,8 +215,6 @@ switch to a lower version. To find out which versions are supported in different
 
     ![A screenshot of the chat app.](./docs/images/web-unstructureddata.png)
 
-\
-\
 
 
 
