@@ -42,6 +42,20 @@ param hostingPlanSku string = 'B3'
 ])
 param skuTier string = 'Basic'
 
+@description('The type of database to deploy (cosmos or postgres)')
+@allowed([
+  'PostgreSQL'
+  'CosmosDB'
+])
+param databaseType string = 'PostgreSQL'
+
+@description('Azure Cosmos DB Account Name')
+param azureCosmosDBAccountName string = 'cosmos-${resourceToken}'
+
+@description('Azure Postgres DB Account Name')
+param azurePostgresDBAccountName string = 'postgres-${resourceToken}'
+
+
 @description('Name of Web App')
 param websiteName string = 'web-${resourceToken}'
 
@@ -301,18 +315,6 @@ param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
 @description('Azure Machine Learning Name')
 param azureMachineLearningName string = 'aml-${resourceToken}'
 
-@description('The type of database to deploy (cosmos or postgres)')
-@allowed([
-  'CosmosDB'
-  'PostgreSQL'
-])
-param databaseType string = 'PostgreSQL'
-
-@description('Azure Cosmos DB Account Name')
-param azureCosmosDBAccountName string = 'cosmos-${resourceToken}'
-
-@description('Azure Postgres DB Account Name')
-param azurePostgresDBAccountName string = 'postgres-${resourceToken}'
 
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
