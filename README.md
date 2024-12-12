@@ -188,6 +188,8 @@ Once you deploy to Azure, you will have the option to select PostgreSQL or Cosmo
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FFr4nc3%2Fchat-with-your-data-solution-accelerator%2Frefs%2Fheads%2Fmain%2Finfra%2Fmain.json)
 
 Select either "PostgreSQL" or "Cosmos DB":
+![Solution Architecture - DB Selection](/docs/images/db_selection.png)
+
 
 When Deployment is complete, follow steps in [Set Up Authentication in Azure App Service](./docs/azure_app_service_auth_setup.md) to add app authentication to your web app running on Azure App Service
 
