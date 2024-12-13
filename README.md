@@ -177,11 +177,11 @@ Customers have the option to deploy this solution with PostgreSQL or Cosmos DB. 
 To review PostgreSQL configuration overview and steps, follow the link [here](docs/postgreSQL.md).
 ![Solution Architecture - Chat with your data PostgreSQL](/docs/images/architrecture_pg.png)
 
-To review Cosmos DB configuration overview and configuration steps [here](docs/employee_assistance.md).
+To review Cosmos DB configuration overview and steps, follow the link [here](docs/employee_assistance.md).
 ![Solution Architecture - Chat with your data CosmosDB](/docs/images/architecture_cdb.png)
 
 ### Deploy instructions
-The "Deploy to Azure" button offers a one-click deployment where you don’t have to clone the code. If you would like a developer experience instead, follow the[Local deployment instructions](./docs/LOCAL_DEPLOYMENT.md).
+The "Deploy to Azure" button offers a one-click deployment where you don’t have to clone the code. If you would like a developer experience instead, follow the [local deployment instructions](./docs/LOCAL_DEPLOYMENT.md).
 
 Once you deploy to Azure, you will have the option to select PostgreSQL or Cosmos DB, see screenshot below.
 
