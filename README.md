@@ -48,7 +48,7 @@ urlFragment: chat-with-your-data-solution-accelerator
 ## User story
 Welcome to the *Chat with your data* Solution accelerator repository! The *Chat with your data* Solution accelerator is a powerful tool that combines the capabilities of Azure AI Search and Large Language Models (LLMs) to create a conversational search experience. This solution accelerator uses an Azure OpenAI GPT model and an Azure AI Search index generated from your data, which is integrated into a web application to provide a natural language interface, including [speech-to-text](docs/speech_to_text.md) functionality, for search queries. Users can drag and drop files, point to storage, and take care of technical setup to transform documents. Everything can be deployed in your own subscription to accelerate your use of this technology.
 
-![Solution Architecture - Chat with your data](/docs/images/cwyd-solution-architecture.png)
+
 
 ### About this repo
 
@@ -91,11 +91,14 @@ Here is a comparison table with a few features offered by Azure, an available Gi
 - **Single application access to your full data set**: Minimize endpoints required to access internal company knowledgebases. Reuse the same backend with the [Microsoft Teams Extension](docs/teams_extension.md)
 - **Natural language interaction with your unstructured data**: Use natural language to quickly find the answers you need and ask follow-up queries to get the supplemental details, including [Speech-to-text](docs/speech_to_text.md).
 - **Easy access to source documentation when querying**: Review referenced documents in the same chat window for additional context.
+- **Chat history**: Prior conversations and context are maintained and accessible through chat history.
 - **Data upload**: Batch upload documents of [various file types](docs/supported_file_types.md)
 - **Accessible orchestration**: Prompt and document configuration (prompt engineering, document processing, and data retrieval)
+- **Database flexibility**: Dynamic database switching allows users to choose between PostgreSQL and Cosmos DB based on their requirements. If no preference is specified the platform defaults to PostgreSQL.
 
 
 **Note**: The current model allows users to ask questions about unstructured data, such as PDF, text, and docx files. See the [supported file types](docs/supported_file_types.md).
+
 
 ### Target end users
 Company personnel (employees, executives) looking to research against internal unstructured company data would leverage this accelerator using natural language to find what they need quickly.
@@ -106,6 +109,11 @@ Tech administrators can use this accelerator to give their colleagues easy acces
 
 
 ### Use Case scenarios
+
+#### Employee Onboarding Scenario
+The sample data illustrates how this accelerator could be used for an employee onboarding scenario in across industries.
+
+In this scenario, a newly hired employee is in the process of onboarding to their organization. Leveraging the solution accelerator, she navigates through the extensive offerings of her organization’s health and retirement benefits. With the newly integrated chat history capabilities, they can revisit previous conversations, ensuring continuity and context across multiple days of research. This functionality allows the new employee to efficiently gather and consolidate information, streamlining their onboarding experience. [For more details, refer to the README](docs/employee_assistance.md).
 
 #### Financial Advisor Scenario
 The sample data illustrates how this accelerator could be used in the financial services industry (FSI).
@@ -118,12 +126,6 @@ Now that the financial advisor is more informed about Woodgrove’s Emerging Mar
 Additionally, we have implemented a Legal Review and Summarization Assistant scenario to demonstrate how this accelerator can be utilized in any industry. The Legal Review and Summarization Assistant helps professionals manage and interact with a large collection of documents efficiently. For more details, refer to the [Contract Review and Summarization Assistant README](docs/contract_assistance.md).
 
 Note: Some of the sample data included with this accelerator was generated using AI and is for illustrative purposes only.
-
-
-#### Employee Onboarding Scenario
-The sample data illustrates how this accelerator could be used for an employee onboarding scenario in across industries.
-
-In this scenario, a newly hired employee is in the process of onboarding to their organization. Leveraging the solution accelerator, she navigates through the extensive offerings of her organization’s health and retirement benefits. With the newly integrated chat history capabilities, they can revisit previous conversations, ensuring continuity and context across multiple days of research. This functionality allows the new employee to efficiently gather and consolidate information, streamlining their onboarding experience. [For more details, refer to the README](docs/employee_assistance.md).
 
 
 ---
@@ -146,6 +148,7 @@ In this scenario, a newly hired employee is in the process of onboarding to thei
 - Azure Storage Account
 - Azure Speech Service
 - Azure CosmosDB
+- Azure PostgreSQL
 - Teams (optional: Teams extension only)
 
 ### Required licenses
@@ -163,13 +166,30 @@ The following are links to the pricing details for some of the resources:
 - [Azure AI Document Intelligence pricing](https://azure.microsoft.com/pricing/details/ai-document-intelligence/)
 - [Azure Web App Pricing](https://azure.microsoft.com/pricing/details/app-service/windows/)
 
+### Deployment options: PostgreSQL or Cosmos DB
+With the addition of PostgreSQL, customers can leverage the power of a relationship-based AI solution to enhance historical conversation access, improve data privacy, and open the possibilities for scalability.
+
+Customers have the option to deploy this solution with PostgreSQL or Cosmos DB. Consider the following when deciding which database to use:
+- PostgreSQL enables a relationship-based AI solution and search indexing for Retrieval Augmented Generation (RAG)
+- Cosmos DB is a NoSQL-based solution for chat history
+
+
+To review PostgreSQL configuration overview and steps, follow the link [here](docs/postgreSQL.md).
+![Solution Architecture - Chat with your data PostgreSQL](/docs/images/architrecture_pg.png)
+
+To review Cosmos DB configuration overview and steps, follow the link [here](docs/employee_assistance.md).
+![Solution Architecture - Chat with your data CosmosDB](/docs/images/architecture_cdb.png)
+
 ### Deploy instructions
+The "Deploy to Azure" button offers a one-click deployment where you don’t have to clone the code. If you would like a developer experience instead, follow the [local deployment instructions](./docs/LOCAL_DEPLOYMENT.md).
 
-There are two choices; the "Deploy to Azure" offers a one click deployment where you don't have to clone the code, alternatively if you would like a developer experience, follow the [Local deployment instructions](./docs/LOCAL_DEPLOYMENT.md).
+Once you deploy to Azure, you will have the option to select PostgreSQL or Cosmos DB, see screenshot below.
 
-The demo, which uses containers pre-built from the main branch is available by clicking this button:
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fchat-with-your-data-solution-accelerator%2Frefs%2Fheads%2Fmain%2Finfra%2Fmain.json)
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fchat-with-your-data-solution-accelerator%2Fmain%2Finfra%2Fmain.json)
+Select either "PostgreSQL" or "Cosmos DB":
+![Solution Architecture - DB Selection](/docs/images/db_selection.png)
+
 
 When Deployment is complete, follow steps in [Set Up Authentication in Azure App Service](./docs/azure_app_service_auth_setup.md) to add app authentication to your web app running on Azure App Service
 
@@ -195,9 +215,11 @@ switch to a lower version. To find out which versions are supported in different
 
     ![A screenshot of the chat app.](./docs/images/web-unstructureddata.png)
 
-\
-\
+
+
+
 ![Supporting documentation](/docs/images/supportingDocuments.png)
+
 ## Supporting documentation
 
 ### Resource links
