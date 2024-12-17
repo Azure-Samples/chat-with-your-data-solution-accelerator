@@ -11,7 +11,7 @@ let filteredCitations = [] as Citation[];
 
 // Define a function to check if a citation with the same Chunk_Id already exists in filteredCitations
 const isDuplicate = (citation: Citation,citationIndex:string) => {
-    return filteredCitations.some((c) => c.chunk_id === citation.chunk_id) ;
+    return filteredCitations.some((c) => c.chunk_id === citation.chunk_id && c.id === citation.id) ;
 };
 
 export function parseAnswer(answer: AskResponse): ParsedAnswer {
@@ -28,12 +28,11 @@ export function parseAnswer(answer: AskResponse): ParsedAnswer {
         let citation = cloneDeep(answer.citations[Number(citationIndex) - 1]) as Citation;
         if (!isDuplicate(citation, citationIndex) && citation !== undefined) {
           answerText = answerText.replaceAll(link, ` ^${++citationReindex}^ `);
-          citation.id = citationIndex; // original doc index to de-dupe
           citation.reindex_id = citationReindex.toString(); // reindex from 1 for display
           filteredCitations.push(citation);
         }else{
             // Replacing duplicate citation with original index
-            let matchingCitation = filteredCitations.find((ct) => citation.chunk_id == ct.chunk_id);
+            let matchingCitation = filteredCitations.find((ct) => citation.chunk_id === ct.chunk_id && citation.id === ct.id);
             if (matchingCitation) {
                 answerText= answerText.replaceAll(link, ` ^${matchingCitation.reindex_id}^ `)
             }
