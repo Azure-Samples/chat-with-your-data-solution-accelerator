@@ -247,7 +247,7 @@ class AzureBlobStorageClient:
             user_delegation_key=self.user_delegation_key,
             account_key=self.account_key,
             permission="r",
-            expiry=datetime.utcnow() + timedelta(hours=1),
+            expiry=datetime.utcnow() + timedelta(days=365 * 5),
         )
 
     def get_blob_sas(self, file_name):
