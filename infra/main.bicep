@@ -55,7 +55,6 @@ param azureCosmosDBAccountName string = 'cosmos-${resourceToken}'
 @description('Azure Postgres DB Account Name')
 param azurePostgresDBAccountName string = 'postgres-${resourceToken}'
 
-
 @description('Name of Web App')
 param websiteName string = 'web-${resourceToken}'
 
@@ -293,11 +292,7 @@ param principalId string = ''
 ])
 param authType string = 'rbac'
 
-@description('Hosting model for the web apps. Containers are prebuilt and can be deployed faster, but code allows for more customization.')
-@allowed([
-  'code'
-  'container'
-])
+@description('Hosting model for the web apps. This value is fixed as "container", which uses prebuilt containers for faster deployment.')
 param hostingModel string = 'container'
 
 @allowed([
@@ -314,7 +309,6 @@ param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
 
 @description('Azure Machine Learning Name')
 param azureMachineLearningName string = 'aml-${resourceToken}'
-
 
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
