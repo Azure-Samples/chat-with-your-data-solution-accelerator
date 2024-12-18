@@ -243,6 +243,10 @@ class EnvHelper:
         self.ORCHESTRATION_STRATEGY = os.getenv(
             "ORCHESTRATION_STRATEGY", "openai_function"
         )
+
+        # Conversation settings
+        self.CONVERSATION_FLOW = os.getenv("CONVERSATION_FLOW", "custom")
+
         # Speech Service
         self.AZURE_SPEECH_SERVICE_NAME = os.getenv("AZURE_SPEECH_SERVICE_NAME", "")
         self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")

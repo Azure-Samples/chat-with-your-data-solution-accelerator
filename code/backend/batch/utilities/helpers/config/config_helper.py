@@ -53,6 +53,10 @@ class Config:
             "enable_chat_history", self.env_helper.CHAT_HISTORY_ENABLED
         )
 
+        self.conversational_flow = config.get(
+            "conversational_flow", self.env_helper.CONVERSATION_FLOW
+        )
+
     def get_available_document_types(self) -> list[str]:
         document_types = {
             "txt",
@@ -247,6 +251,7 @@ class ConfigHelper:
                     Template(f.read()).substitute(
                         ORCHESTRATION_STRATEGY=env_helper.ORCHESTRATION_STRATEGY,
                         CHAT_HISTORY_ENABLED=env_helper.CHAT_HISTORY_ENABLED,
+                        CONVERSATION_FLOW=env_helper.CONVERSATION_FLOW,
                     )
                 )
                 if env_helper.USE_ADVANCED_IMAGE_PROCESSING:
