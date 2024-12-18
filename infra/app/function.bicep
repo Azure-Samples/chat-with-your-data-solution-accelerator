@@ -19,8 +19,8 @@ param speechServiceName string = ''
 param computerVisionName string = ''
 param useKeyVault bool
 param openAIKeyName string = ''
-param azureBlobStorageInfo string = ''
-param azureFormRecognizerInfo string = ''
+param storageAccountKeyName string = ''
+param formRecognizerKeyName string = ''
 param searchKeyName string = ''
 param computerVisionKeyName string = ''
 param contentSafetyKeyName string = ''
@@ -28,30 +28,6 @@ param speechKeyName string = ''
 param authType string
 param dockerFullImageName string = ''
 param databaseType string
-
-var azureFormRecognizerInfoUpdated = useKeyVault
-  ? azureFormRecognizerInfo
-  : replace(azureFormRecognizerInfo, '$FORM_RECOGNIZER_KEY', listKeys(
-      resourceId(
-        subscription().subscriptionId,
-        resourceGroup().name,
-        'Microsoft.CognitiveServices/accounts',
-        formRecognizerName
-      ),
-      '2023-05-01'
-    ).key1)
-
-var azureBlobStorageInfoUpdated = useKeyVault
-  ? azureBlobStorageInfo
-  : replace(azureBlobStorageInfo, '$STORAGE_ACCOUNT_KEY', listKeys(
-      resourceId(
-        subscription().subscriptionId,
-        resourceGroup().name,
-        'Microsoft.Storage/storageAccounts',
-        storageAccountName
-      ),
-      '2021-09-01'
-    ).keys[0].value)
 
 module function '../core/host/functions.bicep' = {
   name: '${name}-app-module'
@@ -94,8 +70,28 @@ module function '../core/host/functions.bicep' = {
             ),
             '2021-04-01-preview'
           ).primaryKey
-      AZURE_BLOB_STORAGE_INFO: azureBlobStorageInfoUpdated
-      AZURE_FORM_RECOGNIZER_INFO: azureFormRecognizerInfoUpdated
+      AZURE_BLOB_ACCOUNT_KEY: useKeyVault
+        ? storageAccountKeyName
+        : listKeys(
+            resourceId(
+              subscription().subscriptionId,
+              resourceGroup().name,
+              'Microsoft.Storage/storageAccounts',
+              storageAccountName
+            ),
+            '2021-09-01'
+          ).keys[0].value
+      AZURE_FORM_RECOGNIZER_KEY: useKeyVault
+        ? formRecognizerKeyName
+        : listKeys(
+            resourceId(
+              subscription().subscriptionId,
+              resourceGroup().name,
+              'Microsoft.CognitiveServices/accounts',
+              formRecognizerName
+            ),
+            '2023-05-01'
+          ).key1
       AZURE_CONTENT_SAFETY_KEY: useKeyVault
         ? contentSafetyKeyName
         : listKeys(
