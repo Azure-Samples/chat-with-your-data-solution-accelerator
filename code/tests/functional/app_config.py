@@ -5,6 +5,7 @@ import os
 from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
 
 logger = logging.getLogger(__name__)
+encoded_account_key = str(base64.b64encode(b"some-blob-account-key"), "utf-8")
 
 
 class AppConfig:
@@ -12,17 +13,14 @@ class AppConfig:
     config: dict[str, str | None] = {
         "APPLICATIONINSIGHTS_ENABLED": "False",
         "AZURE_AUTH_TYPE": "keys",
-        "AZURE_BLOB_ACCOUNT_KEY": str(
-            base64.b64encode(b"some-blob-account-key"), "utf-8"
-        ),
-        "AZURE_BLOB_ACCOUNT_NAME": "some-blob-account-name",
-        "AZURE_BLOB_CONTAINER_NAME": "some-blob-container-name",
+        "AZURE_BLOB_STORAGE_INFO": '{"accountName": "some-blob-account-name", "containerName": "some-blob-container-name", "accountKey": "'
+        + encoded_account_key
+        + '"}',
         "AZURE_COMPUTER_VISION_KEY": "some-computer-vision-key",
         "AZURE_CONTENT_SAFETY_ENDPOINT": "some-content-safety-endpoint",
         "AZURE_CONTENT_SAFETY_KEY": "some-content-safety-key",
         "AZURE_FORM_RECOGNIZER_ENDPOINT": "some-form-recognizer-endpoint",
-        "AZURE_FORM_RECOGNIZER_KEY": "some-form-recognizer-key",
-        "AZURE_KEY_VAULT_ENDPOINT": "some-key-vault-endpoint",
+        "AZURE_FORM_RECOGNIZER_INFO": '{"endpoint":"some-key-vault-endpoint","key":"some-key-vault-endpoint"}',
         "AZURE_OPENAI_API_KEY": "some-azure-openai-api-key",
         "AZURE_OPENAI_API_VERSION": "2024-02-01",
         "AZURE_OPENAI_EMBEDDING_MODEL_INFO": '{"model":"some-embedding-model","modelName":"some-embedding-model-name","modelVersion":"some-embedding-model-version"}',
@@ -84,6 +82,7 @@ class AppConfig:
         "OPENAI_API_TYPE": None,
         "OPENAI_API_KEY": None,
         "OPENAI_API_VERSION": None,
+        "DATABASE_TYPE": "CosmosDB",
     }
 
     def __init__(self, config_overrides: dict[str, str | None] = {}) -> None:

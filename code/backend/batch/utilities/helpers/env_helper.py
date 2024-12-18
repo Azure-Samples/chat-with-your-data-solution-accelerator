@@ -5,6 +5,7 @@ import threading
 from dotenv import load_dotenv
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.keyvault.secrets import SecretClient
+from ..helpers.config.database_type import DatabaseType
 
 logger = logging.getLogger(__name__)
 
@@ -87,9 +88,48 @@ class EnvHelper:
             "AZURE_SEARCH_DATASOURCE_NAME", ""
         )
         self.AZURE_SEARCH_INDEXER_NAME = os.getenv("AZURE_SEARCH_INDEXER_NAME", "")
-        self.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = self.get_env_var_bool(
-            "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION", "False"
+
+        # Chat History DB Integration Settings
+        # Set default values based on DATABASE_TYPE
+        self.DATABASE_TYPE = (
+            os.getenv("DATABASE_TYPE", "").strip() or DatabaseType.COSMOSDB.value
         )
+        # Cosmos DB configuration
+        if self.DATABASE_TYPE == DatabaseType.COSMOSDB.value:
+            azure_cosmosdb_info = self.get_info_from_env("AZURE_COSMOSDB_INFO", "")
+            self.AZURE_COSMOSDB_DATABASE = azure_cosmosdb_info.get("databaseName", "")
+            self.AZURE_COSMOSDB_ACCOUNT = azure_cosmosdb_info.get("accountName", "")
+            self.AZURE_COSMOSDB_CONVERSATIONS_CONTAINER = azure_cosmosdb_info.get(
+                "containerName", ""
+            )
+            self.AZURE_COSMOSDB_ACCOUNT_KEY = self.secretHelper.get_secret(
+                "AZURE_COSMOSDB_ACCOUNT_KEY"
+            )
+            self.AZURE_COSMOSDB_ENABLE_FEEDBACK = (
+                os.getenv("AZURE_COSMOSDB_ENABLE_FEEDBACK", "false").lower() == "true"
+            )
+            self.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = self.get_env_var_bool(
+                "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION", "False"
+            )
+            self.USE_ADVANCED_IMAGE_PROCESSING = self.get_env_var_bool(
+                "USE_ADVANCED_IMAGE_PROCESSING", "False"
+            )
+        # PostgreSQL configuration
+        elif self.DATABASE_TYPE == DatabaseType.POSTGRESQL.value:
+            self.AZURE_POSTGRES_SEARCH_TOP_K = self.get_env_var_int(
+                "AZURE_POSTGRES_SEARCH_TOP_K", 5
+            )
+            azure_postgresql_info = self.get_info_from_env("AZURE_POSTGRESQL_INFO", "")
+            self.POSTGRESQL_USER = azure_postgresql_info.get("user", "")
+            self.POSTGRESQL_DATABASE = azure_postgresql_info.get("dbname", "")
+            self.POSTGRESQL_HOST = azure_postgresql_info.get("host", "")
+            # Ensure integrated vectorization is disabled for PostgreSQL
+            self.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = False
+            self.USE_ADVANCED_IMAGE_PROCESSING = False
+        else:
+            raise ValueError(
+                "Unsupported DATABASE_TYPE. Please set DATABASE_TYPE to 'CosmosDB' or 'PostgreSQL'."
+            )
 
         self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "keys")
         # Azure OpenAI
@@ -145,9 +185,6 @@ class EnvHelper:
 
         self.AZURE_TOKEN_PROVIDER = get_bearer_token_provider(
             DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
-        )
-        self.USE_ADVANCED_IMAGE_PROCESSING = self.get_env_var_bool(
-            "USE_ADVANCED_IMAGE_PROCESSING", "False"
         )
         self.ADVANCED_IMAGE_PROCESSING_MAX_IMAGES = self.get_env_var_int(
             "ADVANCED_IMAGE_PROCESSING_MAX_IMAGES", 1
@@ -205,22 +242,51 @@ class EnvHelper:
             "DOCUMENT_PROCESSING_QUEUE_NAME", "doc-processing"
         )
         # Azure Blob Storage
-        self.AZURE_BLOB_ACCOUNT_NAME = os.getenv("AZURE_BLOB_ACCOUNT_NAME", "")
-        self.AZURE_BLOB_ACCOUNT_KEY = self.secretHelper.get_secret(
-            "AZURE_BLOB_ACCOUNT_KEY"
-        )
-        self.AZURE_BLOB_CONTAINER_NAME = os.getenv("AZURE_BLOB_CONTAINER_NAME", "")
+        azure_blob_storage_info = self.get_info_from_env("AZURE_BLOB_STORAGE_INFO", "")
+        if azure_blob_storage_info:
+            # If AZURE_BLOB_STORAGE_INFO exists
+            self.AZURE_BLOB_ACCOUNT_NAME = azure_blob_storage_info.get(
+                "accountName", ""
+            )
+            self.AZURE_BLOB_ACCOUNT_KEY = self.secretHelper.get_secret_from_json(
+                azure_blob_storage_info.get("accountKey", "")
+            )
+            self.AZURE_BLOB_CONTAINER_NAME = azure_blob_storage_info.get(
+                "containerName", ""
+            )
+        else:
+            # Otherwise, fallback to individual environment variables
+            self.AZURE_BLOB_ACCOUNT_NAME = os.getenv("AZURE_BLOB_ACCOUNT_NAME", "")
+            self.AZURE_BLOB_ACCOUNT_KEY = self.secretHelper.get_secret(
+                "AZURE_BLOB_ACCOUNT_KEY"
+            )
+            self.AZURE_BLOB_CONTAINER_NAME = os.getenv("AZURE_BLOB_CONTAINER_NAME", "")
         self.AZURE_STORAGE_ACCOUNT_ENDPOINT = os.getenv(
             "AZURE_STORAGE_ACCOUNT_ENDPOINT",
             f"https://{self.AZURE_BLOB_ACCOUNT_NAME}.blob.core.windows.net/",
         )
+
         # Azure Form Recognizer
-        self.AZURE_FORM_RECOGNIZER_ENDPOINT = os.getenv(
-            "AZURE_FORM_RECOGNIZER_ENDPOINT", ""
+        azure_form_recognizer_info = self.get_info_from_env(
+            "AZURE_FORM_RECOGNIZER_INFO", ""
         )
-        self.AZURE_FORM_RECOGNIZER_KEY = self.secretHelper.get_secret(
-            "AZURE_FORM_RECOGNIZER_KEY"
-        )
+        if azure_form_recognizer_info:
+            # If AZURE_FORM_RECOGNIZER_INFO exists
+            self.AZURE_FORM_RECOGNIZER_ENDPOINT = azure_form_recognizer_info.get(
+                "endpoint", ""
+            )
+            self.AZURE_FORM_RECOGNIZER_KEY = self.secretHelper.get_secret_from_json(
+                azure_form_recognizer_info.get("key", "")
+            )
+        else:
+            # Otherwise, fallback to individual environment variables
+            self.AZURE_FORM_RECOGNIZER_ENDPOINT = os.getenv(
+                "AZURE_FORM_RECOGNIZER_ENDPOINT", ""
+            )
+            self.AZURE_FORM_RECOGNIZER_KEY = self.secretHelper.get_secret(
+                "AZURE_FORM_RECOGNIZER_KEY"
+            )
+
         # Azure App Insights
         # APPLICATIONINSIGHTS_ENABLED will be True when the application runs in App Service
         self.APPLICATIONINSIGHTS_ENABLED = self.get_env_var_bool(
@@ -263,23 +329,6 @@ class EnvHelper:
         self.PROMPT_FLOW_ENDPOINT_NAME = os.getenv("PROMPT_FLOW_ENDPOINT_NAME", "")
 
         self.PROMPT_FLOW_DEPLOYMENT_NAME = os.getenv("PROMPT_FLOW_DEPLOYMENT_NAME", "")
-
-        # Chat History CosmosDB Integration Settings
-        azure_cosmosdb_info = self.get_info_from_env("AZURE_COSMOSDB_INFO", "")
-        self.AZURE_COSMOSDB_DATABASE = azure_cosmosdb_info.get("databaseName", "")
-        self.AZURE_COSMOSDB_ACCOUNT = azure_cosmosdb_info.get("accountName", "")
-        self.AZURE_COSMOSDB_CONVERSATIONS_CONTAINER = azure_cosmosdb_info.get(
-            "containerName", ""
-        )
-        self.AZURE_COSMOSDB_ACCOUNT_KEY = self.secretHelper.get_secret(
-            "AZURE_COSMOSDB_ACCOUNT_KEY"
-        )
-        self.AZURE_COSMOSDB_ENABLE_FEEDBACK = (
-            os.getenv("AZURE_COSMOSDB_ENABLE_FEEDBACK", "false").lower() == "true"
-        )
-        self.CHAT_HISTORY_ENABLED = self.get_env_var_bool(
-            "CHAT_HISTORY_ENABLED", "true"
-        )
 
     def is_chat_model(self):
         if "gpt-4" in self.AZURE_OPENAI_MODEL_NAME.lower():
@@ -362,4 +411,11 @@ class SecretHelper:
             self.secret_client.get_secret(secret_name_value).value
             if self.USE_KEY_VAULT and secret_name_value
             else os.getenv(secret_name, "")
+        )
+
+    def get_secret_from_json(self, secret_name: str) -> str:
+        return (
+            self.secret_client.get_secret(secret_name).value
+            if self.USE_KEY_VAULT and secret_name
+            else secret_name
         )

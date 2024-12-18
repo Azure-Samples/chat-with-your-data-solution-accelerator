@@ -19,8 +19,8 @@ param computerVisionName string = ''
 param appSettings object = {}
 param useKeyVault bool
 param openAIKeyName string = ''
-param storageAccountKeyName string = ''
-param formRecognizerKeyName string = ''
+param azureBlobStorageInfo string = ''
+param azureFormRecognizerInfo string = ''
 param searchKeyName string = ''
 param computerVisionKeyName string = ''
 param contentSafetyKeyName string = ''
@@ -29,98 +29,47 @@ param authType string
 param dockerFullImageName string = ''
 param useDocker bool = dockerFullImageName != ''
 param healthCheckPath string = ''
-param cosmosDBKeyName string = ''
 
-module web '../core/host/appservice.bicep' = {
-  name: '${name}-app-module'
-  params: {
-    name: name
-    location: location
-    tags: tags
-    allowedOrigins: allowedOrigins
-    appCommandLine: useDocker ? '' : appCommandLine
-    applicationInsightsName: applicationInsightsName
-    appServicePlanId: appServicePlanId
-    appSettings: union(appSettings, {
-      AZURE_AUTH_TYPE: authType
-      USE_KEY_VAULT: useKeyVault ? useKeyVault : ''
-      AZURE_OPENAI_API_KEY: useKeyVault
-        ? openAIKeyName
-        : listKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.CognitiveServices/accounts',
-              azureOpenAIName
-            ),
-            '2023-05-01'
-          ).key1
-      AZURE_SEARCH_KEY: useKeyVault
-        ? searchKeyName
-        : listAdminKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.Search/searchServices',
-              azureAISearchName
-            ),
-            '2021-04-01-preview'
-          ).primaryKey
-      AZURE_BLOB_ACCOUNT_KEY: useKeyVault
-        ? storageAccountKeyName
-        : listKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.Storage/storageAccounts',
-              storageAccountName
-            ),
-            '2021-09-01'
-          ).keys[0].value
-      AZURE_FORM_RECOGNIZER_KEY: useKeyVault
-        ? formRecognizerKeyName
-        : listKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.CognitiveServices/accounts',
-              formRecognizerName
-            ),
-            '2023-05-01'
-          ).key1
-      AZURE_CONTENT_SAFETY_KEY: useKeyVault
-        ? contentSafetyKeyName
-        : listKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.CognitiveServices/accounts',
-              contentSafetyName
-            ),
-            '2023-05-01'
-          ).key1
-      AZURE_SPEECH_SERVICE_KEY: useKeyVault
-        ? speechKeyName
-        : listKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.CognitiveServices/accounts',
-              speechServiceName
-            ),
-            '2023-05-01'
-          ).key1
-      AZURE_COMPUTER_VISION_KEY: (useKeyVault || computerVisionName == '')
-        ? computerVisionKeyName
-        : listKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.CognitiveServices/accounts',
-              computerVisionName
-            ),
-            '2023-05-01'
-          ).key1
+// Database parameters
+param databaseType string = 'CosmosDB' // 'CosmosDB' or 'PostgreSQL'
+param cosmosDBKeyName string = ''
+param postgresInfoName string = ''
+
+var azureFormRecognizerInfoUpdated = useKeyVault
+  ? azureFormRecognizerInfo
+  : replace(
+      azureFormRecognizerInfo,
+      '$FORM_RECOGNIZER_KEY',
+      listKeys(
+        resourceId(
+          subscription().subscriptionId,
+          resourceGroup().name,
+          'Microsoft.CognitiveServices/accounts',
+          formRecognizerName
+        ),
+        '2023-05-01'
+      ).key1
+    )
+
+var azureBlobStorageInfoUpdated = useKeyVault
+  ? azureBlobStorageInfo
+  : replace(
+      azureBlobStorageInfo,
+      '$STORAGE_ACCOUNT_KEY',
+      listKeys(
+        resourceId(
+          subscription().subscriptionId,
+          resourceGroup().name,
+          'Microsoft.Storage/storageAccounts',
+          storageAccountName
+        ),
+        '2021-09-01'
+      ).keys[0].value
+    )
+
+// Database-specific settings
+var databaseSettings = databaseType == 'CosmosDB'
+  ? {
       AZURE_COSMOSDB_ACCOUNT_KEY: (useKeyVault || cosmosDBKeyName == '')
         ? cosmosDBKeyName
         : listKeys(
@@ -132,13 +81,90 @@ module web '../core/host/appservice.bicep' = {
             ),
             '2022-08-15'
           ).primaryMasterKey
-    })
+    }
+  : {}
+
+module web '../core/host/appservice.bicep' = {
+  name: '${name}-app-module'
+  params: {
+    name: name
+    location: location
+    tags: tags
+    allowedOrigins: allowedOrigins
+    appCommandLine: useDocker ? '' : appCommandLine
+    applicationInsightsName: applicationInsightsName
+    appServicePlanId: appServicePlanId
+    appSettings: union(
+      appSettings,
+      union(databaseSettings, {
+        AZURE_AUTH_TYPE: authType
+        USE_KEY_VAULT: useKeyVault ? useKeyVault : ''
+        AZURE_OPENAI_API_KEY: useKeyVault
+          ? openAIKeyName
+          : listKeys(
+              resourceId(
+                subscription().subscriptionId,
+                resourceGroup().name,
+                'Microsoft.CognitiveServices/accounts',
+                azureOpenAIName
+              ),
+              '2023-05-01'
+            ).key1
+        AZURE_SEARCH_KEY: useKeyVault
+          ? searchKeyName
+          : listAdminKeys(
+              resourceId(
+                subscription().subscriptionId,
+                resourceGroup().name,
+                'Microsoft.Search/searchServices',
+                azureAISearchName
+              ),
+              '2021-04-01-preview'
+            ).primaryKey
+        AZURE_BLOB_STORAGE_INFO: azureBlobStorageInfoUpdated
+        AZURE_FORM_RECOGNIZER_INFO: azureFormRecognizerInfoUpdated
+        AZURE_CONTENT_SAFETY_KEY: useKeyVault
+          ? contentSafetyKeyName
+          : listKeys(
+              resourceId(
+                subscription().subscriptionId,
+                resourceGroup().name,
+                'Microsoft.CognitiveServices/accounts',
+                contentSafetyName
+              ),
+              '2023-05-01'
+            ).key1
+        AZURE_SPEECH_SERVICE_KEY: useKeyVault
+          ? speechKeyName
+          : listKeys(
+              resourceId(
+                subscription().subscriptionId,
+                resourceGroup().name,
+                'Microsoft.CognitiveServices/accounts',
+                speechServiceName
+              ),
+              '2023-05-01'
+            ).key1
+        AZURE_COMPUTER_VISION_KEY: (useKeyVault || computerVisionName == '')
+          ? computerVisionKeyName
+          : listKeys(
+              resourceId(
+                subscription().subscriptionId,
+                resourceGroup().name,
+                'Microsoft.CognitiveServices/accounts',
+                computerVisionName
+              ),
+              '2023-05-01'
+            ).key1
+      })
+    )
     keyVaultName: keyVaultName
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
     dockerFullImageName: dockerFullImageName
     scmDoBuildDuringDeployment: useDocker ? false : true
     healthCheckPath: healthCheckPath
+    managedIdentity: databaseType == 'PostgreSQL' || !empty(keyVaultName)
   }
 }
 
@@ -163,8 +189,6 @@ module openAIRoleWeb '../core/security/role.bicep' = if (authType == 'rbac') {
 }
 
 // Contributor
-// This role is used to grant the service principal contributor access to the resource group
-// See if this is needed in the future.
 module openAIRoleWebContributor '../core/security/role.bicep' = if (authType == 'rbac') {
   name: 'openai-role-web-contributor'
   params: {
@@ -196,7 +220,7 @@ resource cosmosRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefi
   name: '${json(appSettings.AZURE_COSMOSDB_INFO).accountName}/00000000-0000-0000-0000-000000000002'
 }
 
-module cosmosUserRole '../core/database/cosmos-sql-role-assign.bicep' = {
+module cosmosUserRole '../core/database/cosmos-sql-role-assign.bicep' = if (databaseType == 'CosmosDB') {
   name: 'cosmos-sql-user-role-${web.name}'
   params: {
     accountName: json(appSettings.AZURE_COSMOSDB_INFO).accountName
