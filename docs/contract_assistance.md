@@ -22,7 +22,9 @@ To apply the suggested configurations in your deployment, update the following f
 - **Azure Semantic Search**: Set `AZURE_SEARCH_USE_SEMANTIC_SEARCH` to `true`
 - **Azure Cognitive Search Top K 15**: Set `AZURE_SEARCH_TOP_K` to `15`.
 - **Azure Search Integrated Vectorization**: Set `AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION` to `true`.
-- **Azure OpenAI Model Info**: Set `AZURE_OPENAI_MODEL_INFO`  to `{"model":"gpt-4o","modelName":"gpt-4o","modelVersion":"2024-05-13"}`.(model could be different based on the name of the Azure OpenAI model deployment)
+- **Azure OpenAI Model**: Set `AZURE_OPENAI_MODEL`  to `gpt-4o`.
+- **Azure OpenAI Model Name**: Set `AZURE_OPENAI_MODEL_NAME` to `gpt-4o`. (could be different based on the name of the Azure OpenAI model deployment)
+- **Azure OpenAI Model Name Version**: Set `AZURE_OPENAI_MODEL_VERSION` to `2024-05-13`.
 - **Conversation Flow Options**: Set `CONVERSATION_FLOW` to `byod`
 - **Orchestration Strategy**: Set `ORCHESTRATION_STRATEGY` to `Semantic Kernel`.
 

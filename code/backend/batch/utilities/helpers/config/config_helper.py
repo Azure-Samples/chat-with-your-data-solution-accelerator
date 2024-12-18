@@ -52,6 +52,9 @@ class Config:
         )
         self.enable_chat_history = config["enable_chat_history"]
         self.database_type = config.get("database_type", self.env_helper.DATABASE_TYPE)
+        self.conversational_flow = config.get(
+            "conversational_flow", self.env_helper.CONVERSATION_FLOW
+        )
 
     def get_available_document_types(self) -> list[str]:
         document_types = {
@@ -247,11 +250,7 @@ class ConfigHelper:
                 logger.info("Loading default config from %s", config_file_path)
                 ConfigHelper._default_config = json.loads(
                     Template(f.read()).substitute(
-                        ORCHESTRATION_STRATEGY=(
-                            OrchestrationStrategy.SEMANTIC_KERNEL.value
-                            if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value
-                            else env_helper.ORCHESTRATION_STRATEGY
-                        ),
+                        ORCHESTRATION_STRATEGY=env_helper.ORCHESTRATION_STRATEGY,
                         LOG_USER_INTERACTIONS=(
                             False
                             if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value
@@ -262,6 +261,7 @@ class ConfigHelper:
                             if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value
                             else True
                         ),
+                        CONVERSATION_FLOW=env_helper.CONVERSATION_FLOW,
                         DATABASE_TYPE=env_helper.DATABASE_TYPE,
                     )
                 )

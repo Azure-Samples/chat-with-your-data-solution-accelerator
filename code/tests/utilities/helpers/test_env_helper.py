@@ -155,3 +155,51 @@ def test_env_helper_not_created_if_error_occurs(_):
 
     # then
     assert EnvHelper._instance is None
+
+
+def test_database_type_if_set_as_postgresql(monkeypatch: MonkeyPatch):
+    # given
+    monkeypatch.setenv("DATABASE_TYPE", "PostgreSQL")
+    expected_postgres_user = "some-postgres-user"
+    expected_postgres_database_name = "some-postgres-database-name"
+    expected_postgres_host_name = "some-postgres-host-name"
+    expected_postgres_info = '{"user":"some-postgres-user","dbname":"some-postgres-database-name","host":"some-postgres-host-name"}'
+    monkeypatch.setenv("AZURE_POSTGRESQL_INFO", expected_postgres_info)
+
+    # when
+    env_helper = EnvHelper()
+    azure_postgresql_info = env_helper.get_info_from_env("AZURE_POSTGRESQL_INFO", {})
+    actual_postgres_user = azure_postgresql_info.get("user", "")
+    actual_postgres_database_name = azure_postgresql_info.get("dbname", "")
+    actual_postgres_host_name = azure_postgresql_info.get("host", "")
+
+    # then
+    assert actual_postgres_user == expected_postgres_user
+    assert actual_postgres_database_name == expected_postgres_database_name
+    assert actual_postgres_host_name == expected_postgres_host_name
+
+
+def test_use_advanced_image_processing_postgresql(monkeypatch: MonkeyPatch):
+    # given
+    monkeypatch.setenv("DATABASE_TYPE", "PostgreSQL")
+    monkeypatch.setenv("USE_ADVANCED_IMAGE_PROCESSING", False)
+
+    # when
+    actual_use_advanced_image_processing = EnvHelper().USE_ADVANCED_IMAGE_PROCESSING
+
+    # then
+    assert not actual_use_advanced_image_processing
+
+
+def test_use_integrated_vectorization_postgresql(monkeypatch: MonkeyPatch):
+    # given
+    monkeypatch.setenv("DATABASE_TYPE", "PostgreSQL")
+    monkeypatch.setenv("AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION", False)
+
+    # when
+    actual_use_integrated_vectorization = (
+        EnvHelper().AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
+    )
+
+    # then
+    assert not actual_use_integrated_vectorization
