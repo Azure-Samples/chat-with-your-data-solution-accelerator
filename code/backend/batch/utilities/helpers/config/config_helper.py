@@ -13,6 +13,7 @@ from ...orchestrator import OrchestrationSettings
 from ..env_helper import EnvHelper
 from .assistant_strategy import AssistantStrategy
 from .conversation_flow import ConversationFlow
+from .database_type import DatabaseType
 
 CONFIG_CONTAINER_NAME = "config"
 CONFIG_FILE_NAME = "active.json"
@@ -49,9 +50,8 @@ class Config:
             if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
             else None
         )
-        self.enable_chat_history = config.get(
-            "enable_chat_history", self.env_helper.CHAT_HISTORY_ENABLED
-        )
+        self.enable_chat_history = config["enable_chat_history"]
+        self.database_type = config.get("database_type", self.env_helper.DATABASE_TYPE)
 
     def get_available_document_types(self) -> list[str]:
         document_types = {
@@ -118,8 +118,10 @@ class Messages:
 
 class Logging:
     def __init__(self, logging: dict):
-        self.log_user_interactions = logging["log_user_interactions"]
-        self.log_tokens = logging["log_tokens"]
+        self.log_user_interactions = (
+            str(logging["log_user_interactions"]).lower() == "true"
+        )
+        self.log_tokens = str(logging["log_tokens"]).lower() == "true"
 
 
 class IntegratedVectorizationConfig:
@@ -245,8 +247,22 @@ class ConfigHelper:
                 logger.info("Loading default config from %s", config_file_path)
                 ConfigHelper._default_config = json.loads(
                     Template(f.read()).substitute(
-                        ORCHESTRATION_STRATEGY=env_helper.ORCHESTRATION_STRATEGY,
-                        CHAT_HISTORY_ENABLED=env_helper.CHAT_HISTORY_ENABLED,
+                        ORCHESTRATION_STRATEGY=(
+                            OrchestrationStrategy.SEMANTIC_KERNEL.value
+                            if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value
+                            else env_helper.ORCHESTRATION_STRATEGY
+                        ),
+                        LOG_USER_INTERACTIONS=(
+                            False
+                            if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value
+                            else True
+                        ),
+                        LOG_TOKENS=(
+                            False
+                            if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value
+                            else True
+                        ),
+                        DATABASE_TYPE=env_helper.DATABASE_TYPE,
                     )
                 )
                 if env_helper.USE_ADVANCED_IMAGE_PROCESSING:

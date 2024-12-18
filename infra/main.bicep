@@ -42,6 +42,20 @@ param hostingPlanSku string = 'B3'
 ])
 param skuTier string = 'Basic'
 
+@description('The type of database to deploy (cosmos or postgres)')
+@allowed([
+  'PostgreSQL'
+  'CosmosDB'
+])
+param databaseType string = 'PostgreSQL'
+
+@description('Azure Cosmos DB Account Name')
+param azureCosmosDBAccountName string = 'cosmos-${resourceToken}'
+
+@description('Azure Postgres DB Account Name')
+param azurePostgresDBAccountName string = 'postgres-${resourceToken}'
+
+
 @description('Name of Web App')
 param websiteName string = 'web-${resourceToken}'
 
@@ -102,7 +116,7 @@ param azureSearchOffsetColumn string = 'offset'
 @description('Url column')
 param azureSearchUrlColumn string = 'url'
 
-@description('Use Azure Search Integrated Vectorization')
+@description('Whether to use Azure Search Integrated Vectorization. If the database type is PostgreSQL, set this to false.')
 param azureSearchUseIntegratedVectorization bool = false
 
 @description('Name of Azure OpenAI Resource')
@@ -123,7 +137,7 @@ param azureOpenAIModelVersion string = '0613'
 @description('Azure OpenAI Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIModelCapacity int = 30
 
-@description('Enables the use of a vision LLM and Computer Vision for embedding images')
+@description('Whether to enable the use of a vision LLM and Computer Vision for embedding images. If the database type is PostgreSQL, set this to false.')
 param useAdvancedImageProcessing bool = false
 
 @description('The maximum number of images to pass to the vision model in a single request')
@@ -141,16 +155,16 @@ param azureOpenAIVisionModelVersion string = 'vision-preview'
 @description('Azure OpenAI Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIVisionModelCapacity int = 10
 
-@description('Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain')
+@description('Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain. If the database type is PostgreSQL, set this to sementic_kernel.')
 @allowed([
   'openai_function'
   'semantic_kernel'
   'langchain'
   'prompt_flow'
 ])
-param orchestrationStrategy string = 'openai_function'
+param orchestrationStrategy string = 'semantic_kernel'
 
-@description('Chat conversation type: custom or byod.')
+@description('Chat conversation type: custom or byod. If the database type is PostgreSQL, set this to custom.')
 @allowed([
   'custom'
   'byod'
@@ -301,15 +315,6 @@ param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
 @description('Azure Machine Learning Name')
 param azureMachineLearningName string = 'aml-${resourceToken}'
 
-@description('Azure Cosmos DB Account Name')
-param azureCosmosDBAccountName string = 'cosmos-${resourceToken}'
-
-@description('Whether or not to enable chat history')
-@allowed([
-  'true'
-  'false'
-])
-param chatHistoryEnabled string = 'true'
 
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
@@ -318,6 +323,7 @@ var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
 var rgName = 'rg-${environmentName}'
 var keyVaultName = 'kv-${resourceToken}'
+var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
 var azureOpenAIModelInfo = string({
   model: azureOpenAIModel
   modelName: azureOpenAIModelName
@@ -329,8 +335,8 @@ var azureOpenAIEmbeddingModelInfo = string({
   modelVersion: azureOpenAIEmbeddingModelVersion
 })
 
-var appversion = 'latest'  // Update GIT deployment branch
-var registryName = 'fruoccopublic'  // Update Registry name
+var appversion = 'latest' // Update GIT deployment branch
+var registryName = 'fruoccopublic' // Update Registry name
 
 // Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
@@ -339,11 +345,33 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   tags: tags
 }
 
-module cosmosDBModule './core/database/cosmosdb.bicep' = {
+// ========== Managed Identity ========== //
+module managedIdentityModule './core/security/managed-identity.bicep' = if (databaseType == 'PostgreSQL') {
+  name: 'deploy_managed_identity'
+  params: {
+    solutionName: resourceToken
+    solutionLocation: location
+  }
+  scope: rg
+}
+
+module cosmosDBModule './core/database/cosmosdb.bicep' = if (databaseType == 'CosmosDB') {
   name: 'deploy_cosmos_db'
   params: {
     name: azureCosmosDBAccountName
     location: location
+  }
+  scope: rg
+}
+
+module postgresDBModule './core/database/postgresdb.bicep' = if (databaseType == 'PostgreSQL') {
+  name: 'deploy_postgres_sql'
+  params: {
+    solutionName: azurePostgresDBAccountName
+    solutionLocation: 'eastus2'
+    managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+    managedIdentityObjectName: managedIdentityModule.outputs.managedIdentityOutput.name
+    allowAzureIPsFirewall: true
   }
   scope: rg
 }
@@ -357,6 +385,9 @@ module keyvault './core/security/keyvault.bicep' = if (useKeyVault || authType =
     location: location
     tags: tags
     principalId: principalId
+    managedIdentityObjectId: databaseType == 'PostgreSQL'
+      ? managedIdentityModule.outputs.managedIdentityOutput.objectId
+      : ''
   }
 }
 
@@ -505,7 +536,14 @@ module storekeys './app/storekeys.bicep' = if (useKeyVault) {
     contentSafetyName: contentsafety.outputs.name
     speechServiceName: speechServiceName
     computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
-    cosmosAccountName: cosmosDBModule.outputs.cosmosOutput.cosmosAccountName
+    cosmosAccountName: databaseType == 'CosmosDB' ? cosmosDBModule.outputs.cosmosOutput.cosmosAccountName : ''
+    postgresServerName: databaseType == 'PostgreSQL'
+      ? postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+      : ''
+    postgresDatabaseName: databaseType == 'PostgreSQL' ? 'postgres' : ''
+    postgresDatabaseAdminUserName: databaseType == 'PostgreSQL'
+      ? postgresDBModule.outputs.postgresDbOutput.postgreSQLDbUser
+      : ''
     rgName: rgName
   }
 }
@@ -547,9 +585,15 @@ module hostingplan './core/host/appserviceplan.bicep' = {
 }
 
 var azureCosmosDBInfo = string({
-  accountName: cosmosDBModule.outputs.cosmosOutput.cosmosAccountName
-  databaseName: cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName
-  containerName: cosmosDBModule.outputs.cosmosOutput.cosmosContainerName
+  accountName: databaseType == 'CosmosDB' ? cosmosDBModule.outputs.cosmosOutput.cosmosAccountName : ''
+  databaseName: databaseType == 'CosmosDB' ? cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName : ''
+  containerName: databaseType == 'CosmosDB' ? cosmosDBModule.outputs.cosmosOutput.cosmosContainerName : ''
+})
+
+var azurePostgresDBInfo = string({
+  serverName: databaseType == 'PostgreSQL' ? postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName : ''
+  databaseName: databaseType == 'PostgreSQL' ? postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName : ''
+  userName: ''
 })
 
 module web './app/web.bicep' = if (hostingModel == 'code') {
@@ -571,67 +615,90 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
     contentSafetyName: contentsafety.outputs.name
     speechServiceName: speechService.outputs.name
     computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
+
+    // New database-related parameters
+    databaseType: databaseType // Add this parameter to specify 'PostgreSQL' or 'CosmosDB'
+
+    // Conditional key vault key names
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    azureBlobStorageInfo: azureBlobStorageInfo
+    azureFormRecognizerInfo: azureFormRecognizerInfo
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
-    cosmosDBKeyName: useKeyVault ? storekeys.outputs.COSMOS_ACCOUNT_KEY_NAME : ''
+
+    // Conditionally set database key names
+    cosmosDBKeyName: databaseType == 'CosmosDB' && useKeyVault ? storekeys.outputs.COSMOS_ACCOUNT_KEY_NAME : ''
+    postgresInfoName: databaseType == 'PostgreSQL' && useKeyVault ? storekeys.outputs.POSTGRESQL_INFO_NAME : ''
+
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
-    appSettings: {
-      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-      AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
-      AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
-      AZURE_OPENAI_TOP_P: azureOpenAITopP
-      AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
-      AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
-      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_OPENAI_STREAM: azureOpenAIStream
-      AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
-      AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
-      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-      AZURE_SEARCH_INDEX: azureSearchIndex
-      AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
-      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
-      AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
-      AZURE_SEARCH_TOP_K: azureSearchTopK
-      AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
-      AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
-      AZURE_SEARCH_FILTER: azureSearchFilter
-      AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-      AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-      AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-      AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-      AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-      AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-      AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
-      AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-      AZURE_SPEECH_SERVICE_NAME: speechServiceName
-      AZURE_SPEECH_SERVICE_REGION: location
-      AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
-      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-      ADVANCED_IMAGE_PROCESSING_MAX_IMAGES: advancedImageProcessingMaxImages
-      ORCHESTRATION_STRATEGY: orchestrationStrategy
-      CONVERSATION_FLOW: conversationFlow
-      LOGLEVEL: logLevel
-      AZURE_COSMOSDB_INFO: azureCosmosDBInfo
-      AZURE_COSMOSDB_ENABLE_FEEDBACK: true
-      CHAT_HISTORY_ENABLED: chatHistoryEnabled
-    }
+
+    appSettings: union(
+      {
+        // Existing app settings
+        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
+        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+        AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
+        AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
+        AZURE_OPENAI_TOP_P: azureOpenAITopP
+        AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
+        AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
+        AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+        AZURE_OPENAI_STREAM: azureOpenAIStream
+        AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
+        AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+        AZURE_SEARCH_INDEX: azureSearchIndex
+        AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
+        AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+        AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+        AZURE_SEARCH_TOP_K: azureSearchTopK
+        AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+        AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+        AZURE_SEARCH_FILTER: azureSearchFilter
+        AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
+        AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+        AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
+        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+        AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
+        AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+        AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
+        AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+        AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+        AZURE_SPEECH_SERVICE_NAME: speechServiceName
+        AZURE_SPEECH_SERVICE_REGION: location
+        AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
+        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+        ADVANCED_IMAGE_PROCESSING_MAX_IMAGES: advancedImageProcessingMaxImages
+        ORCHESTRATION_STRATEGY: orchestrationStrategy
+        CONVERSATION_FLOW: conversationFlow
+        LOGLEVEL: logLevel
+        DATABASE_TYPE: databaseType
+      },
+      // Conditionally add database-specific settings
+      databaseType == 'CosmosDB'
+        ? {
+            AZURE_COSMOSDB_INFO: azureCosmosDBInfo
+            AZURE_COSMOSDB_ENABLE_FEEDBACK: true
+          }
+        : databaseType == 'PostgreSQL'
+            ? {
+                AZURE_POSTGRESQL_INFO: string({
+                  host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+                  dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+                  user: websiteName
+                })
+              }
+            : {}
+    )
   }
 }
 
@@ -653,67 +720,90 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
     contentSafetyName: contentsafety.outputs.name
     speechServiceName: speechService.outputs.name
     computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
+
+    // New database-related parameters
+    databaseType: databaseType
+
+    // Conditional key vault key names
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    azureBlobStorageInfo: azureBlobStorageInfo
+    azureFormRecognizerInfo: azureFormRecognizerInfo
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-    cosmosDBKeyName: useKeyVault ? storekeys.outputs.COSMOS_ACCOUNT_KEY_NAME : ''
+
+    // Conditionally set database key names
+    cosmosDBKeyName: databaseType == 'CosmosDB' && useKeyVault ? storekeys.outputs.COSMOS_ACCOUNT_KEY_NAME : ''
+    postgresInfoName: databaseType == 'PostgreSQL' && useKeyVault ? storekeys.outputs.POSTGRESQL_INFO_NAME : ''
+
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
-    appSettings: {
-      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-      AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
-      AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
-      AZURE_OPENAI_TOP_P: azureOpenAITopP
-      AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
-      AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
-      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_OPENAI_STREAM: azureOpenAIStream
-      AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
-      AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
-      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-      AZURE_SEARCH_INDEX: azureSearchIndex
-      AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
-      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
-      AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
-      AZURE_SEARCH_TOP_K: azureSearchTopK
-      AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
-      AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
-      AZURE_SEARCH_FILTER: azureSearchFilter
-      AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-      AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-      AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-      AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-      AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-      AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-      AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
-      AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-      AZURE_SPEECH_SERVICE_NAME: speechServiceName
-      AZURE_SPEECH_SERVICE_REGION: location
-      AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
-      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-      ADVANCED_IMAGE_PROCESSING_MAX_IMAGES: advancedImageProcessingMaxImages
-      ORCHESTRATION_STRATEGY: orchestrationStrategy
-      CONVERSATION_FLOW: conversationFlow
-      LOGLEVEL: logLevel
-      AZURE_COSMOSDB_INFO: azureCosmosDBInfo
-      AZURE_COSMOSDB_ENABLE_FEEDBACK: true
-      CHAT_HISTORY_ENABLED: chatHistoryEnabled
-    }
+
+    appSettings: union(
+      {
+        // Existing app settings
+        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
+        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+        AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
+        AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
+        AZURE_OPENAI_TOP_P: azureOpenAITopP
+        AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
+        AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
+        AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+        AZURE_OPENAI_STREAM: azureOpenAIStream
+        AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
+        AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+        AZURE_SEARCH_INDEX: azureSearchIndex
+        AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
+        AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+        AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+        AZURE_SEARCH_TOP_K: azureSearchTopK
+        AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+        AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+        AZURE_SEARCH_FILTER: azureSearchFilter
+        AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
+        AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+        AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
+        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+        AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
+        AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+        AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
+        AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+        AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+        AZURE_SPEECH_SERVICE_NAME: speechServiceName
+        AZURE_SPEECH_SERVICE_REGION: location
+        AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
+        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+        ADVANCED_IMAGE_PROCESSING_MAX_IMAGES: advancedImageProcessingMaxImages
+        ORCHESTRATION_STRATEGY: orchestrationStrategy
+        CONVERSATION_FLOW: conversationFlow
+        LOGLEVEL: logLevel
+        DATABASE_TYPE: databaseType
+      },
+      // Conditionally add database-specific settings
+      databaseType == 'CosmosDB'
+        ? {
+            AZURE_COSMOSDB_INFO: azureCosmosDBInfo
+            AZURE_COSMOSDB_ENABLE_FEEDBACK: true
+          }
+        : databaseType == 'PostgreSQL'
+            ? {
+                AZURE_POSTGRESQL_INFO: string({
+                  host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+                  dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+                  user: '${websiteName}-docker'
+                })
+              }
+            : {}
+    )
   }
 }
 
@@ -736,8 +826,8 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     speechServiceName: speechService.outputs.name
     computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    azureBlobStorageInfo: azureBlobStorageInfo
+    azureFormRecognizerInfo: azureFormRecognizerInfo
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
@@ -745,53 +835,62 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
-    appSettings: {
-      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-      AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
-      AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
-      AZURE_OPENAI_TOP_P: azureOpenAITopP
-      AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
-      AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
-      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_OPENAI_STREAM: azureOpenAIStream
-      AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
-      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-      AZURE_SEARCH_INDEX: azureSearchIndex
-      AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
-      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
-      AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
-      AZURE_SEARCH_TOP_K: azureSearchTopK
-      AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
-      AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
-      AZURE_SEARCH_FILTER: azureSearchFilter
-      AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-      AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-      AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-      AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-      AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-      AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-      AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
-      AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-      BACKEND_URL: 'https://${functionName}.azurewebsites.net'
-      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-      FUNCTION_KEY: clientKey
-      ORCHESTRATION_STRATEGY: orchestrationStrategy
-      LOGLEVEL: logLevel
-      CHAT_HISTORY_ENABLED: chatHistoryEnabled
-    }
+    databaseType: databaseType
+    appSettings: union(
+      {
+        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
+        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+        AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
+        AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
+        AZURE_OPENAI_TOP_P: azureOpenAITopP
+        AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
+        AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
+        AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+        AZURE_OPENAI_STREAM: azureOpenAIStream
+        AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
+        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+        AZURE_SEARCH_INDEX: azureSearchIndex
+        AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+        AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+        AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+        AZURE_SEARCH_TOP_K: azureSearchTopK
+        AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+        AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+        AZURE_SEARCH_FILTER: azureSearchFilter
+        AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
+        AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+        AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
+        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+        AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
+        AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+        AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
+        AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+        AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+        AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+        AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+        BACKEND_URL: 'https://${functionName}.azurewebsites.net'
+        DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+        FUNCTION_KEY: clientKey
+        ORCHESTRATION_STRATEGY: orchestrationStrategy
+        LOGLEVEL: logLevel
+        DATABASE_TYPE: databaseType
+      },
+      databaseType == 'PostgreSQL'
+        ? {
+            AZURE_POSTGRESQL_INFO: string({
+              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+              user: adminWebsiteName
+            })
+          }
+        : {}
+    )
   }
 }
 
@@ -813,8 +912,8 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     speechServiceName: speechService.outputs.name
     computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    azureBlobStorageInfo: azureBlobStorageInfo
+    azureFormRecognizerInfo: azureFormRecognizerInfo
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
@@ -822,53 +921,62 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
-    appSettings: {
-      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-      AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
-      AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
-      AZURE_OPENAI_TOP_P: azureOpenAITopP
-      AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
-      AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
-      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_OPENAI_STREAM: azureOpenAIStream
-      AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
-      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-      AZURE_SEARCH_INDEX: azureSearchIndex
-      AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
-      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
-      AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
-      AZURE_SEARCH_TOP_K: azureSearchTopK
-      AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
-      AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
-      AZURE_SEARCH_FILTER: azureSearchFilter
-      AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-      AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-      AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-      AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-      AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-      AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-      AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
-      AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-      BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
-      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-      FUNCTION_KEY: clientKey
-      ORCHESTRATION_STRATEGY: orchestrationStrategy
-      LOGLEVEL: logLevel
-      CHAT_HISTORY_ENABLED: chatHistoryEnabled
-    }
+    databaseType: databaseType
+    appSettings: union(
+      {
+        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
+        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+        AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
+        AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
+        AZURE_OPENAI_TOP_P: azureOpenAITopP
+        AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
+        AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
+        AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+        AZURE_OPENAI_STREAM: azureOpenAIStream
+        AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
+        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+        AZURE_SEARCH_INDEX: azureSearchIndex
+        AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+        AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+        AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+        AZURE_SEARCH_TOP_K: azureSearchTopK
+        AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+        AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+        AZURE_SEARCH_FILTER: azureSearchFilter
+        AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
+        AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+        AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
+        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+        AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
+        AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+        AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
+        AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+        AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+        AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+        AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+        BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
+        DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+        FUNCTION_KEY: clientKey
+        ORCHESTRATION_STRATEGY: orchestrationStrategy
+        LOGLEVEL: logLevel
+        DATABASE_TYPE: databaseType
+      },
+      databaseType == 'PostgreSQL'
+        ? {
+            AZURE_POSTGRESQL_INFO: string({
+              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+              user: '${adminWebsiteName}-docker'
+            })
+          }
+        : {}
+    )
   }
 }
 
@@ -926,8 +1034,8 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     clientKey: clientKey
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    azureBlobStorageInfo: azureBlobStorageInfo
+    azureFormRecognizerInfo: azureFormRecognizerInfo
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
@@ -935,38 +1043,48 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
-    appSettings: {
-      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-      AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
-      AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
-      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_SEARCH_INDEX: azureSearchIndex
-      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-      AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-      AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-      AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-      AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-      AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-      AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-      AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
-      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-      ORCHESTRATION_STRATEGY: orchestrationStrategy
-      LOGLEVEL: logLevel
-      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-      AZURE_SEARCH_TOP_K: azureSearchTopK
-    }
+    databaseType: databaseType
+    appSettings: union(
+      {
+        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
+        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+        AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
+        AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
+        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+        AZURE_SEARCH_INDEX: azureSearchIndex
+        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+        AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+        AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+        AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
+        AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+        AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
+        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+        AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
+        AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+        AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
+        AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+        DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+        ORCHESTRATION_STRATEGY: orchestrationStrategy
+        LOGLEVEL: logLevel
+        AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+        AZURE_SEARCH_TOP_K: azureSearchTopK
+        DATABASE_TYPE: databaseType
+      },
+      databaseType == 'PostgreSQL'
+        ? {
+            AZURE_POSTGRESQL_INFO: string({
+              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+              user: functionName
+            })
+          }
+        : {}
+    )
   }
 }
 
@@ -989,8 +1107,8 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     clientKey: clientKey
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+    azureBlobStorageInfo: azureBlobStorageInfo
+    azureFormRecognizerInfo: azureFormRecognizerInfo
     searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
@@ -998,38 +1116,48 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     useKeyVault: useKeyVault
     keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
     authType: authType
-    appSettings: {
-      AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-      AZURE_BLOB_CONTAINER_NAME: blobContainerName
-      AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
-      AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-      AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-      AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-      AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
-      AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
-      AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_SEARCH_INDEX: azureSearchIndex
-      AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-      AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-      AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-      AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-      AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-      AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-      AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-      AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-      AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-      AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-      AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
-      USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-      DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-      ORCHESTRATION_STRATEGY: orchestrationStrategy
-      LOGLEVEL: logLevel
-      AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-      AZURE_SEARCH_TOP_K: azureSearchTopK
-    }
+    databaseType: databaseType
+    appSettings: union(
+      {
+        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
+        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
+        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+        AZURE_OPENAI_MODEL_INFO: azureOpenAIModelInfo
+        AZURE_OPENAI_EMBEDDING_MODEL_INFO: azureOpenAIEmbeddingModelInfo
+        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
+        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+        AZURE_SEARCH_INDEX: azureSearchIndex
+        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+        AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+        AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+        AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
+        AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+        AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
+        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+        AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
+        AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+        AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
+        AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+        DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+        ORCHESTRATION_STRATEGY: orchestrationStrategy
+        LOGLEVEL: logLevel
+        AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+        AZURE_SEARCH_TOP_K: azureSearchTopK
+        DATABASE_TYPE: databaseType
+      },
+      databaseType == 'PostgreSQL'
+        ? {
+            AZURE_POSTGRESQL_INFO: string({
+              host: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+              dbname: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+              user: '${functionName}-docker'
+            })
+          }
+        : {}
+    )
   }
 }
 
@@ -1043,6 +1171,11 @@ module formrecognizer 'core/ai/cognitiveservices.bicep' = {
     kind: 'FormRecognizer'
   }
 }
+
+var azureFormRecognizerInfo = string({
+  endpoint: formrecognizer.outputs.endpoint
+  key: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : '$FORM_RECOGNIZER_KEY'
+})
 
 module contentsafety 'core/ai/cognitiveservices.bicep' = {
   name: contentSafetyName
@@ -1116,6 +1249,12 @@ module storageRoleUser 'core/security/role.bicep' = if (authType == 'rbac' && pr
   }
 }
 
+var azureBlobStorageInfo = string({
+  containerName: blobContainerName
+  accountName: storageAccountName
+  accountKey: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : '$STORAGE_ACCOUNT_KEY'
+})
+
 // Cognitive Services User
 module openaiRoleUser 'core/security/role.bicep' = if (authType == 'rbac' && principalId != '') {
   scope: rg
@@ -1165,11 +1304,34 @@ module machineLearning 'app/machinelearning.bicep' = if (orchestrationStrategy =
   }
 }
 
+module createIndex './core/database/deploy_create_table_script.bicep' = if (databaseType == 'PostgreSQL') {
+  name: 'deploy_create_table_script'
+  params: {
+    solutionLocation: location
+    identity: managedIdentityModule.outputs.managedIdentityOutput.id
+    baseUrl: baseUrl
+    keyVaultName: keyvault.outputs.name
+    postgresSqlServerName: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+    webAppPrincipalName: hostingModel == 'code' ? web.outputs.FRONTEND_API_NAME : web_docker.outputs.FRONTEND_API_NAME
+    adminAppPrincipalName: hostingModel == 'code'
+      ? adminweb.outputs.WEBSITE_ADMIN_NAME
+      : adminweb_docker.outputs.WEBSITE_ADMIN_NAME
+    functionAppPrincipalName: hostingModel == 'code'
+      ? function.outputs.functionName
+      : function_docker.outputs.functionName
+    managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
+  }
+  scope: rg
+  dependsOn: hostingModel == 'code'
+    ? [keyvault, postgresDBModule, storekeys, web, adminweb]
+    : [
+        [keyvault, postgresDBModule, storekeys, web_docker, adminweb_docker]
+      ]
+}
+
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
-output AZURE_BLOB_CONTAINER_NAME string = blobContainerName
-output AZURE_BLOB_ACCOUNT_NAME string = storageAccountName
-output AZURE_BLOB_ACCOUNT_KEY string = useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
+output AZURE_BLOB_STORAGE_INFO string = replace(azureBlobStorageInfo, '$STORAGE_ACCOUNT_KEY', '')
 output AZURE_COMPUTER_VISION_ENDPOINT string = useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
 output AZURE_COMPUTER_VISION_LOCATION string = useAdvancedImageProcessing ? computerVision.outputs.location : ''
 output AZURE_COMPUTER_VISION_KEY string = useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
@@ -1177,8 +1339,7 @@ output AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION string = computerVision
 output AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION string = computerVisionVectorizeImageModelVersion
 output AZURE_CONTENT_SAFETY_ENDPOINT string = contentsafety.outputs.endpoint
 output AZURE_CONTENT_SAFETY_KEY string = useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-output AZURE_FORM_RECOGNIZER_ENDPOINT string = formrecognizer.outputs.endpoint
-output AZURE_FORM_RECOGNIZER_KEY string = useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
+output AZURE_FORM_RECOGNIZER_INFO string = replace(azureFormRecognizerInfo, '$FORM_RECOGNIZER_KEY', '')
 output AZURE_KEY_VAULT_ENDPOINT string = useKeyVault ? keyvault.outputs.endpoint : ''
 output AZURE_KEY_VAULT_NAME string = useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
 output AZURE_LOCATION string = location
@@ -1234,3 +1395,4 @@ output AZURE_ML_WORKSPACE_NAME string = orchestrationStrategy == 'prompt_flow'
   : ''
 output RESOURCE_TOKEN string = resourceToken
 output AZURE_COSMOSDB_INFO string = azureCosmosDBInfo
+output AZURE_POSTGRESQL_INFO string = azurePostgresDBInfo

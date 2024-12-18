@@ -26,7 +26,7 @@ def message(app_config: AppConfig):
         body=json.dumps(
             {
                 "topic": "topic",
-                "subject": f"/blobServices/default/{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/documents/blobs/{FILE_NAME}",
+                "subject": f"/blobServices/default/{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}/documents/blobs/{FILE_NAME}",
                 "eventType": "Microsoft.Storage.BlobCreated",
                 "id": "id",
                 "data": {
@@ -37,7 +37,7 @@ def message(app_config: AppConfig):
                     "contentType": "image/jpeg",
                     "contentLength": 115310,
                     "blobType": "BlockBlob",
-                    "url": f"https://{app_config.get('AZURE_BLOB_ACCOUNT_NAME')}.blob.core.windows.net/documents/{FILE_NAME}",
+                    "url": f"https://{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','accountName')}.blob.core.windows.net/documents/{FILE_NAME}",
                     "sequencer": "00000000000000000000000000005E450000000000001f49",
                     "storageDiagnostics": {
                         "batchId": "952bdc2e-6006-0000-00bb-a20860000000"
@@ -54,12 +54,12 @@ def message(app_config: AppConfig):
 @pytest.fixture(autouse=True)
 def setup_blob_metadata_mocking(httpserver: HTTPServer, app_config: AppConfig):
     httpserver.expect_request(
-        f"/{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}",
+        f"/{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}/{FILE_NAME}",
         method="HEAD",
     ).respond_with_data()
 
     httpserver.expect_request(
-        f"/{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}",
+        f"/{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}/{FILE_NAME}",
         method="PUT",
     ).respond_with_data()
 
@@ -141,7 +141,7 @@ def test_image_passed_to_computer_vision_to_generate_image_embeddings(
     )[0]
 
     assert request.get_json()["url"].startswith(
-        f"{app_config.get('AZURE_STORAGE_ACCOUNT_ENDPOINT')}{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}"
+        f"{app_config.get('AZURE_STORAGE_ACCOUNT_ENDPOINT')}{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}/{FILE_NAME}"
     )
 
 
@@ -195,7 +195,7 @@ If the image is mostly text, use OCR to extract the text as it is displayed in t
     assert request.get_json()["messages"][1]["content"][1]["image_url"][
         "url"
     ].startswith(
-        f"{app_config.get('AZURE_STORAGE_ACCOUNT_ENDPOINT')}{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}"
+        f"{app_config.get('AZURE_STORAGE_ACCOUNT_ENDPOINT')}{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}/{FILE_NAME}"
     )
 
 
@@ -240,7 +240,7 @@ def test_metadata_is_updated_after_processing(
     verify_request_made(
         mock_httpserver=httpserver,
         request_matcher=RequestMatcher(
-            path=f"/{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}",
+            path=f"/{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}/{FILE_NAME}",
             method="PUT",
             headers={
                 "Authorization": ANY,
@@ -255,7 +255,7 @@ def test_metadata_is_updated_after_processing(
     )
 
 
-def test_makes_correct_call_to_list_search_indexes(
+def test_makes_correct_call_to_list_vector_store(
     message: QueueMessage, httpserver: HTTPServer, app_config: AppConfig
 ):
     # when
@@ -439,7 +439,7 @@ def test_makes_correct_call_to_store_documents_in_search_index(
     batch_push_results.build().get_user_function()(message)
 
     # then
-    expected_file_path = f"{app_config.get('AZURE_BLOB_CONTAINER_NAME')}/{FILE_NAME}"
+    expected_file_path = f"{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}/{FILE_NAME}"
     expected_source_url = (
         f"{app_config.get('AZURE_STORAGE_ACCOUNT_ENDPOINT')}{expected_file_path}"
     )
