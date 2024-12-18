@@ -69,6 +69,7 @@ const Chat = () => {
   const lastQuestionRef = useRef<string>("");
   const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);  // Add this state
   const [showLoadingMessage, setShowLoadingMessage] = useState<boolean>(false);
   const [isAssistantAPILoading, setIsAssistantAPILoading] = useState(false);
   const [isSendButtonDisabled, setSendButtonDisabled] = useState(false);
@@ -185,7 +186,7 @@ const Chat = () => {
       text: "Clear all chat history",
       disabled:
         !chatHistory.length ||
-        isLoading ||
+        isGenerating ||
         fetchingConvMessages ||
         fetchingChatHistory,
       iconProps: { iconName: "Delete" },
@@ -194,7 +195,7 @@ const Chat = () => {
   const makeApiRequest = async (question: string) => {
     lastQuestionRef.current = question;
 
-    setIsLoading(true);
+    setIsGenerating(true);
     setShowLoadingMessage(true);
     const abortController = new AbortController();
     abortFuncs.current.unshift(abortController);
@@ -274,7 +275,7 @@ const Chat = () => {
       }
       setAnswers([...answers, userMessage]);
     } finally {
-      setIsLoading(false);
+      setIsGenerating(false);
       setShowLoadingMessage(false);
       abortFuncs.current = abortFuncs.current.filter(
         (a) => a !== abortController
@@ -371,7 +372,7 @@ const Chat = () => {
   const stopGenerating = () => {
     abortFuncs.current.forEach((a) => a.abort());
     setShowLoadingMessage(false);
-    setIsLoading(false);
+    setIsGenerating(false);
   };
 
   useEffect(() => {
@@ -485,6 +486,10 @@ const Chat = () => {
   };
 
   const onSelectConversation = async (id: string) => {
+    if (isGenerating) {
+      // If response is being generated, prevent switching threads
+      return;
+    }
     if (!id) {
       console.error("No conversation Id found");
       return;
@@ -623,7 +628,7 @@ const Chat = () => {
             ) : (
               <div
                 className={styles.chatMessageStream}
-                style={{ marginBottom: isLoading ? "40px" : "0px" }}
+                style={{ marginBottom: isGenerating ? "40px" : "0px" }}
               >
                 {fetchingConvMessages && (
                   <div className={styles.fetchMessagesSpinner}>
@@ -697,7 +702,7 @@ const Chat = () => {
             </div>
 
             <Stack horizontal className={styles.chatInput}>
-              {isLoading && (
+              {isGenerating && (
                 <Stack
                   horizontal
                   className={styles.stopGeneratingContainer}
@@ -725,10 +730,10 @@ const Chat = () => {
                 className={`${styles.clearChatBroom} ${styles.mobileclearChatBroom}`}
                 style={{
                   background:
-                    isLoading || answers.length === 0
+                    isGenerating || answers.length === 0
                       ? "#BDBDBD"
                       : "radial-gradient(109.81% 107.82% at 100.1% 90.19%, #0F6CBD 33.63%, #2D87C3 70.31%, #8DDDD8 100%)",
-                  cursor: isLoading || answers.length === 0 ? "" : "pointer",
+                  cursor: isGenerating || answers.length === 0 ? "" : "pointer",
                 }}
                 onClick={clearChat}
                 onKeyDown={(e) =>
@@ -741,7 +746,7 @@ const Chat = () => {
               <QuestionInput
                 clearOnSend
                 placeholder="Type a new question..."
-                disabled={isLoading}
+                disabled={isGenerating}
                 onSend={(question) => makeApiRequest(question)}
                 recognizedText={recognizedText}
                 isSendButtonDisabled={isSendButtonDisabled}
