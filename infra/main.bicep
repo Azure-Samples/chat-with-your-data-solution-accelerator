@@ -869,6 +869,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
         FUNCTION_KEY: clientKey
         ORCHESTRATION_STRATEGY: orchestrationStrategy
+        CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
       },
@@ -960,6 +961,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
         FUNCTION_KEY: clientKey
         ORCHESTRATION_STRATEGY: orchestrationStrategy
+        CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
       },
