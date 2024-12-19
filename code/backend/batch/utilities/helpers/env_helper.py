@@ -6,10 +6,8 @@ from dotenv import load_dotenv
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.keyvault.secrets import SecretClient
 
-from backend.batch.utilities.orchestrator.orchestration_strategy import (
-    OrchestrationStrategy,
-)
-from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
+from ..orchestrator.orchestration_strategy import OrchestrationStrategy
+from ..helpers.config.conversation_flow import ConversationFlow
 from ..helpers.config.database_type import DatabaseType
 
 logger = logging.getLogger(__name__)
