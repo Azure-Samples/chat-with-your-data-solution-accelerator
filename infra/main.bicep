@@ -292,11 +292,7 @@ param useKeyVault bool = authType == 'rbac' ? false : true
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 
-@description('Hosting model for the web apps. Containers are prebuilt and can be deployed faster, but code allows for more customization.')
-@allowed([
-  'code'
-  'container'
-])
+@description('Hosting model for the web apps. This value is fixed as "container", which uses prebuilt containers for faster deployment.')
 param hostingModel string = 'container'
 
 @allowed([
