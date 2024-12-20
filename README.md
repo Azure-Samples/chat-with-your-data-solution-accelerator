@@ -171,7 +171,7 @@ With the addition of PostgreSQL, customers can leverage the power of a relations
 
 Customers have the option to deploy this solution with PostgreSQL or Cosmos DB. Consider the following when deciding which database to use:
 - PostgreSQL enables a relationship-based AI solution and search indexing for Retrieval Augmented Generation (RAG)
-- Cosmos DB is a NoSQL-based solution for chat history
+- Cosmos DB enables chat history and is a NoSQL-based solution. With Cosmos DB, Azure AI Search is used for storing extracted documents and embeddings.
 
 
 To review PostgreSQL configuration overview and steps, follow the link [here](docs/postgreSQL.md).
