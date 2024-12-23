@@ -35,7 +35,7 @@ pandas = "2.2.3"
 azure-monitor-opentelemetry = "^1.6.2"
 opentelemetry-instrumentation-httpx = "^0.50b0"
 pillow = "10.4.0"
-azure-mgmt-cognitiveservices = "^13.5.0"
+azure-mgmt-cognitiveservices = "^13.6.0"
 jsonschema = "^4.23.0"
 semantic-kernel = {version = "1.17.1", python = "<3.13"}
 azure-ai-ml = "^1.23.0"
