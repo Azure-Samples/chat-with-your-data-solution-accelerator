@@ -328,7 +328,7 @@ def test_post_makes_correct_call_to_openai_chat_completions_with_functions(
     )
 
 
-def test_post_makes_correct_call_to_list_search_indexes(
+def test_post_makes_correct_call_to_list_vector_store(
     app_url: str, app_config: AppConfig, httpserver: HTTPServer
 ):
     # when

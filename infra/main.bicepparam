@@ -1,6 +1,7 @@
 using './main.bicep'
 
-var location = readEnvironmentVariable('AZURE_LOCATION', 'location')
+param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', 'env_name')
+param location = readEnvironmentVariable('AZURE_LOCATION', 'location')
 param principalId = readEnvironmentVariable('AZURE_PRINCIPAL_ID', 'principal_id')
 
 
@@ -18,7 +19,6 @@ param orchestrationStrategy = readEnvironmentVariable('ORCHESTRATION_STRATEGY', 
 param logLevel = readEnvironmentVariable('LOGLEVEL', 'INFO')
 param recognizedLanguages = readEnvironmentVariable('AZURE_SPEECH_RECOGNIZER_LANGUAGES', 'en-US,fr-FR,de-DE,it-IT')
 param conversationFlow = readEnvironmentVariable('CONVERSATION_FLOW', 'custom')
-param chatHistoryEnabled = readEnvironmentVariable('CHAT_HISTORY_ENABLED', 'true')
 
 //Azure Search
 param azureSearchFieldId = readEnvironmentVariable('AZURE_SEARCH_FIELDS_ID', 'id')
@@ -67,8 +67,7 @@ param computerVisionVectorizeImageModelVersion = readEnvironmentVariable('AZURE_
 
 // We need the resourceToken to be unique for each deployment (copied from the main.bicep)
 var subscriptionId = readEnvironmentVariable('AZURE_SUBSCRIPTION_ID', 'subscription_id')
-var resourceGroupName = readEnvironmentVariable('AZURE_RESOURCE_GROUP', 'azure_resource_group')
-param resourceToken = toLower(uniqueString(subscriptionId, resourceGroupName, location))
+param resourceToken = toLower(uniqueString(subscriptionId, environmentName, location))
 
 
 // Retrieve the Search Name from the Search Endpoint which will be in the format
@@ -83,4 +82,6 @@ param azureAISearchName = searchServiceName == '' ? 'search-${resourceToken}' : 
 
 param azureSearchIndex = readEnvironmentVariable('AZURE_SEARCH_INDEX', 'index-${resourceToken}')
 param azureOpenAIResourceName = readEnvironmentVariable('AZURE_OPENAI_RESOURCE', 'openai-${resourceToken}')
-param storageAccountName = readEnvironmentVariable('AZURE_BLOB_ACCOUNT_NAME', 'str${resourceToken}')
+var azureBlobStorageInfo = readEnvironmentVariable('AZURE_BLOB_STORAGE_INFO', '{"containerName": "documents", "accountName": "${resourceToken}", "accountKey": ""}')
+var azureBlobStorageInfoParsed = json(replace(azureBlobStorageInfo, '\\', '')) // Remove escape characters
+param storageAccountName = azureBlobStorageInfoParsed.accountName

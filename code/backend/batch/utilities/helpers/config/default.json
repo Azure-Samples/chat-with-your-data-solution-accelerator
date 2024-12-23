@@ -136,11 +136,12 @@
     "page_overlap_length": "100"
   },
   "logging": {
-    "log_user_interactions": true,
-    "log_tokens": true
+    "log_user_interactions": "${LOG_USER_INTERACTIONS}",
+    "log_tokens": "${LOG_TOKENS}"
   },
   "orchestrator": {
     "strategy": "${ORCHESTRATION_STRATEGY}"
   },
-  "enable_chat_history": "${CHAT_HISTORY_ENABLED}"
+  "enable_chat_history": true,
+  "database_type": "${DATABASE_TYPE}"
 }

@@ -9,6 +9,7 @@ param appServicePlanId string
 param keyVaultName string = ''
 param managedIdentity bool = !empty(keyVaultName)
 param storageAccountName string
+param useKeyVault bool
 
 // Runtime Properties
 @allowed([
@@ -67,10 +68,14 @@ module functions 'appservice.bicep' = {
     appSettings: union(
       appSettings,
       {
-        AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
         FUNCTIONS_EXTENSION_VERSION: extensionVersion
       },
-      !useDocker ? { FUNCTIONS_WORKER_RUNTIME: runtimeName } : {}
+      !useDocker ? { FUNCTIONS_WORKER_RUNTIME: runtimeName } : {},
+      useKeyVault
+        ? {
+            AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
+          }
+        : { AzureWebJobsStorage__accountName: storage.name }
     )
     clientAffinityEnabled: clientAffinityEnabled
     enableOryxBuild: enableOryxBuild
@@ -87,6 +92,15 @@ module functions 'appservice.bicep' = {
     scmDoBuildDuringDeployment: useDocker ? false : true
     use32BitWorkerProcess: use32BitWorkerProcess
     dockerFullImageName: dockerFullImageName
+  }
+}
+
+module storageBlobRoleFunction '../security/role.bicep' = {
+  name: 'storage-blob-role-function'
+  params: {
+    principalId: functions.outputs.identityPrincipalId
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    principalType: 'ServicePrincipal'
   }
 }
 
