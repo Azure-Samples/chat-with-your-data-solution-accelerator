@@ -3421,13 +3421,13 @@ signedtoken = ["cryptography (>=3.0.0)", "pyjwt (>=2.0.0,<3)"]
 
 [[package]]
 name = "openai"
-version = "1.48.0"
+version = "1.58.1"
 description = "The official Python library for the openai API"
 optional = false
-python-versions = ">=3.7.1"
+python-versions = ">=3.8"
 files = [
-    {file = "openai-1.48.0-py3-none-any.whl", hash = "sha256:7c4af223f0bf615ce4a12453729952c9a8b04ffe8c78aa77981b12fd970149cf"},
-    {file = "openai-1.48.0.tar.gz", hash = "sha256:1d3b69ea62c287c4885a6f3ce840768564cd5f52c60ac5f890fef80d43cc4799"},
+    {file = "openai-1.58.1-py3-none-any.whl", hash = "sha256:e2910b1170a6b7f88ef491ac3a42c387f08bd3db533411f7ee391d166571d63c"},
+    {file = "openai-1.58.1.tar.gz", hash = "sha256:f5a035fd01e141fc743f4b0e02c41ca49be8fab0866d3b67f5f29b4f4d3c0973"},
 ]
 
 [package.dependencies]
@@ -3442,6 +3442,7 @@ typing-extensions = ">=4.11,<5"
 
 [package.extras]
 datalib = ["numpy (>=1)", "pandas (>=1.2.3)", "pandas-stubs (>=1.1.0.11)"]
+realtime = ["websockets (>=13,<15)"]
 
 [[package]]
 name = "openapi-core"
@@ -6632,4 +6633,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "052e4367fc55ed55859d061a5201680ecc77b4e77e971223c3479fb94a45f0d7"
+content-hash = "f4fc070f550130fea92c7c741c25eb33e80ae289f333a06b308fb845175615ea"
