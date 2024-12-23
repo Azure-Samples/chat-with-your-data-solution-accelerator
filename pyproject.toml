@@ -59,7 +59,7 @@ pytest-asyncio = "^0.25.0"
 optional = true
 
 [tool.poetry.group.prompt-flow.dependencies]
-promptflow = {extras = ["azure"], version = "1.15.0"}
+promptflow = {extras = ["azure"], version = "1.16.1"}
 
 [tool.coverage.run]
 omit = [
