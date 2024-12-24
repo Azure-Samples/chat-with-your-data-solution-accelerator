@@ -317,7 +317,7 @@ var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
 var rgName = 'rg-${environmentName}'
 var keyVaultName = 'kv-${resourceToken}'
-var baseUrl = 'https://raw.githubusercontent.com/Fr4nc3/chat-with-your-data-solution-accelerator/main/'
+var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
 
 var appversion = 'latest' // Update GIT deployment branch
 var registryName = 'fruoccopublic' // Update Registry name

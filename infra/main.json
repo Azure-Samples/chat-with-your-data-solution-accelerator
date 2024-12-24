@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.32.4.45862",
-      "templateHash": "17336122992535211087"
+      "templateHash": "7084015314738770368"
     }
   },
   "parameters": {
@@ -644,7 +644,7 @@
     },
     "rgName": "[format('rg-{0}', parameters('environmentName'))]",
     "keyVaultName": "[format('kv-{0}', parameters('resourceToken'))]",
-    "baseUrl": "https://raw.githubusercontent.com/Fr4nc3/chat-with-your-data-solution-accelerator/main/",
+    "baseUrl": "https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/",
     "appversion": "latest",
     "registryName": "fruoccopublic",
     "defaultOpenAiDeployments": [
