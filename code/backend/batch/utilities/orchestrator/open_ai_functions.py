@@ -4,6 +4,7 @@ import json
 
 from .orchestrator_base import OrchestratorBase
 from ..helpers.llm_helper import LLMHelper
+from ..helpers.env_helper import EnvHelper
 from ..tools.post_prompt_tool import PostPromptTool
 from ..tools.question_answer_tool import QuestionAnswerTool
 from ..tools.text_processing_tool import TextProcessingTool
@@ -60,8 +61,11 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
 
         # Call function to determine route
         llm_helper = LLMHelper()
+        env_helper = EnvHelper()
 
-        system_message = """You help employees to navigate only private information sources.
+        system_message = env_helper.OPEN_AI_FUNCTIONS_SYSTEM_PROMPT
+        if not system_message:
+            system_message = """You help employees to navigate only private information sources.
         You must prioritize the function call over your general knowledge for any question by calling the search_documents function.
         Call the text_processing function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.
         When directly replying to the user, always reply in the language the user is speaking.
