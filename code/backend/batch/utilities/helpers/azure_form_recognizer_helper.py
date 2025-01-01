@@ -1,9 +1,12 @@
+import logging
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.identity import DefaultAzureCredential
 import html
 import traceback
 from .env_helper import EnvHelper
+
+logger = logging.getLogger(__name__)
 
 
 class AzureFormRecognizerClient:
@@ -75,6 +78,8 @@ class AzureFormRecognizerClient:
         model_id = "prebuilt-layout" if use_layout else "prebuilt-read"
 
         try:
+            logger.info("Method begin_analyze_document_from_url started")
+            logger.info(f"Model ID selected: {model_id}")
             poller = self.document_analysis_client.begin_analyze_document_from_url(
                 model_id, document_url=source_url
             )
@@ -144,4 +149,7 @@ class AzureFormRecognizerClient:
 
             return page_map
         except Exception as e:
+            logger.exception(f"Exception in begin_analyze_document_from_url: {e}")
             raise ValueError(f"Error: {traceback.format_exc()}. Error: {e}")
+        finally:
+            logger.info("Method begin_analyze_document_from_url ended")
