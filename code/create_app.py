@@ -149,7 +149,6 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
             api_version=env_helper.AZURE_OPENAI_API_VERSION,
             api_key=env_helper.AZURE_OPENAI_API_KEY,
         )
-        logger.info("Using key-based authentication for Azure OpenAI")
     else:
         logger.info("Using RBAC authentication for Azure OpenAI")
         openai_client = AzureOpenAI(
@@ -158,7 +157,6 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
             azure_ad_token_provider=env_helper.AZURE_TOKEN_PROVIDER,
         )
 
-        logger.info("Using RBAC authentication for Azure OpenAI")
     request_messages = conversation.json["messages"]
     messages = []
     config = ConfigHelper.get_active_config_or_default()
@@ -170,16 +168,6 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
     for message in request_messages:
         messages.append({"role": message["role"], "content": message["content"]})
 
-    logger.info(
-        "Azure OpenAI model details: %s",
-        {
-            "AZURE_OPENAI_MODEL": env_helper.AZURE_OPENAI_MODEL,
-            "AZURE_OPENAI_MAX_TOKENS": env_helper.AZURE_OPENAI_MAX_TOKENS,
-            "AZURE_OPENAI_TEMPERATURE": env_helper.AZURE_OPENAI_TEMPERATURE,
-            "AZURE_OPENAI_TOP_P": env_helper.AZURE_OPENAI_TOP_P,
-            "AZURE_SEARCH_USE_SEMANTIC_SEARCH": env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH,
-        },
-    )
     # Azure OpenAI takes the deployment name as the model name, "AZURE_OPENAI_MODEL" means
     # deployment name.
     response = openai_client.chat.completions.create(
