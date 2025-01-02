@@ -102,9 +102,7 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
             else:
                 logging.info("Using hybrid search.")
                 search_results = self._hybrid_search(question)
-            logging.info(
-                f"Search completed. Converting {len(search_results)} results to SourceDocuments."
-            )
+            logging.info("Search completed. Converting results to SourceDocuments.")
             return self._convert_to_source_documents(search_results)
 
     def _hybrid_search(self, question: str):
