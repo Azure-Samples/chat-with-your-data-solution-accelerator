@@ -34,6 +34,7 @@ class OutputParserTool(ParserBase):
         source_documents: List[SourceDocument] = [],
         **kwargs: dict,
     ) -> List[dict]:
+        logger.info("Method parse of output_parser_tool started")
         answer = self._clean_up_answer(answer)
         doc_ids = self._get_source_docs_from_answer(answer)
         answer = self._make_doc_references_sequential(answer)
@@ -87,4 +88,5 @@ class OutputParserTool(ParserBase):
         messages.append({"role": "assistant", "content": answer, "end_turn": True})
         # everything in content needs to be stringified to work with Azure BYOD frontend
         messages[0]["content"] = json.dumps(messages[0]["content"])
+        logger.info("Method parse of output_parser_tool ended")
         return messages

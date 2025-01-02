@@ -24,6 +24,7 @@ class QuestionAnswerTool(AnsweringToolBase):
         self.verbose = True
 
         self.config = ConfigHelper.get_active_config_or_default()
+        logger.info("QuestionAnswerTool initialized with configuration.")
 
     @staticmethod
     def json_remove_whitespace(obj: str) -> str:
@@ -33,6 +34,7 @@ class QuestionAnswerTool(AnsweringToolBase):
         try:
             return json.dumps(json.loads(obj), separators=(",", ":"))
         except json.JSONDecodeError:
+            logger.exception("Failed to parse JSON in json_remove_whitespace.")
             return obj
 
     @staticmethod
@@ -50,6 +52,9 @@ class QuestionAnswerTool(AnsweringToolBase):
             [f"[doc{i+1}]: {source.content}" for i, source in enumerate(sources)]
         )
 
+        logger.info(
+            f"Generating messages for question: {question} with {len(sources)} sources."
+        )
         return [
             {
                 "content": self.config.prompts.answering_user_prompt.format(
@@ -68,6 +73,7 @@ class QuestionAnswerTool(AnsweringToolBase):
     ) -> list[dict]:
         examples = []
 
+        logger.info(f"Generating On Your Data messages for question: {question}")
         few_shot_example = {
             "sources": self.config.example.documents.strip(),
             "question": self.config.example.user_question.strip(),
@@ -148,10 +154,14 @@ class QuestionAnswerTool(AnsweringToolBase):
         ]
 
     def answer_question(self, question: str, chat_history: list[dict], **kwargs):
+        logger.info("Answering question")
         source_documents = Search.get_source_documents(self.search_handler, question)
 
         if self.env_helper.USE_ADVANCED_IMAGE_PROCESSING:
             image_urls = self.create_image_url_list(source_documents)
+            logger.info(
+                f"Generated {len(image_urls)} image URLs for advanced image processing."
+            )
         else:
             image_urls = []
 
@@ -188,6 +198,9 @@ class QuestionAnswerTool(AnsweringToolBase):
             if doc.title is not None and doc.title.split(".")[-1] in image_types
         ][: self.env_helper.ADVANCED_IMAGE_PROCESSING_MAX_IMAGES]
 
+        logger.info(
+            f"Generated {len(image_urls)} image URLs for {len(source_documents)} source documents."
+        )
         return image_urls
 
     def format_answer_from_response(

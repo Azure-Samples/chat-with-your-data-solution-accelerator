@@ -43,6 +43,7 @@ def get_markdown_url(source, title, container_sas):
 
 def get_citations(citation_list):
     """Returns Formated Citations."""
+    logger.info("Method get_citations started")
     blob_client = AzureBlobStorageClient()
     container_sas = blob_client.get_container_sas()
     citations_dict = {"citations": []}
@@ -68,6 +69,7 @@ def get_citations(citation_list):
                 "url": url,
             }
         )
+    logger.info("Method get_citations ended")
     return citations_dict
 
 
@@ -139,13 +141,16 @@ def stream_with_data(response: Stream[ChatCompletionChunk]):
 
 def conversation_with_data(conversation: Request, env_helper: EnvHelper):
     """This function streams the response from Azure OpenAI with data."""
+    logger.info("Method conversation_with_data started")
     if env_helper.is_auth_type_keys():
+        logger.info("Using key-based authentication for Azure OpenAI")
         openai_client = AzureOpenAI(
             azure_endpoint=env_helper.AZURE_OPENAI_ENDPOINT,
             api_version=env_helper.AZURE_OPENAI_API_VERSION,
             api_key=env_helper.AZURE_OPENAI_API_KEY,
         )
     else:
+        logger.info("Using RBAC authentication for Azure OpenAI")
         openai_client = AzureOpenAI(
             azure_endpoint=env_helper.AZURE_OPENAI_ENDPOINT,
             api_version=env_helper.AZURE_OPENAI_API_VERSION,
@@ -265,6 +270,7 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
 
         return response_obj
 
+    logger.info("Method conversation_with_data ended")
     return Response(stream_with_data(response), mimetype="application/json-lines")
 
 
@@ -409,6 +415,7 @@ def create_app():
         return "OK"
 
     def conversation_azure_byod():
+        logger.info("Method conversation_azure_byod started")
         try:
             if should_use_data(env_helper, azure_search_helper):
                 return conversation_with_data(request, env_helper)
@@ -427,11 +434,14 @@ def create_app():
             error_message = str(e)
             logger.exception("Exception in /api/conversation | %s", error_message)
             return jsonify({"error": ERROR_GENERIC_MESSAGE}), 500
+        finally:
+            logger.info("Method conversation_azure_byod ended")
 
     async def conversation_custom():
         message_orchestrator = get_message_orchestrator()
 
         try:
+            logger.info("Method conversation_custom started")
             user_message = request.json["messages"][-1]["content"]
             conversation_id = request.json["conversation_id"]
             user_assistant_messages = list(
@@ -471,6 +481,8 @@ def create_app():
             error_message = str(e)
             logger.exception("Exception in /api/conversation | %s", error_message)
             return jsonify({"error": ERROR_GENERIC_MESSAGE}), 500
+        finally:
+            logger.info("Method conversation_custom ended")
 
     @app.route("/api/conversation", methods=["POST"])
     async def conversation():
@@ -495,6 +507,7 @@ def create_app():
     def speech_config():
         """Get the speech config for Azure Speech."""
         try:
+            logger.info("Method speech_config started")
             speech_key = env_helper.AZURE_SPEECH_KEY or get_speech_key(env_helper)
 
             response = requests.post(
@@ -519,6 +532,8 @@ def create_app():
             logger.exception("Exception in /api/speech | %s", str(e))
 
             return {"error": "Failed to get speech config"}, 500
+        finally:
+            logger.info("Method speech_config ended")
 
     @app.route("/api/assistanttype", methods=["GET"])
     def assistanttype():

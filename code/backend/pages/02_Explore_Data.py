@@ -1,3 +1,4 @@
+import logging
 import streamlit as st
 import os
 import traceback
@@ -9,6 +10,7 @@ from batch.utilities.search.search import Search
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
+logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="Explore Data",
@@ -62,4 +64,5 @@ try:
 
 
 except Exception:
+    logger.error(traceback.format_exc())
     st.error(traceback.format_exc())

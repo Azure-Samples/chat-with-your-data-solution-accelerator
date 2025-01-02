@@ -362,6 +362,7 @@ class EnvHelper:
         self.SEMENTIC_KERNEL_SYSTEM_PROMPT = os.getenv(
             "SEMENTIC_KERNEL_SYSTEM_PROMPT", ""
         )
+        logger.info("Initializing EnvHelper completed")
 
     def is_chat_model(self):
         if "gpt-4" in self.AZURE_OPENAI_MODEL_NAME.lower():

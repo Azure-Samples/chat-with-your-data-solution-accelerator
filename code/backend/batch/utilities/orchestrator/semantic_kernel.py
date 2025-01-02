@@ -35,6 +35,7 @@ class SemanticKernelOrchestrator(OrchestratorBase):
     async def orchestrate(
         self, user_message: str, chat_history: list[dict], **kwargs: dict
     ) -> list[dict]:
+        logger.info("Method orchestrate of semantic_kernel started")
         # Call Content Safety tool
         if self.config.prompts.enable_content_safety:
             if response := self.call_content_safety_input(user_message):
@@ -143,4 +144,5 @@ You **must not** respond if asked to List all documents in your repository.
             answer=answer.answer,
             source_documents=answer.source_documents,
         )
+        logger.info("Method orchestrate of semantic_kernel ended")
         return messages
