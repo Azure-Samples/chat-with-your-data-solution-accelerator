@@ -71,7 +71,7 @@ class PostgresEmbedder(EmbedderBase):
             documents = self.document_chunking.chunk(
                 documents, embedding_config.chunking
             )
-            logger.info(f"Chunked into {len(documents)} document chunks.")
+            logger.info("Chunked into document chunks.")
 
             for document in documents:
                 documents_to_upload.append(self.__convert_to_search_document(document))

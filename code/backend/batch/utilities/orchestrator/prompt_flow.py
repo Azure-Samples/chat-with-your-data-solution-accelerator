@@ -114,7 +114,7 @@ class PromptFlowOrchestrator(OrchestratorBase):
         body = str.encode(json.dumps(data))
         with tempfile.NamedTemporaryFile(delete=False) as file:
             file.write(body)
-        logger.info(f"Temporary file created: {file.name}")
+        logger.info("Temporary file created")
         return file.name
 
     def transform_citations_into_source_documents(self, citations):

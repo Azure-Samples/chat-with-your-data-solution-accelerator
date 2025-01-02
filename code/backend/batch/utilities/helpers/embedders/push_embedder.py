@@ -89,7 +89,7 @@ class PushEmbedder(EmbedderBase):
 
         # Upload documents (which are chunks) to search index in batches
         if documents_to_upload:
-            logger.info(f"Uploading {len(documents_to_upload)} documents in batches")
+            logger.info("Uploading documents in batches")
             batch_size = self.env_helper.AZURE_SEARCH_DOC_UPLOAD_BATCH_SIZE
             search_client = self.azure_search_helper.get_search_client()
             for i in range(0, len(documents_to_upload), batch_size):

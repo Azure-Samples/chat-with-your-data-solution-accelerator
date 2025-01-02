@@ -63,8 +63,6 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
                 files[filename].append(id)
             else:
                 files[filename] = [id]
-
-        logging.info(f"Output contains {len(files)} files.")
         return files
 
     def search_by_blob_url(self, blob_url: str):
@@ -79,7 +77,7 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
             )
 
     def delete_files(self, files):
-        logging.info(f"Deleting files: {list(files.keys())}.")
+        logging.info("Deleting files.")
         ids_to_delete = []
         files_to_delete = []
 
@@ -151,7 +149,7 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
                     chunk_id=source.get("chunk_id"),
                 )
             )
-        logging.info(f"Converted {len(source_documents)} SourceDocument objects.")
+        logging.info("Converted SourceDocument objects.")
         return source_documents
 
     def _extract_source_url(self, original_source: str) -> str:
