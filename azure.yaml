@@ -8,7 +8,7 @@ hooks:
     # run: ./infra/prompt-flow/create-prompt-flow.sh
     posix:
       shell: sh
-      run: ./scripts/parse_env.sh
+      run: chmod +x ./scripts/parse_env.sh && ./scripts/parse_env.sh
     windows:
       shell: pwsh
       run: ./scripts/parse_env.ps1
