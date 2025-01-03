@@ -356,6 +356,14 @@ class EnvHelper:
 
         self.PROMPT_FLOW_DEPLOYMENT_NAME = os.getenv("PROMPT_FLOW_DEPLOYMENT_NAME", "")
 
+        self.OPEN_AI_FUNCTIONS_SYSTEM_PROMPT = os.getenv(
+            "OPEN_AI_FUNCTIONS_SYSTEM_PROMPT", ""
+        )
+        self.SEMENTIC_KERNEL_SYSTEM_PROMPT = os.getenv(
+            "SEMENTIC_KERNEL_SYSTEM_PROMPT", ""
+        )
+        logger.info("Initializing EnvHelper completed")
+
     def is_chat_model(self):
         if "gpt-4" in self.AZURE_OPENAI_MODEL_NAME.lower():
             return True

@@ -23,12 +23,17 @@ class PromptFlowOrchestrator(OrchestratorBase):
         self.enpoint_name = self.env_helper.PROMPT_FLOW_ENDPOINT_NAME
         self.deployment_name = self.env_helper.PROMPT_FLOW_DEPLOYMENT_NAME
 
+        logger.info("PromptFlowOrchestrator initialized.")
+
     async def orchestrate(
         self, user_message: str, chat_history: List[dict], **kwargs: dict
     ) -> list[dict]:
+        logger.info("Orchestration started.")
         # Call Content Safety tool on question
         if self.config.prompts.enable_content_safety:
+            logger.info("Content safety check enabled for input.")
             if response := self.call_content_safety_input(user_message):
+                logger.info("Content safety flagged the input. Returning response.")
                 return response
 
         transformed_chat_history = self.transform_chat_history(chat_history)
@@ -36,14 +41,17 @@ class PromptFlowOrchestrator(OrchestratorBase):
         file_name = self.transform_data_into_file(
             user_message, transformed_chat_history
         )
+        logger.info(f"File created for Prompt Flow: {file_name}")
 
         # Call the Prompt Flow service
         try:
+            logger.info("Invoking Prompt Flow service.")
             response = self.ml_client.online_endpoints.invoke(
                 endpoint_name=self.enpoint_name,
                 request_file=file_name,
                 deployment_name=self.deployment_name,
             )
+            logger.info("Prompt Flow service invoked successfully.")
             result = json.loads(response)
             logger.debug(result)
         except Exception as error:
@@ -51,6 +59,7 @@ class PromptFlowOrchestrator(OrchestratorBase):
             raise RuntimeError(f"The request failed: {error}") from error
 
         # Transform response into answer for further processing
+        logger.info("Processing response from Prompt Flow.")
         answer = Answer(
             question=user_message,
             answer=result["chat_output"],
@@ -58,21 +67,27 @@ class PromptFlowOrchestrator(OrchestratorBase):
                 result["citations"]
             ),
         )
+        logger.info("Answer processed successfully.")
 
         # Call Content Safety tool on answer
         if self.config.prompts.enable_content_safety:
+            logger.info("Content safety check enabled for output.")
             if response := self.call_content_safety_output(user_message, answer.answer):
+                logger.info("Content safety flagged the output. Returning response.")
                 return response
 
         # Format the output for the UI
+        logger.info("Formatting output for UI.")
         messages = self.output_parser.parse(
             question=answer.question,
             answer=answer.answer,
             source_documents=answer.source_documents,
         )
+        logger.info("Orchestration completed successfully.")
         return messages
 
     def transform_chat_history(self, chat_history):
+        logger.info("Transforming chat history.")
         transformed_chat_history = []
         for i, message in enumerate(chat_history):
             if message["role"] == "user":
@@ -89,17 +104,21 @@ class PromptFlowOrchestrator(OrchestratorBase):
                         "outputs": {"chat_output": assistant_message},
                     }
                 )
+        logger.info("Chat history transformation completed.")
         return transformed_chat_history
 
     def transform_data_into_file(self, user_message, chat_history):
         # Transform data input into a file for the Prompt Flow service
+        logger.info("Creating temporary file for Prompt Flow input.")
         data = {"chat_input": user_message, "chat_history": chat_history}
         body = str.encode(json.dumps(data))
         with tempfile.NamedTemporaryFile(delete=False) as file:
             file.write(body)
+        logger.info("Temporary file created")
         return file.name
 
     def transform_citations_into_source_documents(self, citations):
+        logger.info("Transforming citations into source documents.")
         source_documents = []
 
         for _, doc_id in enumerate(citations):
@@ -112,4 +131,5 @@ class PromptFlowOrchestrator(OrchestratorBase):
                     chunk_id=str(citation.get("chunk_id", 0)),
                 )
             )
+        logger.info("Citations transformation completed.")
         return source_documents

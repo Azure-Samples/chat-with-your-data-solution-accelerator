@@ -56,6 +56,7 @@ class LangChainAgent(OrchestratorBase):
         self, user_message: str, chat_history: List[dict], **kwargs: dict
     ) -> list[dict]:
 
+        logger.info("Method orchestrate of lang_chain_agent started")
         # Call Content Safety tool
         if self.config.prompts.enable_content_safety:
             if response := self.call_content_safety_input(user_message):
@@ -122,4 +123,5 @@ class LangChainAgent(OrchestratorBase):
             answer=answer.answer,
             source_documents=answer.source_documents,
         )
+        logger.info("Method orchestrate of lang_chain_agent ended")
         return messages

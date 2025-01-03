@@ -49,6 +49,7 @@ def reprocess_all():
         else:
             st.error(f"Error: {response.text}")
     except Exception:
+        logger.error(traceback.format_exc())
         st.error(traceback.format_exc())
 
 

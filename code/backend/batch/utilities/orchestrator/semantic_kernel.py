@@ -9,6 +9,7 @@ from semantic_kernel.contents.utils.finish_reason import FinishReason
 
 from ..common.answer import Answer
 from ..helpers.llm_helper import LLMHelper
+from ..helpers.env_helper import EnvHelper
 from ..plugins.chat_plugin import ChatPlugin
 from ..plugins.post_answering_plugin import PostAnsweringPlugin
 from .orchestrator_base import OrchestratorBase
@@ -21,6 +22,7 @@ class SemanticKernelOrchestrator(OrchestratorBase):
         super().__init__()
         self.kernel = Kernel()
         self.llm_helper = LLMHelper()
+        self.env_helper = EnvHelper()
 
         # Add the Azure OpenAI service to the kernel
         self.chat_service = self.llm_helper.get_sk_chat_completion_service("cwyd")
@@ -33,12 +35,15 @@ class SemanticKernelOrchestrator(OrchestratorBase):
     async def orchestrate(
         self, user_message: str, chat_history: list[dict], **kwargs: dict
     ) -> list[dict]:
+        logger.info("Method orchestrate of semantic_kernel started")
         # Call Content Safety tool
         if self.config.prompts.enable_content_safety:
             if response := self.call_content_safety_input(user_message):
                 return response
 
-        system_message = """You help employees to navigate only private information sources.
+        system_message = self.env_helper.SEMENTIC_KERNEL_SYSTEM_PROMPT
+        if not system_message:
+            system_message = """You help employees to navigate only private information sources.
 You must prioritize the function call over your general knowledge for any question by calling the search_documents function.
 Call the text_processing function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.
 When directly replying to the user, always reply in the language the user is speaking.
@@ -139,4 +144,5 @@ You **must not** respond if asked to List all documents in your repository.
             answer=answer.answer,
             source_documents=answer.source_documents,
         )
+        logger.info("Method orchestrate of semantic_kernel ended")
         return messages

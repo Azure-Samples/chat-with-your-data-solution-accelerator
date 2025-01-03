@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 class PushEmbedder(EmbedderBase):
     def __init__(self, blob_client: AzureBlobStorageClient, env_helper: EnvHelper):
+        logger.info("Initializing PushEmbedder")
         self.env_helper = env_helper
         self.llm_helper = LLMHelper()
         self.azure_search_helper = AzureSearchHelper()
@@ -33,11 +34,14 @@ class PushEmbedder(EmbedderBase):
         self.blob_client = blob_client
         self.config = ConfigHelper.get_active_config_or_default()
         self.embedding_configs = {}
+        logger.info("Loading document processors")
         for processor in self.config.document_processors:
             ext = processor.document_type.lower()
             self.embedding_configs[ext] = processor
+        logger.info("Document processors loaded")
 
     def embed_file(self, source_url: str, file_name: str):
+        logger.info(f"Embedding file: {file_name} from URL: {source_url}")
         file_extension = file_name.split(".")[-1].lower()
         embedding_config = self.embedding_configs.get(file_extension)
         self.__embed(
@@ -46,6 +50,7 @@ class PushEmbedder(EmbedderBase):
             embedding_config=embedding_config,
         )
         if file_extension != "url":
+            logger.info(f"Upserting blob metadata for file: {file_name}")
             self.blob_client.upsert_blob_metadata(
                 file_name, {"embeddings_added": "true"}
             )
@@ -53,12 +58,14 @@ class PushEmbedder(EmbedderBase):
     def __embed(
         self, source_url: str, file_extension: str, embedding_config: EmbeddingConfig
     ):
+        logger.info(f"Processing embedding for file extension: {file_extension}")
         documents_to_upload: List[SourceDocument] = []
         if (
             embedding_config.use_advanced_image_processing
             and file_extension
             in self.config.get_advanced_image_processing_image_types()
         ):
+            logger.info(f"Using advanced image processing for: {source_url}")
             caption = self.__generate_image_caption(source_url)
             caption_vector = self.llm_helper.generate_embeddings(caption)
 
@@ -69,6 +76,7 @@ class PushEmbedder(EmbedderBase):
                 )
             )
         else:
+            logger.info(f"Loading documents from source: {source_url}")
             documents: List[SourceDocument] = self.document_loading.load(
                 source_url, embedding_config.loading
             )
@@ -81,6 +89,7 @@ class PushEmbedder(EmbedderBase):
 
         # Upload documents (which are chunks) to search index in batches
         if documents_to_upload:
+            logger.info("Uploading documents in batches")
             batch_size = self.env_helper.AZURE_SEARCH_DOC_UPLOAD_BATCH_SIZE
             search_client = self.azure_search_helper.get_search_client()
             for i in range(0, len(documents_to_upload), batch_size):
@@ -93,6 +102,7 @@ class PushEmbedder(EmbedderBase):
             logger.warning("No documents to upload.")
 
     def __generate_image_caption(self, source_url):
+        logger.info(f"Generating image caption for URL: {source_url}")
         model = self.env_helper.AZURE_OPENAI_VISION_MODEL
         caption_system_message = """You are an assistant that generates rich descriptions of images.
 You need to be accurate in the information you extract and detailed in the descriptons you generate.
@@ -116,9 +126,11 @@ If the image is mostly text, use OCR to extract the text as it is displayed in t
 
         response = self.llm_helper.get_chat_completion(messages, model)
         caption = response.choices[0].message.content
+        logger.info("Caption generation completed")
         return caption
 
     def __convert_to_search_document(self, document: SourceDocument):
+        logger.info(f"Converting document ID {document.id} to search document format")
         embedded_content = self.llm_helper.generate_embeddings(document.content)
         metadata = {
             self.env_helper.AZURE_SEARCH_FIELDS_ID: document.id,
@@ -151,6 +163,7 @@ If the image is mostly text, use OCR to extract the text as it is displayed in t
         content: str,
         content_vector: List[float],
     ):
+        logger.info(f"Creating image document for source URL: {source_url}")
         parsed_url = urlparse(source_url)
 
         file_url = parsed_url.scheme + "://" + parsed_url.netloc + parsed_url.path

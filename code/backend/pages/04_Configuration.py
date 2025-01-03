@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import json
@@ -12,6 +13,7 @@ from batch.utilities.helpers.config.database_type import DatabaseType
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
+logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="Configure Prompts",
@@ -517,4 +519,5 @@ Use the Retrieved Documents to answer the question: {question}
             del st.session_state["reset_configuration"]
 
 except Exception as e:
+    logger.error(f"Error occurred: {e}")
     st.error(e)

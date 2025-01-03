@@ -1,3 +1,4 @@
+import logging
 from openai import AzureOpenAI
 from typing import List, Union, cast
 from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
@@ -10,9 +11,12 @@ from azure.ai.ml import MLClient
 from azure.identity import DefaultAzureCredential
 from .env_helper import EnvHelper
 
+logger = logging.getLogger(__name__)
+
 
 class LLMHelper:
     def __init__(self):
+        logger.info("Initializing LLMHelper")
         self.env_helper: EnvHelper = EnvHelper()
         self.auth_type_keys = self.env_helper.is_auth_type_keys()
         self.token_provider = self.env_helper.AZURE_TOKEN_PROVIDER
@@ -37,6 +41,8 @@ class LLMHelper:
             else None
         )
         self.embedding_model = self.env_helper.AZURE_OPENAI_EMBEDDING_MODEL
+
+        logger.info("Initializing LLMHelper completed")
 
     def get_llm(self):
         if self.auth_type_keys:
