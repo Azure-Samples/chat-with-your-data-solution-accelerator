@@ -5,7 +5,7 @@ metadata:
   template: chat-with-your-data-solution-accelerator@1.7.0
 hooks:
   postprovision:
-    run: ./infra/prompt-flow/create-prompt-flow.sh
+    # run: ./infra/prompt-flow/create-prompt-flow.sh
     posix:
       shell: sh
       run: ./scripts/parse_env.sh
