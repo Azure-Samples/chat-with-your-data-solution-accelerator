@@ -19,8 +19,8 @@ param computerVisionName string = ''
 param appSettings object = {}
 param useKeyVault bool
 param openAIKeyName string = ''
-param azureBlobStorageInfo string = ''
-param azureFormRecognizerInfo string = ''
+param storageAccountKeyName string = ''
+param formRecognizerKeyName string = ''
 param searchKeyName string = ''
 param computerVisionKeyName string = ''
 param contentSafetyKeyName string = ''
@@ -33,39 +33,6 @@ param healthCheckPath string = ''
 // Database parameters
 param databaseType string = 'CosmosDB' // 'CosmosDB' or 'PostgreSQL'
 param cosmosDBKeyName string = ''
-param postgresInfoName string = ''
-
-var azureFormRecognizerInfoUpdated = useKeyVault
-  ? azureFormRecognizerInfo
-  : replace(
-      azureFormRecognizerInfo,
-      '$FORM_RECOGNIZER_KEY',
-      listKeys(
-        resourceId(
-          subscription().subscriptionId,
-          resourceGroup().name,
-          'Microsoft.CognitiveServices/accounts',
-          formRecognizerName
-        ),
-        '2023-05-01'
-      ).key1
-    )
-
-var azureBlobStorageInfoUpdated = useKeyVault
-  ? azureBlobStorageInfo
-  : replace(
-      azureBlobStorageInfo,
-      '$STORAGE_ACCOUNT_KEY',
-      listKeys(
-        resourceId(
-          subscription().subscriptionId,
-          resourceGroup().name,
-          'Microsoft.Storage/storageAccounts',
-          storageAccountName
-        ),
-        '2021-09-01'
-      ).keys[0].value
-    )
 
 // Database-specific settings
 var databaseSettings = databaseType == 'CosmosDB'
@@ -121,8 +88,28 @@ module web '../core/host/appservice.bicep' = {
               ),
               '2021-04-01-preview'
             ).primaryKey
-        AZURE_BLOB_STORAGE_INFO: azureBlobStorageInfoUpdated
-        AZURE_FORM_RECOGNIZER_INFO: azureFormRecognizerInfoUpdated
+        AZURE_BLOB_ACCOUNT_KEY: useKeyVault
+          ? storageAccountKeyName
+          : listKeys(
+              resourceId(
+                subscription().subscriptionId,
+                resourceGroup().name,
+                'Microsoft.Storage/storageAccounts',
+                storageAccountName
+              ),
+              '2021-09-01'
+            ).keys[0].value
+        AZURE_FORM_RECOGNIZER_KEY: useKeyVault
+          ? formRecognizerKeyName
+          : listKeys(
+              resourceId(
+                subscription().subscriptionId,
+                resourceGroup().name,
+                'Microsoft.CognitiveServices/accounts',
+                formRecognizerName
+              ),
+              '2023-05-01'
+            ).key1
         AZURE_CONTENT_SAFETY_KEY: useKeyVault
           ? contentSafetyKeyName
           : listKeys(
@@ -217,13 +204,13 @@ module webaccess '../core/security/keyvault-access.bicep' = if (useKeyVault) {
 }
 
 resource cosmosRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-05-15' existing = {
-  name: '${json(appSettings.AZURE_COSMOSDB_INFO).accountName}/00000000-0000-0000-0000-000000000002'
+  name: '${appSettings.AZURE_COSMOSDB_ACCOUNT_NAME}/00000000-0000-0000-0000-000000000002'
 }
 
 module cosmosUserRole '../core/database/cosmos-sql-role-assign.bicep' = if (databaseType == 'CosmosDB') {
   name: 'cosmos-sql-user-role-${web.name}'
   params: {
-    accountName: json(appSettings.AZURE_COSMOSDB_INFO).accountName
+    accountName: appSettings.AZURE_COSMOSDB_ACCOUNT_NAME
     roleDefinitionId: cosmosRoleDefinition.id
     principalId: web.outputs.identityPrincipalId
   }

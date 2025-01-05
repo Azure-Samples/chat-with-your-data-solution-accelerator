@@ -50,6 +50,7 @@ Welcome to the *Chat with your data* Solution accelerator repository! The *Chat 
 
 
 
+
 ### About this repo
 
 This repository provides an end-to-end solution for users who want to query their data with natural language. It includes a well designed ingestion mechanism for multiple file types, an easy deployment, and a support team for maintenance. The accelerator demonstrates both Push or Pull Ingestion; the choice of orchestration (Semantic Kernel, LangChain, OpenAI Functions or [Prompt Flow](docs/prompt_flow.md)) and should be the minimum components needed to implement a RAG pattern. It is not intended to be put into Production as-is without experimentation or evaluation of your data. It provides the following features:

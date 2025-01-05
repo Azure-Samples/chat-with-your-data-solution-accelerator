@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 from .search_handler_base import SearchHandlerBase
@@ -8,6 +9,8 @@ from ..common.source_document import SourceDocument
 import json
 from azure.search.documents.models import VectorizedQuery
 import tiktoken
+
+logger = logging.getLogger(__name__)
 
 
 class AzureSearchHandler(SearchHandlerBase):
@@ -27,13 +30,16 @@ class AzureSearchHandler(SearchHandlerBase):
         )
 
     def process_results(self, results):
+        logger.info("Processing search results")
         if results is None:
+            logger.warning("No results found")
             return []
         data = [
             # Note that images uploaded with advanced image processing do not have a chunk ID
             [json.loads(result["metadata"]).get("chunk", i), result["content"]]
             for i, result in enumerate(results)
         ]
+        logger.info("Processed results")
         return data
 
     def get_files(self):
@@ -73,25 +79,31 @@ class AzureSearchHandler(SearchHandlerBase):
         )
 
     def query_search(self, question) -> List[SourceDocument]:
+        logger.info(f"Performing query search for question: {question}")
         encoding = tiktoken.get_encoding(self._ENCODER_NAME)
         tokenised_question = encoding.encode(question)
 
         if self.env_helper.USE_ADVANCED_IMAGE_PROCESSING:
+            logger.info("Using advanced image processing for vectorization")
             vectorized_question = self.azure_computer_vision_client.vectorize_text(
                 question
             )
         else:
+            logger.info("Skipping advanced image processing")
             vectorized_question = None
 
         if self.env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH:
+            logger.info("Performing semantic search")
             results = self._semantic_search(
                 question, tokenised_question, vectorized_question
             )
         else:
+            logger.info("Performing hybrid search")
             results = self._hybrid_search(
                 question, tokenised_question, vectorized_question
             )
 
+        logger.info("Converting search results to SourceDocument list")
         return self._convert_to_source_documents(results)
 
     def _semantic_search(
