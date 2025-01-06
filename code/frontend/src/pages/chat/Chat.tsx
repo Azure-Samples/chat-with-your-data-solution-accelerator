@@ -133,18 +133,6 @@ const Chat = () => {
       });
   };
 
-  const menuItems: IContextualMenuItem[] = [
-    {
-      key: "clearAll",
-      text: "Clear all chat history",
-      disabled:
-        !chatHistory.length ||
-        isGenerating ||
-        fetchingConvMessages ||
-        fetchingChatHistory,
-      iconProps: { iconName: "Delete" },
-    },
-  ];
   const makeApiRequest = async (question: string) => {
     lastQuestionRef.current = question;
 
