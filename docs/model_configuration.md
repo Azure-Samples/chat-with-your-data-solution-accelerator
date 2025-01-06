@@ -11,7 +11,7 @@ This document outlines the necessary steps and configurations required for setti
 - For a list of available models, see the [Microsoft Azure AI Services - OpenAI Models documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models).
 
 ## Environment Variables (as listed in Azure AI Studio)
-- You can access the Environment Variables section of the `LOCAL_DEPLOYMENT.md` file by clicking on this link: [Environment Variables section in LOCAL_DEPLOYMENT.md](docs/LOCAL_DEPLOYMENT.md#environment-variables).
+- You can access the Environment Variables section of the `LOCAL_DEPLOYMENT.md` file by clicking on this link: [Environment Variables section in LOCAL_DEPLOYMENT.md](LOCAL_DEPLOYMENT.md#environment-variables).
 
 ### LLM
 - `AZURE_OPENAI_MODEL`: The Azure OpenAI Model Deployment Name

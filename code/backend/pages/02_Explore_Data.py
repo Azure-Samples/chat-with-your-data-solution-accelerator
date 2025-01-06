@@ -1,13 +1,16 @@
+import logging
 import streamlit as st
 import os
 import traceback
 import sys
 import pandas as pd
 from batch.utilities.helpers.env_helper import EnvHelper
+from batch.utilities.helpers.config.database_type import DatabaseType
 from batch.utilities.search.search import Search
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
+logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="Explore Data",
@@ -40,8 +43,17 @@ load_css("pages/common.css")
 try:
     search_handler = Search.get_search_handler(env_helper)
 
-    results = search_handler.search_with_facets("*", "title", facet_count=0)
-    unique_files = search_handler.get_unique_files(results, "title")
+    # Determine unique files based on database type
+    if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value:
+        unique_files = search_handler.get_unique_files()
+    elif env_helper.DATABASE_TYPE == DatabaseType.COSMOSDB.value:
+        results = search_handler.search_with_facets("*", "title", facet_count=0)
+        unique_files = search_handler.get_unique_files(results, "title")
+    else:
+        raise ValueError(
+            "Unsupported database type. Only 'PostgreSQL' and 'CosmosDB' are allowed."
+        )
+
     filename = st.selectbox("Select your file:", unique_files)
     st.write("Showing chunks for:", filename)
 
@@ -52,4 +64,5 @@ try:
 
 
 except Exception:
+    logger.error(traceback.format_exc())
     st.error(traceback.format_exc())
