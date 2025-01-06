@@ -306,7 +306,6 @@ render(<ChatHistoryListItemCell {...componentProps} />);
 
     fireEvent.keyDown(inputItem, { key: 'Escape', code: 'Escape', charCode: 27 });
     await waitFor(() => {
-      screen.debug()
       //console.log("Current value:", inputItem);  // Debugging log
       expect(inputItem).not.toBeInTheDocument();
     });
@@ -358,7 +357,6 @@ render(<ChatHistoryListItemCell {...componentProps} />);
 
     // Simulate the onChange event by typing into the input field
     fireEvent.change(inputItem, { target: { value: 'Updated Chat Change' } });
-    screen.debug()
     userEvent.click(screen.getByRole('button', { name: 'confirm new title' }))
 
     await waitFor(() => {
@@ -433,7 +431,6 @@ render(<ChatHistoryListItemCell {...componentProps} />);
 
     fireEvent.keyDown(inputItem, { key: 'Enter', code: 'Enter', charCode: 13 })
     await waitFor(() => {
-      screen.debug()
       //console.log("Current value:", inputItem);  // Debugging log
       expect(inputItem).toHaveValue('Updated Chat Change');
     });
