@@ -27,7 +27,7 @@ param contentSafetyKeyName string = ''
 param speechKeyName string = ''
 param authType string
 param dockerFullImageName string = ''
-param cosmosDBKeyName string = ''
+param databaseType string
 
 module function '../core/host/functions.bicep' = {
   name: '${name}-app-module'
@@ -43,6 +43,7 @@ module function '../core/host/functions.bicep' = {
     runtimeVersion: runtimeVersion
     dockerFullImageName: dockerFullImageName
     useKeyVault: useKeyVault
+    managedIdentity: databaseType == 'PostgreSQL' || !empty(keyVaultName)
     appSettings: union(appSettings, {
       WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
       AZURE_AUTH_TYPE: authType

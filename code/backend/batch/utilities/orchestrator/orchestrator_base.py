@@ -70,7 +70,7 @@ class OrchestratorBase(ABC):
         **kwargs: Optional[dict],
     ) -> dict:
         result = await self.orchestrate(user_message, chat_history, **kwargs)
-        if self.config.logging.log_tokens:
+        if str(self.config.logging.log_tokens).lower() == "true":
             custom_dimensions = {
                 "conversation_id": conversation_id,
                 "message_id": self.message_id,
@@ -79,7 +79,7 @@ class OrchestratorBase(ABC):
                 "total_tokens": self.tokens["total"],
             }
             logger.info("Token Consumption", extra=custom_dimensions)
-        if self.config.logging.log_user_interactions:
+        if str(self.config.logging.log_user_interactions).lower() == "true":
             self.conversation_logger.log(
                 messages=[
                     {

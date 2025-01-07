@@ -136,7 +136,7 @@ def test_post_makes_correct_call_to_get_conversation_log_search_index(
     )
 
 
-def test_post_makes_correct_call_to_list_search_indexes(
+def test_post_makes_correct_call_to_list_vector_store(
     app_url: str, app_config: AppConfig, httpserver: HTTPServer
 ):
     # when
