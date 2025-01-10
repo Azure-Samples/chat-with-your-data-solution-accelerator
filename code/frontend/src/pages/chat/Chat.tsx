@@ -40,7 +40,6 @@ const Chat = () => {
   const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);  // Add this state
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);  // Add this state
   const [showLoadingMessage, setShowLoadingMessage] = useState<boolean>(false);
   const [isAssistantAPILoading, setIsAssistantAPILoading] = useState(false);
   const [isSendButtonDisabled, setSendButtonDisabled] = useState(false);
