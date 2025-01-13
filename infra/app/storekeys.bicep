@@ -43,7 +43,7 @@ resource openAIKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   }
 }
 
-resource searchKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+resource searchKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if (azureAISearchName != '') {
   parent: keyVault
   name: searchKeyName
   properties: {
@@ -135,7 +135,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
 
 output CONTENT_SAFETY_KEY_NAME string = contentSafetyKeySecret.name
 output FORM_RECOGNIZER_KEY_NAME string = formRecognizerKeySecret.name
-output SEARCH_KEY_NAME string = searchKeySecret.name
+output SEARCH_KEY_NAME string = azureAISearchName != '' ? searchKeySecret.name : ''
 output OPENAI_KEY_NAME string = openAIKeySecret.name
 output STORAGE_ACCOUNT_KEY_NAME string = storageAccountKeySecret.name
 output SPEECH_KEY_NAME string = speechKeySecret.name
