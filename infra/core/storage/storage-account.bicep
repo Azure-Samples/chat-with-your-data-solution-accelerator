@@ -11,7 +11,8 @@ param tags object = {}
 param accessTier string = 'Hot'
 param allowBlobPublicAccess bool = false
 param allowCrossTenantReplication bool = true
-param allowSharedKeyAccess bool = true
+param useKeyVault bool
+param allowSharedKeyAccess bool = useKeyVault
 param containers array = []
 param defaultToOAuthAuthentication bool = false
 param deleteRetentionPolicy object = {}

@@ -18,17 +18,6 @@ param orchestrationStrategy = readEnvironmentVariable('ORCHESTRATION_STRATEGY', 
 param logLevel = readEnvironmentVariable('LOGLEVEL', 'INFO')
 param recognizedLanguages = readEnvironmentVariable('AZURE_SPEECH_RECOGNIZER_LANGUAGES', 'en-US,fr-FR,de-DE,it-IT')
 param conversationFlow = readEnvironmentVariable('CONVERSATION_FLOW', 'custom')
-param chatHistoryEnabled = readEnvironmentVariable('CHAT_HISTORY_ENABLED', 'true')
-
-//Azure Search
-param azureSearchFieldId = readEnvironmentVariable('AZURE_SEARCH_FIELDS_ID', 'id')
-param azureSearchContentColumn = readEnvironmentVariable('AZURE_SEARCH_CONTENT_COLUMN', 'content')
-param azureSearchVectorColumn = readEnvironmentVariable('AZURE_SEARCH_CONTENT_VECTOR_COLUMN', 'content_vector')
-param azureSearchTitleColumn = readEnvironmentVariable('AZURE_SEARCH_TITLE_COLUMN', 'title')
-param azureSearchFieldsMetadata = readEnvironmentVariable('AZURE_SEARCH_FIELDS_METADATA', 'metadata')
-param azureSearchSourceColumn = readEnvironmentVariable('AZURE_SEARCH_SOURCE_COLUMN', 'source')
-param azureSearchChunkColumn = readEnvironmentVariable('AZURE_SEARCH_CHUNK_COLUMN', 'chunk')
-param azureSearchOffsetColumn = readEnvironmentVariable('AZURE_SEARCH_OFFSET_COLUMN', 'offset')
 
 // OpenAI parameters
 var azureOpenAIModelInfo = readEnvironmentVariable('AZURE_OPENAI_MODEL_INFO', '{"model":"gpt-35-turbo-16k","modelName":"gpt-35-turbo-16k","modelVersion":"0613"}')
@@ -44,11 +33,6 @@ param azureOpenAIVisionModel = readEnvironmentVariable('AZURE_OPENAI_VISION_MODE
 param azureOpenAIVisionModelName = readEnvironmentVariable('AZURE_OPENAI_VISION_MODEL_NAME', 'gpt-4')
 param azureOpenAIVisionModelVersion = readEnvironmentVariable('AZURE_OPENAI_VISION_MODEL_VERSION', 'vision-preview')
 param azureOpenAIVisionModelCapacity = int(readEnvironmentVariable('AZURE_OPENAI_VISION_MODEL_CAPACITY', '10'))
-var azureOpenAIEmbeddingModelInfo = readEnvironmentVariable('AZURE_OPENAI_EMBEDDING_MODEL_INFO', '{"model":"text-embedding-ada-002","modelName":"text-embedding-ada-002","modelVersion":"2"}')
-var azureOpenAIEmbeddingModelInfoParsed = json(replace(azureOpenAIEmbeddingModelInfo, '\\', '')) // Remove escape characters
-param azureOpenAIEmbeddingModel = azureOpenAIEmbeddingModelInfoParsed.model
-param azureOpenAIEmbeddingModelName = azureOpenAIEmbeddingModelInfoParsed.modelName
-param azureOpenAIEmbeddingModelVersion = azureOpenAIEmbeddingModelInfoParsed.modelVersion
 param azureOpenAIEmbeddingModelCapacity = int(readEnvironmentVariable('AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY', '30'))
 param azureOpenAIMaxTokens = readEnvironmentVariable('AZURE_OPENAI_MAX_TOKENS', '1000')
 param azureOpenAITemperature = readEnvironmentVariable('AZURE_OPENAI_TEMPERATURE', '0')

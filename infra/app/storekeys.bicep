@@ -7,6 +7,10 @@ param formRecognizerName string = ''
 param contentSafetyName string = ''
 param speechServiceName string = ''
 param computerVisionName string = ''
+param postgresServerName string = '' // PostgreSQL server name
+param postgresDatabaseName string = 'postgres' // Default database name
+param postgresInfoName string = 'AZURE-POSTGRESQL-INFO' // Secret name for PostgreSQL info
+param postgresDatabaseAdminUserName string = ''
 param storageAccountKeyName string = 'AZURE-STORAGE-ACCOUNT-KEY'
 param openAIKeyName string = 'AZURE-OPENAI-API-KEY'
 param searchKeyName string = 'AZURE-SEARCH-KEY'
@@ -96,18 +100,6 @@ resource computerVisionKeySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' 
   }
 }
 
-// add cosmos db account key
-resource cosmosDbAccountKey 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
-  parent: keyVault
-  name: cosmosAccountKeyName
-  properties: {
-    value: listKeys(
-      resourceId(subscription().subscriptionId, rgName, 'Microsoft.DocumentDB/databaseAccounts', cosmosAccountName),
-      '2022-08-15'
-    ).primaryMasterKey
-  }
-}
-
 resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
   name: keyVaultName
 }
@@ -119,4 +111,3 @@ output OPENAI_KEY_NAME string = openAIKeySecret.name
 output STORAGE_ACCOUNT_KEY_NAME string = storageAccountKeySecret.name
 output SPEECH_KEY_NAME string = speechKeySecret.name
 output COMPUTER_VISION_KEY_NAME string = computerVisionName != '' ? computerVisionKeySecret.name : ''
-output COSMOS_ACCOUNT_KEY_NAME string = cosmosDbAccountKey.name

@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+      - dev
+      - demo
+  schedule:
+    - cron: '0 6,18 * * *'  # Runs at 6:00 AM and 6:00 PM GMT
 
 permissions:
   contents: read
@@ -32,6 +36,17 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set imageTag
+        id: set-image-tag
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "imageTag=latest" >> $GITHUB_ENV
+          elif [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "imageTag=latest" >> $GITHUB_ENV
+          else
+            echo "imageTag=${{ github.ref_name }}" >> $GITHUB_ENV
+          fi
+
       - name: Pre-build image and run make in dev container
         uses: devcontainers/ci@v0.3
         env:
@@ -40,8 +55,9 @@ jobs:
         with:
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+          imageTag: ${{ env.imageTag }}
           runCmd: make ci && make deploy
-          refFilterForPush: refs/heads/main
+          refFilterForPush: refs/heads/${{ github.event_name == 'schedule' && 'main' || github.ref_name }}
           env: |
             AZURE_CLIENT_ID
             AZURE_CLIENT_SECRET
@@ -49,7 +65,6 @@ jobs:
             AZURE_SUBSCRIPTION_ID
             AZURE_ENV_NAME
             AZURE_LOCATION
-
       - name: Tidy up
         uses: devcontainers/ci@v0.3
         if: always()
@@ -59,6 +74,7 @@ jobs:
         with:
           push: never
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+          imageTag: ${{ env.imageTag }}
           runCmd: make destroy
           env: |
             AZURE_CLIENT_ID
@@ -67,3 +83,20 @@ jobs:
             AZURE_SUBSCRIPTION_ID
             AZURE_ENV_NAME
             AZURE_LOCATION
+            
+      - name: Send Notification on Failure
+        if: failure()
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          # Construct the email body
+          EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>We would like to inform you that the CWYD Automation process has encountered an issue and has failed to complete successfully.</p><p><strong>Build URL:</strong> ${RUN_URL}<br> ${OUTPUT}</p><p>Please investigate the matter at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>"
+          }
+          EOF
+          )
+
+          # Send the notification
+          curl -X POST "${{ secrets.LOGIC_APP_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send notification"

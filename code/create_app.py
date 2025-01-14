@@ -33,7 +33,6 @@ ERROR_429_MESSAGE = "We're currently experiencing a high number of requests for 
 ERROR_GENERIC_MESSAGE = "An error occurred. Please try again. If the problem persists, please contact the site administrator."
 logger = logging.getLogger(__name__)
 
-logging.info(f"ENV: {EnvHelper.check_env()}")
 
 def get_markdown_url(source, title, container_sas):
     """Get Markdown URL for a citation"""
@@ -45,7 +44,8 @@ def get_markdown_url(source, title, container_sas):
 
 
 def get_citations(citation_list):
-    """Returns Formated Citations"""
+    """Returns Formated Citations."""
+    logger.info("Method get_citations started")
     blob_client = AzureBlobStorageClient()
     container_sas = blob_client.get_container_sas()
     citations_dict = {"citations": []}
@@ -71,6 +71,7 @@ def get_citations(citation_list):
                 "url": url,
             }
         )
+    logger.info("Method get_citations ended")
     return citations_dict
 
 
@@ -142,13 +143,16 @@ def stream_with_data(response: Stream[ChatCompletionChunk]):
 
 def conversation_with_data(conversation: Request, env_helper: EnvHelper):
     """This function streams the response from Azure OpenAI with data."""
+    logger.info("Method conversation_with_data started")
     if env_helper.is_auth_type_keys():
+        logger.info("Using key-based authentication for Azure OpenAI")
         openai_client = AzureOpenAI(
             azure_endpoint=env_helper.AZURE_OPENAI_ENDPOINT,
             api_version=env_helper.AZURE_OPENAI_API_VERSION,
             api_key=env_helper.AZURE_OPENAI_API_KEY,
         )
     else:
+        logger.info("Using RBAC authentication for Azure OpenAI")
         openai_client = AzureOpenAI(
             azure_endpoint=env_helper.AZURE_OPENAI_ENDPOINT,
             api_version=env_helper.AZURE_OPENAI_API_VERSION,
@@ -268,6 +272,7 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
 
         return response_obj
 
+    logger.info("Method conversation_with_data ended")
     return Response(stream_with_data(response), mimetype="application/json-lines")
 
 
@@ -453,39 +458,7 @@ def create_app():
         return "OK"
 
     def conversation_azure_byod():
-        """
-        Azure BYOD (Bring Your Own Data) conversation endpoint.
-        ---
-        tags:
-          - conversation
-        parameters:
-          - in: body
-            name: body
-            required: true
-            schema:
-              type: object
-              properties:
-                messages:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      role:
-                        type: string
-                      content:
-                        type: string
-                conversation_id:
-                  type: string
-        responses:
-          200:
-            description: OK
-            examples:
-              application/json: {"id": "response.id", "model": "response.model", "created": "response.created", "object": "response.object", "choices": [{"messages": [{"content": "response.choices[0].message.content", "end_turn": true, "role": "assistant"}]}]}
-          500:
-            description: Internal Server Error
-            examples:
-              application/json: {"error": "Exception in /api/conversation/azure_byod. See log for more details."}
-        """
+        logger.info("Method conversation_azure_byod started")
         try:
             if should_use_data(env_helper, azure_search_helper):
                 return conversation_with_data(request, env_helper)
@@ -504,6 +477,8 @@ def create_app():
             error_message = str(e)
             logger.exception("Exception in /api/conversation | %s", error_message)
             return jsonify({"error": ERROR_GENERIC_MESSAGE}), 500
+        finally:
+            logger.info("Method conversation_azure_byod ended")
 
     async def conversation_custom():
         """
@@ -542,6 +517,7 @@ def create_app():
         message_orchestrator = get_message_orchestrator()
 
         try:
+            logger.info("Method conversation_custom started")
             user_message = request.json["messages"][-1]["content"]
             conversation_id = request.json["conversation_id"]
             user_assistant_messages = list(
@@ -581,6 +557,8 @@ def create_app():
             error_message = str(e)
             logger.exception("Exception in /api/conversation | %s", error_message)
             return jsonify({"error": ERROR_GENERIC_MESSAGE}), 500
+        finally:
+            logger.info("Method conversation_custom ended")
 
     @app.route("/api/conversation", methods=["POST"])
     async def conversation():
@@ -603,22 +581,9 @@ def create_app():
 
     @app.route("/api/speech", methods=["GET"])
     def speech_config():
-        """
-        Get the speech config for Azure Speech.
-        ---
-        tags:
-          - speech
-        responses:
-          200:
-            description: OK
-            examples:
-              application/json: {"token": "response.text", "region": "env_helper.AZURE_SPEECH_SERVICE_REGION", "languages": "env_helper.AZURE_SPEECH_RECOGNIZER_LANGUAGES"}
-          500:
-            description: Internal Server Error
-            examples:
-              application/json: {"error": "Failed to get speech config"}
-        """
+        """Get the speech config for Azure Speech."""
         try:
+            logger.info("Method speech_config started")
             speech_key = env_helper.AZURE_SPEECH_KEY or get_speech_key(env_helper)
 
             response = requests.post(
@@ -643,6 +608,8 @@ def create_app():
             logger.exception("Exception in /api/speech | %s", str(e))
 
             return {"error": "Failed to get speech config"}, 500
+        finally:
+            logger.info("Method speech_config ended")
 
     @app.route("/api/assistanttype", methods=["GET"])
     def assistanttype():

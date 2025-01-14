@@ -5,7 +5,13 @@ metadata:
   template: chat-with-your-data-solution-accelerator@1.7.0
 hooks:
   postprovision:
-    run: ./infra/prompt-flow/create-prompt-flow.sh
+    # run: ./infra/prompt-flow/create-prompt-flow.sh
+    posix:
+      shell: sh
+      run: chmod +x ./scripts/parse_env.sh && ./scripts/parse_env.sh
+    windows:
+      shell: pwsh
+      run: ./scripts/parse_env.ps1
 services:
   web:
     project: ./code

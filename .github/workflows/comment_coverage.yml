@@ -39,7 +39,7 @@ jobs:
             return response.data[0]?.number ?? "";
           retries: 3
       - name: Comment coverage
-        uses: MishaKav/pytest-coverage-comment@fa1c641d7e3fa1d98ed95d5f658ccd638b774628
+        uses: MishaKav/pytest-coverage-comment@81882822c5b22af01f91bd3eacb1cefb6ad73dc2
         with:
           pytest-xml-coverage-path: coverage.xml
           junitxml-path: coverage-junit.xml

@@ -14,11 +14,12 @@ RUN apt-get update && apt-get install python3-tk tk-dev -y
 COPY pyproject.toml /usr/src/app/pyproject.toml
 COPY poetry.lock /usr/src/app/poetry.lock
 WORKDIR /usr/src/app
-RUN pip install --upgrade pip && pip install poetry uwsgi && poetry export -o requirements.txt && pip install -r requirements.txt
+RUN pip install --upgrade pip && pip install poetry uwsgi && poetry self add poetry-plugin-export && poetry export -o requirements.txt && pip install -r requirements.txt
 
 COPY ./code/*.py /usr/src/app/
 COPY ./code/backend /usr/src/app/backend
 COPY --from=frontend /home/node/app/dist/static /usr/src/app/static/
-ENV PYTHONPATH "${PYTHONPATH}:/usr/src/app"
+# https://github.com/docker/buildx/issues/2751
+ENV PYTHONPATH="${PYTHONPATH}:/usr/src/app"
 EXPOSE 80
 CMD ["uwsgi", "--http", ":80", "--wsgi-file", "app.py", "--callable", "app", "-b", "32768", "--http-timeout", "230"]
