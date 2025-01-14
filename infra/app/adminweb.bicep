@@ -62,15 +62,17 @@ module adminweb '../core/host/appservice.bicep' = {
           ).key1
       AZURE_SEARCH_KEY: useKeyVault
         ? searchKeyName
-        : listAdminKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.Search/searchServices',
-              azureAISearchName
-            ),
-            '2021-04-01-preview'
-          ).primaryKey
+        : (azureAISearchName != ''
+            ? listAdminKeys(
+                resourceId(
+                  subscription().subscriptionId,
+                  resourceGroup().name,
+                  'Microsoft.Search/searchServices',
+                  azureAISearchName
+                ),
+                '2021-04-01-preview'
+              ).primaryKey
+            : '')
       AZURE_BLOB_ACCOUNT_KEY: useKeyVault
         ? storageAccountKeyName
         : listKeys(
