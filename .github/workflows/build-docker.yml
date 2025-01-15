@@ -54,6 +54,10 @@ jobs:
       id: date
       run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
+    - name: Determine Tag Name Based on Branch
+      id: determine_tag
+      run: echo "tagname=${{ github.ref_name == 'main' && 'latest' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo' || github.head_ref || 'default' }}" >> $GITHUB_OUTPUT
+
     - name: Build Docker Image and optionally push
       uses: docker/build-push-action@v6
       with:
@@ -62,5 +66,5 @@ jobs:
         push: ${{ inputs.push }}
         cache-from: type=registry,ref=${{ inputs.registry }}/${{ inputs.app_name}}:${{ github.ref_name == 'main' && 'latest' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo' || github.head_ref || github.ref_name }}
         tags: |
-          ${{ inputs.registry }}/${{ inputs.app_name}}:${{ github.ref_name == 'main' && 'latest' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo' || github.head_ref || 'default' }}
-          ${{ inputs.registry }}/${{ inputs.app_name}}:${{ steps.date.outputs.date }}_${{ github.run_number }}
+          ${{ inputs.registry }}/${{ inputs.app_name}}:${{ steps.determine_tag.outputs.tagname }}
+          ${{ inputs.registry }}/${{ inputs.app_name}}:${{ steps.determine_tag.outputs.tagname }}_${{ steps.date.outputs.date }}_${{ github.run_number }}
