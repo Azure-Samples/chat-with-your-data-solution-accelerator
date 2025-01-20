@@ -27,7 +27,7 @@ function Flatten-Json {
     return $flattened
 }
 
-$output = @()
+$output = @{}
 
 foreach ($line in Get-Content -Path $envFile) {
     Write-Host "Processing line: $line"
@@ -65,16 +65,21 @@ foreach ($line in Get-Content -Path $envFile) {
 
             # Add each flattened key-value pair to the output
             foreach ($flattenedKey in $flattenedJson.Keys) {
-                $output += "$flattenedKey=`"$($flattenedJson[$flattenedKey])`""
+                $output[$flattenedKey] = "`"$($flattenedJson[$flattenedKey])`""
             }
         } catch {
             Write-Error "Failed to parse JSON for key: $key, value: $value"
         }
     } else {
         # Keep non-JSON key-value pairs as-is
-        $output += "$key=$value"
+        $output[$key] = $value
     }
 }
+
+# Convert the hashtable to an array of strings in the format KEY=VALUE, sorted by key name
+$output = $output.GetEnumerator() |
+    Sort-Object -Property Key |
+    ForEach-Object { "$($_.Key)=$($_.Value)" }
 
 # Write the processed content back to the .env file
 $output | Set-Content -Path $envFile -Force

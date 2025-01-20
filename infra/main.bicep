@@ -492,7 +492,7 @@ module searchServiceRoleOpenai 'core/security/role.bicep' = if (authType == 'rba
 }
 
 // Storage Blob Data Reader
-module blobDataReaderRoleSearch 'core/security/role.bicep' = if (authType == 'rbac') {
+module blobDataReaderRoleSearch 'core/security/role.bicep' = if (authType == 'rbac' && databaseType == 'CosmosDB') {
   scope: rg
   name: 'blob-data-reader-role-search'
   params: {
@@ -503,7 +503,7 @@ module blobDataReaderRoleSearch 'core/security/role.bicep' = if (authType == 'rb
 }
 
 // Cognitive Services OpenAI User
-module openAiRoleSearchService 'core/security/role.bicep' = if (authType == 'rbac') {
+module openAiRoleSearchService 'core/security/role.bicep' = if (authType == 'rbac' && databaseType == 'CosmosDB') {
   scope: rg
   name: 'openai-role-searchservice'
   params: {
@@ -532,7 +532,7 @@ module storekeys './app/storekeys.bicep' = if (useKeyVault) {
   params: {
     keyVaultName: keyVaultName
     azureOpenAIName: openai.outputs.name
-    azureAISearchName: search.outputs.name
+    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
     storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
@@ -550,7 +550,7 @@ module storekeys './app/storekeys.bicep' = if (useKeyVault) {
   }
 }
 
-module search './core/search/search-services.bicep' = {
+module search './core/search/search-services.bicep' = if (databaseType == 'CosmosDB') {
   name: azureAISearchName
   scope: rg
   params: {
@@ -599,7 +599,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     healthCheckPath: '/api/health'
     azureOpenAIName: openai.outputs.name
-    azureAISearchName: search.outputs.name
+    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
     storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
@@ -613,7 +613,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
     storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
     formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    searchKeyName: useKeyVault && databaseType == 'CosmosDB' ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
@@ -647,26 +647,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
         AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
         AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
-        AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
-        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-        AZURE_SEARCH_INDEX: azureSearchIndex
-        AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
-        AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
-        AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
-        AZURE_SEARCH_TOP_K: azureSearchTopK
-        AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
-        AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
-        AZURE_SEARCH_FILTER: azureSearchFilter
-        AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-        AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-        AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-        AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-        AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-        AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-        AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
-        AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+
         AZURE_SPEECH_SERVICE_NAME: speechServiceName
         AZURE_SPEECH_SERVICE_REGION: location
         AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
@@ -686,6 +667,26 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
             AZURE_COSMOSDB_DATABASE_NAME: cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName
             AZURE_COSMOSDB_CONVERSATIONS_CONTAINER_NAME: cosmosDBModule.outputs.cosmosOutput.cosmosContainerName
             AZURE_COSMOSDB_ENABLE_FEEDBACK: true
+            AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+            AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+            AZURE_SEARCH_INDEX: azureSearchIndex
+            AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
+            AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+            AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+            AZURE_SEARCH_TOP_K: azureSearchTopK
+            AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+            AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+            AZURE_SEARCH_FILTER: azureSearchFilter
+            AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
+            AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+            AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
+            AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+            AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
+            AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+            AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
+            AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+            AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
           }
         : databaseType == 'PostgreSQL'
             ? {
@@ -710,7 +711,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     healthCheckPath: '/api/health'
     azureOpenAIName: openai.outputs.name
-    azureAISearchName: search.outputs.name
+    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
     storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
@@ -724,7 +725,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
     storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
     formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    searchKeyName: useKeyVault && databaseType == 'CosmosDB' ? storekeys.outputs.SEARCH_KEY_NAME : ''
     computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
@@ -758,26 +759,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
         AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
         AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
-        AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
-        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-        AZURE_SEARCH_INDEX: azureSearchIndex
-        AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
-        AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
-        AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
-        AZURE_SEARCH_TOP_K: azureSearchTopK
-        AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
-        AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
-        AZURE_SEARCH_FILTER: azureSearchFilter
-        AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-        AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-        AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-        AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-        AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-        AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-        AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
-        AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+
         AZURE_SPEECH_SERVICE_NAME: speechServiceName
         AZURE_SPEECH_SERVICE_REGION: location
         AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
@@ -797,6 +779,26 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
             AZURE_COSMOSDB_DATABASE_NAME: cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName
             AZURE_COSMOSDB_CONVERSATIONS_CONTAINER_NAME: cosmosDBModule.outputs.cosmosOutput.cosmosContainerName
             AZURE_COSMOSDB_ENABLE_FEEDBACK: true
+            AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+            AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+            AZURE_SEARCH_INDEX: azureSearchIndex
+            AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
+            AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+            AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+            AZURE_SEARCH_TOP_K: azureSearchTopK
+            AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+            AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+            AZURE_SEARCH_FILTER: azureSearchFilter
+            AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
+            AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+            AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
+            AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+            AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
+            AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+            AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
+            AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+            AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
           }
         : databaseType == 'PostgreSQL'
             ? {
@@ -821,7 +823,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
-    azureAISearchName: search.outputs.name
+    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
     storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
@@ -830,7 +832,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
     storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
     formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    searchKeyName: useKeyVault && databaseType == 'CosmosDB' ? storekeys.outputs.SEARCH_KEY_NAME : ''
     computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
@@ -861,27 +863,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
         AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
         AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
-        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-        AZURE_SEARCH_INDEX: azureSearchIndex
-        AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
-        AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
-        AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
-        AZURE_SEARCH_TOP_K: azureSearchTopK
-        AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
-        AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
-        AZURE_SEARCH_FILTER: azureSearchFilter
-        AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-        AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-        AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-        AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-        AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-        AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-        AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
-        AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-        AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-        AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         BACKEND_URL: 'https://${functionName}.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
@@ -891,13 +873,38 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
       },
-      databaseType == 'PostgreSQL'
+      // Conditionally add database-specific settings
+      databaseType == 'CosmosDB'
         ? {
-            AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-            AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-            AZURE_POSTGRESQL_USER: adminWebsiteName
+            AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+            AZURE_SEARCH_INDEX: azureSearchIndex
+            AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+            AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+            AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+            AZURE_SEARCH_TOP_K: azureSearchTopK
+            AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+            AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+            AZURE_SEARCH_FILTER: azureSearchFilter
+            AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
+            AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+            AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
+            AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+            AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
+            AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+            AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
+            AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+            AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+            AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+            AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
           }
-        : {}
+        : databaseType == 'PostgreSQL'
+            ? {
+                AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+                AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+                AZURE_POSTGRESQL_USER: adminWebsiteName
+              }
+            : {}
     )
   }
 }
@@ -913,7 +920,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
-    azureAISearchName: search.outputs.name
+    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
     storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
@@ -922,7 +929,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
     storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
     formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    searchKeyName: useKeyVault && databaseType == 'CosmosDB' ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
@@ -953,27 +960,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
         AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
         AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
-        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-        AZURE_SEARCH_INDEX: azureSearchIndex
-        AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
-        AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
-        AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
-        AZURE_SEARCH_TOP_K: azureSearchTopK
-        AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
-        AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
-        AZURE_SEARCH_FILTER: azureSearchFilter
-        AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-        AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-        AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-        AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-        AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-        AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-        AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
-        AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-        AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-        AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
@@ -983,13 +970,38 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
       },
-      databaseType == 'PostgreSQL'
+      // Conditionally add database-specific settings
+      databaseType == 'CosmosDB'
         ? {
-            AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-            AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-            AZURE_POSTGRESQL_USER: '${adminWebsiteName}-docker'
+            AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+            AZURE_SEARCH_INDEX: azureSearchIndex
+            AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+            AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
+            AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
+            AZURE_SEARCH_TOP_K: azureSearchTopK
+            AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
+            AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
+            AZURE_SEARCH_FILTER: azureSearchFilter
+            AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
+            AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+            AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
+            AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+            AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
+            AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+            AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
+            AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+            AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
+            AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+            AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
           }
-        : {}
+        : databaseType == 'PostgreSQL'
+            ? {
+                AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+                AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+                AZURE_POSTGRESQL_USER: '${adminWebsiteName}-docker'
+              }
+            : {}
     )
   }
 }
@@ -1023,7 +1035,7 @@ module workbook './app/workbook.bicep' = {
     eventGridSystemTopicName: eventgrid.outputs.name
     logAnalyticsName: monitoring.outputs.logAnalyticsWorkspaceName
     azureOpenAIResourceName: openai.outputs.name
-    azureAISearchName: search.outputs.name
+    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
     storageAccountName: storage.outputs.name
   }
 }
@@ -1040,7 +1052,7 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
-    azureAISearchName: search.outputs.name
+    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
     storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
@@ -1050,7 +1062,7 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
     storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
     formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    searchKeyName: useKeyVault && databaseType == 'CosmosDB' ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
@@ -1075,34 +1087,39 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
         AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
         AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-        AZURE_SEARCH_INDEX: azureSearchIndex
-        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-        AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-        AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-        AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-        AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-        AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-        AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-        AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-        AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-        AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         LOGLEVEL: logLevel
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-        AZURE_SEARCH_TOP_K: azureSearchTopK
         DATABASE_TYPE: databaseType
       },
-      databaseType == 'PostgreSQL'
+      // Conditionally add database-specific settings
+      databaseType == 'CosmosDB'
         ? {
-            AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-            AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-            AZURE_POSTGRESQL_USER: functionName
+            AZURE_SEARCH_INDEX: azureSearchIndex
+            AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+            AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+            AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+            AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
+            AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+            AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
+            AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+            AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
+            AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+            AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
+            AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+            AZURE_SEARCH_TOP_K: azureSearchTopK
           }
-        : {}
+        : databaseType == 'PostgreSQL'
+            ? {
+                AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+                AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+                AZURE_POSTGRESQL_USER: functionName
+              }
+            : {}
     )
   }
 }
@@ -1118,7 +1135,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     azureOpenAIName: openai.outputs.name
-    azureAISearchName: search.outputs.name
+    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
     storageAccountName: storage.outputs.name
     formRecognizerName: formrecognizer.outputs.name
     contentSafetyName: contentsafety.outputs.name
@@ -1128,7 +1145,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
     storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
     formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-    searchKeyName: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+    searchKeyName: useKeyVault && databaseType == 'CosmosDB' ? storekeys.outputs.SEARCH_KEY_NAME : ''
     contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
     speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
     computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
@@ -1153,34 +1170,39 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
         AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
         AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-        AZURE_SEARCH_INDEX: azureSearchIndex
-        AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-        AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-        AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-        AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
-        AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-        AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-        AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-        AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-        AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-        AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-        AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-        AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         LOGLEVEL: logLevel
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-        AZURE_SEARCH_TOP_K: azureSearchTopK
         DATABASE_TYPE: databaseType
       },
-      databaseType == 'PostgreSQL'
+      // Conditionally add database-specific settings
+      databaseType == 'CosmosDB'
         ? {
-            AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-            AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-            AZURE_POSTGRESQL_USER: '${functionName}-docker'
+            AZURE_SEARCH_INDEX: azureSearchIndex
+            AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
+            AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
+            AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
+            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+            AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
+            AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
+            AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
+            AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
+            AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
+            AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+            AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
+            AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
+            AZURE_SEARCH_TOP_K: azureSearchTopK
           }
-        : {}
+        : databaseType == 'PostgreSQL'
+            ? {
+                AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+                AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+                AZURE_POSTGRESQL_USER: '${functionName}-docker'
+              }
+            : {}
     )
   }
 }
@@ -1291,7 +1313,7 @@ module openaiRoleUserContributor 'core/security/role.bicep' = if (authType == 'r
 }
 
 // Search Index Data Contributor
-module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac' && principalId != '') {
+module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac' && principalId != '' && databaseType == 'CosmosDB') {
   scope: rg
   name: 'search-role-user'
   params: {
@@ -1311,8 +1333,8 @@ module machineLearning 'app/machinelearning.bicep' = if (orchestrationStrategy =
     keyVaultId: useKeyVault ? keyvault.outputs.id : ''
     applicationInsightsId: monitoring.outputs.applicationInsightsId
     azureOpenAIName: openai.outputs.name
-    azureAISearchName: search.outputs.name
-    azureAISearchEndpoint: search.outputs.endpoint
+    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
+    azureAISearchEndpoint: databaseType == 'CosmosDB' ? search.outputs.endpoint : ''
     azureOpenAIEndpoint: openai.outputs.endpoint
   }
 }
@@ -1384,26 +1406,28 @@ var azureSpeechServiceInfo = string({
   recognizer_languages: recognizedLanguages
 })
 
-var azureSearchServiceInfo = string({
-  service_name: speechServiceName
-  key: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
-  service: search.outputs.endpoint
-  use_semantic_search: azureSearchUseSemanticSearch
-  semantic_search_config: azureSearchSemanticSearchConfig
-  index_is_prechunked: azureSearchIndexIsPrechunked
-  top_k: azureSearchTopK
-  enable_in_domain: azureSearchEnableInDomain
-  content_column: azureSearchContentColumn
-  content_vector_column: azureSearchVectorColumn
-  filename_column: azureSearchFilenameColumn
-  filter: azureSearchFilter
-  title_column: azureSearchTitleColumn
-  url_column: azureSearchUrlColumn
-  use_integrated_vectorization: azureSearchUseIntegratedVectorization
-  index: azureSearchIndex
-  indexer_name: azureSearchIndexer
-  datasource_name: azureSearchDatasource
-})
+var azureSearchServiceInfo = databaseType == 'CosmosDB'
+  ? string({
+      service_name: azureAISearchName
+      key: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
+      service: search.outputs.endpoint
+      use_semantic_search: azureSearchUseSemanticSearch
+      semantic_search_config: azureSearchSemanticSearchConfig
+      index_is_prechunked: azureSearchIndexIsPrechunked
+      top_k: azureSearchTopK
+      enable_in_domain: azureSearchEnableInDomain
+      content_column: azureSearchContentColumn
+      content_vector_column: azureSearchVectorColumn
+      filename_column: azureSearchFilenameColumn
+      filter: azureSearchFilter
+      title_column: azureSearchTitleColumn
+      url_column: azureSearchUrlColumn
+      use_integrated_vectorization: azureSearchUseIntegratedVectorization
+      index: azureSearchIndex
+      indexer_name: azureSearchIndexer
+      datasource_name: azureSearchDatasource
+    })
+  : ''
 
 var azureComputerVisionInfo = string({
   service_name: speechServiceName
