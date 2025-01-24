@@ -7,6 +7,7 @@ USER node
 RUN npm ci
 COPY --chown=node:node ./code/frontend ./frontend
 WORKDIR /home/node/app/frontend
+RUN npm install --save-dev @types/node @types/jest
 RUN npm run build
 
 FROM python:3.11.7-bookworm
