@@ -215,7 +215,7 @@ export const ChatHistoryListItemCell: React.FC<
                     placeholder={item.title}
                     onChange={chatHistoryTitleOnChange}
                     onKeyDown={handleKeyPressEdit}
-                    errorMessage={errorRename}
+                    // errorMessage={errorRename}
                     disabled={errorRename ? true : false}
                   />
                 </Stack.Item>
