@@ -17,7 +17,8 @@ class OrchestratorBase(ABC):
         self.message_id = str(uuid4())
         self.tokens = {"prompt": 0, "completion": 0, "total": 0}
         logger.debug(f"New message id: {self.message_id} with tokens {self.tokens}")
-        self.conversation_logger: ConversationLogger = ConversationLogger()
+        if str(self.config.logging.log_user_interactions).lower() == "true":
+            self.conversation_logger: ConversationLogger = ConversationLogger()
         self.content_safety_checker = ContentSafetyChecker()
         self.output_parser = OutputParserTool()
 

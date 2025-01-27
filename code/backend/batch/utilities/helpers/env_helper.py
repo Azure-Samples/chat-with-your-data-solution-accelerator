@@ -5,6 +5,9 @@ import threading
 from dotenv import load_dotenv
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.keyvault.secrets import SecretClient
+
+from ..orchestrator.orchestration_strategy import OrchestrationStrategy
+from ..helpers.config.conversation_flow import ConversationFlow
 from ..helpers.config.database_type import DatabaseType
 
 logger = logging.getLogger(__name__)
@@ -97,11 +100,24 @@ class EnvHelper:
         # Cosmos DB configuration
         if self.DATABASE_TYPE == DatabaseType.COSMOSDB.value:
             azure_cosmosdb_info = self.get_info_from_env("AZURE_COSMOSDB_INFO", "")
-            self.AZURE_COSMOSDB_DATABASE = azure_cosmosdb_info.get("databaseName", "")
-            self.AZURE_COSMOSDB_ACCOUNT = azure_cosmosdb_info.get("accountName", "")
-            self.AZURE_COSMOSDB_CONVERSATIONS_CONTAINER = azure_cosmosdb_info.get(
-                "containerName", ""
-            )
+            if azure_cosmosdb_info:
+                self.AZURE_COSMOSDB_DATABASE = azure_cosmosdb_info.get(
+                    "databaseName", ""
+                )
+                self.AZURE_COSMOSDB_ACCOUNT = azure_cosmosdb_info.get("accountName", "")
+                self.AZURE_COSMOSDB_CONVERSATIONS_CONTAINER = azure_cosmosdb_info.get(
+                    "containerName", ""
+                )
+            else:
+                self.AZURE_COSMOSDB_DATABASE = os.getenv(
+                    "AZURE_COSMOSDB_DATABASE_NAME", ""
+                )
+                self.AZURE_COSMOSDB_ACCOUNT = os.getenv(
+                    "AZURE_COSMOSDB_ACCOUNT_NAME", ""
+                )
+                self.AZURE_COSMOSDB_CONVERSATIONS_CONTAINER = os.getenv(
+                    "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER_NAME", ""
+                )
             self.AZURE_COSMOSDB_ACCOUNT_KEY = self.secretHelper.get_secret(
                 "AZURE_COSMOSDB_ACCOUNT_KEY"
             )
@@ -114,18 +130,32 @@ class EnvHelper:
             self.USE_ADVANCED_IMAGE_PROCESSING = self.get_env_var_bool(
                 "USE_ADVANCED_IMAGE_PROCESSING", "False"
             )
+            self.CONVERSATION_FLOW = os.getenv("CONVERSATION_FLOW", "custom")
+            # Orchestration Settings
+            self.ORCHESTRATION_STRATEGY = os.getenv(
+                "ORCHESTRATION_STRATEGY", "openai_function"
+            )
         # PostgreSQL configuration
         elif self.DATABASE_TYPE == DatabaseType.POSTGRESQL.value:
             self.AZURE_POSTGRES_SEARCH_TOP_K = self.get_env_var_int(
                 "AZURE_POSTGRES_SEARCH_TOP_K", 5
             )
             azure_postgresql_info = self.get_info_from_env("AZURE_POSTGRESQL_INFO", "")
-            self.POSTGRESQL_USER = azure_postgresql_info.get("user", "")
-            self.POSTGRESQL_DATABASE = azure_postgresql_info.get("dbname", "")
-            self.POSTGRESQL_HOST = azure_postgresql_info.get("host", "")
+            if azure_postgresql_info:
+                self.POSTGRESQL_USER = azure_postgresql_info.get("user", "")
+                self.POSTGRESQL_DATABASE = azure_postgresql_info.get("dbname", "")
+                self.POSTGRESQL_HOST = azure_postgresql_info.get("host", "")
+            else:
+                self.POSTGRESQL_USER = os.getenv("AZURE_POSTGRESQL_USER", "")
+                self.POSTGRESQL_DATABASE = os.getenv(
+                    "AZURE_POSTGRESQL_DATABASE_NAME", ""
+                )
+                self.POSTGRESQL_HOST = os.getenv("AZURE_POSTGRESQL_HOST_NAME", "")
             # Ensure integrated vectorization is disabled for PostgreSQL
             self.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = False
             self.USE_ADVANCED_IMAGE_PROCESSING = False
+            self.CONVERSATION_FLOW = ConversationFlow.CUSTOM.value
+            self.ORCHESTRATION_STRATEGY = OrchestrationStrategy.SEMANTIC_KERNEL.value
         else:
             raise ValueError(
                 "Unsupported DATABASE_TYPE. Please set DATABASE_TYPE to 'CosmosDB' or 'PostgreSQL'."
@@ -305,10 +335,6 @@ class EnvHelper:
         self.AZURE_CONTENT_SAFETY_KEY = self.secretHelper.get_secret(
             "AZURE_CONTENT_SAFETY_KEY"
         )
-        # Orchestration Settings
-        self.ORCHESTRATION_STRATEGY = os.getenv(
-            "ORCHESTRATION_STRATEGY", "openai_function"
-        )
         # Speech Service
         self.AZURE_SPEECH_SERVICE_NAME = os.getenv("AZURE_SPEECH_SERVICE_NAME", "")
         self.AZURE_SPEECH_SERVICE_REGION = os.getenv("AZURE_SPEECH_SERVICE_REGION")
@@ -329,6 +355,14 @@ class EnvHelper:
         self.PROMPT_FLOW_ENDPOINT_NAME = os.getenv("PROMPT_FLOW_ENDPOINT_NAME", "")
 
         self.PROMPT_FLOW_DEPLOYMENT_NAME = os.getenv("PROMPT_FLOW_DEPLOYMENT_NAME", "")
+
+        self.OPEN_AI_FUNCTIONS_SYSTEM_PROMPT = os.getenv(
+            "OPEN_AI_FUNCTIONS_SYSTEM_PROMPT", ""
+        )
+        self.SEMENTIC_KERNEL_SYSTEM_PROMPT = os.getenv(
+            "SEMENTIC_KERNEL_SYSTEM_PROMPT", ""
+        )
+        logger.info("Initializing EnvHelper completed")
 
     def is_chat_model(self):
         if "gpt-4" in self.AZURE_OPENAI_MODEL_NAME.lower():

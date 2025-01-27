@@ -22,10 +22,13 @@ class OutputParserTool(ParserBase):
 
     def _make_doc_references_sequential(self, answer):
         doc_matches = list(re.finditer(r"\[doc\d+\]", answer))
+        updated_answer = answer
+        offset = 0
         for i, match in enumerate(doc_matches):
-            start, end = match.span()
-            answer = answer[:start] + f"[doc{i + 1}]" + answer[end:]
-        return answer
+            start, end = match.start() + offset, match.end() + offset
+            updated_answer = updated_answer[:start] + f"[doc{i + 1}]" + updated_answer[end:]
+            offset += len(f"[doc{i + 1}]") - (end - start)
+        return updated_answer
 
     def parse(
         self,
@@ -34,6 +37,7 @@ class OutputParserTool(ParserBase):
         source_documents: List[SourceDocument] = [],
         **kwargs: dict,
     ) -> List[dict]:
+        logger.info("Method parse of output_parser_tool started")
         answer = self._clean_up_answer(answer)
         doc_ids = self._get_source_docs_from_answer(answer)
         answer = self._make_doc_references_sequential(answer)
@@ -87,4 +91,5 @@ class OutputParserTool(ParserBase):
         messages.append({"role": "assistant", "content": answer, "end_turn": True})
         # everything in content needs to be stringified to work with Azure BYOD frontend
         messages[0]["content"] = json.dumps(messages[0]["content"])
+        logger.info("Method parse of output_parser_tool ended")
         return messages
