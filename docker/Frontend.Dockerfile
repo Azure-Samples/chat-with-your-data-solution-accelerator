@@ -3,9 +3,11 @@ RUN mkdir -p /home/node/app/node_modules && chown -R node:node /home/node/app
 WORKDIR /home/node/app
 COPY ./code/frontend/package*.json ./
 USER node
+# RUN npm install --force
 RUN npm ci
 COPY --chown=node:node ./code/frontend ./frontend
 WORKDIR /home/node/app/frontend
+RUN npm install --save-dev @types/node @types/jest
 RUN npm run build
 
 FROM python:3.11.7-bookworm
