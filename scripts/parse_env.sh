@@ -23,7 +23,7 @@ flatten_json() {
     echo "$json_object" | jq -r "to_entries | .[] | \"${prefix}\(.key | ascii_upcase)=\(.value | @sh)\""
 }
 
-output=()
+declare -A output
 
 # Read the .env file line by line
 while IFS= read -r line; do
@@ -57,19 +57,27 @@ while IFS= read -r line; do
                     "AZURE_KEY_VAULT_INFO") prefix="AZURE_KEY_VAULT_" ;;
                 esac
                 # Flatten the JSON object
-                flattened_json=$(flatten_json "$prefix" "$json_object")
-                output+=("$flattened_json")
+                while IFS= read -r flattened_line; do
+                    flattened_key=$(echo "$flattened_line" | cut -d'=' -f1)
+                    flattened_value=$(echo "$flattened_line" | cut -d'=' -f2-)
+                    output["$flattened_key"]="$flattened_value"
+                done < <(flatten_json "$prefix" "$json_object")
             else
                 echo "Failed to parse JSON for key: $key, value: $value"
             fi
             ;;
         *)
             # Keep non-JSON key-value pairs as-is
-            output+=("$line")
+            output["$key"]="$value"
             ;;
     esac
 done < "$envFile"
 
-# Write the processed content back to the .env file
-printf "%s\n" "${output[@]}" > "$envFile"
-echo "Flattened .env file written back to: $envFile"
+# Write the processed content back to the .env file, sorted by key
+{
+    for key in $(printf "%s\n" "${!output[@]}" | sort); do
+        echo "$key=${output[$key]}"
+    done
+} > "$envFile"
+
+echo "Flattened and sorted .env file written back to: $envFile"
