@@ -362,6 +362,9 @@ class EnvHelper:
         self.SEMENTIC_KERNEL_SYSTEM_PROMPT = os.getenv(
             "SEMENTIC_KERNEL_SYSTEM_PROMPT", ""
         )
+
+        self.ENFORCE_AUTH = self.get_env_var_bool("ENFORCE_AUTH", "True")
+
         logger.info("Initializing EnvHelper completed")
 
     def is_chat_model(self):
