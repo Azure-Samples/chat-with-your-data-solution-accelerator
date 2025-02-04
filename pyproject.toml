@@ -53,7 +53,7 @@ pre-commit = "4.0.1"
 pytest_httpserver = "1.1.1"
 trustme = "1.2.1"
 jupyter = "1.1.1"
-pytest-asyncio = "^0.25.0"
+pytest-asyncio = "^0.25.3"
 
 [tool.poetry.group.prompt-flow]
 optional = true
