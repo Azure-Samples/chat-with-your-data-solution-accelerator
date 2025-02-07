@@ -29,8 +29,6 @@ on:
         required: false
       DEV_DOCKER_PASSWORD:
         required: false
-      DOCKER_PASSWORD_SEC:
-        required: false
 
 jobs:
   docker-build:
@@ -46,7 +44,7 @@ jobs:
       with:
         registry: ${{ inputs.old_registry }}
         username: ${{ inputs.old_username }}
-        password: ${{ secrets.DOCKER_PASSWORD_SEC }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Docker Login to cwydcontainerreg (Main)
       if: ${{ inputs.push == true && github.ref_name == 'main' }}
@@ -54,7 +52,7 @@ jobs:
       with:
         registry: ${{ inputs.new_registry }}
         username: ${{ inputs.new_username }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+        password: ${{ secrets.DEV_DOCKER_PASSWORD }}
 
     # Login for 'dev' and 'demo' branches to cwydcontainerreg only
     - name: Docker Login to cwydcontainerreg (Dev/Demo)
