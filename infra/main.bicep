@@ -320,7 +320,7 @@ var keyVaultName = 'kv-${resourceToken}'
 var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
 
 var appversion = 'latest' // Update GIT deployment branch
-var registryName = 'fruoccopublic' // Update Registry name
+var registryName = 'cwydcontainerreg' // Update Registry name
 
 var openAIFunctionsSystemPrompt = '''You help employees to navigate only private information sources.
     You must prioritize the function call over your general knowledge for any question by calling the search_documents function.

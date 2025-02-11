@@ -60,9 +60,6 @@ def test_azure_byod_responds_successfully_when_streaming(
     app_config: AppConfig,
 ):
     get_active_config_or_default_mock.return_value.prompts.conversational_flow = "byod"
-    get_active_config_or_default_mock.return_value.prompts.use_on_your_data_format = (
-        False
-    )
     index_not_exists_mock.return_value = False
     # when
     response = requests.post(f"{app_url}{path}", json=body)

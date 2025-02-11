@@ -233,10 +233,7 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
                             and env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
                             else ""
                         ),
-                        "role_information": config.prompts.answering_system_prompt
-                        if config.prompts.use_on_your_data_format
-                        else
-                        env_helper.AZURE_OPENAI_SYSTEM_MESSAGE,
+                        "role_information": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE,
                     },
                 }
             ]
