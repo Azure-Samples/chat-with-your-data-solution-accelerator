@@ -7,7 +7,7 @@
 ## User Story
 
 The Chat With Your Data Solution Accelerator has included prompt flow as an orchestration strategy as an alternative,
-low code option. This allows you to modify and experiment with the orchestration using Azure Machine Learning studio. To
+low code option. This allows you to modify and experiment with the orchestration using Azure Machine Learning Foundry. To
 learn more about prompt flow see:
 [Azure Machine Learning PromptFlow](https://learn.microsoft.com/en-us/azure/machine-learning/prompt-flow/overview-what-is-prompt-flow?view=azureml-api-2).
 
@@ -35,7 +35,7 @@ These commands will provision the necessary Azure Machine Learning resources and
 [../infra/prompt_flow/cwyd/](../infra/prompt_flow/cwyd/) as a managed endpoint.
 
 
-Upon first accessing the deployed flow in Azure Machine Learning Studio, you may encounter errors as shown below:
+Upon first accessing the deployed flow in Azure Machine Learning Foundry, you may encounter errors as shown below:
 
 ![Image with error](images/prompt-flow-error.png)
 
@@ -45,7 +45,7 @@ This is a known issue and can be resolved by initiating a compute session. Once 
 
 Follow these steps to update the flow:
 
-1. Navigate to the flow in Azure Machine Learning Studio and make the necessary changes
+1. Navigate to the flow in Azure Machine Learning Foundry and make the necessary changes
 1. Download the updated flow files to the [../infra/prompt_flow/cwyd/](../infra/prompt_flow/cwyd/) directory by clicking the download button in the Files tab
 ![Download](images/prompt-flow-download.png)
 1. Replace the content of `flow.dag.template.yaml` with your new flow from the `flow.dag.yaml` file
