@@ -106,17 +106,3 @@ By following these steps, your **Azure Web App Service** will now use the new co
 For further assistance, feel free to reach out to your support team or log an issue on GitHub.
 
 ---
-
-## Additional Notes
-
-- **Ensure the image is accessible** from the new registry before attempting the migration.
-- You may need to **adjust permissions** to ensure proper access to the new container registry (csactoprod).
-- Always validate your deployment after making these changes to avoid service disruptions.
-
----
-
-This is the full process for migrating an Azure Web App Service to a new container registry in a detailed, step-by-step format. You can now copy this directly into your `README.md` file.
-
----
-
-Let me know if you'd like to adjust anything or need help with other sections of your `README` file!
