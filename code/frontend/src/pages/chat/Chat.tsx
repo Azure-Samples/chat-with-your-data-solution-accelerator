@@ -1,36 +1,13 @@
 import React, { useRef, useState, useEffect } from "react";
-import {
-  CommandBarButton,
-  ContextualMenu,
-  DefaultButton,
-  Dialog,
-  DialogFooter,
-  DialogType,
-  ICommandBarStyles,
-  IContextualMenuItem,
-  PrimaryButton,
-  Spinner,
-  SpinnerSize,
-  Stack,
-  StackItem,
-  Text,
-} from "@fluentui/react";
-import {
-  BroomRegular,
-  DismissRegular,
-  SquareRegular,
-} from "@fluentui/react-icons";
+import { Stack } from "@fluentui/react";
+import { BroomRegular, SquareRegular } from "@fluentui/react-icons";
 import {
   SpeechRecognizer,
   ResultReason,
 } from "microsoft-cognitiveservices-speech-sdk";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
 import { v4 as uuidv4 } from "uuid";
 
 import styles from "./Chat.module.css";
-import Azure from "../../assets/Azure.svg";
 import { multiLingualSpeechRecognizer } from "../../util/SpeechToText";
 import { useBoolean } from "@fluentui/react-hooks";
 import {
@@ -38,7 +15,6 @@ import {
   ConversationRequest,
   callConversationApi,
   Citation,
-  ToolMessageContent,
   ChatResponse,
   getAssistantTypeApi,
   historyList,
@@ -50,20 +26,14 @@ import {
 } from "../../api";
 import { Answer } from "../../components/Answer";
 import { QuestionInput } from "../../components/QuestionInput";
-import Cards from "./Cards_contract/Cards";
 import Layout from "../layout/Layout";
-import ChatHistoryList from "./ChatHistoryList";
+import { AssistantTypeSection } from "../../components/AssistantTypeSection/AssistantTypeSection";
+import { ChatMessageContainer } from "../../components/ChatMessageContainer/ChatMessageContainer";
+import { CitationPanel } from "../../components/CitationPanel/CitationPanel";
+import { ChatHistoryPanel } from "../../components/ChatHistoryPanel/ChatHistoryPanel";
 
 const OFFSET_INCREMENT = 25;
 const [ASSISTANT, TOOL, ERROR] = ["assistant", "tool", "error"];
-const commandBarStyle: ICommandBarStyles = {
-  root: {
-    padding: "0",
-    display: "flex",
-    justifyContent: "center",
-    backgroundColor: "transparent",
-  },
-};
 
 const Chat = () => {
   const lastQuestionRef = useRef<string>("");
@@ -113,25 +83,8 @@ const Chat = () => {
   const [clearingError, setClearingError] = React.useState(false);
   const [fetchingConvMessages, setFetchingConvMessages] = React.useState(false);
   const [isSavingToDB, setIsSavingToDB] = React.useState(false);
+  const [isInitialAPItriggered, setIsInitialAPItriggered] = useState(false);
 
-  const clearAllDialogContentProps = {
-    type: DialogType.close,
-    title: !clearingError
-      ? "Are you sure you want to clear all chat history?"
-      : "Error deleting all of chat history",
-    closeButtonAriaLabel: "Close",
-    subText: !clearingError
-      ? "All chat history will be permanently removed."
-      : "Please try again. If the problem persists, please contact the site administrator.",
-  };
-  const firstRender = useRef(true);
-
-  const modalProps = {
-    titleAriaId: "labelId",
-    subtitleAriaId: "subTextId",
-    isBlocking: true,
-    styles: { main: { maxWidth: 450 } },
-  };
   const saveToDB = async (messages: ChatMessage[], convId: string) => {
     if (!convId || !messages.length) {
       return;
@@ -180,18 +133,6 @@ const Chat = () => {
       });
   };
 
-  const menuItems: IContextualMenuItem[] = [
-    {
-      key: "clearAll",
-      text: "Clear all chat history",
-      disabled:
-        !chatHistory.length ||
-        isGenerating ||
-        fetchingConvMessages ||
-        fetchingChatHistory,
-      iconProps: { iconName: "Delete" },
-    },
-  ];
   const makeApiRequest = async (question: string) => {
     lastQuestionRef.current = question;
 
@@ -379,12 +320,12 @@ const Chat = () => {
     chatMessageStreamEnd.current?.scrollIntoView({ behavior: "smooth" });
     const fetchAssistantType = async () => {
       try {
-          setIsAssistantAPILoading(true);
+        setIsAssistantAPILoading(true);
         const result = await getAssistantTypeApi();
         if (result) {
           setAssistantType(result.ai_assistant_type);
         }
-          setIsAssistantAPILoading(false);
+        setIsAssistantAPILoading(false);
         return result;
       } catch (error) {
         console.error("Error fetching assistant type:", error);
@@ -406,18 +347,6 @@ const Chat = () => {
     setShowHistoryPanel(false);
   };
 
-  const parseCitationFromMessage = (message: ChatMessage) => {
-    if (message.role === TOOL) {
-      try {
-        const toolMessage = JSON.parse(message.content) as ToolMessageContent;
-        return toolMessage.citations;
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  };
-
   const onClearAllChatHistory = async () => {
     toggleToggleSpinner(true);
     setClearing(true);
@@ -429,7 +358,7 @@ const Chat = () => {
       toggleClearAllDialog();
       setShowContextualPopup(false);
       setAnswers([]);
-      setSelectedConvId("")
+      setSelectedConvId("");
     }
     setClearing(false);
     toggleToggleSpinner(false);
@@ -525,18 +454,20 @@ const Chat = () => {
   };
 
   useEffect(() => {
-    if (firstRender.current && import.meta.env.MODE === "development") {
-      firstRender.current = false;
-      return;
-    }
-    (async () => {
-      const response = await getFrontEndSettings();
-      if (response.CHAT_HISTORY_ENABLED) {
-        handleFetchHistory();
-        setShowHistoryBtn(true);
-      }
-    })();
+    setIsInitialAPItriggered(true);
   }, []);
+
+  useEffect(() => {
+    if (isInitialAPItriggered) {
+      (async () => {
+        const response = await getFrontEndSettings();
+        if (response.CHAT_HISTORY_ENABLED) {
+          handleFetchHistory();
+          setShowHistoryBtn(true);
+        }
+      })();
+    }
+  }, [isInitialAPItriggered]);
 
   const onHistoryDelete = (id: string) => {
     const tempChatHistory = [...chatHistory];
@@ -575,6 +506,31 @@ const Chat = () => {
     });
   };
 
+  const loadingMessageBlock = () => {
+    return (
+      <React.Fragment key="generating-answer">
+        <div className={styles.chatMessageUser}>
+          <div className={styles.chatMessageUserMessage}>
+            {lastQuestionRef.current}
+          </div>
+        </div>
+        <div className={styles.chatMessageGpt} data-testid="generatingAnswer">
+          <Answer
+            answer={{
+              answer: "Generating answer...",
+              citations: [],
+            }}
+            onCitationClicked={() => null}
+            index={0}
+          />
+        </div>
+      </React.Fragment>
+    );
+  };
+  const showAssistantTypeSection =
+    !fetchingConvMessages && !lastQuestionRef.current && answers.length === 0;
+  const showCitationPanel =
+    answers.length > 0 && isCitationPanelOpen && activeCitation;
   return (
     <Layout
       toggleSpinner={toggleSpinner}
@@ -587,113 +543,25 @@ const Chat = () => {
           <div
             className={`${styles.chatContainer} ${styles.MobileChatContainer}`}
           >
-            {!fetchingConvMessages &&
-            !lastQuestionRef.current &&
-            answers.length === 0 ? (
-              <Stack className={styles.chatEmptyState}>
-                <img
-                  src={Azure}
-                  className={styles.chatIcon}
-                  aria-hidden="true"
-                  alt="Chat with your data"
-                />
-                {assistantType === "contract assistant" ? (
-                  <>
-                    <h1 className={styles.chatEmptyStateTitle}>
-                      Contract Summarizer
-                    </h1>
-                    <h2 className={styles.chatEmptyStateSubtitle}>
-                      AI-Powered assistant for simplified summarization
-                    </h2>
-                    <Cards />
-                  </>
-                ) : assistantType === "default" ? (
-                  <>
-                    <h1 className={styles.chatEmptyStateTitle}>
-                      Chat with your
-                      <span className={styles.dataText}>&nbsp;Data</span>
-                    </h1>
-                    <h2 className={styles.chatEmptyStateSubtitle}>
-                      This chatbot is configured to answer your questions
-                    </h2>
-                  </>
-                ) : null}
-                {isAssistantAPILoading && (
-                  <div className={styles.loadingContainer}>
-                    <div className={styles.loadingIcon}></div>
-                    <p>Loading...</p>
-                  </div>
-                )}
-              </Stack>
+            {showAssistantTypeSection ? (
+              <AssistantTypeSection
+                assistantType={assistantType}
+                isAssistantAPILoading={isAssistantAPILoading}
+              />
             ) : (
               <div
                 className={styles.chatMessageStream}
                 style={{ marginBottom: isGenerating ? "40px" : "0px" }}
               >
-                {fetchingConvMessages && (
-                  <div className={styles.fetchMessagesSpinner}>
-                    <Spinner size={SpinnerSize.medium} />
-                  </div>
-                )}
-                {!fetchingConvMessages &&
-                  answers.map((answer, index) => (
-                    <React.Fragment key={`${answer?.role}-${index}`}>
-                      {answer.role === "user" ? (
-                        <div
-                          className={styles.chatMessageUser}
-                          key={`${answer?.role}-${index}`}
-                        >
-                          <div className={styles.chatMessageUserMessage}>
-                            {answer.content}
-                          </div>
-                        </div>
-                      ) : answer.role === ASSISTANT ||
-                        answer.role === "error" ? (
-                        <div
-                          className={styles.chatMessageGpt}
-                          key={`${answer?.role}-${index}`}
-                        >
-                          <Answer
-                            answer={{
-                              answer:
-                                answer.role === ASSISTANT
-                                  ? answer.content
-                                  : "Sorry, an error occurred. Try refreshing the conversation or waiting a few minutes. If the issue persists, contact your system administrator. Error: " +
-                                    answer.content,
-                              citations:
-                                answer.role === ASSISTANT
-                                  ? parseCitationFromMessage(answers[index - 1])
-                                  : [],
-                            }}
-                            onSpeak={handleSpeech}
-                            isActive={activeCardIndex === index}
-                            onCitationClicked={(c) => onShowCitation(c)}
-                            index={index}
-                          />
-                        </div>
-                      ) : null}
-                    </React.Fragment>
-                  ))}
-                {showLoadingMessage && (
-                  <React.Fragment key="generating-answer">
-                    <div className={styles.chatMessageUser}>
-                      <div className={styles.chatMessageUserMessage}>
-                        {lastQuestionRef.current}
-                      </div>
-                    </div>
-                    <div className={styles.chatMessageGpt}>
-                      <Answer
-                        answer={{
-                          answer: "Generating answer...",
-                          citations: [],
-                        }}
-                        onCitationClicked={() => null}
-                        index={0}
-                      />
-                    </div>
-                  </React.Fragment>
-                )}
-                <div ref={chatMessageStreamEnd} />
+                <ChatMessageContainer
+                  activeCardIndex={activeCardIndex}
+                  answers={answers}
+                  fetchingConvMessages={fetchingConvMessages}
+                  handleSpeech={handleSpeech}
+                  onShowCitation={onShowCitation}
+                />
+                {showLoadingMessage && loadingMessageBlock()}
+                <div data-testid="streamendref-id" ref={chatMessageStreamEnd} />
               </div>
             )}
             <div>
@@ -759,160 +627,39 @@ const Chat = () => {
               />
             </Stack>
           </div>
-          {answers.length > 0 && isCitationPanelOpen && activeCitation && (
-            <Stack.Item
-              className={`${styles.citationPanel} ${styles.mobileStyles}`}
-            >
-              <Stack
-                horizontal
-                className={styles.citationPanelHeaderContainer}
-                horizontalAlign="space-between"
-                verticalAlign="center"
-              >
-                <span className={styles.citationPanelHeader}>Citations</span>
-                <DismissRegular
-                  role="button"
-                  onKeyDown={(e) =>
-                    e.key === " " || e.key === "Enter"
-                      ? setIsCitationPanelOpen(false)
-                      : () => {}
-                  }
-                  tabIndex={0}
-                  className={styles.citationPanelDismiss}
-                  onClick={() => setIsCitationPanelOpen(false)}
-                />
-              </Stack>
-              <h5
-                className={`${styles.citationPanelTitle} ${styles.mobileCitationPanelTitle}`}
-              >
-                {activeCitation[2]}
-              </h5>
-              <div
-                className={`${styles.citationPanelDisclaimer} ${styles.mobileCitationPanelDisclaimer}`}
-              >
-                Tables, images, and other special formatting not shown in this
-                preview. Please follow the link to review the original document.
-              </div>
-              <ReactMarkdown
-                className={`${styles.citationPanelContent} ${styles.mobileCitationPanelContent}`}
-                children={activeCitation[0]}
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw]}
-              />
-            </Stack.Item>
+          {showCitationPanel && (
+            <CitationPanel
+              activeCitation={activeCitation}
+              setIsCitationPanelOpen={setIsCitationPanelOpen}
+            />
           )}
 
           {showHistoryPanel && (
-            <section
-              className={styles.historyContainer}
-              data-is-scrollable
-              aria-label={"chat history panel"}
-            >
-              <Stack
-                horizontal
-                horizontalAlign="space-between"
-                verticalAlign="center"
-                wrap
-                aria-label="chat history header"
-                className="mt-8"
-              >
-                <StackItem>
-                  <Text
-                    role="heading"
-                    aria-level={2}
-                    style={{
-                      alignSelf: "center",
-                      fontWeight: "600",
-                      fontSize: "18px",
-                      marginRight: "auto",
-                      paddingLeft: "20px",
-                    }}
-                  >
-                    Chat history
-                  </Text>
-                </StackItem>
-                <Stack
-                  horizontal
-                  className={styles.historyPanelTopRightButtons}
-                >
-                  <Stack horizontal>
-                    <CommandBarButton
-                      iconProps={{ iconName: "More" }}
-                      title={"Clear all chat history"}
-                      onClick={onShowContextualMenu}
-                      aria-label={"clear all chat history"}
-                      styles={commandBarStyle}
-                      role="button"
-                      id="moreButton"
-                    />
-                    <ContextualMenu
-                      items={menuItems}
-                      hidden={!showContextualMenu}
-                      target={"#moreButton"}
-                      onItemClick={toggleClearAllDialog}
-                      onDismiss={onHideContextualMenu}
-                    />
-                  </Stack>
-
-                  <Stack horizontal>
-                    <CommandBarButton
-                      iconProps={{ iconName: "Cancel" }}
-                      title={"Hide"}
-                      aria-label={"hide button"}
-                      role="button"
-                      onClick={() => setShowHistoryPanel(false)}
-                    />
-                  </Stack>
-                </Stack>
-              </Stack>
-              <Stack
-                aria-label="chat history panel content"
-                style={{
-                  display: "flex",
-                  height: '100%',
-                  padding: "1px",
-                }}
-              >
-                <Stack className={styles.chatHistoryListContainer}>
-                  {showHistoryPanel && (
-                    <ChatHistoryList
-                      fetchingChatHistory={fetchingChatHistory}
-                      handleFetchHistory={handleFetchHistory}
-                      chatHistory={chatHistory}
-                      onSelectConversation={onSelectConversation}
-                      selectedConvId={selectedConvId}
-                      onHistoryTitleChange={onHistoryTitleChange}
-                      onHistoryDelete={onHistoryDelete}
-                      isGenerating={showLoadingMessage || isSavingToDB}
-                      toggleToggleSpinner={toggleToggleSpinner}
-                    />
-                  )}
-                </Stack>
-              </Stack>
-              {showContextualPopup && (
-                <Dialog
-                  hidden={hideClearAllDialog}
-                  onDismiss={clearing ? () => {} : onHideClearAllDialog}
-                  dialogContentProps={clearAllDialogContentProps}
-                  modalProps={modalProps}
-                >
-                  <DialogFooter>
-                    {!clearingError && (
-                      <PrimaryButton
-                        onClick={onClearAllChatHistory}
-                        disabled={clearing}
-                        text="Clear All"
-                      />
-                    )}
-                    <DefaultButton
-                      onClick={onHideClearAllDialog}
-                      disabled={clearing}
-                      text={!clearingError ? "Cancel" : "Close"}
-                    />
-                  </DialogFooter>
-                </Dialog>
-              )}
-            </section>
+            <ChatHistoryPanel
+              chatHistory={chatHistory}
+              clearing={clearing}
+              clearingError={clearingError}
+              fetchingChatHistory={fetchingChatHistory}
+              fetchingConvMessages={fetchingConvMessages}
+              handleFetchHistory={handleFetchHistory}
+              hideClearAllDialog={hideClearAllDialog}
+              isLoading={isLoading}
+              isSavingToDB={isSavingToDB}
+              onClearAllChatHistory={onClearAllChatHistory}
+              onHideClearAllDialog={onHideClearAllDialog}
+              onHideContextualMenu={onHideContextualMenu}
+              onHistoryDelete={onHistoryDelete}
+              onHistoryTitleChange={onHistoryTitleChange}
+              onSelectConversation={onSelectConversation}
+              onShowContextualMenu={onShowContextualMenu}
+              selectedConvId={selectedConvId}
+              setShowHistoryPanel={setShowHistoryPanel}
+              showContextualMenu={showContextualMenu}
+              showContextualPopup={showContextualPopup}
+              showLoadingMessage={showLoadingMessage}
+              toggleClearAllDialog={toggleClearAllDialog}
+              toggleToggleSpinner={toggleToggleSpinner}
+            />
           )}
         </Stack>
       </div>

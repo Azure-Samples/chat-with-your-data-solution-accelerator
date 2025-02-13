@@ -194,10 +194,10 @@ Select either "PostgreSQL" or "Cosmos DB":
 
 When Deployment is complete, follow steps in [Set Up Authentication in Azure App Service](./docs/azure_app_service_auth_setup.md) to add app authentication to your web app running on Azure App Service
 
-**Note**: The default configuration deploys an OpenAI Model "gpt-35-turbo" with version 0613. However, not all
-locations support this version. If you're deploying to a location that doesn't support version 0613, you'll need to
+**Note**: The default configuration deploys an OpenAI Model "gpt-4o" with version 2024-05-13. However, not all
+locations support this version. If you're deploying to a location that doesn't support version 2024-05-13, you'll need to
 switch to a lower version. To find out which versions are supported in different regions, visit the
-[GPT-35 Turbo Model Availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#gpt-35-turbo-model-availability) page.
+[GPT-4o Model Availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models?tabs=global-standard%2Cstandard-chat-completions#global-standard-model-availability) page.
 
 ### Testing the deployment
 1. Navigate to the admin site, where you can upload documents. It will be located at:

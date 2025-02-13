@@ -83,7 +83,7 @@ nodes:
     type: code
     path: chat_with_context.jinja2
   inputs:
-    deployment_name: gpt-35-turbo-16k
+    deployment_name: gpt-4o
     temperature: 0
     top_p: 1
     max_tokens: 1000
