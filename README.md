@@ -197,7 +197,7 @@ When Deployment is complete, follow steps in [Set Up Authentication in Azure App
 **Note**: The default configuration deploys an OpenAI Model "gpt-4o" with version 2024-05-13. However, not all
 locations support this version. If you're deploying to a location that doesn't support version 2024-05-13, you'll need to
 switch to a lower version. To find out which versions are supported in different regions, visit the
-[GPT-4oModel Availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models?tabs=global-standard%2Cstandard-chat-completions#global-standard-model-availability) page.
+[GPT-4o Model Availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models?tabs=global-standard%2Cstandard-chat-completions#global-standard-model-availability) page.
 
 ### Testing the deployment
 1. Navigate to the admin site, where you can upload documents. It will be located at:
