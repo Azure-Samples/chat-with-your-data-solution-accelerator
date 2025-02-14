@@ -12,14 +12,14 @@
 
 ## Step-by-Step Guide: Migrating Azure Web App Service to a New Container Registry
 
-This guide will help you seamlessly switch the container registry for your **Azure Web App Service** from Azure Container Registry (ACR) to the new registry.
+This guide will help you seamlessly switch the container registry for your **Azure Web App Service** from Azure Container Registry (ACR) to the new registry **`cwydcontainerreg`**.
 
 Follow the steps below to ensure a smooth migration.
 
 ### Prerequisites:
 Before you begin, ensure you have the following:
 - Access to the **Azure Portal**.
-- **Credentials** for the new container registry.
+- **Credentials** for the new container registry (**`cwydcontainerreg`**).
 - **Permissions** to update the Azure Web App Service settings.
 - The **container image** in the new registry is ready and accessible.
 
@@ -28,8 +28,8 @@ Before you begin, ensure you have the following:
 ### Step 1: Obtain Details for the New Registry
 
 Before you begin, ensure you have the following information:
-- **Registry URL**: The URL of the new registry (e.g., `yourregistryname.example.com`).
-- **Image Name and Tag**: The full name and tag of the image you want to use (e.g., `yourregistryname.example.com/myapp:latest`).
+- **Registry URL**: The URL of the new registry (e.g., `cwydcontainerreg.azurecr.io`).
+- **Image Name and Tag**: The full name and tag of the image you want to use (e.g., `cwydcontainerreg.azurecr.io/rag-webapp:latest`).
 
 ---
 
@@ -44,16 +44,16 @@ Before you begin, ensure you have the following information:
 3. **Go to the Deployment Center**:
    - In the left-hand menu, click on **Deployment**.
 
-   ![Menu](image-1.png)
+  ![ Menu](docs/images/resource_menu.png)
 
 
 
 4. **Update Image Source**:
    - Change the **Registry Source** to **Private**.
-   - Set the **Server URL** to the new container registry (`yourregistryname`), as shown in the screenshot below.
+   - Set the **Server URL** to the new container registry (`cwydcontainerreg`), as shown in the screenshot below.
    - Leave **Full Image name** and **tag** as it is.
 
-   ![Deployment Center](image.png)
+   ![Deployment Center](docs/images/deployment_center.png)
 
 
 
