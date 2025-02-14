@@ -32,7 +32,7 @@ Before you begin, ensure you have the following information:
 - **Image Name and Tag**: The full name and tag of the image you want to use:
   - **Web App Image**: `cwydcontainerreg.azurecr.io/rag-webapp:latest`
   - **Admin Web App Image**: `cwydcontainerreg.azurecr.io/rag-adminwebapp:latest`
-  - **Backend Image**: `cwydcontainerreg.azurecr.io/rag-backend:latest`
+  - **Function App Image**: `cwydcontainerreg.azurecr.io/rag-backend:latest`
 
 ---
 
@@ -56,7 +56,7 @@ Before you begin, ensure you have the following information:
    - Set the **Full Image name** to the relevant image name and tag:
      - For Web App: `cwydcontainerreg.azurecr.io/webapp:latest`
      - For Admin Web App: `cwydcontainerreg.azurecr.io/admin-webapp:latest`
-     - For Backend: `cwydcontainerreg.azurecr.io/rag-backend:latest`
+     - For Function App: `cwydcontainerreg.azurecr.io/rag-backend:latest`
    - Leave **Tag** as it is, or if needed, specify a tag ( `latest` or specific version tags).
 
 
