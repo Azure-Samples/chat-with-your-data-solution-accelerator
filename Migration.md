@@ -4,7 +4,6 @@
 
 ### Current Problem:
 - The **CWYD Container Image** is being published in the **GBB ACR** (Azure Container Registry).
-- The **Doc Gen** image is published in **James Hunter ACR**, but this is less severe than the CWYD issue.
 
 ### Goal:
 - The goal is to **migrate container images** from various applications to a common **CSA CTO Production Azure Container Registry**, ensuring all the different images are consolidated in one centralized location.
@@ -13,14 +12,14 @@
 
 ## Step-by-Step Guide: Migrating Azure Web App Service to a New Container Registry
 
-This guide will help you seamlessly switch the container registry for your **Azure Web App Service** from Azure Container Registry (ACR) to the new registry, **csactoprod**.
+This guide will help you seamlessly switch the container registry for your **Azure Web App Service** from Azure Container Registry (ACR) to the new registry.
 
 Follow the steps below to ensure a smooth migration.
 
 ### Prerequisites:
 Before you begin, ensure you have the following:
 - Access to the **Azure Portal**.
-- **Credentials** for the new container registry (**csactoprod**).
+- **Credentials** for the new container registry.
 - **Permissions** to update the Azure Web App Service settings.
 - The **container image** in the new registry is ready and accessible.
 
@@ -29,8 +28,8 @@ Before you begin, ensure you have the following:
 ### Step 1: Obtain Details for the New Registry
 
 Before you begin, ensure you have the following information:
-- **Registry URL**: The URL of the new registry (e.g., `csactoprod.example.com`).
-- **Image Name and Tag**: The full name and tag of the image you want to use (e.g., `csactoprod.example.com/myapp:latest`).
+- **Registry URL**: The URL of the new registry (e.g., `yourregistryname.example.com`).
+- **Image Name and Tag**: The full name and tag of the image you want to use (e.g., `yourregistryname.example.com/myapp:latest`).
 
 ---
 
@@ -51,7 +50,7 @@ Before you begin, ensure you have the following information:
 
 4. **Update Image Source**:
    - Change the **Registry Source** to **Private**.
-   - Set the **Server URL** to the new container registry (`csactoprod`), as shown in the screenshot below.
+   - Set the **Server URL** to the new container registry (`yourregistryname`), as shown in the screenshot below.
    - Leave **Full Image name** and **tag** as it is.
 
    ![Deployment Center](image.png)
