@@ -1,4 +1,4 @@
-name: Build Docker Images
+name: Build Docker and Optional Push
 
 on:
   push:
@@ -17,6 +17,7 @@ on:
     - reopened
     - synchronize
   merge_group:
+  workflow_dispatch:
 
 jobs:
   docker-build:
