@@ -1,4 +1,4 @@
-name: CI
+name: Validate Deployment
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
       - dev
       - demo
   schedule:
-    - cron: '0 6,18 * * *'  # Runs at 6:00 AM and 6:00 PM GMT
+    - cron: '0 8,20 * * *'  # Runs at 8:00 AM and 8:00 PM GMT
 
 permissions:
   contents: read
@@ -83,7 +83,7 @@ jobs:
             AZURE_SUBSCRIPTION_ID
             AZURE_ENV_NAME
             AZURE_LOCATION
-            
+
       - name: Send Notification on Failure
         if: failure()
         run: |
