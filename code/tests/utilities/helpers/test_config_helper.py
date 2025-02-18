@@ -223,6 +223,11 @@ def test_default_config_when_use_advanced_image_processing(env_helper_mock):
             "chunking": expected_chunking,
             "loading": {"strategy": "docx"},
         },
+        {
+            "document_type": "json",
+            "chunking": {"strategy": "json", "size": 500, "overlap": 100},
+            "loading": {"strategy": "web"},
+        },
         {"document_type": "jpeg", "use_advanced_image_processing": True},
         {"document_type": "jpg", "use_advanced_image_processing": True},
         {"document_type": "png", "use_advanced_image_processing": True},
@@ -420,7 +425,7 @@ def test_get_available_document_types(config: Config):
 
     # then
     assert sorted(document_types) == sorted(
-        ["txt", "pdf", "url", "html", "htm", "md", "jpeg", "jpg", "png", "docx"]
+        ["txt", "pdf", "url", "html", "htm", "md", "jpeg", "jpg", "png", "docx", "json"]
     )
 
 
@@ -448,6 +453,7 @@ def test_get_available_document_types_when_advanced_image_processing_enabled(
             "docx",
             "tiff",
             "bmp",
+            "json"
         ]
     )
 
@@ -471,6 +477,7 @@ def test_get_available_chunking_strategies(config: Config):
             "page",
             "fixed_size_overlap",
             "paragraph",
+            "json"
         ]
     )
 
