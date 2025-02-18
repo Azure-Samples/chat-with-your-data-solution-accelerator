@@ -9,7 +9,7 @@
     ],
     "allowJs": false,
     "skipLibCheck": true,
-    "esModuleInterop": false,
+    "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
@@ -19,12 +19,14 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "typeRoots": ["node_modules/@types"],
     "types": [
-      "vite/client"
-    ]
+      "vite/client", "jest", "node",
+    ],
   },
+  "exclude": ["node_modules"],
   "include": [
-    "src"
+    "src", "setupTests.ts"
   ],
   "references": [
     {

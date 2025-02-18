@@ -20,7 +20,7 @@ The more limited the data set, the broader the questions should be. If the data 
 
 **Numerical queries**
 
- The accelerator is optimized to summarize unstructured data, such as PDFs or text files. The ChatGPT 3.5 Turbo model used by the accelerator is not currently optimized to handle queries about specific numerical data. The ChatGPT 4 model may be better able to handle numerical queries.
+ The accelerator is optimized to summarize unstructured data, such as PDFs or text files. The ChatGPT 3.5 Turbo model is not currently optimized to handle queries about specific numerical data. The ChatGPT 4 model may be better able to handle numerical queries.
 
 **Use your own judgement**
 

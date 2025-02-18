@@ -13,7 +13,7 @@ import { getUserInfo } from "../../api";
 import SpinnerComponent from '../../components/Spinner/Spinner';
 
 
-type LayoutProps = {
+export type LayoutProps = {
   children: ReactNode;
   toggleSpinner: boolean;
   onSetShowHistoryPanel: () => void;
@@ -65,11 +65,6 @@ const Layout = ({ children,toggleSpinner, ...props }: LayoutProps) => {
   };
 
   useEffect(() => {
-    if (firstRender.current && import.meta.env.MODE === "development") {
-      firstRender.current = false;
-      return;
-    }
-    console.log("calling list ");
     getUserInfoList();
   }, []);
 
