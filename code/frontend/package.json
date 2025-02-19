@@ -28,7 +28,7 @@
         "rehype-raw": "^7.0.0",
         "remark-gfm": "^4.0.0",
         "remark-supersub": "^1.0.0",
-        "undici": "^6.19.8",
+        "undici": "^6.21.1",
         "uuid": "^11.0.3"
     },
     "devDependencies": {
