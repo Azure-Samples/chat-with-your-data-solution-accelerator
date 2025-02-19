@@ -30,9 +30,9 @@ Before you begin, ensure you have the following:
 Before you begin, ensure you have the following information:
 - **Registry URL**: The URL of the new registry (`cwydcontainerreg.azurecr.io`).
 - **Image Name and Tag**: The full name and tag of the image you want to use:
-  - **Web App Image**: `cwydcontainerreg.azurecr.io/rag-webapp:latest`
-  - **Admin Web App Image**: `cwydcontainerreg.azurecr.io/rag-adminwebapp:latest`
-  - **Function App Image**: `cwydcontainerreg.azurecr.io/rag-backend:latest`
+  - **Web App Image**: `rag-webapp:latest`
+  - **Admin Web App Image**: `rag-adminwebapp:latest`
+  - **Function App Image**: `rag-backend:latest`
 
 ---
 
@@ -54,7 +54,7 @@ Before you begin, ensure you have the following information:
    - Change the **Registry Source** to **Private**.
    - Set the **Server URL** to the new container registry (`cwydcontainerreg.azurecr.io`), as shown in the screenshot below.
    - Set the **Full Image name** to the relevant image name and tag:
-     - For Web App: `webapp:latest`
+     - For Web App: `rag-webapp:latest`
 
    ![Deployment Center](images/deployment_center.png)
 
