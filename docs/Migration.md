@@ -19,7 +19,7 @@ Follow the steps below to ensure a smooth migration.
 ### Prerequisites:
 Before you begin, ensure you have the following:
 - Access to the **Azure Portal**.
-- **Credentials** for the new container registry (**`cwydcontainerreg`**).
+<!-- - **Credentials** for the new container registry (**`cwydcontainerreg`**). -->
 - **Permissions** to update the Azure Web App Service settings.
 - The **container image** in the new registry is ready and accessible.
 
@@ -52,58 +52,13 @@ Before you begin, ensure you have the following information:
 
 4. **Update Image Source**:
    - Change the **Registry Source** to **Private**.
-   - Set the **Server URL** to the new container registry (`cwydcontainerreg`), as shown in the screenshot below.
+   - Set the **Server URL** to the new container registry (`cwydcontainerreg.azurecr.io`), as shown in the screenshot below.
    - Set the **Full Image name** to the relevant image name and tag:
-     - For Web App: `cwydcontainerreg.azurecr.io/webapp:latest`
-     - For Admin Web App: `cwydcontainerreg.azurecr.io/admin-webapp:latest`
-     - For Function App: `cwydcontainerreg.azurecr.io/rag-backend:latest`
-   - Leave **Tag** as it is, or if needed, specify a tag ( `latest` or specific version tags).
-
+     - For Web App: `webapp:latest`
 
    ![Deployment Center](images/deployment_center.png)
 
-
 5. **Save Changes**:
-   - Click **Save** to save the configuration.
-
----
-
-### Step 3: Update Azure Admin Web App Service Configuration Using Azure Portal
-
-1. **Locate Your Admin Web App Service**:
-   - In the search bar, type your **Admin Web App Service name** and select it from the list.
-
-2. **Go to the Deployment Center**:
-   - In the left-hand menu, click on **Deployment**.
-
-3. **Update Image Source for Admin Web App**:
-   - Change the **Registry Source** to **Private**.
-   - Set the **Server URL** to the new container registry (`cwydcontainerreg`).
-   - Set the **Full Image name** to the relevant image name and tag:
-     - For **Admin Web App**: `cwydcontainerreg.azurecr.io/admin-webapp:latest`
-   - Leave **Tag** as it is, or specify a tag if needed (e.g., `latest`, or a version tag like `v1.0.0`).
-
-4. **Save Changes**:
-   - Click **Save** to save the configuration.
-
----
-
-### Step 4: Update Azure Function App Service Configuration Using Azure Portal
-
-1. **Locate Your Function Web App Service**:
-   - In the search bar, type your **Function Web App Service name** and select it from the list.
-
-2. **Go to the Deployment Center**:
-   - In the left-hand menu, click on **Deployment**.
-
-3. **Update Image Source for Function App**:
-   - Change the **Registry Source** to **Private**.
-   - Set the **Server URL** to the new container registry (`cwydcontainerreg`).
-   - Set the **Full Image name** to the relevant image name and tag:
-     - For **Function App**: `cwydcontainerreg.azurecr.io/rag-backend:latest`
-   - Leave **Tag** as it is, or specify a tag if needed (e.g., `latest`, or a version tag like `v1.0.0`).
-
-4. **Save Changes**:
    - Click **Save** to save the configuration.
 
 ---
@@ -117,13 +72,22 @@ After updating the configuration, restart your **Web App Service** to apply the 
 
 ---
 
-### Step 4: Update Azure Admin Web App Service Configuration
+### Step 4: Update Azure Admin Web App Service Configuration Using Azure Portal
 
 1. **Locate Your Admin Web App Service**:
    - In the search bar, type your **Admin Web App Service name** and select it from the list.
 
-2. **Repeat Steps 2.3 to 2.5**:
-   - Repeat the steps mentioned in **Step 2** for your **Admin Web App** and follow the same process.
+2. **Go to the Deployment Center**:
+   - In the left-hand menu, click on **Deployment**.
+
+3. **Update Image Source for Admin Web App**:
+   - Change the **Registry Source** to **Private**.
+   - Set the **Server URL** to the new container registry (`cwydcontainerreg.azurecr.io`).
+   - Set the **Full Image name** to the relevant image name and tag:
+     - For **Admin Web App**: `admin-webapp:latest`
+
+4. **Save Changes**:
+   - Click **Save** to save the configuration.
 
 ---
 
@@ -136,7 +100,35 @@ After updating the configuration, restart your **Admin Web App Service** to appl
 
 ---
 
-### Step 6: Validate the Deployment
+### Step 6: Update Azure Function App Service Configuration Using Azure Portal
+
+1. **Locate Your Function App Service**:
+   - In the search bar, type your **Function App Service name** and select it from the list.
+
+2. **Go to the Deployment Center**:
+   - In the left-hand menu, click on **Deployment**.
+
+3. **Update Image Source for Function App**:
+   - Change the **Registry Source** to **Private**.
+   - Set the **Server URL** to the new container registry (`cwydcontainerreg.azurecr.io`).
+   - Set the **Full Image name** to the relevant image name and tag:
+     - For **Function App**: `rag-backend:latest`
+
+4. **Save Changes**:
+   - Click **Save** to save the configuration.
+
+---
+
+### Step 7: Restart the Function App Service
+
+After updating the configuration, restart your **Function App Service** to apply the changes:
+
+1. In the **Function App Service overview page**, click on **Restart**.
+2. Confirm the restart operation.
+
+---
+
+### Step 8: Validate the Deployment
 
 1. **Access Your Web App**:
    - Open the **Web App URL** in a browser to ensure it’s running correctly.
