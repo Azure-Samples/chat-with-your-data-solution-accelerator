@@ -3,10 +3,16 @@ name: Reusable Docker build and push workflow
 on:
   workflow_call:
     inputs:
-      registry:
+      old_registry:
         required: true
         type: string
-      username:
+      old_username:
+        required: true
+        type: string
+      new_registry:
+        required: true
+        type: string
+      new_username:
         required: true
         type: string
       app_name:
@@ -31,20 +37,30 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Docker Login
+    # Login for 'main' branch to both registries
+    - name: Docker Login to fruoccopublic (Main)
       if: ${{ inputs.push == true && github.ref_name == 'main' }}
       uses: docker/login-action@v3
       with:
-        registry: ${{ inputs.registry }}
-        username: ${{ inputs.username }}
+        registry: ${{ inputs.old_registry }}
+        username: ${{ inputs.old_username }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Dev Docker Login
+    - name: Docker Login to cwydcontainerreg (Main)
+      if: ${{ inputs.push == true && github.ref_name == 'main' }}
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ inputs.new_registry }}
+        username: ${{ inputs.new_username }}
+        password: ${{ secrets.DEV_DOCKER_PASSWORD }}
+
+    # Login for 'dev' and 'demo' branches to cwydcontainerreg only
+    - name: Docker Login to cwydcontainerreg (Dev/Demo)
       if: ${{ inputs.push == true && (github.ref_name == 'dev' || github.ref_name == 'demo') }}
       uses: docker/login-action@v3
       with:
-        registry: ${{ inputs.registry }}
-        username: ${{ inputs.username }}
+        registry: ${{ inputs.new_registry }}
+        username: ${{ inputs.new_username }}
         password: ${{ secrets.DEV_DOCKER_PASSWORD }}
 
     - name: Set up Docker Buildx
@@ -54,13 +70,26 @@ jobs:
       id: date
       run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
-    - name: Build Docker Image and optionally push
+    - name: Build Docker Image and optionally push (Old Registry)
+      if: ${{ github.ref_name == 'main' }}
       uses: docker/build-push-action@v6
       with:
         context: .
         file: ${{ inputs.dockerfile }}
         push: ${{ inputs.push }}
-        cache-from: type=registry,ref=${{ inputs.registry }}/${{ inputs.app_name}}:${{ github.ref_name == 'main' && 'latest' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo' || github.head_ref || github.ref_name }}
+        cache-from: type=registry,ref=${{ inputs.old_registry }}/${{ inputs.app_name }}:${{ github.ref_name == 'main' && 'latest' || github.head_ref || github.ref_name }}
         tags: |
-          ${{ inputs.registry }}/${{ inputs.app_name}}:${{ github.ref_name == 'main' && 'latest' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo' || github.head_ref || 'default' }}
-          ${{ inputs.registry }}/${{ inputs.app_name}}:${{ steps.date.outputs.date }}_${{ github.run_number }}
+          ${{ inputs.old_registry }}/${{ inputs.app_name }}:${{ github.ref_name == 'main' && 'latest' || github.head_ref || 'default' }}
+          ${{ inputs.old_registry }}/${{ inputs.app_name }}:${{ steps.date.outputs.date }}_${{ github.run_number }}
+
+    - name: Build Docker Image and optionally push (New Registry)
+      if: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' }}
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ${{ inputs.dockerfile }}
+        push: ${{ inputs.push }}
+        cache-from: type=registry,ref=${{ inputs.new_registry }}/${{ inputs.app_name }}:${{ github.ref_name == 'main' && 'latest' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo' || github.head_ref || github.ref_name }}
+        tags: |
+          ${{ inputs.new_registry }}/${{ inputs.app_name }}:${{ github.ref_name == 'main' && 'latest' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo' || github.head_ref || 'default' }}
+          ${{ inputs.new_registry }}/${{ inputs.app_name }}:${{ steps.date.outputs.date }}_${{ github.run_number }}

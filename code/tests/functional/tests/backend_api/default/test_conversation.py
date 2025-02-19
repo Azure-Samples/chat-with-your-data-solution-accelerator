@@ -65,7 +65,7 @@ def completions_mocking(httpserver: HTTPServer, app_config: AppConfig):
             "id": "chatcmpl-6v7mkQj980V1yBec6ETrKPRqFjNw9",
             "object": "chat.completion",
             "created": 1679072642,
-            "model": "gpt-35-turbo",
+            "model": "gpt-4o",
             "usage": {
                 "prompt_tokens": 40,
                 "completion_tokens": 50,

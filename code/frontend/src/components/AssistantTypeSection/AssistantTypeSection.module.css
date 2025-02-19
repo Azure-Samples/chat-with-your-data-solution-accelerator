@@ -1,0 +1,61 @@
+.chatEmptyState {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.chatIcon {
+    height: 62px;
+    width: 62px;
+}
+
+.chatEmptyStateTitle {
+    font-family: "Segoe UI";
+    font-style: normal;
+    font-weight: 700;
+    font-size: 36px;
+    display: flex;
+    align-items: flex-end;
+    text-align: center;
+    margin-top: 24px;
+    margin-bottom: 0px;
+}
+
+.chatEmptyStateSubtitle {
+    margin-top: 16px;
+    font-family: "Segoe UI";
+    font-style: normal;
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 150%;
+    display: flex;
+    align-items: flex-end;
+    text-align: center;
+    letter-spacing: -0.01em;
+    color: #616161;
+}
+
+.dataText {
+    background: linear-gradient(90deg, #464FEB 10.42%, #8330E9 100%);
+    color: transparent;
+    background-clip: text;
+}
+
+.loadingContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh; /* Full viewport height */
+  }
+
+  .loadingIcon {
+    border: 8px solid #f3f3f3; /* Light grey */
+    border-top: 8px solid #3498db; /* Blue */
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+  }

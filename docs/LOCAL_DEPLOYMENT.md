@@ -191,8 +191,8 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 |AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION ||Whether to use [Integrated Vectorization](https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-vectorization)|
 |AZURE_OPENAI_RESOURCE||the name of your Azure OpenAI resource|
 |AZURE_OPENAI_MODEL||The name of your model deployment|
-|AZURE_OPENAI_MODEL_NAME|gpt-35-turbo|The name of the model|
-|AZURE_OPENAI_MODEL_VERSION|0613|The version of the model to use|
+|AZURE_OPENAI_MODEL_NAME|gpt-4o|The name of the model|
+|AZURE_OPENAI_MODEL_VERSION|2024-05-13|The version of the model to use|
 |AZURE_OPENAI_API_KEY||One of the API keys of your Azure OpenAI resource|
 |AZURE_OPENAI_EMBEDDING_MODEL|text-embedding-ada-002|The name of your Azure OpenAI embeddings model deployment|
 |AZURE_OPENAI_EMBEDDING_MODEL_NAME|text-embedding-ada-002|The name of the embeddings model (can be found in Azure AI Foundry)|
