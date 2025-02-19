@@ -8,7 +8,7 @@ import {
 import Layout from "./Layout";
 
 import { BrowserRouter } from "react-router-dom";
-import { getUserInfo } from "../../api/api";
+import { getUserInfo, checkAuthEnforced } from "../../api/api";
 import { before } from "lodash";
 import { hostname } from "os";
 
@@ -29,7 +29,7 @@ const DefaultLayoutPropsloderfalse = {
   };
 
 jest.mock('../../api/api', () => ({
-    getUserInfo: jest.fn()
+    getUserInfo: jest.fn(), checkAuthEnforced: jest.fn()
 }));
 
 
@@ -72,6 +72,7 @@ describe("Layout Component", () => {
       },
   });
     ;(getUserInfo as jest.Mock).mockResolvedValue(mocklist)
+    ;(checkAuthEnforced as jest.Mock).mockResolvedValue(true)
     await act(async () => {
         render(
           <BrowserRouter>
