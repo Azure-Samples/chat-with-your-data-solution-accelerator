@@ -19,8 +19,6 @@ Follow the steps below to ensure a smooth migration.
 ### Prerequisites:
 Before you begin, ensure you have the following:
 - Access to the **Azure Portal**.
-<!-- - **Credentials** for the new container registry (**`cwydcontainerreg`**). -->
-- **Permissions** to update the Azure Web App Service settings.
 - The **container image** in the new registry is ready and accessible.
 
 ---
@@ -84,7 +82,7 @@ After updating the configuration, restart your **Web App Service** to apply the 
    - Change the **Registry Source** to **Private**.
    - Set the **Server URL** to the new container registry (`https://cwydcontainerreg.azurecr.io`).
    - Set the **Full Image name** to the relevant image name and tag:
-     - For **Admin Web App**: `admin-webapp:latest`
+     - For **Admin Web App**: `rag-adminwebapp:latest`
 
 4. **Save Changes**:
    - Click **Save** to save the configuration.
