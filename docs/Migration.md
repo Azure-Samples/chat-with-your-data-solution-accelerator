@@ -40,7 +40,7 @@ Before you begin, ensure you have the following information:
    - Open [Azure Portal](https://portal.azure.com/).
 
 2. **Locate Your Web App Service**:
-   - In the search bar, type your **Web App Service name** and select it from the list.
+   - Navigate to **App Service**: From the list of resources, find and select **App Service**
 
 3. **Go to the Deployment Center**:
    - In the left-hand menu, click on **Deployment**.
@@ -73,7 +73,7 @@ After updating the configuration, restart your **Web App Service** to apply the 
 ### Step 4: Update Azure Admin Web App Service Configuration Using Azure Portal
 
 1. **Locate Your Admin Web App Service**:
-   - In the search bar, type your **Admin Web App Service name** and select it from the list.
+   - Navigate to **App Service**: From the list of resources, find and select **App Service** that contains `admin` in its name
 
 2. **Go to the Deployment Center**:
    - In the left-hand menu, click on **Deployment**.
@@ -101,7 +101,7 @@ After updating the configuration, restart your **Admin Web App Service** to appl
 ### Step 6: Update Azure Function App Service Configuration Using Azure Portal
 
 1. **Locate Your Function App Service**:
-   - In the search bar, type your **Function App Service name** and select it from the list.
+   - Navigate to **Function App**: From the list of resources, find and select **Function App**
 
 2. **Go to the Deployment Center**:
    - In the left-hand menu, click on **Deployment**.
