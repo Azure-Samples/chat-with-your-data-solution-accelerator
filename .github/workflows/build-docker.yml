@@ -40,7 +40,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Dev Docker Login
-      if: ${{ inputs.push == true && (github.ref_name == 'dev' || github.ref_name == 'demo') }}
+      if: ${{ inputs.push == true && (github.ref_name == 'dev' || github.ref_name == 'demo'|| github.ref_name == 'dependabotchanges') }}
       uses: docker/login-action@v3
       with:
         registry: ${{ inputs.registry }}
@@ -56,7 +56,7 @@ jobs:
 
     - name: Determine Tag Name Based on Branch
       id: determine_tag
-      run: echo "tagname=${{ github.ref_name == 'main' && 'latest' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo' || github.head_ref || 'default' }}" >> $GITHUB_OUTPUT
+      run: echo "tagname=${{ github.ref_name == 'main' && 'latest' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo'|| github.ref_name == 'dependabotchanges' && 'dependabotchanges' || github.head_ref || 'default' }}" >> $GITHUB_OUTPUT
 
     - name: Build Docker Image and optionally push
       uses: docker/build-push-action@v6
@@ -64,7 +64,7 @@ jobs:
         context: .
         file: ${{ inputs.dockerfile }}
         push: ${{ inputs.push }}
-        cache-from: type=registry,ref=${{ inputs.registry }}/${{ inputs.app_name}}:${{ github.ref_name == 'main' && 'latest' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo' || github.head_ref || github.ref_name }}
+        cache-from: type=registry,ref=${{ inputs.registry }}/${{ inputs.app_name}}:${{ github.ref_name == 'main' && 'latest' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo'|| github.ref_name == 'dependabotchanges' && 'dependabotchanges' || github.head_ref || github.ref_name }}
         tags: |
           ${{ inputs.registry }}/${{ inputs.app_name}}:${{ steps.determine_tag.outputs.tagname }}
           ${{ inputs.registry }}/${{ inputs.app_name}}:${{ steps.determine_tag.outputs.tagname }}_${{ steps.date.outputs.date }}_${{ github.run_number }}
