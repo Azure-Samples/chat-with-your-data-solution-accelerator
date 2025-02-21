@@ -39,8 +39,9 @@ Before you begin, ensure you have the following information:
 1. **Log in to Azure Portal**:
    - Open [Azure Portal](https://portal.azure.com/).
 
-2. **Locate Your Web App Service**:
-   - Navigate to **App Service**: From the list of resources, find and select **App Service**
+2. **Locate Your Resource Group and Web App Service**:
+   - Navigate to resource group which you have created for CWYD.
+   - Navigate to **Web App Service**: From the list of resources, find and select **App Service**
 
 3. **Go to the Deployment Center**:
    - In the left-hand menu, click on **Deployment**.
@@ -72,8 +73,9 @@ After updating the configuration, restart your **Web App Service** to apply the 
 
 ### Step 4: Update Azure Admin Web App Service Configuration Using Azure Portal
 
-1. **Locate Your Admin Web App Service**:
-   - Navigate to **App Service**: From the list of resources, find and select **App Service** that contains `admin` in its name
+1. **Locate Your Resource Group and Admin Web App Service**:
+   - Navigate to resource group which you have created for CWYD.
+   - Navigate to **Admin App Service**: From the list of resources, find and select **App Service** that contains `admin` in its name
 
 2. **Go to the Deployment Center**:
    - In the left-hand menu, click on **Deployment**.
@@ -100,7 +102,8 @@ After updating the configuration, restart your **Admin Web App Service** to appl
 
 ### Step 6: Update Azure Function App Service Configuration Using Azure Portal
 
-1. **Locate Your Function App Service**:
+1. **Locate Your Resource Group and Function App Service**:
+   - Navigate to resource group which you have created for CWYD.
    - Navigate to **Function App**: From the list of resources, find and select **Function App**
 
 2. **Go to the Deployment Center**:
