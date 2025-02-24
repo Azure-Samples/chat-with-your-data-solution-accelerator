@@ -29,6 +29,52 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Run Quota Check Script
+      - name: Run Quota Check
+        id: quota-check
+        run: |
+          export AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
+          export AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
+          export AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
+          export AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          export GPT_MIN_CAPACITY="130"
+          export TEXT_EMBEDDING_MIN_CAPACITY="30"
+
+          chmod +x scripts/checkquota.sh
+          if ! scripts/checkquota.sh; then
+            # If quota check fails due to insufficient quota, set the flag
+            if grep -q "No region with sufficient quota found" scripts/checkquota.sh; then
+              echo "QUOTA_FAILED=true" >> $GITHUB_ENV
+            fi
+            exit 1  # Fail the pipeline if any other failure occurs
+          fi
+
+      - name: Send Notification on Quota Failure
+        if: env.QUOTA_FAILED == 'true'
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>The quota check has failed, and the pipeline cannot proceed.</p><p><strong>Build URL:</strong> ${RUN_URL}</p><p>Please take necessary action.</p><p>Best regards,<br>Your Automation Team</p>"
+          }
+          EOF
+          )
+
+          curl -X POST "${{ secrets.LOGIC_APP_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send notification"
+
+      - name: Fail Pipeline if Quota Check Fails
+        if: env.QUOTA_FAILED == 'true'
+        run: exit 1
+
+        # The pipeline stops here if quota check fails!
+
+      - name: Set Deployment Region
+        run: |
+          echo "Selected Region: $VALID_REGION"
+          echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -51,7 +97,7 @@ jobs:
         uses: devcontainers/ci@v0.3
         env:
           AZURE_ENV_NAME: ${{ github.run_id }}
-          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+          AZURE_LOCATION: ${{ env.AZURE_LOCATION }}
         with:
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
           cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
