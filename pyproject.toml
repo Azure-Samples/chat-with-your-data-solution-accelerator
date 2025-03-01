@@ -48,7 +48,7 @@ pgvector = "^0.3.6"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
 pytest-cov = "6.0.0"
-flake8 = "7.1.1"
+flake8 = "7.1.2"
 black = "25.1.0"
 pre-commit = "4.1.0"
 pytest_httpserver = "1.1.1"
