@@ -3,7 +3,7 @@
 ## Overview
 
 ### Current Problem:
-- The **CWYD Container Image** is being published in the **GBB ACR** (Azure Container Registry).
+- The **CWYD Container Image** is being published in the **External ACR** (Azure Container Registry).
 
 ### Goal:
 - The goal is to **migrate container images** from various applications to a common **CSA CTO Production Azure Container Registry**, ensuring all the different images are consolidated in one centralized location.
