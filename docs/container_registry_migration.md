@@ -12,7 +12,7 @@
 
 ## Step-by-Step Guide: Migrating Azure Web App Service to a New Container Registry
 
-This guide will help you seamlessly switch the container registry for your **Azure Web App Service** from Azure Container Registry (ACR) to the new registry **`fruoccopublic`**.
+This guide will help you seamlessly switch the container registry for your **Azure Web App Service** from Azure Container Registry (ACR) to the new registry **`cwydcontainerreg`**.
 
 Follow the steps below to ensure a smooth migration.
 
@@ -26,7 +26,7 @@ Before you begin, ensure you have the following:
 ### Step 1: Obtain Details for the New Registry
 
 Before you begin, ensure you have the following information:
-- **Registry URL**: The URL of the new registry (`https://fruoccopublic.azurecr.io`).
+- **Registry URL**: The URL of the new registry (`https://cwydcontainerreg.azurecr.io`).
 - **Image Name and Tag**: The full name and tag of the image you want to use:
   - **Web App Image**: `rag-webapp:latest`
   - **Admin Web App Image**: `rag-adminwebapp:latest`
@@ -51,7 +51,7 @@ Before you begin, ensure you have the following information:
 
 4. **Update Image Source**:
    - Change the **Registry Source** to **Private**.
-   - Set the **Server URL** to the new container registry (`https://fruoccopublic.azurecr.io`), as shown in the screenshot below.
+   - Set the **Server URL** to the new container registry (`https://cwydcontainerreg.azurecr.io`), as shown in the screenshot below.
    - Set the **Full Image name** to the relevant image name and tag:
      - For Web App: `rag-webapp:latest`
 
@@ -82,7 +82,7 @@ After updating the configuration, restart your **Web App Service** to apply the 
 
 3. **Update Image Source for Admin Web App**:
    - Change the **Registry Source** to **Private**.
-   - Set the **Server URL** to the new container registry (`https://fruoccopublic.azurecr.io`).
+   - Set the **Server URL** to the new container registry (`https://cwydcontainerreg.azurecr.io`).
    - Set the **Full Image name** to the relevant image name and tag:
      - For **Admin Web App**: `rag-adminwebapp:latest`
 
@@ -111,7 +111,7 @@ After updating the configuration, restart your **Admin Web App Service** to appl
 
 3. **Update Image Source for Function App**:
    - Change the **Registry Source** to **Private**.
-   - Set the **Server URL** to the new container registry (`https://fruoccopublic.azurecr.io`).
+   - Set the **Server URL** to the new container registry (`https://cwydcontainerreg.azurecr.io`).
    - Set the **Full Image name** to the relevant image name and tag:
      - For **Function App**: `rag-backend:latest`
 
