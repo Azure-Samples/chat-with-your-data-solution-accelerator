@@ -20,7 +20,7 @@ interface SpinnerComponentProps {
     if (!loading) return null;
   
     return (
-      <div className={styles.overlay}>
+      <div className={styles.overlay} data-testid="spinnerContainer">
           <Spinner label={label || undefined} size={SpinnerSize.large} styles={spinnerStyles} />
       </div>
     );
