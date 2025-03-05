@@ -1,11 +1,5 @@
 name: "Manage Stale Issues, PRs & Unmerged Branches"
 on:
-  push:
-    branches:
-      - psl-github-cleanup
-  
-  schedule:
-    - cron: '30 1 * * *'  # Runs daily at 1:30 AM UTC
   workflow_dispatch:
   
 permissions:
