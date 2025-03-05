@@ -1,0 +1,82 @@
+name: "Manage Stale Issues, PRs & Unmerged Branches"
+on:
+  schedule:
+    - cron: '30 1 * * *'  # Runs daily at 1:30 AM UTC
+  workflow_dispatch:  # Allows manual triggering
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mark Stale Issues and PRs
+        uses: actions/stale@v9
+        with:
+          stale-issue-message: "This issue is stale because it has been open 180 days with no activity. Remove stale label or comment, or it will be closed in 30 days."
+          stale-pr-message: "This PR is stale because it has been open 180 days with no activity. Please update or it will be closed in 30 days."
+          days-before-stale: 180
+          days-before-close: 30
+          exempt-issue-labels: "keep"
+          exempt-pr-labels: "keep"
+  cleanup-branches:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for accurate branch checks
+      - name: Fetch All Branches
+        run: git fetch --all --prune
+      - name: List Merged Branches With No Activity in Last 3 Months
+        run: |
+          
+          echo "Branch Name,Last Commit Date,Committer,Committed In Branch,Action" > merged_branches_report.csv
+          
+          for branch in $(git for-each-ref --format '%(refname:short) %(committerdate:unix)' refs/remotes/origin | awk -v date=$(date -d '3 months ago' +%s) '$2 < date {print $1}'); do
+            if [[ "$branch" != "origin/main" && "$branch" != "origin/dev" ]]; then
+              branch_name=${branch#origin/}
+              # Ensure the branch exists locally before getting last commit date
+              git fetch origin "$branch_name" || echo "Could not fetch branch: $branch_name"
+              last_commit_date=$(git log -1 --format=%ci "origin/$branch_name" || echo "Unknown")
+              committer_name=$(git log -1 --format=%cn "origin/$branch_name" || echo "Unknown")
+              committed_in_branch=$(git branch -r --contains "origin/$branch_name" | tr -d ' ' | paste -sd "," -)
+              echo "$branch_name,$last_commit_date,$committer_name,$committed_in_branch,Delete" >> merged_branches_report.csv
+            fi
+          done
+      - name: List PR Approved and Merged Branches Older Than 30 Days
+        run: |
+          
+          for branch in $(gh api repos/${{ github.repository }}/pulls --jq '.[] | select(.merged_at != null and (.base.ref == "main" or .base.ref == "dev")) | select(.merged_at | fromdateiso8601 < (now - 2592000)) | .head.ref'); do
+            # Ensure the branch exists locally before getting last commit date
+            git fetch origin "$branch" || echo "Could not fetch branch: $branch"
+            last_commit_date=$(git log -1 --format=%ci origin/$branch || echo "Unknown")
+            committer_name=$(git log -1 --format=%cn origin/$branch || echo "Unknown")
+            committed_in_branch=$(git branch -r --contains "origin/$branch" | tr -d ' ' | paste -sd "," -)
+            echo "$branch,$last_commit_date,$committer_name,$committed_in_branch,Delete" >> merged_branches_report.csv
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: List Open PR Branches With No Activity in Last 3 Months
+        run: |
+          
+          for branch in $(gh api repos/${{ github.repository }}/pulls --state open --jq '.[] | select(.base.ref == "main" or .base.ref == "dev") | .head.ref'); do
+            # Ensure the branch exists locally before getting last commit date
+            git fetch origin "$branch" || echo "Could not fetch branch: $branch"
+            last_commit_date=$(git log -1 --format=%ci origin/$branch || echo "Unknown")
+            committer_name=$(git log -1 --format=%cn origin/$branch || echo "Unknown")
+            if [[ $(date -d "$last_commit_date" +%s) -lt $(date -d '3 months ago' +%s) ]]; then
+              # If no commit in the last 3 months, mark for deletion
+              committed_in_branch=$(git branch -r --contains "origin/$branch" | tr -d ' ' | paste -sd "," -)
+              echo "$branch,$last_commit_date,$committer_name,$committed_in_branch,Delete" >> merged_branches_report.csv
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload CSV Report of Inactive Branches
+        uses: actions/upload-artifact@v4
+        with:
+          name: merged-branches-report
+          path: merged_branches_report.csv
+          retention-days: 30
