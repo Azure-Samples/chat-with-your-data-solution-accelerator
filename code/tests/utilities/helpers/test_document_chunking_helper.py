@@ -109,3 +109,37 @@ def test_document_chunking_fixed_size_overlap():
         chunked_documents[6].content
         == " shows how the different chunking strategies work now!"
     )
+
+
+def test_document_chunking_json():
+    # Test json chunking strategy
+    chunking = ChunkingSettings({"strategy": ChunkingStrategy.JSON, "size": 175, "overlap": 0})
+
+    json_documents = [
+        SourceDocument(
+            content="""
+            {
+                "window":{
+                    "title":"Sample Widget",
+                    "name":"main_window",
+                    "width":500,
+                    "height":500
+                },
+                "image":{
+                    "src":"Images/Sun.png",
+                    "name":"sun1",
+                    "hOffset":250,
+                    "vOffset":250,
+                    "alignment":"center"
+                }
+            }
+            """,
+            source="https://example.com/sample_document.json",
+        ),
+    ]
+
+    document_chunking = DocumentChunking()
+    chunked_documents = document_chunking.chunk(json_documents, chunking)
+    assert len(chunked_documents) == 2
+    assert chunked_documents[0].content == "{'window': {'title': 'Sample Widget', 'name': 'main_window', 'width': 500, 'height': 500}}"
+    assert chunked_documents[1].content == "{'image': {'src': 'Images/Sun.png', 'name': 'sun1', 'hOffset': 250, 'vOffset': 250, 'alignment': 'center'}}"
