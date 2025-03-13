@@ -56,7 +56,7 @@ jobs:
 
     # Login for 'dev' and 'demo' branches to cwydcontainerreg only
     - name: Docker Login to cwydcontainerreg (Dev/Demo)
-      if: ${{ inputs.push == true && (github.ref_name == 'dev' || github.ref_name == 'demo') }}
+      if: ${{ inputs.push == true && (github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'dependabotchanges') }}
       uses: docker/login-action@v3
       with:
         registry: ${{ inputs.new_registry }}
