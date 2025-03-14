@@ -3,6 +3,7 @@ import json
 import logging
 import functools
 from string import Template
+from typing import List, Dict, Optional
 
 from ..azure_blob_storage_client import AzureBlobStorageClient
 from ...document_chunking.chunking_strategy import ChunkingStrategy, ChunkingSettings
@@ -21,8 +22,17 @@ ADVANCED_IMAGE_PROCESSING_FILE_TYPES = ["jpeg", "jpg", "png", "tiff", "bmp"]
 logger = logging.getLogger(__name__)
 
 
-class Config:
-    def __init__(self, config: dict):
+class BaseConfig:
+    def get(self, key: str, default=None):
+        return getattr(self, key, default)
+
+    def __getitem__(self, key: str):
+        return getattr(self, key)
+
+
+class Config(BaseConfig):
+    def __init__(self, config: Dict):
+        super().__init__()
         self.prompts = Prompts(config["prompts"])
         self.messages = Messages(config["messages"])
         self.example = Example(config["example"])
@@ -32,19 +42,13 @@ class Config:
                 document_type=c["document_type"],
                 chunking=ChunkingSettings(c["chunking"]),
                 loading=LoadingSettings(c["loading"]),
-                use_advanced_image_processing=c.get(
-                    "use_advanced_image_processing", False
-                ),
+                use_advanced_image_processing=c.get("use_advanced_image_processing", False),
             )
             for c in config["document_processors"]
         ]
         self.env_helper = EnvHelper()
-        self.default_orchestration_settings = {
-            "strategy": self.env_helper.ORCHESTRATION_STRATEGY
-        }
-        self.orchestrator = OrchestrationSettings(
-            config.get("orchestrator", self.default_orchestration_settings)
-        )
+        self.default_orchestration_settings = {"strategy": self.env_helper.ORCHESTRATION_STRATEGY}
+        self.orchestrator = OrchestrationSettings(config.get("orchestrator", self.default_orchestration_settings))
         self.integrated_vectorization_config = (
             IntegratedVectorizationConfig(config["integrated_vectorization_config"])
             if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
@@ -52,50 +56,38 @@ class Config:
         )
         self.enable_chat_history = config["enable_chat_history"]
         self.database_type = config.get("database_type", self.env_helper.DATABASE_TYPE)
-        self.conversational_flow = config.get(
-            "conversational_flow", self.env_helper.CONVERSATION_FLOW
-        )
+        self.conversational_flow = config.get("conversational_flow", self.env_helper.CONVERSATION_FLOW)
 
-    def get_available_document_types(self) -> list[str]:
-        document_types = {
-            "txt",
-            "pdf",
-            "url",
-            "html",
-            "htm",
-            "md",
-            "jpeg",
-            "jpg",
-            "png",
-            "docx",
-        }
+    def get_available_document_types(self) -> List[str]:
+        document_types = {"txt", "pdf", "url", "html", "htm", "md", "jpeg", "jpg", "png", "docx"}
         if self.env_helper.USE_ADVANCED_IMAGE_PROCESSING:
             document_types.update(ADVANCED_IMAGE_PROCESSING_FILE_TYPES)
 
         return sorted(document_types)
 
-    def get_advanced_image_processing_image_types(self):
+    def get_advanced_image_processing_image_types(self) -> List[str]:
         return ADVANCED_IMAGE_PROCESSING_FILE_TYPES
 
-    def get_available_chunking_strategies(self):
+    def get_available_chunking_strategies(self) -> List[str]:
         return [c.value for c in ChunkingStrategy]
 
-    def get_available_loading_strategies(self):
+    def get_available_loading_strategies(self) -> List[str]:
         return [c.value for c in LoadingStrategy]
 
-    def get_available_orchestration_strategies(self):
+    def get_available_orchestration_strategies(self) -> List[str]:
         return [c.value for c in OrchestrationStrategy]
 
-    def get_available_ai_assistant_types(self):
+    def get_available_ai_assistant_types(self) -> List[str]:
         return [c.value for c in AssistantStrategy]
 
-    def get_available_conversational_flows(self):
+    def get_available_conversational_flows(self) -> List[str]:
         return [c.value for c in ConversationFlow]
 
 
 # TODO: Change to AnsweringChain or something, Prompts is not a good name
-class Prompts:
-    def __init__(self, prompts: dict):
+class Prompts(BaseConfig):
+    def __init__(self, prompts: Dict):
+        super().__init__()
         self.condense_question_prompt = prompts["condense_question_prompt"]
         self.answering_system_prompt = prompts["answering_system_prompt"]
         self.answering_user_prompt = prompts["answering_user_prompt"]
@@ -107,62 +99,53 @@ class Prompts:
         self.conversational_flow = prompts["conversational_flow"]
 
 
-class Example:
-    def __init__(self, example: dict):
+class Example(BaseConfig):
+    def __init__(self, example: Dict):
+        super().__init__()
         self.documents = example["documents"]
         self.user_question = example["user_question"]
         self.answer = example["answer"]
 
 
-class Messages:
-    def __init__(self, messages: dict):
+class Messages(BaseConfig):
+    def __init__(self, messages: Dict):
+        super().__init__()
         self.post_answering_filter = messages["post_answering_filter"]
 
 
-class Logging:
-    def __init__(self, logging: dict):
-        self.log_user_interactions = (
-            str(logging["log_user_interactions"]).lower() == "true"
-        )
+class Logging(BaseConfig):
+    def __init__(self, logging: Dict):
+        super().__init__()
+        self.log_user_interactions = str(logging["log_user_interactions"]).lower() == "true"
         self.log_tokens = str(logging["log_tokens"]).lower() == "true"
 
 
-class IntegratedVectorizationConfig:
-    def __init__(self, integrated_vectorization_config: dict):
+class IntegratedVectorizationConfig(BaseConfig):
+    def __init__(self, integrated_vectorization_config: Dict):
+        super().__init__()
         self.max_page_length = integrated_vectorization_config["max_page_length"]
-        self.page_overlap_length = integrated_vectorization_config[
-            "page_overlap_length"
-        ]
+        self.page_overlap_length = integrated_vectorization_config["page_overlap_length"]
 
 
 class ConfigHelper:
-    _default_config = None
+    _default_config: Optional[Dict] = None
 
     @staticmethod
-    def _set_new_config_properties(config: dict, default_config: dict):
+    def _set_new_config_properties(config: Dict, default_config: Dict):
         """
         Function used to set newer properties that will not be present in older configs.
         The function mutates the config object.
         """
         if config["prompts"].get("answering_system_prompt") is None:
-            config["prompts"]["answering_system_prompt"] = default_config["prompts"][
-                "answering_system_prompt"
-            ]
+            config["prompts"]["answering_system_prompt"] = default_config["prompts"]["answering_system_prompt"]
 
-        prompt_modified = (
-            config["prompts"].get("answering_prompt")
-            != default_config["prompts"]["answering_prompt"]
-        )
+        prompt_modified = config["prompts"].get("answering_prompt") != default_config["prompts"]["answering_prompt"]
 
         if config["prompts"].get("answering_user_prompt") is None:
             if prompt_modified:
-                config["prompts"]["answering_user_prompt"] = config["prompts"].get(
-                    "answering_prompt"
-                )
+                config["prompts"]["answering_user_prompt"] = config["prompts"].get("answering_prompt")
             else:
-                config["prompts"]["answering_user_prompt"] = default_config["prompts"][
-                    "answering_user_prompt"
-                ]
+                config["prompts"]["answering_user_prompt"] = default_config["prompts"]["answering_user_prompt"]
 
         if config["prompts"].get("use_on_your_data_format") is None:
             config["prompts"]["use_on_your_data_format"] = not prompt_modified
@@ -171,25 +154,20 @@ class ConfigHelper:
             config["example"] = default_config["example"]
 
         if config["prompts"].get("ai_assistant_type") is None:
-            config["prompts"]["ai_assistant_type"] = default_config["prompts"][
-                "ai_assistant_type"
-            ]
+            config["prompts"]["ai_assistant_type"] = default_config["prompts"]["ai_assistant_type"]
 
         if config.get("integrated_vectorization_config") is None:
-            config["integrated_vectorization_config"] = default_config[
-                "integrated_vectorization_config"
-            ]
+            config["integrated_vectorization_config"] = default_config["integrated_vectorization_config"]
 
         if config["prompts"].get("conversational_flow") is None:
-            config["prompts"]["conversational_flow"] = default_config["prompts"][
-                "conversational_flow"
-            ]
+            config["prompts"]["conversational_flow"] = default_config["prompts"]["conversational_flow"]
+
         if config.get("enable_chat_history") is None:
             config["enable_chat_history"] = default_config["enable_chat_history"]
 
     @staticmethod
     @functools.cache
-    def get_active_config_or_default():
+    def get_active_config_or_default() -> Config:
         logger.info("Method get_active_config_or_default started")
         env_helper = EnvHelper()
         config = ConfigHelper.get_default_config()
@@ -206,24 +184,22 @@ class ConfigHelper:
 
                 ConfigHelper._set_new_config_properties(config, default_config)
             else:
-                logger.info(
-                    "Configuration file not found in Blob Storage, using default configuration"
-                )
+                logger.info("Configuration file not found in Blob Storage, using default configuration")
 
         logger.info("Method get_active_config_or_default ended")
         return Config(config)
 
     @staticmethod
     @functools.cache
-    def get_default_assistant_prompt():
+    def get_default_assistant_prompt() -> str:
         config = ConfigHelper.get_default_config()
         return config["prompts"]["answering_user_prompt"]
 
     @staticmethod
-    def save_config_as_active(config):
+    def save_config_as_active(config: Dict):
         ConfigHelper.validate_config(config)
         blob_client = AzureBlobStorageClient(container_name=CONFIG_CONTAINER_NAME)
-        blob_client = blob_client.upload_file(
+        blob_client.upload_file(
             json.dumps(config, indent=2),
             CONFIG_FILE_NAME,
             content_type="application/json",
@@ -231,22 +207,17 @@ class ConfigHelper:
         ConfigHelper.get_active_config_or_default.cache_clear()
 
     @staticmethod
-    def validate_config(config: dict):
+    def validate_config(config: Dict):
         for document_processor in config.get("document_processors"):
             document_type = document_processor.get("document_type")
-            unsupported_advanced_image_processing_file_type = (
-                document_type not in ADVANCED_IMAGE_PROCESSING_FILE_TYPES
-            )
-            if (
-                document_processor.get("use_advanced_image_processing")
-                and unsupported_advanced_image_processing_file_type
-            ):
+            unsupported_advanced_image_processing_file_type = document_type not in ADVANCED_IMAGE_PROCESSING_FILE_TYPES
+            if document_processor.get("use_advanced_image_processing") and unsupported_advanced_image_processing_file_type:
                 raise Exception(
                     f"Advanced image processing has not been enabled for document type {document_type}, as only {ADVANCED_IMAGE_PROCESSING_FILE_TYPES} file types are supported."
                 )
 
     @staticmethod
-    def get_default_config():
+    def get_default_config() -> Dict:
         if ConfigHelper._default_config is None:
             env_helper = EnvHelper()
 
@@ -258,14 +229,10 @@ class ConfigHelper:
                     Template(f.read()).substitute(
                         ORCHESTRATION_STRATEGY=env_helper.ORCHESTRATION_STRATEGY,
                         LOG_USER_INTERACTIONS=(
-                            False
-                            if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value
-                            else True
+                            False if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value else True
                         ),
                         LOG_TOKENS=(
-                            False
-                            if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value
-                            else True
+                            False if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value else True
                         ),
                         CONVERSATION_FLOW=env_helper.CONVERSATION_FLOW,
                         DATABASE_TYPE=env_helper.DATABASE_TYPE,
@@ -278,27 +245,17 @@ class ConfigHelper:
 
     @staticmethod
     @functools.cache
-    def get_default_contract_assistant():
-        contract_file_path = os.path.join(
-            os.path.dirname(__file__), "default_contract_assistant_prompt.txt"
-        )
-        contract_assistant = ""
+    def get_default_contract_assistant() -> str:
+        contract_file_path = os.path.join(os.path.dirname(__file__), "default_contract_assistant_prompt.txt")
         with open(contract_file_path, encoding="utf-8") as f:
-            contract_assistant = f.readlines()
-
-        return "".join([str(elem) for elem in contract_assistant])
+            return f.read()
 
     @staticmethod
     @functools.cache
-    def get_default_employee_assistant():
-        employee_file_path = os.path.join(
-            os.path.dirname(__file__), "default_employee_assistant_prompt.txt"
-        )
-        employee_assistant = ""
+    def get_default_employee_assistant() -> str:
+        employee_file_path = os.path.join(os.path.dirname(__file__), "default_employee_assistant_prompt.txt")
         with open(employee_file_path, encoding="utf-8") as f:
-            employee_assistant = f.readlines()
-
-        return "".join([str(elem) for elem in employee_assistant])
+            return f.read()
 
     @staticmethod
     def clear_config():
@@ -317,9 +274,9 @@ class ConfigHelper:
         )
 
     @staticmethod
-    def _remove_processors_for_file_types(file_types: list[str]):
+    def _remove_processors_for_file_types(file_types: List[str]):
         document_processors = ConfigHelper._default_config["document_processors"]
-        document_processors = [
+        ConfigHelper._default_config["document_processors"] = [
             document_processor
             for document_processor in document_processors
             if document_processor["document_type"] not in file_types
