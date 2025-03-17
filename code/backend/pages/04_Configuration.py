@@ -110,7 +110,7 @@ def config_assistant_prompt():
         st.session_state["ai_assistant_type"]
         == AssistantStrategy.CONTRACT_ASSISTANT.value
     ):
-        st.success("Contract Assistant Prompt")
+        st.success("AI Assistant Prompt")
         st.session_state["answering_user_prompt"] = (
             ConfigHelper.get_default_contract_assistant()
         )
@@ -118,7 +118,7 @@ def config_assistant_prompt():
         st.session_state["ai_assistant_type"]
         == AssistantStrategy.EMPLOYEE_ASSISTANT.value
     ):
-        st.success("Employee Assistant Prompt")
+        st.success("Logical Prompt")
         st.session_state["answering_user_prompt"] = (
             ConfigHelper.get_default_employee_assistant()
         )

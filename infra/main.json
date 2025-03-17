@@ -381,7 +381,7 @@
     },
     "azureOpenAISystemMessage": {
       "type": "string",
-      "defaultValue": "You are an AI assistant that helps people find information.",
+      "defaultValue": "You are an AI assistant that helps people find Cruise information to different locations.Any Question related to price of the Cruise should return the answer whoch tells the user that a Travel consultant will reach out to them.",
       "metadata": {
         "description": "Azure OpenAI System Message"
       }

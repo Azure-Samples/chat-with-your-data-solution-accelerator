@@ -255,7 +255,7 @@ def test_image_urls_included_in_call_to_openai(
                         "role": "system",
                     },
                     {
-                        "content": "You are an AI assistant that helps people find information.",
+                        "content": "You are an AI assistant that helps people find Cruise information to different locations.Any Question related to price of the Cruise should return the answer whoch tells the user that a Travel consultant will reach out to them.",
                         "role": "system",
                     },
                     {"content": "Hello", "role": "user"},

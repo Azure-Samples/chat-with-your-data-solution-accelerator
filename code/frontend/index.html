@@ -4,10 +4,586 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chat with your data</title>
+    <title>Veebot by GapCloud</title>
+    <style>
+      /* Button container to hold both buttons side by side */
+      .button-container {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        display: flex;
+        gap: 10px;
+      }
+
+      .agent-button {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+
+      .agent-button:hover {
+        background-color: #45a049;
+      }
+
+      /* Transcription button styles */
+      .transcription-button {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .transcription-button:hover {
+        background-color: #45a049;
+      }
+
+      .transcription-icon {
+        width: 20px;
+        height: 20px;
+        fill: white;
+      }
+
+      .chat-container {
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 350px;
+        height: 450px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: white;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        z-index: 1001;
+        overflow: hidden;
+        flex-direction: column;
+      }
+
+      .chat-header {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .close-chat {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+      }
+
+      .chat-messages {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .message {
+        margin-bottom: 10px;
+        padding: 8px 12px;
+        border-radius: 16px;
+        max-width: 80%;
+      }
+
+      .user-message {
+        background-color: #e1ffc7;
+        align-self: flex-end;
+      }
+
+      .agent-message {
+        background-color: #f1f1f1;
+        align-self: flex-start;
+      }
+
+      .chat-input {
+        display: flex;
+        padding: 10px;
+        border-top: 1px solid #ddd;
+      }
+
+      .chat-input input {
+        flex-grow: 1;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-right: 8px;
+      }
+
+      .chat-input button {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 16px;
+        cursor: pointer;
+      }
+
+      .status-indicator {
+        font-size: 14px;
+        margin: 10px;
+        padding: 8px;
+        border-radius: 4px;
+        text-align: center;
+      }
+
+      .available {
+        background-color: #e7f5e7;
+        color: #2e7d32;
+      }
+
+      .unavailable {
+        background-color: #ffebee;
+        color: #c62828;
+      }
+    </style>
   </head>
   <body>
+
     <div id="root"></div>
+
     <script type="module" src="/src/index.tsx"></script>
-  </body>
+
+    <!-- Button container to hold both buttons -->
+    <div class="button-container">
+      <button id="talkToAgentBtn" class="agent-button">Talk to an agent</button>
+
+      <!-- New Transcription Button with Voice Icon -->
+      <a href="https://gapcloudaitranscription.azurewebsites.net" target="_blank" id="transcriptionLink">
+        <button id="transcriptionBtn" class="transcription-button" title="Voice services">
+          <svg class="transcription-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <!-- Voice wave icon -->
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+          </svg>
+        </button>
+      </a>
+    </div>
+
+    <div id="chatContainer" class="chat-container">
+      <div class="chat-header">
+        <span>Chat with Agent</span>
+        <button class="close-chat" id="closeChat">×</button>
+      </div>
+      <div id="statusIndicator"></div>
+      <div class="chat-messages" id="chatMessages">
+
+      </div>
+      <div class="chat-input">
+        <input type="text" id="messageInput" placeholder="Type your message...">
+        <button id="sendMessageBtn">Send</button>
+      </div>
+    </div>
+
+
+    <script>
+
+
+
+      function generateUUID() {
+        var d = new Date().getTime();
+        var d2 = ((typeof performance !== 'undefined') && performance.now && (performance.now() * 1000)) || 0;
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+          var r = Math.random() * 16;
+          if (d > 0) {
+            r = (d + r) % 16 | 0;
+            d = Math.floor(d / 16);
+          } else {
+            r = (d2 + r) % 16 | 0;
+            d2 = Math.floor(d2 / 16);
+          }
+          return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+      }
+
+
+      function generateEventData(eventName, msg) {
+        const messageId = generateUUID();
+        const data = {
+          events: [{
+            event: eventName,
+            message_id: messageId,
+            msg: msg
+          }]
+        };
+        return JSON.stringify(data);
+      }
+
+
+      function getNewClientId() {
+        const customerShort = "sb-gapcloud";
+        const mobileAppId = "Jugal_AscottCubbyChat_UID";
+        const clientId = generateUUID();
+
+        console.log(`GUID created for client ${clientId}.`);
+        const authHeader = `MOBILE-API-140-327-PLAIN appId="${mobileAppId}", clientId="${clientId}"`;
+
+        return {
+          ID: clientId,
+          Name: customerShort,
+          Scope: `${customerShort}.brightpattern.com`,
+          MainUrl: `https://${customerShort}.brightpattern.com`,
+          AppId: mobileAppId,
+          Authentication: authHeader
+        };
+      }
+
+
+
+      let currentChatId = null;
+      let appInfo = null;
+      let chatEvents = [];
+      let chatPollingInterval = null;
+
+
+      function initApp() {
+        appInfo = getNewClientId();
+        console.log("App Info:", appInfo);
+
+
+        document.getElementById('talkToAgentBtn').addEventListener('click', checkAvailabilityAndStartChat);
+        document.getElementById('closeChat').addEventListener('click', closeChat);
+        document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            sendMessage();
+          }
+        });
+
+        // Add event listener for the new transcription button
+        document.getElementById('transcriptionBtn').addEventListener('click', function() {
+          console.log("Voice button clicked");
+          // Functionality can be added later
+        });
+      }
+
+
+      async function checkAvailabilityAndStartChat() {
+        showStatusIndicator("Checking agent availability...");
+
+        const availability = await getAvailability();
+        if (availability && availability.toLowerCase() === "available") {
+          showStatusIndicator("Agent available. Starting chat...", "available");
+          startChat();
+        } else {
+          showStatusIndicator("No agents are currently available. Please try again later.", "unavailable");
+          document.getElementById('chatContainer').style.display = 'flex';
+        }
+      }
+
+
+      async function getAvailability() {
+        const header = {
+          "Authorization": appInfo.Authentication,
+          "Content-Type": "application/json; charset=UTF-8",
+          "User-Agent": "WebChat"
+        };
+
+        const url = `${appInfo.MainUrl}/clientweb/api/v2/availability?tenantUrl=${appInfo.Scope}`;
+
+        try {
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: header
+          });
+
+          if (response.ok) {
+            const availabilityData = await response.json();
+            if (availabilityData && availabilityData.chat) {
+              return availabilityData.chat;
+            }
+            console.error("Availability response:", availabilityData);
+            return availabilityData;
+          } else {
+            console.error('Failed to retrieve availability.');
+            return null;
+          }
+        } catch (error) {
+          console.error('An error occurred while retrieving availability:', error);
+          return null;
+        }
+      }
+
+
+      async function startChat() {
+        const header = {
+          "Authorization": appInfo.Authentication,
+          "Content-Type": "application/json; charset=UTF-8",
+          "User-Agent": "WebChat"
+        };
+
+        const data = {
+          "parameters": {
+            "firstname": "John",
+            "lastname": "Doe",
+            "email": "useremail@gmail.com",
+            "phone_number": "+61435844256",
+            "url": "https://google.com.au/"
+          }
+        };
+
+        const url = `${appInfo.MainUrl}/clientweb/api/v2/chats?tenantUrl=${appInfo.Scope}`;
+
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: header,
+            body: JSON.stringify(data)
+          });
+
+          if (response.ok) {
+            const chatSession = await response.json();
+            console.log(`Chat started - state: ${chatSession.state}, chat_id: ${chatSession.chat_id}, is_new: ${chatSession.is_new_chat}`);
+
+            currentChatId = chatSession.chat_id;
+            document.getElementById('chatContainer').style.display = 'flex';
+
+
+            getChatEvents();
+            addMessageToChat("Welcome to our support chat! An agent will be with you shortly.", "agent");
+
+            // Start the polling interval for real-time updates
+            startChatPolling();
+
+            document.getElementById('statusIndicator').innerHTML = '';
+
+            return chatSession.chat_id;
+          } else {
+            showStatusIndicator("Failed to start chat. Please try again.", "unavailable");
+            throw new Error('Failed to start chat');
+          }
+        } catch (error) {
+          console.error("Error starting chat:", error.message);
+          return null;
+        }
+      }
+
+      // Function to start polling for chat updates
+      function startChatPolling() {
+        // Clear any existing interval first
+        if (chatPollingInterval) {
+          clearInterval(chatPollingInterval);
+        }
+
+        // Set up a new interval to poll every 1 second
+        chatPollingInterval = setInterval(() => {
+          if (currentChatId) {
+            getChatEvents();
+          } else {
+            // If chat is ended, stop polling
+            clearInterval(chatPollingInterval);
+          }
+        }, 1000);
+      }
+
+
+      async function sendMessage() {
+        const messageInput = document.getElementById('messageInput');
+        const message = messageInput.value.trim();
+
+        if (!message || !currentChatId) return;
+
+
+        addMessageToChat(message, 'user');
+        messageInput.value = '';
+
+
+        const header = {
+          "Authorization": appInfo.Authentication,
+          "Content-Type": "application/json; charset=UTF-8",
+          "User-Agent": "WebChat"
+        };
+
+        const msgData = generateEventData("chat_session_message", message);
+        const url = `${appInfo.MainUrl}/clientweb/api/v2/chats/${currentChatId}/events?tenantUrl=${appInfo.Scope}`;
+
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: header,
+            body: msgData
+          });
+
+          if (response.ok) {
+            console.log('Message sent successfully.');
+
+            setTimeout(getChatEvents, 1000);
+          } else {
+            console.error('Failed to send message.');
+            addMessageToChat("Failed to send message. Please try again.", 'system');
+          }
+        } catch (error) {
+          console.error('An error occurred while sending message:', error);
+          addMessageToChat("Error sending message. Please try again.", 'system');
+        }
+      }
+
+
+      async function closeChat() {
+        if (currentChatId) {
+
+          const header = {
+            "Authorization": appInfo.Authentication,
+            "Content-Type": "application/json; charset=UTF-8",
+            "User-Agent": "WebChat"
+          };
+
+          const url = `${appInfo.MainUrl}/clientweb/api/v2/chats/${currentChatId}/events?tenantUrl=${appInfo.Scope}`;
+          const msgData = generateEventData("chat_session_end", "Close_Chat");
+
+          try {
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: header,
+              body: msgData
+            });
+
+            if (response.ok) {
+              console.log('Chat session closed successfully.');
+              currentChatId = null;
+              chatEvents = [];
+              document.getElementById('chatMessages').innerHTML = '';
+
+              // Stop the polling interval when chat is closed
+              if (chatPollingInterval) {
+                clearInterval(chatPollingInterval);
+                chatPollingInterval = null;
+              }
+            } else {
+              console.error('Failed to close chat session.');
+            }
+          } catch (error) {
+            console.error('An error occurred while closing chat session:', error);
+          }
+        }
+
+
+        document.getElementById('chatContainer').style.display = 'none';
+      }
+
+
+      async function getChatEvents() {
+        if (!currentChatId) return;
+
+        const header = {
+          "Authorization": appInfo.Authentication,
+          "Content-Type": "application/json; charset=UTF-8",
+          "User-Agent": "WebChat"
+        };
+
+        const url = `${appInfo.MainUrl}/clientweb/api/v2/chats/${currentChatId}/events?tenantUrl=${appInfo.Scope}`;
+        try {
+const response = await fetch(url, {
+method: 'GET',
+headers: header
+});
+if (response.ok) {
+        const events = await response.json();
+        if (events.events) {
+
+          processNewEvents(events.events);
+        }
+        return events;
+      } else {
+        console.error('Failed to retrieve chat events.');
+        return null;
+      }
+    } catch (error) {
+      console.error('An error occurred while retrieving chat events:', error);
+      return null;
+    }
+  }
+
+
+  function processNewEvents(newEvents) {
+    for (const event of newEvents) {
+
+      const existingEvent = chatEvents.find(e =>
+        e.message_id && event.message_id && e.message_id === event.message_id);
+
+      if (!existingEvent) {
+        chatEvents.push(event);
+
+
+        if (event.event === 'chat_session_message' && event.msg) {
+
+          if (event.party_id !== appInfo.ID) {
+            addMessageToChat(event.msg, 'agent');
+          }
+        } else if (event.event === 'chat_session_status' && event.state === 'connected') {
+          addMessageToChat("An agent has joined the chat.", 'system');
+        } else if (event.event === 'chat_session_party_joined') {
+          const name = event.display_name || `${event.first_name} ${event.last_name}`;
+          if (event.party_id !== appInfo.ID) {
+            addMessageToChat(`${name} has joined the chat.`, 'system');
+          }
+        } else if (event.event === 'chat_session_party_left') {
+          const name = event.display_name || `${event.first_name} ${event.last_name}`;
+          addMessageToChat(`${name} has left the chat.`, 'system');
+        } else if (event.event === 'chat_session_ended') {
+          addMessageToChat("Chat session has ended.", 'system');
+          currentChatId = null;
+
+          // Stop polling when chat ends
+          if (chatPollingInterval) {
+            clearInterval(chatPollingInterval);
+            chatPollingInterval = null;
+          }
+        }
+      }
+    }
+  }
+
+
+  function addMessageToChat(message, sender) {
+    const chatMessages = document.getElementById('chatMessages');
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('message');
+
+    if (sender === 'user') {
+      messageElement.classList.add('user-message');
+    } else if (sender === 'agent') {
+      messageElement.classList.add('agent-message');
+    } else {
+
+      messageElement.style.backgroundColor = '#e0e0e0';
+      messageElement.style.color = '#555';
+      messageElement.style.fontStyle = 'italic';
+      messageElement.style.alignSelf = 'center';
+    }
+
+    messageElement.textContent = message;
+    chatMessages.appendChild(messageElement);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+
+  function showStatusIndicator(message, type) {
+    const statusIndicator = document.getElementById('statusIndicator');
+    statusIndicator.innerHTML = message;
+    statusIndicator.className = 'status-indicator';
+
+    if (type) {
+      statusIndicator.classList.add(type);
+    }
+  }
+
+
+  document.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
 </html>

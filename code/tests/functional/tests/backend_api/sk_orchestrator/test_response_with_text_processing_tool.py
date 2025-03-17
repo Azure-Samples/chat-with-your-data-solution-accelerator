@@ -165,7 +165,7 @@ def test_post_makes_correct_call_to_openai_chat_completions_in_text_processing_t
             json={
                 "messages": [
                     {
-                        "content": "You are an AI assistant for the user.",
+                        "content": "You are an AI assistant that helps people find Cruise information to different locations.Any Question related to price of the Cruise should return the answer whoch tells the user that a Travel consultant will reach out to them.",
                         "role": "system",
                     },
                     {

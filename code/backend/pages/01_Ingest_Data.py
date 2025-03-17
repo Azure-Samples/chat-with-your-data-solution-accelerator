@@ -87,7 +87,7 @@ try:
             processor.document_type for processor in config.document_processors
         ]
         uploaded_files = st.file_uploader(
-            "Upload a document to add it to the Azure Storage Account, compute embeddings and add them to the Azure AI Search index. Check your configuration for available document processors.",
+            "Upload a document to add it to the AI Knowledge Base.",
             type=file_type,
             accept_multiple_files=True,
         )
@@ -111,7 +111,7 @@ try:
         col1, col2, col3 = st.columns([2, 1, 2])
         with col3:
             st.button(
-                "Reprocess all documents in the Azure Storage account",
+                "Relearn From Scrath.",
                 on_click=reprocess_all,
             )
 
@@ -119,7 +119,7 @@ try:
         col1, col2 = st.columns([3, 1])
         with col1:
             st.text_area(
-                "Add URLs and then click on 'Compute Embeddings'",
+                "Add URLs to scrap data.",
                 placeholder="PLACE YOUR URLS HERE SEPARATED BY A NEW LINE",
                 height=100,
                 key="urls",

@@ -157,7 +157,7 @@ def test_post_makes_correct_call_to_azure_openai(
                             },
                             "query_type": "vector_simple_hybrid",
                             "semantic_configuration": "",
-                            "role_information": "You are an AI assistant that helps people find information.",
+                            "role_information": "You are an AI assistant that helps people find Cruise information to different locations.Any Question related to price of the Cruise should return the answer whoch tells the user that a Travel consultant will reach out to them.",
                             "authentication": {
                                 "type": "api_key",
                                 "key": app_config.get("AZURE_SEARCH_KEY"),

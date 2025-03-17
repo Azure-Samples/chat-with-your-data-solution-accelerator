@@ -187,7 +187,7 @@ class EnvHelper:
         self.AZURE_OPENAI_STOP_SEQUENCE = os.getenv("AZURE_OPENAI_STOP_SEQUENCE", "")
         self.AZURE_OPENAI_SYSTEM_MESSAGE = os.getenv(
             "AZURE_OPENAI_SYSTEM_MESSAGE",
-            "You are an AI assistant that helps people find information.",
+            "You are an AI assistant that helps people find Cruise information to different locations.Any Question related to price of the Cruise should return the answer whoch tells the user that a Travel consultant will reach out to them.",
         )
         self.AZURE_OPENAI_API_VERSION = os.getenv(
             "AZURE_OPENAI_API_VERSION", "2024-02-01"

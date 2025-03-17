@@ -18,7 +18,7 @@ class TextProcessingTool(AnsweringToolBase):
             else question
         )
 
-        system_message = """You are an AI assistant for the user."""
+        system_message = """You are an AI assistant that helps people find Cruise information to different locations.Any Question related to price of the Cruise should return the answer whoch tells the user that a Travel consultant will reach out to them."""
 
         result = llm_helper.get_chat_completion(
             [

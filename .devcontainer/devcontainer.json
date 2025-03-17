@@ -1,5 +1,5 @@
 {
-	"name": "Chat with your data",
+	"name": "Veebot",
 	"build": {
 		"dockerfile": "Dockerfile"
 	},

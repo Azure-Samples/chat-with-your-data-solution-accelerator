@@ -24,7 +24,7 @@ export const AssistantTypeSection: React.FC<AssistantTypeSectionProps> = ({
         src={Azure}
         className={styles.chatIcon}
         aria-hidden="true"
-        alt="Chat with your data"
+        alt="Veebot"
       />
       {assistantType === assistantTypes.contractAssistant ? (
         <>
@@ -37,11 +37,11 @@ export const AssistantTypeSection: React.FC<AssistantTypeSectionProps> = ({
       ) : assistantType === assistantTypes.default ? (
         <>
           <h1 className={styles.chatEmptyStateTitle}>
-            Chat with your
-            <span className={styles.dataText}>&nbsp;Data</span>
+            Chat with
+            <span className={styles.dataText}>&nbsp;Veebot</span>
           </h1>
           <h2 className={styles.chatEmptyStateSubtitle}>
-            This chatbot is configured to answer your questions
+            
           </h2>
         </>
       ) : null}

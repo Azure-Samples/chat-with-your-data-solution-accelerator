@@ -126,7 +126,7 @@ def test_post_makes_correct_call_to_azure_openai(
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are an AI assistant that helps people find information.",
+                        "content": "You are an AI assistant that helps people find Cruise information to different locations.Any Question related to price of the Cruise should return the answer whoch tells the user that a Travel consultant will reach out to them.",
                     },
                 ]
                 + body["messages"],
