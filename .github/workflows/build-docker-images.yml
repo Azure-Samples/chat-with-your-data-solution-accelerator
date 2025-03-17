@@ -38,5 +38,5 @@ jobs:
       new_username: 'cwydcontainerreg'
       app_name: ${{ matrix.app_name }}
       dockerfile: ${{ matrix.dockerfile }}
-      push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' }}
+      push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo'|| github.ref_name == 'dependabotchanges' }}
     secrets: inherit
