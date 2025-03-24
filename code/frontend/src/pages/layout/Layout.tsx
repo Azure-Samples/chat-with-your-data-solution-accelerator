@@ -53,7 +53,6 @@ const Layout = ({ children,toggleSpinner, ...props }: LayoutProps) => {
 
   const getUserInfoList = async () => {
     const isAuthEnforced = await checkAuthEnforced(); // Check if auth is enforced
-    console.log("isAuthEnforced:", isAuthEnforced);
     if(!isAuthEnforced) {
       setShowAuthMessage(false);
       return;
