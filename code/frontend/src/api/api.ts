@@ -54,6 +54,25 @@ export async function getUserInfo(): Promise<UserInfo[]> {
   }
 }
 
+export async function checkAuthEnforced(): Promise<boolean> {
+  try {
+    const response = await fetch("/api/checkauth", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    const config = await response.json(); // Parse JSON response
+    return config.is_auth_enforced;
+  } catch (error) {
+    console.error("Failed to fetch configuration:", error);
+    return true; // Return true because we need to enforce auth by default
+  }
+}
+
 export async function getAssistantTypeApi() {
   try {
     const response = await fetch("/api/assistanttype", {
