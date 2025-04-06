@@ -406,7 +406,7 @@ FodyWeavers.xsd
 # Python
 .env
 .venv
-
+local.settings.json
 temp/
 .azure
 
