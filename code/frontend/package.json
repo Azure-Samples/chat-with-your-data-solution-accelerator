@@ -51,7 +51,7 @@
         "prettier": "^3.4.2",
         "ts-jest": "^29.3.1",
         "ts-node": "^10.9.2",
-        "typescript": "^5.7.3",
+        "typescript": "^5.8.2",
         "vite": "^6.2.5",
         "vitest": "^3.1.1"
     }
