@@ -498,14 +498,14 @@ typing-extensions = ">=4.0.1"
 
 [[package]]
 name = "azure-ai-ml"
-version = "1.25.0"
+version = "1.26.1"
 description = "Microsoft Azure Machine Learning Client Library for Python"
 optional = false
 python-versions = ">=3.7"
 groups = ["main", "prompt-flow"]
 files = [
-    {file = "azure_ai_ml-1.25.0-py3-none-any.whl", hash = "sha256:3c5ce27e07346a97e4e62bd08195e18ff08fbcd283dfc463504b80735be7ecd6"},
-    {file = "azure_ai_ml-1.25.0.tar.gz", hash = "sha256:4503702d322306621a7447fa1c8990ba0f817e2650811ee54307b4639d7682d3"},
+    {file = "azure_ai_ml-1.26.1-py3-none-any.whl", hash = "sha256:ab42cbf951180aaf813b94af6b8b6e664eb4e66a1a73ca0075e03211fd8a3a66"},
+    {file = "azure_ai_ml-1.26.1.tar.gz", hash = "sha256:07445f7336fecbba207a216120d68f2499c25d96f0b1b3b64bf14ac5d2197fda"},
 ]
 
 [package.dependencies]
@@ -7259,4 +7259,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "134f75fe5cd0df2614abccd6c643d5630a16a9c0c38676df96207b96ecbfa9eb"
+content-hash = "f40ac9864a1544395d8bf13b6d1244cb1ab46ea0a992b8c35c12c320b1718760"
