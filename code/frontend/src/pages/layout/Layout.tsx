@@ -9,7 +9,7 @@ import {
 import { Dialog, Stack, TextField } from "@fluentui/react";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { HistoryButton } from "../../components/HistoryButton/HistoryButton";
-import { getUserInfo } from "../../api";
+import { getUserInfo, checkAuthEnforced } from "../../api";
 import SpinnerComponent from '../../components/Spinner/Spinner';
 
 
@@ -52,6 +52,12 @@ const Layout = ({ children,toggleSpinner, ...props }: LayoutProps) => {
   const firstRender = useRef(true);
 
   const getUserInfoList = async () => {
+    const isAuthEnforced = await checkAuthEnforced(); // Check if auth is enforced
+    if(!isAuthEnforced) {
+      setShowAuthMessage(false);
+      return;
+    }
+
     const userInfoList = await getUserInfo();
     if (
       userInfoList.length === 0 &&
