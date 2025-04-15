@@ -149,7 +149,7 @@ param azureOpenAIVisionModel string = 'gpt-4'
 param azureOpenAIVisionModelName string = 'gpt-4'
 
 @description('Azure OpenAI Vision Model Version')
-param azureOpenAIVisionModelVersion string = 'vision-preview'
+param azureOpenAIVisionModelVersion string = 'turbo-2024-04-09'
 
 @description('Azure OpenAI Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIVisionModelCapacity int = 10

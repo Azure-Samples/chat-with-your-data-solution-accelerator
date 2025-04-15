@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.33.93.31351",
-      "templateHash": "4812595955475306561"
+      "templateHash": "5128832335196651060"
     }
   },
   "parameters": {
@@ -315,7 +315,7 @@
     },
     "azureOpenAIVisionModelVersion": {
       "type": "string",
-      "defaultValue": "vision-preview",
+      "defaultValue": "turbo-2024-04-09",
       "metadata": {
         "description": "Azure OpenAI Vision Model Version"
       }
