@@ -1,4 +1,4 @@
-name: "pr-title-checker"
+name: "PR Title Checker"
 
 on:
   pull_request_target:
