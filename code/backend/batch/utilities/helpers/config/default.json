@@ -98,6 +98,17 @@
       }
     },
     {
+      "document_type": "json",
+      "chunking": {
+        "strategy": "json",
+        "size": 500,
+        "overlap": 100
+      },
+      "loading": {
+        "strategy": "web"
+      }
+    },
+    {
       "document_type": "jpg",
       "chunking": {
         "strategy": "layout",
