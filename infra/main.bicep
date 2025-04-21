@@ -306,10 +306,10 @@ param logLevel string = 'INFO'
 
 @description('List of comma-separated languages to recognize from the speech input. Supported languages are listed here: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=stt#supported-languages')
 param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
-
+/* Commenting out AML only required when using Promptflow
 @description('Azure Machine Learning Name')
 param azureMachineLearningName string = 'aml-${resourceToken}'
-
+*/
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
@@ -1323,6 +1323,8 @@ module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac' && pri
   }
 }
 
+// Commenting out for all scenarios - this is only relevant if Orchestration Strategy is set to 'prompt_flow'
+/*
 module machineLearning 'app/machinelearning.bicep' = if (orchestrationStrategy == 'prompt_flow') {
   scope: rg
   name: azureMachineLearningName
@@ -1338,7 +1340,7 @@ module machineLearning 'app/machinelearning.bicep' = if (orchestrationStrategy =
     azureOpenAIEndpoint: openai.outputs.endpoint
   }
 }
-
+*/
 module createIndex './core/database/deploy_create_table_script.bicep' = if (databaseType == 'PostgreSQL') {
   name: 'deploy_create_table_script'
   params: {
@@ -1376,11 +1378,13 @@ var azureOpenAIEmbeddingModelInfo = string({
   model_version: azureOpenAIEmbeddingModelVersion
 })
 
+/* CosmosDB will not be used in solution
 var azureCosmosDBInfo = string({
   account_name: databaseType == 'CosmosDB' ? cosmosDBModule.outputs.cosmosOutput.cosmosAccountName : ''
   database_name: databaseType == 'CosmosDB' ? cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName : ''
   container_name: databaseType == 'CosmosDB' ? cosmosDBModule.outputs.cosmosOutput.cosmosContainerName : ''
 })
+*/
 
 var azurePostgresDBInfo = string({
   host_name: databaseType == 'PostgreSQL' ? postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName : ''
@@ -1388,11 +1392,12 @@ var azurePostgresDBInfo = string({
   user: ''
 })
 
+/* Forms recognizer will not be used in solution, it's only enabled when Vision is enabled (and the vision is legacy now, should be totally removed from project)
 var azureFormRecognizerInfo = string({
   endpoint: formrecognizer.outputs.endpoint
   key: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
 })
-
+*/
 var azureBlobStorageInfo = string({
   container_name: blobContainerName
   account_name: storageAccountName
@@ -1428,7 +1433,7 @@ var azureSearchServiceInfo = databaseType == 'CosmosDB'
       datasource_name: azureSearchDatasource
     })
   : ''
-
+/* Obsolete tech should submit pr to repo
 var azureComputerVisionInfo = string({
   service_name: speechServiceName
   endpoint: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
@@ -1437,7 +1442,7 @@ var azureComputerVisionInfo = string({
   vectorize_image_api_version: computerVisionVectorizeImageApiVersion
   vectorize_image_model_version: computerVisionVectorizeImageModelVersion
 })
-
+*/
 var azureOpenaiConfigurationInfo = string({
   service_name: speechServiceName
   stream: azureOpenAIStream
@@ -1464,9 +1469,9 @@ var azureContentSafetyInfo = string({
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
 output AZURE_BLOB_STORAGE_INFO string = azureBlobStorageInfo
-output AZURE_COMPUTER_VISION_INFO string = azureComputerVisionInfo
+//output AZURE_COMPUTER_VISION_INFO string = azureComputerVisionInfo
 output AZURE_CONTENT_SAFETY_INFO string = azureContentSafetyInfo
-output AZURE_FORM_RECOGNIZER_INFO string = azureFormRecognizerInfo
+//output AZURE_FORM_RECOGNIZER_INFO string = azureFormRecognizerInfo
 output AZURE_KEY_VAULT_INFO string = azureKeyvaultInfo
 output AZURE_LOCATION string = location
 output AZURE_OPENAI_MODEL_INFO string = azureOpenAIModelInfo
@@ -1491,11 +1496,12 @@ output CONVERSATION_FLOW string = conversationFlow
 output USE_ADVANCED_IMAGE_PROCESSING bool = useAdvancedImageProcessing
 output AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION bool = azureSearchUseIntegratedVectorization
 output ADVANCED_IMAGE_PROCESSING_MAX_IMAGES int = advancedImageProcessingMaxImages
-output AZURE_ML_WORKSPACE_NAME string = orchestrationStrategy == 'prompt_flow'
-  ? machineLearning.outputs.workspaceName
-  : ''
+// Commenting out AML it's only enabled when orchestration strategy is set to 'prompt_flow'
+//output AZURE_ML_WORKSPACE_NAME string = orchestrationStrategy == 'prompt_flow'
+//  ? machineLearning.outputs.workspaceName
+//  : ''
 output RESOURCE_TOKEN string = resourceToken
-output AZURE_COSMOSDB_INFO string = azureCosmosDBInfo
+//output AZURE_COSMOSDB_INFO string = azureCosmosDBInfo
 output AZURE_POSTGRESQL_INFO string = azurePostgresDBInfo
 output OPEN_AI_FUNCTIONS_SYSTEM_PROMPT string = openAIFunctionsSystemPrompt
 output SEMENTIC_KERNEL_SYSTEM_PROMPT string = semanticKernelSystemPrompt
