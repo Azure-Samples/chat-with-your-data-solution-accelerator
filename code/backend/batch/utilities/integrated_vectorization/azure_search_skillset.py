@@ -6,7 +6,7 @@ from azure.search.documents.indexes.models import (
     AzureOpenAIEmbeddingSkill,
     OcrSkill,
     MergeSkill,
-    SearchIndexerIndexProjections,
+    SearchIndexerIndexProjection,
     SearchIndexerIndexProjectionSelector,
     SearchIndexerIndexProjectionsParameters,
     IndexProjectionMode,
@@ -103,7 +103,7 @@ class AzureSearchSkillset:
             ],
         )
 
-        index_projections = SearchIndexerIndexProjections(
+        index_projections = SearchIndexerIndexProjection(
             selectors=[
                 SearchIndexerIndexProjectionSelector(
                     target_index_name=self.env_helper.AZURE_SEARCH_INDEX,
@@ -137,5 +137,5 @@ class AzureSearchSkillset:
         )
 
         skillset_result = self.indexer_client.create_or_update_skillset(skillset)
-        logger.info(f"{skillset.name} created")
+        logger.info("%s created", skillset.name)
         return skillset_result

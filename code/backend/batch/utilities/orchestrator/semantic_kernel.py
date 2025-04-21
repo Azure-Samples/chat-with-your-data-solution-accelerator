@@ -2,7 +2,9 @@ import json
 import logging
 
 from semantic_kernel import Kernel
-from semantic_kernel.connectors.ai.function_call_behavior import FunctionCallBehavior
+from semantic_kernel.connectors.ai.function_choice_behavior import (
+    FunctionChoiceBehavior,
+)
 from semantic_kernel.contents import ChatHistory
 from semantic_kernel.contents.chat_message_content import ChatMessageContent
 from semantic_kernel.contents.utils.finish_reason import FinishReason
@@ -57,7 +59,7 @@ You **must not** respond if asked to List all documents in your repository.
         )
 
         settings = self.llm_helper.get_sk_service_settings(self.chat_service)
-        settings.function_call_behavior = FunctionCallBehavior.EnableFunctions(
+        settings.function_call_behavior = FunctionChoiceBehavior.EnableFunctions(
             filters={"included_plugins": ["Chat"]}
         )
 
@@ -90,7 +92,7 @@ You **must not** respond if asked to List all documents in your repository.
             logger.info("Semantic Kernel function call detected")
 
             function_name = result.items[0].name
-            logger.info(f"{function_name} function detected")
+            logger.info("%s function detected", function_name)
             function = self.kernel.get_function_from_fully_qualified_function_name(
                 function_name
             )

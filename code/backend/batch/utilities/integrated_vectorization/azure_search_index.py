@@ -1,4 +1,6 @@
 import logging
+from ..helpers.env_helper import EnvHelper
+from ..helpers.llm_helper import LLMHelper
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.indexes.models import (
     SearchField,
@@ -12,18 +14,16 @@ from azure.search.documents.indexes.models import (
     ExhaustiveKnnAlgorithmConfiguration,
     ExhaustiveKnnParameters,
     VectorSearchProfile,
+    AzureOpenAIVectorizerParameters,
     AzureOpenAIVectorizer,
-    AzureOpenAIParameters,
     SemanticConfiguration,
     SemanticSearch,
     SemanticPrioritizedFields,
     SemanticField,
     SearchIndex,
 )
-from ..helpers.env_helper import EnvHelper
 from azure.identity import DefaultAzureCredential
 from azure.core.credentials import AzureKeyCredential
-from ..helpers.llm_helper import LLMHelper
 
 logger = logging.getLogger(__name__)
 
@@ -110,18 +110,18 @@ class AzureSearchIndex:
             semantic_search=semantic_search,
         )
         result = self.index_client.create_or_update_index(index)
-        logger.info(f"{result.name} index created successfully.")
+        logger.info("%s index created successfully.", result.name)
         return result
 
     def get_vector_search_config(self):
         if self.env_helper.is_auth_type_keys():
-            azure_open_ai_parameters = AzureOpenAIParameters(
+            azure_open_ai_parameters = AzureOpenAIVectorizerParameters(
                 resource_uri=self.env_helper.AZURE_OPENAI_ENDPOINT,
                 deployment_id=self.env_helper.AZURE_OPENAI_EMBEDDING_MODEL,
                 api_key=self.env_helper.OPENAI_API_KEY,
             )
         else:
-            azure_open_ai_parameters = AzureOpenAIParameters(
+            azure_open_ai_parameters = AzureOpenAIVectorizerParameters(
                 resource_uri=self.env_helper.AZURE_OPENAI_ENDPOINT,
                 deployment_id=self.env_helper.AZURE_OPENAI_EMBEDDING_MODEL,
             )
@@ -158,7 +158,7 @@ class AzureSearchIndex:
             ],
             vectorizers=[
                 AzureOpenAIVectorizer(
-                    name="myOpenAI",
+                    vectorizer_name="myOpenAI",
                     kind="azureOpenAI",
                     azure_open_ai_parameters=azure_open_ai_parameters,
                 ),
