@@ -50,7 +50,9 @@ try:
     if (
         env_helper.DATABASE_TYPE == DatabaseType.COSMOSDB.value
         and (results is None or results.get_count() == 0)
-    ) or (env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value and len(results) == 0):
+    ) or (
+        env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value and len(results) == 0
+    ):
         st.info("No files to delete")
         st.stop()
     else:

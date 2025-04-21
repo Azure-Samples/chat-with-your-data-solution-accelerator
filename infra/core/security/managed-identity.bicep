@@ -10,7 +10,7 @@ param solutionName string
 param solutionLocation string
 
 @description('Name')
-param miName string = '${ solutionName }-managed-identity'
+param miName string = '${solutionName }-managed-identity'
 
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: miName
@@ -31,7 +31,7 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(resourceGroup().id, managedIdentity.id, ownerRoleDefinition.id)
   properties: {
     principalId: managedIdentity.properties.principalId
-    roleDefinitionId:  ownerRoleDefinition.id
+    roleDefinitionId: ownerRoleDefinition.id
     principalType: 'ServicePrincipal'
   }
 }

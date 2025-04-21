@@ -451,15 +451,21 @@ Use the Retrieved Documents to answer the question: {question}
                         "answering_system_prompt": st.session_state[
                             "answering_system_prompt"
                         ],
-                        "answering_user_prompt": st.session_state["answering_user_prompt"],
+                        "answering_user_prompt": st.session_state[
+                            "answering_user_prompt"
+                        ],
                         "use_on_your_data_format": st.session_state[
                             "use_on_your_data_format"
                         ],
-                        "post_answering_prompt": st.session_state["post_answering_prompt"],
+                        "post_answering_prompt": st.session_state[
+                            "post_answering_prompt"
+                        ],
                         "enable_post_answering_prompt": st.session_state[
                             "enable_post_answering_prompt"
                         ],
-                        "enable_content_safety": st.session_state["enable_content_safety"],
+                        "enable_content_safety": st.session_state[
+                            "enable_content_safety"
+                        ],
                         "ai_assistant_type": st.session_state["ai_assistant_type"],
                         "conversational_flow": st.session_state["conversational_flow"],
                     },
@@ -475,10 +481,14 @@ Use the Retrieved Documents to answer the question: {question}
                     },
                     "document_processors": document_processors,
                     "logging": {
-                        "log_user_interactions": st.session_state["log_user_interactions"],
+                        "log_user_interactions": st.session_state[
+                            "log_user_interactions"
+                        ],
                         "log_tokens": st.session_state["log_tokens"],
                     },
-                    "orchestrator": {"strategy": st.session_state["orchestrator_strategy"]},
+                    "orchestrator": {
+                        "strategy": st.session_state["orchestrator_strategy"]
+                    },
                     "integrated_vectorization_config": (
                         integrated_vectorization_config
                         if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION

@@ -57,9 +57,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
     )
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.RealDictCursor")
-    def test_get_vector_store_success(
-        self, mock_cursor, mock_connect, mock_credential
-    ):
+    def test_get_vector_store_success(self, mock_cursor, mock_connect, mock_credential):
         # Arrange
         # Mock the EnvHelper and set required attributes
         mock_env_helper = MagicMock()

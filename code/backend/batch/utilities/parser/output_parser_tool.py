@@ -26,7 +26,9 @@ class OutputParserTool(ParserBase):
         offset = 0
         for i, match in enumerate(doc_matches):
             start, end = match.start() + offset, match.end() + offset
-            updated_answer = updated_answer[:start] + f"[doc{i + 1}]" + updated_answer[end:]
+            updated_answer = (
+                updated_answer[:start] + f"[doc{i + 1}]" + updated_answer[end:]
+            )
             offset += len(f"[doc{i + 1}]") - (end - start)
         return updated_answer
 

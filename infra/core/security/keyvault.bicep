@@ -14,38 +14,42 @@ resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' = {
     tenantId: subscription().tenantId
     sku: { family: 'A', name: 'standard' }
     accessPolicies: concat(
-      managedIdentityObjectId != '' ? [
-        {
-          objectId: managedIdentityObjectId
-          permissions: {
-            keys: [
-              'get'
-              'list'
-            ]
-            secrets: [
-              'get'
-              'list'
-            ]
-          }
-          tenantId: subscription().tenantId
-        }
-      ] : [],
-      principalId != '' ? [
-        {
-          objectId: principalId
-          permissions: {
-            keys: [
-              'get'
-              'list'
-            ]
-            secrets: [
-              'get'
-              'list'
-            ]
-          }
-          tenantId: subscription().tenantId
-        }
-      ] : []
+      managedIdentityObjectId != ''
+        ? [
+            {
+              objectId: managedIdentityObjectId
+              permissions: {
+                keys: [
+                  'get'
+                  'list'
+                ]
+                secrets: [
+                  'get'
+                  'list'
+                ]
+              }
+              tenantId: subscription().tenantId
+            }
+          ]
+        : [],
+      principalId != ''
+        ? [
+            {
+              objectId: principalId
+              permissions: {
+                keys: [
+                  'get'
+                  'list'
+                ]
+                secrets: [
+                  'get'
+                  'list'
+                ]
+              }
+              tenantId: subscription().tenantId
+            }
+          ]
+        : []
     )
   }
 }
