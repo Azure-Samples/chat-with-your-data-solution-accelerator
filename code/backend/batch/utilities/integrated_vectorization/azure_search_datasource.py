@@ -2,9 +2,8 @@ from azure.search.documents.indexes.models import (
     SearchIndexerDataContainer,
     SearchIndexerDataSourceConnection,
 )
-from azure.search.documents.indexes._generated.models import (
-    NativeBlobSoftDeleteDeletionDetectionPolicy,
-)
+
+
 from azure.search.documents.indexes import SearchIndexerClient
 from ..helpers.env_helper import EnvHelper
 from azure.identity import DefaultAzureCredential
@@ -33,8 +32,8 @@ class AzureSearchDatasource:
             name=self.env_helper.AZURE_SEARCH_DATASOURCE_NAME,
             type="azureblob",
             connection_string=connection_string,
-            container=container,
-            data_deletion_detection_policy=NativeBlobSoftDeleteDeletionDetectionPolicy(),
+            container=container,  # ,
+            # data_deletion_detection_policy=NativeBlobSoftDeleteDeletionDetectionPolicy(),
         )
         self.indexer_client.create_or_update_data_source_connection(
             data_source_connection
