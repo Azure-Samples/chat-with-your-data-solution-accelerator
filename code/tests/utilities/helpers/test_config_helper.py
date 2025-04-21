@@ -188,76 +188,19 @@ def test_default_config_when_use_advanced_image_processing(env_helper_mock):
     expected_loading = {"strategy": "layout"}
 
     assert config["document_processors"] == [
-        {
-            "document_type": "pdf",
-            "chunking": expected_chunking,
-            "loading": expected_loading,
-        },
-        {
-            "document_type": "txt",
-            "chunking": expected_chunking,
-            "loading": {"strategy": "web"},
-        },
-        {
-            "document_type": "url",
-            "chunking": expected_chunking,
-            "loading": {"strategy": "web"},
-        },
-        {
-            "document_type": "md",
-            "chunking": expected_chunking,
-            "loading": {"strategy": "web"},
-        },
-        {
-            "document_type": "html",
-            "chunking": expected_chunking,
-            "loading": {"strategy": "web"},
-        },
-        {
-            "document_type": "htm",
-            "chunking": expected_chunking,
-            "loading": {"strategy": "web"},
-        },
-        {
-            "document_type": "docx",
-            "chunking": expected_chunking,
-            "loading": {"strategy": "docx"},
-        },
-        {
-            "document_type": "json",
-            "chunking": {"strategy": "json", "size": 500, "overlap": 100},
-            "loading": {"strategy": "web"},
-        },
-        {
-            "document_type": "jpg",
-            "chunking": expected_chunking,
-            "loading": expected_loading,
-            "use_advanced_image_processing": True,
-        },
-        {
-            "document_type": "jpeg",
-            "chunking": expected_chunking,
-            "loading": expected_loading,
-            "use_advanced_image_processing": True,
-        },
-        {
-            "document_type": "png",
-            "chunking": expected_chunking,
-            "loading": expected_loading,
-            "use_advanced_image_processing": True,
-        },
-        {
-            "document_type": "tiff",
-            "chunking": expected_chunking,
-            "loading": expected_loading,
-            "use_advanced_image_processing": True,
-        },
-        {
-            "document_type": "bmp",
-            "chunking": expected_chunking,
-            "loading": expected_loading,
-            "use_advanced_image_processing": True,
-        },
+        {"document_type": "pdf", "chunking": expected_chunking, "loading": expected_loading},
+        {"document_type": "txt", "chunking": expected_chunking, "loading": {"strategy": "web"}},
+        {"document_type": "url", "chunking": expected_chunking, "loading": {"strategy": "web"}},
+        {"document_type": "md", "chunking": expected_chunking, "loading": {"strategy": "web"}},
+        {"document_type": "html", "chunking": expected_chunking, "loading": {"strategy": "web"}},
+        {"document_type": "htm", "chunking": expected_chunking, "loading": {"strategy": "web"}},
+        {"document_type": "docx", "chunking": expected_chunking, "loading": {"strategy": "docx"}},
+        {"document_type": "json", "chunking": {"strategy": "json", "size": 500, "overlap": 100}, "loading": {"strategy": "web"}},
+        {"document_type": "jpg", "chunking": expected_chunking, "loading": expected_loading, "use_advanced_image_processing": True},
+        {"document_type": "jpeg", "chunking": expected_chunking, "loading": expected_loading, "use_advanced_image_processing": True},
+        {"document_type": "png", "chunking": expected_chunking, "loading": expected_loading, "use_advanced_image_processing": True},
+        {"document_type": "tiff", "chunking": expected_chunking, "loading": expected_loading, "use_advanced_image_processing": True},
+        {"document_type": "bmp", "chunking": expected_chunking, "loading": expected_loading, "use_advanced_image_processing": True},
     ]
 
 def test_get_config_from_azure(
