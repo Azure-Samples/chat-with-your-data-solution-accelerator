@@ -1,0 +1,175 @@
+services:
+  postgres:
+    image: ankane/pgvector:latest
+    container_name: postgres-cwyd
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      # Let Compose know when Postgres is ready
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build:
+      context: ./scripts/data_scripts
+      dockerfile: Dockerfile
+    container_name: migrate-cwyd
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    environment:
+      host: postgres
+      user: postgres
+      password: postgres
+      dbname: postgres
+      AZURE_AUTH_ENABLED: "false"
+    command: ["python", "create_postgres_tables.py"]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Frontend.Dockerfile
+    container_name: frontend-cwyd
+    ports:
+      - "8080:80"
+    environment:
+      - BACKEND_URL=http://backend:80
+      - AZURE_AUTH_ENABLED=false
+      - AZURE_STORAGE_ACCOUNT=devstoreaccount1
+      - AZURE_STORAGE_CONTAINER=config
+      - AZURE_STORAGE_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
+      - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+      - ENFORCE_AUTH=false
+      - USE_DEFAULT_CONFIG=true
+      - LOAD_CONFIG_FROM_BLOB_STORAGE=false
+      - CONVERSATION_FLOW=byod
+      - LOG_USER_INTERACTIONS=false
+      - LOG_TOKENS=false
+      - ORCHESTRATION_STRATEGY=simple
+      - DATABASE_TYPE=PostgreSQL
+      # Add PostgreSQL connection variables for chat history
+      - POSTGRESQL_HOST=postgres
+      - POSTGRESQL_DB=postgres
+      - POSTGRESQL_USER=postgres
+      - POSTGRESQL_PASSWORD=postgres
+      # Add OpenAI variables directly from host environment
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - AZURE_OPENAI_API_VERSION=${AZURE_OPENAI_API_VERSION}
+      - AZURE_OPENAI_MODEL=${AZURE_OPENAI_MODEL}
+      # Add Speech variables
+      - AZURE_SPEECH_KEY=mock-speech-key
+      - AZURE_SPEECH_REGION=eastus
+      - AZURE_SPEECH_ENDPOINT=https://eastus.api.cognitive.microsoft.com/
+      # Set USE_LOCAL_MOCK_SERVICES for chat and speech
+      - USE_LOCAL_MOCK_SERVICES=true
+    volumes:
+      - ./code/frontend:/home/node/app/frontend:ro
+      # Add the environment file to the container
+      - ./.env:/usr/src/app/.env:ro
+    depends_on:
+      - backend
+      - azurite
+      - postgres
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Backend.Dockerfile
+    container_name: backend-cwyd
+    ports:
+      - "8082:80"
+    environment:
+      - AzureWebJobsScriptRoot=/home/site/wwwroot
+      - AzureFunctionsJobHost__Logging__Console__IsEnabled=true
+      - AzureWebJobsFeatureFlags=EnableWorkerIndexing
+      - AzureWebJobsSecretStorageType=files
+      - POSTGRES_CONNECTION_STRING=postgres://postgres:postgres@postgres:5432/postgres
+      - AZURE_AUTH_ENABLED=false
+      - AZURE_OPENAI_API_VERSION=${AZURE_OPENAI_API_VERSION}
+      - AZURE_OPENAI_MODEL=${AZURE_OPENAI_MODEL}
+      - AZURE_OPENAI_MODEL_NAME=gpt-4o-mini
+      - AZURE_OPENAI_SYSTEM_MESSAGE=You are an AI assistant that helps people find information.
+      - AZURE_OPENAI_TEMPERATURE=0.7
+      - AZURE_OPENAI_TOP_P=0.95
+      - AZURE_OPENAI_MAX_TOKENS=1000
+      - SHOULD_STREAM=true
+      # Use real OpenAI endpoint values from host environment
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - AZURE_AUTH_TYPE=keys
+      - ENFORCE_AUTH=false
+      - MOCK_OPENAI=true
+    volumes:
+      - ./docker/function-host.json:/azure-functions-host/Secrets/host.json
+      - ./code/backend/batch:/home/site/wwwroot
+      # Add the environment file to the container
+      - ./.env:/home/site/wwwroot/.env:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Add the admin service
+  admin:
+    build:
+      context: .
+      dockerfile: docker/Admin.Dockerfile
+    container_name: admin-cwyd
+    ports:
+      - "8081:80" # Expose on host port 8081
+    environment:
+      - BACKEND_URL=http://backend:80 # Use the internal backend service name
+      - FUNCTION_KEY=some-test-key # Placeholder key for local dev
+      # Pass Azure OpenAI credentials from host environment
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - AZURE_OPENAI_API_VERSION=${AZURE_OPENAI_API_VERSION}
+      - AZURE_OPENAI_MODEL=${AZURE_OPENAI_MODEL}
+      # Add other necessary environment variables from .env if needed
+      - AZURE_SEARCH_SERVICE=${AZURE_SEARCH_SERVICE}
+      - AZURE_SEARCH_INDEX=${AZURE_SEARCH_INDEX}
+      - AZURE_SEARCH_KEY=${AZURE_SEARCH_KEY}
+      - AZURE_BLOB_ACCOUNT_NAME=devstoreaccount1 # Use Azurite locally
+      - AZURE_BLOB_ACCOUNT_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw== # Azurite key
+      - AZURE_BLOB_CONTAINER_NAME=documents # Or your specific container
+      - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1; # Azurite connection string
+      - POSTGRESQL_HOST=postgres
+      - POSTGRESQL_DB=postgres
+      - POSTGRESQL_USER=postgres
+      - POSTGRESQL_PASSWORD=postgres
+      - DATABASE_TYPE=PostgreSQL
+      - AZURE_AUTH_ENABLED=false
+      - ENFORCE_AUTH=false
+    volumes:
+      # Mount the backend code for local development changes
+      - ./code/backend:/usr/local/src/myscripts/admin:ro
+      - ./code/backend/batch/utilities:/usr/local/src/myscripts/utilities:ro
+      # Mount the .env file
+      - ./.env:/usr/local/src/myscripts/.env:ro
+    depends_on:
+      - backend
+      - postgres
+      - azurite # Depends on Azurite for blob storage
+
+  # Add Azurite for local Azure Blob Storage emulation
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: azurite-cwyd
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"
+    command: "azurite --oauth basic --blobHost 0.0.0.0 --blobPort 10000 --queueHost 0.0.0.0 --queuePort 10001 --tableHost 0.0.0.0 --tablePort 10002"
+
+volumes:
+  db-data:

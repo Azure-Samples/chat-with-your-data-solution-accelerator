@@ -1,14 +1,20 @@
-from azure.identity import DefaultAzureCredential
+import os
 import psycopg2
 from psycopg2 import sql
+
+AZURE_AUTH_ENABLED = os.getenv("AZURE_AUTH_ENABLED", "true").lower() == "true"
+host = os.getenv("host", "serverName")
+user = os.getenv("user", "managedIdentityName")
+password = os.getenv("password", "")
+dbname = os.getenv("dbname", "postgres")
+
+if AZURE_AUTH_ENABLED:
+    from azure.identity import DefaultAzureCredential
 
 key_vault_name = "kv_to-be-replaced"
 principal_name = "webAppPrincipalName"
 admin_principal_name = "adminAppPrincipalName"
 function_app_principal_name = "functionAppPrincipalName"
-user = "managedIdentityName"
-host = "serverName"
-dbname = "postgres"
 
 
 def grant_permissions(cursor, dbname, schema_name, principal_name):
@@ -60,14 +66,20 @@ def grant_permissions(cursor, dbname, schema_name, principal_name):
     )
 
 
-# Acquire the access token
-cred = DefaultAzureCredential()
-access_token = cred.get_token("https://ossrdbms-aad.database.windows.net/.default")
+if AZURE_AUTH_ENABLED:
+    # Acquire the access token
+    cred = DefaultAzureCredential()
+    access_token = cred.get_token("https://ossrdbms-aad.database.windows.net/.default")
+    # Combine the token with the connection string to establish the connection.
+    conn_string = "host={0} user={1} dbname={2} password={3} sslmode=require".format(
+        host, user, dbname, access_token.token
+    )
+else:
+    # Use standard password authentication for local/dev
+    conn_string = "host={0} user={1} dbname={2} password={3} sslmode=disable".format(
+        host, user, dbname, password
+    )
 
-# Combine the token with the connection string to establish the connection.
-conn_string = "host={0} user={1} dbname={2} password={3} sslmode=require".format(
-    host, user, dbname, access_token.token
-)
 conn = psycopg2.connect(conn_string)
 cursor = conn.cursor()
 
@@ -135,19 +147,20 @@ cursor.execute(
 )
 conn.commit()
 
-grant_permissions(cursor, dbname, "public", principal_name)
-conn.commit()
+if AZURE_AUTH_ENABLED:
+    grant_permissions(cursor, dbname, "public", principal_name)
+    conn.commit()
 
-grant_permissions(cursor, dbname, "public", admin_principal_name)
-conn.commit()
+    grant_permissions(cursor, dbname, "public", admin_principal_name)
+    conn.commit()
 
-grant_permissions(cursor, dbname, "public", function_app_principal_name)
-conn.commit()
+    grant_permissions(cursor, dbname, "public", function_app_principal_name)
+    conn.commit()
 
-cursor.execute("ALTER TABLE public.conversations OWNER TO azure_pg_admin;")
-cursor.execute("ALTER TABLE public.messages OWNER TO azure_pg_admin;")
-cursor.execute("ALTER TABLE public.vector_store OWNER TO azure_pg_admin;")
-conn.commit()
+    cursor.execute("ALTER TABLE public.conversations OWNER TO azure_pg_admin;")
+    cursor.execute("ALTER TABLE public.messages OWNER TO azure_pg_admin;")
+    cursor.execute("ALTER TABLE public.vector_store OWNER TO azure_pg_admin;")
+    conn.commit()
 
 cursor.close()
 conn.close()
