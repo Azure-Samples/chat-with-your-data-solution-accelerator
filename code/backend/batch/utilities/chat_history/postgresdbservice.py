@@ -1,5 +1,6 @@
 import logging
 import asyncpg
+import os
 from datetime import datetime, timezone
 from azure.identity import DefaultAzureCredential
 
@@ -21,19 +22,59 @@ class PostgresConversationClient(DatabaseClientBase):
 
     async def connect(self):
         try:
-            credential = DefaultAzureCredential()
-            token = credential.get_token(
-                "https://ossrdbms-aad.database.windows.net/.default"
-            ).token
-            self.conn = await asyncpg.connect(
-                user=self.user,
-                host=self.host,
-                database=self.database,
-                password=token,
-                port=5432,
-                ssl="require",
+            # Check if we should use password auth instead of token-based auth
+            use_password_auth = (
+                os.environ.get("AZURE_AUTH_ENABLED", "").lower() == "false"
             )
-        except Exception as e:
+
+            if use_password_auth:
+                # For local development, use password from environment variables
+                password = os.environ.get("POSTGRESQL_PASSWORD", "postgres")
+                logger.info(
+                    "Using password authentication for PostgreSQL (local development)"
+                )
+                self.conn = await asyncpg.connect(
+                    user=self.user,
+                    host=self.host,
+                    database=self.database,
+                    password=password,
+                    port=5432,
+                )
+            else:
+                # For production, use Azure AD authentication
+                try:
+                    credential = DefaultAzureCredential()
+                    token = credential.get_token(
+                        "https://ossrdbms-aad.database.windows.net/.default"
+                    ).token
+                    self.conn = await asyncpg.connect(
+                        user=self.user,
+                        host=self.host,
+                        database=self.database,
+                        password=token,
+                        port=5432,
+                        ssl="require",
+                    )
+                except (
+                    asyncpg.PostgresError,
+                    ImportError,
+                    AttributeError,
+                    ValueError,
+                ) as e:
+                    logger.error(
+                        "Failed to get Azure token, falling back to password auth: %s",
+                        e,
+                    )
+                    # Fallback to password auth if token fails
+                    password = os.environ.get("POSTGRESQL_PASSWORD", "postgres")
+                    self.conn = await asyncpg.connect(
+                        user=self.user,
+                        host=self.host,
+                        database=self.database,
+                        password=password,
+                        port=5432,
+                    )
+        except asyncpg.PostgresError as e:
             logger.error("Failed to connect to PostgreSQL: %s", e)
             raise
 
@@ -93,8 +134,8 @@ class PostgresConversationClient(DatabaseClientBase):
     async def get_conversations(self, user_id, limit=None, sort_order="DESC", offset=0):
         try:
             offset = int(offset)  # Ensure offset is an integer
-        except ValueError:
-            raise ValueError("Offset must be an integer.")
+        except ValueError as exc:
+            raise ValueError("Offset must be an integer.") from exc
         # Base query without LIMIT and OFFSET
         query = f"""
             SELECT * FROM conversations
@@ -108,8 +149,8 @@ class PostgresConversationClient(DatabaseClientBase):
                 query += " LIMIT $2 OFFSET $3"
                 # Fetch records with LIMIT and OFFSET
                 conversations = await self.conn.fetch(query, user_id, limit, offset)
-            except ValueError:
-                raise ValueError("Limit must be an integer.")
+            except ValueError as exc:
+                raise ValueError("Limit must be an integer.") from exc
         else:
             # Fetch records without LIMIT and OFFSET
             conversations = await self.conn.fetch(query, user_id)

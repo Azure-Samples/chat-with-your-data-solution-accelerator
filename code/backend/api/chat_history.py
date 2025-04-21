@@ -77,7 +77,7 @@ async def list_conversations():
 
             return jsonify(conversations), 200
         except Exception as e:
-            logger.exception(f"Error fetching conversations: {e}")
+            logger.exception("Error fetching conversations: %s", e)
             raise
         finally:
             await conversation_client.close()

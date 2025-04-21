@@ -1,4 +1,5 @@
 import logging
+import os
 from openai import AzureOpenAI
 from typing import List, Union, cast
 from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
@@ -20,6 +21,13 @@ class LLMHelper:
         self.env_helper: EnvHelper = EnvHelper()
         self.auth_type_keys = self.env_helper.is_auth_type_keys()
         self.token_provider = self.env_helper.AZURE_TOKEN_PROVIDER
+
+        # Check if we're using local mock services
+        self.use_local_mock = (
+            os.environ.get("USE_LOCAL_MOCK_SERVICES", "").lower() == "true"
+        )
+        if self.use_local_mock:
+            logger.info("Using local mock services for LLM")
 
         if self.auth_type_keys:
             self.openai_client = AzureOpenAI(
@@ -136,7 +144,17 @@ class LLMHelper:
         )
 
     def get_sk_chat_completion_service(self, service_id: str):
-        if self.auth_type_keys:
+        # For local development with mock services, always use api_key auth
+        if self.use_local_mock:
+            logger.info("Using mock services for SemanticKernel")
+            return AzureChatCompletion(
+                service_id=service_id,
+                deployment_name=self.llm_model,
+                endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
+                api_version=self.env_helper.AZURE_OPENAI_API_VERSION,
+                api_key=self.env_helper.OPENAI_API_KEY or "mock-key",
+            )
+        elif self.auth_type_keys:
             return AzureChatCompletion(
                 service_id=service_id,
                 deployment_name=self.llm_model,

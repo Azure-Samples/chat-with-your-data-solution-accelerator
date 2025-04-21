@@ -84,7 +84,7 @@ class EnvHelper:
             "AZURE_SEARCH_CONVERSATIONS_LOG_INDEX", "conversations"
         )
         self.AZURE_SEARCH_DOC_UPLOAD_BATCH_SIZE = os.getenv(
-            "AZURE_SEARCH_DOC_UPLOAD_BATCH_SIZE", 100
+            "AZURE_SEARCH_DOC_UPLOAD_BATCH_SIZE", "100"
         )
         # Integrated Vectorization
         self.AZURE_SEARCH_DATASOURCE_NAME = os.getenv(
@@ -173,9 +173,7 @@ class EnvHelper:
             self.AZURE_OPENAI_MODEL_NAME = azure_openai_model_info.get("modelName", "")
         else:
             # Otherwise, fallback to individual environment variables
-            self.AZURE_OPENAI_MODEL = os.getenv(
-                "AZURE_OPENAI_MODEL", "gpt-4o"
-            )
+            self.AZURE_OPENAI_MODEL = os.getenv("AZURE_OPENAI_MODEL", "gpt-4o-mini")
             self.AZURE_OPENAI_MODEL_NAME = os.getenv(
                 "AZURE_OPENAI_MODEL_NAME", "gpt-4o"
             )
@@ -399,7 +397,7 @@ class EnvHelper:
     def check_env():
         for attr, value in EnvHelper().__dict__.items():
             if value == "":
-                logger.warning(f"{attr} is not set in the environment variables.")
+                logger.warning("%s is not set in the environment variables.", attr)
 
     @classmethod
     def clear_instance(cls):

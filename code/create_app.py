@@ -6,6 +6,7 @@ import functools
 import json
 import logging
 import mimetypes
+import os
 from os import path
 import sys
 import re
@@ -488,6 +489,18 @@ def create_app():
     async def conversation():
         ConfigHelper.get_active_config_or_default.cache_clear()
         result = ConfigHelper.get_active_config_or_default()
+
+        # Check if we're in local development mode
+        use_local_mock = os.environ.get("USE_LOCAL_MOCK_SERVICES", "").lower() == "true"
+
+        # Always use BYOD flow in local development
+        if use_local_mock:
+            logger.info(
+                "Using BYOD flow for local development (skipping SemanticKernel)"
+            )
+            return conversation_azure_byod()
+
+        # Use the configured flow in production
         conversation_flow = result.prompts.conversational_flow
         if conversation_flow == ConversationFlow.CUSTOM.value:
             return await conversation_custom()
@@ -508,6 +521,24 @@ def create_app():
         """Get the speech config for Azure Speech."""
         try:
             logger.info("Method speech_config started")
+
+            # Check if we're using mock services for local development
+            use_local_mock = (
+                os.environ.get("USE_LOCAL_MOCK_SERVICES", "").lower() == "true"
+            )
+
+            if use_local_mock:
+                logger.info("Using mock services for speech configuration")
+                # Return mock values for local development
+                return {
+                    "token": "mock-token-for-local-development",
+                    "key": os.environ.get("AZURE_SPEECH_KEY", "mock-speech-key"),
+                    "region": os.environ.get("AZURE_SPEECH_REGION", "eastus"),
+                    "languages": env_helper.AZURE_SPEECH_RECOGNIZER_LANGUAGES
+                    or "en-US",
+                }
+
+            # Normal production flow
             speech_key = env_helper.AZURE_SPEECH_KEY or get_speech_key(env_helper)
 
             response = requests.post(
