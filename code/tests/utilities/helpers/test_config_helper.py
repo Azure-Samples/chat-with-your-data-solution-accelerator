@@ -176,8 +176,6 @@ def test_default_config_is_cached():
 
     # then
     assert default_config_one is default_config_two
-
-
 def test_default_config_when_use_advanced_image_processing(env_helper_mock):
     # given
     env_helper_mock.return_value.USE_ADVANCED_IMAGE_PROCESSING = True
@@ -187,11 +185,13 @@ def test_default_config_when_use_advanced_image_processing(env_helper_mock):
 
     # then
     expected_chunking = {"strategy": "layout", "size": 500, "overlap": 100}
+    expected_loading = {"strategy": "layout"}
+
     assert config["document_processors"] == [
         {
             "document_type": "pdf",
             "chunking": expected_chunking,
-            "loading": {"strategy": "layout"},
+            "loading": expected_loading,
         },
         {
             "document_type": "txt",
@@ -228,13 +228,37 @@ def test_default_config_when_use_advanced_image_processing(env_helper_mock):
             "chunking": {"strategy": "json", "size": 500, "overlap": 100},
             "loading": {"strategy": "web"},
         },
-        {"document_type": "jpeg", "use_advanced_image_processing": True},
-        {"document_type": "jpg", "use_advanced_image_processing": True},
-        {"document_type": "png", "use_advanced_image_processing": True},
-        {"document_type": "tiff", "use_advanced_image_processing": True},
-        {"document_type": "bmp", "use_advanced_image_processing": True},
+        {
+            "document_type": "jpg",
+            "chunking": expected_chunking,
+            "loading": expected_loading,
+            "use_advanced_image_processing": True,
+        },
+        {
+            "document_type": "jpeg",
+            "chunking": expected_chunking,
+            "loading": expected_loading,
+            "use_advanced_image_processing": True,
+        },
+        {
+            "document_type": "png",
+            "chunking": expected_chunking,
+            "loading": expected_loading,
+            "use_advanced_image_processing": True,
+        },
+        {
+            "document_type": "tiff",
+            "chunking": expected_chunking,
+            "loading": expected_loading,
+            "use_advanced_image_processing": True,
+        },
+        {
+            "document_type": "bmp",
+            "chunking": expected_chunking,
+            "loading": expected_loading,
+            "use_advanced_image_processing": True,
+        },
     ]
-
 
 def test_get_config_from_azure(
     AzureBlobStorageClientMock: MagicMock,
