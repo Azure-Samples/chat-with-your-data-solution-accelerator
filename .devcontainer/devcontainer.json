@@ -1,51 +1,63 @@
 {
 	"name": "Chat with your data",
+
+	// 1) Build from your existing Dockerfile
 	"build": {
-		"dockerfile": "Dockerfile"
-	},
-	"features": {
-		"ghcr.io/devcontainers/features/azure-cli:1": {
-			"extensions": "ml"
-		},
-		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
-		"ghcr.io/devcontainers/features/node:1": {},
-		"ghcr.io/jlaundry/devcontainer-features/azure-functions-core-tools:1": {},
-		"ghcr.io/azure/azure-dev/azd:latest": {},
-		"ghcr.io/rchaganti/vsc-devcontainer-features/azurebicep:1.0.5": {}
+	  "dockerfile": "Dockerfile"
 	},
 
+	// 2) Features (unchanged)
+	"features": {
+	  "ghcr.io/devcontainers/features/azure-cli:1":   { "extensions": "ml" },
+	  "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+	  //"ghcr.io/devcontainers/features/docker-compose:1": {},
+	  "ghcr.io/devcontainers/features/node:1":        {},
+	  "ghcr.io/jlaundry/devcontainer-features/azure-functions-core-tools:1": {},
+	  "ghcr.io/azure/azure-dev/azd:latest":           {},
+	  "ghcr.io/rchaganti/vsc-devcontainer-features/azurebicep:1.0.5": {}
+	},
+
+	// 3) Where your code lives, inside the container
+	//    - source=${localWorkspaceFolder} will bind-mount exactly the folder you opened in WSL
+	//    - target=/workspace (you can choose any path you like)
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+	"workspaceFolder": "/workspace",
+
+	// 4) Your post-create script (unchanged)
 	"postCreateCommand": "./.devcontainer/setupEnv.sh",
 
+	// 5) VS Code extensions (unchanged)
 	"customizations": {
-		"vscode": {
-			"extensions": [
-				"github.vscode-pull-request-github",
-				"github.vscode-github-actions",
-				"ms-azuretools.azure-dev",
-				"ms-azuretools.vscode-azurefunctions",
-				"ms-azuretools.vscode-bicep",
-				"ms-azuretools.vscode-docker",
-				"ms-python.python",
-				"ms-python.black-formatter",
-				"ms-python.vscode-pylance",
-				"ms-python.pylint",
-				"ms-toolsai.jupyter",
-				"ms-vscode.vscode-node-azure-pack",
-				"TeamsDevApp.ms-teams-vscode-extension",
-				"zeshuaro.vscode-python-poetry",
-				"prompt-flow.prompt-flow"
-			],
-			"settings": {
-                "python.defaultInterpreterPath": "/usr/local/bin/python",
-				"python.pythonPath": "/usr/local/bin/python",
-				"remote.autoForwardPortsFallback": 0,
-				"remote.autoForwardPortsSource": "process"
-            }
+	  "vscode": {
+		"extensions": [
+		  "github.vscode-pull-request-github",
+		  "github.vscode-github-actions",
+		  "ms-azuretools.azure-dev",
+		  "ms-azuretools.vscode-azurefunctions",
+		  "ms-azuretools.vscode-bicep",
+		  "ms-azuretools.vscode-docker",
+		  "ms-python.python",
+		  "ms-python.black-formatter",
+		  "ms-python.vscode-pylance",
+		  "ms-python.pylint",
+		  "ms-toolsai.jupyter",
+		  "ms-vscode.vscode-node-azure-pack",
+		  "TeamsDevApp.ms-teams-vscode-extension",
+		  "zeshuaro.vscode-python-poetry",
+		  "prompt-flow.prompt-flow"
+		],
+		"settings": {
+		  "python.defaultInterpreterPath": "/usr/local/bin/python",
+		  "python.pythonPath": "/usr/local/bin/python",
+		  "remote.autoForwardPortsFallback": 0,
+		  "remote.autoForwardPortsSource": "process"
 		}
+	  }
 	},
 
+	// 6) Environment passed into the container
 	"remoteEnv": {
-		// the original host directory which is needed for volume mount commands from inside the container (Docker in Docker)
-		"HOST_DOCKER_FOLDER": "${localWorkspaceFolder}/docker"
+	  // this is fine—uses your repo's docker folder under /workspace/docker
+	  "HOST_DOCKER_FOLDER": "/workspace/docker"
 	}
-}
+  }
