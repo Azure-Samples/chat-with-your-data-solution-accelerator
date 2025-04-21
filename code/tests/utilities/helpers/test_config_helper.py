@@ -178,7 +178,6 @@ def test_default_config_is_cached():
     assert default_config_one is default_config_two
 
 
-
 @patch("backend.batch.utilities.helpers.config.config_helper.EnvHelper")
 def test_default_config_when_use_advanced_image_processing(env_helper_mock):
     # given
@@ -222,8 +221,9 @@ def test_default_config_when_use_advanced_image_processing(env_helper_mock):
         {"document_type": "bmp", **expected_image_processor},
     ]
 
-
     assert actual_processors == expected_processors
+
+
 def test_get_config_from_azure(
     AzureBlobStorageClientMock: MagicMock,
     blob_client_mock: MagicMock,
