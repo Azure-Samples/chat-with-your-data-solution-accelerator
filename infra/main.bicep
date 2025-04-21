@@ -125,13 +125,13 @@ param azureOpenAIResourceName string = 'openai-${resourceToken}'
 param azureOpenAISkuName string = 'S0'
 
 @description('Azure OpenAI Model Deployment Name')
-param azureOpenAIModel string = 'gpt-35-turbo-16k'
+param azureOpenAIModel string = 'gpt-4o'
 
 @description('Azure OpenAI Model Name')
-param azureOpenAIModelName string = 'gpt-35-turbo-16k'
+param azureOpenAIModelName string = 'gpt-4o'
 
 @description('Azure OpenAI Model Version')
-param azureOpenAIModelVersion string = '0613'
+param azureOpenAIModelVersion string = '2024-05-13'
 
 @description('Azure OpenAI Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIModelCapacity int = 30
@@ -149,7 +149,7 @@ param azureOpenAIVisionModel string = 'gpt-4'
 param azureOpenAIVisionModelName string = 'gpt-4'
 
 @description('Azure OpenAI Vision Model Version')
-param azureOpenAIVisionModelVersion string = 'vision-preview'
+param azureOpenAIVisionModelVersion string = 'turbo-2024-04-09'
 
 @description('Azure OpenAI Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIVisionModelCapacity int = 10
@@ -320,7 +320,7 @@ var keyVaultName = 'kv-${resourceToken}'
 var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
 
 var appversion = 'latest' // Update GIT deployment branch
-var registryName = 'fruoccopublic' // Update Registry name
+var registryName = 'cwydcontainerreg' // Update Registry name
 
 var openAIFunctionsSystemPrompt = '''You help employees to navigate only private information sources.
     You must prioritize the function call over your general knowledge for any question by calling the search_documents function.

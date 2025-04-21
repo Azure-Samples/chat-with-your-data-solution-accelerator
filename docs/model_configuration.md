@@ -15,11 +15,11 @@ This document outlines the necessary steps and configurations required for setti
 
 ### LLM
 - `AZURE_OPENAI_MODEL`: The Azure OpenAI Model Deployment Name
-    - example: `my-gpt-35-turbo-16k`
+    - example: `my-gpt-4o`
 - `AZURE_OPENAI_MODEL_NAME`: The Azure OpenAI Model Name
-    - example: `gpt-35-turbo-16k`
+    - example: `gpt-4o`
 - `AZURE_OPENAI_MODEL_VERSION`: The Azure OpenAI Model Version
-    - example: `0613`
+    - example: `2024-05-13`
 - `AZURE_OPENAI_MODEL_CAPACITY`: The Tokens per Minute Rate Limit (thousands)
     - example: `30`
 
@@ -29,7 +29,7 @@ This document outlines the necessary steps and configurations required for setti
 - `AZURE_OPENAI_VISION_MODEL_NAME`: The Azure OpenAI Model Name
     - example: `gpt-4`
 - `AZURE_OPENAI_VISION_MODEL_VERSION`: The Azure OpenAI Model Version
-    - example: `vision-preview`
+    - example: `turbo-2024-04-09`
 - `AZURE_OPENAI_VISION_MODEL_CAPACITY`: The Tokens per Minute Rate Limit (thousands)
     - example: `10`
 

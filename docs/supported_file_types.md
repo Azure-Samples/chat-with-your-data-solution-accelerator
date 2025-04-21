@@ -12,3 +12,4 @@ Out-of-the-box, you can upload the following file types:
 * HTML
 * MD (Markdown)
 * DOCX
+* JSON

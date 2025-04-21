@@ -174,10 +174,10 @@ class EnvHelper:
         else:
             # Otherwise, fallback to individual environment variables
             self.AZURE_OPENAI_MODEL = os.getenv(
-                "AZURE_OPENAI_MODEL", "gpt-35-turbo-16k"
+                "AZURE_OPENAI_MODEL", "gpt-4o"
             )
             self.AZURE_OPENAI_MODEL_NAME = os.getenv(
-                "AZURE_OPENAI_MODEL_NAME", "gpt-35-turbo-16k"
+                "AZURE_OPENAI_MODEL_NAME", "gpt-4o"
             )
 
         self.AZURE_OPENAI_VISION_MODEL = os.getenv("AZURE_OPENAI_VISION_MODEL", "gpt-4")
@@ -362,6 +362,9 @@ class EnvHelper:
         self.SEMENTIC_KERNEL_SYSTEM_PROMPT = os.getenv(
             "SEMENTIC_KERNEL_SYSTEM_PROMPT", ""
         )
+
+        self.ENFORCE_AUTH = self.get_env_var_bool("ENFORCE_AUTH", "True")
+
         logger.info("Initializing EnvHelper completed")
 
     def is_chat_model(self):
