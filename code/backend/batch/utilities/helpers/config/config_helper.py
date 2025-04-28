@@ -52,6 +52,9 @@ class Config:
         )
         self.enable_chat_history = config["enable_chat_history"]
         self.database_type = config.get("database_type", self.env_helper.DATABASE_TYPE)
+        self.conversational_flow = config.get(
+            "conversational_flow", self.env_helper.CONVERSATION_FLOW
+        )
 
     def get_available_document_types(self) -> list[str]:
         document_types = {
@@ -187,21 +190,27 @@ class ConfigHelper:
     @staticmethod
     @functools.cache
     def get_active_config_or_default():
+        logger.info("Method get_active_config_or_default started")
         env_helper = EnvHelper()
         config = ConfigHelper.get_default_config()
 
         if env_helper.LOAD_CONFIG_FROM_BLOB_STORAGE:
+            logger.info("Loading configuration from Blob Storage")
             blob_client = AzureBlobStorageClient(container_name=CONFIG_CONTAINER_NAME)
 
             if blob_client.file_exists(CONFIG_FILE_NAME):
+                logger.info("Configuration file found in Blob Storage")
                 default_config = config
                 config_file = blob_client.download_file(CONFIG_FILE_NAME)
                 config = json.loads(config_file)
 
                 ConfigHelper._set_new_config_properties(config, default_config)
             else:
-                logger.info("Returning default config")
+                logger.info(
+                    "Configuration file not found in Blob Storage, using default configuration"
+                )
 
+        logger.info("Method get_active_config_or_default ended")
         return Config(config)
 
     @staticmethod
@@ -247,11 +256,7 @@ class ConfigHelper:
                 logger.info("Loading default config from %s", config_file_path)
                 ConfigHelper._default_config = json.loads(
                     Template(f.read()).substitute(
-                        ORCHESTRATION_STRATEGY=(
-                            OrchestrationStrategy.SEMANTIC_KERNEL.value
-                            if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value
-                            else env_helper.ORCHESTRATION_STRATEGY
-                        ),
+                        ORCHESTRATION_STRATEGY=env_helper.ORCHESTRATION_STRATEGY,
                         LOG_USER_INTERACTIONS=(
                             False
                             if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value
@@ -262,6 +267,7 @@ class ConfigHelper:
                             if env_helper.DATABASE_TYPE == DatabaseType.POSTGRESQL.value
                             else True
                         ),
+                        CONVERSATION_FLOW=env_helper.CONVERSATION_FLOW,
                         DATABASE_TYPE=env_helper.DATABASE_TYPE,
                     )
                 )

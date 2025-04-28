@@ -21,7 +21,7 @@ resource machineLearningWorkspace 'Microsoft.MachineLearningServices/workspaces@
   }
 }
 
-resource aisearch_connection 'Microsoft.MachineLearningServices/workspaces/connections@2024-01-01-preview' = {
+resource aisearch_connection 'Microsoft.MachineLearningServices/workspaces/connections@2024-01-01-preview' = if (azureAISearchName != '') {
   parent: machineLearningWorkspace
   name: 'aisearch_connection'
   properties: {
@@ -42,7 +42,12 @@ resource aisearch_connection 'Microsoft.MachineLearningServices/workspaces/conne
   }
 }
 
-var azureOpenAIId = resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.CognitiveServices/accounts', azureOpenAIName)
+var azureOpenAIId = resourceId(
+  subscription().subscriptionId,
+  resourceGroup().name,
+  'Microsoft.CognitiveServices/accounts',
+  azureOpenAIName
+)
 
 resource openai_connection 'Microsoft.MachineLearningServices/workspaces/connections@2024-01-01-preview' = {
   parent: machineLearningWorkspace

@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import json
@@ -12,6 +13,7 @@ from batch.utilities.helpers.config.database_type import DatabaseType
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
+logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="Configure Prompts",
@@ -408,10 +410,13 @@ Use the Retrieved Documents to answer the question: {question}
 
         if st.form_submit_button("Save configuration"):
             document_processors = []
+            should_save = True
             if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION is False:
                 valid = all(
                     row["document_type"]
                     and row["chunking_strategy"]
+                    and row["chunking_size"]
+                    and row["chunking_overlap"]
                     and row["loading_strategy"]
                     for row in edited_document_processors
                 )
@@ -419,6 +424,7 @@ Use the Retrieved Documents to answer the question: {question}
                     st.error(
                         "Please ensure all fields are selected and not left blank in Document processing configuration."
                     )
+                    should_save = False
                 document_processors = list(
                     map(
                         lambda x: {
@@ -438,51 +444,52 @@ Use the Retrieved Documents to answer the question: {question}
                         edited_document_processors,
                     )
                 )
-            current_config = {
-                "prompts": {
-                    "condense_question_prompt": "",  # st.session_state['condense_question_prompt'],
-                    "answering_system_prompt": st.session_state[
-                        "answering_system_prompt"
-                    ],
-                    "answering_user_prompt": st.session_state["answering_user_prompt"],
-                    "use_on_your_data_format": st.session_state[
-                        "use_on_your_data_format"
-                    ],
-                    "post_answering_prompt": st.session_state["post_answering_prompt"],
-                    "enable_post_answering_prompt": st.session_state[
-                        "enable_post_answering_prompt"
-                    ],
-                    "enable_content_safety": st.session_state["enable_content_safety"],
-                    "ai_assistant_type": st.session_state["ai_assistant_type"],
-                    "conversational_flow": st.session_state["conversational_flow"],
-                },
-                "messages": {
-                    "post_answering_filter": st.session_state[
-                        "post_answering_filter_message"
-                    ]
-                },
-                "example": {
-                    "documents": st.session_state["example_documents"],
-                    "user_question": st.session_state["example_user_question"],
-                    "answer": st.session_state["example_answer"],
-                },
-                "document_processors": document_processors,
-                "logging": {
-                    "log_user_interactions": st.session_state["log_user_interactions"],
-                    "log_tokens": st.session_state["log_tokens"],
-                },
-                "orchestrator": {"strategy": st.session_state["orchestrator_strategy"]},
-                "integrated_vectorization_config": (
-                    integrated_vectorization_config
-                    if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
-                    else None
-                ),
-                "enable_chat_history": st.session_state["enable_chat_history"],
-            }
-            ConfigHelper.save_config_as_active(current_config)
-            st.success(
-                "Configuration saved successfully! Please restart the chat service for these changes to take effect."
-            )
+            if should_save:
+                current_config = {
+                    "prompts": {
+                        "condense_question_prompt": "",  # st.session_state['condense_question_prompt'],
+                        "answering_system_prompt": st.session_state[
+                            "answering_system_prompt"
+                        ],
+                        "answering_user_prompt": st.session_state["answering_user_prompt"],
+                        "use_on_your_data_format": st.session_state[
+                            "use_on_your_data_format"
+                        ],
+                        "post_answering_prompt": st.session_state["post_answering_prompt"],
+                        "enable_post_answering_prompt": st.session_state[
+                            "enable_post_answering_prompt"
+                        ],
+                        "enable_content_safety": st.session_state["enable_content_safety"],
+                        "ai_assistant_type": st.session_state["ai_assistant_type"],
+                        "conversational_flow": st.session_state["conversational_flow"],
+                    },
+                    "messages": {
+                        "post_answering_filter": st.session_state[
+                            "post_answering_filter_message"
+                        ]
+                    },
+                    "example": {
+                        "documents": st.session_state["example_documents"],
+                        "user_question": st.session_state["example_user_question"],
+                        "answer": st.session_state["example_answer"],
+                    },
+                    "document_processors": document_processors,
+                    "logging": {
+                        "log_user_interactions": st.session_state["log_user_interactions"],
+                        "log_tokens": st.session_state["log_tokens"],
+                    },
+                    "orchestrator": {"strategy": st.session_state["orchestrator_strategy"]},
+                    "integrated_vectorization_config": (
+                        integrated_vectorization_config
+                        if env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
+                        else None
+                    ),
+                    "enable_chat_history": st.session_state["enable_chat_history"],
+                }
+                ConfigHelper.save_config_as_active(current_config)
+                st.success(
+                    "Configuration saved successfully! Please restart the chat service for these changes to take effect."
+                )
 
     with st.popover(":red[Reset configuration to defaults]"):
 
@@ -517,4 +524,5 @@ Use the Retrieved Documents to answer the question: {question}
             del st.session_state["reset_configuration"]
 
 except Exception as e:
+    logger.error(f"Error occurred: {e}")
     st.error(e)

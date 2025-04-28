@@ -50,6 +50,7 @@ Welcome to the *Chat with your data* Solution accelerator repository! The *Chat 
 
 
 
+
 ### About this repo
 
 This repository provides an end-to-end solution for users who want to query their data with natural language. It includes a well designed ingestion mechanism for multiple file types, an easy deployment, and a support team for maintenance. The accelerator demonstrates both Push or Pull Ingestion; the choice of orchestration (Semantic Kernel, LangChain, OpenAI Functions or [Prompt Flow](docs/prompt_flow.md)) and should be the minimum components needed to implement a RAG pattern. It is not intended to be put into Production as-is without experimentation or evaluation of your data. It provides the following features:
@@ -80,7 +81,7 @@ Here is a comparison table with a few features offered by Azure, an available Gi
 | Name	| Feature or Sample? |	What is it? | When to use? |
 | ---------|---------|---------|---------|
 |["Chat with your data" Solution Accelerator](https://aka.ms/ChatWithYourDataSolutionAccelerator) - (This repo)	| Azure sample | End-to-end baseline RAG pattern sample that uses Azure AI Search as a retriever.	| This sample should be used by Developers when the  RAG pattern implementations provided by Azure are not able to satisfy business requirements. This sample provides a means to customize the solution. Developers must add their own code to meet requirements, and adapt with best practices according to individual company policies. |
-|[Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data) | Azure feature | Azure OpenAI Service offers out-of-the-box, end-to-end RAG implementation that uses a REST API or the web-based interface in the Azure AI Studio to create a solution that connects to your data to enable an enhanced chat experience with Azure OpenAI ChatGPT models and Azure AI Search. | This should be the first option considered for developers that need an end-to-end solution for Azure OpenAI Service with an Azure AI Search retriever. Simply select supported data sources, that ChatGPT model in Azure OpenAI Service , and any other Azure resources needed to configure your enterprise application needs. |
+|[Azure OpenAI on your data](https://learn.microsoft.com/azure/ai-services/openai/concepts/use-your-data) | Azure feature | Azure OpenAI Service offers out-of-the-box, end-to-end RAG implementation that uses a REST API or the web-based interface in the Azure AI Foundry to create a solution that connects to your data to enable an enhanced chat experience with Azure OpenAI ChatGPT models and Azure AI Search. | This should be the first option considered for developers that need an end-to-end solution for Azure OpenAI Service with an Azure AI Search retriever. Simply select supported data sources, that ChatGPT model in Azure OpenAI Service , and any other Azure resources needed to configure your enterprise application needs. |
 |[Azure Machine Learning prompt flow](https://learn.microsoft.com/azure/machine-learning/concept-retrieval-augmented-generation)	| Azure feature | RAG in Azure Machine Learning is enabled by integration with Azure OpenAI Service for large language models and vectorization. It includes support for Faiss and Azure AI Search as vector stores, as well as support for open-source offerings, tools, and frameworks such as LangChain for data chunking. Azure Machine Learning prompt flow offers the ability to test data generation, automate prompt creation, visualize prompt evaluation metrics, and integrate RAG workflows into MLOps using pipelines.  | When Developers need more control over processes involved in the development cycle of LLM-based AI applications, they should use Azure Machine Learning prompt flow to create executable flows and evaluate performance through large-scale testing. |
 |[ChatGPT + Enterprise data with Azure OpenAI and AI Search demo](https://github.com/Azure-Samples/azure-search-openai-demo) | Azure sample | RAG pattern demo that uses Azure AI Search as a retriever. | Developers who would like to use or present an end-to-end demonstration of the RAG pattern should use this sample. This includes the ability to deploy and test different retrieval modes, and prompts to support business use cases. |
 |[RAG Experiment Accelerator](https://github.com/microsoft/rag-experiment-accelerator) | Tool |The RAG Experiment Accelerator is a versatile tool that helps you conduct experiments and evaluations using Azure AI Search and RAG pattern. | RAG Experiment Accelerator is to make it easier and faster to run experiments and evaluations of search queries and quality of response from OpenAI. This tool is useful for researchers, data scientists, and developers who want to, Test the performance of different Search and OpenAI related hyperparameters. |
@@ -171,7 +172,7 @@ With the addition of PostgreSQL, customers can leverage the power of a relations
 
 Customers have the option to deploy this solution with PostgreSQL or Cosmos DB. Consider the following when deciding which database to use:
 - PostgreSQL enables a relationship-based AI solution and search indexing for Retrieval Augmented Generation (RAG)
-- Cosmos DB is a NoSQL-based solution for chat history
+- Cosmos DB enables chat history and is a NoSQL-based solution. With Cosmos DB, Azure AI Search is used for storing extracted documents and embeddings.
 
 
 To review PostgreSQL configuration overview and steps, follow the link [here](docs/postgreSQL.md).
@@ -193,10 +194,10 @@ Select either "PostgreSQL" or "Cosmos DB":
 
 When Deployment is complete, follow steps in [Set Up Authentication in Azure App Service](./docs/azure_app_service_auth_setup.md) to add app authentication to your web app running on Azure App Service
 
-**Note**: The default configuration deploys an OpenAI Model "gpt-35-turbo" with version 0613. However, not all
-locations support this version. If you're deploying to a location that doesn't support version 0613, you'll need to
+**Note**: The default configuration deploys an OpenAI Model "gpt-4o" with version 2024-05-13. However, not all
+locations support this version. If you're deploying to a location that doesn't support version 2024-05-13, you'll need to
 switch to a lower version. To find out which versions are supported in different regions, visit the
-[GPT-35 Turbo Model Availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#gpt-35-turbo-model-availability) page.
+[GPT-4o Model Availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models?tabs=global-standard%2Cstandard-chat-completions#global-standard-model-availability) page.
 
 ### Testing the deployment
 1. Navigate to the admin site, where you can upload documents. It will be located at:
