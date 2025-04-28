@@ -9,11 +9,11 @@ import {
 import { Dialog, Stack, TextField } from "@fluentui/react";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { HistoryButton } from "../../components/HistoryButton/HistoryButton";
-import { getUserInfo } from "../../api";
+import { getUserInfo, checkAuthEnforced } from "../../api";
 import SpinnerComponent from '../../components/Spinner/Spinner';
 
 
-type LayoutProps = {
+export type LayoutProps = {
   children: ReactNode;
   toggleSpinner: boolean;
   onSetShowHistoryPanel: () => void;
@@ -52,6 +52,12 @@ const Layout = ({ children,toggleSpinner, ...props }: LayoutProps) => {
   const firstRender = useRef(true);
 
   const getUserInfoList = async () => {
+    const isAuthEnforced = await checkAuthEnforced(); // Check if auth is enforced
+    if(!isAuthEnforced) {
+      setShowAuthMessage(false);
+      return;
+    }
+
     const userInfoList = await getUserInfo();
     if (
       userInfoList.length === 0 &&
@@ -65,11 +71,6 @@ const Layout = ({ children,toggleSpinner, ...props }: LayoutProps) => {
   };
 
   useEffect(() => {
-    if (firstRender.current && import.meta.env.MODE === "development") {
-      firstRender.current = false;
-      return;
-    }
-    console.log("calling list ");
     getUserInfoList();
   }, []);
 

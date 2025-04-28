@@ -65,7 +65,7 @@ Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.
 |AZURE_SEARCH_FILTER||Filter to apply to search queries.|
 |AZURE_OPENAI_RESOURCE||the name of your Azure OpenAI resource|
 |AZURE_OPENAI_MODEL||The name of your model deployment|
-|AZURE_OPENAI_MODEL_NAME|gpt-35-turbo|The name of the model|
+|AZURE_OPENAI_MODEL_NAME|gpt-4o|The name of the model|
 |AZURE_OPENAI_API_KEY||One of the API keys of your Azure OpenAI resource|
 |AZURE_OPENAI_EMBEDDING_MODEL|text-embedding-ada-002|The name of you Azure OpenAI embeddings model deployment|
 |AZURE_OPENAI_TEMPERATURE|0|What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. A value of 0 is recommended when using your data.|

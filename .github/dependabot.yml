@@ -24,7 +24,7 @@ updates:
       langchain:
         patterns:
           - "langchain*"
-    open-pull-requests-limit: 50
+    open-pull-requests-limit: 100
     target-branch: "dependabotchanges"
   - package-ecosystem: "npm"
     directory: "/code/frontend"
@@ -34,7 +34,7 @@ updates:
 
     commit-message:
       prefix: "build"
-    open-pull-requests-limit: 50
+    open-pull-requests-limit: 100
     target-branch: "dependabotchanges"
   - package-ecosystem: "npm"
     directory: "/tests/integration/ui"
@@ -44,5 +44,5 @@ updates:
 
     commit-message:
       prefix: "build"
-    open-pull-requests-limit: 50
+    open-pull-requests-limit: 100
     target-branch: "dependabotchanges"

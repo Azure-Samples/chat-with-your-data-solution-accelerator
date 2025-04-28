@@ -36,7 +36,7 @@ In the admin panel, there is a dropdown to select the Chat With Your Employee As
 
 - **Selected**: Employee Assistant prompt.
 
-![Checked](images/cwyd_admin_contract_selected.png)
+![Checked](images/cwyd_admin_employe_selected.png)
 
 When the user selects "Employee Assistant," the user prompt textbox will update to the Employee Assistant prompt. When the user selects the default, the user prompt textbox will update to the default prompt. Note that if the user has a custom prompt in the user prompt textbox, selecting an option from the dropdown will overwrite the custom prompt with the default or contract assistant prompt. Ensure to **Save the Configuration** after making this change.
 
