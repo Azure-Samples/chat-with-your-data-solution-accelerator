@@ -12,7 +12,7 @@ This repository uses GitHub's in-built [Releases](https://docs.github.com/en/rep
 
 # Automated releases
 
-In order to automate the generation of a changelog, the creation of a release, and the bumping of a version number, we use the [Conventional Changelog Action](https://github.com/TriPSs/conventional-changelog-action).
+In order to automate the generation of a change log, the creation of a release, and the bumping of a version number, we use the [Conventional Changelog Action](https://github.com/TriPSs/conventional-changelog-action).
 
 It works by inferring from the commit history what changes have been made, and hence what version should be assigned. This is why it is important for Pull Request titles to adhere to the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification, which many repositories use. This convention uses types such as `docs`, `fix`, `feat`, etc to label commits and PRs.
 
