@@ -176,7 +176,7 @@ Customers have the option to deploy this solution with PostgreSQL or Cosmos DB. 
 
 
 To review PostgreSQL configuration overview and steps, follow the link [here](docs/postgreSQL.md).
-![Solution Architecture - Chat with your data PostgreSQL](/docs/images/architrecture_pg.png)
+![Solution Architecture - Chat with your data PostgreSQL](/docs/images/architecture_pg.png)
 
 To review Cosmos DB configuration overview and steps, follow the link [here](docs/employee_assistance.md).
 ![Solution Architecture - Chat with your data CosmosDB](/docs/images/architecture_cdb.png)
