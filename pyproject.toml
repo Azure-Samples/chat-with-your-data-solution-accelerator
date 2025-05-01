@@ -43,7 +43,7 @@ azure-ai-ml = "^1.26.1"
 azure-cosmos = "^4.7.0"
 asyncpg = "^0.30.0"
 psycopg2-binary = "^2.9.10"
-pgvector = "^0.4.0"
+pgvector = "^0.4.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.5"
