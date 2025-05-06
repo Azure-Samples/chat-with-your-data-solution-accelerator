@@ -11,6 +11,17 @@ jest.mock('../../api/api', () => ({
   historyDelete: jest.fn()
 }))
 
+// Mocking TooltipHost from @fluentui/react
+jest.mock('@fluentui/react', () => {
+  const actual = jest.requireActual('@fluentui/react');
+  return {
+    ...actual,
+    TooltipHost: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="tooltip-mock">{children}</div>
+    ),
+  };
+});
+
 const conversation: Conversation = {
   id: '1',
   title: 'Test Chat',
@@ -47,7 +58,7 @@ describe('ChatHistoryListItemCell', () => {
   })
 
   test('renders the chat history item', () => {
-render(<ChatHistoryListItemCell {...componentProps} />);
+    render(<ChatHistoryListItemCell {...componentProps} />);
     const titleElement = screen.getByText(/Test Chat/i)
     expect(titleElement).toBeInTheDocument()
   })
@@ -71,10 +82,10 @@ render(<ChatHistoryListItemCell {...componentProps} />);
     // Check if the truncated title is in the document
     const truncatedTitle = screen.getByText(/A very long title that shoul .../i)
     expect(truncatedTitle).toBeInTheDocument()
-   })
+  })
 
   test('calls onSelect when clicked', () => {
-   render(<ChatHistoryListItemCell {...componentProps} />);
+    render(<ChatHistoryListItemCell {...componentProps} />);
     const item = screen.getByLabelText('chat history item')
     fireEvent.click(item)
     expect(mockOnSelect).toHaveBeenCalledWith(conversation)
@@ -93,7 +104,7 @@ render(<ChatHistoryListItemCell {...componentProps} />);
     // Expect that no content related to the title is rendered
     const titleElement = screen.queryByText(/Test Chat/i);
     expect(titleElement).not.toBeInTheDocument();
-})
+  })
 
   test('displays delete and edit buttons on hover', async () => {
     const mockAppStateUpdated = {
@@ -132,7 +143,7 @@ render(<ChatHistoryListItemCell {...componentProps} />);
   })
 
   test('shows confirmation dialog and deletes item', async () => {
-    ;(historyDelete as jest.Mock).mockResolvedValueOnce({
+    ; (historyDelete as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({})
     })
@@ -156,7 +167,7 @@ render(<ChatHistoryListItemCell {...componentProps} />);
   })
 
   test('when delete API fails or return false', async () => {
-    ;(historyDelete as jest.Mock).mockResolvedValueOnce({
+    ; (historyDelete as jest.Mock).mockResolvedValueOnce({
       ok: false,
       json: async () => ({})
     })
@@ -204,10 +215,10 @@ render(<ChatHistoryListItemCell {...componentProps} />);
     const appStateWithRequestInitiated = {
       ...componentProps,
       isGenerating: true,
-      selectedConvId:'1'
+      selectedConvId: '1'
     }
 
-    render(<ChatHistoryListItemCell {...appStateWithRequestInitiated} onSelect={mockOnSelect}  />);
+    render(<ChatHistoryListItemCell {...appStateWithRequestInitiated} onSelect={mockOnSelect} />);
     const item = screen.getByLabelText('chat history item')
     fireEvent.mouseEnter(item)
     const deleteButton = screen.getByTitle(/Delete/i)
@@ -218,10 +229,10 @@ render(<ChatHistoryListItemCell {...componentProps} />);
   })
 
   test('does not disable buttons when request is not initiated', () => {
-  render(<ChatHistoryListItemCell {...componentProps} />);
-  const item = screen.getByLabelText('chat history item')
-  fireEvent.mouseEnter(item)
-  const deleteButton = screen.getByTitle(/Delete/i)
+    render(<ChatHistoryListItemCell {...componentProps} />);
+    const item = screen.getByLabelText('chat history item')
+    fireEvent.mouseEnter(item)
+    const deleteButton = screen.getByTitle(/Delete/i)
     const editButton = screen.getByTitle(/Edit/i)
 
     expect(deleteButton).not.toBeDisabled()
@@ -245,12 +256,12 @@ render(<ChatHistoryListItemCell {...componentProps} />);
   })
 
   test('handles input onChange and onKeyDown ENTER events correctly', async () => {
-    ;(historyRename as jest.Mock).mockResolvedValueOnce({
+    ; (historyRename as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({})
     })
 
-render(<ChatHistoryListItemCell {...componentProps} />);
+    render(<ChatHistoryListItemCell {...componentProps} />);
     // Simulate hover to reveal Edit button
     const item = screen.getByLabelText('chat history item')
     fireEvent.mouseEnter(item)
@@ -316,7 +327,7 @@ render(<ChatHistoryListItemCell {...componentProps} />);
   test('Should hide the rename from when cancel it.', async () => {
     userEvent.setup()
 
-    render(<ChatHistoryListItemCell {...componentProps}/>)
+    render(<ChatHistoryListItemCell {...componentProps} />)
     const item = screen.getByLabelText('chat history item')
     fireEvent.mouseEnter(item)
     // Wait for the Edit button to appear and click it
@@ -336,10 +347,10 @@ render(<ChatHistoryListItemCell {...componentProps} />);
 
   test.skip('handles rename save API failed', async () => {
     userEvent.setup()
-    ;(historyRename as jest.Mock).mockRejectedValue({
-      ok: false,
-      json: async () => ({})
-    })
+      ; (historyRename as jest.Mock).mockRejectedValue({
+        ok: false,
+        json: async () => ({})
+      })
 
     render(<ChatHistoryListItemCell {...componentProps} />);
     // Simulate hover to reveal Edit button
@@ -380,12 +391,12 @@ render(<ChatHistoryListItemCell {...componentProps} />);
       date: new Date().toISOString()
     }
 
-    ;(historyRename as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      json: async () => ({ message: 'Title already exists' })
-    })
+      ; (historyRename as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ message: 'Title already exists' })
+      })
 
-render(<ChatHistoryListItemCell {...componentProps} />);
+    render(<ChatHistoryListItemCell {...componentProps} />);
     const item = screen.getByLabelText('chat history item')
     fireEvent.mouseEnter(item)
 
@@ -406,7 +417,7 @@ render(<ChatHistoryListItemCell {...componentProps} />);
 
 
   test('triggers edit functionality when Enter key is pressed', async () => {
-    ;(historyRename as jest.Mock).mockResolvedValueOnce({
+    ; (historyRename as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ message: 'Title changed' })
     })
@@ -438,12 +449,12 @@ render(<ChatHistoryListItemCell {...componentProps} />);
   })
 
   test('successfully saves edited title', async () => {
-    ;(historyRename as jest.Mock).mockResolvedValueOnce({
+    ; (historyRename as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({})
     })
 
-render(<ChatHistoryListItemCell {...componentProps} />);
+    render(<ChatHistoryListItemCell {...componentProps} />);
     const item = screen.getByLabelText('chat history item')
     fireEvent.mouseEnter(item)
 
@@ -500,7 +511,7 @@ render(<ChatHistoryListItemCell {...componentProps} />);
   ///////
 
   test('opens delete confirmation dialog when Enter key is pressed on the Delete button', async () => {
-render(<ChatHistoryListItemCell {...componentProps} />);
+    render(<ChatHistoryListItemCell {...componentProps} />);
     const item = screen.getByLabelText('chat history item')
     fireEvent.mouseEnter(item)
 
@@ -511,7 +522,7 @@ render(<ChatHistoryListItemCell {...componentProps} />);
   })
 
   test('opens delete confirmation dialog when Space key is pressed on the Delete button', async () => {
-render(<ChatHistoryListItemCell {...componentProps} />);
+    render(<ChatHistoryListItemCell {...componentProps} />);
     const item = screen.getByLabelText('chat history item')
     fireEvent.mouseEnter(item)
 
@@ -522,7 +533,7 @@ render(<ChatHistoryListItemCell {...componentProps} />);
   })
 
   test('opens edit input when Space key is pressed on the Edit button', async () => {
- render(<ChatHistoryListItemCell {...componentProps} />);
+    render(<ChatHistoryListItemCell {...componentProps} />);
     const item = screen.getByLabelText('chat history item')
     fireEvent.mouseEnter(item)
 
@@ -534,7 +545,7 @@ render(<ChatHistoryListItemCell {...componentProps} />);
   })
 
   test('opens edit input when Enter key is pressed on the Edit button', async () => {
-  render(<ChatHistoryListItemCell {...componentProps} />);
+    render(<ChatHistoryListItemCell {...componentProps} />);
     const item = screen.getByLabelText('chat history item')
     fireEvent.mouseEnter(item)
 
@@ -547,11 +558,11 @@ render(<ChatHistoryListItemCell {...componentProps} />);
 
   test('handles rename save when the updated text is equal to initial text', async () => {
     userEvent.setup()
-    ;(historyRename as jest.Mock).mockRejectedValue({
-      ok: false,
-      json: async () => ({ message: 'Title not changed' })
-    })
-    render(<ChatHistoryListItemCell {...componentProps}/>)
+      ; (historyRename as jest.Mock).mockRejectedValue({
+        ok: false,
+        json: async () => ({ message: 'Title not changed' })
+      })
+    render(<ChatHistoryListItemCell {...componentProps} />)
 
     // Simulate hover to reveal Edit button
     const item = screen.getByLabelText('chat history item')
@@ -573,26 +584,26 @@ render(<ChatHistoryListItemCell {...componentProps} />);
       //fireEvent.change(inputItem, { target: { value: 'Test Chat' } });
     })
     expect(historyRename).not.toHaveBeenCalled()
-})
-test('Should hide the rename from on Enter or space .', async () => {
-  userEvent.setup()
-
-  render(<ChatHistoryListItemCell {...componentProps}/>)
-  const item = screen.getByLabelText('chat history item')
-  fireEvent.mouseEnter(item)
-  // Wait for the Edit button to appear and click it
-  await waitFor(() => {
-    const editButton = screen.getByTitle(/Edit/i)
-    fireEvent.click(editButton)
   })
+  test('Should hide the rename from on Enter or space .', async () => {
+    userEvent.setup()
 
-  const editButton =screen.getByRole('button', { name: 'cancel edit title' })
-  fireEvent.keyDown(editButton, { key: 'Enter', code: 'Enter', charCode: 13 })
+    render(<ChatHistoryListItemCell {...componentProps} />)
+    const item = screen.getByLabelText('chat history item')
+    fireEvent.mouseEnter(item)
+    // Wait for the Edit button to appear and click it
+    await waitFor(() => {
+      const editButton = screen.getByTitle(/Edit/i)
+      fireEvent.click(editButton)
+    })
 
-  // Wait for the error to be hidden after 5 seconds
-  await waitFor(() => {
-    const input = screen.queryByLabelText('confirm new title')
-    expect(input).not.toBeInTheDocument()
+    const editButton = screen.getByRole('button', { name: 'cancel edit title' })
+    fireEvent.keyDown(editButton, { key: 'Enter', code: 'Enter', charCode: 13 })
+
+    // Wait for the error to be hidden after 5 seconds
+    await waitFor(() => {
+      const input = screen.queryByLabelText('confirm new title')
+      expect(input).not.toBeInTheDocument()
+    })
   })
-})
 })
