@@ -7,10 +7,12 @@ import {
   DialogType,
   IconButton,
   ITextField,
+  ITooltipHostStyles,
   PrimaryButton,
   Stack,
   Text,
   TextField,
+  TooltipHost,
 } from "@fluentui/react";
 import { useBoolean } from "@fluentui/react-hooks";
 
@@ -29,6 +31,11 @@ interface ChatHistoryListItemCellProps {
   isGenerating: boolean;
   toggleToggleSpinner: (toggler: boolean) => void;
 }
+
+
+const calloutProps = { gapSpace: 0 };
+const hostStyles: Partial<ITooltipHostStyles> = { root: { display: 'inline-block' } };
+
 
 export const ChatHistoryListItemCell: React.FC<
   ChatHistoryListItemCellProps
@@ -51,6 +58,7 @@ export const ChatHistoryListItemCell: React.FC<
   const [textFieldFocused, setTextFieldFocused] = useState(false);
   const textFieldRef = useRef<ITextField | null>(null);
   const isSelected = item?.id === selectedConvId;
+  const tooltipId = 'tooltip'+ item?.id;
   const dialogContentProps = {
     type: DialogType.close,
     title: "Are you sure you want to delete this item?",
@@ -257,7 +265,14 @@ export const ChatHistoryListItemCell: React.FC<
       ) : (
         <>
           <Stack horizontal verticalAlign={"center"} style={{ width: "100%" }}>
-            <div className={styles.chatTitle}>{truncatedTitle}</div>
+         <div className={styles.chatTitle}>
+         <TooltipHost
+                  content={item?.title}
+                  id={tooltipId}
+                  closeDelay={100}
+                  calloutProps={calloutProps}
+                  styles={hostStyles}
+                >{truncatedTitle} </TooltipHost></div>
             {(isSelected || isHovered) && (
               <Stack horizontal horizontalAlign="end">
                 <IconButton
