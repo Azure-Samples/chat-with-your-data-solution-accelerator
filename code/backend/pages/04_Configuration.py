@@ -497,7 +497,7 @@ Use the Retrieved Documents to answer the question: {question}
 
         st.text_input('Enter "reset" to proceed', key="reset_configuration")
         if st.button(
-            ":red[Reset Now]",
+            ":red[Reset]",
             disabled=st.session_state.get("reset_configuration", "") != "reset",
             key="confirm_reset"
         ):
