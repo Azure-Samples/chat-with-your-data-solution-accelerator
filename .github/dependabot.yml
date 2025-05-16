@@ -13,6 +13,7 @@ updates:
     commit-message:
       prefix: "build"
     target-branch: "dependabotchanges"
+    open-pull-requests-limit: 10
     groups:
       all-actions:
         patterns:
@@ -26,6 +27,7 @@ updates:
     commit-message:
       prefix: "build"
     target-branch: "dependabotchanges"
+    open-pull-requests-limit: 10
     groups:
       langchain:
         patterns:
@@ -42,6 +44,7 @@ updates:
     commit-message:
       prefix: "build"
     target-branch: "dependabotchanges"
+    open-pull-requests-limit: 10
     groups:
       frontend-deps:
         patterns:
@@ -55,6 +58,7 @@ updates:
     commit-message:
       prefix: "build"
     target-branch: "dependabotchanges"
+    open-pull-requests-limit: 10
     groups:
       frontend-deps:
         patterns:
