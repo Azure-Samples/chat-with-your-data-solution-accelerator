@@ -1,0 +1,108 @@
+name: Scheduled Dependabot PRs Auto-Merge
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs once a day at midnight UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge-dependabot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install GitHub CLI
+        run: |
+          sudo apt update
+          sudo apt install -y gh
+
+      - name: Fetch & Filter Dependabot PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔍 Fetching all Dependabot PRs targeting 'dependabotchanges'..."
+          > matched_prs.txt
+          pr_batch=$(gh pr list --state open --json number,title,author,baseRefName,url \
+            --jq '.[] | "\(.number)|\(.title)|\(.author.login)|\(.baseRefName)|\(.url)"')
+          while IFS='|' read -r number title author base url; do
+            author=$(echo "$author" | xargs)
+            base=$(echo "$base" | xargs)
+            if [[ "$author" == "app/dependabot" && "$base" == "dependabotchanges" ]]; then
+              echo "$url" >> matched_prs.txt
+              echo "✅ Matched PR #$number - $title"
+            else
+              echo "❌ Skipped PR #$number - $title (Author: $author, Base: $base)"
+            fi
+          done <<< "$pr_batch"
+          echo "👉 Matched PRs:"
+          cat matched_prs.txt || echo "None"
+
+      - name: Rebase PR if Conflicts Exist
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ ! -s matched_prs.txt ]]; then
+            echo "⚠️ No matching PRs to process."
+            exit 0
+          fi
+          while IFS= read -r pr_url; do
+            pr_number=$(basename "$pr_url")
+            echo "🔁 Rebasing PR #$pr_number if conflicts exist"
+            mergeable=$(gh pr view "$pr_number" --json mergeable --jq '.mergeable')
+            if [[ "$mergeable" == "CONFLICTING" ]]; then
+              echo "❌ Merge conflicts detected. Rebasing PR #$pr_number"
+              gh pr update-branch "$pr_url" || echo "❗ Rebase (update-branch) failed."
+            fi
+          done < matched_prs.txt
+
+      - name: Auto-Merge if Mergeable
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ ! -s matched_prs.txt ]]; then
+            echo "⚠️ No matching PRs to process."
+            exit 0
+          fi
+          while IFS= read -r pr_url; do
+            echo "🔍 Checking mergeability for $pr_url"
+            pr_number=$(basename "$pr_url")
+            attempt=0
+            max_attempts=8
+            mergeable=""
+            sleep 5  # Initial delay to allow GitHub to compute mergeability
+            while [[ $attempt -lt $max_attempts ]]; do
+              mergeable=$(gh pr view "$pr_number" --json mergeable --jq '.mergeable' 2>/dev/null || echo "UNKNOWN")
+              echo "🔁 Attempt $((attempt+1))/$max_attempts: mergeable=$mergeable"
+              if [[ "$mergeable" == "MERGEABLE" ]]; then
+                echo "🚀 Enabling auto-merge..."
+                set -x
+                merge_output=$(gh pr merge --auto --merge "$pr_url" 2>&1)
+                merge_status=$?
+                set +x
+                echo "$merge_output"
+                if [[ $merge_status -ne 0 ]]; then
+                  echo "❗ Auto-merge failed. Output: $merge_output"
+                else
+                  echo "✅ Auto-merge succeeded!"
+                fi
+                break
+              elif [[ "$mergeable" == "CONFLICTING" ]]; then
+                echo "❌ Cannot merge due to conflicts. Skipping."
+                break
+              else
+                echo "🕒 Waiting for GitHub to determine mergeable status..."
+                sleep 15
+              fi
+              ((attempt++))
+            done
+            if [[ "$mergeable" != "MERGEABLE" && "$mergeable" != "CONFLICTING" ]]; then
+              echo "❌ Mergeability undetermined after $max_attempts attempts. Skipping PR #$pr_number"
+            fi
+          done < matched_prs.txt || echo "⚠️ Completed loop with some errors, but continuing gracefully."
