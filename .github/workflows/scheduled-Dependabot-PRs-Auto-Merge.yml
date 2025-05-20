@@ -1,3 +1,25 @@
+# ------------------------------------------------------------------------------
+# Scheduled Dependabot PRs Auto-Merge Workflow
+#
+# Purpose:
+#   - Automatically detect, rebase (if needed), and merge Dependabot PRs targeting
+#     the `dependabotchanges` branch, supporting different merge strategies.
+#
+# Features:
+#   ✅ Filters PRs authored by Dependabot and targets the specific base branch
+#   ✅ Rebases PRs with conflicts and auto-resolves using "prefer-theirs" strategy
+#   ✅ Attempts all three merge strategies: merge, squash, rebase (first success wins)
+#   ✅ Handles errors gracefully, logs clearly
+#
+# Triggers:
+#   - Scheduled daily run (midnight UTC)
+#   - Manual trigger (via GitHub UI)
+#
+# Required Permissions:
+#   - contents: write
+#   - pull-requests: write
+# ------------------------------------------------------------------------------
+
 name: Scheduled Dependabot PRs Auto-Merge
 
 on:
@@ -20,7 +42,6 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y gh
-
       - name: Fetch & Filter Dependabot PRs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -41,7 +62,6 @@ jobs:
           done <<< "$pr_batch"
           echo "👉 Matched PRs:"
           cat matched_prs.txt || echo "None"
-
       - name: Rebase PR if Conflicts Exist
         if: success()
         env:
@@ -53,15 +73,31 @@ jobs:
           fi
           while IFS= read -r pr_url; do
             pr_number=$(basename "$pr_url")
-            echo "🔁 Rebasing PR #$pr_number if conflicts exist"
+            echo "🔁 Checking PR #$pr_number for conflicts..."
             mergeable=$(gh pr view "$pr_number" --json mergeable --jq '.mergeable')
             if [[ "$mergeable" == "CONFLICTING" ]]; then
-              echo "❌ Merge conflicts detected. Rebasing PR #$pr_number"
-              gh pr update-branch "$pr_url" || echo "❗ Rebase (update-branch) failed."
+              echo "⚠️ Merge conflicts detected. Performing manual rebase for PR #$pr_number..."
+              head_branch=$(gh pr view "$pr_number" --json headRefName --jq '.headRefName')
+              base_branch=$(gh pr view "$pr_number" --json baseRefName --jq '.baseRefName')
+              git fetch origin "$base_branch":"$base_branch"
+              git fetch origin "$head_branch":"$head_branch"
+              git checkout "$head_branch"
+              git config user.name "github-actions"
+              git config user.email "action@github.com"
+              # Attempt rebase with 'theirs' strategy
+              if git rebase --strategy=recursive -X theirs "$base_branch"; then
+                echo "✅ Rebase successful. Pushing..."
+                git push origin "$head_branch" --force
+              else
+                echo "❌ Rebase failed. Aborting..."
+                git rebase --abort || true
+              fi
+            else
+              echo "✅ PR #$pr_number is mergeable. Skipping rebase."
             fi
           done < matched_prs.txt
-
-      - name: Auto-Merge if Mergeable
+          
+      - name: Auto-Merge PRs using available strategy
         if: success()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -71,30 +107,38 @@ jobs:
             exit 0
           fi
           while IFS= read -r pr_url; do
-            echo "🔍 Checking mergeability for $pr_url"
             pr_number=$(basename "$pr_url")
+            echo "🔍 Checking mergeability for PR #$pr_number"
             attempt=0
             max_attempts=8
             mergeable=""
-            sleep 5  # Initial delay to allow GitHub to compute mergeability
+            sleep 5  # Let GitHub calculate mergeable status
             while [[ $attempt -lt $max_attempts ]]; do
               mergeable=$(gh pr view "$pr_number" --json mergeable --jq '.mergeable' 2>/dev/null || echo "UNKNOWN")
               echo "🔁 Attempt $((attempt+1))/$max_attempts: mergeable=$mergeable"
               if [[ "$mergeable" == "MERGEABLE" ]]; then
-                echo "🚀 Enabling auto-merge..."
-                set -x
-                merge_output=$(gh pr merge --auto --merge "$pr_url" 2>&1)
-                merge_status=$?
-                set +x
-                echo "$merge_output"
-                if [[ $merge_status -ne 0 ]]; then
-                  echo "❗ Auto-merge failed. Output: $merge_output"
-                else
-                  echo "✅ Auto-merge succeeded!"
+                success=0
+                for strategy in rebase squash merge; do
+                  echo "🚀 Trying to auto-merge PR #$pr_number using '$strategy' strategy..."
+                  set -x
+                  merge_output=$(gh pr merge --auto --"$strategy" "$pr_url" 2>&1)
+                  merge_status=$?
+                  set +x
+                  echo "$merge_output"
+                  if [[ $merge_status -eq 0 ]]; then
+                    echo "✅ Auto-merge succeeded using '$strategy'."
+                    success=1
+                    break
+                  else
+                    echo "❌ Auto-merge failed using '$strategy'. Trying next strategy..."
+                  fi
+                done
+                if [[ $success -eq 0 ]]; then
+                  echo "❌ All merge strategies failed for PR #$pr_number"
                 fi
                 break
               elif [[ "$mergeable" == "CONFLICTING" ]]; then
-                echo "❌ Cannot merge due to conflicts. Skipping."
+                echo "❌ Cannot merge due to conflicts. Skipping PR #$pr_number"
                 break
               else
                 echo "🕒 Waiting for GitHub to determine mergeable status..."
