@@ -4,6 +4,7 @@ targetScope = 'subscription'
 @maxLength(20)
 @description('Name of the the environment which is used to generate a short unique hash used in all resources.')
 param environmentName string
+var abbrs = loadJsonContent('./abbreviations.json')
 
 param resourceToken string = toLower(uniqueString(subscription().id, environmentName, location))
 
@@ -11,7 +12,7 @@ param resourceToken string = toLower(uniqueString(subscription().id, environment
 param location string
 
 @description('Name of App Service plan')
-param hostingPlanName string = 'hosting-plan-${resourceToken}'
+param hostingPlanName string = 'asp-${resourceToken}'
 
 @description('The pricing tier for the App Service plan')
 @allowed([
@@ -53,16 +54,16 @@ param databaseType string = 'PostgreSQL'
 param azureCosmosDBAccountName string = 'cosmos-${resourceToken}'
 
 @description('Azure Postgres DB Account Name')
-param azurePostgresDBAccountName string = 'postgres-${resourceToken}'
+param azurePostgresDBAccountName string = 'psql-${resourceToken}'
 
 @description('Name of Web App')
-param websiteName string = 'web-${resourceToken}'
+param websiteName string = 'app-${resourceToken}'
 
 @description('Name of Admin Web App')
 param adminWebsiteName string = '${websiteName}-admin'
 
 @description('Name of Application Insights')
-param applicationInsightsName string = 'appinsights-${resourceToken}'
+param applicationInsightsName string = 'appi-${resourceToken}'
 
 @description('Name of the Workbook')
 param workbookDisplayName string = 'workbook-${resourceToken}'
@@ -119,7 +120,7 @@ param azureSearchUrlColumn string = 'url'
 param azureSearchUseIntegratedVectorization bool = false
 
 @description('Name of Azure OpenAI Resource')
-param azureOpenAIResourceName string = 'openai-${resourceToken}'
+param azureOpenAIResourceName string = 'oai-${resourceToken}'
 
 @description('Name of Azure OpenAI Resource SKU')
 param azureOpenAISkuName string = 'S0'
@@ -204,7 +205,7 @@ param azureOpenAIEmbeddingModelVersion string = '2'
 param azureOpenAIEmbeddingModelCapacity int = 30
 
 @description('Name of Computer Vision Resource (if useAdvancedImageProcessing=true)')
-param computerVisionName string = 'computer-vision-${resourceToken}'
+param computerVisionName string = 'cv-${resourceToken}'
 
 @description('Name of Computer Vision Resource SKU (if useAdvancedImageProcessing=true)')
 @allowed([
@@ -234,7 +235,7 @@ param computerVisionVectorizeImageApiVersion string = '2024-02-01'
 param computerVisionVectorizeImageModelVersion string = '2023-04-15'
 
 @description('Azure AI Search Resource')
-param azureAISearchName string = 'search-${resourceToken}'
+param azureAISearchName string = 'srch-${resourceToken}'
 
 @description('The SKU of the search service you want to create. E.g. free or standard')
 @allowed([
@@ -259,22 +260,22 @@ param azureSearchDatasource string = 'datasource-${resourceToken}'
 param azureSearchConversationLogIndex string = 'conversations'
 
 @description('Name of Storage Account')
-param storageAccountName string = 'str${resourceToken}'
+param storageAccountName string = 'st${resourceToken}'
 
 @description('Name of Function App for Batch document processing')
-param functionName string = 'backend-${resourceToken}'
+param functionName string = 'func-${resourceToken}'
 
 @description('Azure Form Recognizer Name')
-param formRecognizerName string = 'formrecog-${resourceToken}'
+param formRecognizerName string = 'di-${resourceToken}'
 
 @description('Azure Content Safety Name')
-param contentSafetyName string = 'contentsafety-${resourceToken}'
+param contentSafetyName string = 'cs-${resourceToken}'
 
 @description('Azure Speech Service Name')
-param speechServiceName string = 'speech-${resourceToken}'
+param speechServiceName string = 'spch-${resourceToken}'
 
 @description('Log Analytics Name')
-param logAnalyticsName string = 'la-${resourceToken}'
+param logAnalyticsName string = 'log-${resourceToken}'
 
 param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'
@@ -308,7 +309,7 @@ param logLevel string = 'INFO'
 param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
 
 @description('Azure Machine Learning Name')
-param azureMachineLearningName string = 'aml-${resourceToken}'
+param azureMachineLearningName string = 'mlw-${resourceToken}'
 
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
@@ -316,7 +317,7 @@ var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${ne
 var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
 var rgName = 'rg-${environmentName}'
-var keyVaultName = 'kv-${resourceToken}'
+var keyVaultName = '${abbrs.security.keyVault}${resourceToken}'
 var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
 
 var appversion = 'latest' // Update GIT deployment branch
@@ -351,6 +352,7 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 module managedIdentityModule './core/security/managed-identity.bicep' = if (databaseType == 'PostgreSQL') {
   name: 'deploy_managed_identity'
   params: {
+    miName: '${abbrs.security.managedIdentity}${resourceToken}'
     solutionName: resourceToken
     solutionLocation: location
   }
