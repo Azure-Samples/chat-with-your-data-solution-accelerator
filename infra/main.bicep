@@ -12,7 +12,7 @@ param resourceToken string = toLower(uniqueString(subscription().id, environment
 param location string
 
 @description('Name of App Service plan')
-var hostingPlanName = '${abbrs.compute.appServicePlan}${resourceToken}'
+param hostingPlanName string = 'asp-${resourceToken}'
 
 @description('The pricing tier for the App Service plan')
 @allowed([
@@ -51,19 +51,19 @@ param skuTier string = 'Basic'
 param databaseType string = 'PostgreSQL'
 
 @description('Azure Cosmos DB Account Name')
-var azureCosmosDBAccountName  = '${abbrs.databases.cosmosDBDatabase}${resourceToken}'
+param azureCosmosDBAccountName string = 'cosmos-${resourceToken}'
 
 @description('Azure Postgres DB Account Name')
-var azurePostgresDBAccountName  = '${abbrs.databases.postgreSQLDatabase}${resourceToken}'
+param azurePostgresDBAccountName string = 'psql-${resourceToken}'
 
 @description('Name of Web App')
-var websiteName  = '${abbrs.compute.webApp}${resourceToken}'
+param websiteName string = 'app-${resourceToken}'
 
 @description('Name of Admin Web App')
-var adminWebsiteName  = '${websiteName}-admin'
+param adminWebsiteName string = '${websiteName}-admin'
 
 @description('Name of Application Insights')
-var applicationInsightsName  = '${abbrs.managementGovernance.applicationInsights}${resourceToken}'
+param applicationInsightsName string = 'appi-${resourceToken}'
 
 @description('Name of the Workbook')
 param workbookDisplayName string = 'workbook-${resourceToken}'
@@ -120,7 +120,7 @@ param azureSearchUrlColumn string = 'url'
 param azureSearchUseIntegratedVectorization bool = false
 
 @description('Name of Azure OpenAI Resource')
-var azureOpenAIResourceName  = '${abbrs.ai.openAIService}${resourceToken}'
+param azureOpenAIResourceName string = 'oai-${resourceToken}'
 
 @description('Name of Azure OpenAI Resource SKU')
 param azureOpenAISkuName string = 'S0'
@@ -205,7 +205,7 @@ param azureOpenAIEmbeddingModelVersion string = '2'
 param azureOpenAIEmbeddingModelCapacity int = 30
 
 @description('Name of Computer Vision Resource (if useAdvancedImageProcessing=true)')
-var computerVisionName  = '${abbrs.ai.computerVision}${resourceToken}'
+param computerVisionName string = 'cv-${resourceToken}'
 
 @description('Name of Computer Vision Resource SKU (if useAdvancedImageProcessing=true)')
 @allowed([
@@ -235,7 +235,7 @@ param computerVisionVectorizeImageApiVersion string = '2024-02-01'
 param computerVisionVectorizeImageModelVersion string = '2023-04-15'
 
 @description('Azure AI Search Resource')
-var azureAISearchName  = '${abbrs.ai.aiSearch}${resourceToken}'
+param azureAISearchName string = 'srch-${resourceToken}'
 
 @description('The SKU of the search service you want to create. E.g. free or standard')
 @allowed([
@@ -260,22 +260,22 @@ param azureSearchDatasource string = 'datasource-${resourceToken}'
 param azureSearchConversationLogIndex string = 'conversations'
 
 @description('Name of Storage Account')
-var storageAccountName  = '${abbrs.storage.storageAccount}${resourceToken}'
+param storageAccountName string = 'st${resourceToken}'
 
 @description('Name of Function App for Batch document processing')
-var functionName  = '${abbrs.compute.functionApp}${resourceToken}'
+param functionName string = 'func-${resourceToken}'
 
 @description('Azure Form Recognizer Name')
-var formRecognizerName  = '${abbrs.ai.documentIntelligence}${resourceToken}'
+param formRecognizerName string = 'di-${resourceToken}'
 
 @description('Azure Content Safety Name')
-var contentSafetyName  = '${abbrs.ai.contentSafety}${resourceToken}'
+param contentSafetyName string = 'cs-${resourceToken}'
 
 @description('Azure Speech Service Name')
-var speechServiceName  = '${abbrs.ai.speechService}${resourceToken}'
+param speechServiceName string = 'spch-${resourceToken}'
 
 @description('Log Analytics Name')
-var logAnalyticsName  = '${abbrs.managementGovernance.logAnalyticsWorkspace}${resourceToken}'
+param logAnalyticsName string = 'log-${resourceToken}'
 
 param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'
@@ -309,7 +309,7 @@ param logLevel string = 'INFO'
 param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
 
 @description('Azure Machine Learning Name')
-var azureMachineLearningName  = '${abbrs.ai.machineLearningWorkspace}${resourceToken}'
+param azureMachineLearningName string = 'mlw-${resourceToken}'
 
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
