@@ -3,46 +3,63 @@
 # Please see the documentation for all configuration options:
 # https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
 version: 2
+
 updates:
+  # Grouped GitHub Actions updates
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "monthly"
-
     commit-message:
       prefix: "build"
     target-branch: "dependabotchanges"
+    open-pull-requests-limit: 10
+    groups:
+      all-actions:
+        patterns:
+          - "*"
+
+  # Grouped Python dependencies
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "monthly"
-
-
     commit-message:
       prefix: "build"
+    target-branch: "dependabotchanges"
+    open-pull-requests-limit: 10
     groups:
       langchain:
         patterns:
           - "langchain*"
-    open-pull-requests-limit: 100
-    target-branch: "dependabotchanges"
+      all-backend-deps:
+        patterns:
+          - "*"
+
+  # Grouped frontend npm dependencies (main app)
   - package-ecosystem: "npm"
     directory: "/code/frontend"
     schedule:
       interval: "monthly"
-
-
     commit-message:
       prefix: "build"
-    open-pull-requests-limit: 100
     target-branch: "dependabotchanges"
+    open-pull-requests-limit: 10
+    groups:
+      frontend-deps:
+        patterns:
+          - "*"
+
+  # Grouped frontend npm dependencies (UI tests)
   - package-ecosystem: "npm"
     directory: "/tests/integration/ui"
     schedule:
       interval: "monthly"
-
-
     commit-message:
       prefix: "build"
-    open-pull-requests-limit: 100
     target-branch: "dependabotchanges"
+    open-pull-requests-limit: 10
+    groups:
+      frontend-deps:
+        patterns:
+          - "*"
