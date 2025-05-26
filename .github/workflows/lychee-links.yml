@@ -15,6 +15,11 @@ jobs:
       - name: Run Lychee link checker
         uses: lycheeverse/lychee-action@v2.4.1
         with:
-          args: "--verbose --exclude-mail --no-progress '**/*.md'"
+          args: >
+            --verbose
+            --exclude-mail
+            --no-progress
+            --exclude ^https?://
+            '**/*.md'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
