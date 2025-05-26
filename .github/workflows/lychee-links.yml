@@ -1,0 +1,20 @@
+name: Check for Broken Links
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lychee:
+    name: Broken Link Checker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Lychee link checker
+        uses: lycheeverse/lychee-action@v2.4.1
+        with:
+          args: "--verbose --exclude-mail --no-progress '**/*.md'"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
