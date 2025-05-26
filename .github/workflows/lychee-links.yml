@@ -8,20 +8,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout PR code
+      - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # important to allow full diff
 
       - name: Get changed Markdown files
         id: changed-files
         run: |
-          echo "Fetching changed markdown files..."
-          files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '\.md$' || true)
-          echo "Changed Markdown files: $files"
+          git fetch origin main
+          files=$(git diff --name-only origin/main...HEAD | grep '\.md$' || true)
           echo "md_files<<EOF" >> $GITHUB_OUTPUT
           echo "$files" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Run Lychee only on internal links in changed .md files
+      - name: Run Lychee on changed Markdown files (internal links only)
         if: steps.changed-files.outputs.md_files != ''
         uses: lycheeverse/lychee-action@v2.4.1
         with:
