@@ -1,26 +1,38 @@
 # Set Up Authentication in Azure App Service
 
+This document provides step-by-step instructions to configure Azure App Registrations for a front-end application.
+
+## Prerequisites
+
+- Access to **Microsoft Entra ID**
+- Necessary permissions to create and manage **App Registrations**
+  
 ## Step 1: Add Authentication in Azure App Service configuration
 
 1. Click on `Authentication` from left menu.
 
 ![Authentication](images/AppAuthentication.png)
 
-2. Click on `+ Add Provider` to see a list of identity providers.
+2. Click on `+ Add identity provider` to see a list of identity providers.
 
 ![Authentication Identity](images/AppAuthenticationIdentity.png)
 
-3. Click on `+ Add Provider` to see a list of identity providers.
+3. Click on `Identity Provider` dropdown to see a list of identity providers.
 
 ![Add Provider](images/AppAuthIdentityProvider.png)
 
-4. Select the first option `Microsoft Entra Id` from the drop-down list. If `Create new app registration` is disabled, go to [Step 1a](#step-1a-creating-a-new-app-registration).
+4. Select the first option `Microsoft Entra Id` from the drop-down list and select `client secret expiration` under App registration.
+> NOTE: If `Create new app registration` is disabled, then go to [Step 1a](#step-1a-creating-a-new-app-registration).
 
 ![Add Provider](images/AppAuthIdentityProviderAdd.png)
 
 5. Accept the default values and click on `Add` button to go back to the previous page with the identify provider added.
 
 ![Add Provider](images/AppAuthIdentityProviderAdded.png)
+
+
+<br/>
+
 
 ### Step 1a: Creating a new App Registration
 
