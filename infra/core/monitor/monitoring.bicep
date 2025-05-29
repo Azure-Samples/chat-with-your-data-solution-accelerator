@@ -4,8 +4,13 @@ param applicationInsightsName string
 param applicationInsightsDashboardName string = ''
 param location string = resourceGroup().location
 param tags object = {}
+@description('Resource ID of existing Log Analytics workspace. If not provided, a new one will be created.')
+param existingLogAnalyticsResourceId string = ''
 
-module logAnalytics 'loganalytics.bicep' = {
+var useExistingLogAnalytics = existingLogAnalyticsResourceId != ''
+
+
+module logAnalytics 'loganalytics.bicep' = if (!useExistingLogAnalytics) {
   name: 'loganalytics'
   params: {
     name: logAnalyticsName
@@ -14,6 +19,10 @@ module logAnalytics 'loganalytics.bicep' = {
   }
 }
 
+var logAnalyticsWorkspaceId = useExistingLogAnalytics ? existingLogAnalyticsResourceId : logAnalytics.outputs.id
+var logAnalyticsWorkspaceName = useExistingLogAnalytics ? last(split(existingLogAnalyticsResourceId, '/')) : logAnalytics.outputs.name
+
+
 module applicationInsights 'applicationinsights.bicep' = {
   name: 'applicationinsights'
   params: {
@@ -21,7 +30,8 @@ module applicationInsights 'applicationinsights.bicep' = {
     location: location
     tags: tags
     dashboardName: applicationInsightsDashboardName
-    logAnalyticsWorkspaceId: logAnalytics.outputs.id
+    logAnalyticsWorkspaceId: logAnalyticsWorkspaceId
+
   }
 }
 
@@ -29,5 +39,5 @@ output applicationInsightsConnectionString string = applicationInsights.outputs.
 output applicationInsightsInstrumentationKey string = applicationInsights.outputs.instrumentationKey
 output applicationInsightsName string = applicationInsights.outputs.name
 output applicationInsightsId string = applicationInsights.outputs.id
-output logAnalyticsWorkspaceId string = logAnalytics.outputs.id
-output logAnalyticsWorkspaceName string = logAnalytics.outputs.name
+output logAnalyticsWorkspaceId string = logAnalyticsWorkspaceId
+output logAnalyticsWorkspaceName string = logAnalyticsWorkspaceName
