@@ -1380,6 +1380,7 @@ var azureOpenAIEmbeddingModelInfo = string({
 
 var azureCosmosDBInfo = string({
   account_name: databaseType == 'CosmosDB' ? cosmosDBModule.outputs.cosmosOutput.cosmosAccountName : ''
+  account_key: databaseType == 'CosmosDB' && useKeyVault ? storekeys.outputs.COSMOS_ACCOUNT_KEY_NAME : ''
   database_name: databaseType == 'CosmosDB' ? cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName : ''
   conversations_container_name: databaseType == 'CosmosDB'
     ? cosmosDBModule.outputs.cosmosOutput.cosmosContainerName
