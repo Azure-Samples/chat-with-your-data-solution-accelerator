@@ -30,4 +30,4 @@ This document provides step-by-step instructions to configure Azure App Registra
 
 ![Add Provider](images/AppAuthIdentityProviderAdded.png)
 
-6. You have successfully added app authentication, and user are now required to log in to access the application.
+6. You have successfully added app authentication, and now required to log in to access the application.
