@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.35.1.17967",
-      "templateHash": "8045583356932298554"
+      "templateHash": "15937746938783498831"
     }
   },
   "parameters": {
@@ -12202,7 +12202,7 @@
     },
     "AZURE_OPENAI_CONFIGURATION_INFO": {
       "type": "string",
-      "value": "[string(createObject('service_name', parameters('speechServiceName'), 'stream', parameters('azureOpenAIStream'), 'system_message', parameters('azureOpenAISystemMessage'), 'stop_sequence', parameters('azureOpenAIStopSequence'), 'max_tokens', parameters('azureOpenAIMaxTokens'), 'top_p', parameters('azureOpenAITopP'), 'temperature', parameters('azureOpenAITemperature'), 'version', parameters('azureOpenAIApiVersion'), 'resource', parameters('azureOpenAIResourceName'), 'api_version', if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.OPENAI_KEY_NAME.value, '')))]"
+      "value": "[string(createObject('service_name', parameters('speechServiceName'), 'stream', parameters('azureOpenAIStream'), 'system_message', parameters('azureOpenAISystemMessage'), 'stop_sequence', parameters('azureOpenAIStopSequence'), 'max_tokens', parameters('azureOpenAIMaxTokens'), 'top_p', parameters('azureOpenAITopP'), 'temperature', parameters('azureOpenAITemperature'), 'api_version', parameters('azureOpenAIApiVersion'), 'resource', parameters('azureOpenAIResourceName'), 'api_key', if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.OPENAI_KEY_NAME.value, '')))]"
     },
     "AZURE_OPENAI_EMBEDDING_MODEL_INFO": {
       "type": "string",

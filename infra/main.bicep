@@ -1450,9 +1450,9 @@ var azureOpenaiConfigurationInfo = string({
   max_tokens: azureOpenAIMaxTokens
   top_p: azureOpenAITopP
   temperature: azureOpenAITemperature
-  version: azureOpenAIApiVersion
+  api_version: azureOpenAIApiVersion
   resource: azureOpenAIResourceName
-  api_version: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
+  api_key: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
 })
 
 var azureKeyvaultInfo = string({
