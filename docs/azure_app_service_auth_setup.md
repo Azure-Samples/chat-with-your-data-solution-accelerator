@@ -29,3 +29,5 @@ This document provides step-by-step instructions to configure Azure App Registra
 5. Accept the default values and click on `Add` button to go back to the previous page with the identify provider added.
 
 ![Add Provider](images/AppAuthIdentityProviderAdded.png)
+
+6. You have successfully added app authentication, and user are now required to log in to access the application.
