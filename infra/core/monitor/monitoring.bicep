@@ -8,8 +8,6 @@ param tags object = {}
 param existingLogAnalyticsResourceId string = ''
 
 var useExistingLogAnalytics = existingLogAnalyticsResourceId != ''
-
-
 module logAnalytics 'loganalytics.bicep' = if (!useExistingLogAnalytics) {
   name: 'loganalytics'
   params: {
