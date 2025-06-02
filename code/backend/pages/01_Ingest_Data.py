@@ -64,10 +64,16 @@ def sanitize_metadata_value(value):
 
 
 def add_url_embeddings(urls: list[str]):
+    has_valid_url = bool(list(filter(str.strip, urls)))
+    if not has_valid_url:
+        st.error("Please enter at least one valid URL.")
+        return
+
     params = {}
     if env_helper.FUNCTION_KEY is not None:
         params["code"] = env_helper.FUNCTION_KEY
         params["clientId"] = "clientKey"
+
     for url in urls:
         body = {"url": url}
         backend_url = urllib.parse.urljoin(
