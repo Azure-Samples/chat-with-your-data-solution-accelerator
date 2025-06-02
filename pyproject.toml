@@ -17,7 +17,7 @@ azure-ai-formrecognizer = "3.3.3"
 azure-storage-blob = "12.25.1"
 azure-identity = "1.23.0"
 flask = {extras = ["async"], version = "^3.1.1"}
-openai = "1.78.1"
+openai = "1.82.1"
 langchain = "0.2.17"
 langchain-community = "0.2.19"
 langchain-openai = "0.1.25"
@@ -32,13 +32,13 @@ azure-ai-contentsafety = "1.0.0"
 python-docx = "1.1.2"
 azure-keyvault-secrets = "4.9.0"
 pandas = "2.2.3"
-azure-monitor-opentelemetry = "^1.6.9"
+azure-monitor-opentelemetry = "^1.6.10"
 opentelemetry-instrumentation-httpx = "^0.52b0"
 pillow = "10.4.0"
 azure-mgmt-cognitiveservices = "^13.6.0"
-jsonschema = "^4.23.0"
-semantic-kernel = {version = "1.30.0", python = "<3.13"}
-pydantic = "2.11.4"
+jsonschema = "^4.24.0"
+semantic-kernel = {version = "1.32.0", python = "<3.13"}
+pydantic = "2.11.5"
 azure-ai-ml = "^1.27.1"
 azure-cosmos = "^4.7.0"
 asyncpg = "^0.30.0"
@@ -60,7 +60,7 @@ pytest-asyncio = "^0.26.0"
 optional = true
 
 [tool.poetry.group.prompt-flow.dependencies]
-promptflow = {extras = ["azure"], version = "1.16.1"}
+promptflow = {extras = ["azure"], version = "1.18.0"}
 
 [tool.coverage.run]
 omit = [
