@@ -3,9 +3,6 @@
 name: chat-with-your-data-solution-accelerator
 metadata:
   template: chat-with-your-data-solution-accelerator@1.7.0
-infra:
-  provider: bicep
-  path: ./infra
 hooks:
   postprovision:
     # run: ./infra/prompt-flow/create-prompt-flow.sh

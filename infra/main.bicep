@@ -140,6 +140,7 @@ param azureOpenAIModelCapacity int = 30
 @description('Whether to enable the use of a vision LLM and Computer Vision for embedding images. If the database type is PostgreSQL, set this to false.')
 param useAdvancedImageProcessing bool = false
 
+@description('Resource ID of existing Log Analytics workspace. If not provided, a new one will be created.')
 param existingLogAnalyticsResourceId string = ''
 
 @description('The maximum number of images to pass to the vision model in a single request')
@@ -351,7 +352,7 @@ module managedIdentityModule './core/security/managed-identity.bicep' = if (data
     solutionName: resourceToken
     solutionLocation: location
   }
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
 }
 
 module cosmosDBModule './core/database/cosmosdb.bicep' = if (databaseType == 'CosmosDB') {
@@ -360,7 +361,7 @@ module cosmosDBModule './core/database/cosmosdb.bicep' = if (databaseType == 'Co
     name: azureCosmosDBAccountName
     location: location
   }
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
 }
 
 module postgresDBModule './core/database/postgresdb.bicep' = if (databaseType == 'PostgreSQL') {
@@ -372,13 +373,13 @@ module postgresDBModule './core/database/postgresdb.bicep' = if (databaseType ==
     managedIdentityObjectName: managedIdentityModule.outputs.managedIdentityOutput.name
     allowAzureIPsFirewall: true
   }
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
 }
 
 // Store secrets in a keyvault
 module keyvault './core/security/keyvault.bicep' = if (useKeyVault || authType == 'rbac') {
   name: 'keyvault'
-  scope: resourceGroup(resourceGroup().name)
+  scope: resourceGroup()
   params: {
     name: keyVaultName
     location: location
@@ -439,7 +440,7 @@ var openAiDeployments = concat(
 
 module openai 'core/ai/cognitiveservices.bicep' = {
   name: azureOpenAIResourceName
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   params: {
     name: azureOpenAIResourceName
     location: location
@@ -454,7 +455,7 @@ module openai 'core/ai/cognitiveservices.bicep' = {
 
 module computerVision 'core/ai/cognitiveservices.bicep' = if (useAdvancedImageProcessing) {
   name: 'computerVision'
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   params: {
     name: computerVisionName
     kind: 'ComputerVision'
@@ -468,7 +469,7 @@ module computerVision 'core/ai/cognitiveservices.bicep' = if (useAdvancedImagePr
 
 // Search Index Data Reader
 module searchIndexRoleOpenai 'core/security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   name: 'search-index-role-openai'
   params: {
     principalId: openai.outputs.identityPrincipalId
@@ -479,7 +480,7 @@ module searchIndexRoleOpenai 'core/security/role.bicep' = if (authType == 'rbac'
 
 // Search Service Contributor
 module searchServiceRoleOpenai 'core/security/role.bicep' = if (authType == 'rbac') {
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   name: 'search-service-role-openai'
   params: {
     principalId: openai.outputs.identityPrincipalId
@@ -490,7 +491,7 @@ module searchServiceRoleOpenai 'core/security/role.bicep' = if (authType == 'rba
 
 // Storage Blob Data Reader
 module blobDataReaderRoleSearch 'core/security/role.bicep' = if (authType == 'rbac' && databaseType == 'CosmosDB') {
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   name: 'blob-data-reader-role-search'
   params: {
     principalId: search.outputs.identityPrincipalId
@@ -501,7 +502,7 @@ module blobDataReaderRoleSearch 'core/security/role.bicep' = if (authType == 'rb
 
 // Cognitive Services OpenAI User
 module openAiRoleSearchService 'core/security/role.bicep' = if (authType == 'rbac' && databaseType == 'CosmosDB') {
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   name: 'openai-role-searchservice'
   params: {
     principalId: search.outputs.identityPrincipalId
@@ -511,7 +512,7 @@ module openAiRoleSearchService 'core/security/role.bicep' = if (authType == 'rba
 }
 
 module speechService 'core/ai/cognitiveservices.bicep' = {
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   name: speechServiceName
   params: {
     name: speechServiceName
@@ -525,7 +526,7 @@ module speechService 'core/ai/cognitiveservices.bicep' = {
 
 module storekeys './app/storekeys.bicep' = if (useKeyVault) {
   name: 'storekeys'
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   params: {
     keyVaultName: keyVaultName
     azureOpenAIName: openai.outputs.name
@@ -549,7 +550,7 @@ module storekeys './app/storekeys.bicep' = if (useKeyVault) {
 
 module search './core/search/search-services.bicep' = if (databaseType == 'CosmosDB') {
   name: azureAISearchName
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   params: {
     name: azureAISearchName
     location: location
@@ -570,7 +571,7 @@ module search './core/search/search-services.bicep' = if (databaseType == 'Cosmo
 
 module hostingplan './core/host/appserviceplan.bicep' = {
   name: hostingPlanName
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   params: {
     name: hostingPlanName
     location: location
@@ -585,7 +586,7 @@ module hostingplan './core/host/appserviceplan.bicep' = {
 
 module web './app/web.bicep' = if (hostingModel == 'code') {
   name: websiteName
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   params: {
     name: websiteName
     location: location
@@ -698,7 +699,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
 
 module web_docker './app/web.bicep' = if (hostingModel == 'container') {
   name: '${websiteName}-docker'
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   params: {
     name: '${websiteName}-docker'
     location: location
@@ -810,7 +811,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
 
 module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
   name: adminWebsiteName
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   params: {
     name: adminWebsiteName
     location: location
@@ -908,7 +909,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
 
 module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container') {
   name: '${adminWebsiteName}-docker'
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   params: {
     name: '${adminWebsiteName}-docker'
     location: location
@@ -1005,7 +1006,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
 
 module monitoring './core/monitor/monitoring.bicep' = {
   name: 'monitoring'
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   params: {
     applicationInsightsName: applicationInsightsName
     location: location
@@ -1021,7 +1022,7 @@ module monitoring './core/monitor/monitoring.bicep' = {
 
 module workbook './app/workbook.bicep' = {
   name: 'workbook'
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   params: {
     workbookDisplayName: workbookDisplayName
     location: location
@@ -1041,7 +1042,7 @@ module workbook './app/workbook.bicep' = {
 
 module function './app/function.bicep' = if (hostingModel == 'code') {
   name: functionName
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   params: {
     name: functionName
     location: location
@@ -1125,7 +1126,7 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
 
 module function_docker './app/function.bicep' = if (hostingModel == 'container') {
   name: '${functionName}-docker'
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   params: {
     name: '${functionName}-docker'
     location: location
@@ -1208,7 +1209,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
 
 module formrecognizer 'core/ai/cognitiveservices.bicep' = {
   name: formRecognizerName
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   params: {
     name: formRecognizerName
     location: location
@@ -1219,7 +1220,7 @@ module formrecognizer 'core/ai/cognitiveservices.bicep' = {
 
 module contentsafety 'core/ai/cognitiveservices.bicep' = {
   name: contentSafetyName
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   params: {
     name: contentSafetyName
     location: location
@@ -1230,7 +1231,7 @@ module contentsafety 'core/ai/cognitiveservices.bicep' = {
 
 module eventgrid 'app/eventgrid.bicep' = {
   name: eventGridSystemTopicName
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   params: {
     name: eventGridSystemTopicName
     location: location
@@ -1242,7 +1243,7 @@ module eventgrid 'app/eventgrid.bicep' = {
 
 module storage 'core/storage/storage-account.bicep' = {
   name: storageAccountName
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   params: {
     name: storageAccountName
     location: location
@@ -1280,7 +1281,7 @@ module storage 'core/storage/storage-account.bicep' = {
 // USER ROLES
 // Storage Blob Data Contributor
 module storageRoleUser 'core/security/role.bicep' = if (authType == 'rbac' && principalId != '') {
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   name: 'storage-role-user'
   params: {
     principalId: principalId
@@ -1291,7 +1292,7 @@ module storageRoleUser 'core/security/role.bicep' = if (authType == 'rbac' && pr
 
 // Cognitive Services User
 module openaiRoleUser 'core/security/role.bicep' = if (authType == 'rbac' && principalId != '') {
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   name: 'openai-role-user'
   params: {
     principalId: principalId
@@ -1302,7 +1303,7 @@ module openaiRoleUser 'core/security/role.bicep' = if (authType == 'rbac' && pri
 
 // Contributor
 module openaiRoleUserContributor 'core/security/role.bicep' = if (authType == 'rbac' && principalId != '') {
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   name: 'openai-role-user-contributor'
   params: {
     principalId: principalId
@@ -1313,7 +1314,7 @@ module openaiRoleUserContributor 'core/security/role.bicep' = if (authType == 'r
 
 // Search Index Data Contributor
 module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac' && principalId != '' && databaseType == 'CosmosDB') {
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   name: 'search-role-user'
   params: {
     principalId: principalId
@@ -1323,7 +1324,7 @@ module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac' && pri
 }
 
 module machineLearning 'app/machinelearning.bicep' = if (orchestrationStrategy == 'prompt_flow') {
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   name: azureMachineLearningName
   params: {
     location: location
@@ -1355,7 +1356,7 @@ module createIndex './core/database/deploy_create_table_script.bicep' = if (data
       : function_docker.outputs.functionName
     managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
   }
-  scope: resourceGroup(resourceGroup().name)
+    scope: resourceGroup()
   dependsOn: hostingModel == 'code'
     ? [keyvault, postgresDBModule, storekeys, web, adminweb]
     : [
