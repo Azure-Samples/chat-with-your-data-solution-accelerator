@@ -73,7 +73,6 @@ def add_url_embeddings(urls: list[str]):
     if env_helper.FUNCTION_KEY is not None:
         params["code"] = env_helper.FUNCTION_KEY
         params["clientId"] = "clientKey"
-
     for url in urls:
         body = {"url": url}
         backend_url = urllib.parse.urljoin(
