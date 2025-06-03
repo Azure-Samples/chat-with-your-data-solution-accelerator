@@ -418,6 +418,7 @@ temp/
 # so that Azure App Service can install the dependencies
 requirements.txt
 !infra/prompt-flow/cwyd/requirements.txt
+!tests/e2e-test/requirements.txt
 
 # Cypress UI tests screenshots folder
 tests/integration/ui/cypress/screenshots/
