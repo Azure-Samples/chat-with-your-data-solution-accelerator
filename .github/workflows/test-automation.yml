@@ -1,0 +1,106 @@
+name: Test Automation CWYD
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'tests/e2e-test/**'
+  schedule:
+    - cron: '0 13 * * 3'  # Runs at 1 PM UTC once a week on Wednesday
+  workflow_dispatch:
+
+env:
+    web_url: ${{ vars.CWYD_WEB_URL }}
+    admin_url: ${{ vars.CWYD_ADMIN_URL }}
+    accelerator_name: "Chat with your Data"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tests/e2e-test/requirements.txt
+
+      - name: Ensure browsers are installed
+        run: python -m playwright install --with-deps chromium
+
+      - name: Run tests(1)
+        id: test1
+        run: |
+          xvfb-run pytest --headed --html=report/report.html --self-contained-html
+        working-directory: tests/e2e-test
+        continue-on-error: true
+
+      - name: Sleep for 30 seconds
+        if: ${{ steps.test1.outcome == 'failure' }}
+        run: sleep 30s
+        shell: bash
+
+      - name: Run tests(2)
+        id: test2
+        if: ${{ steps.test1.outcome == 'failure' }}
+        run: |
+          xvfb-run pytest --headed --html=report/report.html --self-contained-html
+        working-directory: tests/e2e-test
+        continue-on-error: true
+
+      - name: Sleep for 60 seconds
+        if: ${{ steps.test2.outcome == 'failure' }}
+        run: sleep 60s
+        shell: bash
+
+      - name: Run tests(3)
+        id: test3
+        if: ${{ steps.test2.outcome == 'failure' }}
+        run: |
+          xvfb-run pytest --headed --html=report/report.html --self-contained-html
+        working-directory: tests/e2e-test
+
+      - name: Upload test report
+        id: upload_report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: cwyd-test-report
+          path: tests/e2e-test/report/*
+
+      - name: Send Notification
+        if: always()
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          REPORT_URL=${{ steps.upload_report.outputs.artifact-url }}
+          IS_SUCCESS=${{ steps.test1.outcome == 'success' || steps.test2.outcome == 'success' || steps.test3.outcome == 'success' }}
+          # Construct the email body
+          if [ "$IS_SUCCESS" = "true" ]; then
+            EMAIL_BODY=$(cat <<EOF
+            {
+              "body": "<p>Dear Team,</p><p>We would like to inform you that the ${{ env.accelerator_name }} Test Automation process has completed successfully.</p><p><strong>Run URL:</strong> <a href=\"${RUN_URL}\">${RUN_URL}</a><br></p><p><strong>Test Report:</strong> <a href=\"${REPORT_URL}\">${REPORT_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
+              "subject": "${{ env.accelerator_name }} Test Automation - Success"
+            }
+          EOF
+            )
+          else
+            EMAIL_BODY=$(cat <<EOF
+            {
+              "body": "<p>Dear Team,</p><p>We would like to inform you that the ${{ env.accelerator_name }} Test Automation process  has encountered an issue and has failed to complete successfully.</p><p><strong>Run URL:</strong> <a href=\"${RUN_URL}\">${RUN_URL}</a><br> ${OUTPUT}</p><p><strong>Test Report:</strong> <a href=\"${REPORT_URL}\">${REPORT_URL}</a></p><p>Please investigate the matter at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>",
+              "subject": "${{ env.accelerator_name }} Test Automation - Failure"
+            }
+          EOF
+            )
+          fi
+
+          # Send the notification
+          curl -X POST "${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send notification"
