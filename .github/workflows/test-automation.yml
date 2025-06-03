@@ -4,9 +4,8 @@ on:
     branches:
       - main
       - dev
-      - migrate-test-automation
-    # paths:
-    #   - 'tests/e2e-test/**'
+    paths:
+      - 'tests/e2e-test/**'
   schedule:
     - cron: '0 13 * * 3'  # Runs at 1 PM UTC once a week on Wednesday
   workflow_dispatch:
