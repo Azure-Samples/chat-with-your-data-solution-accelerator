@@ -1,0 +1,7 @@
+web_url = 'web app url'
+admin_url = 'admin url'
+user_name = 'user name'
+pass_word = 'pass word'
+client_id = 'client id'
+client_secret = 'client secret'
+tenant_id = 'tenant id'
