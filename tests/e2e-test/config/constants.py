@@ -16,9 +16,9 @@ if ADMIN_URL.endswith("/"):
 repo_root = os.getenv("GITHUB_WORKSPACE", os.getcwd())
 
 # Construct the absolute path to the JSON file
-# note: may have to remove 'chat_with_your_data' from below when running locally
+# note: may have to remove 'tests/e2e-test' from below when running locally
 json_file_path = os.path.join(
-    repo_root, "chat_with_your_data", "testdata", "golden_path_data.json"
+    repo_root, "tests/e2e-test", "testdata", "golden_path_data.json"
 )
 
 # Load questions from JSON file

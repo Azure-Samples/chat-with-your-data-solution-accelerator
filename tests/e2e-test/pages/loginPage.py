@@ -1,4 +1,3 @@
-
 from base.base import BasePage
 from playwright.sync_api import TimeoutError as PlaywightTimeoutError
 
