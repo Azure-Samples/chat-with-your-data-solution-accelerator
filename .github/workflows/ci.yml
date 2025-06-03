@@ -6,7 +6,6 @@ on:
       - main
       - dev
       - demo
-      - migrate-test-automation
   schedule:
     - cron: '0 8,20 * * *'  # Runs at 8:00 AM and 8:00 PM GMT
 
