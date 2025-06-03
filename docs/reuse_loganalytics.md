@@ -1,4 +1,4 @@
-[Go back Back to *LOCAL_DEPLOYMENT* file](../docs/LOCAL_DEPLOYMENT.md)
+[Go back to *LOCAL_DEPLOYMENT* file](../docs/LOCAL_DEPLOYMENT.md)
 # Reusing an Existing Log Analytics Workspace
 To configure your environment to use an existing Log Analytics Workspace, follow these steps:
 ---
