@@ -5,9 +5,10 @@ on:
   push:
     branches:
       - main  # Triggers on pushes to the main branch
-      - dev 
+      - dev
+      - VE-LLMChanges
     paths:
-      - 'LLM_Evaluator/**'  # Triggers only if files in LLM_Evaluator directory are changed
+      - 'tests/llm-evaluator/**'  # Triggers only if files in LLM_Evaluator directory are changed
   schedule:
     - cron: '0 11 * * *'  # Runs every day at 11:00 AM UTC
   workflow_dispatch:       # (Optional) Allows manual trigger via GitHub
@@ -38,7 +39,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          if [ -f LLM_Evaluator/requirements.txt ]; then pip install -r LLM_Evaluator/requirements.txt; fi
+          if [ -f tests/llm-evaluator/requirements.txt ]; then pip install -r tests/llm-evaluator/requirements.txt; fi
 
       - name: Run script
-        run: python LLM_Evaluator/api_evaluation.py
+        run: python tests/llm-evaluator/api_evaluation.py
