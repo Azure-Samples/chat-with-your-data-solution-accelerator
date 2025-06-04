@@ -39,6 +39,12 @@ def test_golden_path_web_page_demo_script(login_logout):
         response_text = page.locator(home_page.ANSWER_TEXT)
         response_count = response_text.count()
 
+        if home_page.has_reference_link():
+            logger.info("Step 6.1: Reference link found. Opening citation.")
+            home_page.click_reference_link_in_response()
+            logger.info("Step 6.2: Closing citation.")
+            home_page.close_citation()
+
         if response_count == 0:
             return False  # no response found
 
