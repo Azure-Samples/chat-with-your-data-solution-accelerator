@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.35.1.17967",
-      "templateHash": "4060171277545073989"
+      "templateHash": "6933035325950046645"
     }
   },
   "parameters": {
@@ -12202,7 +12202,7 @@
     },
     "AZURE_OPENAI_CONFIGURATION_INFO": {
       "type": "string",
-      "value": "[string(createObject('service_name', parameters('speechServiceName'), 'stream', parameters('azureOpenAIStream'), 'system_message', parameters('azureOpenAISystemMessage'), 'stop_sequence', parameters('azureOpenAIStopSequence'), 'max_tokens', parameters('azureOpenAIMaxTokens'), 'top_p', parameters('azureOpenAITopP'), 'temperature', parameters('azureOpenAITemperature'), 'version', parameters('azureOpenAIApiVersion'), 'resource', parameters('azureOpenAIResourceName'), 'api_key', if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.OPENAI_KEY_NAME.value, '')))]"
+      "value": "[string(createObject('service_name', parameters('speechServiceName'), 'stream', parameters('azureOpenAIStream'), 'system_message', parameters('azureOpenAISystemMessage'), 'stop_sequence', parameters('azureOpenAIStopSequence'), 'max_tokens', parameters('azureOpenAIMaxTokens'), 'top_p', parameters('azureOpenAITopP'), 'temperature', parameters('azureOpenAITemperature'), 'api_version', parameters('azureOpenAIApiVersion'), 'resource', parameters('azureOpenAIResourceName'), 'api_key', if(parameters('useKeyVault'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.OPENAI_KEY_NAME.value, '')))]"
     },
     "AZURE_OPENAI_EMBEDDING_MODEL_INFO": {
       "type": "string",
@@ -12278,11 +12278,15 @@
     },
     "AZURE_COSMOSDB_INFO": {
       "type": "string",
-      "value": "[string(createObject('account_name', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosAccountName, ''), 'database_name', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosDatabaseName, ''), 'container_name', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosContainerName, '')))]"
+      "value": "[string(createObject('account_name', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosAccountName, ''), 'account_key', if(and(equals(parameters('databaseType'), 'CosmosDB'), parameters('useKeyVault')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.COSMOS_ACCOUNT_KEY_NAME.value, ''), 'database_name', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosDatabaseName, ''), 'conversations_container_name', if(equals(parameters('databaseType'), 'CosmosDB'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2022-09-01').outputs.cosmosOutput.value.cosmosContainerName, '')))]"
     },
     "AZURE_POSTGRESQL_INFO": {
       "type": "string",
       "value": "[string(createObject('host_name', if(equals(parameters('databaseType'), 'PostgreSQL'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, ''), 'database_name', if(equals(parameters('databaseType'), 'PostgreSQL'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, ''), 'user', ''))]"
+    },
+    "DATABASE_TYPE": {
+      "type": "string",
+      "value": "[parameters('databaseType')]"
     },
     "OPEN_AI_FUNCTIONS_SYSTEM_PROMPT": {
       "type": "string",
