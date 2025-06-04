@@ -18,11 +18,11 @@ env:
   CLIENT_SECRET: ${{ secrets.DEMO_CWYD_CLIENT_SECRET }}  # Provides access to the repository
   TENANT_ID: ${{ secrets.DEMO_TENANT_ID }}  # Provides access to the tenant
   SUBSCRIPTION_ID: ${{ secrets.DEMO_SUBSCRIPTION_ID }}  # Provides access to the OpenAI API
-  RESOURCE_GROUP_NAME: ${{ github.DEMO_RESOURCE_GROUP_NAME }}  # Provides access to the resource group
-  PROJECT_NAME: ${{ github.DEMO_PROJECT_NAME }}  # Provides access to the repository
-  AZURE_ENDPOINT: ${{ github.DEMO_AZURE_ENDPOINT }}  # Provides access to the azure endpoint
-  AZURE_DEPLOYMENT: ${{ github.DEMO_AZURE_DEPLOYMENT }}  # Provides access to the azure deployment
-  BASE_URL: ${{ github.DEMO_BASE_URL }}  # Provides access to the repository base URL
+  RESOURCE_GROUP_NAME: ${{ vars.DEMO_RESOURCE_GROUP_NAME }}  # Provides access to the resource group
+  PROJECT_NAME: ${{ vars.DEMO_PROJECT_NAME }}  # Provides access to the repository
+  AZURE_ENDPOINT: ${{ vars.DEMO_AZURE_ENDPOINT }}  # Provides access to the azure endpoint
+  AZURE_DEPLOYMENT: ${{ vars.DEMO_AZURE_DEPLOYMENT }}  # Provides access to the azure deployment
+  BASE_URL: ${{ vars.DEMO_BASE_URL }}  # Provides access to the repository base URL
   
 jobs:
   run-python:
