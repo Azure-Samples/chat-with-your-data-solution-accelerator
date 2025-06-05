@@ -47,6 +47,8 @@ jobs:
         run: |
           if [ ! -s data/dataset.jsonl ]; then
             echo "data/dataset.jsonl is missing or empty"
+            echo "Current directory is: $(pwd)"
+            ls -la
             exit 1
           fi
 
