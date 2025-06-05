@@ -265,15 +265,27 @@ class AzureSearchHelper:
             ),
         ]
 
-        return AzureSearch(
-            azure_search_endpoint=self.env_helper.AZURE_SEARCH_SERVICE,
-            azure_search_key=(
-                self.env_helper.AZURE_SEARCH_KEY
-                if self.env_helper.is_auth_type_keys()
-                else None
-            ),
-            index_name=self.env_helper.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX,
-            embedding_function=self.llm_helper.get_embedding_model().embed_query,
-            fields=fields,
-            user_agent="langchain chatwithyourdata-sa",
-        )
+        if self.env_helper.AZURE_AUTH_TYPE == "rbac":
+            credential = DefaultAzureCredential()
+            return AzureSearch(
+                azure_search_endpoint=self.env_helper.AZURE_SEARCH_SERVICE,
+                azure_search_key=None,  # Remove API key
+                index_name=self.env_helper.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX,
+                embedding_function=self.llm_helper.get_embedding_model().embed_query,
+                fields=fields,
+                user_agent="langchain chatwithyourdata-sa",
+                credential=credential  # Add token credential or send none so it is auto handled by AzureSearch library
+            )
+        else:
+            return AzureSearch(
+                azure_search_endpoint=self.env_helper.AZURE_SEARCH_SERVICE,
+                azure_search_key=(
+                    self.env_helper.AZURE_SEARCH_KEY
+                    if self.env_helper.is_auth_type_keys()
+                    else None
+                ),
+                index_name=self.env_helper.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX,
+                embedding_function=self.llm_helper.get_embedding_model().embed_query,
+                fields=fields,
+                user_agent="langchain chatwithyourdata-sa",
+            )
