@@ -31,6 +31,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: changedirectory 
+        run: cd tests/llm-evaluator
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -38,14 +41,14 @@ jobs:
 
       - name: Install dependencies
         run: |
-          if [ -f tests/llm-evaluator/requirements.txt ]; then pip install -r tests/llm-evaluator/requirements.txt; fi
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Check if dataset.jsonl exists and is not empty
         run: |
-          if [ ! -s tests/llm-evaluator/data/dataset.jsonl ]; then
-            echo "tests/llm-evaluator/data/dataset.jsonl is missing or empty"
+          if [ ! -s data/dataset.jsonl ]; then
+            echo "data/dataset.jsonl is missing or empty"
             exit 1
           fi
 
       - name: Run script
-        run: python tests/llm-evaluator/api_evaluation.py
+        run: python api_evaluation.py
