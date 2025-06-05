@@ -12,6 +12,7 @@ The easiest way to run this accelerator is in a VS Code Dev Containers, which wi
 1. In the VS Code window that opens, once the project files show up (this may take several minutes), open a terminal window
 1. Run `azd auth login`
 1. Run `azd env set AZURE_APP_SERVICE_HOSTING_MODEL code` - This sets your environment to deploy code rather than rely on public containers, like the "Deploy to Azure" button.
+1. To use an existing Log Analytics workspace, follow the [setup steps here](../docs/REUSE_LOGANALYTICS.md) before running azd up.
 1. Run `azd up` - This will provision Azure resources and deploy the accelerator to those resources.
 
     * **Important**: Beware that the resources created by this command will incur immediate costs, primarily from the AI Search resource. These resources may accrue costs even if you interrupt the command before it is fully executed. You can run `azd down` or delete the resources manually to avoid unnecessary spending.
