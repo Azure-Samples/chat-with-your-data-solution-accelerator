@@ -45,6 +45,9 @@ jobs:
 
       - name: Check if dataset.jsonl exists and is not empty
         run: |
+          cd tests/llm-evaluator
+          echo "Current directory is: $(pwd)"
+          ls -la
           if [ ! -s data/dataset.jsonl ]; then
             echo "data/dataset.jsonl is missing or empty"
             echo "Current directory is: $(pwd)"
@@ -53,4 +56,9 @@ jobs:
           fi
 
       - name: Run script
-        run: python api_evaluation.py
+        run: |
+          cd tests/llm-evaluator
+          echo "Current directory is: $(pwd)"
+          ls -la
+          python api_evaluation.py
+         
