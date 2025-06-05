@@ -1,0 +1,8 @@
+azure-ai-evaluation
+azure-ai-projects
+azure-identity
+openai
+openpyxl
+pandas
+pathlib
+typing-extensions

@@ -1380,8 +1380,11 @@ var azureOpenAIEmbeddingModelInfo = string({
 
 var azureCosmosDBInfo = string({
   account_name: databaseType == 'CosmosDB' ? cosmosDBModule.outputs.cosmosOutput.cosmosAccountName : ''
+  account_key: databaseType == 'CosmosDB' && useKeyVault ? storekeys.outputs.COSMOS_ACCOUNT_KEY_NAME : ''
   database_name: databaseType == 'CosmosDB' ? cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName : ''
-  container_name: databaseType == 'CosmosDB' ? cosmosDBModule.outputs.cosmosOutput.cosmosContainerName : ''
+  conversations_container_name: databaseType == 'CosmosDB'
+    ? cosmosDBModule.outputs.cosmosOutput.cosmosContainerName
+    : ''
 })
 
 var azurePostgresDBInfo = string({
@@ -1448,7 +1451,7 @@ var azureOpenaiConfigurationInfo = string({
   max_tokens: azureOpenAIMaxTokens
   top_p: azureOpenAITopP
   temperature: azureOpenAITemperature
-  version: azureOpenAIApiVersion
+  api_version: azureOpenAIApiVersion
   resource: azureOpenAIResourceName
   api_key: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
 })
@@ -1499,5 +1502,6 @@ output AZURE_ML_WORKSPACE_NAME string = orchestrationStrategy == 'prompt_flow'
 output RESOURCE_TOKEN string = resourceToken
 output AZURE_COSMOSDB_INFO string = azureCosmosDBInfo
 output AZURE_POSTGRESQL_INFO string = azurePostgresDBInfo
+output DATABASE_TYPE string = databaseType
 output OPEN_AI_FUNCTIONS_SYSTEM_PROMPT string = openAIFunctionsSystemPrompt
 output SEMENTIC_KERNEL_SYSTEM_PROMPT string = semanticKernelSystemPrompt
