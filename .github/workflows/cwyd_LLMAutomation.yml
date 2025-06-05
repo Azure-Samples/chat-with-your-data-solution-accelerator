@@ -42,8 +42,8 @@ jobs:
 
       - name: Check if dataset.jsonl exists and is not empty
         run: |
-          if [ ! -s data/dataset.jsonl ]; then
-            echo "data/dataset.jsonl is missing or empty"
+          if [ ! -s tests/llm-evaluator/data/dataset.jsonl ]; then
+            echo "tests/llm-evaluator/data/dataset.jsonl is missing or empty"
             exit 1
           fi
 
