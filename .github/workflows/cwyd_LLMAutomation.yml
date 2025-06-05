@@ -31,9 +31,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: changedirectory 
-        run: cd tests/llm-evaluator
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -41,6 +38,9 @@ jobs:
 
       - name: Install dependencies
         run: |
+          cd tests/llm-evaluator
+          echo "Current directory is: $(pwd)"
+          ls -la
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Check if dataset.jsonl exists and is not empty
