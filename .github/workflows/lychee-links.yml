@@ -2,6 +2,8 @@ name: Check Broken links in PR
 
 on:
   pull_request:
+    paths:
+      - '**/*.md'
 
 jobs:
   lychee:
