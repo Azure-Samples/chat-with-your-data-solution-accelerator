@@ -152,7 +152,7 @@
             },
             "queryType": 1,
             "resourceType": "microsoft.resourcegraph/resources",
-            "value": "{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.OperationalInsights/workspaces/{log-analytics}"
+            "value": "{log-analytics-resource-id}"
           },
           {
             "id": "2c947381-754c-4edb-8e9c-d600b0f6a9bb",

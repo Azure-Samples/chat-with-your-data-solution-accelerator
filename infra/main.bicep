@@ -11,6 +11,9 @@ param resourceToken string = toLower(uniqueString(subscription().id, environment
 @description('Location for all resources.')
 param location string
 
+@description('Resource group location when using existing resource group')
+param rgLocation string = ''
+
 @description('Name of App Service plan')
 param hostingPlanName string = 'asp-${resourceToken}'
 
@@ -316,7 +319,11 @@ var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
 var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
-var rgName = 'rg-${environmentName}'
+param rgName string = 'rg-${environmentName}'
+
+@description('Optional: Existing Log Analytics Workspace Resource ID')
+param existingLogAnalyticsWorkspaceId string = ''
+
 var keyVaultName = '${abbrs.security.keyVault}${resourceToken}'
 var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
 
@@ -344,7 +351,7 @@ var semanticKernelSystemPrompt = '''You help employees to navigate only private 
 // Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: rgName
-  location: location
+  location: rgLocation != '' ? rgLocation : location
   tags: tags
 }
 
@@ -1019,6 +1026,7 @@ module monitoring './core/monitor/monitoring.bicep' = {
     }
     logAnalyticsName: logAnalyticsName
     applicationInsightsDashboardName: 'dash-${applicationInsightsName}'
+    existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
   }
 }
 
@@ -1035,7 +1043,7 @@ module workbook './app/workbook.bicep' = {
       ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME
       : adminweb.outputs.WEBSITE_ADMIN_NAME
     eventGridSystemTopicName: eventgrid.outputs.name
-    logAnalyticsName: monitoring.outputs.logAnalyticsWorkspaceName
+    logAnalyticsResourceId: monitoring.outputs.logAnalyticsWorkspaceId
     azureOpenAIResourceName: openai.outputs.name
     azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
     storageAccountName: storage.outputs.name
