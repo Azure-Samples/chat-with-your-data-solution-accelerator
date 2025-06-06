@@ -51,7 +51,7 @@ def test_golden_path_web_page_demo_script(login_logout):
         response_text_content = response_text.nth(response_count - 1).text_content()
 
         if response_text_content == invalid_response:
-            print(f"[Attempt {attempt}] Invalid response for prompt: {question}")
+            print(f"[Attempt {attempt}] Invalid response({response_text_content}) for prompt: {question}")
             return False
         return True
 

@@ -8,7 +8,7 @@ Write end-to-end tests for your web apps with [Playwright](https://github.com/mi
 - Support for **headless and headed** execution.
 - **Built-in fixtures** that provide browser primitives to test functions.
 
-Pre-Requisites: 
+Pre-Requisites:
 - Install Visual Studio Code: Download and Install Visual Studio Code(VSCode).
 - Install NodeJS: Download and Install Node JS
 
@@ -20,12 +20,12 @@ This will create a virtual environment directory named microsoft inside your cur
 
 Installing Playwright Pytest from Virtual Environment
 - To install libraries run "pip install -r requirements.txt"
-- Install the required browsers "playwright install"
+
 
 Run test cases
-- To run test cases from your 'tests' folder : "pytest --headed --html=report/report.html"
+- To run test cases from your 'tests\e2e-test' folder : "pytest --headed --html=report/report.html"
 
-Steps need to be followed to enable Access Token and Client Credentials 
+Steps need to be followed to enable Access Token and Client Credentials
 - Go to App Service from the resource group and select the Access Tokens check box in 'Manage->Authentication' tab
 ![img.png](img.png)
 - Go to Manage->Certificates & secrets tab to generate Client Secret value
@@ -33,7 +33,7 @@ Steps need to be followed to enable Access Token and Client Credentials
 - Go to Overview tab to get the client id and tenant id.
 
 Create .env file in project root level with web app url and client credentials
-- create a .env file in project root level and add your user_name, pass_word, client_id,client_secret, 
+- create a .env file in project root level and add your user_name, pass_word, client_id,client_secret,
         tenant_id, web_url and admin_url for the resource group. please refer 'sample_dotenv_file.txt' file.
 
 ## Documentation
