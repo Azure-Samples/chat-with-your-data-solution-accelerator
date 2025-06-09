@@ -18,8 +18,8 @@ jobs:
       - name: Get changed Markdown files
         id: changed-files
         run: |
-          git fetch origin main
-          files=$(git diff --name-only origin/main...HEAD | grep '\.md$' || true)
+          git fetch origin ${{ github.base_ref }}
+          files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.md$' || true)
           echo "md_files<<EOF" >> $GITHUB_OUTPUT
           echo "$files" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
