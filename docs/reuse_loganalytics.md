@@ -1,4 +1,5 @@
-[Go back Back to *LOCAL_DEPLOYMENT* file](../docs/LOCAL_DEPLOYMENT.md)
+[← Back to *LOCAL_DEPLOYMENT* guide](../docs/LOCAL_DEPLOYMENT.md)
+
 # Reusing an Existing Log Analytics Workspace
 To configure your environment to use an existing Log Analytics Workspace, follow these steps:
 ---
@@ -24,6 +25,7 @@ Run the following command in your terminal
 ```bash
 azd env set AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID '<Existing Log Analytics Workspace Id>'
 ```
-💡 Replace `<Existing Log Analytics Workspace Id>` with the value   obtained from Step 3.
-### 5. Return to the local deployment guide
-Continue with the next steps in the [Chat with your data local deployment guide](../docs/LOCAL_DEPLOYMENT.md).
+Replace `<Existing Log Analytics Workspace Id>` with the value   obtained from Step 3.
+
+### 5. Continue Deployment
+Proceed with the next steps in the [Chat with your data local deployment guide](../docs/LOCAL_DEPLOYMENT.md).
