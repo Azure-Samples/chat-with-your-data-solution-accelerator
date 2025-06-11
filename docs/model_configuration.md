@@ -15,11 +15,11 @@ This document outlines the necessary steps and configurations required for setti
 
 ### LLM
 - `AZURE_OPENAI_MODEL`: The Azure OpenAI Model Deployment Name
-    - example: `my-gpt-4o`
+    - example: `my-gpt-4.1`
 - `AZURE_OPENAI_MODEL_NAME`: The Azure OpenAI Model Name
-    - example: `gpt-4o`
+    - example: `gpt-4.1`
 - `AZURE_OPENAI_MODEL_VERSION`: The Azure OpenAI Model Version
-    - example: `2024-05-13`
+    - example: `2025-04-14`
 - `AZURE_OPENAI_MODEL_CAPACITY`: The Tokens per Minute Rate Limit (thousands)
     - example: `30`
 
@@ -62,12 +62,12 @@ This document outlines the necessary steps and configurations required for setti
 - To get the value of an environment variable, you can use the following command:
     - `azd env get <ENVIRONMENT_VARIABLE_NAME>`
 
-## GPT-4o & Text-Embeddings-3-Large
-- The following environment variables are set for the GPT-4o and Text-Embeddings-3-Large models:
+## GPT-4.1 & Text-Embeddings-3-Large
+- The following environment variables are set for the GPT-4.1 and Text-Embeddings-3-Large models:
     - `AZURE_OPENAI_API_VERSION`: `2024-05-01-preview`
-    - `AZURE_OPENAI_MODEL`: `my-gpt-4o`
-    - `AZURE_OPENAI_MODEL_NAME`: `gpt-4o`
-    - `AZURE_OPENAI_MODEL_VERSION`: `2024-05-13`
+    - `AZURE_OPENAI_MODEL`: `my-gpt-4.1`
+    - `AZURE_OPENAI_MODEL_NAME`: `gpt-4.1`
+    - `AZURE_OPENAI_MODEL_VERSION`: `2025-04-14`
     - `AZURE_OPENAI_EMBEDDING_MODEL`: `my-text-embedding-3-large`
     - `AZURE_OPENAI_EMBEDDING_MODEL_NAME`: `text-embedding-3-large`
     - `AZURE_OPENAI_EMBEDDING_MODEL_VERSION`: `1`
