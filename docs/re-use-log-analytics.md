@@ -27,14 +27,5 @@ azd env set AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID '<Existing Log Analytics Worksp
 ```
 Replace `<Existing Log Analytics Workspace Id>` with the value   obtained from Step 3.
 
-### 5. [Optional] Set the Resource Group Location
-
-If you want to specify the location, run:
-
-```bash
-azd env set AZURE_LOCATION <location>
-```
-Replace `<location>` with the desired Azure region.
-
-### 6. Continue Deployment
+### 5. Continue Deployment
 Proceed with the next steps in the [Chat with your data local deployment guide](../docs/LOCAL_DEPLOYMENT.md).
