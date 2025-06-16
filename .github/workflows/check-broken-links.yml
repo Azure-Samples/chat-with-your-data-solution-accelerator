@@ -28,14 +28,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create or update GitHub issue if broken links found
+      - name: Add front-matter for issue
+        if: failure()
+        run: |
+          echo -e "---\ntitle: Broken Links Detected\nlabels: bug, links\n---\n$(cat lychee/out.md)" > lychee/out.md
+
+      - name: Create or update GitHub issue
         if: failure()
         uses: JasonEtco/create-an-issue@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           filename: lychee/out.md
-          title: "Broken Links Detected"
-          labels: bug, links
           update_existing: true
           search_existing: all
+
