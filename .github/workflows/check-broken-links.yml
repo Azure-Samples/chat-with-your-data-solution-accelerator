@@ -1,31 +1,21 @@
-name: Markdown Links Checker
+name: Daily Broken Link Check
 
 on:
-  pull_request:
-    paths:
-      - '**/*.md'
+  schedule:
+    - cron: '0 2 * * *'  # Every day at 2:00 AM UTC
+  workflow_dispatch:      # Optional: allows manual run
 
 jobs:
-  Validate_Markdown_Links:
+  lychee:
+    name: Broken Link Checker
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # important to allow full diff
 
-      - name: Get changed Markdown files
-        id: changed-files
-        run: |
-          git fetch origin ${{ github.base_ref }}
-          files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.md$' || true)
-          echo "md_files<<EOF" >> $GITHUB_OUTPUT
-          echo "$files" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Run Lychee on changed Markdown files (internal links only)
-        if: steps.changed-files.outputs.md_files != ''
+      - name: Run Lychee link checker
+        id: lychee
         uses: lycheeverse/lychee-action@v2.4.1
         with:
           args: >
@@ -33,6 +23,18 @@ jobs:
             --exclude-mail
             --no-progress
             --exclude ^https?://
-            ${{ steps.changed-files.outputs.md_files }}
+            --output lychee/out.md
+            '**/*.md'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create or update GitHub Issue if broken links found
+        if: failure()  # Only runs if Lychee exits with error (broken links found)
+        uses: peter-evans/create-issue-from-file@v4
+        with:
+          title: "🚨 Broken Links Detected"
+          content-filepath: lychee/out.md
+          labels: bug, links
+          assignees: your-github-username    # optional: assign to yourself
+          update-existing: true              # ✅ Avoids duplicate issues
+          issue-pattern: "Broken Links Detected"  # Matches existing issue title
