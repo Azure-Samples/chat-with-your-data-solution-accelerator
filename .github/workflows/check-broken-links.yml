@@ -31,7 +31,7 @@ jobs:
       - name: Add front-matter for issue
         if: failure()
         run: |
-          echo -e "---\ntitle: Broken Links Detected\nlabels: bug, links\n---\n$(cat lychee/out.md)" > lychee/out.md
+          echo -e "---\ntitle: Broken Links Detected\nlabels: broken-links\n---\n$(cat lychee/out.md)" > lychee/out.md
 
       - name: Create or update GitHub issue
         if: failure()
@@ -41,5 +41,5 @@ jobs:
         with:
           filename: lychee/out.md
           update_existing: true
-          search_existing: all
+          search_existing: open
 
