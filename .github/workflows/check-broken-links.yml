@@ -3,7 +3,7 @@ name: Daily Broken Link Check
 on:
   schedule:
     - cron: '0 2 * * *'  # Every day at 2:00 AM UTC
-  workflow_dispatch:      # Optional: allows manual run
+  workflow_dispatch:
 
 jobs:
   lychee:
@@ -23,18 +23,17 @@ jobs:
             --exclude-mail
             --no-progress
             --exclude ^https?://
-            --output lychee/out.md
             '**/*.md'
+          output: lychee/out.md   # ✅ Set output file here, not in args
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create or update GitHub Issue if broken links found
-        if: failure()  # Only runs if Lychee exits with error (broken links found)
+        if: failure()
         uses: peter-evans/create-issue-from-file@v4
         with:
           title: "🚨 Broken Links Detected"
           content-filepath: lychee/out.md
           labels: bug, links
-          assignees: your-github-username    # optional: assign to yourself
-          update-existing: true              # ✅ Avoids duplicate issues
-          issue-pattern: "Broken Links Detected"  # Matches existing issue title
+          update-existing: true
+          issue-pattern: "Broken Links Detected"
