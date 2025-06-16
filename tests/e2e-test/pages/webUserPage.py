@@ -19,7 +19,6 @@ class WebUserPage(BasePage):
     CHAT_CLOSE_ICON = "button[title='Hide']"
     CHAT_HISTORY_OPTIONS = "//button[@id='moreButton']"
     CHAT_HISTORY_DELETE = "//button[@role='menuitem']"
-
     TOGGLE_CITATIONS_LIST = "[data-testid='toggle-citations-list']"
     CITATIONS_CONTAINER = "[data-testid='citations-container']"
     CITATION_BLOCK = "[data-testid='citation-block']"

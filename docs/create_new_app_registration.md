@@ -16,7 +16,7 @@
 
 ![Add Details](images/AddDetails.png)
 
-5. After application is created sucessfully, then click on `Add a Redirect URL`.
+5. After application is created successfully, then click on `Add a Redirect URL`.
 
 ![Redirect URL](images/AddRedirectURL.png)
 
