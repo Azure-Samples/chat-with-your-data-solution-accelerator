@@ -2,12 +2,11 @@ name: Daily Broken Link Check
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # Every day at 2:00 AM UTC
+    - cron: '0 0 * * *'  # Daily at midnight UTC
   workflow_dispatch:
 
 jobs:
-  lychee:
-    name: Broken Link Checker
+  broken-link-check:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,16 +23,23 @@ jobs:
             --no-progress
             --exclude ^https?://
             '**/*.md'
-          output: lychee/out.md   # ✅ Set output file here, not in args
+          output: lychee/out.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create or update GitHub Issue if broken links found
-        if: failure()
-        uses: peter-evans/create-issue-from-file@v4
+      - name: Find existing broken-link issue
+        uses: micalevisk/last-issue-action@v2
+        id: find_issue
+        with:
+          state: open
+          labels: link-checker
+
+      - name: Create or update issue
+        if: steps.lychee.outputs.exit_code != '0'
+        uses: peter-evans/create-issue-from-file@v5
         with:
           title: "Broken Links Detected"
           content-filepath: lychee/out.md
-          labels: links
-          update_existing: true
-          issue-pattern: "Broken Links Detected"
+          labels: link-checker
+          issue-number: ${{ steps.find_issue.outputs.issue_number }}
+          
