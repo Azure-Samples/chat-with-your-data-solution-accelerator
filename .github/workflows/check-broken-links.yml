@@ -1,3 +1,10 @@
+name: Daily Broken Link Check
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
 jobs:
   broken-link-check:
     runs-on: ubuntu-latest
@@ -32,7 +39,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TITLE="🚨 Broken Links Detected"
+          TITLE="Broken Links Detected"
           BODY="$(cat lychee/out.md)"
           echo "Searching for existing issue..."
           gh issue list \
