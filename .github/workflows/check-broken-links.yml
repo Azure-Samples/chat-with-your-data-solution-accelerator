@@ -2,7 +2,7 @@ name: Daily Broken Link Check
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # Every day at 2:00 AM UTC
+    - cron: '0 2 * * *'
   workflow_dispatch:
 
 jobs:
@@ -36,19 +36,19 @@ jobs:
             echo "has_issues=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Find existing issue
-        id: find_issue
-        if: steps.check_file.outputs.has_issues == 'true'
-        uses: peter-evans/find-issue@v2
-        with:
-          title: "Broken Links Detected"
-          state: open
-
       - name: Create or update GitHub Issue
         if: steps.check_file.outputs.has_issues == 'true'
-        uses: peter-evans/create-issue-from-file@v4
-        with:
-          title: "Broken Links Detected"
-          content-filepath: lychee/out.md
-          labels: bug, links
-          issue-number: ${{ steps.find_issue.outputs.issue-number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_TITLE="🚨 Broken Links Detected"
+          ISSUE_BODY="$(cat lychee/out.md)"
+          EXISTING_ISSUE=$(gh issue list --state open --search "$ISSUE_TITLE" --json number,title | jq -r '.[] | select(.title == "'"$ISSUE_TITLE"'") | .number')
+
+          if [ -n "$EXISTING_ISSUE" ]; then
+            echo "Updating existing issue #$EXISTING_ISSUE"
+            gh issue edit "$EXISTING_ISSUE" --body "$ISSUE_BODY"
+          else
+            echo "Creating new issue"
+            gh issue create --title "$ISSUE_TITLE" --body "$ISSUE_BODY" --label "bug,links"
+          fi
