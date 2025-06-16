@@ -32,8 +32,8 @@ jobs:
         if: failure()
         uses: peter-evans/create-issue-from-file@v4
         with:
-          title: "🚨 Broken Links Detected"
+          title: "Broken Links Detected"
           content-filepath: lychee/out.md
           labels: bug, links
           update-existing: true
-          issue-pattern: "Broken Links Detected"
+          issue-pattern: "^Broken Links Detected$"
