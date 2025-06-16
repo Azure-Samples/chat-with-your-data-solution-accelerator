@@ -36,4 +36,4 @@ jobs:
           content-filepath: lychee/out.md
           labels: bug, links
           update-existing: true
-          issue-pattern: "^Broken Links Detected$"
+          issue-pattern: "Broken Links Detected"
