@@ -31,20 +31,23 @@ jobs:
         id: check_file
         run: |
           if [ -s lychee/out.md ]; then
-            echo "has_issues=true" >> $GITHUB_OUTPUT
+            echo "has_issues=true" >> $GITHUB_ENV
           else
-            echo "has_issues=false" >> $GITHUB_OUTPUT
+            echo "has_issues=false" >> $GITHUB_ENV
           fi
-
+    
       - name: Create or update GitHub Issue
-        if: steps.check_file.outputs.has_issues == 'true'
+        if: env.has_issues == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ISSUE_TITLE="🚨 Broken Links Detected"
           ISSUE_BODY="$(cat lychee/out.md)"
-          EXISTING_ISSUE=$(gh issue list --state open --search "$ISSUE_TITLE" --json number,title | jq -r '.[] | select(.title == "'"$ISSUE_TITLE"'") | .number')
-
+          echo "Searching for existing issue..."
+          gh issue list --state open --search "$ISSUE_TITLE" --json number,title > issues.json
+          cat issues.json
+          EXISTING_ISSUE=$(jq -r '.[] | select(.title == "'"$ISSUE_TITLE"'") | .number' issues.json)
+      
           if [ -n "$EXISTING_ISSUE" ]; then
             echo "Updating existing issue #$EXISTING_ISSUE"
             gh issue edit "$EXISTING_ISSUE" --body "$ISSUE_BODY"
