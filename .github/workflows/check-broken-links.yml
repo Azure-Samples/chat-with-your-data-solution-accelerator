@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  broken-link-check:
+  link-check:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,19 +27,36 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check for broken links
+        id: broken
+        run: |
+          if grep -q "✗" lychee/out.md; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Find existing broken-link issue
+        if: steps.broken.outputs.found == 'true'
         uses: micalevisk/last-issue-action@v2
         id: find_issue
         with:
           state: open
-          labels: link-checker
+          labels: broken-link-check
 
-      - name: Create or update issue
-        if: steps.lychee.outputs.exit_code != '0'
+      - name: Create new issue if no existing one
+        if: steps.broken.outputs.found == 'true' && steps.find_issue.outputs.issue_number == ''
         uses: peter-evans/create-issue-from-file@v5
         with:
           title: "Broken Links Detected"
           content-filepath: lychee/out.md
-          labels: link-checker
+          labels: broken-link-check
+
+      - name: Update existing issue if found
+        if: steps.broken.outputs.found == 'true' && steps.find_issue.outputs.issue_number != ''
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: "Broken Links Detected"
+          content-filepath: lychee/out.md
+          labels: broken-link-check
           issue-number: ${{ steps.find_issue.outputs.issue_number }}
-          
