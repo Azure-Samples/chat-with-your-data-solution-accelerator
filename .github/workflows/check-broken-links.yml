@@ -2,11 +2,11 @@ name: Daily Broken Link Check
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Daily at midnight UTC
+    - cron: '0 2 * * *'  # Every day at 2:00 AM UTC
   workflow_dispatch:
 
 jobs:
-  link-check:
+  broken-link-check:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,36 +27,28 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check for broken links
-        id: broken
+      - name: Check if output file is empty
+        id: check_file
         run: |
-          if grep -q "✗" lychee/out.md; then
-            echo "found=true" >> "$GITHUB_OUTPUT"
+          if [ -s lychee/out.md ]; then
+            echo "has_issues=true" >> $GITHUB_OUTPUT
           else
-            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "has_issues=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Find existing broken-link issue
-        if: steps.broken.outputs.found == 'true'
-        uses: micalevisk/last-issue-action@v2
+      - name: Find existing issue
         id: find_issue
+        if: steps.check_file.outputs.has_issues == 'true'
+        uses: peter-evans/find-issue@v2
         with:
+          title: "Broken Links Detected"
           state: open
-          labels: broken-link-check
 
-      - name: Create new issue if no existing one
-        if: steps.broken.outputs.found == 'true' && steps.find_issue.outputs.issue_number == ''
-        uses: peter-evans/create-issue-from-file@v5
+      - name: Create or update GitHub Issue
+        if: steps.check_file.outputs.has_issues == 'true'
+        uses: peter-evans/create-issue-from-file@v4
         with:
           title: "Broken Links Detected"
           content-filepath: lychee/out.md
-          labels: broken-link-check
-
-      - name: Update existing issue if found
-        if: steps.broken.outputs.found == 'true' && steps.find_issue.outputs.issue_number != ''
-        uses: peter-evans/create-issue-from-file@v5
-        with:
-          title: "Broken Links Detected"
-          content-filepath: lychee/out.md
-          labels: broken-link-check
-          issue-number: ${{ steps.find_issue.outputs.issue_number }}
+          labels: bug, links
+          issue-number: ${{ steps.find_issue.outputs.issue-number }}
