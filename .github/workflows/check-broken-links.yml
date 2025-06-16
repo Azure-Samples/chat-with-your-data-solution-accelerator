@@ -2,14 +2,17 @@ name: Daily Broken Link Check
 
 on:
   schedule:
-    - cron: '0 2 * * *'
+    - cron: '0 2 * * *'  # Every day at 2:00 AM UTC
   workflow_dispatch:
 
 jobs:
-  broken-link-check:
+  lychee:
+    name: Broken Link Checker
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Run Lychee link checker
         id: lychee
@@ -21,43 +24,16 @@ jobs:
             --no-progress
             --exclude ^https?://
             '**/*.md'
-          output: lychee/out.md
+          output: lychee/out.md   # ✅ Set output file here, not in args
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Detect broken links
-        id: detect
-        run: |
-          if [ -s lychee/out.md ]; then
-            echo "has_issues=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_issues=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Create or update GitHub Issue
-        if: steps.detect.outputs.has_issues == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TITLE="Broken Links Detected"
-          BODY="$(cat lychee/out.md)"
-          echo "Searching for existing issue..."
-          gh issue list \
-            --state open \
-            --label bug,links \
-            --search "$TITLE" \
-            --json number,title \
-            > issues.json
-          
-          ISSUE_NUM=$(jq -r '.[] | select(.title==env.TITLE) | .number' issues.json)
-
-          if [ -n "$ISSUE_NUM" ]; then
-            echo "Updating issue #$ISSUE_NUM"
-            gh issue edit "$ISSUE_NUM" --body "$BODY"
-          else
-            echo "Creating new issue"
-            gh issue create \
-              --title "$TITLE" \
-              --body "$BODY" \
-              --label "bug,links"
-          fi
+      - name: Create or update GitHub Issue if broken links found
+        if: failure()
+        uses: peter-evans/create-issue-from-file@v4
+        with:
+          title: "Broken Links Detected"
+          content-filepath: lychee/out.md
+          labels: bug, links
+          update-existing: true
+          issue-pattern: "Broken Links Detected"
