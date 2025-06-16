@@ -1,4 +1,4 @@
-name: Check Broken links in PR
+name: Markdown Links Checker
 
 on:
   pull_request:
@@ -6,11 +6,11 @@ on:
       - '**/*.md'
 
 jobs:
-  lychee:
+  Validate_Markdown_Links:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # important to allow full diff
