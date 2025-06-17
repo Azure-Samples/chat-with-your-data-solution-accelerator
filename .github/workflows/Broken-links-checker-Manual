@@ -1,0 +1,32 @@
+name: Manual Broken Link Check
+
+on:
+  workflow_dispatch:  # Only run manually
+
+jobs:
+  lychee:
+    name: Broken Link Checker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Lychee link checker
+        id: lychee
+        uses: lycheeverse/lychee-action@v2.4.1
+        with:
+          args: >
+            --verbose
+            --exclude-mail
+            --no-progress
+            --exclude ^https?://
+            '**/*.md'
+          output: lychee/out.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Show report
+        run: |
+          echo "=== Broken Link Report ==="
+          cat lychee/out.md
