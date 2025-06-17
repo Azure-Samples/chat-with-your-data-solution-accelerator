@@ -174,10 +174,10 @@ class EnvHelper:
         else:
             # Otherwise, fallback to individual environment variables
             self.AZURE_OPENAI_MODEL = os.getenv(
-                "AZURE_OPENAI_MODEL", "gpt-4o"
+                "AZURE_OPENAI_MODEL", "gpt-4.1"
             )
             self.AZURE_OPENAI_MODEL_NAME = os.getenv(
-                "AZURE_OPENAI_MODEL_NAME", "gpt-4o"
+                "AZURE_OPENAI_MODEL_NAME", "gpt-4.1"
             )
 
         self.AZURE_OPENAI_VISION_MODEL = os.getenv("AZURE_OPENAI_VISION_MODEL", "gpt-4")

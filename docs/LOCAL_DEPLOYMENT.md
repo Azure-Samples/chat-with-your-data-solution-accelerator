@@ -12,6 +12,8 @@ The easiest way to run this accelerator is in a VS Code Dev Containers, which wi
 1. In the VS Code window that opens, once the project files show up (this may take several minutes), open a terminal window
 1. Run `azd auth login`
 1. Run `azd env set AZURE_APP_SERVICE_HOSTING_MODEL code` - This sets your environment to deploy code rather than rely on public containers, like the "Deploy to Azure" button.
+1. To use an existing Log Analytics workspace, follow the [setup steps here](../docs/re-use-log-analytics.md) before running `azd up`.
+1. To use an existing Resource Group, follow the [setup steps here](../docs/re-use-resource-group.md) before running `azd up`.
 1. Run `azd up` - This will provision Azure resources and deploy the accelerator to those resources.
 
     * **Important**: Beware that the resources created by this command will incur immediate costs, primarily from the AI Search resource. These resources may accrue costs even if you interrupt the command before it is fully executed. You can run `azd down` or delete the resources manually to avoid unnecessary spending.
@@ -191,7 +193,7 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 |AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION ||Whether to use [Integrated Vectorization](https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-vectorization)|
 |AZURE_OPENAI_RESOURCE||the name of your Azure OpenAI resource|
 |AZURE_OPENAI_MODEL||The name of your model deployment|
-|AZURE_OPENAI_MODEL_NAME|gpt-4o|The name of the model|
+|AZURE_OPENAI_MODEL_NAME|gpt-4.1|The name of the model|
 |AZURE_OPENAI_MODEL_VERSION|2024-05-13|The version of the model to use|
 |AZURE_OPENAI_API_KEY||One of the API keys of your Azure OpenAI resource|
 |AZURE_OPENAI_EMBEDDING_MODEL|text-embedding-ada-002|The name of your Azure OpenAI embeddings model deployment|

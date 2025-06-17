@@ -2,7 +2,7 @@
 
 ### What is Chat with your data Solution Accelerator?
 
-This solution accelerator is an open-source GitHub Repository for the "Chat with your data" solution that combines the capabilities of Azure AI Search and GPT 3.5, 4, and 4o to create a conversational search experience. This solution accelerator uses Azure OpenAI GPT and embedding models, and an Azure AI Search index generated data by the customer, once installed/deployed, which is integrated into a web application to provide a natural language interface for search queries. The repository showcases a sample scenario of a contract analyst who wants to review and summarize relevant contracts, and another use case for a wealth advisor who is interested in reviewing market and fund documents.
+This solution accelerator is an open-source GitHub Repository for the "Chat with your data" solution that combines the capabilities of Azure AI Search and GPT 3.5, 4 and 4.1 to create a conversational search experience. This solution accelerator uses Azure OpenAI GPT and embedding models, and an Azure AI Search index generated data by the customer, once installed/deployed, which is integrated into a web application to provide a natural language interface for search queries. The repository showcases a sample scenario of a contract analyst who wants to review and summarize relevant contracts, and another use case for a wealth advisor who is interested in reviewing market and fund documents.
 
 ### What can Chat with your data Solution Accelerator do?
 
