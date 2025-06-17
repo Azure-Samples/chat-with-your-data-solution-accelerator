@@ -1,0 +1,27 @@
+name: Markdown Broken Links Checker Manual
+
+on:
+  workflow_dispatch:  # Only run manually
+
+jobs:
+  broken-link-check:
+    name: Run Broken Links Checker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Check Markdown Files for Broken Links
+        id: link-check
+        uses: lycheeverse/lychee-action@v2.4.1
+        with:
+          args: >
+            --verbose
+            --exclude-mail
+            --no-progress
+            --exclude ^https?://
+            '**/*.md'
+          output: lychee/out.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
