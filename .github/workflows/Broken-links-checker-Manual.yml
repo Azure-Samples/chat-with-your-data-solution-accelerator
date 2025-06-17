@@ -1,19 +1,19 @@
-name: Manual Broken Link Check
+name: Markdown Broken Link Check Manual
 
 on:
   workflow_dispatch:  # Only run manually
 
 jobs:
-  lychee:
-    name: Broken Link Checker
+  broken-link-check:
+    name: Run Broken Link Checker
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Run Lychee link checker
-        id: lychee
+      - name: Check Markdown Files for Broken Links
+        id: link-check
         uses: lycheeverse/lychee-action@v2.4.1
         with:
           args: >
