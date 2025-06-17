@@ -1,0 +1,63 @@
+name: Markdown Broken Links Checker
+
+on:
+  pull_request:
+    paths:
+      - '**/*.md'
+  workflow_dispatch:  # Manual trigger for full repo check
+
+jobs:
+  validate-markdown-links-pr:
+    name: Check Broken Links in PR
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed Markdown files
+        id: changed-files
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.md$' || true)
+          echo "md_files<<EOF" >> $GITHUB_OUTPUT
+          echo "$files" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Run Lychee on changed Markdown files (internal links only)
+        if: steps.changed-files.outputs.md_files != ''
+        uses: lycheeverse/lychee-action@v2.4.1
+        with:
+          args: >
+            --verbose
+            --exclude-mail
+            --no-progress
+            --exclude ^https?://
+            ${{ steps.changed-files.outputs.md_files }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  validate-markdown-links-fullRepo:
+    name: Check Broken Links in Full Repo (Manual)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Lychee on All Markdown Files (internal links only)
+        uses: lycheeverse/lychee-action@v2.4.1
+        with:
+          args: >
+            --verbose
+            --exclude-mail
+            --no-progress
+            --exclude ^https?://
+            '**/*.md'
+          output: lychee/out.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
