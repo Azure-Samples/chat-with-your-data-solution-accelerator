@@ -4,10 +4,8 @@ import io
 import logging
 import atexit
 from bs4 import BeautifulSoup
-from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 from config.constants import *
-from pages.loginPage import LoginPage
 
 log_streams = {}
 
@@ -53,16 +51,16 @@ def pytest_runtest_setup(item):
 def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
-    handler, stream = log_streams.get(item.nodeid, (None, None))
 
-    if handler and stream:
-        handler.flush()
-        log_output = stream.getvalue()
-        logging.getLogger().removeHandler(handler)
-        report.description = f"<pre>{log_output.strip()}</pre>"
-        log_streams.pop(item.nodeid, None)
-    else:
-        report.description = ""
+    if report.when == "call":
+        question_logs = getattr(item, "_question_logs", None)
+        if question_logs:
+            for i, (question, logs) in enumerate(question_logs.items(), start=1):
+                report.sections.append((f"Q{i:02d}: {question}", logs))
+        else:
+            log = getattr(item, "_captured_log", None)
+            if log:
+                report.sections.append(("Captured Log", log))
 
 # ---------- Optional: Clean Up Node IDs for Parametrized Prompts ----------
 def pytest_collection_modifyitems(items):
