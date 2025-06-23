@@ -52,7 +52,8 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: |
           rsync -av --exclude '.git' --exclude 'node_modules' ./ sanitized_md/
-          find sanitized_md -name "*.md" -exec sed -i -e 's/<!--.*-->//g' -e '/<!--/,/-->/d' {} +
+          find sanitized_md -name "*.md" -exec perl -0777 -i -pe 's/<!--.*?-->//gs' {} +
+
 
       - name: Run Lychee on Entire Repo (Manual)
         if: github.event_name == 'workflow_dispatch'
