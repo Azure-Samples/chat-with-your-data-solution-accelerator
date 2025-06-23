@@ -33,6 +33,7 @@ jobs:
         with:
           args: >
             --verbose --exclude-mail --no-progress --exclude ^https?://
+            --include-comments false
             ${{ steps.changed-files.outputs.md_files }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -43,6 +44,7 @@ jobs:
         with:
           args: >
             --verbose --exclude-mail --no-progress --exclude ^https?://
+            --include-comments false
             '**/*.md'
           output: lychee/out.md
         env:
