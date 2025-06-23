@@ -28,12 +28,13 @@ jobs:
           echo "$files" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Run Lychee on Changed Markdown Files (PR)
+      - name: Run Lychee on Changed Files (PR)
         if: github.event_name == 'pull_request' && steps.changed-files.outputs.md_files != ''
         uses: lycheeverse/lychee-action@v2.4.1
         with:
           args: >
-            --verbose --no-progress --exclude-mail --exclude ^https?://
+            --verbose --no-progress --exclude-mail
+            --exclude ^https?://
             --output lychee/pr.out
             ${{ steps.changed-files.outputs.md_files }}
         env:
@@ -66,7 +67,8 @@ jobs:
         uses: lycheeverse/lychee-action@v2.4.1
         with:
           args: >
-            --verbose --no-progress --exclude-mail --exclude ^https?://
+            --verbose --no-progress --exclude-mail
+            --exclude ^https?://
             sanitized_md/**/*.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -77,7 +79,8 @@ jobs:
         uses: lycheeverse/lychee-action@v2.4.1
         with:
           args: >
-            --verbose --no-progress --exclude-mail --exclude ^https?://
+            --verbose --no-progress --exclude-mail
+            --exclude ^https?://
             --output lychee/manual.out
             '**/*.md'
         env:
@@ -105,13 +108,14 @@ jobs:
             fi
           done
 
-      - name: Re-check Sanitized Affected Files (Manual)
+      - name: Re-run Lychee on Sanitized Affected Files (Manual)
         if: steps.affected-manual.outputs.affected_files != ''
         uses: lycheeverse/lychee-action@v2.4.1
         with:
           args: >
-            --verbose --no-progress --exclude-mail --exclude ^https?://
+            --verbose --no-progress --exclude-mail
+            --exclude ^https?://
+            --output lychee/manual-cleaned.out
             sanitized_md/**/*.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
