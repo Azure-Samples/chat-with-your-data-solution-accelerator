@@ -32,7 +32,9 @@ jobs:
         run: |
           rsync -av --exclude '.git' --exclude 'node_modules' ./ sanitized_md/
           for file in ${{ steps.changed-files.outputs.md_files }}; do
-            [ -f "sanitized_md/$file" ] && sed -i '/<!--/,/-->/d' "sanitized_md/$file"
+            if [ -f "sanitized_md/$file" ]; then
+              sed -i -e 's/<!--.*-->//g' -e '/<!--/,/-->/d' "sanitized_md/$file"
+            fi
           done
 
       - name: Run Lychee on Changed Markdown Files (PR)
@@ -50,7 +52,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: |
           rsync -av --exclude '.git' --exclude 'node_modules' ./ sanitized_md/
-          find sanitized_md -name "*.md" -exec sed -i '/<!--/,/-->/d' {} +
+          find sanitized_md -name "*.md" -exec sed -i -e 's/<!--.*-->//g' -e '/<!--/,/-->/d' {} +
 
       - name: Run Lychee on Entire Repo (Manual)
         if: github.event_name == 'workflow_dispatch'
