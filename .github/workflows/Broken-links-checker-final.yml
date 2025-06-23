@@ -27,16 +27,33 @@ jobs:
           echo "$files" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
+      - name: Strip HTML Comments from Changed Markdown Files (PR only)
+        if: github.event_name == 'pull_request' && steps.changed-files.outputs.md_files != ''
+        run: |
+          mkdir sanitized_md
+          for file in ${{ steps.changed-files.outputs.md_files }}; do
+            mkdir -p "sanitized_md/$(dirname "$file")"
+            sed '/<!--/,/-->/d' "$file" > "sanitized_md/$file"
+          done
+
       - name: Check Broken Links in Added/Modified Files (PR)
         if: github.event_name == 'pull_request' && steps.changed-files.outputs.md_files != ''
         uses: lycheeverse/lychee-action@v2.4.1
         with:
           args: >
             --verbose --exclude-mail --no-progress --exclude ^https?://
-            --include-comments false
-            ${{ steps.changed-files.outputs.md_files }}
+            sanitized_md/**/*.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Strip HTML Comments from All Markdown Files (Manual)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          mkdir sanitized_md
+          for file in $(find . -name "*.md"); do
+            mkdir -p "sanitized_md/$(dirname "$file")"
+            sed '/<!--/,/-->/d' "$file" > "sanitized_md/$file"
+          done
 
       - name: Check Broken Links in Entire Repo (Manual)
         if: github.event_name == 'workflow_dispatch'
@@ -44,8 +61,7 @@ jobs:
         with:
           args: >
             --verbose --exclude-mail --no-progress --exclude ^https?://
-            --include-comments false
-            '**/*.md'
+            sanitized_md/**/*.md
           output: lychee/out.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
