@@ -112,6 +112,6 @@ jobs:
           args: >
             --verbose --no-progress --exclude-mail --exclude ^https?://
             sanitized_md/**/*.md
-          output: lychee/manual-cleaned.out
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
