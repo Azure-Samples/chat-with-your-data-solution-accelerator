@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -27,41 +27,39 @@ jobs:
           echo "$files" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Strip HTML Comments from Changed Markdown Files (PR only)
+      - name: Prepare Sanitized Markdown Files (PR)
         if: github.event_name == 'pull_request' && steps.changed-files.outputs.md_files != ''
         run: |
-          mkdir sanitized_md
+          rsync -av --exclude '.git' --exclude 'node_modules' ./ sanitized_md/
           for file in ${{ steps.changed-files.outputs.md_files }}; do
-            mkdir -p "sanitized_md/$(dirname "$file")"
-            sed '/<!--/,/-->/d' "$file" > "sanitized_md/$file"
+            [ -f "sanitized_md/$file" ] && sed -i '/<!--/,/-->/d' "sanitized_md/$file"
           done
 
-      - name: Check Broken Links in Added/Modified Files (PR)
+      - name: Run Lychee on Changed Markdown Files (PR)
         if: github.event_name == 'pull_request' && steps.changed-files.outputs.md_files != ''
         uses: lycheeverse/lychee-action@v2.4.1
         with:
           args: >
-            --verbose --exclude-mail --no-progress --exclude ^https?://
-            sanitized_md/**/*.md
+            --verbose --no-progress --exclude-mail
+            --exclude ^https?://
+            sanitized_md/${{ steps.changed-files.outputs.md_files }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Strip HTML Comments from All Markdown Files (Manual)
+      - name: Prepare Sanitized Markdown Files (Manual)
         if: github.event_name == 'workflow_dispatch'
         run: |
-          mkdir sanitized_md
-          for file in $(find . -name "*.md"); do
-            mkdir -p "sanitized_md/$(dirname "$file")"
-            sed '/<!--/,/-->/d' "$file" > "sanitized_md/$file"
-          done
+          rsync -av --exclude '.git' --exclude 'node_modules' ./ sanitized_md/
+          find sanitized_md -name "*.md" -exec sed -i '/<!--/,/-->/d' {} +
 
-      - name: Check Broken Links in Entire Repo (Manual)
+      - name: Run Lychee on Entire Repo (Manual)
         if: github.event_name == 'workflow_dispatch'
         uses: lycheeverse/lychee-action@v2.4.1
         with:
           args: >
-            --verbose --exclude-mail --no-progress --exclude ^https?://
-            sanitized_md/**/*.md
+            --verbose --no-progress --exclude-mail
+            --exclude ^https?://
+            'sanitized_md/**/*.md'
           output: lychee/out.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
