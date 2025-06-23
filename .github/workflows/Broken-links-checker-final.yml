@@ -12,12 +12,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Get Changed Markdown Files (PR only)
+      # === PR MODE ===
+      - name: Get Changed Markdown Files (PR)
         id: changed-files
         if: github.event_name == 'pull_request'
         run: |
@@ -27,41 +28,41 @@ jobs:
           echo "$files" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Run Initial Lychee Check (PR)
+      - name: Run Lychee on Changed Markdown Files (PR)
         if: github.event_name == 'pull_request' && steps.changed-files.outputs.md_files != ''
         uses: lycheeverse/lychee-action@v2.4.1
         with:
           args: >
             --verbose --no-progress --exclude-mail --exclude ^https?://
-            --output lychee/initial.out
+            --output lychee/pr.out
             ${{ steps.changed-files.outputs.md_files }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Markdown Files with Broken Links
+      - name: Extract Affected Markdown Files (PR)
         if: github.event_name == 'pull_request'
-        id: affected-md
+        id: affected-pr
         run: |
           mkdir -p sanitized_md
-          # Extract only .md file paths from the lychee output
-          affected=$(grep -E 'file://.*\.md' lychee/initial.out | cut -d' ' -f1 | sed 's|file://||' | sort -u)
+          affected=$(grep -Eo 'file://[^ ]+\.md' lychee/pr.out | sed 's|file://||' | sort -u)
           echo "$affected"
           echo "affected_files<<EOF" >> $GITHUB_OUTPUT
           echo "$affected" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Strip HTML Comments from Affected Markdown Files Only
-        if: steps.affected-md.outputs.affected_files != ''
+      - name: Strip HTML Comments from Affected Files (PR)
+        if: steps.affected-pr.outputs.affected_files != ''
         run: |
-          for file in ${{ steps.affected-md.outputs.affected_files }}; do
-            target="sanitized_md/$file"
-            mkdir -p "$(dirname "$target")"
-            # Copy the file and strip only comments
-            perl -0777 -pe 's/<!--.*?-->//gs' "$file" > "$target"
+          echo "${{ steps.affected-pr.outputs.affected_files }}" | while read file; do
+            if [ -f "$file" ]; then
+              target="sanitized_md/$file"
+              mkdir -p "$(dirname "$target")"
+              perl -0777 -pe 's/<!--.*?-->//gs' "$file" > "$target"
+            fi
           done
 
-      - name: Rerun Lychee on Cleaned Files
-        if: steps.affected-md.outputs.affected_files != ''
+      - name: Re-check Sanitized Affected Files (PR)
+        if: steps.affected-pr.outputs.affected_files != ''
         uses: lycheeverse/lychee-action@v2.4.1
         with:
           args: >
@@ -70,20 +71,47 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Full Repo Scan (Manual)
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          mkdir -p sanitized_md
-          rsync -av --exclude '.git' --exclude 'node_modules' ./ sanitized_md/
-          find sanitized_md -name "*.md" -exec perl -0777 -i -pe 's/<!--.*?-->//gs' {} +
-
+      # === MANUAL MODE ===
       - name: Run Lychee on Entire Repo (Manual)
         if: github.event_name == 'workflow_dispatch'
         uses: lycheeverse/lychee-action@v2.4.1
         with:
           args: >
             --verbose --no-progress --exclude-mail --exclude ^https?://
+            --output lychee/manual.out
+            '**/*.md'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Affected Markdown Files (Manual)
+        if: github.event_name == 'workflow_dispatch'
+        id: affected-manual
+        run: |
+          mkdir -p sanitized_md
+          affected=$(grep -Eo 'file://[^ ]+\.md' lychee/manual.out | sed 's|file://||' | sort -u)
+          echo "$affected"
+          echo "affected_files<<EOF" >> $GITHUB_OUTPUT
+          echo "$affected" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Strip HTML Comments from Affected Files (Manual)
+        if: steps.affected-manual.outputs.affected_files != ''
+        run: |
+          echo "${{ steps.affected-manual.outputs.affected_files }}" | while read file; do
+            if [ -f "$file" ]; then
+              target="sanitized_md/$file"
+              mkdir -p "$(dirname "$target")"
+              perl -0777 -pe 's/<!--.*?-->//gs' "$file" > "$target"
+            fi
+          done
+
+      - name: Re-check Sanitized Affected Files (Manual)
+        if: steps.affected-manual.outputs.affected_files != ''
+        uses: lycheeverse/lychee-action@v2.4.1
+        with:
+          args: >
+            --verbose --no-progress --exclude-mail --exclude ^https?://
             sanitized_md/**/*.md
-          output: lychee/full.out
+          output: lychee/manual-cleaned.out
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
