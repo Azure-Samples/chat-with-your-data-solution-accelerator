@@ -6,6 +6,9 @@ on:
       - '**/*.md'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   markdown-link-check:
     name: Check Markdown Broken Links
@@ -17,109 +20,48 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Mirror Repo to sanitized_md/
-        run: |
-          rsync -av --exclude '.git' --exclude 'node_modules' ./ sanitized_md/
-
-      # ‣ PR: get only changed .md files
-      - name: Get Changed Markdown Files (PR)
+      - name: Get Added/Modified Markdown Files (PR only)
         id: changed-files
         if: github.event_name == 'pull_request'
         run: |
           git fetch origin ${{ github.base_ref }}
-          files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
-                  | grep '\.md$' || true)
+          files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.md$' || true)
           echo "md_files<<EOF" >> $GITHUB_OUTPUT
           echo "$files" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      # ‣ PR: initial Lychee run
-      - name: Initial Lychee Check on Changed Files (PR)
+      - name: Strip HTML comments from markdown
+        if: github.event_name == 'pull_request' && steps.changed-files.outputs.md_files != ''
+        run: |
+          for file in ${{ steps.changed-files.outputs.md_files }}; do
+            # Remove all HTML comments (multi-line aware) in-place
+            sed -z -i 's/<!--[\s\S]*?-->//g' "$file"
+          done
+
+      - name: Check Broken Links in Added/Modified Files (PR)
         if: github.event_name == 'pull_request' && steps.changed-files.outputs.md_files != ''
         uses: lycheeverse/lychee-action@v2.4.1
         with:
-          output: lychee/pr.out
           args: >
-            --verbose --no-progress --exclude-mail --exclude '^https?://'
+            --verbose --exclude-mail --no-progress --exclude ^https?://
             ${{ steps.changed-files.outputs.md_files }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ‣ PR: extract only the .md files with errors
-      - name: Extract Affected Files (PR)
-        if: github.event_name == 'pull_request'
-        id: affected-pr
+      - name: Strip HTML comments (manual run)
+        if: github.event_name == 'workflow_dispatch'
         run: |
-          mkdir -p sanitized_md
-          grep -Eo 'file://[^ ]+\.md' lychee/pr.out \
-            | sed 's|file://||' \
-            | sort -u \
-            | tee affected.txt
-          echo "affected_files<<EOF" >> $GITHUB_OUTPUT
-          cat affected.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          for file in **/*.md; do
+            sed -z -i 's/<!--[\s\S]*?-->//g' "$file"
+          done
 
-      # ‣ PR: strip comments **in the copies**
-      - name: Strip HTML Comments from Affected Files (PR)
-        if: steps.affected-pr.outputs.affected_files != ''
-        run: |
-          while read -r file; do
-            src="sanitized_md/$file"
-            perl -0777 -pe 's/<!--.*?-->//gs' "$src" > "$src.tmp" \
-              && mv "$src.tmp" "$src"
-          done < affected.txt
-
-      # ‣ PR: **re-run** Lychee on the **sanitized** files
-      - name: Re-check Sanitized Affected Files (PR)
-        if: steps.affected-pr.outputs.affected_files != ''
-        uses: lycheeverse/lychee-action@v2.4.1
-        with:
-          args: >
-            --verbose --no-progress --exclude-mail --exclude '^https?://'
-            sanitized_md/**/*.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # --- Manual Dispatch: same two-pass logic ---
-      - name: Initial Lychee Check on All Markdown (Manual)
+      - name: Check Broken Links in Entire Repo (Manual)
         if: github.event_name == 'workflow_dispatch'
         uses: lycheeverse/lychee-action@v2.4.1
         with:
-          output: lychee/manual.out
           args: >
-            --verbose --no-progress --exclude-mail --exclude '^https?://'
+            --verbose --exclude-mail --no-progress --exclude ^https?://
             '**/*.md'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract Affected Files (Manual)
-        if: github.event_name == 'workflow_dispatch'
-        id: affected-manual
-        run: |
-          mkdir -p sanitized_md
-          grep -Eo 'file://[^ ]+\.md' lychee/manual.out \
-            | sed 's|file://||' \
-            | sort -u \
-            | tee affected-manual.txt
-          echo "affected_files<<EOF" >> $GITHUB_OUTPUT
-          cat affected-manual.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Strip HTML Comments (Manual)
-        if: steps.affected-manual.outputs.affected_files != ''
-        run: |
-          while read -r file; do
-            src="sanitized_md/$file"
-            perl -0777 -pe 's/<!--.*?-->//gs' "$src" > "$src.tmp" \
-              && mv "$src.tmp" "$src"
-          done < affected-manual.txt
-
-      - name: Re-check Sanitized Affected Files (Manual)
-        if: steps.affected-manual.outputs.affected_files != ''
-        uses: lycheeverse/lychee-action@v2.4.1
-        with:
-          args: >
-            --verbose --no-progress --exclude-mail --exclude '^https?://'
-            sanitized_md/**/*.md
+          output: lychee/out.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
