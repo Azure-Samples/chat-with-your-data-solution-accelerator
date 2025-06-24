@@ -1,112 +1,71 @@
-name: Broken Link Checker
-
+name: Broken Link Checker (lychee with comment strip)
 on:
-  pull_request:
-    paths:
-      - '**/*.md'
-  workflow_dispatch:
-
+ pull_request:
+   paths:
+     - '**/*.md'
+ workflow_dispatch:
 permissions:
-  contents: read
-
+ contents: read
 jobs:
-  markdown-link-check:
-    name: Check Markdown Broken Links
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Get Added/Modified Markdown Files
-        id: changed
-        if: github.event_name == 'pull_request'
-        run: |
-          git fetch origin ${{ github.base_ref }}
-          files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.md$' || true)
-          echo "md_files<<EOF" >> $GITHUB_OUTPUT
-          echo "$files" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Strip HTML comments from Markdown
-        if: github.event_name == 'pull_request' && steps.changed.outputs.md_files != ''
-        run: |
-          for file in ${{ steps.changed.outputs.md_files }}; do
-            awk -v FS="" '
-              BEGIN { in_comment = 0 }
-              {
-                if (in_comment) {
-                  if (match($0, /-->/)) {
-                    $0 = substr($0, RSTART + RLENGTH)
-                    in_comment = 0
-                  } else { next }
-                }
-                while (match($0, /<!--/)) {
-                  prefix = substr($0, 1, RSTART - 1)
-                  rest = substr($0, RSTART + 4)
-                  if (match(rest, /-->/)) {
-                    rest = substr(rest, RSTART + RLENGTH)
-                    $0 = prefix rest
-                  } else {
-                    $0 = prefix
-                    in_comment = 1
-                    break
-                  }
-                }
-                print
-              }
-            ' "$file" > tmp && mv tmp "$file"
-          done
-
-      - name: Check Broken Links in Added/Modified Files
-        if: github.event_name == 'pull_request' && steps.changed.outputs.md_files != ''
-        uses: lycheeverse/lychee-action@v2.4.1
-        with:
-          args: >
-            --verbose --exclude-mail --no-progress --exclude ^https?://
-            ${{ steps.changed.outputs.md_files }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Strip HTML comments (manual run)
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          for file in **/*.md; do
-            awk -v FS="" '
-              BEGIN { in_comment = 0 }
-              {
-                if (in_comment) {
-                  if (match($0, /-->/)) {
-                    $0 = substr($0, RSTART + RLENGTH)
-                    in_comment = 0
-                  } else { next }
-                }
-                while (match($0, /<!--/)) {
-                  prefix = substr($0, 1, RSTART - 1)
-                  rest = substr($0, RSTART + 4)
-                  if (match(rest, /-->/)) {
-                    rest = substr(rest, RSTART + RLENGTH)
-                    $0 = prefix rest
-                  } else {
-                    $0 = prefix
-                    in_comment = 1
-                    break
-                  }
-                }
-                print
-              }
-            ' "$file" > tmp && mv tmp "$file"
-          done
-
-      - name: Check Broken Links in Entire Repo
-        if: github.event_name == 'workflow_dispatch'
-        uses: lycheeverse/lychee-action@v2.4.1
-        with:
-          args: >
-            --verbose --exclude-mail --no-progress --exclude ^https?://
-            '**/*.md'
-          output: lychee/out.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+ markdown-link-check:
+   runs-on: ubuntu-latest
+   steps:
+     - name: Checkout Repo
+       uses: actions/checkout@v4
+     - name: Install Python
+       uses: actions/setup-python@v4
+       with:
+         python-version: '3.x'
+     - name: Strip HTML comments from changed Markdown files
+       if: github.event_name == 'pull_request'
+       id: strip
+       run: |
+         echo "cleaned_files=" >> $GITHUB_OUTPUT
+         for file in ${{ github.event.pull_request.changed_files }}; do
+           [ "${file##*.}" != "md" ] && continue
+           python3 - <<'EOF'
+            import re, sys
+            path = sys.argv[1]
+            with open(path, 'r') as f:
+               content = f.read()
+            clean = re.sub(r'<!--.*?-->', '', content, flags=re.DOTALL)
+            out = path + ".cleaned"
+            with open(out, 'w') as f:
+               f.write(clean)
+            print(out)
+            EOF
+           echo "cleaned_files<<EOF" >> $GITHUB_OUTPUT
+           echo "${file}.cleaned" >> $GITHUB_OUTPUT
+           echo "EOF" >> $GITHUB_OUTPUT
+         done
+     - name: Run lychee on cleaned files
+       if: github.event_name == 'pull_request' && steps.strip.outputs.cleaned_files != ''
+       uses: lycheeverse/lychee-action@v2.4.1
+       with:
+         args: >
+           --verbose --exclude-mail --no-progress --exclude ^https?://
+           ${{ steps.strip.outputs.cleaned_files }}
+       env:
+         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+     - name: Run lychee on all Markdown (manual)
+       if: github.event_name == 'workflow_dispatch'
+       run: |
+         python3 - <<'EOF'
+          import re, glob
+          for path in glob.glob('**/*.md', recursive=True):
+             with open(path) as f: data = f.read()
+             clean = re.sub(r'<!--.*?-->', '', data, flags=re.DOTALL)
+             with open(path + ".cleaned", 'w') as f: f.write(clean)
+          EOF
+         echo "::set-output name=all_cleaned::$(echo **/*.md.cleaned)"
+       env:
+         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+     - name: Check all Markdown (manual)
+       if: github.event_name == 'workflow_dispatch'
+       uses: lycheeverse/lychee-action@v2.4.1
+       with:
+         args: >
+           --verbose --exclude-mail --no-progress --exclude ^https?://
+           ${{ steps.strip.outputs.all_cleaned }}
+       env:
+         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
