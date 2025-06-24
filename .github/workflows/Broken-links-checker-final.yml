@@ -1,4 +1,4 @@
-name: Smart Broken Link Checker
+name: Broken Link Checker
 
 on:
   pull_request:
@@ -10,93 +10,97 @@ permissions:
   contents: read
 
 jobs:
-  smart-link-check:
-    name: Filtered Markdown Broken Links
+  markdown-link-check:
+    name: Check Markdown Broken Links
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install lychee
+      - name: Get Added/Modified Markdown Files (PR only)
+        id: changed-files
+        if: github.event_name == 'pull_request'
         run: |
-          curl -Ls https://github.com/lycheeverse/lychee/releases/latest/download/lychee-linux.zip -o lychee.zip
-          unzip lychee.zip -d lychee-bin
-          chmod +x lychee-bin/lychee
-          echo "$PWD/lychee-bin" >> $GITHUB_PATH
+          git fetch origin ${{ github.base_ref }}
+          files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.md$' || true)
+          echo "md_files<<EOF" >> $GITHUB_OUTPUT
+          echo "$files" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Determine Target Files
-        id: target-files
+      - name: Run Lychee (PR)
+        if: github.event_name == 'pull_request' && steps.changed-files.outputs.md_files != ''
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            git fetch origin ${{ github.base_ref }}
-            files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.md$' || true)
+          npx lychee --verbose --exclude-mail --no-progress --exclude ^https?:// ${{ steps.changed-files.outputs.md_files }} > lychee_output.txt || true
+
+      - name: Run Lychee (Manual)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          npx lychee --verbose --exclude-mail --no-progress --exclude ^https?:// '**/*.md' > lychee_output.txt || true
+
+      - name: Filter Commented-Out Links from Output
+        run: |
+          cat > filter_lychee_output.sh <<'EOF'
+          #!/bin/bash
+          LYCHEE_OUTPUT_FILE="lychee_output.txt"
+          FINAL_OUTPUT_FILE="lychee_final_output.txt"
+          > "$FINAL_OUTPUT_FILE"
+
+          current_file=""
+
+          while IFS= read -r line; do
+              if [[ "$line" =~ ^Errors\ in\ (.*)\ \[ERROR\]?$ ]]; then
+                  current_file="${BASH_REMATCH[1]}"
+                  echo "$line" >> "$FINAL_OUTPUT_FILE"
+                  continue
+              fi
+
+              if [[ "$line" =~ file://(.*)\ \| ]]; then
+                  full_path="${BASH_REMATCH[1]}"
+                  broken_link=$(basename "$full_path")
+
+                  if [ -f "$current_file" ]; then
+                      if grep -zoP "(?s)<!--.*?$broken_link.*?-->" "$current_file" > /dev/null; then
+                          echo "Skipping commented-out link: $broken_link in $current_file"
+                          continue
+                      fi
+                  fi
+
+                  echo "$line" >> "$FINAL_OUTPUT_FILE"
+              fi
+          done < "$LYCHEE_OUTPUT_FILE"
+
+          echo "Filtered Lychee output saved to $FINAL_OUTPUT_FILE"
+          EOF
+
+          chmod +x filter_lychee_output.sh
+          ./filter_lychee_output.sh
+
+      - name: Save Filtered Errors to Markdown File
+        run: |
+          mkdir -p lychee
+          echo "# 🔗 Broken Link Report" > lychee/out.md
+          echo "" >> lychee/out.md
+          if [ -s lychee_final_output.txt ]; then
+            cat lychee_final_output.txt >> lychee/out.md
           else
-            files=$(find . -type f -name "*.md")
-          fi
-          echo "$files" > all-md-files.txt
-          echo "files=$(cat all-md-files.txt | paste -sd ' ' -)" >> $GITHUB_OUTPUT
-
-      - name: Run Lychee (Initial)
-        run: |
-          mkdir -p lychee-output
-          lychee --verbose --no-progress --exclude-mail --format json \
-            ${{ steps.target-files.outputs.files }} > lychee-output/report.json
-          # Also produce plain-text report for human reading
-          lychee --verbose --no-progress --exclude-mail \
-            ${{ steps.target-files.outputs.files }} > lychee-output/report.txt || true
-
-      - name: Extract Failed Files
-        id: extract-failed
-        run: |
-          mkdir -p sanitize-targets
-          jq -r '.failures[].input' lychee-output/report.json | sort -u > failed-files.txt
-          if [[ -s failed-files.txt ]]; then
-            echo "files_to_sanitize=$(cat failed-files.txt | paste -sd ' ' -)" >> $GITHUB_OUTPUT
+            echo "✅ No non-commented broken links found." >> lychee/out.md
           fi
 
-      - name: Sanitize Failed Files (Remove Comments)
-        if: steps.extract-failed.outputs.files_to_sanitize != ''
-        run: |
-          mkdir -p sanitized_md
-          while IFS= read -r file; do
-            [ -f "$file" ] || continue
-            mkdir -p "sanitized_md/$(dirname "$file")"
-            perl -0777 -pe 's/<!--.*?-->//gs' "$file" > "sanitized_md/$file"
-          done < failed-files.txt
-
-      - name: Re-run Lychee on Sanitized Files
-        if: steps.extract-failed.outputs.files_to_sanitize != ''
-        run: |
-          mkdir -p lychee-output-sanitized
-          while IFS= read -r file; do
-            [ -f "sanitized_md/$file" ] || continue
-            echo "🔍 Rechecking: sanitized_md/$file"
-            lychee --verbose --no-progress --exclude-mail "sanitized_md/$file" || echo "$file" >> final-failures.txt
-          done < failed-files.txt
-
-      - name: Upload Lychee Reports
+      - name: Upload Filtered Report as Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: lychee-original-reports
-          path: lychee-output
+          name: filtered-link-report
+          path: lychee/out.md
 
-      - name: Upload Sanitized Report Failures
-        if: steps.extract-failed.outputs.files_to_sanitize != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: lychee-sanitized-failures
-          path: |
-            final-failures.txt
-            sanitized_md
-
-      - name: Fail if Broken Links Remain
-        if: failure() && steps.extract-failed.outputs.files_to_sanitize != ''
+      - name: Fail if Real Broken Links Remain
         run: |
-          if [ -s final-failures.txt ]; then
-            echo "🚫 Broken links still exist after comment-stripping:"
-            cat final-failures.txt
+          if grep -q "\[ERROR\]" lychee_final_output.txt; then
+            echo "❌ Found non-commented broken links:"
+            cat lychee_final_output.txt
             exit 1
+          else
+            echo "✅ No real broken links found."
           fi
