@@ -30,77 +30,75 @@ jobs:
           echo "$files" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Run Lychee (PR)
+      - name: Check Broken Links in Added/Modified Files (PR)
         if: github.event_name == 'pull_request' && steps.changed-files.outputs.md_files != ''
-        run: |
-          npx lychee --verbose --exclude-mail --no-progress --exclude ^https?:// ${{ steps.changed-files.outputs.md_files }} > lychee_output.txt || true
+        uses: lycheeverse/lychee-action@v2.4.1
+        with:
+          args: >
+            --verbose --exclude-mail --no-progress --exclude ^https?://
+            ${{ steps.changed-files.outputs.md_files }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run Lychee (Manual)
+      - name: Check Broken Links in Entire Repo (Manual)
+        if: github.event_name == 'workflow_dispatch'
+        uses: lycheeverse/lychee-action@v2.4.1
+        with:
+          args: >
+            --verbose --exclude-mail --no-progress --exclude ^https?://
+            '**/*.md'
+          output: lychee/out.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clean lychee/out.md by removing errors inside HTML comments
         if: github.event_name == 'workflow_dispatch'
         run: |
-          npx lychee --verbose --exclude-mail --no-progress --exclude ^https?:// '**/*.md' > lychee_output.txt || true
+          FILTERED="lychee/out.md.cleaned"
+          > "$FILTERED"
 
-      - name: Filter Commented-Out Links from Output
+          awk '
+            BEGIN { RS="### "; FS="\n" }
+            NR == 1 { next }
+            {
+              header = "### " $1
+              file_section = $1
+              file_path = ""
+
+              if (match(file_section, /in (.*\.md)/, m)) {
+                file_path = m[1]
+              }
+
+              keep_section = ""
+              for (i = 2; i <= NF; i++) {
+                line = $i
+                if (match(line, /\((file:\/\/[^\)]+)\)/, mfile)) {
+                  fullpath = mfile[1]
+                  localpath = substr(fullpath, 8)
+                  filename = gensub(/^.*\//, "", "g", localpath)
+
+                  cmd = "awk \047BEGIN{incomment=0} /<!--/{incomment=1} /-->/&&incomment{incomment=0; next} incomment && index(\\\$0, \\\"" filename "\\\")>0 {exit 0} END{exit 1}\047 \"" file_path "\""
+                  status = system(cmd)
+
+                  if (status != 0) {
+                    keep_section = keep_section line "\n"
+                  }
+                } else {
+                  keep_section = keep_section line "\n"
+                }
+              }
+
+              if (length(keep_section) > 0) {
+                print header "\n" keep_section >> "'"$FILTERED"'"
+              }
+            }
+          ' lychee/out.md
+
+          mv "$FILTERED" lychee/out.md
+
+      - name: Show Cleaned Report
+        if: github.event_name == 'workflow_dispatch'
         run: |
-          cat > filter_lychee_output.sh <<'EOF'
-          #!/bin/bash
-          LYCHEE_OUTPUT_FILE="lychee_output.txt"
-          FINAL_OUTPUT_FILE="lychee_final_output.txt"
-          > "$FINAL_OUTPUT_FILE"
-
-          current_file=""
-
-          while IFS= read -r line; do
-              if [[ "$line" =~ ^Errors\ in\ (.*)\ \[ERROR\]?$ ]]; then
-                  current_file="${BASH_REMATCH[1]}"
-                  echo "$line" >> "$FINAL_OUTPUT_FILE"
-                  continue
-              fi
-
-              if [[ "$line" =~ file://(.*)\ \| ]]; then
-                  full_path="${BASH_REMATCH[1]}"
-                  broken_link=$(basename "$full_path")
-
-                  if [ -f "$current_file" ]; then
-                      if grep -zoP "(?s)<!--.*?$broken_link.*?-->" "$current_file" > /dev/null; then
-                          echo "Skipping commented-out link: $broken_link in $current_file"
-                          continue
-                      fi
-                  fi
-
-                  echo "$line" >> "$FINAL_OUTPUT_FILE"
-              fi
-          done < "$LYCHEE_OUTPUT_FILE"
-
-          echo "Filtered Lychee output saved to $FINAL_OUTPUT_FILE"
-          EOF
-
-          chmod +x filter_lychee_output.sh
-          ./filter_lychee_output.sh
-
-      - name: Save Filtered Errors to Markdown File
-        run: |
-          mkdir -p lychee
-          echo "# 🔗 Broken Link Report" > lychee/out.md
-          echo "" >> lychee/out.md
-          if [ -s lychee_final_output.txt ]; then
-            cat lychee_final_output.txt >> lychee/out.md
-          else
-            echo "✅ No non-commented broken links found." >> lychee/out.md
-          fi
-
-      - name: Upload Filtered Report as Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: filtered-link-report
-          path: lychee/out.md
-
-      - name: Fail if Real Broken Links Remain
-        run: |
-          if grep -q "\[ERROR\]" lychee_final_output.txt; then
-            echo "❌ Found non-commented broken links:"
-            cat lychee_final_output.txt
-            exit 1
-          else
-            echo "✅ No real broken links found."
-          fi
+          echo '```markdown'
+          cat lychee/out.md
+          echo '```'
