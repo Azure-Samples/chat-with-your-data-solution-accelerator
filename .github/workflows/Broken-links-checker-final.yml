@@ -20,8 +20,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get Added/Modified Markdown Files (PR only)
-        id: changed-files
+      - name: Get Added/Modified Markdown Files
+        id: changed
         if: github.event_name == 'pull_request'
         run: |
           git fetch origin ${{ github.base_ref }}
@@ -30,21 +30,43 @@ jobs:
           echo "$files" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Strip HTML comments from markdown
-        if: github.event_name == 'pull_request' && steps.changed-files.outputs.md_files != ''
+      - name: Strip HTML comments from Markdown
+        if: github.event_name == 'pull_request' && steps.changed.outputs.md_files != ''
         run: |
-          for file in ${{ steps.changed-files.outputs.md_files }}; do
-            # Remove all HTML comments (multi-line aware) in-place
-            sed -z -i 's/<!--[\s\S]*?-->//g' "$file"
+          for file in ${{ steps.changed.outputs.md_files }}; do
+            awk -v FS="" '
+              BEGIN { in_comment = 0 }
+              {
+                if (in_comment) {
+                  if (match($0, /-->/)) {
+                    $0 = substr($0, RSTART + RLENGTH)
+                    in_comment = 0
+                  } else { next }
+                }
+                while (match($0, /<!--/)) {
+                  prefix = substr($0, 1, RSTART - 1)
+                  rest = substr($0, RSTART + 4)
+                  if (match(rest, /-->/)) {
+                    rest = substr(rest, RSTART + RLENGTH)
+                    $0 = prefix rest
+                  } else {
+                    $0 = prefix
+                    in_comment = 1
+                    break
+                  }
+                }
+                print
+              }
+            ' "$file" > tmp && mv tmp "$file"
           done
 
-      - name: Check Broken Links in Added/Modified Files (PR)
-        if: github.event_name == 'pull_request' && steps.changed-files.outputs.md_files != ''
+      - name: Check Broken Links in Added/Modified Files
+        if: github.event_name == 'pull_request' && steps.changed.outputs.md_files != ''
         uses: lycheeverse/lychee-action@v2.4.1
         with:
           args: >
             --verbose --exclude-mail --no-progress --exclude ^https?://
-            ${{ steps.changed-files.outputs.md_files }}
+            ${{ steps.changed.outputs.md_files }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -52,10 +74,33 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: |
           for file in **/*.md; do
-            sed -z -i 's/<!--[\s\S]*?-->//g' "$file"
+            awk -v FS="" '
+              BEGIN { in_comment = 0 }
+              {
+                if (in_comment) {
+                  if (match($0, /-->/)) {
+                    $0 = substr($0, RSTART + RLENGTH)
+                    in_comment = 0
+                  } else { next }
+                }
+                while (match($0, /<!--/)) {
+                  prefix = substr($0, 1, RSTART - 1)
+                  rest = substr($0, RSTART + 4)
+                  if (match(rest, /-->/)) {
+                    rest = substr(rest, RSTART + RLENGTH)
+                    $0 = prefix rest
+                  } else {
+                    $0 = prefix
+                    in_comment = 1
+                    break
+                  }
+                }
+                print
+              }
+            ' "$file" > tmp && mv tmp "$file"
           done
 
-      - name: Check Broken Links in Entire Repo (Manual)
+      - name: Check Broken Links in Entire Repo
         if: github.event_name == 'workflow_dispatch'
         uses: lycheeverse/lychee-action@v2.4.1
         with:
