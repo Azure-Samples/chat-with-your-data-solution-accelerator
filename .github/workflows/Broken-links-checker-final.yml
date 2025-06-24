@@ -78,7 +78,7 @@ jobs:
         uses: lycheeverse/lychee-action@v2.4.1
         with:
           args: >
-            --verbose --no-progress --exclude-mail --exclude ^https?://
+            --verbose --no-progress --exclude-mail --exclude ^https?:// --include-file
             sanitized_md/**/*.md
           output: lychee/full.out
         env:
