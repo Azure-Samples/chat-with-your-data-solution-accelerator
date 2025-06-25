@@ -23,10 +23,6 @@ class WebUserPage(BasePage):
     CITATIONS_CONTAINER = "[data-testid='citations-container']"
     CITATION_BLOCK = "[data-testid='citation-block']"
 
-    TOGGLE_CITATIONS_LIST = "[data-testid='toggle-citations-list']"
-    CITATIONS_CONTAINER = "[data-testid='citations-container']"
-    CITATION_BLOCK = "[data-testid='citation-block']"
-
     def __init__(self, page):
         self.page = page
         self.soft_assert_errors = []
