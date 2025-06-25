@@ -5,7 +5,7 @@ param functionName string
 param websiteName string
 param adminWebsiteName string
 param eventGridSystemTopicName string
-param logAnalyticsName string
+param logAnalyticsResourceId string
 param azureOpenAIResourceName string
 param azureAISearchName string
 param storageAccountName string
@@ -36,8 +36,8 @@ var wookbookContentsEventGridReplaced = replace(
 )
 var wookbookContentsLogAnalyticsReplaced = replace(
   wookbookContentsEventGridReplaced,
-  '{log-analytics}',
-  logAnalyticsName
+  '{log-analytics-resource-id}',
+  logAnalyticsResourceId
 )
 var wookbookContentsOpenAIReplaced = replace(wookbookContentsLogAnalyticsReplaced, '{open-ai}', azureOpenAIResourceName)
 var wookbookContentsAISearchReplaced = replace(wookbookContentsOpenAIReplaced, '{ai-search}', azureAISearchName)

@@ -24,7 +24,7 @@ Replace `<rg-name>` with the name of your chosen Resource Group.
 If you want to specify the location, run:
 
 ```bash
-azd env set AZURE_RESOURCE_GROUP_LOCATION <location>
+azd env set AZURE_LOCATION <location>
 ```
 Replace `<location>` with the desired Azure region.
 
