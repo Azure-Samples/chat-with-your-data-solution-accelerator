@@ -99,6 +99,26 @@ class AzureSearchIndex:
             ),
         ]
 
+        if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+            logger.info("Adding `text` field for integrated vectorization.")
+            fields.append(
+                SearchableField(
+                    name="text",
+                    type=SearchFieldDataType.String,
+                    filterable=False,
+                    sortable=False,
+                )
+            )
+            logger.info("Adding `layoutText` field for integrated vectorization.")
+            fields.append(
+                SearchableField(
+                    name="layoutText",
+                    type=SearchFieldDataType.String,
+                    filterable=False,
+                    sortable=False,
+                )
+            )
+
         vector_search = self.get_vector_search_config()
 
         semantic_search = self.get_semantic_search_config()

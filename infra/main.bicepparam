@@ -27,6 +27,8 @@ param azureSearchVectorColumn = readEnvironmentVariable('AZURE_SEARCH_CONTENT_VE
 param azureSearchTitleColumn = readEnvironmentVariable('AZURE_SEARCH_TITLE_COLUMN', 'title')
 param azureSearchFieldsMetadata = readEnvironmentVariable('AZURE_SEARCH_FIELDS_METADATA', 'metadata')
 param azureSearchSourceColumn = readEnvironmentVariable('AZURE_SEARCH_SOURCE_COLUMN', 'source')
+param azureSearchTextColumn = readEnvironmentVariable('AZURE_SEARCH_TEXT_COLUMN', 'text')
+param azureSearchLayoutTextColumn = readEnvironmentVariable('AZURE_SEARCH_LAYOUT_TEXT_COLUMN', 'layoutText')
 param azureSearchChunkColumn = readEnvironmentVariable('AZURE_SEARCH_CHUNK_COLUMN', 'chunk')
 param azureSearchOffsetColumn = readEnvironmentVariable('AZURE_SEARCH_OFFSET_COLUMN', 'offset')
 

@@ -107,6 +107,12 @@ param azureSearchFieldsMetadata string = 'metadata'
 @description('Source column')
 param azureSearchSourceColumn string = 'source'
 
+@description('Text column')
+param azureSearchTextColumn string = 'text'
+
+@description('Layout Text column')
+param azureSearchLayoutTextColumn string = 'layoutText'
+
 @description('Chunk column')
 param azureSearchChunkColumn string = 'chunk'
 
@@ -685,6 +691,8 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
             AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
             AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
             AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+            AZURE_SEARCH_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchTextColumn : ''
+            AZURE_SEARCH_LAYOUT_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchLayoutTextColumn : ''
             AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
             AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
             AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
@@ -797,6 +805,8 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
             AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
             AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
             AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+            AZURE_SEARCH_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchTextColumn : ''
+            AZURE_SEARCH_LAYOUT_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchLayoutTextColumn : ''
             AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
             AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
             AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
@@ -893,6 +903,8 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
             AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
             AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
             AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+            AZURE_SEARCH_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchTextColumn : ''
+            AZURE_SEARCH_LAYOUT_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchLayoutTextColumn : ''
             AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
             AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
             AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
@@ -990,6 +1002,8 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
             AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
             AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
             AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+            AZURE_SEARCH_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchTextColumn : ''
+            AZURE_SEARCH_LAYOUT_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchLayoutTextColumn : ''
             AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
             AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
             AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
@@ -1111,6 +1125,8 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
             AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
             AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
             AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+            AZURE_SEARCH_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchTextColumn : ''
+            AZURE_SEARCH_LAYOUT_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchLayoutTextColumn : ''
             AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
             AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
             AZURE_SEARCH_TOP_K: azureSearchTopK
@@ -1194,6 +1210,8 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
             AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
             AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
             AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
+            AZURE_SEARCH_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchTextColumn : ''
+            AZURE_SEARCH_LAYOUT_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchLayoutTextColumn : ''
             AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
             AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
             AZURE_SEARCH_TOP_K: azureSearchTopK
@@ -1426,6 +1444,10 @@ var azureSearchServiceInfo = databaseType == 'CosmosDB'
       filename_column: azureSearchFilenameColumn
       filter: azureSearchFilter
       title_column: azureSearchTitleColumn
+      fields_metadata: azureSearchFieldsMetadata
+      source_column: azureSearchSourceColumn
+      text_column: azureSearchTextColumn
+      layout_column: azureSearchLayoutTextColumn
       url_column: azureSearchUrlColumn
       use_integrated_vectorization: azureSearchUseIntegratedVectorization
       index: azureSearchIndex
@@ -1466,6 +1488,8 @@ var azureContentSafetyInfo = string({
   key: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
 })
 
+var backendUrl = 'https://${functionName}.azurewebsites.net'
+
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
 output AZURE_BLOB_STORAGE_INFO string = azureBlobStorageInfo
@@ -1485,6 +1509,9 @@ output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
 output USE_KEY_VAULT bool = useKeyVault
 output AZURE_AUTH_TYPE string = authType
+output BACKEND_URL string = backendUrl
+output AzureWebJobsStorage string = function.outputs.AzureWebJobsStorage
+output FUNCTION_KEY string = clientKey
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code'
   ? web.outputs.FRONTEND_API_URI
   : web_docker.outputs.FRONTEND_API_URI

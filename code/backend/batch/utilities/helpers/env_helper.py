@@ -76,6 +76,10 @@ class EnvHelper:
         self.AZURE_SEARCH_SOURCE_COLUMN = os.getenv(
             "AZURE_SEARCH_SOURCE_COLUMN", "source"
         )
+        self.AZURE_SEARCH_TEXT_COLUMN = os.getenv("AZURE_SEARCH_TEXT_COLUMN", "text")
+        self.AZURE_SEARCH_LAYOUT_TEXT_COLUMN = os.getenv(
+            "AZURE_SEARCH_LAYOUT_TEXT_COLUMN", "layoutText"
+        )
         self.AZURE_SEARCH_CHUNK_COLUMN = os.getenv("AZURE_SEARCH_CHUNK_COLUMN", "chunk")
         self.AZURE_SEARCH_OFFSET_COLUMN = os.getenv(
             "AZURE_SEARCH_OFFSET_COLUMN", "offset"
@@ -173,9 +177,7 @@ class EnvHelper:
             self.AZURE_OPENAI_MODEL_NAME = azure_openai_model_info.get("modelName", "")
         else:
             # Otherwise, fallback to individual environment variables
-            self.AZURE_OPENAI_MODEL = os.getenv(
-                "AZURE_OPENAI_MODEL", "gpt-4.1"
-            )
+            self.AZURE_OPENAI_MODEL = os.getenv("AZURE_OPENAI_MODEL", "gpt-4.1")
             self.AZURE_OPENAI_MODEL_NAME = os.getenv(
                 "AZURE_OPENAI_MODEL_NAME", "gpt-4.1"
             )
