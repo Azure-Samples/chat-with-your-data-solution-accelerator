@@ -1,6 +1,6 @@
 # [short title of solved problem and solution]
 
-* **Status:** [proposed | rejected | accepted | deprecated | … | superseded by [ADR-0005](0005-example.md)]
+* **Status:** [proposed | rejected | accepted | deprecated | … | <!-- superseded by [ADR-0005](0005-example.md) -->]
 * **Proposer:** [list everyone involved in the proposal]
 * **Date:** [YYYY-MM-DD when the decision was last updated]
 * **Technical Story:** [description | ticket/issue URL] <!-- optional -->

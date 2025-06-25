@@ -25,15 +25,15 @@ Installing Playwright Pytest from Virtual Environment
 Run test cases
 - To run test cases from your 'tests\e2e-test' folder : "pytest --headed --html=report/report.html"
 
-Steps need to be followed to enable Access Token and Client Credentials 
+Steps need to be followed to enable Access Token and Client Credentials
 - Go to App Service from the resource group and select the Access Tokens check box in 'Manage->Authentication' tab
-![img.png](img.png)
+<!-- ![img.png](img.png) -->
 - Go to Manage->Certificates & secrets tab to generate Client Secret value
-![img_1.png](img_1.png)
+<!-- ![img_1.png](img_1.png) -->
 - Go to Overview tab to get the client id and tenant id.
 
 Create .env file in project root level with web app url and client credentials
-- create a .env file in project root level and add your user_name, pass_word, client_id,client_secret, 
+- create a .env file in project root level and add your user_name, pass_word, client_id,client_secret,
         tenant_id, web_url and admin_url for the resource group. please refer 'sample_dotenv_file.txt' file.
 
 ## Documentation

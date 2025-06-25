@@ -223,7 +223,7 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 
 ## Bicep
 
-A [Bicep file](./infra/main.bicep) is used to generate the [ARM template](./infra/main.json). You can deploy this accelerator by the following command if you do not want to use `azd`.
+A [Bicep file](../infra/main.bicep) is used to generate the [ARM template](../infra/main.json). You can deploy this accelerator by the following command if you do not want to use `azd`.
 
 ```sh
 az deployment sub create --template-file ./infra/main.bicep --subscription {your_azure_subscription_id} --location {search_location}

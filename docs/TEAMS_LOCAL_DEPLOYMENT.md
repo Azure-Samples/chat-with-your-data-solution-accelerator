@@ -1,4 +1,4 @@
-[Back to *Teams Extension* README](./TEAMS_EXTENSION.md)
+[Back to *Teams Extension* README](./teams_extension.md)
 
 ## Local deployment for Teams
 
