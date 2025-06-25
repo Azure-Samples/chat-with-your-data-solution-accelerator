@@ -8,6 +8,7 @@ Write end-to-end tests for your web apps with [Playwright](https://github.com/mi
 - Support for **headless and headed** execution.
 - **Built-in fixtures** that provide browser primitives to test functions.
 
+
 Pre-Requisites:
 - Install Visual Studio Code: Download and Install Visual Studio Code(VSCode).
 - Install NodeJS: Download and Install Node JS
@@ -20,7 +21,6 @@ This will create a virtual environment directory named microsoft inside your cur
 
 Installing Playwright Pytest from Virtual Environment
 - To install libraries run "pip install -r requirements.txt"
-
 
 Run test cases
 - To run test cases from your 'tests\e2e-test' folder : "pytest --headed --html=report/report.html"
@@ -37,5 +37,4 @@ Create .env file in project root level with web app url and client credentials
         tenant_id, web_url and admin_url for the resource group. please refer 'sample_dotenv_file.txt' file.
 
 ## Documentation
-
 See on [playwright.dev](https://playwright.dev/python/docs/test-runners) for examples and more detailed information.
