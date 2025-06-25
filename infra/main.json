@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.36.1.42791",
-      "templateHash": "18415294230765187143"
+      "templateHash": "1150018300409326962"
     }
   },
   "parameters": {
@@ -24,14 +24,10 @@
     "location": {
       "type": "string",
       "metadata": {
-        "description": "Location for all resources."
-      }
-    },
-    "rgLocation": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Resource group location when using existing resource group"
+        "azd": {
+          "type": "location"
+        },
+        "description": "Location for all resources, if you are using existing resource group provide the location of the resorce group."
       }
     },
     "rgName": {
@@ -939,7 +935,7 @@
       "type": "Microsoft.Resources/resourceGroups",
       "apiVersion": "2021-04-01",
       "name": "[parameters('rgName')]",
-      "location": "[if(not(equals(parameters('rgLocation'), '')), parameters('rgLocation'), parameters('location'))]",
+      "location": "[parameters('location')]",
       "tags": "[variables('tags')]"
     },
     {

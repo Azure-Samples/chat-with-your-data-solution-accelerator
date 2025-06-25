@@ -8,11 +8,12 @@ var abbrs = loadJsonContent('./abbreviations.json')
 
 param resourceToken string = toLower(uniqueString(subscription().id, environmentName, location))
 
-@description('Location for all resources.')
+@description('Location for all resources, if you are using existing resource group provide the location of the resorce group.')
+@metadata({azd: {
+    type: 'location'
+  }
+})
 param location string
-
-@description('Resource group location when using existing resource group')
-param rgLocation string = ''
 
 @description('The resource group name which would be created or reused if existing')
 param rgName string = 'rg-${environmentName}'
@@ -355,7 +356,7 @@ var semanticKernelSystemPrompt = '''You help employees to navigate only private 
 // Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: rgName
-  location: rgLocation != '' ? rgLocation : location
+  location: location
   tags: tags
 }
 
