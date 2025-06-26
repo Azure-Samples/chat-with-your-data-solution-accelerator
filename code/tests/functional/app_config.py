@@ -53,8 +53,6 @@ class AppConfig:
         "AZURE_SEARCH_TITLE_COLUMN": "title",
         "AZURE_SEARCH_CHUNK_COLUMN": "chunk",
         "AZURE_SEARCH_SOURCE_COLUMN": "source",
-        "AZURE_SEARCH_TEXT_COLUMN": "text",
-        "AZURE_SEARCH_LAYOUT_TEXT_COLUMN": "layoutText",
         "AZURE_SEARCH_OFFSET_COLUMN": "offset",
         "AZURE_SEARCH_TOP_K": "5",
         "AZURE_SEARCH_URL_COLUMN": "url",

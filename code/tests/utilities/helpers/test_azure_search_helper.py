@@ -236,6 +236,16 @@ def test_creates_search_index_if_not_exists(
             type=SearchFieldDataType.Int32,
             filterable=True,
         ),
+        SearchableField(
+            name=AZURE_SEARCH_TEXT_COLUMN,
+            type=SearchFieldDataType.String,
+            filterable=False,
+        ),
+        SearchableField(
+            name=AZURE_SEARCH_LAYOUT_TEXT_COLUMN,
+            type=SearchFieldDataType.String,
+            filterable=False,
+        ),
     ]
 
     expected_index = SearchIndex(
