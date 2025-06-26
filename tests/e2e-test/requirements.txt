@@ -4,3 +4,4 @@ python-dotenv
 pytest-check
 pytest-html
 py
+beautifulsoup4
