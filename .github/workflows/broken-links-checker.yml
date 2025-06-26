@@ -36,6 +36,7 @@ jobs:
           args: >
             --verbose --exclude-mail --no-progress --exclude ^https?://
             ${{ steps.changed-files.outputs.md_files }}
+          failIfEmpty: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -46,6 +47,7 @@ jobs:
           args: >
             --verbose --exclude-mail --no-progress --exclude ^https?://
             '**/*.md'
+          failIfEmpty: false
           output: lychee/out.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

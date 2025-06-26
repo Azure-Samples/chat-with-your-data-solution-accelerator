@@ -32,7 +32,7 @@ azd up
 ```
 
 These commands will provision the necessary Azure Machine Learning resources and establish the flow in
-[../infra/prompt_flow/cwyd/](../infra/prompt_flow/cwyd/) as a managed endpoint.
+[../infra/prompt-flow/cwyd/](../infra/prompt-flow/cwyd/) as a managed endpoint.
 
 
 Upon first accessing the deployed flow in Azure Machine Learning Studio, you may encounter errors as shown below:
@@ -46,7 +46,7 @@ This is a known issue and can be resolved by initiating a compute session. Once 
 Follow these steps to update the flow:
 
 1. Navigate to the flow in Azure Machine Learning Studio and make the necessary changes
-1. Download the updated flow files to the [../infra/prompt_flow/cwyd/](../infra/prompt_flow/cwyd/) directory by clicking the download button in the Files tab
+1. Download the updated flow files to the [../infra/prompt-flow/cwyd/](../infra/prompt-flow/cwyd/) directory by clicking the download button in the Files tab
 ![Download](images/prompt-flow-download.png)
 1. Replace the content of `flow.dag.template.yaml` with your new flow from the `flow.dag.yaml` file
 1. In the `flow.dag.template.yaml` file, locate the `inputs.mlindex_content` section for the `lookup` node and replace

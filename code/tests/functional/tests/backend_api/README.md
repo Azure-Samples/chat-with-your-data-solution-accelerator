@@ -13,7 +13,7 @@ existing set of tests, rather than creating a new set, as this removes the need 
 starting up a new instance of the application on another port.
 
 New environment variables common to all tests can be directly added to the `config`
-dict in [app_config.py](../app_config.py), while variables only needed for one set
+dict in [app_config.py](../../app_config.py), while variables only needed for one set
 of tests can be added to the `app_config` fixture in the respective `conftest.py`
 file, e.g. [./default/conftest.py](./default/conftest.py).
 
