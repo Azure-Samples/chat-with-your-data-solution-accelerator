@@ -52,7 +52,7 @@ Context:
 You can see the [Employee Assistant Prompt](../code/backend/batch/utilities/helpers/config/default_employee_assistant_prompt.txt) file for more details.
 
 ## Sample Employee Policy and Handbook Data
-We have added sample Employee data in the [Employee Assistant sample Docs](../data/employee_data) folder. This data can be used to test and demonstrate the Employee Assistant's capabilities.
+We have added sample Employee data in the [data](../data/) folder. This data can be used to test and demonstrate the Employee Assistant's capabilities.
 
 ## Conclusion
 This README provides an overview of the Chat With Your Data Employee Assistant prompt, instructions for updating the prompt configuration, and examples of questions and answers. Ensure you follow the guidelines for updating the prompt to maintain consistency and accuracy in responses.
