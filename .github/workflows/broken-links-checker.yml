@@ -6,6 +6,9 @@ on:
       - '**/*.md'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   markdown-link-check:
     name: Check Markdown Broken Links
@@ -26,7 +29,6 @@ jobs:
           echo "md_files<<EOF" >> $GITHUB_OUTPUT
           echo "$files" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-
       - name: Check Broken Links in Added/Modified Files (PR)
         if: github.event_name == 'pull_request' && steps.changed-files.outputs.md_files != ''
         uses: lycheeverse/lychee-action@v2.4.1
@@ -34,6 +36,7 @@ jobs:
           args: >
             --verbose --exclude-mail --no-progress --exclude ^https?://
             ${{ steps.changed-files.outputs.md_files }}
+          failIfEmpty: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -44,6 +47,7 @@ jobs:
           args: >
             --verbose --exclude-mail --no-progress --exclude ^https?://
             '**/*.md'
+          failIfEmpty: false
           output: lychee/out.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

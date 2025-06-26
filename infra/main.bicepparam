@@ -27,6 +27,8 @@ param azureSearchVectorColumn = readEnvironmentVariable('AZURE_SEARCH_CONTENT_VE
 param azureSearchTitleColumn = readEnvironmentVariable('AZURE_SEARCH_TITLE_COLUMN', 'title')
 param azureSearchFieldsMetadata = readEnvironmentVariable('AZURE_SEARCH_FIELDS_METADATA', 'metadata')
 param azureSearchSourceColumn = readEnvironmentVariable('AZURE_SEARCH_SOURCE_COLUMN', 'source')
+param azureSearchTextColumn = readEnvironmentVariable('AZURE_SEARCH_TEXT_COLUMN', 'text')
+param azureSearchLayoutTextColumn = readEnvironmentVariable('AZURE_SEARCH_LAYOUT_TEXT_COLUMN', 'layoutText')
 param azureSearchChunkColumn = readEnvironmentVariable('AZURE_SEARCH_CHUNK_COLUMN', 'chunk')
 param azureSearchOffsetColumn = readEnvironmentVariable('AZURE_SEARCH_OFFSET_COLUMN', 'offset')
 
@@ -79,3 +81,6 @@ param azureAISearchName = searchServiceName == '' ? 'search-${resourceToken}' : 
 param azureSearchIndex = readEnvironmentVariable('AZURE_SEARCH_INDEX', 'index-${resourceToken}')
 param azureOpenAIResourceName = readEnvironmentVariable('AZURE_OPENAI_RESOURCE', 'openai-${resourceToken}')
 param storageAccountName = readEnvironmentVariable('AZURE_BLOB_ACCOUNT_NAME', 'str${resourceToken}')
+
+param rgName = readEnvironmentVariable('AZURE_RESOURCE_GROUP', 'rg-${environmentName}')
+param existingLogAnalyticsWorkspaceId = readEnvironmentVariable('AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID', '')

@@ -12,7 +12,7 @@ All of this allows a user to ask questions about the meaning of images in the kn
 
 Compare the results when uploading the following image:
 
-![image](./images/architecture.png)
+![image](./images/architecture_pg.png)
 
 Without advanced image processing:
 

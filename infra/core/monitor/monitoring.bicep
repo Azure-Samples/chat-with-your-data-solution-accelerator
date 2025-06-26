@@ -4,6 +4,7 @@ param applicationInsightsName string
 param applicationInsightsDashboardName string = ''
 param location string = resourceGroup().location
 param tags object = {}
+param existingLogAnalyticsWorkspaceId string = ''
 
 module logAnalytics 'loganalytics.bicep' = {
   name: 'loganalytics'
@@ -11,6 +12,7 @@ module logAnalytics 'loganalytics.bicep' = {
     name: logAnalyticsName
     location: location
     tags: tags
+    existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
   }
 }
 
