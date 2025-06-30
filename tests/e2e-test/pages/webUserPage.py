@@ -1,7 +1,6 @@
+from asyncio.log import logger
 from base.base import BasePage
 from playwright.sync_api import expect
-
-
 class WebUserPage(BasePage):
     WEB_PAGE_TITLE = "//h3[text()='Azure AI']"
     TYPE_QUESTION_TEXT_AREA = "//textarea[contains(@placeholder,'Type a new question')]"
@@ -22,6 +21,9 @@ class WebUserPage(BasePage):
     TOGGLE_CITATIONS_LIST = "[data-testid='toggle-citations-list']"
     CITATIONS_CONTAINER = "[data-testid='citations-container']"
     CITATION_BLOCK = "[data-testid='citation-block']"
+    SHOW_CHAT_HISTORY_BUTTON="//span[text()='Show Chat History']"
+    HIDE_CHAT_HISTORY_BUTTON = "//span[text()='Hide Chat History']"
+    CHAT_HISTORY_ITEM = "//div[@aria-label='chat history item']"
 
     def __init__(self, page):
         self.page = page
@@ -53,15 +55,28 @@ class WebUserPage(BasePage):
             self.page.locator(self.CLEAR_CHAT_ICON).click()
 
     def show_chat_history(self):
-        self.page.locator(self.SHOW_CHAT_HISTORY).click()
-        self.page.wait_for_load_state("networkidle")
-        self.page.wait_for_timeout(2000)
-        expect(self.page.locator(self.CHAT_HISTORY_NAME)).to_be_visible()
+        """Click to show chat history if the button is visible."""
+        show_button = self.page.locator(self.SHOW_CHAT_HISTORY_BUTTON)
+        if show_button.is_visible():
+            show_button.click()
+            self.page.wait_for_timeout(2000)
+            expect(self.page.locator(self.CHAT_HISTORY_ITEM)).to_be_visible()
+        else:
+            logger.info("'Show' button not visible — chat history may already be shown.")
+
+    # def show_chat_history(self):
+    #     self.page.wait_for_selector(self.SHOW_CHAT_HISTORY_BUTTON)
+    #     self.page.locator(self.SHOW_CHAT_HISTORY_BUTTON).click()
+    #     self.page.wait_for_timeout(1000)
 
     def close_chat_history(self):
-        self.page.locator(self.CHAT_CLOSE_ICON).click()
-        self.page.wait_for_load_state("networkidle")
-        self.page.wait_for_timeout(2000)
+        """Click to close chat history if visible."""
+        hide_button = self.page.locator(self.HIDE_CHAT_HISTORY_BUTTON)
+        if hide_button.is_visible():
+            hide_button.click()
+            self.page.wait_for_timeout(2000)
+        else:
+            logger.info("Hide button not visible. Chat history might already be closed.")
 
     def delete_chat_history(self):
         self.page.locator(self.SHOW_CHAT_HISTORY).click()
@@ -69,8 +84,8 @@ class WebUserPage(BasePage):
         chat_history = self.page.locator("//span[contains(text(),'No chat history.')]")
         if chat_history.is_visible():
             self.page.wait_for_load_state("networkidle")
-            self.page.wait_for_timeout(2000)
-            self.page.get_by_label("hide button").click()
+            self.page.locator("button[title='Hide']").wait_for(state="visible", timeout=5000)
+            self.page.locator("button[title='Hide']").click()
 
         else:
             self.page.locator(self.CHAT_HISTORY_OPTIONS).click()

@@ -28,3 +28,8 @@ class AdminPage(BasePage):
     def click_delete_data_tab(self):
         self.page.locator(self.DELETE_DATA_TAB).click()
         self.page.wait_for_timeout(5000)
+
+    def assert_admin_page_title(self, admin_page):
+        actual_title = self.page.locator(admin_page.ADMIN_PAGE_TITLE).text_content()
+        expected_title = admin_page.ADMIN_PAGE_TITLE
+        assert expected_title == actual_title, f"Expected title: {expected_title}, Found: {actual_title}"

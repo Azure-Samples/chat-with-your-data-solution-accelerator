@@ -132,6 +132,25 @@ class AzureSearchHelper:
                 filterable=True,
             ),
         ]
+        if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+            logger.info("Adding 'text' field for integrated vectorization.")
+            fields.append(
+                SearchableField(
+                    name=self.env_helper.AZURE_SEARCH_TEXT_COLUMN,
+                    type=SearchFieldDataType.String,
+                    filterable=False,
+                    sortable=False,
+                )
+            )
+            logger.info("Adding 'layoutText' field for integrated vectorization.")
+            fields.append(
+                SearchableField(
+                    name=self.env_helper.AZURE_SEARCH_LAYOUT_TEXT_COLUMN,
+                    type=SearchFieldDataType.String,
+                    filterable=False,
+                    sortable=False,
+                )
+            )
 
         if self.env_helper.USE_ADVANCED_IMAGE_PROCESSING:
             logger.info("Adding image_vector field to index")
@@ -274,7 +293,7 @@ class AzureSearchHelper:
                 embedding_function=self.llm_helper.get_embedding_model().embed_query,
                 fields=fields,
                 user_agent="langchain chatwithyourdata-sa",
-                credential=credential  # Add token credential or send none so it is auto handled by AzureSearch library
+                credential=credential,  # Add token credential or send none so it is auto handled by AzureSearch library
             )
         else:
             return AzureSearch(

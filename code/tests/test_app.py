@@ -25,6 +25,9 @@ AZURE_SEARCH_SERVICE = "mock-search-service"
 AZURE_SEARCH_CONTENT_COLUMN = "field1|field2"
 AZURE_SEARCH_CONTENT_VECTOR_COLUMN = "vector-column"
 AZURE_SEARCH_TITLE_COLUMN = "title"
+AZURE_SEARCH_SOURCE_COLUMN = "source"
+AZURE_SEARCH_TEXT_COLUMN = "text"
+AZURE_SEARCH_LAYOUT_TEXT_COLUMN = "layoutText"
 AZURE_SEARCH_FILENAME_COLUMN = "filename"
 AZURE_SEARCH_URL_COLUMN = "metadata"
 AZURE_SEARCH_FILTER = "filter"
@@ -73,6 +76,9 @@ def env_helper_mock():
             AZURE_SEARCH_CONTENT_VECTOR_COLUMN
         )
         env_helper.AZURE_SEARCH_TITLE_COLUMN = AZURE_SEARCH_TITLE_COLUMN
+        env_helper.AZURE_SEARCH_SOURCE_COLUMN = AZURE_SEARCH_SOURCE_COLUMN
+        env_helper.AZURE_SEARCH_TEXT_COLUMN = AZURE_SEARCH_TEXT_COLUMN
+        env_helper.AZURE_SEARCH_LAYOUT_TEXT_COLUMN = AZURE_SEARCH_LAYOUT_TEXT_COLUMN
         env_helper.AZURE_SEARCH_FILENAME_COLUMN = AZURE_SEARCH_FILENAME_COLUMN
         env_helper.AZURE_SEARCH_URL_COLUMN = AZURE_SEARCH_URL_COLUMN
         env_helper.AZURE_SEARCH_FILTER = AZURE_SEARCH_FILTER
@@ -684,6 +690,9 @@ class TestConversationAzureByod:
                                 "title_field": AZURE_SEARCH_TITLE_COLUMN,
                                 "url_field": env_helper_mock.AZURE_SEARCH_FIELDS_METADATA,
                                 "filepath_field": AZURE_SEARCH_FILENAME_COLUMN,
+                                "source_field": AZURE_SEARCH_SOURCE_COLUMN,
+                                "text_field": AZURE_SEARCH_TEXT_COLUMN,
+                                "layoutText_field": AZURE_SEARCH_LAYOUT_TEXT_COLUMN,
                             },
                             "filter": AZURE_SEARCH_FILTER,
                             "in_scope": AZURE_SEARCH_ENABLE_IN_DOMAIN,

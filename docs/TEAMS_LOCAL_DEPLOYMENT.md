@@ -59,6 +59,9 @@ Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.
 |AZURE_SEARCH_FIELDS_ID|id|`AZURE_SEARCH_FIELDS_ID`: Field from your Azure AI Search index that gives a unique idenitfier of the document chunk. `id` if you don't have a specific requirement.|
 |AZURE_SEARCH_FILENAME_COLUMN||`AZURE_SEARCH_FILENAME_COLUMN`: Field from your Azure AI Search index that gives a unique idenitfier of the source of your data to display in the UI.|
 |AZURE_SEARCH_TITLE_COLUMN||Field from your Azure AI Search index that gives a relevant title or header for your data content to display in the UI.|
+|AZURE_SEARCH_SOURCE_COLUMN|source|Field from your Azure AI Search index that identifies the source of your data. `source` if you don't have a specific requirement.|
+|AZURE_SEARCH_TEXT_COLUMN|text|Field from your Azure AI Search index that contains the main text content of your documents. `text` if you don't have a specific requirement.|
+|AZURE_SEARCH_LAYOUT_TEXT_COLUMN|layoutText|Field from your Azure AI Search index that contains the layout-aware text content of your documents. `layoutText` if you don't have a specific requirement.|
 |AZURE_SEARCH_URL_COLUMN||Field from your Azure AI Search index that contains a URL for the document, e.g. an Azure Blob Storage URI. This value is not currently used.|
 |AZURE_SEARCH_FIELDS_TAG|tag|Field from your Azure AI Search index that contains tags for the document. `tag` if you don't have a specific requirement.|
 |AZURE_SEARCH_FIELDS_METADATA|metadata|Field from your Azure AI Search index that contains metadata for the document. `metadata` if you don't have a specific requirement.|
