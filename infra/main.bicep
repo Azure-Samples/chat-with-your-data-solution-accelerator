@@ -1392,10 +1392,8 @@ module createIndex './core/database/deploy_create_table_script.bicep' = if (data
   }
   scope: rg
   dependsOn: hostingModel == 'code'
-    ? [keyvault, postgresDBModule, storekeys, web, adminweb]
-    : [
-        [keyvault, postgresDBModule, storekeys, web_docker, adminweb_docker]
-      ]
+    ? [keyvault, postgresDBModule, storekeys, web, adminweb, function]
+    : [keyvault, postgresDBModule, storekeys, web_docker, adminweb_docker, function_docker]
 }
 
 var azureOpenAIModelInfo = string({
