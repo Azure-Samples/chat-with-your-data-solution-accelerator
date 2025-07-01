@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.36.1.42791",
-      "templateHash": "9016078693098336838"
+      "templateHash": "9719682488284708611"
     }
   },
   "parameters": {
@@ -662,13 +662,6 @@
       "defaultValue": "[format('mlw-{0}', parameters('resourceToken'))]",
       "metadata": {
         "description": "Azure Machine Learning Name"
-      }
-    },
-    "existingLogAnalyticsResourceId": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Resource ID of existing Log Analytics workspace. If not provided, a new one will be created."
       }
     }
   },
@@ -8491,7 +8484,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "4946337189154540704"
+              "templateHash": "3041942542881708674"
             }
           },
           "parameters": {
@@ -8690,7 +8683,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.36.1.42791",
-                      "templateHash": "1623075402073661527"
+                      "templateHash": "9131982169830455839"
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -9268,7 +9261,7 @@
                     },
                     "azureWebJobsStorage": {
                       "type": "string",
-                      "value": "[if(parameters('useKeyVault'), format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', parameters('storageAccountName'), listKeys('storage', '2021-09-01').keys[0].value, environment().suffixes.storage), parameters('storageAccountName'))]"
+                      "value": "[if(parameters('useKeyVault'), format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', parameters('storageAccountName'), listKeys('storage', '2021-09-01').keys[0].value, environment().suffixes.storage), '')]"
                     }
                   }
                 }
@@ -9803,7 +9796,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "4946337189154540704"
+              "templateHash": "3041942542881708674"
             }
           },
           "parameters": {
@@ -10002,7 +9995,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.36.1.42791",
-                      "templateHash": "1623075402073661527"
+                      "templateHash": "9131982169830455839"
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -10580,7 +10573,7 @@
                     },
                     "azureWebJobsStorage": {
                       "type": "string",
-                      "value": "[if(parameters('useKeyVault'), format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', parameters('storageAccountName'), listKeys('storage', '2021-09-01').keys[0].value, environment().suffixes.storage), parameters('storageAccountName'))]"
+                      "value": "[if(parameters('useKeyVault'), format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', parameters('storageAccountName'), listKeys('storage', '2021-09-01').keys[0].value, environment().suffixes.storage), '')]"
                     }
                   }
                 }
@@ -12337,7 +12330,7 @@
     },
     "AzureWebJobsStorage": {
       "type": "string",
-      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', parameters('functionName')), '2022-09-01').outputs.AzureWebJobsStorage.value]"
+      "value": "[if(equals(parameters('hostingModel'), 'code'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', parameters('functionName')), '2022-09-01').outputs.AzureWebJobsStorage.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('functionName'))), '2022-09-01').outputs.AzureWebJobsStorage.value)]"
     },
     "FUNCTION_KEY": {
       "type": "string",

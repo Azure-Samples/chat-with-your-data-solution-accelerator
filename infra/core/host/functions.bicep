@@ -113,4 +113,4 @@ output name string = functions.outputs.name
 output uri string = functions.outputs.uri
 output azureWebJobsStorage string = useKeyVault
   ? 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
-  : storage.name
+  : ''

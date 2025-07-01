@@ -328,9 +328,6 @@ param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
 @description('Azure Machine Learning Name')
 param azureMachineLearningName string = 'mlw-${resourceToken}'
 
-@description('Resource ID of existing Log Analytics workspace. If not provided, a new one will be created.')
-param existingLogAnalyticsResourceId string = ''
-
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
@@ -1524,7 +1521,9 @@ output ORCHESTRATION_STRATEGY string = orchestrationStrategy
 output USE_KEY_VAULT bool = useKeyVault
 output AZURE_AUTH_TYPE string = authType
 output BACKEND_URL string = backendUrl
-output AzureWebJobsStorage string = function.outputs.AzureWebJobsStorage
+output AzureWebJobsStorage string = hostingModel == 'code'
+  ? function.outputs.AzureWebJobsStorage
+  : function_docker.outputs.AzureWebJobsStorage
 output FUNCTION_KEY string = clientKey
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code'
   ? web.outputs.FRONTEND_API_URI
