@@ -10,18 +10,18 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-azure-functions = "1.22.1"
-streamlit = "1.45.1"
-python-dotenv = "1.1.0"
+azure-functions = "1.23.0"
+streamlit = "1.46.1"
+python-dotenv = "1.1.1"
 azure-ai-formrecognizer = "3.3.3"
 azure-storage-blob = "12.25.1"
 azure-identity = "1.23.0"
 flask = {extras = ["async"], version = "^3.1.1"}
-openai = "1.82.1"
+openai = "1.93.0"
 langchain = "0.2.17"
 langchain-community = "0.2.19"
 langchain-openai = "0.1.25"
-requests = "2.32.3"
+requests = "2.32.4"
 tiktoken = "0.9.0"
 azure-storage-queue = "12.12.0"
 beautifulsoup4 = "4.13.4"
@@ -29,16 +29,16 @@ fake-useragent = "2.2.0"
 chardet = "5.2.0"
 azure-search-documents = "11.6.0b1"
 azure-ai-contentsafety = "1.0.0"
-python-docx = "1.1.2"
-azure-keyvault-secrets = "4.9.0"
-pandas = "2.2.3"
+python-docx = "1.2.0"
+azure-keyvault-secrets = "4.10.0"
+pandas = "2.3.0"
 azure-monitor-opentelemetry = "^1.6.10"
 opentelemetry-instrumentation-httpx = "^0.52b0"
-pillow = "10.4.0"
+pillow = "11.0.0"
 azure-mgmt-cognitiveservices = "^13.6.0"
 jsonschema = "^4.24.0"
-semantic-kernel = {version = "1.32.0", python = "<3.13"}
-pydantic = "2.11.5"
+semantic-kernel = {version = "1.34.0", python = "<3.13"}
+pydantic = "2.11.7"
 azure-ai-ml = "^1.27.1"
 azure-cosmos = "^4.7.0"
 asyncpg = "^0.30.0"
@@ -46,21 +46,21 @@ psycopg2-binary = "^2.9.10"
 pgvector = "^0.4.1"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.3.5"
-pytest-cov = "6.1.1"
-flake8 = "7.2.0"
+pytest = "^8.4.1"
+pytest-cov = "6.2.1"
+flake8 = "7.3.0"
 black = "25.1.0"
 pre-commit = "4.2.0"
 pytest_httpserver = "1.1.3"
 trustme = "1.2.1"
 jupyter = "1.1.1"
-pytest-asyncio = "^0.26.0"
+pytest-asyncio = "^1.0.0"
 
 [tool.poetry.group.prompt-flow]
 optional = true
 
 [tool.poetry.group.prompt-flow.dependencies]
-promptflow = {extras = ["azure"], version = "1.18.0"}
+promptflow = {extras = ["azure"], version = "1.18.1"}
 
 [tool.coverage.run]
 omit = [
