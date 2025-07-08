@@ -11,8 +11,6 @@ param tags object = {}
 param accessTier string = 'Hot'
 param allowBlobPublicAccess bool = false
 param allowCrossTenantReplication bool = true
-param useKeyVault bool
-param allowSharedKeyAccess bool = useKeyVault
 param containers array = []
 param defaultToOAuthAuthentication bool = false
 param deleteRetentionPolicy object = {}
@@ -40,7 +38,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
     accessTier: accessTier
     allowBlobPublicAccess: allowBlobPublicAccess
     allowCrossTenantReplication: allowCrossTenantReplication
-    allowSharedKeyAccess: allowSharedKeyAccess
+    allowSharedKeyAccess: false
     defaultToOAuthAuthentication: defaultToOAuthAuthentication
     dnsEndpointType: dnsEndpointType
     minimumTlsVersion: minimumTlsVersion

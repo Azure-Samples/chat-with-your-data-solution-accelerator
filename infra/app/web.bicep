@@ -7,49 +7,16 @@ param appServicePlanId string
 param applicationInsightsName string = ''
 param runtimeName string = 'python'
 param runtimeVersion string = ''
-param keyVaultName string = ''
-param azureOpenAIName string = ''
-param azureAISearchName string = ''
-param storageAccountName string = ''
-param formRecognizerName string = ''
-param contentSafetyName string = ''
-param speechServiceName string = ''
-param computerVisionName string = ''
 @secure()
 param appSettings object = {}
-param useKeyVault bool
-param openAIKeyName string = ''
-param storageAccountKeyName string = ''
-param formRecognizerKeyName string = ''
-param searchKeyName string = ''
-param computerVisionKeyName string = ''
-param contentSafetyKeyName string = ''
-param speechKeyName string = ''
-param authType string
+
 param dockerFullImageName string = ''
 param useDocker bool = dockerFullImageName != ''
 param healthCheckPath string = ''
 
 // Database parameters
 param databaseType string = 'CosmosDB' // 'CosmosDB' or 'PostgreSQL'
-param cosmosDBKeyName string = ''
 
-// Database-specific settings
-var databaseSettings = databaseType == 'CosmosDB'
-  ? {
-      AZURE_COSMOSDB_ACCOUNT_KEY: (useKeyVault || cosmosDBKeyName == '')
-        ? cosmosDBKeyName
-        : listKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.DocumentDB/databaseAccounts',
-              cosmosDBKeyName
-            ),
-            '2022-08-15'
-          ).primaryMasterKey
-    }
-  : {}
 
 module web '../core/host/appservice.bicep' = {
   name: '${name}-app-module'
@@ -61,104 +28,18 @@ module web '../core/host/appservice.bicep' = {
     appCommandLine: useDocker ? '' : appCommandLine
     applicationInsightsName: applicationInsightsName
     appServicePlanId: appServicePlanId
-    appSettings: union(
-      appSettings,
-      union(databaseSettings, {
-        AZURE_AUTH_TYPE: authType
-        USE_KEY_VAULT: useKeyVault ? useKeyVault : ''
-        AZURE_OPENAI_API_KEY: useKeyVault
-          ? openAIKeyName
-          : listKeys(
-              resourceId(
-                subscription().subscriptionId,
-                resourceGroup().name,
-                'Microsoft.CognitiveServices/accounts',
-                azureOpenAIName
-              ),
-              '2023-05-01'
-            ).key1
-        AZURE_SEARCH_KEY: useKeyVault
-          ? searchKeyName
-          : (azureAISearchName != ''
-              ? listAdminKeys(
-                  resourceId(
-                    subscription().subscriptionId,
-                    resourceGroup().name,
-                    'Microsoft.Search/searchServices',
-                    azureAISearchName
-                  ),
-                  '2021-04-01-preview'
-                ).primaryKey
-              : '')
-        AZURE_BLOB_ACCOUNT_KEY: useKeyVault
-          ? storageAccountKeyName
-          : listKeys(
-              resourceId(
-                subscription().subscriptionId,
-                resourceGroup().name,
-                'Microsoft.Storage/storageAccounts',
-                storageAccountName
-              ),
-              '2021-09-01'
-            ).keys[0].value
-        AZURE_FORM_RECOGNIZER_KEY: useKeyVault
-          ? formRecognizerKeyName
-          : listKeys(
-              resourceId(
-                subscription().subscriptionId,
-                resourceGroup().name,
-                'Microsoft.CognitiveServices/accounts',
-                formRecognizerName
-              ),
-              '2023-05-01'
-            ).key1
-        AZURE_CONTENT_SAFETY_KEY: useKeyVault
-          ? contentSafetyKeyName
-          : listKeys(
-              resourceId(
-                subscription().subscriptionId,
-                resourceGroup().name,
-                'Microsoft.CognitiveServices/accounts',
-                contentSafetyName
-              ),
-              '2023-05-01'
-            ).key1
-        AZURE_SPEECH_SERVICE_KEY: useKeyVault
-          ? speechKeyName
-          : listKeys(
-              resourceId(
-                subscription().subscriptionId,
-                resourceGroup().name,
-                'Microsoft.CognitiveServices/accounts',
-                speechServiceName
-              ),
-              '2023-05-01'
-            ).key1
-        AZURE_COMPUTER_VISION_KEY: (useKeyVault || computerVisionName == '')
-          ? computerVisionKeyName
-          : listKeys(
-              resourceId(
-                subscription().subscriptionId,
-                resourceGroup().name,
-                'Microsoft.CognitiveServices/accounts',
-                computerVisionName
-              ),
-              '2023-05-01'
-            ).key1
-      })
-    )
-    keyVaultName: keyVaultName
+    appSettings: appSettings
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
     dockerFullImageName: dockerFullImageName
     scmDoBuildDuringDeployment: useDocker ? false : true
     healthCheckPath: healthCheckPath
-    managedIdentity: databaseType == 'PostgreSQL' || !empty(keyVaultName)
+    managedIdentity: databaseType == 'PostgreSQL'
   }
 }
 
 // Storage Blob Data Contributor
-module storageBlobRoleWeb '../core/security/role.bicep' = if (authType == 'rbac') {
+module storageBlobRoleWeb '../core/security/role.bicep' = {
   name: 'storage-blob-role-web'
   params: {
     principalId: web.outputs.identityPrincipalId
@@ -168,7 +49,7 @@ module storageBlobRoleWeb '../core/security/role.bicep' = if (authType == 'rbac'
 }
 
 // Cognitive Services User
-module openAIRoleWeb '../core/security/role.bicep' = if (authType == 'rbac') {
+module openAIRoleWeb '../core/security/role.bicep' = {
   name: 'openai-role-web'
   params: {
     principalId: web.outputs.identityPrincipalId
@@ -178,7 +59,7 @@ module openAIRoleWeb '../core/security/role.bicep' = if (authType == 'rbac') {
 }
 
 // Contributor
-module openAIRoleWebContributor '../core/security/role.bicep' = if (authType == 'rbac') {
+module openAIRoleWebContributor '../core/security/role.bicep' = {
   name: 'openai-role-web-contributor'
   params: {
     principalId: web.outputs.identityPrincipalId
@@ -188,20 +69,12 @@ module openAIRoleWebContributor '../core/security/role.bicep' = if (authType == 
 }
 
 // Search Index Data Contributor
-module searchRoleWeb '../core/security/role.bicep' = if (authType == 'rbac') {
+module searchRoleWeb '../core/security/role.bicep' = {
   name: 'search-role-web'
   params: {
     principalId: web.outputs.identityPrincipalId
     roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
     principalType: 'ServicePrincipal'
-  }
-}
-
-module webaccess '../core/security/keyvault-access.bicep' = if (useKeyVault) {
-  name: 'web-keyvault-access'
-  params: {
-    keyVaultName: keyVaultName
-    principalId: web.outputs.identityPrincipalId
   }
 }
 
