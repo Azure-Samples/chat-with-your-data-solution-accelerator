@@ -9,6 +9,8 @@ import logging
 from batch.utilities.helpers.config.config_helper import ConfigHelper
 from batch.utilities.helpers.env_helper import EnvHelper
 from batch.utilities.helpers.azure_blob_storage_client import AzureBlobStorageClient
+from azure.identity import DefaultAzureCredential
+from azure.core.credentials import AccessToken
 
 sys.path.append(path.join(path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
@@ -35,13 +37,23 @@ def reprocess_all():
     backend_url = urllib.parse.urljoin(
         env_helper.BACKEND_URL, "/api/BatchStartProcessing"
     )
-    params = {}
-    if env_helper.FUNCTION_KEY is not None:
-        params["code"] = env_helper.FUNCTION_KEY
-        params["clientId"] = "clientKey"
-
+    # params = {}
+    # if env_helper.FUNCTION_KEY is not None:
+    #     params["code"] = env_helper.FUNCTION_KEY
+    #     params["clientId"] = "clientKey"
+    backend_url = f"https://{env_helper.BACKEND_URL}.azurewebsites.net/api/AddURLEmbeddings"
     try:
-        response = requests.post(backend_url, params=params)
+        # Get Azure AD token using Managed Identity
+        credential = DefaultAzureCredential()
+        token = credential.get_token(f"{backend_url}/.default")
+
+        # Prepare headers with Bearer token
+        headers = {
+            "Authorization": f"Bearer {token.token}",
+            "Content-Type": "application/json"
+        }
+
+        response = requests.post(backend_url, headers=headers)
         if response.status_code == 200:
             st.success(
                 f"{response.text}\nPlease note this is an asynchronous process and may take a few minutes to complete."

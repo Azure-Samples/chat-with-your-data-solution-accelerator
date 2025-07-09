@@ -320,7 +320,7 @@ param azureMachineLearningName string = 'mlw-${resourceToken}'
 
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
-var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
+// var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
 var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
 var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/keyless_auth/'
@@ -779,7 +779,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         BACKEND_URL: 'https://${functionName}.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-        FUNCTION_KEY: clientKey
+        // FUNCTION_KEY: clientKey
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
@@ -862,7 +862,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-        FUNCTION_KEY: clientKey
+        // FUNCTION_KEY: clientKey
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
@@ -953,7 +953,7 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     storageAccountName: storage.outputs.name
-    clientKey: clientKey
+    // clientKey: clientKey
 
     databaseType: databaseType
     appSettings: union(
@@ -1023,7 +1023,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     storageAccountName: storage.outputs.name
-    clientKey: clientKey
+    // clientKey: clientKey
 
     databaseType: databaseType
     appSettings: union(
@@ -1347,7 +1347,7 @@ output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
 output BACKEND_URL string = backendUrl
 output AzureWebJobsStorage string = function.outputs.AzureWebJobsStorage
-output FUNCTION_KEY string = clientKey
+// output FUNCTION_KEY string = clientKey
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code'
   ? web.outputs.FRONTEND_API_URI
   : web_docker.outputs.FRONTEND_API_URI
