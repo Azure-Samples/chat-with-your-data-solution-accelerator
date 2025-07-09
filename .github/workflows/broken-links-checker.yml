@@ -20,27 +20,32 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get Added/Modified Markdown Files (PR only)
-        id: changed-files
+      # For PR : Get only changed markdown files
+      - name: Get changed markdown files (PR only)
+        id: changed-markdown-files
         if: github.event_name == 'pull_request'
-        run: |
-          git fetch origin ${{ github.base_ref }}
-          files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.md$' || true)
-          echo "md_files<<EOF" >> $GITHUB_OUTPUT
-          echo "$files" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-      - name: Check Broken Links in Added/Modified Files (PR)
-        if: github.event_name == 'pull_request' && steps.changed-files.outputs.md_files != ''
+        uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46
+        with:
+          files: |
+            **/*.md
+
+
+      # For PR: Check broken links only in changed files
+      - name: Check Broken Links in Changed Markdown Files
+        id: lychee-check-pr
+        if: github.event_name == 'pull_request' && steps.changed-markdown-files.outputs.any_changed == 'true'
         uses: lycheeverse/lychee-action@v2.4.1
         with:
           args: >
             --verbose --exclude-mail --no-progress --exclude ^https?://
-            ${{ steps.changed-files.outputs.md_files }}
+            ${{ steps.changed-markdown-files.outputs.all_changed_files }}
           failIfEmpty: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check Broken Links in Entire Repo (Manual)
+      # For manual trigger: Check all markdown files in repo
+      - name: Check Broken Links in All Markdown Files in Entire Repo (Manual Trigger)
+        id: lychee-check-manual
         if: github.event_name == 'workflow_dispatch'
         uses: lycheeverse/lychee-action@v2.4.1
         with:
@@ -48,6 +53,5 @@ jobs:
             --verbose --exclude-mail --no-progress --exclude ^https?://
             '**/*.md'
           failIfEmpty: false
-          output: lychee/out.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
