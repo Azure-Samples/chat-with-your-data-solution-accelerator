@@ -9,7 +9,7 @@ param applicationInsightsName string = ''
 param runtimeName string = 'python'
 param runtimeVersion string = ''
 @secure()
-// param clientKey string
+param clientKey string
 param dockerFullImageName string = ''
 param databaseType string
 
@@ -30,17 +30,17 @@ module function '../core/host/functions.bicep' = {
   }
 }
 
-// resource functionNameDefaultClientKey 'Microsoft.Web/sites/host/functionKeys@2018-11-01' = {
-//   name: '${name}/default/clientKey'
-//   properties: {
-//     name: 'ClientKey'
-//     value: clientKey
-//   }
-//   dependsOn: [
-//     function
-//     waitFunctionDeploymentSection
-//   ]
-// }
+resource functionNameDefaultClientKey 'Microsoft.Web/sites/host/functionKeys@2018-11-01' = {
+  name: '${name}/default/clientKey'
+  properties: {
+    name: 'ClientKey'
+    value: clientKey
+  }
+  dependsOn: [
+    function
+    waitFunctionDeploymentSection
+  ]
+}
 
 resource waitFunctionDeploymentSection 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   kind: 'AzurePowerShell'

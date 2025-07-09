@@ -320,13 +320,13 @@ param azureMachineLearningName string = 'mlw-${resourceToken}'
 
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
-// var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
+var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
 var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
 var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/keyless_auth/'
 
 var appversion = 'dev' // Update GIT deployment branch
-var registryName = 'cwydcontainerreg' // Update Registry name
+var registryName = 'cwydcontainerregap' // Update Registry name
 
 var openAIFunctionsSystemPrompt = '''You help employees to navigate only private information sources.
     You must prioritize the function call over your general knowledge for any question by calling the search_documents function.
@@ -953,7 +953,7 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     storageAccountName: storage.outputs.name
-    // clientKey: clientKey
+    clientKey: clientKey
 
     databaseType: databaseType
     appSettings: union(
@@ -1023,7 +1023,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     storageAccountName: storage.outputs.name
-    // clientKey: clientKey
+    clientKey: clientKey
 
     databaseType: databaseType
     appSettings: union(
