@@ -41,11 +41,11 @@ def reprocess_all():
     # if env_helper.FUNCTION_KEY is not None:
     #     params["code"] = env_helper.FUNCTION_KEY
     #     params["clientId"] = "clientKey"
-    backend_url = f"https://{env_helper.BACKEND_URL}.azurewebsites.net"
+
     try:
         # Get Azure AD token using Managed Identity
         credential = DefaultAzureCredential()
-        token = credential.get_token(f"{backend_url}/.default")
+        token = credential.get_token(f"{env_helper.BACKEND_URL}/.default")
 
         # Prepare headers with Bearer token
         headers = {
@@ -53,7 +53,7 @@ def reprocess_all():
             "Content-Type": "application/json"
         }
 
-        response = requests.post(f"{backend_url}/api/AddURLEmbeddings", headers=headers)
+        response = requests.post(f"{env_helper.BACKEND_URL}/api/AddURLEmbeddings", headers=headers)
         if response.status_code == 200:
             st.success(
                 f"{response.text}\nPlease note this is an asynchronous process and may take a few minutes to complete."
