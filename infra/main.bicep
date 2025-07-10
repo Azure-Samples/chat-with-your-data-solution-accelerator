@@ -323,10 +323,11 @@ var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
 var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
+var keyVaultName = '${abbrs.security.keyVault}${resourceToken}'
 var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/keyless_auth/'
 
 var appversion = 'dev' // Update GIT deployment branch
-var registryName = 'cwydcontainerregap' // Update Registry name
+var registryName = 'cwydcontainerreg' // Update Registry name
 
 var openAIFunctionsSystemPrompt = '''You help employees to navigate only private information sources.
     You must prioritize the function call over your general knowledge for any question by calling the search_documents function.
@@ -383,6 +384,21 @@ module postgresDBModule './core/database/postgresdb.bicep' = if (databaseType ==
     allowAzureIPsFirewall: true
   }
   scope: rg
+}
+
+// Store secrets in a keyvault
+module keyvault './core/security/keyvault.bicep' = {
+  name: 'keyvault'
+  scope: rg
+  params: {
+    name: keyVaultName
+    location: location
+    tags: tags
+    principalId: principalId
+    managedIdentityObjectId: databaseType == 'PostgreSQL'
+      ? managedIdentityModule.outputs.managedIdentityOutput.objectId
+      : ''
+  }
 }
 
 var defaultOpenAiDeployments = [
@@ -515,6 +531,15 @@ module speechService 'core/ai/cognitiveservices.bicep' = {
       name: 'S0'
     }
     kind: 'SpeechServices'
+  }
+}
+
+module storekeys './app/storekeys.bicep' = {
+  name: 'storekeys'
+  scope: rg
+  params: {
+    keyVaultName: keyVaultName
+    clientkey: clientKey
   }
 }
 
@@ -754,6 +779,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     databaseType: databaseType
     appSettings: union(
       {
+        FUNCTION_KEY: storekeys.outputs.FUNCTION_KEY
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
         AZURE_BLOB_CONTAINER_NAME: blobContainerName
         AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
@@ -779,7 +805,6 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         BACKEND_URL: 'https://${functionName}.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-        // FUNCTION_KEY: clientKey
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
@@ -837,6 +862,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     databaseType: databaseType
     appSettings: union(
       {
+        FUNCTION_KEY: storekeys.outputs.FUNCTION_KEY
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
         AZURE_BLOB_CONTAINER_NAME: blobContainerName
         AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
@@ -862,7 +888,6 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-        // FUNCTION_KEY: clientKey
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
@@ -1230,9 +1255,9 @@ module createIndex './core/database/deploy_create_table_script.bicep' = if (data
   }
   scope: rg
   dependsOn: hostingModel == 'code'
-    ? [postgresDBModule, web, adminweb]
+    ? [postgresDBModule, web, adminweb, function]
     : [
-        [postgresDBModule, web_docker, adminweb_docker]
+        [postgresDBModule, web_docker, adminweb_docker, function_docker]
       ]
 }
 
@@ -1347,7 +1372,6 @@ output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
 output BACKEND_URL string = backendUrl
 output AzureWebJobsStorage string = function.outputs.AzureWebJobsStorage
-// output FUNCTION_KEY string = clientKey
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code'
   ? web.outputs.FRONTEND_API_URI
   : web_docker.outputs.FRONTEND_API_URI

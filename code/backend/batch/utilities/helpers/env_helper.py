@@ -268,7 +268,11 @@ class EnvHelper:
         os.environ["OPENAI_API_VERSION"] = self.OPENAI_API_VERSION
         # Azure Functions - Batch processing
         self.BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:7071")
-        # self.FUNCTION_KEY = os.getenv("FUNCTION_KEY")
+        function_key = os.getenv("FUNCTION_KEY", "")
+        if function_key:
+            self.FUNCTION_KEY = function_key
+        else:
+            self.FUNCTION_KEY = self.secretHelper.get_secret("FUNCTION_KEY", "")
         self.AzureWebJobsStorage = os.getenv("AzureWebJobsStorage", "")
         self.DOCUMENT_PROCESSING_QUEUE_NAME = os.getenv(
             "DOCUMENT_PROCESSING_QUEUE_NAME", "doc-processing"
