@@ -541,6 +541,9 @@ module storekeys './app/storekeys.bicep' = {
     keyVaultName: keyVaultName
     clientkey: clientKey
   }
+  dependsOn: [
+    keyvault
+  ]
 }
 
 module search './core/search/search-services.bicep' = if (databaseType == 'CosmosDB') {
@@ -777,6 +780,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     applicationInsightsName: monitoring.outputs.applicationInsightsName
 
     databaseType: databaseType
+    keyVaultName: keyvault.outputs.name
     appSettings: union(
       {
         FUNCTION_KEY: storekeys.outputs.FUNCTION_KEY
@@ -860,6 +864,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     applicationInsightsName: monitoring.outputs.applicationInsightsName
 
     databaseType: databaseType
+    keyVaultName: keyvault.outputs.name
     appSettings: union(
       {
         FUNCTION_KEY: storekeys.outputs.FUNCTION_KEY

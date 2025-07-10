@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.36.1.42791",
-      "templateHash": "8099517340144387072"
+      "templateHash": "2601675504628174063"
     }
   },
   "parameters": {
@@ -2332,6 +2332,7 @@
         }
       },
       "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'keyvault')]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('rgName'))]"
       ]
     },
@@ -2656,7 +2657,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "10852347335223563700"
+              "templateHash": "9391026973919185904"
             }
           },
           "parameters": {
@@ -2772,7 +2773,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.36.1.42791",
-                      "templateHash": "12491107064645997097"
+                      "templateHash": "8160426909164671696"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -2886,6 +2887,10 @@
                     "healthCheckPath": {
                       "type": "string",
                       "defaultValue": ""
+                    },
+                    "keyVaultName": {
+                      "type": "string",
+                      "defaultValue": ""
                     }
                   },
                   "resources": [
@@ -2985,7 +2990,7 @@
                             "value": "[parameters('name')]"
                           },
                           "appSettings": {
-                            "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()))]"
+                            "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                           }
                         },
                         "template": {
@@ -3454,7 +3459,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "10852347335223563700"
+              "templateHash": "9391026973919185904"
             }
           },
           "parameters": {
@@ -3570,7 +3575,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.36.1.42791",
-                      "templateHash": "12491107064645997097"
+                      "templateHash": "8160426909164671696"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -3684,6 +3689,10 @@
                     "healthCheckPath": {
                       "type": "string",
                       "defaultValue": ""
+                    },
+                    "keyVaultName": {
+                      "type": "string",
+                      "defaultValue": ""
                     }
                   },
                   "resources": [
@@ -3783,7 +3792,7 @@
                             "value": "[parameters('name')]"
                           },
                           "appSettings": {
-                            "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()))]"
+                            "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                           }
                         },
                         "template": {
@@ -4241,6 +4250,9 @@
           "databaseType": {
             "value": "[parameters('databaseType')]"
           },
+          "keyVaultName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'keyvault'), '2022-09-01').outputs.name.value]"
+          },
           "appSettings": {
             "value": "[union(createObject('FUNCTION_KEY', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FUNCTION_KEY.value, 'AZURE_BLOB_ACCOUNT_NAME', parameters('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value, 'AZURE_OPENAI_RESOURCE', parameters('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'USE_ADVANCED_IMAGE_PROCESSING', parameters('useAdvancedImageProcessing'), 'BACKEND_URL', format('https://{0}.azurewebsites.net', parameters('functionName')), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'DATABASE_TYPE', parameters('databaseType')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', parameters('azureAISearchName')), 'AZURE_SEARCH_INDEX', parameters('azureSearchIndex'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', parameters('azureSearchUseSemanticSearch'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_DATASOURCE_NAME', parameters('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', parameters('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', parameters('azureSearchUseIntegratedVectorization')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'AZURE_POSTGRESQL_DATABASE_NAME', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'AZURE_POSTGRESQL_USER', parameters('adminWebsiteName')), createObject())))]"
           }
@@ -4252,7 +4264,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "801745728389056967"
+              "templateHash": "2400610326041359275"
             }
           },
           "parameters": {
@@ -4287,6 +4299,10 @@
               "defaultValue": ""
             },
             "applicationInsightsName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "keyVaultName": {
               "type": "string",
               "defaultValue": ""
             },
@@ -4337,6 +4353,9 @@
                   "runtimeVersion": {
                     "value": "[parameters('runtimeVersion')]"
                   },
+                  "keyVaultName": {
+                    "value": "[parameters('keyVaultName')]"
+                  },
                   "dockerFullImageName": {
                     "value": "[parameters('dockerFullImageName')]"
                   },
@@ -4361,7 +4380,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.36.1.42791",
-                      "templateHash": "12491107064645997097"
+                      "templateHash": "8160426909164671696"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -4475,6 +4494,10 @@
                     "healthCheckPath": {
                       "type": "string",
                       "defaultValue": ""
+                    },
+                    "keyVaultName": {
+                      "type": "string",
+                      "defaultValue": ""
                     }
                   },
                   "resources": [
@@ -4574,7 +4597,7 @@
                             "value": "[parameters('name')]"
                           },
                           "appSettings": {
-                            "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()))]"
+                            "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                           }
                         },
                         "template": {
@@ -4905,6 +4928,77 @@
               "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name')))]"
               ]
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "adminweb-keyvault-access",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "keyVaultName": {
+                    "value": "[parameters('keyVaultName')]"
+                  },
+                  "principalId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.identityPrincipalId.value]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.36.1.42791",
+                      "templateHash": "13097350302282890335"
+                    },
+                    "description": "Assigns an Azure Key Vault access policy."
+                  },
+                  "parameters": {
+                    "name": {
+                      "type": "string",
+                      "defaultValue": "add"
+                    },
+                    "keyVaultName": {
+                      "type": "string"
+                    },
+                    "permissions": {
+                      "type": "object",
+                      "defaultValue": {
+                        "secrets": [
+                          "get",
+                          "list"
+                        ]
+                      }
+                    },
+                    "principalId": {
+                      "type": "string"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.KeyVault/vaults/accessPolicies",
+                      "apiVersion": "2022-07-01",
+                      "name": "[format('{0}/{1}', parameters('keyVaultName'), parameters('name'))]",
+                      "properties": {
+                        "accessPolicies": [
+                          {
+                            "objectId": "[parameters('principalId')]",
+                            "tenantId": "[subscription().tenantId]",
+                            "permissions": "[parameters('permissions')]"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name')))]"
+              ]
             }
           ],
           "outputs": {
@@ -4928,6 +5022,7 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', parameters('hostingPlanName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'keyvault')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'monitoring')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql')]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('rgName'))]",
@@ -4967,6 +5062,9 @@
           "databaseType": {
             "value": "[parameters('databaseType')]"
           },
+          "keyVaultName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'keyvault'), '2022-09-01').outputs.name.value]"
+          },
           "appSettings": {
             "value": "[union(createObject('FUNCTION_KEY', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'storekeys'), '2022-09-01').outputs.FUNCTION_KEY.value, 'AZURE_BLOB_ACCOUNT_NAME', parameters('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName')), '2022-09-01').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'computerVision'), '2022-09-01').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName')), '2022-09-01').outputs.endpoint.value, 'AZURE_OPENAI_RESOURCE', parameters('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'USE_ADVANCED_IMAGE_PROCESSING', parameters('useAdvancedImageProcessing'), 'BACKEND_URL', format('https://{0}-docker.azurewebsites.net', parameters('functionName')), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'DATABASE_TYPE', parameters('databaseType')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', parameters('azureAISearchName')), 'AZURE_SEARCH_INDEX', parameters('azureSearchIndex'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', parameters('azureSearchUseSemanticSearch'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_DATASOURCE_NAME', parameters('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', parameters('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', parameters('azureSearchUseIntegratedVectorization')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLServerName, 'AZURE_POSTGRESQL_DATABASE_NAME', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql'), '2022-09-01').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'AZURE_POSTGRESQL_USER', format('{0}-docker', parameters('adminWebsiteName'))), createObject())))]"
           }
@@ -4978,7 +5076,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "801745728389056967"
+              "templateHash": "2400610326041359275"
             }
           },
           "parameters": {
@@ -5013,6 +5111,10 @@
               "defaultValue": ""
             },
             "applicationInsightsName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "keyVaultName": {
               "type": "string",
               "defaultValue": ""
             },
@@ -5063,6 +5165,9 @@
                   "runtimeVersion": {
                     "value": "[parameters('runtimeVersion')]"
                   },
+                  "keyVaultName": {
+                    "value": "[parameters('keyVaultName')]"
+                  },
                   "dockerFullImageName": {
                     "value": "[parameters('dockerFullImageName')]"
                   },
@@ -5087,7 +5192,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.36.1.42791",
-                      "templateHash": "12491107064645997097"
+                      "templateHash": "8160426909164671696"
                     },
                     "description": "Creates an Azure App Service in an existing Azure App Service plan."
                   },
@@ -5201,6 +5306,10 @@
                     "healthCheckPath": {
                       "type": "string",
                       "defaultValue": ""
+                    },
+                    "keyVaultName": {
+                      "type": "string",
+                      "defaultValue": ""
                     }
                   },
                   "resources": [
@@ -5300,7 +5409,7 @@
                             "value": "[parameters('name')]"
                           },
                           "appSettings": {
-                            "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()))]"
+                            "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                           }
                         },
                         "template": {
@@ -5631,6 +5740,77 @@
               "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name')))]"
               ]
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "adminweb-keyvault-access",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "keyVaultName": {
+                    "value": "[parameters('keyVaultName')]"
+                  },
+                  "principalId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.identityPrincipalId.value]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.36.1.42791",
+                      "templateHash": "13097350302282890335"
+                    },
+                    "description": "Assigns an Azure Key Vault access policy."
+                  },
+                  "parameters": {
+                    "name": {
+                      "type": "string",
+                      "defaultValue": "add"
+                    },
+                    "keyVaultName": {
+                      "type": "string"
+                    },
+                    "permissions": {
+                      "type": "object",
+                      "defaultValue": {
+                        "secrets": [
+                          "get",
+                          "list"
+                        ]
+                      }
+                    },
+                    "principalId": {
+                      "type": "string"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.KeyVault/vaults/accessPolicies",
+                      "apiVersion": "2022-07-01",
+                      "name": "[format('{0}/{1}', parameters('keyVaultName'), parameters('name'))]",
+                      "properties": {
+                        "accessPolicies": [
+                          {
+                            "objectId": "[parameters('principalId')]",
+                            "tenantId": "[subscription().tenantId]",
+                            "permissions": "[parameters('permissions')]"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name')))]"
+              ]
             }
           ],
           "outputs": {
@@ -5654,6 +5834,7 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', parameters('contentSafetyName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', parameters('formRecognizerName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', parameters('hostingPlanName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'keyvault')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'monitoring')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'deploy_postgres_sql')]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('rgName'))]",
@@ -7473,7 +7654,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "7943239093601035482"
+              "templateHash": "1333318457198173715"
             }
           },
           "parameters": {
@@ -7603,7 +7784,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.36.1.42791",
-                      "templateHash": "1850310804707435585"
+                      "templateHash": "14427223689328923405"
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -7804,7 +7985,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.36.1.42791",
-                              "templateHash": "12491107064645997097"
+                              "templateHash": "8160426909164671696"
                             },
                             "description": "Creates an Azure App Service in an existing Azure App Service plan."
                           },
@@ -7918,6 +8099,10 @@
                             "healthCheckPath": {
                               "type": "string",
                               "defaultValue": ""
+                            },
+                            "keyVaultName": {
+                              "type": "string",
+                              "defaultValue": ""
                             }
                           },
                           "resources": [
@@ -8017,7 +8202,7 @@
                                     "value": "[parameters('name')]"
                                   },
                                   "appSettings": {
-                                    "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()))]"
+                                    "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                                   }
                                 },
                                 "template": {
@@ -8585,7 +8770,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "7943239093601035482"
+              "templateHash": "1333318457198173715"
             }
           },
           "parameters": {
@@ -8715,7 +8900,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.36.1.42791",
-                      "templateHash": "1850310804707435585"
+                      "templateHash": "14427223689328923405"
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -8916,7 +9101,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.36.1.42791",
-                              "templateHash": "12491107064645997097"
+                              "templateHash": "8160426909164671696"
                             },
                             "description": "Creates an Azure App Service in an existing Azure App Service plan."
                           },
@@ -9030,6 +9215,10 @@
                             "healthCheckPath": {
                               "type": "string",
                               "defaultValue": ""
+                            },
+                            "keyVaultName": {
+                              "type": "string",
+                              "defaultValue": ""
                             }
                           },
                           "resources": [
@@ -9129,7 +9318,7 @@
                                     "value": "[parameters('name')]"
                                   },
                                   "appSettings": {
-                                    "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()))]"
+                                    "value": "[union(parameters('appSettings'), createObject('APPLICATIONINSIGHTS_ENABLED', string(not(empty(parameters('applicationInsightsName')))), 'AZURE_RESOURCE_GROUP', resourceGroup().name, 'AZURE_SUBSCRIPTION_ID', subscription().subscriptionId, 'SCM_DO_BUILD_DURING_DEPLOYMENT', string(parameters('scmDoBuildDuringDeployment')), 'ENABLE_ORYX_BUILD', string(parameters('enableOryxBuild'))), if(and(equals(parameters('runtimeName'), 'python'), equals(parameters('appCommandLine'), '')), createObject('PYTHON_ENABLE_GUNICORN_MULTIWORKERS', 'true'), createObject()), if(not(empty(parameters('applicationInsightsName'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), '2020-02-02').ConnectionString), createObject()), if(not(empty(parameters('keyVaultName'))), createObject('AZURE_KEY_VAULT_ENDPOINT', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2022-07-01').vaultUri), createObject()))]"
                                   }
                                 },
                                 "template": {

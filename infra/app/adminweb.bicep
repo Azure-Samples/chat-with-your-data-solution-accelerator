@@ -7,6 +7,7 @@ param appCommandLine string = 'python -m streamlit run Admin.py --server.port 80
 param runtimeName string = 'python'
 param runtimeVersion string = ''
 param applicationInsightsName string = ''
+param keyVaultName string = ''
 @secure()
 param appSettings object = {}
 param dockerFullImageName string = ''
@@ -23,6 +24,7 @@ module adminweb '../core/host/appservice.bicep' = {
     appCommandLine: useDocker ? '' : appCommandLine
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
+    keyVaultName: keyVaultName
     dockerFullImageName: dockerFullImageName
     scmDoBuildDuringDeployment: useDocker ? false : true
     applicationInsightsName: applicationInsightsName
@@ -71,6 +73,14 @@ module searchRoleBackend '../core/security/role.bicep' = {
     principalId: adminweb.outputs.identityPrincipalId
     roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
     principalType: 'ServicePrincipal'
+  }
+}
+
+module adminwebaccess '../core/security/keyvault-access.bicep' = {
+  name: 'adminweb-keyvault-access'
+  params: {
+    keyVaultName: keyVaultName
+    principalId: adminweb.outputs.identityPrincipalId
   }
 }
 
