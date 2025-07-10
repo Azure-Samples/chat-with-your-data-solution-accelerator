@@ -597,7 +597,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
 
     // New database-related parameters
     databaseType: databaseType // Add this parameter to specify 'PostgreSQL' or 'CosmosDB'
-
+    keyVaultName: keyvault.outputs.name
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
@@ -689,7 +689,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
 
     // New database-related parameters
     databaseType: databaseType
-
+    keyVaultName: keyvault.outputs.name
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
@@ -986,6 +986,7 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     clientKey: clientKey
 
     databaseType: databaseType
+    keyVaultName: keyvault.outputs.name
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
@@ -1056,6 +1057,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     clientKey: clientKey
 
     databaseType: databaseType
+    keyVaultName: keyvault.outputs.name
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName

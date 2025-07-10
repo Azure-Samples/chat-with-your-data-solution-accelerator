@@ -6,6 +6,7 @@ param tags object = {}
 // Reference Properties
 param applicationInsightsName string = ''
 param appServicePlanId string
+param keyVaultName string = ''
 param managedIdentity bool = true
 param storageAccountName string
 
@@ -75,6 +76,7 @@ module functions 'appservice.bicep' = {
     enableOryxBuild: enableOryxBuild
     functionAppScaleLimit: functionAppScaleLimit
     healthCheckPath: healthCheckPath
+    keyVaultName: keyVaultName
     kind: kind
     managedIdentity: managedIdentity
     minimumElasticInstanceCount: minimumElasticInstanceCount

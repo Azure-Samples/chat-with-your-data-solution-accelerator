@@ -10,6 +10,7 @@ param runtimeName string = 'python'
 param runtimeVersion string = ''
 @secure()
 param clientKey string
+param keyVaultName string = ''
 param dockerFullImageName string = ''
 param databaseType string
 
@@ -22,6 +23,7 @@ module function '../core/host/functions.bicep' = {
     appServicePlanId: appServicePlanId
     applicationInsightsName: applicationInsightsName
     storageAccountName: storageAccountName
+    keyVaultName: keyVaultName
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
     dockerFullImageName: dockerFullImageName
@@ -109,6 +111,13 @@ module storageQueueRoleFunction '../core/security/role.bicep' = {
   }
 }
 
+module functionaccess '../core/security/keyvault-access.bicep' = {
+  name: 'function-keyvault-access'
+  params: {
+    keyVaultName: keyVaultName
+    principalId: function.outputs.identityPrincipalId
+  }
+}
 
 output FUNCTION_IDENTITY_PRINCIPAL_ID string = function.outputs.identityPrincipalId
 output functionName string = function.outputs.name

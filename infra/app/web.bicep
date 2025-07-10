@@ -7,6 +7,7 @@ param appServicePlanId string
 param applicationInsightsName string = ''
 param runtimeName string = 'python'
 param runtimeVersion string = ''
+param keyVaultName string = ''
 @secure()
 param appSettings object = {}
 
@@ -34,6 +35,7 @@ module web '../core/host/appservice.bicep' = {
     dockerFullImageName: dockerFullImageName
     scmDoBuildDuringDeployment: useDocker ? false : true
     healthCheckPath: healthCheckPath
+    keyVaultName: keyVaultName
     managedIdentity: databaseType == 'PostgreSQL'
   }
 }
@@ -75,6 +77,14 @@ module searchRoleWeb '../core/security/role.bicep' = {
     principalId: web.outputs.identityPrincipalId
     roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
     principalType: 'ServicePrincipal'
+  }
+}
+
+module webaccess '../core/security/keyvault-access.bicep' = {
+  name: 'web-keyvault-access'
+  params: {
+    keyVaultName: keyVaultName
+    principalId: web.outputs.identityPrincipalId
   }
 }
 

@@ -6,6 +6,7 @@ param tags object = {}
 // Reference Properties
 param applicationInsightsName string = ''
 param appServicePlanId string
+param keyVaultName string = ''
 param managedIdentity bool = true
 
 // Runtime Properties
@@ -44,7 +45,6 @@ param scmDoBuildDuringDeployment bool = false
 param use32BitWorkerProcess bool = false
 param ftpsState string = 'FtpsOnly'
 param healthCheckPath string = ''
-param keyVaultName string = ''
 
 resource appService 'Microsoft.Web/sites@2022-03-01' = {
   name: name
