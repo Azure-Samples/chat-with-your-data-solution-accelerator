@@ -328,50 +328,50 @@ jobs:
       admin_url: ${{ needs.deploy.outputs.admin_url }}
 
 
-  # cleanup:
-  #   if: always()
-  #   needs: [deploy, e2e-test]
-  #   runs-on: ubuntu-latest
+  cleanup:
+    if: always()
+    needs: [deploy, e2e-test]
+    runs-on: ubuntu-latest
 
-  #   env:
-  #     AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-  #     AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-  #     AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  #     AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-  #     AZURE_ENV_NAME: ${{ github.run_id }}
-  #     AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
-  #     imageTag: ${{ needs.deploy.outputs.imageTag }}
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_ENV_NAME: ${{ github.run_id }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      imageTag: ${{ needs.deploy.outputs.imageTag }}
 
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  #     - name: Destroy resources
-  #       uses: devcontainers/ci@v0.3
-  #       with:
-  #         push: never
-  #         imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
-  #         imageTag: ${{ env.imageTag }}
-  #         runCmd: make destroy
-  #         env: |
-  #           AZURE_CLIENT_ID
-  #           AZURE_CLIENT_SECRET
-  #           AZURE_TENANT_ID
-  #           AZURE_SUBSCRIPTION_ID
-  #           AZURE_ENV_NAME
-  #           AZURE_LOCATION
+      - name: Destroy resources
+        uses: devcontainers/ci@v0.3
+        with:
+          push: never
+          imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+          imageTag: ${{ env.imageTag }}
+          runCmd: make destroy
+          env: |
+            AZURE_CLIENT_ID
+            AZURE_CLIENT_SECRET
+            AZURE_TENANT_ID
+            AZURE_SUBSCRIPTION_ID
+            AZURE_ENV_NAME
+            AZURE_LOCATION
 
-  #     - name: Send Notification on Failure
-  #       if: failure()
-  #       run: |
-  #         RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-  #         EMAIL_BODY=$(cat <<EOF
-  #         {
-  #           "body": "<p>Dear Team,</p><p>The CWYD Automation process has encountered an issue and has failed to complete successfully.</p><p><strong>Build URL:</strong> ${RUN_URL}</p><p>Please investigate.</p><p>Best regards,<br>Your Automation Team</p>"
-  #         }
-  #         EOF
-  #         )
+      - name: Send Notification on Failure
+        if: failure()
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>The CWYD Automation process has encountered an issue and has failed to complete successfully.</p><p><strong>Build URL:</strong> ${RUN_URL}</p><p>Please investigate.</p><p>Best regards,<br>Your Automation Team</p>"
+          }
+          EOF
+          )
 
-  #         curl -X POST "${{ secrets.LOGIC_APP_URL }}" \
-  #           -H "Content-Type: application/json" \
-  #           -d "$EMAIL_BODY" || echo "Failed to send notification"
+          curl -X POST "${{ secrets.LOGIC_APP_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send notification"
