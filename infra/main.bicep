@@ -783,7 +783,6 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     keyVaultName: keyvault.outputs.name
     appSettings: union(
       {
-        FUNCTION_KEY: storekeys.outputs.FUNCTION_KEY
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
         AZURE_BLOB_CONTAINER_NAME: blobContainerName
         AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
@@ -809,10 +808,12 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         BACKEND_URL: 'https://${functionName}.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+        FUNCTION_KEY: storekeys.outputs.FUNCTION_KEY
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
+        USE_KEY_VAULT: 'true'
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -867,7 +868,6 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     keyVaultName: keyvault.outputs.name
     appSettings: union(
       {
-        FUNCTION_KEY: storekeys.outputs.FUNCTION_KEY
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
         AZURE_BLOB_CONTAINER_NAME: blobContainerName
         AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
@@ -893,10 +893,12 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+        FUNCTION_KEY: storekeys.outputs.FUNCTION_KEY
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
+        USE_KEY_VAULT: 'true'
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
