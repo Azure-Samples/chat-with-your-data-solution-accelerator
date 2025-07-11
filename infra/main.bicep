@@ -361,7 +361,9 @@ var semanticKernelSystemPrompt = '''You help employees to navigate only private 
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: rgName
   location: location
-  tags: tags
+  tags: union(tags, {
+    TemplateName: 'CWYD'
+  })
 }
 
 // ========== Managed Identity ========== //
