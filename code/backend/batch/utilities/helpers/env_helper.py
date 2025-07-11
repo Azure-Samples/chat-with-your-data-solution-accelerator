@@ -241,7 +241,7 @@ class EnvHelper:
             self.AZURE_OPENAI_API_KEY = ""
             self.AZURE_SPEECH_KEY = None
             self.AZURE_COMPUTER_VISION_KEY = None
-            self.FUNCTION_KEY = self.secretHelper.get_secret("FUNCTION_KEY", "")
+            self.FUNCTION_KEY = self.secretHelper.get_secret("FUNCTION_KEY")
         else:
             self.AZURE_SEARCH_KEY = self.secretHelper.get_secret("AZURE_SEARCH_KEY")
             self.AZURE_OPENAI_API_KEY = self.secretHelper.get_secret(
