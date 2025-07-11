@@ -1,7 +1,6 @@
 param location string
 param workspaceName string
 param storageAccountId string
-param keyVaultId string
 param applicationInsightsId string
 param azureAISearchName string
 param azureAISearchEndpoint string
@@ -16,7 +15,6 @@ resource machineLearningWorkspace 'Microsoft.MachineLearningServices/workspaces@
   }
   properties: {
     storageAccount: storageAccountId
-    keyVault: keyVaultId
     applicationInsights: applicationInsightsId
   }
 }

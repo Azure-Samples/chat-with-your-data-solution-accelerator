@@ -7,7 +7,7 @@ param tags object = {}
 param applicationInsightsName string = ''
 param appServicePlanId string
 param keyVaultName string = ''
-param managedIdentity bool = !empty(keyVaultName)
+param managedIdentity bool = true
 
 // Runtime Properties
 @allowed([
@@ -108,7 +108,9 @@ module configAppSettings 'appservice-appsettings.bicep' = {
       !empty(applicationInsightsName)
         ? { APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString }
         : {},
-      !empty(keyVaultName) ? { AZURE_KEY_VAULT_ENDPOINT: keyVault.properties.vaultUri } : {}
+      !empty(keyVaultName)
+        ? { AZURE_KEY_VAULT_ENDPOINT: keyVault.properties.vaultUri }
+        : {}
     )
   }
 }
