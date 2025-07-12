@@ -347,7 +347,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Destroy resources
-        uses: devcontainers/ci@v0.34ertyc
+        uses: devcontainers/ci@v0.3.4
         with:
           push: never
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
