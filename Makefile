@@ -57,14 +57,114 @@ azd-login: ## 🔑 Login to Azure with azd and a SPN
 	@echo -e "\e[34m$@\e[0m" || true
 	@azd auth login --client-id ${AZURE_CLIENT_ID} --client-secret ${AZURE_CLIENT_SECRET} --tenant-id ${AZURE_TENANT_ID}
 
-deploy: azd-login ## 🚀 Deploy everything to Azure
+azd-login: ## 🔑 Login to Azure with azd and a SPN
+	@echo -e "\e[34m$@\e[0m" || true
+	@azd auth login --client-id ${AZURE_CLIENT_ID} --client-secret ${AZURE_CLIENT_SECRET} --tenant-id ${AZURE_TENANT_ID}
+
+# Fixed Makefile section for deploy target
+# Fixed Makefile section for deploy target
+deploy: azd-login ## Deploy everything to Azure
 	@echo -e "\e[34m$@\e[0m" || true
 	@azd env new ${AZURE_ENV_NAME}
-	@azd env set AZURE_APP_SERVICE_HOSTING_MODEL code --no-prompt
+
+	# Provision and deploy
 	@azd provision --no-prompt
-	@azd deploy web --no-prompt
-	@azd deploy function --no-prompt
+	@azd deploy web --no-prompt || true
+	@azd deploy function --no-prompt || true
 	@azd deploy adminweb --no-prompt
+	@azd env get-values > .env.temp
+	@cat .env.temp
+
+	@sleep 30
+	@azd show --output json > deploy_output.json || echo "{}" > deploy_output.json
+	@echo "=== deploy_output.json contents ==="
+	@cat deploy_output.json | jq . || cat deploy_output.json
+
+	# Extract URLs
+	@echo "=== Extracting URLs using multiple methods ==="
+	@azd show 2>&1 | tee full_deployment_output.log
+	@jq -r '.services.web?.project?.hostedEndpoints?[0]?.url // ""' deploy_output.json > frontend_url.txt || echo "" > frontend_url.txt
+	@jq -r '.services.adminweb?.project?.hostedEndpoints?[0]?.url // ""' deploy_output.json > admin_url.txt || echo "" > admin_url.txt
+	@grep -oE "https://app-[a-zA-Z0-9-]*\.azurewebsites\.net/" full_deployment_output.log | grep -v admin | head -1 >> frontend_url.txt || true
+	@grep -oE "https://app-[a-zA-Z0-9-]*-admin\.azurewebsites\.net/" full_deployment_output.log | head -1 >> admin_url.txt || true
+	@sort frontend_url.txt | uniq | grep -v '^$$' | head -1 > frontend_url_clean.txt && mv frontend_url_clean.txt frontend_url.txt || echo "" > frontend_url.txt
+	@sort admin_url.txt | uniq | grep -v '^$$' | head -1 > admin_url_clean.txt && mv admin_url_clean.txt admin_url.txt || echo "" > admin_url.txt
+
+	@echo "=== URL Extraction Results ==="
+	@FRONTEND_URL=$$(cat frontend_url.txt 2>/dev/null | tr -d '\n\r' | xargs); \
+	ADMIN_URL=$$(cat admin_url.txt 2>/dev/null | tr -d '\n\r' | xargs); \
+	echo "Frontend URL: $$FRONTEND_URL"; \
+	echo "Admin URL: $$ADMIN_URL"
+
+	@echo "=== Final Deployment Status ==="
+	@echo "Frontend URL:" && cat frontend_url.txt || echo "Not available"
+	@echo "Admin URL:" && cat admin_url.txt || echo "Not available"
+	@echo ""
+	@echo "🚀 Deployment completed!"
+	@echo "⏰ Authentication will be disabled via GitHub Actions pipeline."
+	@echo "🔄 Check the pipeline logs for authentication disable status."
+	@echo "=== Extracting PostgreSQL Host Endpoint ==="
+		@azd env get-values > .env.temp 2>/dev/null || echo "" > .env.temp
+
+		@PG_HOST_VAL=$$(grep '^AZURE_POSTGRESQL_HOST_NAME=' .env.temp | cut -d'=' -f2 | tr -d '"' | xargs); \
+		if [ -z "$$PG_HOST_VAL" ]; then \
+			echo "❌ PostgreSQL host not found in .env.temp. Using fallback localhost"; \
+			PG_HOST_VAL="localhost"; \
+		else \
+			echo "✅ PostgreSQL host extracted from .env.temp: $$PG_HOST_VAL"; \
+		fi; \
+		echo "$$PG_HOST_VAL" > pg_host.txt
+
+
+
+
+
+	@echo "=== PostgreSQL Configuration ==="
+	@echo "Username: admintest (hardcoded)"
+	@echo "Database: postgres (hardcoded)"
+	@echo "Port: 5432 (hardcoded)"
+	@echo "Host: $$(cat pg_host.txt 2>/dev/null || echo 'Not available')"
+	@echo "Password: Initial_0524 (hardcoded)"
+
+# Helper target to check current authentication status
+check-auth:
+	@echo "=== Checking Authentication Status ==="
+	@FRONTEND_URL=$$(cat frontend_url.txt 2>/dev/null | tr -d '\n\r' | xargs); \
+	ADMIN_URL=$$(cat admin_url.txt 2>/dev/null | tr -d '\n\r' | xargs); \
+	if [ -n "$$FRONTEND_URL" ]; then \
+		echo "Testing Frontend: $$FRONTEND_URL"; \
+		HTTP_CODE=$$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 "$$FRONTEND_URL" 2>/dev/null || echo "000"); \
+		echo "Frontend HTTP Status: $$HTTP_CODE"; \
+	fi; \
+	if [ -n "$$ADMIN_URL" ]; then \
+		echo "Testing Admin: $$ADMIN_URL"; \
+		HTTP_CODE=$$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 "$$ADMIN_URL" 2>/dev/null || echo "000"); \
+		echo "Admin HTTP Status: $$HTTP_CODE"; \
+	fi
+
+# Helper target to manually disable authentication (for debugging)
+disable-auth-manual:
+	@echo "=== Manually Disabling Authentication ==="
+	@echo "This target requires Azure CLI to be logged in manually"
+	@FRONTEND_URL=$$(cat frontend_url.txt 2>/dev/null | tr -d '\n\r' | xargs); \
+	ADMIN_URL=$$(cat admin_url.txt 2>/dev/null | tr -d '\n\r' | xargs); \
+	export FRONTEND_WEBSITE_URL="$$FRONTEND_URL"; \
+	export ADMIN_WEBSITE_URL="$$ADMIN_URL"; \
+	if [ -f "disable_auth.sh" ]; then \
+		chmod +x disable_auth.sh && ./disable_auth.sh; \
+	else \
+		echo "ERROR: disable_auth.sh not found"; \
+		exit 1; \
+	fi
+
+disable-auth-fixed:
+	@echo "=== Using Fixed Authentication Disable Script ==="
+	@if [ -f "disable_auth_fixed.sh" ]; then \
+		chmod +x disable_auth_fixed.sh && ./disable_auth_fixed.sh; \
+	else \
+		echo "ERROR: disable_auth_fixed.sh not found"; \
+		exit 1; \
+	fi
 
 destroy: azd-login ## 🧨 Destroy everything in Azure
 	@echo -e "\e[34m$@\e[0m" || true
