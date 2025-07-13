@@ -233,6 +233,7 @@ class EnvHelper:
         self.AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION = os.getenv(
             "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION", "2023-04-15"
         )
+        self.FUNCTION_KEY = os.getenv("FUNCTION_KEY", "")
 
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
@@ -269,11 +270,6 @@ class EnvHelper:
         os.environ["OPENAI_API_VERSION"] = self.OPENAI_API_VERSION
         # Azure Functions - Batch processing
         self.BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:7071")
-        # function_key = os.getenv("FUNCTION_KEY", "")
-        # if function_key:
-        #     self.FUNCTION_KEY = function_key
-        # else:
-        #     self.FUNCTION_KEY = self.secretHelper.get_secret("FUNCTION_KEY", "")
         self.AzureWebJobsStorage = os.getenv("AzureWebJobsStorage", "")
         self.DOCUMENT_PROCESSING_QUEUE_NAME = os.getenv(
             "DOCUMENT_PROCESSING_QUEUE_NAME", "doc-processing"
