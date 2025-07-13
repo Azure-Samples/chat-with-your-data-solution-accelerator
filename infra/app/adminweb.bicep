@@ -12,7 +12,6 @@ param keyVaultName string = ''
 param appSettings object = {}
 param dockerFullImageName string = ''
 param useDocker bool = dockerFullImageName != ''
-param databaseType string = 'CosmosDB' // 'CosmosDB' or 'PostgreSQL'
 
 module adminweb '../core/host/appservice.bicep' = {
   name: '${name}-app-module'
@@ -29,7 +28,7 @@ module adminweb '../core/host/appservice.bicep' = {
     scmDoBuildDuringDeployment: useDocker ? false : true
     applicationInsightsName: applicationInsightsName
     appServicePlanId: appServicePlanId
-    managedIdentity: databaseType == 'PostgreSQL'
+    managedIdentity: !empty(keyVaultName)
     appSettings: appSettings
   }
 }

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.36.1.42791",
-      "templateHash": "7210141047924291652"
+      "templateHash": "14104666329343452636"
     }
   },
   "parameters": {
@@ -90,7 +90,7 @@
     },
     "databaseType": {
       "type": "string",
-      "defaultValue": "PostgreSQL",
+      "defaultValue": "CosmosDB",
       "allowedValues": [
         "PostgreSQL",
         "CosmosDB"
@@ -2660,7 +2660,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "10217379002185227306"
+              "templateHash": "18282125486154751807"
             }
           },
           "parameters": {
@@ -2773,7 +2773,7 @@
                     "value": "[parameters('keyVaultName')]"
                   },
                   "managedIdentity": {
-                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
+                    "value": "[not(empty(parameters('keyVaultName')))]"
                   }
                 },
                 "template": {
@@ -3544,7 +3544,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "10217379002185227306"
+              "templateHash": "18282125486154751807"
             }
           },
           "parameters": {
@@ -3657,7 +3657,7 @@
                     "value": "[parameters('keyVaultName')]"
                   },
                   "managedIdentity": {
-                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
+                    "value": "[not(empty(parameters('keyVaultName')))]"
                   }
                 },
                 "template": {
@@ -4411,9 +4411,6 @@
           "applicationInsightsName": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsName.value]"
           },
-          "databaseType": {
-            "value": "[parameters('databaseType')]"
-          },
           "keyVaultName": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'keyvault'), '2022-09-01').outputs.name.value]"
           },
@@ -4428,7 +4425,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "5893585516803629187"
+              "templateHash": "1039793222387015566"
             }
           },
           "parameters": {
@@ -4481,10 +4478,6 @@
             "useDocker": {
               "type": "bool",
               "defaultValue": "[not(equals(parameters('dockerFullImageName'), ''))]"
-            },
-            "databaseType": {
-              "type": "string",
-              "defaultValue": "CosmosDB"
             }
           },
           "resources": [
@@ -4531,7 +4524,7 @@
                     "value": "[parameters('appServicePlanId')]"
                   },
                   "managedIdentity": {
-                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
+                    "value": "[not(empty(parameters('keyVaultName')))]"
                   },
                   "appSettings": {
                     "value": "[parameters('appSettings')]"
@@ -5223,9 +5216,6 @@
           "applicationInsightsName": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'monitoring'), '2022-09-01').outputs.applicationInsightsName.value]"
           },
-          "databaseType": {
-            "value": "[parameters('databaseType')]"
-          },
           "keyVaultName": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'keyvault'), '2022-09-01').outputs.name.value]"
           },
@@ -5240,7 +5230,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "5893585516803629187"
+              "templateHash": "1039793222387015566"
             }
           },
           "parameters": {
@@ -5293,10 +5283,6 @@
             "useDocker": {
               "type": "bool",
               "defaultValue": "[not(equals(parameters('dockerFullImageName'), ''))]"
-            },
-            "databaseType": {
-              "type": "string",
-              "defaultValue": "CosmosDB"
             }
           },
           "resources": [
@@ -5343,7 +5329,7 @@
                     "value": "[parameters('appServicePlanId')]"
                   },
                   "managedIdentity": {
-                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
+                    "value": "[not(empty(parameters('keyVaultName')))]"
                   },
                   "appSettings": {
                     "value": "[parameters('appSettings')]"
@@ -7804,9 +7790,6 @@
           "clientKey": {
             "value": "[variables('clientKey')]"
           },
-          "databaseType": {
-            "value": "[parameters('databaseType')]"
-          },
           "keyVaultName": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'keyvault'), '2022-09-01').outputs.name.value]"
           },
@@ -7821,7 +7804,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "11404302281774580433"
+              "templateHash": "15907054814625845900"
             }
           },
           "parameters": {
@@ -7869,9 +7852,6 @@
             "dockerFullImageName": {
               "type": "string",
               "defaultValue": ""
-            },
-            "databaseType": {
-              "type": "string"
             }
           },
           "resources": [
@@ -7945,7 +7925,7 @@
                     "value": "[parameters('dockerFullImageName')]"
                   },
                   "managedIdentity": {
-                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
+                    "value": "[not(empty(parameters('keyVaultName')))]"
                   },
                   "appSettings": {
                     "value": "[parameters('appSettings')]"
@@ -9009,9 +8989,6 @@
           "clientKey": {
             "value": "[variables('clientKey')]"
           },
-          "databaseType": {
-            "value": "[parameters('databaseType')]"
-          },
           "keyVaultName": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', 'keyvault'), '2022-09-01').outputs.name.value]"
           },
@@ -9026,7 +9003,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "11404302281774580433"
+              "templateHash": "15907054814625845900"
             }
           },
           "parameters": {
@@ -9074,9 +9051,6 @@
             "dockerFullImageName": {
               "type": "string",
               "defaultValue": ""
-            },
-            "databaseType": {
-              "type": "string"
             }
           },
           "resources": [
@@ -9150,7 +9124,7 @@
                     "value": "[parameters('dockerFullImageName')]"
                   },
                   "managedIdentity": {
-                    "value": "[equals(parameters('databaseType'), 'PostgreSQL')]"
+                    "value": "[not(empty(parameters('keyVaultName')))]"
                   },
                   "appSettings": {
                     "value": "[parameters('appSettings')]"

@@ -59,7 +59,7 @@ param skuTier string = 'Basic'
   'PostgreSQL'
   'CosmosDB'
 ])
-param databaseType string = 'PostgreSQL'
+param databaseType string = 'CosmosDB'
 
 @description('Azure Cosmos DB Account Name')
 param azureCosmosDBAccountName string = 'cosmos-${resourceToken}'
@@ -778,8 +778,6 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     runtimeVersion: '3.11'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
-
-    databaseType: databaseType
     keyVaultName: keyvault.outputs.name
     appSettings: union(
       {
@@ -863,8 +861,6 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     dockerFullImageName: '${registryName}.azurecr.io/rag-adminwebapp:${appversion}'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
-
-    databaseType: databaseType
     keyVaultName: keyvault.outputs.name
     appSettings: union(
       {
@@ -986,8 +982,6 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     storageAccountName: storage.outputs.name
     clientKey: clientKey
-
-    databaseType: databaseType
     keyVaultName: keyvault.outputs.name
     appSettings: union(
       {
@@ -1057,8 +1051,6 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     storageAccountName: storage.outputs.name
     clientKey: clientKey
-
-    databaseType: databaseType
     keyVaultName: keyvault.outputs.name
     appSettings: union(
       {

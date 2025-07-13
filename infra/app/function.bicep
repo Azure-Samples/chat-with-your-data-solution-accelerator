@@ -12,7 +12,6 @@ param runtimeVersion string = ''
 param clientKey string
 param keyVaultName string = ''
 param dockerFullImageName string = ''
-param databaseType string
 
 module function '../core/host/functions.bicep' = {
   name: '${name}-app-module'
@@ -27,7 +26,7 @@ module function '../core/host/functions.bicep' = {
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
     dockerFullImageName: dockerFullImageName
-    managedIdentity: databaseType == 'PostgreSQL'
+    managedIdentity: !empty(keyVaultName)
     appSettings: appSettings
   }
 }
