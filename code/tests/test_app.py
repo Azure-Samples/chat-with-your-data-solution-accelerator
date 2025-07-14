@@ -2,7 +2,7 @@
 This module tests the entry point for the application.
 """
 
-from unittest.mock import AsyncMock, MagicMock, Mock, patch, ANY
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 from openai import RateLimitError, BadRequestError, InternalServerError
 import pytest
