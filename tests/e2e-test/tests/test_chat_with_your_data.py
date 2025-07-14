@@ -18,6 +18,7 @@ def validate_admin_page_loaded(page, admin_page, home_page):
 
 def validate_files_are_uploaded(page, admin_page, home_page):
     admin_page.click_delete_data_tab()
+    page.wait_for_timeout(5000)
     checkbox_count = page.locator(admin_page.DELETE_CHECK_BOXES).count()
     assert checkbox_count >= 1, "No files available to delete"
 
