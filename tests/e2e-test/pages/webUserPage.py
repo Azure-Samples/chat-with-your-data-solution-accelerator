@@ -91,6 +91,7 @@ class WebUserPage(BasePage):
             self.page.locator(self.CHAT_HISTORY_OPTIONS).click()
             self.page.locator(self.CHAT_HISTORY_DELETE).click()
             self.page.get_by_role("button", name="Clear All").click()
+            self.page.wait_for_timeout(5000)
             self.page.get_by_label("hide button").click()
             self.page.wait_for_load_state("networkidle")
             self.page.wait_for_timeout(2000)
