@@ -1,0 +1,170 @@
+name: Group Dependabot PRs
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Run daily at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  group-dependabot-prs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+      - name: Fetch open Dependabot PRs targeting main
+        id: fetch_prs
+        run: |
+          gh pr list \
+            --search "author:dependabot[bot] base:main is:open" \
+            --json number,title,headRefName,labels,files,url \
+            --jq '[.[] | {number, title, url, ref: .headRefName, labels: [.labels[].name], files: [.files[].path]}]' > prs.json
+          cat prs.json
+
+      - name: Validate prs.json
+        run: |
+          jq empty prs.json || { echo "Malformed JSON in prs.json"; exit 1; }
+
+      - name: Check if any PRs exist
+        id: check_prs
+        run: |
+          count=$(jq length prs.json)
+          echo "Found $count PRs"
+          if [ "$count" -eq 0 ]; then
+            echo "No PRs to group. Exiting."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Exit early if no PRs
+        if: steps.check_prs.outputs.skip == 'true'
+        run: exit 0
+
+      - name: Group PRs by ecosystem and cherry-pick with retry
+        run: |
+          mkdir grouped
+          jq -c '.[]' prs.json | while read pr; do
+            files=$(echo "$pr" | jq -r '.files | join(" ")')
+            ref=$(echo "$pr" | jq -r '.ref')
+            title=$(echo "$pr" | jq -r '.title')
+            number=$(echo "$pr" | jq -r '.number')
+
+            if [[ "$ref" == *"npm_"* || "$ref" == *"npm-and-yarn"* || "$ref" == *"npm_and_yarn"* ]]; then
+              group="frontend"
+            elif [[ "$ref" == *"pip"* ]]; then
+              group="backend"
+            elif [[ "$ref" == *"github_actions"* ]]; then
+              group="actions"
+            else
+              group="misc"
+            fi
+
+            echo "$number $ref $group" >> grouped/$group.txt
+          done
+
+          shopt -s nullglob
+          grouped_files=(grouped/*.txt)
+
+          if [ ${#grouped_files[@]} -eq 0 ]; then
+            echo "No groups were formed. Exiting."
+            exit 0
+          fi
+
+          for file in "${grouped_files[@]}"; do
+            group_name=$(basename "$file" .txt)
+            branch_name="grouped-${group_name}-updates"
+            git checkout -B "$branch_name"
+
+            # Always attempt to cherry-pick new PRs, even if only one is found
+            attempt=1
+            while [ $attempt -le 3 ]; do
+              echo "Attempt $attempt for $group_name"
+              success=true
+              while read -r number ref group; do
+                git fetch origin "$ref"
+                git cherry-pick FETCH_HEAD || {
+                  echo "Conflict found in $ref. Attempting to resolve."
+                  git status
+
+                  conflict_file="$(git diff --name-only --diff-filter=U | head -n 1)"
+                  if [ -n "$conflict_file" ]; then
+                    echo "Resolving conflict in $conflict_file"
+                    git checkout --theirs "$conflict_file"
+                    git add "$conflict_file"
+                    git cherry-pick --continue || {
+                      echo "Failed to continue cherry-pick. Aborting."
+                      git cherry-pick --abort
+                      success=false
+                      break
+                    }
+                  else
+                    echo "No conflicting file found. Aborting."
+                    git cherry-pick --abort
+                    success=false
+                    break
+                  fi
+                }
+              done < "$file"
+
+              if $success; then
+                echo "Cherry-pick successful for $group_name"
+                break
+              fi
+
+              attempt=$((attempt+1))
+              git reset --hard origin/main
+            done
+
+            if ! $success; then
+              echo "Failed to group $group_name after retries. Skipping."
+              continue
+            fi
+
+            git push --force origin "$branch_name"
+
+            new_lines=""
+            while read -r number ref group; do
+              title=$(jq -r --arg num "$number" '.[] | select(.number == ($num|tonumber)) | .title' prs.json)
+              url=$(jq -r --arg num "$number" '.[] | select(.number == ($num|tonumber)) | .url' prs.json)
+              new_lines+=" \n ${title} - [#${number}](${url})"
+            done < "$file"
+
+            pr_title="build: bump grouped $group_name dependabot updates"
+
+            existing_url=$(gh pr list --head "$branch_name" --base main --json url --jq '.[0].url // empty')
+
+            if [ -n "$existing_url" ]; then
+              echo "PR already exists: $existing_url"
+              pr_url="$existing_url"
+              current_body=$(gh pr view "$pr_url" --json body --jq .body)
+              new_body="$current_body$new_lines"
+              gh pr edit "$pr_url" --body "$new_body"
+            else
+              pr_body="This PR groups multiple open PRs by Dependabot for $group_name.$new_lines"
+              pr_url=$(gh pr create \
+                --title "$pr_title" \
+                --body "$pr_body" \
+                --base main \
+                --head "$branch_name")
+            fi
+
+            for number in $(cut -d ' ' -f1 "$file"); do
+              labels=$(jq -r --arg num "$number" '.[] | select(.number == ($num|tonumber)) | .labels | join(",")' prs.json)
+              IFS="," read -ra label_arr <<< "$labels"
+              for label in "${label_arr[@]}"; do
+                gh pr edit "$pr_url" --add-label "$label"
+              done
+              gh pr close "$number" --comment "Grouped into $pr_url."
+            done
+          done
