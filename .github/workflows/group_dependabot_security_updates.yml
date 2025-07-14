@@ -34,6 +34,7 @@ jobs:
       - name: Fetch open Dependabot PRs targeting main
         id: fetch_prs
         run: |
+          # Fetch all open Dependabot PRs targeting main
           gh pr list \
             --search "author:dependabot[bot] base:main is:open" \
             --json number,title,headRefName,labels,files,url \
@@ -42,6 +43,7 @@ jobs:
 
       - name: Validate prs.json
         run: |
+          # Ensure valid JSON
           jq empty prs.json || { echo "Malformed JSON in prs.json"; exit 1; }
 
       - name: Check if any PRs exist
@@ -60,6 +62,7 @@ jobs:
 
       - name: Group PRs by ecosystem and cherry-pick with retry
         run: |
+          # Group PRs into files based on ecosystem using their branch name
           mkdir grouped
           jq -c '.[]' prs.json | while read pr; do
             files=$(echo "$pr" | jq -r '.files | join(" ")')
@@ -88,12 +91,13 @@ jobs:
             exit 0
           fi
 
+          # Loop through each grouped file and cherry-pick its PRs
           for file in "${grouped_files[@]}"; do
             group_name=$(basename "$file" .txt)
             branch_name="grouped-${group_name}-updates"
             git checkout -B "$branch_name"
 
-            # Always attempt to cherry-pick new PRs, even if only one is found
+            # Retry cherry-pick up to 3 times in case of conflicts
             attempt=1
             while [ $attempt -le 3 ]; do
               echo "Attempt $attempt for $group_name"
@@ -140,15 +144,17 @@ jobs:
 
             git push --force origin "$branch_name"
 
+            # Generate PR body by appending titles with PR links
             new_lines=""
             while read -r number ref group; do
               title=$(jq -r --arg num "$number" '.[] | select(.number == ($num|tonumber)) | .title' prs.json)
               url=$(jq -r --arg num "$number" '.[] | select(.number == ($num|tonumber)) | .url' prs.json)
-              new_lines+=" \n ${title} - [#${number}](${url})"
+              new_lines+="\n${title} - [#${number}](${url})"
             done < "$file"
 
             pr_title="build: bump grouped $group_name dependabot updates"
 
+            # Check if PR already exists and append or create accordingly
             existing_url=$(gh pr list --head "$branch_name" --base main --json url --jq '.[0].url // empty')
 
             if [ -n "$existing_url" ]; then
@@ -166,6 +172,7 @@ jobs:
                 --head "$branch_name")
             fi
 
+            # Reapply labels and close original PRs
             for number in $(cut -d ' ' -f1 "$file"); do
               labels=$(jq -r --arg num "$number" '.[] | select(.number == ($num|tonumber)) | .labels | join(",")' prs.json)
               IFS="," read -ra label_arr <<< "$labels"
