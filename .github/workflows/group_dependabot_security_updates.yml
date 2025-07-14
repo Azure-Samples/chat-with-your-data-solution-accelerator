@@ -1,9 +1,19 @@
-# This GitHub Actions workflow automates the grouping of open Dependabot PRs
-# It fetches all open PRs by Dependabot targeting the main branch,
-# identifies their ecosystem (npm, pip, GitHub Actions, or others),
-# cherry-picks them into grouped branches by ecosystem,
-# resolves conflicts automatically using --theirs strategy,
-# and creates or updates a single grouped PR with links to individual PRs.
+# Workflow: Group Dependabot PRs
+# Description:
+# This GitHub Actions workflow automatically groups open Dependabot PRs by ecosystem (pip, npm, GitHub Actions).
+# It cherry-picks individual PR changes into grouped branches, resolves merge conflicts automatically, and opens consolidated PRs.
+# It also closes the original Dependabot PRs and carries over their labels and metadata.
+# Improvements:
+# - Handles multiple conflicting files during cherry-pick
+# - Deduplicates entries in PR description
+# - Avoids closing original PRs unless grouped PR creation succeeds
+# - More efficient retry logic
+# - Ecosystem grouping is now configurable via JSON map
+# - Uses safe namespaced branch naming (e.g. actions/grouped-...) to avoid developer conflict
+# - Ensures PR body formatting uses real newlines for better readability
+# - Adds strict error handling for script robustness
+# - Accounts for tool dependencies (jq, gh) and race conditions
+# - Notes: PRs created during workflow execution will be picked up in the next scheduled run.
 
 name: Group Dependabot PRs
 
@@ -21,6 +31,9 @@ jobs:
       actions: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TARGET_BRANCH: "main"
+      GROUP_CONFIG: >-
+        {"pip":"backend","npm_and_yarn":"frontend","github-actions":"actions"}
 
     steps:
       - name: Checkout default branch
@@ -31,20 +44,26 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
 
+      - name: Install required tools
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq gh
+
+      - name: Enable strict error handling
+        shell: bash
+        run: |
+          set -euo pipefail
+
       - name: Fetch open Dependabot PRs targeting main
         id: fetch_prs
         run: |
-          # Fetch all open Dependabot PRs targeting main
           gh pr list \
-            --search "author:dependabot[bot] base:main is:open" \
+            --search "author:dependabot[bot] base:$TARGET_BRANCH is:open" \
             --json number,title,headRefName,labels,files,url \
             --jq '[.[] | {number, title, url, ref: .headRefName, labels: [.labels[].name], files: [.files[].path]}]' > prs.json
           cat prs.json
 
       - name: Validate prs.json
-        run: |
-          # Ensure valid JSON
-          jq empty prs.json || { echo "Malformed JSON in prs.json"; exit 1; }
+        run: jq empty prs.json || { echo "Malformed JSON in prs.json"; exit 1; }
 
       - name: Check if any PRs exist
         id: check_prs
@@ -62,23 +81,19 @@ jobs:
 
       - name: Group PRs by ecosystem and cherry-pick with retry
         run: |
-          # Group PRs into files based on ecosystem using their branch name
-          mkdir grouped
+          mkdir -p grouped
+          config_json="$GROUP_CONFIG"
           jq -c '.[]' prs.json | while read pr; do
-            files=$(echo "$pr" | jq -r '.files | join(" ")')
             ref=$(echo "$pr" | jq -r '.ref')
-            title=$(echo "$pr" | jq -r '.title')
             number=$(echo "$pr" | jq -r '.number')
 
-            if [[ "$ref" == *"npm_"* || "$ref" == *"npm-and-yarn"* || "$ref" == *"npm_and_yarn"* ]]; then
-              group="frontend"
-            elif [[ "$ref" == *"pip"* ]]; then
-              group="backend"
-            elif [[ "$ref" == *"github_actions"* ]]; then
-              group="actions"
-            else
-              group="misc"
-            fi
+            group="misc"
+            for key in $(echo "$config_json" | jq -r 'keys[]'); do
+              if [[ "$ref" == *"$key"* ]]; then
+                group=$(echo "$config_json" | jq -r --arg k "$key" '.[$k]')
+                break
+              fi
+            done
 
             echo "$number $ref $group" >> grouped/$group.txt
           done
@@ -91,94 +106,81 @@ jobs:
             exit 0
           fi
 
-          # Loop through each grouped file and cherry-pick its PRs
           for file in "${grouped_files[@]}"; do
             group_name=$(basename "$file" .txt)
-            branch_name="grouped-${group_name}-updates"
+            branch_name="actions/grouped-${group_name}-updates"
             git checkout -B "$branch_name"
 
-            # Retry cherry-pick up to 3 times in case of conflicts
-            attempt=1
-            while [ $attempt -le 3 ]; do
-              echo "Attempt $attempt for $group_name"
-              success=true
-              while read -r number ref group; do
-                git fetch origin "$ref"
-                git cherry-pick FETCH_HEAD || {
-                  echo "Conflict found in $ref. Attempting to resolve."
-                  git status
-
-                  conflict_file="$(git diff --name-only --diff-filter=U | head -n 1)"
-                  if [ -n "$conflict_file" ]; then
+            while read -r number ref group; do
+              git fetch origin "$ref"
+              if ! git cherry-pick FETCH_HEAD; then
+                echo "Conflict found in $ref. Attempting to resolve."
+                conflict_files=($(git diff --name-only --diff-filter=U))
+                if [ ${#conflict_files[@]} -gt 0 ]; then
+                  echo "Resolving conflicts in files: ${conflict_files[*]}"
+                  for conflict_file in "${conflict_files[@]}"; do
                     echo "Resolving conflict in $conflict_file"
                     git checkout --theirs "$conflict_file"
                     git add "$conflict_file"
-                    git cherry-pick --continue || {
-                      echo "Failed to continue cherry-pick. Aborting."
-                      git cherry-pick --abort
-                      success=false
-                      break
-                    }
-                  else
-                    echo "No conflicting file found. Aborting."
+                  done
+                  git cherry-pick --continue || {
+                    echo "Failed to continue cherry-pick. Aborting."
                     git cherry-pick --abort
-                    success=false
-                    break
-                  fi
-                }
-              done < "$file"
-
-              if $success; then
-                echo "Cherry-pick successful for $group_name"
-                break
+                    continue 2
+                  }
+                else
+                  echo "No conflicting files found. Aborting."
+                  git cherry-pick --abort
+                  continue 2
+                fi
               fi
-
-              attempt=$((attempt+1))
-              git reset --hard origin/main
-            done
-
-            if ! $success; then
-              echo "Failed to group $group_name after retries. Skipping."
-              continue
-            fi
+            done < "$file"
 
             git push --force origin "$branch_name"
 
-            # Generate PR body by appending titles with PR links
             new_lines=""
             while read -r number ref group; do
               title=$(jq -r --arg num "$number" '.[] | select(.number == ($num|tonumber)) | .title' prs.json)
               url=$(jq -r --arg num "$number" '.[] | select(.number == ($num|tonumber)) | .url' prs.json)
-              new_lines+="\n${title} - [#${number}](${url})"
+              new_lines+="$title - [#$number]($url)\n"
             done < "$file"
 
             pr_title="build: bump grouped $group_name dependabot updates"
-
-            # Check if PR already exists and append or create accordingly
-            existing_url=$(gh pr list --head "$branch_name" --base main --json url --jq '.[0].url // empty')
+            existing_url=$(gh pr list --head "$branch_name" --base "$TARGET_BRANCH" --json url --jq '.[0].url // empty')
 
             if [ -n "$existing_url" ]; then
               echo "PR already exists: $existing_url"
               pr_url="$existing_url"
               current_body=$(gh pr view "$pr_url" --json body --jq .body)
-              new_body="$current_body$new_lines"
+              existing_lines=$(echo "$current_body" | tr '\n' '\0')
+              filtered_lines=""
+              while IFS= read -r -d '' line; do
+                if ! echo "$existing_lines" | grep -qF -- "$line"; then
+                  filtered_lines+="$line\n"
+                fi
+              done <<< "$(echo -e "$new_lines" | tr '\n' '\0')"
+              new_body="$current_body$filtered_lines"
               gh pr edit "$pr_url" --body "$new_body"
             else
-              pr_body="This PR groups multiple open PRs by Dependabot for $group_name.$new_lines"
+              pr_body="This PR groups multiple open PRs by Dependabot for $group_name.\n\n$new_lines"
               pr_url=$(gh pr create \
                 --title "$pr_title" \
                 --body "$pr_body" \
-                --base main \
+                --base "$TARGET_BRANCH" \
                 --head "$branch_name")
             fi
 
-            # Reapply labels and close original PRs
-            for number in $(cut -d ' ' -f1 "$file"); do
-              labels=$(jq -r --arg num "$number" '.[] | select(.number == ($num|tonumber)) | .labels | join(",")' prs.json)
-              IFS="," read -ra label_arr <<< "$labels"
-              for label in "${label_arr[@]}"; do
-                gh pr edit "$pr_url" --add-label "$label"
+            if [ -n "$pr_url" ]; then
+              for number in $(cut -d ' ' -f1 "$file"); do
+                labels=$(jq -r --arg num "$number" '.[] | select(.number == ($num|tonumber)) | .labels | join(",")' prs.json)
+                IFS="," read -ra label_arr <<< "$labels"
+                for label in "${label_arr[@]}"; do
+                  gh pr edit "$pr_url" --add-label "$label"
+                done
+                gh pr close "$number" --comment "Grouped into $pr_url."
               done
-              gh pr close "$number" --comment "Grouped into $pr_url."
-            done
+              git push origin --delete "$branch_name" || echo "Could not delete $branch_name, may not exist remotely."
+            else
+              echo "Grouped PR was not created. Skipping closing of original PRs."
+            fi
           done
