@@ -63,7 +63,8 @@ jobs:
           cat prs.json
 
       - name: Validate prs.json
-        run: jq empty prs.json || { echo "Malformed JSON in prs.json"; exit 1; }
+        run: |
+          jq empty prs.json 2> jq_error.log || { echo "Malformed JSON in prs.json: $(cat jq_error.log)"; exit 1; }
 
       - name: Check if any PRs exist
         id: check_prs
