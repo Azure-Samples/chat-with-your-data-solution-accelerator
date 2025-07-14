@@ -1372,7 +1372,9 @@ output AZURE_TENANT_ID string = tenant().tenantId
 output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
 output BACKEND_URL string = backendUrl
-output AzureWebJobsStorage string = function.outputs.AzureWebJobsStorage
+output AzureWebJobsStorage string = hostingModel == 'code'
+  ? function.outputs.AzureWebJobsStorage
+  : function_docker.outputs.AzureWebJobsStorage
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code'
   ? web.outputs.FRONTEND_API_URI
   : web_docker.outputs.FRONTEND_API_URI

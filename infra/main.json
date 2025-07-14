@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.36.1.42791",
-      "templateHash": "15961130919109930926"
+      "templateHash": "11323213671656453502"
     }
   },
   "parameters": {
@@ -11417,7 +11417,7 @@
     },
     "AzureWebJobsStorage": {
       "type": "string",
-      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', parameters('functionName')), '2022-09-01').outputs.AzureWebJobsStorage.value]"
+      "value": "[if(equals(parameters('hostingModel'), 'code'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', parameters('functionName')), '2022-09-01').outputs.AzureWebJobsStorage.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('rgName')), 'Microsoft.Resources/deployments', format('{0}-docker', parameters('functionName'))), '2022-09-01').outputs.AzureWebJobsStorage.value)]"
     },
     "FRONTEND_WEBSITE_NAME": {
       "type": "string",
