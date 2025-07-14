@@ -1,3 +1,10 @@
+# This GitHub Actions workflow automates the grouping of open Dependabot PRs
+# It fetches all open PRs by Dependabot targeting the main branch,
+# identifies their ecosystem (npm, pip, GitHub Actions, or others),
+# cherry-picks them into grouped branches by ecosystem,
+# resolves conflicts automatically using --theirs strategy,
+# and creates or updates a single grouped PR with links to individual PRs.
+
 name: Group Dependabot PRs
 
 on:
