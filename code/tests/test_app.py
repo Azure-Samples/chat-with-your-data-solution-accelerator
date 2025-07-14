@@ -626,7 +626,7 @@ class TestConversationAzureByod:
         client: FlaskClient,
     ):
         """Test that the Azure BYOD conversation endpoint returns the correct response."""
-        default_cred_mock.return_value.get_token.return_value.token = "fake-token"
+        default_cred_mock.return_value.get_token = "fake-token"
         openai_client_mock = azure_openai_mock.return_value
         openai_client_mock.chat.completions.create.return_value = (
             self.mock_streamed_response
