@@ -1,6 +1,6 @@
 # Workflow: Group Dependabot PRs
 # Description:
-# This GitHub Actions workflow automatically groups open Dependabot PRs by ecosystem (pip, npm, GitHub Actions).
+# This GitHub Actions workflow automatically groups open Dependabot PRs by ecosystem (pip, npm).
 # It cherry-picks individual PR changes into grouped branches, resolves merge conflicts automatically, and opens consolidated PRs.
 # It also closes the original Dependabot PRs and carries over their labels and metadata.
 # Improvements:
@@ -14,6 +14,7 @@
 # - Adds strict error handling for script robustness
 # - Accounts for tool dependencies (jq, gh) and race conditions
 # - Notes: PRs created during workflow execution will be picked up in the next scheduled run.
+# - See YAML scalar format specs for details: https://yaml.org/spec/1.2.2/#23-scalars
 
 name: Group Dependabot PRs
 
@@ -28,12 +29,11 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      actions: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       TARGET_BRANCH: "main"
       GROUP_CONFIG: >-
-        {"pip":"backend","npm_and_yarn":"frontend","github-actions":"actions"}
+        {"pip":"backend","npm_and_yarn":"frontend"}
 
     steps:
       - name: Checkout default branch
