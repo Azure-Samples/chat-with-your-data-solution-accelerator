@@ -7,9 +7,8 @@ param tags object = {}
 param applicationInsightsName string = ''
 param appServicePlanId string
 param keyVaultName string = ''
-param managedIdentity bool = !empty(keyVaultName)
+param managedIdentity bool = true
 param storageAccountName string
-param useKeyVault bool
 
 // Runtime Properties
 @allowed([
@@ -71,11 +70,7 @@ module functions 'appservice.bicep' = {
         FUNCTIONS_EXTENSION_VERSION: extensionVersion
       },
       !useDocker ? { FUNCTIONS_WORKER_RUNTIME: runtimeName } : {},
-      useKeyVault
-        ? {
-            AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
-          }
-        : { AzureWebJobsStorage__accountName: storage.name }
+      { AzureWebJobsStorage__accountName: storage.name }
     )
     clientAffinityEnabled: clientAffinityEnabled
     enableOryxBuild: enableOryxBuild
@@ -111,6 +106,4 @@ resource storage 'Microsoft.Storage/storageAccounts@2021-09-01' existing = {
 output identityPrincipalId string = managedIdentity ? functions.outputs.identityPrincipalId : ''
 output name string = functions.outputs.name
 output uri string = functions.outputs.uri
-output azureWebJobsStorage string = useKeyVault
-  ? 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
-  : storage.name
+output azureWebJobsStorage string = storage.name
