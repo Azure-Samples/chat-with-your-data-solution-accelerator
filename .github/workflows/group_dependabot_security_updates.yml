@@ -36,6 +36,11 @@ on:
         description: "Group name for yarn ecosystem"
         required: false
         default: "frontend"
+      dry_run:
+        description: "Run in dry-run mode (no changes will be pushed or PRs created/closed)"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   group-dependabot-prs:
@@ -46,7 +51,7 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       TARGET_BRANCH: "main"
-      DRY_RUN: "false"
+      DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
       GROUP_CONFIG_PIP: ${{ github.event.inputs.group_config_pip || 'backend' }}
       GROUP_CONFIG_NPM: ${{ github.event.inputs.group_config_npm || 'frontend' }}
       GROUP_CONFIG_YARN: ${{ github.event.inputs.group_config_yarn || 'frontend' }}
@@ -139,7 +144,9 @@ jobs:
 
           for file in "${grouped_files[@]}"; do
             group_name=$(basename "$file" .txt)
-            branch_name="actions/grouped-${group_name}-updates"
+            # Sanitize group_name: allow only alphanum, dash, underscore
+            safe_group_name=$(echo "$group_name" | tr -c '[:alnum:]_-' '-')
+            branch_name="security/grouped-${safe_group_name}-updates"
             git checkout -B "$branch_name"
 
             while read -r number ref group; do
