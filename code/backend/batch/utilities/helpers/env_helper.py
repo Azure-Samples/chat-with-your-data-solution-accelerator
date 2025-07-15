@@ -76,6 +76,10 @@ class EnvHelper:
         self.AZURE_SEARCH_SOURCE_COLUMN = os.getenv(
             "AZURE_SEARCH_SOURCE_COLUMN", "source"
         )
+        self.AZURE_SEARCH_TEXT_COLUMN = os.getenv("AZURE_SEARCH_TEXT_COLUMN", "text")
+        self.AZURE_SEARCH_LAYOUT_TEXT_COLUMN = os.getenv(
+            "AZURE_SEARCH_LAYOUT_TEXT_COLUMN", "layoutText"
+        )
         self.AZURE_SEARCH_CHUNK_COLUMN = os.getenv("AZURE_SEARCH_CHUNK_COLUMN", "chunk")
         self.AZURE_SEARCH_OFFSET_COLUMN = os.getenv(
             "AZURE_SEARCH_OFFSET_COLUMN", "offset"
@@ -161,7 +165,7 @@ class EnvHelper:
                 "Unsupported DATABASE_TYPE. Please set DATABASE_TYPE to 'CosmosDB' or 'PostgreSQL'."
             )
 
-        self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "keys")
+        self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "rbac")
         # Azure OpenAI
         self.AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE", "")
         # Fetch AZURE_OPENAI_MODEL_INFO from environment
@@ -173,11 +177,9 @@ class EnvHelper:
             self.AZURE_OPENAI_MODEL_NAME = azure_openai_model_info.get("modelName", "")
         else:
             # Otherwise, fallback to individual environment variables
-            self.AZURE_OPENAI_MODEL = os.getenv(
-                "AZURE_OPENAI_MODEL", "gpt-4o"
-            )
+            self.AZURE_OPENAI_MODEL = os.getenv("AZURE_OPENAI_MODEL", "gpt-4.1")
             self.AZURE_OPENAI_MODEL_NAME = os.getenv(
-                "AZURE_OPENAI_MODEL_NAME", "gpt-4o"
+                "AZURE_OPENAI_MODEL_NAME", "gpt-4.1"
             )
 
         self.AZURE_OPENAI_VISION_MODEL = os.getenv("AZURE_OPENAI_VISION_MODEL", "gpt-4")
@@ -231,6 +233,7 @@ class EnvHelper:
         self.AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION = os.getenv(
             "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION", "2023-04-15"
         )
+        self.FUNCTION_KEY = os.getenv("FUNCTION_KEY", "")
 
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
@@ -239,6 +242,7 @@ class EnvHelper:
             self.AZURE_OPENAI_API_KEY = ""
             self.AZURE_SPEECH_KEY = None
             self.AZURE_COMPUTER_VISION_KEY = None
+            self.FUNCTION_KEY = self.secretHelper.get_secret("FUNCTION_KEY")
         else:
             self.AZURE_SEARCH_KEY = self.secretHelper.get_secret("AZURE_SEARCH_KEY")
             self.AZURE_OPENAI_API_KEY = self.secretHelper.get_secret(
@@ -266,7 +270,6 @@ class EnvHelper:
         os.environ["OPENAI_API_VERSION"] = self.OPENAI_API_VERSION
         # Azure Functions - Batch processing
         self.BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:7071")
-        self.FUNCTION_KEY = os.getenv("FUNCTION_KEY")
         self.AzureWebJobsStorage = os.getenv("AzureWebJobsStorage", "")
         self.DOCUMENT_PROCESSING_QUEUE_NAME = os.getenv(
             "DOCUMENT_PROCESSING_QUEUE_NAME", "doc-processing"

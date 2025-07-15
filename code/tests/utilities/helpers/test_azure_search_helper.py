@@ -32,6 +32,8 @@ AZURE_SEARCH_CONTENT_VECTOR_COLUMN = "mock-vector"
 AZURE_SEARCH_TITLE_COLUMN = "mock-title"
 AZURE_SEARCH_FIELDS_METADATA = "mock-metadata"
 AZURE_SEARCH_SOURCE_COLUMN = "mock-source"
+AZURE_SEARCH_TEXT_COLUMN = "mock-text"
+AZURE_SEARCH_LAYOUT_TEXT_COLUMN = "mock-layout-text"
 AZURE_SEARCH_CHUNK_COLUMN = "mock-chunk"
 AZURE_SEARCH_OFFSET_COLUMN = "mock-offset"
 AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = "default"
@@ -78,6 +80,8 @@ def env_helper_mock():
         env_helper.AZURE_SEARCH_TITLE_COLUMN = AZURE_SEARCH_TITLE_COLUMN
         env_helper.AZURE_SEARCH_FIELDS_METADATA = AZURE_SEARCH_FIELDS_METADATA
         env_helper.AZURE_SEARCH_SOURCE_COLUMN = AZURE_SEARCH_SOURCE_COLUMN
+        env_helper.AZURE_SEARCH_TEXT_COLUMN = AZURE_SEARCH_TEXT_COLUMN
+        env_helper.AZURE_SEARCH_LAYOUT_TEXT_COLUMN = AZURE_SEARCH_LAYOUT_TEXT_COLUMN
         env_helper.AZURE_SEARCH_CHUNK_COLUMN = AZURE_SEARCH_CHUNK_COLUMN
         env_helper.AZURE_SEARCH_OFFSET_COLUMN = AZURE_SEARCH_OFFSET_COLUMN
         env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG = (
@@ -231,6 +235,16 @@ def test_creates_search_index_if_not_exists(
             name=AZURE_SEARCH_OFFSET_COLUMN,
             type=SearchFieldDataType.Int32,
             filterable=True,
+        ),
+        SearchableField(
+            name=AZURE_SEARCH_TEXT_COLUMN,
+            type=SearchFieldDataType.String,
+            filterable=False,
+        ),
+        SearchableField(
+            name=AZURE_SEARCH_LAYOUT_TEXT_COLUMN,
+            type=SearchFieldDataType.String,
+            filterable=False,
         ),
     ]
 

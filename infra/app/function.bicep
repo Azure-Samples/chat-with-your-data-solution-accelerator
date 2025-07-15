@@ -11,23 +11,7 @@ param runtimeVersion string = ''
 @secure()
 param clientKey string
 param keyVaultName string = ''
-param azureOpenAIName string = ''
-param azureAISearchName string = ''
-param formRecognizerName string = ''
-param contentSafetyName string = ''
-param speechServiceName string = ''
-param computerVisionName string = ''
-param useKeyVault bool
-param openAIKeyName string = ''
-param storageAccountKeyName string = ''
-param formRecognizerKeyName string = ''
-param searchKeyName string = ''
-param computerVisionKeyName string = ''
-param contentSafetyKeyName string = ''
-param speechKeyName string = ''
-param authType string
 param dockerFullImageName string = ''
-param databaseType string
 
 module function '../core/host/functions.bicep' = {
   name: '${name}-app-module'
@@ -42,92 +26,8 @@ module function '../core/host/functions.bicep' = {
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
     dockerFullImageName: dockerFullImageName
-    useKeyVault: useKeyVault
-    managedIdentity: databaseType == 'PostgreSQL' || !empty(keyVaultName)
-    appSettings: union(appSettings, {
-      WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
-      AZURE_AUTH_TYPE: authType
-      USE_KEY_VAULT: useKeyVault ? useKeyVault : ''
-      AZURE_OPENAI_API_KEY: useKeyVault
-        ? openAIKeyName
-        : listKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.CognitiveServices/accounts',
-              azureOpenAIName
-            ),
-            '2023-05-01'
-          ).key1
-      AZURE_SEARCH_KEY: useKeyVault
-        ? searchKeyName
-        : (azureAISearchName != ''
-            ? listAdminKeys(
-                resourceId(
-                  subscription().subscriptionId,
-                  resourceGroup().name,
-                  'Microsoft.Search/searchServices',
-                  azureAISearchName
-                ),
-                '2021-04-01-preview'
-              ).primaryKey
-            : '')
-      AZURE_BLOB_ACCOUNT_KEY: useKeyVault
-        ? storageAccountKeyName
-        : listKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.Storage/storageAccounts',
-              storageAccountName
-            ),
-            '2021-09-01'
-          ).keys[0].value
-      AZURE_FORM_RECOGNIZER_KEY: useKeyVault
-        ? formRecognizerKeyName
-        : listKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.CognitiveServices/accounts',
-              formRecognizerName
-            ),
-            '2023-05-01'
-          ).key1
-      AZURE_CONTENT_SAFETY_KEY: useKeyVault
-        ? contentSafetyKeyName
-        : listKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.CognitiveServices/accounts',
-              contentSafetyName
-            ),
-            '2023-05-01'
-          ).key1
-      AZURE_SPEECH_SERVICE_KEY: useKeyVault
-        ? speechKeyName
-        : listKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.CognitiveServices/accounts',
-              speechServiceName
-            ),
-            '2023-05-01'
-          ).key1
-      AZURE_COMPUTER_VISION_KEY: (useKeyVault || computerVisionName == '')
-        ? computerVisionKeyName
-        : listKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.CognitiveServices/accounts',
-              computerVisionName
-            ),
-            '2023-05-01'
-          ).key1
-    })
+    managedIdentity: !empty(keyVaultName)
+    appSettings: appSettings
   }
 }
 
@@ -159,7 +59,7 @@ resource waitFunctionDeploymentSection 'Microsoft.Resources/deploymentScripts@20
 }
 
 // Cognitive Services User
-module openAIRoleFunction '../core/security/role.bicep' = if (authType == 'rbac') {
+module openAIRoleFunction '../core/security/role.bicep' = {
   name: 'openai-role-function'
   params: {
     principalId: function.outputs.identityPrincipalId
@@ -171,7 +71,7 @@ module openAIRoleFunction '../core/security/role.bicep' = if (authType == 'rbac'
 // Contributor
 // This role is used to grant the service principal contributor access to the resource group
 // See if this is needed in the future.
-module openAIRoleFunctionContributor '../core/security/role.bicep' = if (authType == 'rbac') {
+module openAIRoleFunctionContributor '../core/security/role.bicep' = {
   name: 'openai-role-function-contributor'
   params: {
     principalId: function.outputs.identityPrincipalId
@@ -181,7 +81,7 @@ module openAIRoleFunctionContributor '../core/security/role.bicep' = if (authTyp
 }
 
 // Search Index Data Contributor
-module searchRoleFunction '../core/security/role.bicep' = if (authType == 'rbac') {
+module searchRoleFunction '../core/security/role.bicep' = {
   name: 'search-role-function'
   params: {
     principalId: function.outputs.identityPrincipalId
@@ -191,7 +91,7 @@ module searchRoleFunction '../core/security/role.bicep' = if (authType == 'rbac'
 }
 
 // Storage Blob Data Contributor
-module storageBlobRoleFunction '../core/security/role.bicep' = if (authType == 'rbac') {
+module storageBlobRoleFunction '../core/security/role.bicep' = {
   name: 'storage-blob-role-function'
   params: {
     principalId: function.outputs.identityPrincipalId
@@ -201,7 +101,7 @@ module storageBlobRoleFunction '../core/security/role.bicep' = if (authType == '
 }
 
 // Storage Queue Data Contributor
-module storageQueueRoleFunction '../core/security/role.bicep' = if (authType == 'rbac') {
+module storageQueueRoleFunction '../core/security/role.bicep' = {
   name: 'storage-queue-role-function'
   params: {
     principalId: function.outputs.identityPrincipalId
@@ -210,7 +110,7 @@ module storageQueueRoleFunction '../core/security/role.bicep' = if (authType == 
   }
 }
 
-module functionaccess '../core/security/keyvault-access.bicep' = if (useKeyVault) {
+module functionaccess '../core/security/keyvault-access.bicep' = {
   name: 'function-keyvault-access'
   params: {
     keyVaultName: keyVaultName
@@ -220,3 +120,4 @@ module functionaccess '../core/security/keyvault-access.bicep' = if (useKeyVault
 
 output FUNCTION_IDENTITY_PRINCIPAL_ID string = function.outputs.identityPrincipalId
 output functionName string = function.outputs.name
+output AzureWebJobsStorage string = function.outputs.azureWebJobsStorage

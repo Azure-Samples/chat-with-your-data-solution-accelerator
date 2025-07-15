@@ -1,20 +1,28 @@
 # Set Up Authentication in Azure App Service
 
+This document provides step-by-step instructions to configure Azure App Registrations for a front-end application.
+
+## Prerequisites
+
+- Access to **Microsoft Entra ID**
+- Necessary permissions to create and manage **App Registrations**
+  
 ## Step 1: Add Authentication in Azure App Service configuration
 
 1. Click on `Authentication` from left menu.
 
 ![Authentication](images/AppAuthentication.png)
 
-2. Click on `+ Add Provider` to see a list of identity providers.
+2. Click on `+ Add identity provider` to see a list of identity providers.
 
 ![Authentication Identity](images/AppAuthenticationIdentity.png)
 
-3. Click on `+ Add Provider` to see a list of identity providers.
+3. Click on `Identity Provider` dropdown to see a list of identity providers.
 
 ![Add Provider](images/AppAuthIdentityProvider.png)
 
-4. Select the first option `Microsoft Entra Id` from the drop-down list. If `Create new app registration` is disabled, go to [Step 1a](#step-1a-creating-a-new-app-registration).
+4. Select the first option `Microsoft Entra Id` from the drop-down list and select `client secret expiration` under App registration.
+> NOTE: If `Create new app registration` is disabled, then go to [Create new app registration](/docs/create_new_app_registration.md) and come back to this step to complete the app authentication.
 
 ![Add Provider](images/AppAuthIdentityProviderAdd.png)
 
@@ -22,37 +30,4 @@
 
 ![Add Provider](images/AppAuthIdentityProviderAdded.png)
 
-### Step 1a: Creating a new App Registration
-
-1. Click on `Home` and select `Microsoft Entra ID`.
-
-![Microsoft Entra ID](images/MicrosoftEntraID.png)
-
-2. Click on `App registrations`.
-
-![App registrations](images/Appregistrations.png)
-
-3. Click on `+ New registration`.
-
-![New Registrations](images/NewRegistration.png)
-
-4. Provide the `Name`, select supported account types as `Accounts in this organizational directory only(Contoso only - Single tenant)`, select platform as `Web`, enter/select the `URL` and register.
-
-![Add Details](images/AddDetails.png)
-
-5. After application is created sucessfully, then click on `Add a Redirect URL`.
-
-![Redirect URL](images/AddRedirectURL.png)
-
-6. Click on `+ Add a platform`.
-
-![+ Add platform](images/AddPlatform.png)
-
-7. Click on `Web`.
-
-![Web](images/Web.png)
-
-8. Enter the `web app URL` (Provide the app service name in place of XXXX) and Save. Then go back to [Step 1](#step-1-add-authentication-in-azure-app-service-configuration) and follow from _Point 4_ choose `Pick an existing app registration in this directory` from the Add an Identity Provider page and provide the newly registered App Name.
-E.g. https://appservicename.azurewebsites.net/.auth/login/aad/callback
-
-![Add Details](images/WebAppURL.png)
+6. You have successfully added app authentication, and now required to log in to access the application.

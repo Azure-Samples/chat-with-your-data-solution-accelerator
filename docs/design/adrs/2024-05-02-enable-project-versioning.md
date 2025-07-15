@@ -1,4 +1,4 @@
-# Use Github Releases to manage project versioning
+# Use GitHub Releases to manage project versioning
 
 * **Status:** approved
 * **Proposer:** @frtibble

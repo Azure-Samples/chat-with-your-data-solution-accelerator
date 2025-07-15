@@ -491,37 +491,43 @@ Use the Retrieved Documents to answer the question: {question}
                     "Configuration saved successfully! Please restart the chat service for these changes to take effect."
                 )
 
-    with st.popover(":red[Reset configuration to defaults]"):
-
-        # Close button with a custom class
-        if st.button("X", key="close_popup", help="Close popup"):
-            st.session_state["popup_open"] = False
-            st.rerun()
-
-        st.write(
-            "**Resetting the configuration cannot be reversed, proceed with caution!**"
-        )
+    @st.dialog("Reset Configuration", width="small")
+    def reset_config_dialog():
+        st.write("**Resetting the configuration cannot be reversed. Proceed with caution!**")
 
         st.text_input('Enter "reset" to proceed', key="reset_configuration")
         if st.button(
-            ":red[Reset]", disabled=st.session_state["reset_configuration"] != "reset"
+            ":red[Reset]",
+            disabled=st.session_state.get("reset_configuration", "") != "reset",
+            key="confirm_reset"
         ):
-            try:
-                ConfigHelper.delete_config()
-            except ResourceNotFoundError:
-                pass
+            with st.spinner("Resetting Configuration to Default values..."):
+                try:
+                    ConfigHelper.delete_config()
+                except ResourceNotFoundError:
+                    pass
 
-            for key in st.session_state:
-                del st.session_state[key]
-
+                ConfigHelper.clear_config()
+            st.session_state.clear()
             st.session_state["reset"] = True
             st.session_state["reset_configuration"] = ""
+            st.session_state["show_reset_dialog"] = False
             st.rerun()
 
-        if st.session_state.get("reset") is True:
-            st.success("Configuration reset successfully!")
-            del st.session_state["reset"]
-            del st.session_state["reset_configuration"]
+    # Reset configuration button
+    if st.button(":red[Reset configuration to defaults]"):
+        st.session_state["show_reset_dialog"] = True
+
+    # Open the dialog if needed
+    if st.session_state.get("show_reset_dialog"):
+        reset_config_dialog()
+        st.session_state["show_reset_dialog"] = False
+
+    # After reset success
+    if st.session_state.get("reset"):
+        st.success("Configuration reset successfully!")
+        del st.session_state["reset"]
+        del st.session_state["reset_configuration"]
 
 except Exception as e:
     logger.error(f"Error occurred: {e}")

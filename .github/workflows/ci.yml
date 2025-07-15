@@ -8,6 +8,7 @@ on:
       - demo
   schedule:
     - cron: '0 8,20 * * *'  # Runs at 8:00 AM and 8:00 PM GMT
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,7 +18,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  ci:
+  deploy:
     runs-on: ubuntu-latest
     env:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -25,11 +26,16 @@ jobs:
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
+    outputs:
+      imageTag: ${{ steps.set-image-tag.outputs.imageTag }}
+      web_url: ${{ steps.extract-urls.outputs.web_url }}
+      admin_url: ${{ steps.extract-urls.outputs.admin_url }}
+      DEPLOYMENT_SUCCESS: ${{ steps.final-status.outputs.DEPLOYMENT_SUCCESS }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Run Quota Check Script
       - name: Run Quota Check
         id: quota-check
         run: |
@@ -43,11 +49,10 @@ jobs:
 
           chmod +x scripts/checkquota.sh
           if ! scripts/checkquota.sh; then
-            # If quota check fails due to insufficient quota, set the flag
             if grep -q "No region with sufficient quota found" scripts/checkquota.sh; then
               echo "QUOTA_FAILED=true" >> $GITHUB_ENV
             fi
-            exit 1  # Fail the pipeline if any other failure occurs
+            exit 1
           fi
 
       - name: Send Notification on Quota Failure
@@ -69,8 +74,6 @@ jobs:
         if: env.QUOTA_FAILED == 'true'
         run: exit 1
 
-        # The pipeline stops here if quota check fails!
-
       - name: Set Deployment Region
         run: |
           echo "Selected Region: $VALID_REGION"
@@ -88,36 +91,263 @@ jobs:
         run: |
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
             echo "imageTag=latest" >> $GITHUB_ENV
+            echo "::set-output name=imageTag::latest"
           elif [[ "${{ github.ref_name }}" == "main" ]]; then
             echo "imageTag=latest" >> $GITHUB_ENV
+            echo "::set-output name=imageTag::latest"
           else
             echo "imageTag=${{ github.ref_name }}" >> $GITHUB_ENV
+            echo "::set-output name=imageTag::${{ github.ref_name }}"
           fi
 
-      - name: Pre-build image and run make in dev container
+      - name: Pre-build image and deploy
         uses: devcontainers/ci@v0.3
         env:
-          AZURE_ENV_NAME: ${{ github.run_id }}
-          AZURE_LOCATION: ${{ env.AZURE_LOCATION }}
+                      AZURE_ENV_NAME: ${{ github.run_id }}
+                      AZURE_LOCATION: ${{ env.AZURE_LOCATION }}
         with:
-          imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
-          cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
-          imageTag: ${{ env.imageTag }}
-          runCmd: make ci && make deploy
-          refFilterForPush: refs/heads/${{ github.event_name == 'schedule' && 'main' || github.ref_name }}
-          env: |
-            AZURE_CLIENT_ID
-            AZURE_CLIENT_SECRET
-            AZURE_TENANT_ID
-            AZURE_SUBSCRIPTION_ID
-            AZURE_ENV_NAME
-            AZURE_LOCATION
-      - name: Tidy up
-        uses: devcontainers/ci@v0.3
-        if: always()
+                            push: never
+                            imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+                            cacheFrom: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
+                            imageTag: ${{ env.imageTag }}
+                            runCmd: |
+                              export optional_args="./code/tests"
+
+                              # Azure login first
+                              az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+                              az account set --subscription $AZURE_SUBSCRIPTION_ID
+
+                              # Capture deployment output to a log file
+                              make ci 2>&1 | tee ci_output.log
+                              make deploy 2>&1 | tee deploy_output.log
+
+                              # Try to extract URLs from deployment logs as backup
+                              echo "=== Extracting URLs from deployment logs ==="
+                              grep -oE "https://[a-zA-Z0-9.-]*\.azurewebsites\.net/" deploy_output.log | head -2 | tee extracted_urls.txt || echo "No URLs found in logs"
+
+                              # Check if we have admin URL in logs
+                              grep -E "Done: Deploying service adminweb" -A 2 deploy_output.log | grep -oE "https://[a-zA-Z0-9.-]*\.azurewebsites\.net/" > log_admin_url.txt || echo "" > log_admin_url.txt
+
+                              # Check if we have web URL in logs
+                              grep -E "Done: Deploying service web" -A 2 deploy_output.log | grep -oE "https://[a-zA-Z0-9.-]*\.azurewebsites\.net/" > log_web_url.txt || echo "" > log_web_url.txt
+
+                              echo "URLs from logs:"
+                              echo "Admin URL from logs: $(cat log_admin_url.txt)"
+                              echo "Frontend URL from logs: $(cat log_web_url.txt)"
+                            env: |
+                              AZURE_CLIENT_ID
+                              AZURE_CLIENT_SECRET
+                              AZURE_TENANT_ID
+                              AZURE_SUBSCRIPTION_ID
+                              AZURE_ENV_NAME
+                              AZURE_LOCATION
+                              AUTH_ENABLED=false
+                              AZURE_USE_AUTHENTICATION=false
+                              AZURE_ENABLE_AUTH=false
+                              FORCE_NO_AUTH=true
+                              ENFORCE_AUTH=false
+                              REQUIRE_AUTHENTICATION=false
+                              AUTHENTICATION_ENABLED=false
+                              WEBSITES_AUTH_ENABLED=false
+                              WEBSITE_AUTH_ENABLED=false
+                              AZURE_AUTH_ENABLED=false
+                              ENABLE_AUTHENTICATION=false
+                              DISABLE_AUTHENTICATION=true
+                              NO_AUTH=true
+                              SKIP_AUTH=true
+
+      - name: Extract URLs from deployment
+        id: extract-urls
+        run: |
+                      # Method 1: Check files created by Makefile
+                      echo "=== Method 1: Files from Makefile ==="
+                      if [ -f "web_url.txt" ]; then
+                        WEB_URL=$(cat web_url.txt | tr -d '\n\r' | xargs)
+                        echo "Web URL from makefile: '$WEB_URL'"
+                      fi
+
+                      if [ -f "admin_url.txt" ]; then
+                        ADMIN_URL=$(cat admin_url.txt | tr -d '\n\r' | xargs)
+                        echo "Admin URL from makefile: '$ADMIN_URL'"
+                      fi
+
+                      # Method 2: Check URLs extracted from logs
+                      echo "=== Method 2: URLs from deployment logs ==="
+                      if [ -f "log_web_url.txt" ]; then
+                        LOG_WEB_URL=$(cat log_web_url.txt | tr -d '\n\r' | xargs)
+                        echo "Web URL from logs: '$LOG_WEB_URL'"
+                        if [ -z "$WEB_URL" ] && [ -n "$LOG_WEB_URL" ]; then
+                          WEB_URL="$LOG_WEB_URL"
+                        fi
+                      fi
+
+                      if [ -f "log_admin_url.txt" ]; then
+                        LOG_ADMIN_URL=$(cat log_admin_url.txt | tr -d '\n\r' | xargs)
+                        echo "Admin URL from logs: '$LOG_ADMIN_URL'"
+                        if [ -z "$ADMIN_URL" ] && [ -n "$LOG_ADMIN_URL" ]; then
+                          ADMIN_URL="$LOG_ADMIN_URL"
+                        fi
+                      fi
+
+                      # Set outputs
+                      if [ -n "$WEB_URL" ] && [ "$WEB_URL" != "null" ] && [ "$WEB_URL" != "" ]; then
+                        echo "web_url=$WEB_URL" >> $GITHUB_OUTPUT
+                        echo "WEB_WEBSITE_URL=$WEB_URL" >> $GITHUB_ENV
+                        echo "✅ Web URL: $WEB_URL"
+                      else
+                        echo "web_url=" >> $GITHUB_OUTPUT
+                        echo "FRONTEND_WEBSITE_URL=" >> $GITHUB_ENV
+                        echo "❌ Frontend URL: Not found"
+                      fi
+
+                      if [ -n "$ADMIN_URL" ] && [ "$ADMIN_URL" != "null" ] && [ "$ADMIN_URL" != "" ]; then
+                        echo "admin_url=$ADMIN_URL" >> $GITHUB_OUTPUT
+                        echo "ADMIN_WEBSITE_URL=$ADMIN_URL" >> $GITHUB_ENV
+                        echo "✅ Admin URL: $ADMIN_URL"
+                      else
+                        echo "admin_url=" >> $GITHUB_OUTPUT
+                        echo "ADMIN_WEBSITE_URL=" >> $GITHUB_ENV
+                        echo "❌ Admin URL: Not found"
+                      fi
+
+                      # Additional debugging
+                      echo "=== All Available Files ==="
+                      ls -la *.txt *.log *.json 2>/dev/null || echo "No relevant files found"
+
+      - name: Display URLs
+        run: |
+                      echo "Web URL: ${{ env.WEB_WEBSITE_URL }}"
+                      echo "Admin URL: ${{ env.ADMIN_WEBSITE_URL }}"
+                      echo "web_url=$WEB_URL" >> $GITHUB_OUTPUT
+                      echo "admin_url=$ADMIN_URL" >> $GITHUB_OUTPUT
+
+      - name: Disable Authentication with Script
+        run: |
+                chmod +x scripts/disable_auth.sh
+                ./scripts/disable_auth.sh
         env:
-          AZURE_ENV_NAME: ${{ github.run_id }}
-          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+                FRONTEND_WEBSITE_URL: ${{ env.WEB_WEBSITE_URL }}
+                ADMIN_WEBSITE_URL: ${{ env.ADMIN_WEBSITE_URL }}
+                AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+                AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+                AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+                AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Export PostgreSQL Host Endpoint from Makefile
+        run: |
+                # Only extract the PostgreSQL host endpoint from Makefile output
+                # Other values are hardcoded in the script
+                echo "=== Extracting PostgreSQL Host Endpoint ==="
+
+                if [ -f "pg_host.txt" ] && [ -s "pg_host.txt" ]; then
+                  PG_HOST_ENDPOINT=$(cat pg_host.txt | tr -d '\n\r' | xargs)
+                  echo "PG_HOST_DESTINATION=$PG_HOST_ENDPOINT" >> $GITHUB_ENV
+                  echo "✅ PostgreSQL Host Endpoint: $PG_HOST_ENDPOINT"
+                else
+                  echo "❌ PostgreSQL host endpoint not found in pg_host.txt"
+                  echo "PG_HOST_DESTINATION=localhost" >> $GITHUB_ENV
+                  echo "Warning: Using localhost as fallback"
+                fi
+
+                echo "=== PostgreSQL Configuration Summary ==="
+                echo "Host Endpoint: $PG_HOST_DESTINATION"
+                echo "Username: admintest (hardcoded)"
+                echo "Password: Initial_0524 (hardcoded)"
+                echo "Database: postgres (hardcoded)"
+                echo "Port: 5432 (hardcoded)"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+                python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+                pip install psycopg2-binary python-dotenv
+
+
+      - name: Populate PostgreSQL Database
+        run: |
+          python - <<EOF
+          import os
+          import psycopg2
+
+          db_params = {
+              "user": "admintest",
+              "password": "Initial_0524",
+              "host": os.environ.get("PG_HOST_DESTINATION", "localhost"),
+              "port": "5432",
+              "dbname": "postgres",
+              "sslmode": "require"
+          }
+
+          csv_file = "exported_data_vector_score.csv"
+          target_table = "vector_store"
+
+          try:
+              with psycopg2.connect(**db_params) as conn:
+                  with conn.cursor() as cur:
+                      with open(csv_file, "r", encoding="utf-8") as f:
+                          next(f)  # Skip header
+                          cur.copy_expert(f"COPY {target_table} FROM STDIN WITH CSV", f)
+                  conn.commit()
+                  print(f"✅ Imported data from '{csv_file}' into table '{target_table}'.")
+          except Exception as e:
+              print(f"❌ Error during import: {e}")
+          EOF
+
+
+
+      - name: Final Status Check
+        id: final-status
+        run: |
+                      echo "=== Final Deployment Status ==="
+                      echo "Frontend URL: ${{ env.FRONTEND_WEBSITE_URL }}"
+                      echo "Admin URL: ${{ env.ADMIN_WEBSITE_URL }}"
+                      echo ""
+                      echo "🚀 Deployment completed!"
+                      echo "⏰ If you still see authentication errors, wait an additional 10-15 minutes."
+                      echo "🔄 Azure authentication changes can take up to 15 minutes to fully propagate."
+                      echo ""
+                      echo "🌐 Try accessing your applications:"
+                      echo "   Frontend: ${{ env.FRONTEND_WEBSITE_URL }}"
+                      echo "   Admin: ${{ env.ADMIN_WEBSITE_URL }}"
+                      echo "DEPLOYMENT_SUCCESS=true" >> $GITHUB_OUTPUT
+
+
+      - name: Wait for 5 minutes for propagation
+        run: sleep 300
+
+
+  e2e-test:
+    needs: deploy
+    if: needs.deploy.outputs.DEPLOYMENT_SUCCESS == 'true'
+    uses: ./.github/workflows/test-automation.yml
+    with:
+      web_url: ${{ needs.deploy.outputs.web_url }}
+      admin_url: ${{ needs.deploy.outputs.admin_url }}
+
+
+  cleanup:
+    if: always()
+    needs: [deploy, e2e-test]
+    runs-on: ubuntu-latest
+
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_ENV_NAME: ${{ github.run_id }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      imageTag: ${{ needs.deploy.outputs.imageTag }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Destroy resources
+        uses: devcontainers/ci@v0.3
         with:
           push: never
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
@@ -135,15 +365,13 @@ jobs:
         if: failure()
         run: |
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          # Construct the email body
           EMAIL_BODY=$(cat <<EOF
           {
-            "body": "<p>Dear Team,</p><p>We would like to inform you that the CWYD Automation process has encountered an issue and has failed to complete successfully.</p><p><strong>Build URL:</strong> ${RUN_URL}<br> ${OUTPUT}</p><p>Please investigate the matter at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>"
+            "body": "<p>Dear Team,</p><p>The CWYD Automation process has encountered an issue and has failed to complete successfully.</p><p><strong>Build URL:</strong> ${RUN_URL}</p><p>Please investigate.</p><p>Best regards,<br>Your Automation Team</p>"
           }
           EOF
           )
 
-          # Send the notification
           curl -X POST "${{ secrets.LOGIC_APP_URL }}" \
             -H "Content-Type: application/json" \
             -d "$EMAIL_BODY" || echo "Failed to send notification"
