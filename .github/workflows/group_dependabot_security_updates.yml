@@ -23,6 +23,19 @@ on:
   schedule:
     - cron: '0 0 * * *'  # Run daily at midnight UTC
   workflow_dispatch:
+    inputs:
+      group_config_pip:
+        description: "Group name for pip ecosystem"
+        required: false
+        default: "backend"
+      group_config_npm:
+        description: "Group name for npm ecosystem"
+        required: false
+        default: "frontend"
+      group_config_yarn:
+        description: "Group name for yarn ecosystem"
+        required: false
+        default: "frontend"
 
 jobs:
   group-dependabot-prs:
@@ -34,10 +47,9 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       TARGET_BRANCH: "main"
       DRY_RUN: "false"
-      # [customize] You can move GROUP_CONFIG to workflow inputs or YAML env for easier customization.
-      GROUP_CONFIG_PIP: "backend"
-      GROUP_CONFIG_NPM: "frontend"
-      GROUP_CONFIG_YARN: "frontend"
+      GROUP_CONFIG_PIP: ${{ github.event.inputs.group_config_pip || 'backend' }}
+      GROUP_CONFIG_NPM: ${{ github.event.inputs.group_config_npm || 'frontend' }}
+      GROUP_CONFIG_YARN: ${{ github.event.inputs.group_config_yarn || 'frontend' }}
     steps:
       - name: Checkout default branch
         uses: actions/checkout@v4
@@ -48,7 +60,7 @@ jobs:
           git config --global user.email "github-actions@github.com"
 
       - name: Install required tools
-        uses: awalsh128/cache-apt-pkgs-action@latest
+        uses: awalsh128/cache-apt-pkgs-action@v1.3.1
         with:
           packages: "jq gh"
 
@@ -87,7 +99,7 @@ jobs:
 
       - name: Group PRs by ecosystem and cherry-pick with retry
         run: |
-          # [customize] GROUP_CONFIG can be set via workflow env or inputs for easier maintenance.
+          # GROUP_CONFIG is now set via workflow inputs/env for easier maintenance.
           declare -A GROUP_CONFIG=(
             [pip]="${GROUP_CONFIG_PIP:-backend}"
             [npm]="${GROUP_CONFIG_NPM:-frontend}"
@@ -115,7 +127,6 @@ jobs:
             exit 0
           fi
 
-          # Renamed pr_data to pr_metadata_map for clarity
           declare -A pr_metadata_map
           while IFS=$'\t' read -r number title url labels; do
             pr_metadata_map["$number"]="$title|$url|$labels"
@@ -154,7 +165,6 @@ jobs:
             if [ "$DRY_RUN" == "true" ]; then
               echo "[DRY-RUN] Skipping git push for $branch_name"
             else
-              # Use --force-with-lease for safer force-push
               git push --force-with-lease origin "$branch_name"
             fi
 
@@ -179,11 +189,19 @@ jobs:
                   filtered_lines+="$line\n"
                 fi
               done <<< "$(printf '%b' "$new_lines" | tr '\n' '\0')"
-              new_body="$current_body$filtered_lines"
+              # Ensure a newline separator between the existing body and new lines
+              if [ -n "$filtered_lines" ]; then
+                new_body="$current_body"$'\n'"$filtered_lines"
+              else
+                new_body="$current_body"
+              fi
               if [ "$DRY_RUN" == "true" ]; then
                 echo "[DRY-RUN] Would update PR body for $pr_url"
               else
-                gh pr edit "$pr_url" --body "$new_body"
+                tmpfile=$(mktemp)
+                printf '%s' "$new_body" > "$tmpfile"
+                gh pr edit "$pr_url" --body-file "$tmpfile"
+                rm -f "$tmpfile"
               fi
             else
               pr_body=$(printf "This PR groups multiple open PRs by Dependabot for %s.\n\n%b" "$group_name" "$new_lines")
