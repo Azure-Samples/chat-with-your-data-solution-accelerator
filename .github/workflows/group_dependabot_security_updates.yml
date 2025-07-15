@@ -14,7 +14,7 @@
 # - Adds strict error handling for script robustness
 # - Accounts for tool dependencies (jq, gh) and race conditions
 # - Notes: PRs created during workflow execution will be picked up in the next scheduled run.
-# - See YAML scalar format specs for details: https://yaml.org/spec/1.2.2/#23-scalars
+
 
 name: Group Dependabot PRs
 
@@ -45,8 +45,9 @@ jobs:
           git config --global user.email "github-actions@github.com"
 
       - name: Install required tools
-        run: |
-          sudo apt-get update && sudo apt-get install -y jq gh
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: "jq gh"
 
       - name: Enable strict error handling
         shell: bash
@@ -63,7 +64,8 @@ jobs:
           cat prs.json
 
       - name: Validate prs.json
-        run: jq empty prs.json || { echo "Malformed JSON in prs.json"; exit 1; }
+        run: |
+          jq empty prs.json 2> jq_error.log || { echo "Malformed JSON in prs.json: $(cat jq_error.log)"; exit 1; }
 
       - name: Check if any PRs exist
         id: check_prs
@@ -162,7 +164,7 @@ jobs:
               new_body="$current_body$filtered_lines"
               gh pr edit "$pr_url" --body "$new_body"
             else
-              pr_body="This PR groups multiple open PRs by Dependabot for $group_name.\n\n$new_lines"
+              pr_body=$(printf "This PR groups multiple open PRs by Dependabot for %s.\n\n%s" "$group_name" "$new_lines")
               pr_url=$(gh pr create \
                 --title "$pr_title" \
                 --body "$pr_body" \
