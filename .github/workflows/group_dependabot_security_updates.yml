@@ -8,14 +8,14 @@
 # - Deduplicates entries in PR description
 # - Avoids closing original PRs unless grouped PR creation succeeds
 # - More efficient retry logic
-# - Ecosystem grouping is now configurable via JSON map
+# - Ecosystem grouping is now configurable via native YAML map
 # - Uses safe namespaced branch naming (e.g. actions/grouped-...) to avoid developer conflict
 # - Ensures PR body formatting uses real newlines for better readability
 # - Adds strict error handling for script robustness
 # - Accounts for tool dependencies (jq, gh) and race conditions
 # - Optimized PR metadata lookup by preloading into associative array
-# - Notes: PRs created during workflow execution will be picked up in the next scheduled run.
-# - See YAML scalar format specs for details: https://yaml.org/spec/1.2.2/#23-scalars
+# - Supports --dry-run mode for validation/testing without side effects
+# - Note: PRs created during workflow execution will be picked up in the next scheduled run.
 
 name: Group Dependabot PRs
 
@@ -33,9 +33,7 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       TARGET_BRANCH: "main"
-      GROUP_CONFIG: >-
-        {"pip":"backend","npm_and_yarn":"frontend"}
-
+      DRY_RUN: "false"
     steps:
       - name: Checkout default branch
         uses: actions/checkout@v4
@@ -60,6 +58,7 @@ jobs:
         run: |
           gh pr list \
             --search "author:dependabot[bot] base:$TARGET_BRANCH is:open" \
+            --limit 100 \
             --json number,title,headRefName,labels,files,url \
             --jq '[.[] | {number, title, url, ref: .headRefName, labels: [.labels[].name], files: [.files[].path]}]' > prs.json
           cat prs.json
@@ -85,19 +84,17 @@ jobs:
       - name: Group PRs by ecosystem and cherry-pick with retry
         run: |
           mkdir -p grouped
-          config_json="$GROUP_CONFIG"
+          declare -A GROUP_CONFIG=( [pip]=backend [npm]=frontend [yarn]=frontend )
           jq -c '.[]' prs.json | while read pr; do
             ref=$(echo "$pr" | jq -r '.ref')
             number=$(echo "$pr" | jq -r '.number')
-
             group="misc"
-            for key in $(echo "$config_json" | jq -r 'keys[]'); do
+            for key in "${!GROUP_CONFIG[@]}"; do
               if [[ "$ref" == *"$key"* ]]; then
-                group=$(echo "$config_json" | jq -r --arg k "$key" '.[$k]')
+                group="${GROUP_CONFIG[$key]}"
                 break
               fi
             done
-
             echo "$number $ref $group" >> grouped/$group.txt
           done
 
@@ -144,7 +141,11 @@ jobs:
               fi
             done < "$file"
 
-            git push --force origin "$branch_name"
+            if [ "$DRY_RUN" == "true" ]; then
+              echo "[DRY-RUN] Skipping git push for $branch_name"
+            else
+              git push --force origin "$branch_name"
+            fi
 
             new_lines=""
             while read -r number ref group; do
@@ -152,7 +153,7 @@ jobs:
               new_lines+="$title - [#$number]($url)\n"
             done < "$file"
 
-            pr_title="build: bump grouped $group_name dependabot updates"
+            pr_title="chore(deps): bump grouped $group_name Dependabot updates"
             existing_url=$(gh pr list --head "$branch_name" --base "$TARGET_BRANCH" --json url --jq '.[0].url // empty')
 
             if [ -n "$existing_url" ]; then
@@ -167,14 +168,24 @@ jobs:
                 fi
               done <<< "$(echo -e "$new_lines" | tr '\n' '\0')"
               new_body="$current_body$filtered_lines"
-              gh pr edit "$pr_url" --body "$new_body"
+              if [ "$DRY_RUN" == "true" ]; then
+                echo "[DRY-RUN] Would update PR body for $pr_url"
+              else
+                gh pr edit "$pr_url" --body "$new_body"
+              fi
             else
-              pr_body=$(printf "This PR groups multiple open PRs by Dependabot for %s.\n\n%s" "$group_name" "$new_lines")
-              pr_url=$(gh pr create \
-                --title "$pr_title" \
-                --body "$pr_body" \
-                --base "$TARGET_BRANCH" \
-                --head "$branch_name")
+              pr_body=$(printf "This PR groups multiple open PRs by Dependabot for %s.\n\n%b" "$group_name" "$new_lines")
+              if [ "$DRY_RUN" == "true" ]; then
+                echo "[DRY-RUN] Would create PR titled: $pr_title"
+                echo "$pr_body"
+                pr_url=""
+              else
+                pr_url=$(gh pr create \
+                  --title "$pr_title" \
+                  --body "$pr_body" \
+                  --base "$TARGET_BRANCH" \
+                  --head "$branch_name")
+              fi
             fi
 
             if [ -n "$pr_url" ]; then
@@ -182,11 +193,18 @@ jobs:
                 IFS="|" read -r _ _ labels <<< "${pr_data["$number"]}"
                 IFS="," read -ra label_arr <<< "$labels"
                 for label in "${label_arr[@]}"; do
-                  gh pr edit "$pr_url" --add-label "$label"
+                  if [ "$DRY_RUN" == "true" ]; then
+                    echo "[DRY-RUN] Would add label $label to $pr_url"
+                  else
+                    gh pr edit "$pr_url" --add-label "$label"
+                  fi
                 done
-                gh pr close "$number" --comment "Grouped into $pr_url."
+                if [ "$DRY_RUN" == "true" ]; then
+                  echo "[DRY-RUN] Would close PR #$number"
+                else
+                  gh pr close "$number" --comment "Grouped into $pr_url."
+                fi
               done
-              # Removed branch deletion: safer to wait until PR is merged.
               echo "Grouped PR created. Leaving branch $branch_name for now."
             else
               echo "Grouped PR was not created. Skipping closing of original PRs."
