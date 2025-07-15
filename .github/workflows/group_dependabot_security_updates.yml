@@ -13,8 +13,9 @@
 # - Ensures PR body formatting uses real newlines for better readability
 # - Adds strict error handling for script robustness
 # - Accounts for tool dependencies (jq, gh) and race conditions
+# - Optimized PR metadata lookup by preloading into associative array
 # - Notes: PRs created during workflow execution will be picked up in the next scheduled run.
-
+# - See YAML scalar format specs for details: https://yaml.org/spec/1.2.2/#23-scalars
 
 name: Group Dependabot PRs
 
@@ -108,6 +109,11 @@ jobs:
             exit 0
           fi
 
+          declare -A pr_data
+          while IFS=$'\t' read -r number title url labels; do
+            pr_data["$number"]="$title|$url|$labels"
+          done < <(jq -r '.[] | "\(.number)\t\(.title)\t\(.url)\t\(.labels | join(","))"' prs.json)
+
           for file in "${grouped_files[@]}"; do
             group_name=$(basename "$file" .txt)
             branch_name="actions/grouped-${group_name}-updates"
@@ -142,8 +148,7 @@ jobs:
 
             new_lines=""
             while read -r number ref group; do
-              title=$(jq -r --arg num "$number" '.[] | select(.number == ($num|tonumber)) | .title' prs.json)
-              url=$(jq -r --arg num "$number" '.[] | select(.number == ($num|tonumber)) | .url' prs.json)
+              IFS="|" read -r title url _ <<< "${pr_data["$number"]}"
               new_lines+="$title - [#$number]($url)\n"
             done < "$file"
 
@@ -174,14 +179,15 @@ jobs:
 
             if [ -n "$pr_url" ]; then
               for number in $(cut -d ' ' -f1 "$file"); do
-                labels=$(jq -r --arg num "$number" '.[] | select(.number == ($num|tonumber)) | .labels | join(",")' prs.json)
+                IFS="|" read -r _ _ labels <<< "${pr_data["$number"]}"
                 IFS="," read -ra label_arr <<< "$labels"
                 for label in "${label_arr[@]}"; do
                   gh pr edit "$pr_url" --add-label "$label"
                 done
                 gh pr close "$number" --comment "Grouped into $pr_url."
               done
-              git push origin --delete "$branch_name" || echo "Could not delete $branch_name, may not exist remotely."
+              # Removed branch deletion: safer to wait until PR is merged.
+              echo "Grouped PR created. Leaving branch $branch_name for now."
             else
               echo "Grouped PR was not created. Skipping closing of original PRs."
             fi
