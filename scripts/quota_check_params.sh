@@ -165,12 +165,8 @@ for REGION in "${REGIONS[@]}"; do
         FOUND=false
         INSUFFICIENT_QUOTA=false
 
-        if [ "$MODEL_NAME" = "text-embedding-ada-002" ]; then
-            MODEL_TYPES=("openai.standard.$MODEL_NAME")
-        else
-            MODEL_TYPES=("openai.standard.$MODEL_NAME" "openai.globalstandard.$MODEL_NAME")
-        fi
-
+        MODEL_TYPES=("openai.standard.$MODEL_NAME" "openai.globalstandard.$MODEL_NAME")
+      
         for MODEL_TYPE in "${MODEL_TYPES[@]}"; do
             FOUND=false
             INSUFFICIENT_QUOTA=false

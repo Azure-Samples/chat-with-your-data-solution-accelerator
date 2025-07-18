@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.36.177.2456",
-      "templateHash": "849970351177560479"
+      "templateHash": "5740998106011376838"
     }
   },
   "parameters": {
@@ -928,7 +928,7 @@
           "version": "[parameters('azureOpenAIEmbeddingModelVersion')]"
         },
         "sku": {
-          "name": "Standard",
+          "name": "GlobalStandard",
           "capacity": "[parameters('azureOpenAIEmbeddingModelCapacity')]"
         }
       }
