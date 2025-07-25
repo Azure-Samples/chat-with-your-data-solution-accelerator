@@ -51,7 +51,7 @@ export const Answer = ({
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null); //Manully  manage the audio context eg pausing resuming
 
   const [synthesizerData, setSynthesizerData] = useState({
-    key: "",
+    token: "",
     region: "",
   });
   const [synthesizer, setSynthesizer] =
@@ -70,8 +70,8 @@ export const Answer = ({
   };
 
   const initializeSynthesizer = () => {
-    const speechConfig = sdk.SpeechConfig.fromSubscription(
-      synthesizerData.key,
+    const speechConfig = sdk.SpeechConfig.fromAuthorizationToken(
+      synthesizerData.token,
       synthesizerData.region
     );
     const newAudioDestination = new SpeechSDK.SpeakerAudioDestination();
@@ -90,7 +90,7 @@ export const Answer = ({
   };
 
   useEffect(() => {
-    if (synthesizerData.key != "") {
+    if (synthesizerData.token != "") {
       initializeSynthesizer();
 
       return () => {
@@ -112,12 +112,12 @@ export const Answer = ({
       const response = await fetch("/api/speech");
       try {
         if (!response.ok) {
-         throw new Error("Network response was not ok");
+          throw new Error("Network response was not ok");
         }
-      const data = await response.json();
-      setSynthesizerData({ key: data.key, region: data.region });
-      } catch(e) {
-        console.log(e)
+        const data = await response.json();
+        setSynthesizerData({ token: data.token, region: data.region });
+      } catch (e) {
+        console.log(e);
       }
     };
     fetchSythesizerData();
@@ -334,7 +334,7 @@ export const Answer = ({
                   }
                   data-testid="toggle-citations-list"
                 >
-                  <Text  className={styles.accordionTitle}>
+                  <Text className={styles.accordionTitle}>
                     <span data-testid="no-of-references">
                       {parsedAnswer.citations.length > 1
                         ? parsedAnswer.citations.length + " references"
@@ -375,7 +375,7 @@ export const Answer = ({
                   onKeyDown={(e) =>
                     e.key === " " || e.key === "Enter"
                       ? onCitationClicked(citation)
-                      : () => {}
+                      : () => { }
                   }
                   tabIndex={0}
                   title={createCitationFilepath(citation, ++idx)}
