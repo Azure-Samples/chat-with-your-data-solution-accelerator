@@ -142,7 +142,7 @@ def test_creates_search_clients_with_keys(
 
 @patch("backend.batch.utilities.helpers.azure_search_helper.SearchClient")
 @patch("backend.batch.utilities.helpers.azure_search_helper.SearchIndexClient")
-@patch("backend.batch.utilities.helpers.azure_search_helper.DefaultAzureCredential")
+@patch("backend.batch.utilities.helpers.azure_search_helper.get_azure_credential")
 def test_creates_search_clients_with_rabc(
     default_azure_credential_mock: MagicMock,
     search_index_client_mock: MagicMock,

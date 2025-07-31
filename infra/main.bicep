@@ -300,6 +300,9 @@ param searchTag string = 'chatwithyourdata-sa'
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 
+@description('Application Environment')
+param appEnvironment string = 'Prod'
+
 @description('Hosting model for the web apps. This value is fixed as "container", which uses prebuilt containers for faster deployment.')
 param hostingModel string = 'container'
 
@@ -326,8 +329,8 @@ var tags = { 'azd-env-name': environmentName }
 var keyVaultName = '${abbrs.security.keyVault}${resourceToken}'
 var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
 
-var appversion = 'latest' // Update GIT deployment branch
-var registryName = 'cwydcontainerreg' // Update Registry name
+var appversion = 'latest' // Set the application version for container image tags
+var registryName = 'cwydcontainerreg' // Name of the Azure Container Registry to use for container images
 
 var openAIFunctionsSystemPrompt = '''You help employees to navigate only private information sources.
     You must prioritize the function call over your general knowledge for any question by calling the search_documents function.
@@ -621,7 +624,6 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
         AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
         AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
-
         AZURE_SPEECH_SERVICE_NAME: speechServiceName
         AZURE_SPEECH_SERVICE_REGION: location
         AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
@@ -632,7 +634,8 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
-        SEMENTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
+        SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -713,7 +716,6 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
         AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
         AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
-
         AZURE_SPEECH_SERVICE_NAME: speechServiceName
         AZURE_SPEECH_SERVICE_REGION: location
         AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
@@ -724,7 +726,8 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
-        SEMENTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
+        SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -802,7 +805,6 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
         AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
         AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
-
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         BACKEND_URL: 'https://${functionName}.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
@@ -812,6 +814,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
         USE_KEY_VAULT: 'true'
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -885,7 +888,6 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
         AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
         AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
-
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
@@ -895,6 +897,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
         USE_KEY_VAULT: 'true'
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -1000,13 +1003,13 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
         AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
         AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         LOGLEVEL: logLevel
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -1069,13 +1072,13 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
         AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
         AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         LOGLEVEL: logLevel
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -1330,7 +1333,7 @@ var azureSearchServiceInfo = databaseType == 'CosmosDB'
   : ''
 
 var azureComputerVisionInfo = string({
-  service_name: speechServiceName
+  service_name: computerVisionName
   endpoint: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
   location: useAdvancedImageProcessing ? computerVision.outputs.location : ''
   vectorize_image_api_version: computerVisionVectorizeImageApiVersion
@@ -1357,6 +1360,7 @@ var backendUrl = 'https://${functionName}.azurewebsites.net'
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
+output APP_ENV string = appEnvironment
 output AZURE_BLOB_STORAGE_INFO string = azureBlobStorageInfo
 output AZURE_COMPUTER_VISION_INFO string = azureComputerVisionInfo
 output AZURE_CONTENT_SAFETY_INFO string = azureContentSafetyInfo
@@ -1394,4 +1398,4 @@ output AZURE_COSMOSDB_INFO string = azureCosmosDBInfo
 output AZURE_POSTGRESQL_INFO string = azurePostgresDBInfo
 output DATABASE_TYPE string = databaseType
 output OPEN_AI_FUNCTIONS_SYSTEM_PROMPT string = openAIFunctionsSystemPrompt
-output SEMENTIC_KERNEL_SYSTEM_PROMPT string = semanticKernelSystemPrompt
+output SEMANTIC_KERNEL_SYSTEM_PROMPT string = semanticKernelSystemPrompt

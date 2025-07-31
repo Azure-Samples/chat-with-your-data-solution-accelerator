@@ -1,7 +1,7 @@
 import logging
 import asyncpg
 from datetime import datetime, timezone
-from azure.identity import DefaultAzureCredential
+from ..helpers.azure_credential_utils import get_azure_credential
 
 from .database_client_base import DatabaseClientBase
 
@@ -21,7 +21,7 @@ class PostgresConversationClient(DatabaseClientBase):
 
     async def connect(self):
         try:
-            credential = DefaultAzureCredential()
+            credential = get_azure_credential()
             token = credential.get_token(
                 "https://ossrdbms-aad.database.windows.net/.default"
             ).token

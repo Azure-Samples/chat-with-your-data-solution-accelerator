@@ -1,6 +1,7 @@
 import logging
 from urllib.parse import urljoin
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from azure.identity import get_bearer_token_provider
+from .azure_credential_utils import get_azure_credential
 
 import requests
 from requests import Response
@@ -56,7 +57,7 @@ class AzureComputerVisionClient:
                 headers["Ocp-Apim-Subscription-Key"] = self.key
             else:
                 token_provider = get_bearer_token_provider(
-                    DefaultAzureCredential(), self.__TOKEN_SCOPE
+                    get_azure_credential(), self.__TOKEN_SCOPE
                 )
                 headers["Authorization"] = "Bearer " + token_provider()
 

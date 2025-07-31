@@ -94,7 +94,7 @@ def test_vectorize_image_calls_computer_vision_with_key_based_authentication(
 
 
 @mock.patch(
-    "backend.batch.utilities.helpers.azure_computer_vision_client.DefaultAzureCredential"
+    "backend.batch.utilities.helpers.azure_computer_vision_client.get_azure_credential"
 )
 @mock.patch(
     "backend.batch.utilities.helpers.azure_computer_vision_client.get_bearer_token_provider"

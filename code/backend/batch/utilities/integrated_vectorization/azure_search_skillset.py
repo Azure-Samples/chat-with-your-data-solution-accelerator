@@ -15,7 +15,7 @@ from azure.search.documents.indexes.models import (
 from azure.search.documents.indexes import SearchIndexerClient
 from ..helpers.config.config_helper import IntegratedVectorizationConfig
 from ..helpers.env_helper import EnvHelper
-from azure.identity import DefaultAzureCredential
+from ..helpers.azure_credential_utils import get_azure_credential
 from azure.core.credentials import AzureKeyCredential
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class AzureSearchSkillset:
             (
                 AzureKeyCredential(self.env_helper.AZURE_SEARCH_KEY)
                 if self.env_helper.is_auth_type_keys()
-                else DefaultAzureCredential()
+                else get_azure_credential()
             ),
         )
         self.integrated_vectorization_config = integrated_vectorization_config

@@ -12,7 +12,7 @@ from azure.core.credentials import AzureNamedKeyCredential
 from azure.storage.queue import QueueClient, BinaryBase64EncodePolicy
 import chardet
 from .env_helper import EnvHelper
-from azure.identity import DefaultAzureCredential
+from .azure_credential_utils import get_azure_credential
 
 
 def connection_string(account_name: str, account_key: str):
@@ -25,7 +25,7 @@ def create_queue_client():
         return QueueClient(
             account_url=f"https://{env_helper.AZURE_BLOB_ACCOUNT_NAME}.queue.core.windows.net/",
             queue_name=env_helper.DOCUMENT_PROCESSING_QUEUE_NAME,
-            credential=DefaultAzureCredential(),
+            credential=get_azure_credential(),
             message_encode_policy=BinaryBase64EncodePolicy(),
         )
 
@@ -56,7 +56,7 @@ class AzureBlobStorageClient:
         if self.auth_type == "rbac":
             self.account_key = None
             self.blob_service_client = BlobServiceClient(
-                account_url=self.endpoint, credential=DefaultAzureCredential()
+                account_url=self.endpoint, credential=get_azure_credential()
             )
             self.user_delegation_key = self.request_user_delegation_key(
                 blob_service_client=self.blob_service_client

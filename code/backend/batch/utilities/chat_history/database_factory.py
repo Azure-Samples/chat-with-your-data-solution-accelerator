@@ -2,7 +2,7 @@
 from ..helpers.env_helper import EnvHelper
 from .cosmosdb import CosmosConversationClient
 from .postgresdbservice import PostgresConversationClient
-from azure.identity import DefaultAzureCredential
+from ..helpers.azure_credential_utils import get_azure_credential
 from ..helpers.config.database_type import DatabaseType
 
 
@@ -25,7 +25,7 @@ class DatabaseFactory:
                 f"https://{env_helper.AZURE_COSMOSDB_ACCOUNT}.documents.azure.com:443/"
             )
             credential = (
-                DefaultAzureCredential()
+                get_azure_credential()
                 if not env_helper.AZURE_COSMOSDB_ACCOUNT_KEY
                 else env_helper.AZURE_COSMOSDB_ACCOUNT_KEY
             )

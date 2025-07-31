@@ -1,7 +1,7 @@
 import logging
 from azure.ai.contentsafety import ContentSafetyClient
 from azure.core.credentials import AzureKeyCredential
-from azure.identity import DefaultAzureCredential
+from ..helpers.azure_credential_utils import get_azure_credential
 from azure.core.exceptions import HttpResponseError
 from azure.ai.contentsafety.models import AnalyzeTextOptions
 from ..helpers.env_helper import EnvHelper
@@ -19,7 +19,7 @@ class ContentSafetyChecker(AnswerProcessingBase):
             logger.info("Initializing ContentSafetyClient with RBAC authentication.")
             self.content_safety_client = ContentSafetyClient(
                 env_helper.AZURE_CONTENT_SAFETY_ENDPOINT,
-                DefaultAzureCredential(),
+                get_azure_credential(),
             )
         else:
             logger.info(
