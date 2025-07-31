@@ -324,9 +324,9 @@ var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${ne
 var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
 var keyVaultName = '${abbrs.security.keyVault}${resourceToken}'
-var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
+var baseUrl = 'https://raw.githubusercontent.com/Harmanpreet-Microsoft/chat-with-your-data-solution-accelerator/dev/'
 
-var appversion = 'latest' // Update GIT deployment branch
+var appversion = 'dev' // Update GIT deployment branch
 var registryName = 'cwydcontainerreg' // Update Registry name
 
 var openAIFunctionsSystemPrompt = '''You help employees to navigate only private information sources.
