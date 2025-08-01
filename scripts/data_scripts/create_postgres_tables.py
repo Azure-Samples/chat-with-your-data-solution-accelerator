@@ -1,4 +1,4 @@
-from ..helpers.azure_credential_utils import get_azure_credential
+from azure_credential_utils import get_azure_credential
 import psycopg2
 from psycopg2 import sql
 
