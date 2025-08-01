@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.36.177.2456",
-      "templateHash": "16352542150707902119"
+      "templateHash": "10039984803618451944"
     }
   },
   "parameters": {
@@ -8490,7 +8490,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.177.2456",
-              "templateHash": "4396932483281426377"
+              "templateHash": "13598371285445269439"
             }
           },
           "parameters": {
@@ -8604,7 +8604,7 @@
           "resources": [
             {
               "type": "Microsoft.Web/sites/host/functionKeys",
-              "apiVersion": "2018-11-01",
+              "apiVersion": "2024-11-01",
               "name": "[format('{0}/default/clientKey', parameters('name'))]",
               "properties": {
                 "name": "ClientKey",
@@ -9794,7 +9794,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.177.2456",
-              "templateHash": "4396932483281426377"
+              "templateHash": "13598371285445269439"
             }
           },
           "parameters": {
@@ -9908,7 +9908,7 @@
           "resources": [
             {
               "type": "Microsoft.Web/sites/host/functionKeys",
-              "apiVersion": "2018-11-01",
+              "apiVersion": "2024-11-01",
               "name": "[format('{0}/default/clientKey', parameters('name'))]",
               "properties": {
                 "name": "ClientKey",
