@@ -1,4 +1,4 @@
-from ..helpers.azure_credential_utils import get_azure_credential
+from azure.identity import DefaultAzureCredential
 import psycopg2
 from psycopg2 import sql
 
@@ -61,7 +61,7 @@ def grant_permissions(cursor, dbname, schema_name, principal_name):
 
 
 # Acquire the access token
-cred = get_azure_credential()
+cred = DefaultAzureCredential()
 access_token = cred.get_token("https://ossrdbms-aad.database.windows.net/.default")
 
 # Combine the token with the connection string to establish the connection.
