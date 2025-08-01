@@ -41,7 +41,7 @@ class SemanticKernelOrchestrator(OrchestratorBase):
             if response := self.call_content_safety_input(user_message):
                 return response
 
-        system_message = self.env_helper.SEMENTIC_KERNEL_SYSTEM_PROMPT
+        system_message = self.env_helper.SEMANTIC_KERNEL_SYSTEM_PROMPT
         if not system_message:
             system_message = """You help employees to navigate only private information sources.
 You must prioritize the function call over your general knowledge for any question by calling the search_documents function.

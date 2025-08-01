@@ -3,6 +3,7 @@ using './main.bicep'
 param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', 'env_name')
 param location = readEnvironmentVariable('AZURE_LOCATION', 'location')
 param principalId = readEnvironmentVariable('AZURE_PRINCIPAL_ID', 'principal_id')
+param appEnvironment = readEnvironmentVariable('APP_ENV', 'Prod')
 
 
 // Please make sure to set this value to false when using rbac with AZURE_AUTH_TYPE
