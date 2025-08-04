@@ -26,7 +26,7 @@
         "react-markdown": "^10.1.0",
         "react-router-dom": "^7.6.3",
         "rehype-raw": "^7.0.0",
-        "remark-gfm": "^4.0.0",
+        "remark-gfm": "^3.0.1",
         "remark-supersub": "^1.0.0",
         "uuid": "^11.0.5"
     },
