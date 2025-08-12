@@ -27,7 +27,9 @@ module function '../core/host/functions.bicep' = {
     runtimeVersion: runtimeVersion
     dockerFullImageName: dockerFullImageName
     managedIdentity: !empty(keyVaultName)
-    appSettings: appSettings
+    appSettings: union(appSettings, {
+      WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
+    })
   }
 }
 

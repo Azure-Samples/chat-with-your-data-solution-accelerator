@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.36.1.42791",
-      "templateHash": "11323213671656453502"
+      "templateHash": "6566430506441917064"
     }
   },
   "parameters": {
@@ -7804,7 +7804,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "15907054814625845900"
+              "templateHash": "8495509026134584506"
             }
           },
           "parameters": {
@@ -7928,7 +7928,7 @@
                     "value": "[not(empty(parameters('keyVaultName')))]"
                   },
                   "appSettings": {
-                    "value": "[parameters('appSettings')]"
+                    "value": "[union(parameters('appSettings'), createObject('WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'false'))]"
                   }
                 },
                 "template": {
@@ -9003,7 +9003,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "15907054814625845900"
+              "templateHash": "8495509026134584506"
             }
           },
           "parameters": {
@@ -9127,7 +9127,7 @@
                     "value": "[not(empty(parameters('keyVaultName')))]"
                   },
                   "appSettings": {
-                    "value": "[parameters('appSettings')]"
+                    "value": "[union(parameters('appSettings'), createObject('WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'false'))]"
                   }
                 },
                 "template": {
