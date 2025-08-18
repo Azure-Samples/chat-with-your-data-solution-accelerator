@@ -3,7 +3,8 @@ import os
 import logging
 import threading
 from dotenv import load_dotenv
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from azure.identity import get_bearer_token_provider
+from .azure_credential_utils import get_azure_credential
 from azure.keyvault.secrets import SecretClient
 
 from ..orchestrator.orchestration_strategy import OrchestrationStrategy
@@ -216,7 +217,7 @@ class EnvHelper:
         )
 
         self.AZURE_TOKEN_PROVIDER = get_bearer_token_provider(
-            DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+            get_azure_credential(), "https://cognitiveservices.azure.com/.default"
         )
         self.ADVANCED_IMAGE_PROCESSING_MAX_IMAGES = self.get_env_var_int(
             "ADVANCED_IMAGE_PROCESSING_MAX_IMAGES", 1
@@ -362,8 +363,8 @@ class EnvHelper:
         self.OPEN_AI_FUNCTIONS_SYSTEM_PROMPT = os.getenv(
             "OPEN_AI_FUNCTIONS_SYSTEM_PROMPT", ""
         )
-        self.SEMENTIC_KERNEL_SYSTEM_PROMPT = os.getenv(
-            "SEMENTIC_KERNEL_SYSTEM_PROMPT", ""
+        self.SEMANTIC_KERNEL_SYSTEM_PROMPT = os.getenv(
+            "SEMANTIC_KERNEL_SYSTEM_PROMPT", ""
         )
 
         self.ENFORCE_AUTH = self.get_env_var_bool("ENFORCE_AUTH", "True")
@@ -417,7 +418,7 @@ class SecretHelper:
 
         The constructor sets the USE_KEY_VAULT attribute based on the value of the USE_KEY_VAULT environment variable.
         If USE_KEY_VAULT is set to "true" (case-insensitive), it initializes a SecretClient object using the
-        AZURE_KEY_VAULT_ENDPOINT environment variable and the DefaultAzureCredential.
+        AZURE_KEY_VAULT_ENDPOINT environment variable and the get_azure_credential.
 
         Args:
             None
@@ -429,7 +430,7 @@ class SecretHelper:
         self.secret_client = None
         if self.USE_KEY_VAULT:
             self.secret_client = SecretClient(
-                os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), DefaultAzureCredential()
+                os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), get_azure_credential()
             )
 
     def get_secret(self, secret_name: str) -> str:

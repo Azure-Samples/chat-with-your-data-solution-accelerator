@@ -22,7 +22,7 @@ from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
 from backend.api.chat_history import bp_chat_history_response
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
-from azure.identity import DefaultAzureCredential
+from backend.batch.utilities.helpers.azure_credential_utils import get_azure_credential
 from backend.batch.utilities.helpers.azure_blob_storage_client import (
     AzureBlobStorageClient,
 )
@@ -381,7 +381,7 @@ def get_speech_key(env_helper: EnvHelper):
     This is required to generate short-lived tokens when using RBAC.
     """
     client = CognitiveServicesManagementClient(
-        credential=DefaultAzureCredential(),
+        credential=get_azure_credential(),
         subscription_id=env_helper.AZURE_SUBSCRIPTION_ID,
     )
     keys = client.accounts.list_keys(

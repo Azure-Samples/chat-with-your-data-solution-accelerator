@@ -11,6 +11,8 @@ param resourceToken string = toLower(uniqueString(subscription().id, environment
 @description('Location for all resources, if you are using existing resource group provide the location of the resorce group.')
 @metadata({
   azd: {
+@metadata({
+  azd: {
     type: 'location'
   }
 })
@@ -300,6 +302,9 @@ param searchTag string = 'chatwithyourdata-sa'
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 
+@description('Application Environment')
+param appEnvironment string = 'Prod'
+
 @description('Hosting model for the web apps. This value is fixed as "container", which uses prebuilt containers for faster deployment.')
 param hostingModel string = 'container'
 
@@ -350,7 +355,9 @@ var semanticKernelSystemPrompt = '''You help employees to navigate only private 
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: rgName
   location: location
-  tags: tags
+  tags: union(tags, {
+    TemplateName: 'CWYD'
+  })
 }
 
 // ========== Managed Identity ========== //
@@ -421,7 +428,7 @@ var defaultOpenAiDeployments = [
       version: azureOpenAIEmbeddingModelVersion
     }
     sku: {
-      name: 'Standard'
+      name: 'GlobalStandard'
       capacity: azureOpenAIEmbeddingModelCapacity
     }
   }
@@ -631,7 +638,8 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
-        SEMENTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
+        SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -723,7 +731,8 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
-        SEMENTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
+        SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -811,6 +820,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
         USE_KEY_VAULT: 'true'
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -894,6 +904,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
         USE_KEY_VAULT: 'true'
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -1006,6 +1017,7 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
         LOGLEVEL: logLevel
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -1075,6 +1087,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
         LOGLEVEL: logLevel
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -1329,7 +1342,7 @@ var azureSearchServiceInfo = databaseType == 'CosmosDB'
   : ''
 
 var azureComputerVisionInfo = string({
-  service_name: speechServiceName
+  service_name: computerVisionName
   endpoint: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
   location: useAdvancedImageProcessing ? computerVision.outputs.location : ''
   vectorize_image_api_version: computerVisionVectorizeImageApiVersion
@@ -1356,6 +1369,7 @@ var backendUrl = 'https://${functionName}.azurewebsites.net'
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
+output APP_ENV string = appEnvironment
 output AZURE_BLOB_STORAGE_INFO string = azureBlobStorageInfo
 output AZURE_COMPUTER_VISION_INFO string = azureComputerVisionInfo
 output AZURE_CONTENT_SAFETY_INFO string = azureContentSafetyInfo
@@ -1393,4 +1407,4 @@ output AZURE_COSMOSDB_INFO string = azureCosmosDBInfo
 output AZURE_POSTGRESQL_INFO string = azurePostgresDBInfo
 output DATABASE_TYPE string = databaseType
 output OPEN_AI_FUNCTIONS_SYSTEM_PROMPT string = openAIFunctionsSystemPrompt
-output SEMENTIC_KERNEL_SYSTEM_PROMPT string = semanticKernelSystemPrompt
+output SEMANTIC_KERNEL_SYSTEM_PROMPT string = semanticKernelSystemPrompt

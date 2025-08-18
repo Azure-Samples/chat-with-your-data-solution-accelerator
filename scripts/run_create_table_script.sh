@@ -23,6 +23,7 @@ az postgres flexible-server firewall-rule create --resource-group $resourceGroup
 
 # Download the create table python file
 curl --output "create_postgres_tables.py" ${baseUrl}"scripts/data_scripts/create_postgres_tables.py"
+curl --output "azure_credential_utils.py" ${baseUrl}"scripts/data_scripts/azure_credential_utils.py"
 
 # Download the requirement file
 curl --output "$requirementFile" "$requirementFileUrl"

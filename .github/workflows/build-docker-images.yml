@@ -32,9 +32,7 @@ jobs:
             dockerfile: docker/Frontend.Dockerfile
     uses: ./.github/workflows/build-docker.yml
     with:
-      old_registry: ${{ github.ref_name == 'main' && 'fruoccopublic.azurecr.io' }}
       new_registry: 'cwydcontainerreg.azurecr.io'
-      old_username: ${{ github.ref_name == 'main' && 'fruoccopublic' }}
       new_username: 'cwydcontainerreg'
       app_name: ${{ matrix.app_name }}
       dockerfile: ${{ matrix.dockerfile }}
