@@ -11,8 +11,6 @@ param resourceToken string = toLower(uniqueString(subscription().id, environment
 @description('Location for all resources, if you are using existing resource group provide the location of the resorce group.')
 @metadata({
   azd: {
-@metadata({
-  azd: {
     type: 'location'
   }
 })
