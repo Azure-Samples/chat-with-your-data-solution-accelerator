@@ -327,8 +327,8 @@ var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${ne
 var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
 var keyVaultName = '${abbrs.security.keyVault}${resourceToken}'
-var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
-var appversion = 'latest' // Update GIT deployment branch
+var baseUrl = 'https://raw.githubusercontent.com/Harmanpreet-Microsoft/chat-with-your-data-solution-accelerator/dev-test/'
+var appversion = 'dev' // Update GIT deployment branch
 var registryName = 'cwydcontainerreg' // Update Registry name
 
 var openAIFunctionsSystemPrompt = '''You help employees to navigate only private information sources.
@@ -1196,7 +1196,7 @@ module storageRoleUser 'core/security/role.bicep' = if (principalId != '') {
   params: {
     principalId: principalId
     roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-    principalType: 'User'
+    //principalType: 'User'
   }
 }
 
@@ -1207,7 +1207,7 @@ module openaiRoleUser 'core/security/role.bicep' = if (principalId != '') {
   params: {
     principalId: principalId
     roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
-    principalType: 'User'
+    //principalType: 'User'
   }
 }
 
@@ -1218,7 +1218,7 @@ module openaiRoleUserContributor 'core/security/role.bicep' = if (principalId !=
   params: {
     principalId: principalId
     roleDefinitionId: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
-    principalType: 'User'
+    //principalType: 'User'
   }
 }
 
