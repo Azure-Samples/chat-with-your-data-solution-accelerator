@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "4594702778856217856"
+      "templateHash": "4047273265154997995"
     }
   },
   "parameters": {
@@ -1873,27 +1873,31 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "2667061524101374844"
+              "templateHash": "7487840142945032587"
             },
-            "description": "Creates a role assignment for a service principal."
+            "description": "Creates a role assignment for a principal."
           },
           "parameters": {
             "principalId": {
               "type": "string"
             },
+            "roleDefinitionId": {
+              "type": "string"
+            },
             "principalType": {
               "type": "string",
-              "defaultValue": "ServicePrincipal",
+              "defaultValue": "",
               "allowedValues": [
+                "",
                 "Device",
                 "ForeignGroup",
                 "Group",
                 "ServicePrincipal",
                 "User"
-              ]
-            },
-            "roleDefinitionId": {
-              "type": "string"
+              ],
+              "metadata": {
+                "description": "Type of principal. Leave empty for auto-detection."
+              }
             }
           },
           "resources": [
@@ -1901,11 +1905,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-              "properties": {
-                "principalId": "[parameters('principalId')]",
-                "principalType": "[parameters('principalType')]",
-                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-              }
+              "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
             }
           ]
         }
@@ -1943,27 +1943,31 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "2667061524101374844"
+              "templateHash": "7487840142945032587"
             },
-            "description": "Creates a role assignment for a service principal."
+            "description": "Creates a role assignment for a principal."
           },
           "parameters": {
             "principalId": {
               "type": "string"
             },
+            "roleDefinitionId": {
+              "type": "string"
+            },
             "principalType": {
               "type": "string",
-              "defaultValue": "ServicePrincipal",
+              "defaultValue": "",
               "allowedValues": [
+                "",
                 "Device",
                 "ForeignGroup",
                 "Group",
                 "ServicePrincipal",
                 "User"
-              ]
-            },
-            "roleDefinitionId": {
-              "type": "string"
+              ],
+              "metadata": {
+                "description": "Type of principal. Leave empty for auto-detection."
+              }
             }
           },
           "resources": [
@@ -1971,11 +1975,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-              "properties": {
-                "principalId": "[parameters('principalId')]",
-                "principalType": "[parameters('principalType')]",
-                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-              }
+              "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
             }
           ]
         }
@@ -2014,27 +2014,31 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "2667061524101374844"
+              "templateHash": "7487840142945032587"
             },
-            "description": "Creates a role assignment for a service principal."
+            "description": "Creates a role assignment for a principal."
           },
           "parameters": {
             "principalId": {
               "type": "string"
             },
+            "roleDefinitionId": {
+              "type": "string"
+            },
             "principalType": {
               "type": "string",
-              "defaultValue": "ServicePrincipal",
+              "defaultValue": "",
               "allowedValues": [
+                "",
                 "Device",
                 "ForeignGroup",
                 "Group",
                 "ServicePrincipal",
                 "User"
-              ]
-            },
-            "roleDefinitionId": {
-              "type": "string"
+              ],
+              "metadata": {
+                "description": "Type of principal. Leave empty for auto-detection."
+              }
             }
           },
           "resources": [
@@ -2042,11 +2046,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-              "properties": {
-                "principalId": "[parameters('principalId')]",
-                "principalType": "[parameters('principalType')]",
-                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-              }
+              "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
             }
           ]
         }
@@ -2085,27 +2085,31 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "2667061524101374844"
+              "templateHash": "7487840142945032587"
             },
-            "description": "Creates a role assignment for a service principal."
+            "description": "Creates a role assignment for a principal."
           },
           "parameters": {
             "principalId": {
               "type": "string"
             },
+            "roleDefinitionId": {
+              "type": "string"
+            },
             "principalType": {
               "type": "string",
-              "defaultValue": "ServicePrincipal",
+              "defaultValue": "",
               "allowedValues": [
+                "",
                 "Device",
                 "ForeignGroup",
                 "Group",
                 "ServicePrincipal",
                 "User"
-              ]
-            },
-            "roleDefinitionId": {
-              "type": "string"
+              ],
+              "metadata": {
+                "description": "Type of principal. Leave empty for auto-detection."
+              }
             }
           },
           "resources": [
@@ -2113,11 +2117,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-              "properties": {
-                "principalId": "[parameters('principalId')]",
-                "principalType": "[parameters('principalType')]",
-                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-              }
+              "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
             }
           ]
         }
@@ -2667,7 +2667,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "10401563250887907432"
+              "templateHash": "13346825141197852113"
             }
           },
           "parameters": {
@@ -3094,27 +3094,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -3122,11 +3126,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -3162,27 +3162,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -3190,11 +3194,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -3230,27 +3230,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -3258,11 +3262,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -3298,27 +3298,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -3326,11 +3330,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -3551,7 +3551,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "10401563250887907432"
+              "templateHash": "13346825141197852113"
             }
           },
           "parameters": {
@@ -3978,27 +3978,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -4006,11 +4010,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -4046,27 +4046,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -4074,11 +4078,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -4114,27 +4114,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -4142,11 +4146,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -4182,27 +4182,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -4210,11 +4214,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -4432,7 +4432,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "15020434500074052095"
+              "templateHash": "1962219056428670796"
             }
           },
           "parameters": {
@@ -4848,27 +4848,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -4876,11 +4880,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -4916,27 +4916,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -4944,11 +4948,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -4984,27 +4984,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -5012,11 +5016,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -5052,27 +5052,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -5080,11 +5084,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -5237,7 +5237,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "15020434500074052095"
+              "templateHash": "1962219056428670796"
             }
           },
           "parameters": {
@@ -5653,27 +5653,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -5681,11 +5685,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -5721,27 +5721,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -5749,11 +5753,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -5789,27 +5789,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -5817,11 +5821,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -5857,27 +5857,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -5885,11 +5889,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -7811,7 +7811,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "11859204857715079974"
+              "templateHash": "5976384511631180712"
             }
           },
           "parameters": {
@@ -7945,7 +7945,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "4804743520364234939"
+                      "templateHash": "1485195521031446527"
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -8457,27 +8457,31 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.37.4.10188",
-                              "templateHash": "2667061524101374844"
+                              "templateHash": "7487840142945032587"
                             },
-                            "description": "Creates a role assignment for a service principal."
+                            "description": "Creates a role assignment for a principal."
                           },
                           "parameters": {
                             "principalId": {
                               "type": "string"
                             },
+                            "roleDefinitionId": {
+                              "type": "string"
+                            },
                             "principalType": {
                               "type": "string",
-                              "defaultValue": "ServicePrincipal",
+                              "defaultValue": "",
                               "allowedValues": [
+                                "",
                                 "Device",
                                 "ForeignGroup",
                                 "Group",
                                 "ServicePrincipal",
                                 "User"
-                              ]
-                            },
-                            "roleDefinitionId": {
-                              "type": "string"
+                              ],
+                              "metadata": {
+                                "description": "Type of principal. Leave empty for auto-detection."
+                              }
                             }
                           },
                           "resources": [
@@ -8485,11 +8489,7 @@
                               "type": "Microsoft.Authorization/roleAssignments",
                               "apiVersion": "2022-04-01",
                               "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                              "properties": {
-                                "principalId": "[parameters('principalId')]",
-                                "principalType": "[parameters('principalType')]",
-                                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                              }
+                              "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                             }
                           ]
                         }
@@ -8547,27 +8547,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -8575,11 +8579,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -8615,27 +8615,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -8643,11 +8647,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -8683,27 +8683,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -8711,11 +8715,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -8751,27 +8751,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -8779,11 +8783,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -8819,27 +8819,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -8847,11 +8851,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -9010,7 +9010,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "11859204857715079974"
+              "templateHash": "5976384511631180712"
             }
           },
           "parameters": {
@@ -9144,7 +9144,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "4804743520364234939"
+                      "templateHash": "1485195521031446527"
                     },
                     "description": "Creates an Azure Function in an existing Azure App Service plan."
                   },
@@ -9656,27 +9656,31 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.37.4.10188",
-                              "templateHash": "2667061524101374844"
+                              "templateHash": "7487840142945032587"
                             },
-                            "description": "Creates a role assignment for a service principal."
+                            "description": "Creates a role assignment for a principal."
                           },
                           "parameters": {
                             "principalId": {
                               "type": "string"
                             },
+                            "roleDefinitionId": {
+                              "type": "string"
+                            },
                             "principalType": {
                               "type": "string",
-                              "defaultValue": "ServicePrincipal",
+                              "defaultValue": "",
                               "allowedValues": [
+                                "",
                                 "Device",
                                 "ForeignGroup",
                                 "Group",
                                 "ServicePrincipal",
                                 "User"
-                              ]
-                            },
-                            "roleDefinitionId": {
-                              "type": "string"
+                              ],
+                              "metadata": {
+                                "description": "Type of principal. Leave empty for auto-detection."
+                              }
                             }
                           },
                           "resources": [
@@ -9684,11 +9688,7 @@
                               "type": "Microsoft.Authorization/roleAssignments",
                               "apiVersion": "2022-04-01",
                               "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                              "properties": {
-                                "principalId": "[parameters('principalId')]",
-                                "principalType": "[parameters('principalType')]",
-                                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                              }
+                              "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                             }
                           ]
                         }
@@ -9746,27 +9746,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -9774,11 +9778,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -9814,27 +9814,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -9842,11 +9846,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -9882,27 +9882,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -9910,11 +9914,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -9950,27 +9950,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -9978,11 +9982,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -10018,27 +10018,31 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "2667061524101374844"
+                      "templateHash": "7487840142945032587"
                     },
-                    "description": "Creates a role assignment for a service principal."
+                    "description": "Creates a role assignment for a principal."
                   },
                   "parameters": {
                     "principalId": {
                       "type": "string"
                     },
+                    "roleDefinitionId": {
+                      "type": "string"
+                    },
                     "principalType": {
                       "type": "string",
-                      "defaultValue": "ServicePrincipal",
+                      "defaultValue": "",
                       "allowedValues": [
+                        "",
                         "Device",
                         "ForeignGroup",
                         "Group",
                         "ServicePrincipal",
                         "User"
-                      ]
-                    },
-                    "roleDefinitionId": {
-                      "type": "string"
+                      ],
+                      "metadata": {
+                        "description": "Type of principal. Leave empty for auto-detection."
+                      }
                     }
                   },
                   "resources": [
@@ -10046,11 +10050,7 @@
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-                      "properties": {
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]",
-                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-                      }
+                      "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
                     }
                   ]
                 }
@@ -10842,9 +10842,6 @@
           },
           "roleDefinitionId": {
             "value": "ba92f5b4-2d11-453d-a403-e96b0029c9fe"
-          },
-          "principalType": {
-            "value": "User"
           }
         },
         "template": {
@@ -10854,27 +10851,31 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "2667061524101374844"
+              "templateHash": "7487840142945032587"
             },
-            "description": "Creates a role assignment for a service principal."
+            "description": "Creates a role assignment for a principal."
           },
           "parameters": {
             "principalId": {
               "type": "string"
             },
+            "roleDefinitionId": {
+              "type": "string"
+            },
             "principalType": {
               "type": "string",
-              "defaultValue": "ServicePrincipal",
+              "defaultValue": "",
               "allowedValues": [
+                "",
                 "Device",
                 "ForeignGroup",
                 "Group",
                 "ServicePrincipal",
                 "User"
-              ]
-            },
-            "roleDefinitionId": {
-              "type": "string"
+              ],
+              "metadata": {
+                "description": "Type of principal. Leave empty for auto-detection."
+              }
             }
           },
           "resources": [
@@ -10882,11 +10883,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-              "properties": {
-                "principalId": "[parameters('principalId')]",
-                "principalType": "[parameters('principalType')]",
-                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-              }
+              "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
             }
           ]
         }
@@ -10912,9 +10909,6 @@
           },
           "roleDefinitionId": {
             "value": "a97b65f3-24c7-4388-baec-2e87135dc908"
-          },
-          "principalType": {
-            "value": "User"
           }
         },
         "template": {
@@ -10924,27 +10918,31 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "2667061524101374844"
+              "templateHash": "7487840142945032587"
             },
-            "description": "Creates a role assignment for a service principal."
+            "description": "Creates a role assignment for a principal."
           },
           "parameters": {
             "principalId": {
               "type": "string"
             },
+            "roleDefinitionId": {
+              "type": "string"
+            },
             "principalType": {
               "type": "string",
-              "defaultValue": "ServicePrincipal",
+              "defaultValue": "",
               "allowedValues": [
+                "",
                 "Device",
                 "ForeignGroup",
                 "Group",
                 "ServicePrincipal",
                 "User"
-              ]
-            },
-            "roleDefinitionId": {
-              "type": "string"
+              ],
+              "metadata": {
+                "description": "Type of principal. Leave empty for auto-detection."
+              }
             }
           },
           "resources": [
@@ -10952,11 +10950,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-              "properties": {
-                "principalId": "[parameters('principalId')]",
-                "principalType": "[parameters('principalType')]",
-                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-              }
+              "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
             }
           ]
         }
@@ -10982,9 +10976,6 @@
           },
           "roleDefinitionId": {
             "value": "b24988ac-6180-42a0-ab88-20f7382dd24c"
-          },
-          "principalType": {
-            "value": "User"
           }
         },
         "template": {
@@ -10994,27 +10985,31 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "2667061524101374844"
+              "templateHash": "7487840142945032587"
             },
-            "description": "Creates a role assignment for a service principal."
+            "description": "Creates a role assignment for a principal."
           },
           "parameters": {
             "principalId": {
               "type": "string"
             },
+            "roleDefinitionId": {
+              "type": "string"
+            },
             "principalType": {
               "type": "string",
-              "defaultValue": "ServicePrincipal",
+              "defaultValue": "",
               "allowedValues": [
+                "",
                 "Device",
                 "ForeignGroup",
                 "Group",
                 "ServicePrincipal",
                 "User"
-              ]
-            },
-            "roleDefinitionId": {
-              "type": "string"
+              ],
+              "metadata": {
+                "description": "Type of principal. Leave empty for auto-detection."
+              }
             }
           },
           "resources": [
@@ -11022,11 +11017,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-              "properties": {
-                "principalId": "[parameters('principalId')]",
-                "principalType": "[parameters('principalType')]",
-                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-              }
+              "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
             }
           ]
         }
@@ -11064,27 +11055,31 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "2667061524101374844"
+              "templateHash": "7487840142945032587"
             },
-            "description": "Creates a role assignment for a service principal."
+            "description": "Creates a role assignment for a principal."
           },
           "parameters": {
             "principalId": {
               "type": "string"
             },
+            "roleDefinitionId": {
+              "type": "string"
+            },
             "principalType": {
               "type": "string",
-              "defaultValue": "ServicePrincipal",
+              "defaultValue": "",
               "allowedValues": [
+                "",
                 "Device",
                 "ForeignGroup",
                 "Group",
                 "ServicePrincipal",
                 "User"
-              ]
-            },
-            "roleDefinitionId": {
-              "type": "string"
+              ],
+              "metadata": {
+                "description": "Type of principal. Leave empty for auto-detection."
+              }
             }
           },
           "resources": [
@@ -11092,11 +11087,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "name": "[guid(subscription().id, resourceGroup().id, parameters('principalId'), parameters('roleDefinitionId'))]",
-              "properties": {
-                "principalId": "[parameters('principalId')]",
-                "principalType": "[parameters('principalType')]",
-                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
-              }
+              "properties": "[shallowMerge(createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionId', resourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))), if(not(equals(parameters('principalType'), '')), createObject('principalType', parameters('principalType')), createObject())))]"
             }
           ]
         }
