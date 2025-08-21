@@ -310,6 +310,9 @@ param useKeyVault bool = authType == 'rbac' ? false : true
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 
+@description('Application Environment')
+param appEnvironment string = 'Prod'
+
 @description('Hosting model for the web apps. This value is fixed as "container", which uses prebuilt containers for faster deployment.')
 param hostingModel string = 'container'
 
@@ -678,7 +681,8 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
-        SEMENTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
+        SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -792,7 +796,8 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
-        SEMENTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
+        SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -896,6 +901,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -995,6 +1001,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -1123,6 +1130,7 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
         LOGLEVEL: logLevel
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -1208,6 +1216,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
         LOGLEVEL: logLevel
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
+        APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -1470,7 +1479,7 @@ var azureSearchServiceInfo = databaseType == 'CosmosDB'
   : ''
 
 var azureComputerVisionInfo = string({
-  service_name: speechServiceName
+  service_name: computerVisionName
   endpoint: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
   location: useAdvancedImageProcessing ? computerVision.outputs.location : ''
   key: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
@@ -1505,6 +1514,7 @@ var backendUrl = 'https://${functionName}.azurewebsites.net'
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
+output APP_ENV string = appEnvironment
 output AZURE_BLOB_STORAGE_INFO string = azureBlobStorageInfo
 output AZURE_COMPUTER_VISION_INFO string = azureComputerVisionInfo
 output AZURE_CONTENT_SAFETY_INFO string = azureContentSafetyInfo
@@ -1546,4 +1556,4 @@ output AZURE_COSMOSDB_INFO string = azureCosmosDBInfo
 output AZURE_POSTGRESQL_INFO string = azurePostgresDBInfo
 output DATABASE_TYPE string = databaseType
 output OPEN_AI_FUNCTIONS_SYSTEM_PROMPT string = openAIFunctionsSystemPrompt
-output SEMENTIC_KERNEL_SYSTEM_PROMPT string = semanticKernelSystemPrompt
+output SEMANTIC_KERNEL_SYSTEM_PROMPT string = semanticKernelSystemPrompt

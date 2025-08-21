@@ -5,7 +5,7 @@ from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.models import VectorizableTextQuery
 from azure.core.credentials import AzureKeyCredential
-from azure.identity import DefaultAzureCredential
+from ..helpers.azure_credential_utils import get_azure_credential
 from ..common.source_document import SourceDocument
 import re
 
@@ -21,7 +21,7 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
                 credential=(
                     AzureKeyCredential(self.env_helper.AZURE_SEARCH_KEY)
                     if self.env_helper.is_auth_type_keys()
-                    else DefaultAzureCredential()
+                    else get_azure_credential()
                 ),
             )
 
@@ -170,7 +170,7 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
             credential=(
                 AzureKeyCredential(self.env_helper.AZURE_SEARCH_KEY)
                 if self.env_helper.is_auth_type_keys()
-                else DefaultAzureCredential()
+                else get_azure_credential()
             ),
         )
 

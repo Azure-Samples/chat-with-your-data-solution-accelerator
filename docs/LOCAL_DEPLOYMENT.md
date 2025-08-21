@@ -108,6 +108,8 @@ provisioned resources. This file can be created manually at the root of the proj
 provisioned using `azd provision` or `azd up`, a `.env` file is automatically generated in the `.azure/<env-name>/.env`
 file. To get your `<env-name>` run `azd env list` to see which env is default.
 
+Set APP_ENV in your `.env` file to control Azure authentication. Set the environment variable to dev to use Azure CLI credentials, or to prod to use Managed Identity for production. Ensure you're logged in via az login when using dev in local. To configure your environment, ensure that APP_ENV is set to **"dev"** in your .env file.
+
 The `AzureWebJobsStorage` needs to be added to your `.env` file manually. This can be retrieved from the function
 settings via the Azure Portal.
 

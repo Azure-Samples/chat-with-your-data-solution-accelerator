@@ -1,7 +1,7 @@
 import logging
 import psycopg2
 from psycopg2.extras import execute_values, RealDictCursor
-from azure.identity import DefaultAzureCredential
+from .azure_credential_utils import get_azure_credential
 from .llm_helper import LLMHelper
 from .env_helper import EnvHelper
 
@@ -24,7 +24,7 @@ class AzurePostgresHelper:
             dbname = self.env_helper.POSTGRESQL_DATABASE
 
             # Acquire the access token
-            credential = DefaultAzureCredential()
+            credential = get_azure_credential()
             access_token = credential.get_token(
                 "https://ossrdbms-aad.database.windows.net/.default"
             )

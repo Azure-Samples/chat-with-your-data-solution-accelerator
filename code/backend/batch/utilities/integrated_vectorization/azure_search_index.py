@@ -21,7 +21,7 @@ from azure.search.documents.indexes.models import (
     SearchIndex,
 )
 from ..helpers.env_helper import EnvHelper
-from azure.identity import DefaultAzureCredential
+from ..helpers.azure_credential_utils import get_azure_credential
 from azure.core.credentials import AzureKeyCredential
 from ..helpers.llm_helper import LLMHelper
 
@@ -39,7 +39,7 @@ class AzureSearchIndex:
             (
                 AzureKeyCredential(self.env_helper.AZURE_SEARCH_KEY)
                 if self.env_helper.is_auth_type_keys()
-                else DefaultAzureCredential()
+                else get_azure_credential()
             ),
         )
 

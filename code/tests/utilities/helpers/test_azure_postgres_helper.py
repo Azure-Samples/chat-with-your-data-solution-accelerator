@@ -5,9 +5,7 @@ from backend.batch.utilities.helpers.azure_postgres_helper import AzurePostgresH
 
 
 class TestAzurePostgresHelper(unittest.TestCase):
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     def test_create_search_client_success(self, mock_connect, mock_credential):
         # Arrange
@@ -52,14 +50,10 @@ class TestAzurePostgresHelper(unittest.TestCase):
         self.assertEqual(connection, mock_connection)
         mock_connect.assert_not_called()  # Ensure no new connection is created
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.RealDictCursor")
-    def test_get_vector_store_success(
-        self, mock_cursor, mock_connect, mock_credential
-    ):
+    def test_get_vector_store_success(self, mock_cursor, mock_connect, mock_credential):
         # Arrange
         # Mock the EnvHelper and set required attributes
         mock_env_helper = MagicMock()
@@ -101,9 +95,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
             "host=mock_host user=mock_user dbname=mock_database password=mock-access-token"
         )
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     def test_get_vector_store_query_error(self, mock_connect, mock_credential):
         # Arrange
@@ -142,9 +134,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
 
         self.assertEqual(str(context.exception), "Query execution error")
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     def test_create_search_client_connection_error(self, mock_connect, mock_credential):
         # Arrange
@@ -174,9 +164,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
 
         self.assertEqual(str(context.exception), "Connection error")
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
     def test_get_files_success(self, mock_env_helper, mock_connect, mock_credential):
@@ -215,9 +203,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         )
         mock_connection.close.assert_called_once()
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
     def test_get_files_no_results(self, mock_env_helper, mock_connect, mock_credential):
@@ -251,9 +237,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         self.assertIsNone(result)
         mock_connection.close.assert_called_once()
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
@@ -292,9 +276,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         )
         mock_connection.close.assert_called_once()
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
@@ -333,9 +315,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         )
         mock_connection.close.assert_called_once()
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
@@ -377,9 +357,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_connection.close.assert_called_once()
         mock_logger.info.assert_called_with("Deleted 3 documents.")
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
@@ -417,9 +395,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_logger.warning.assert_called_with("No IDs provided for deletion.")
         mock_connection.close.assert_called_once()
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
@@ -461,9 +437,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_connection.rollback.assert_called_once()
         mock_connection.close.assert_called_once()
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
@@ -505,9 +479,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_connection.rollback.assert_called_once()
         mock_connection.close.assert_called_once()
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
@@ -558,9 +530,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_connection.close.assert_called_once()
         mock_logger.info.assert_called_with("Retrieved 1 search result(s).")
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
@@ -602,9 +572,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_connection.close.assert_called_once()
         mock_logger.info.assert_called_with("Retrieved 0 search result(s).")
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
@@ -645,9 +613,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         )
         mock_connection.close.assert_called_once()
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
@@ -692,9 +658,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_connection.close.assert_called_once()
         mock_logger.info.assert_called_with("Retrieved 2 unique title(s).")
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
@@ -734,9 +698,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_connection.close.assert_called_once()
         mock_logger.info.assert_called_with("Retrieved 0 unique title(s).")
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
@@ -775,9 +737,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         )
         mock_connection.close.assert_called_once()
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
@@ -823,9 +783,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_connection.close.assert_called_once()
         mock_logger.info.assert_called_with("Retrieved 2 unique title(s).")
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
@@ -866,9 +824,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         mock_connection.close.assert_called_once()
         mock_logger.info.assert_called_with("Retrieved 0 unique title(s).")
 
-    @patch(
-        "backend.batch.utilities.helpers.azure_postgres_helper.DefaultAzureCredential"
-    )
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
