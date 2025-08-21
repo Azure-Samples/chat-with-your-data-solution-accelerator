@@ -297,16 +297,6 @@ param logAnalyticsName string = 'log-${resourceToken}'
 param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'
 
-@description('Whether the Azure services communicate with each other using RBAC or keys. RBAC is recommended, however some users may not have sufficient permissions to assign roles.')
-@allowed([
-  'rbac'
-  'keys'
-])
-param authType string = 'rbac'
-
-@description('Whether to use Key Vault to store secrets (best when using keys). If using RBAC, then please set this to false.')
-param useKeyVault bool = authType == 'rbac' ? false : true
-
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 
@@ -338,7 +328,6 @@ var eventGridSystemTopicName = 'doc-processing'
 var tags = { 'azd-env-name': environmentName }
 var keyVaultName = '${abbrs.security.keyVault}${resourceToken}'
 var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
-
 var appversion = 'latest' // Update GIT deployment branch
 var registryName = 'cwydcontainerreg' // Update Registry name
 
@@ -402,7 +391,7 @@ module postgresDBModule './core/database/postgresdb.bicep' = if (databaseType ==
 }
 
 // Store secrets in a keyvault
-module keyvault './core/security/keyvault.bicep' = if (useKeyVault || authType == 'rbac') {
+module keyvault './core/security/keyvault.bicep' = {
   name: 'keyvault'
   scope: rg
   params: {
@@ -473,7 +462,7 @@ module openai 'core/ai/cognitiveservices.bicep' = {
     sku: {
       name: azureOpenAISkuName
     }
-    managedIdentity: authType == 'rbac'
+    managedIdentity: true
     deployments: openAiDeployments
   }
 }
@@ -493,7 +482,7 @@ module computerVision 'core/ai/cognitiveservices.bicep' = if (useAdvancedImagePr
 }
 
 // Search Index Data Reader
-module searchIndexRoleOpenai 'core/security/role.bicep' = if (authType == 'rbac') {
+module searchIndexRoleOpenai 'core/security/role.bicep' = {
   scope: rg
   name: 'search-index-role-openai'
   params: {
@@ -504,7 +493,7 @@ module searchIndexRoleOpenai 'core/security/role.bicep' = if (authType == 'rbac'
 }
 
 // Search Service Contributor
-module searchServiceRoleOpenai 'core/security/role.bicep' = if (authType == 'rbac') {
+module searchServiceRoleOpenai 'core/security/role.bicep' = {
   scope: rg
   name: 'search-service-role-openai'
   params: {
@@ -515,7 +504,7 @@ module searchServiceRoleOpenai 'core/security/role.bicep' = if (authType == 'rba
 }
 
 // Storage Blob Data Reader
-module blobDataReaderRoleSearch 'core/security/role.bicep' = if (authType == 'rbac' && databaseType == 'CosmosDB') {
+module blobDataReaderRoleSearch 'core/security/role.bicep' = if (databaseType == 'CosmosDB') {
   scope: rg
   name: 'blob-data-reader-role-search'
   params: {
@@ -526,7 +515,7 @@ module blobDataReaderRoleSearch 'core/security/role.bicep' = if (authType == 'rb
 }
 
 // Cognitive Services OpenAI User
-module openAiRoleSearchService 'core/security/role.bicep' = if (authType == 'rbac' && databaseType == 'CosmosDB') {
+module openAiRoleSearchService 'core/security/role.bicep' = if (databaseType == 'CosmosDB') {
   scope: rg
   name: 'openai-role-searchservice'
   params: {
@@ -549,28 +538,16 @@ module speechService 'core/ai/cognitiveservices.bicep' = {
   }
 }
 
-module storekeys './app/storekeys.bicep' = if (useKeyVault) {
+module storekeys './app/storekeys.bicep' = {
   name: 'storekeys'
   scope: rg
   params: {
     keyVaultName: keyVaultName
-    azureOpenAIName: openai.outputs.name
-    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
-    storageAccountName: storage.outputs.name
-    formRecognizerName: formrecognizer.outputs.name
-    contentSafetyName: contentsafety.outputs.name
-    speechServiceName: speechServiceName
-    computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
-    cosmosAccountName: databaseType == 'CosmosDB' ? cosmosDBModule.outputs.cosmosOutput.cosmosAccountName : ''
-    postgresServerName: databaseType == 'PostgreSQL'
-      ? postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-      : ''
-    postgresDatabaseName: databaseType == 'PostgreSQL' ? 'postgres' : ''
-    postgresDatabaseAdminUserName: databaseType == 'PostgreSQL'
-      ? postgresDBModule.outputs.postgresDbOutput.postgreSQLDbUser
-      : ''
-    rgName: rgName
+    clientkey: clientKey
   }
+  dependsOn: [
+    keyvault
+  ]
 }
 
 module search './core/search/search-services.bicep' = if (databaseType == 'CosmosDB') {
@@ -621,32 +598,10 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     healthCheckPath: '/api/health'
-    azureOpenAIName: openai.outputs.name
-    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
-    storageAccountName: storage.outputs.name
-    formRecognizerName: formrecognizer.outputs.name
-    contentSafetyName: contentsafety.outputs.name
-    speechServiceName: speechService.outputs.name
-    computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
 
     // New database-related parameters
     databaseType: databaseType // Add this parameter to specify 'PostgreSQL' or 'CosmosDB'
-
-    // Conditional key vault key names
-    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-    searchKeyName: useKeyVault && databaseType == 'CosmosDB' ? storekeys.outputs.SEARCH_KEY_NAME : ''
-    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-    computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
-
-    // Conditionally set database key names
-    cosmosDBKeyName: databaseType == 'CosmosDB' && useKeyVault ? storekeys.outputs.COSMOS_ACCOUNT_KEY_NAME : ''
-    useKeyVault: useKeyVault
-    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-    authType: authType
-
+    keyVaultName: keyvault.outputs.name
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
@@ -736,32 +691,10 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     healthCheckPath: '/api/health'
-    azureOpenAIName: openai.outputs.name
-    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
-    storageAccountName: storage.outputs.name
-    formRecognizerName: formrecognizer.outputs.name
-    contentSafetyName: contentsafety.outputs.name
-    speechServiceName: speechService.outputs.name
-    computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
 
     // New database-related parameters
     databaseType: databaseType
-
-    // Conditional key vault key names
-    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-    searchKeyName: useKeyVault && databaseType == 'CosmosDB' ? storekeys.outputs.SEARCH_KEY_NAME : ''
-    computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
-    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-
-    // Conditionally set database key names
-    cosmosDBKeyName: databaseType == 'CosmosDB' && useKeyVault ? storekeys.outputs.COSMOS_ACCOUNT_KEY_NAME : ''
-    useKeyVault: useKeyVault
-    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-    authType: authType
-
+    keyVaultName: keyvault.outputs.name
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
@@ -851,24 +784,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
     runtimeVersion: '3.11'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
-    azureOpenAIName: openai.outputs.name
-    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
-    storageAccountName: storage.outputs.name
-    formRecognizerName: formrecognizer.outputs.name
-    contentSafetyName: contentsafety.outputs.name
-    speechServiceName: speechService.outputs.name
-    computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
-    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-    searchKeyName: useKeyVault && databaseType == 'CosmosDB' ? storekeys.outputs.SEARCH_KEY_NAME : ''
-    computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
-    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-    useKeyVault: useKeyVault
-    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-    authType: authType
-    databaseType: databaseType
+    keyVaultName: keyvault.outputs.name
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
@@ -896,11 +812,12 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         BACKEND_URL: 'https://${functionName}.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-        FUNCTION_KEY: clientKey
+        FUNCTION_KEY: storekeys.outputs.FUNCTION_KEY
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
+        USE_KEY_VAULT: 'true'
         APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
@@ -951,24 +868,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
     dockerFullImageName: '${registryName}.azurecr.io/rag-adminwebapp:${appversion}'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
-    azureOpenAIName: openai.outputs.name
-    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
-    storageAccountName: storage.outputs.name
-    formRecognizerName: formrecognizer.outputs.name
-    contentSafetyName: contentsafety.outputs.name
-    speechServiceName: speechService.outputs.name
-    computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
-    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-    searchKeyName: useKeyVault && databaseType == 'CosmosDB' ? storekeys.outputs.SEARCH_KEY_NAME : ''
-    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-    computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
-    useKeyVault: useKeyVault
-    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-    authType: authType
-    databaseType: databaseType
+    keyVaultName: keyvault.outputs.name
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
@@ -996,11 +896,12 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-        FUNCTION_KEY: clientKey
+        FUNCTION_KEY: storekeys.outputs.FUNCTION_KEY
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
+        USE_KEY_VAULT: 'true'
         APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
@@ -1087,25 +988,9 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
     runtimeVersion: '3.11'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
-    azureOpenAIName: openai.outputs.name
-    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
     storageAccountName: storage.outputs.name
-    formRecognizerName: formrecognizer.outputs.name
-    contentSafetyName: contentsafety.outputs.name
-    speechServiceName: speechService.outputs.name
-    computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     clientKey: clientKey
-    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-    searchKeyName: useKeyVault && databaseType == 'CosmosDB' ? storekeys.outputs.SEARCH_KEY_NAME : ''
-    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-    computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
-    useKeyVault: useKeyVault
-    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-    authType: authType
-    databaseType: databaseType
+    keyVaultName: keyvault.outputs.name
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
@@ -1173,25 +1058,9 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
     dockerFullImageName: '${registryName}.azurecr.io/rag-backend:${appversion}'
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsName: monitoring.outputs.applicationInsightsName
-    azureOpenAIName: openai.outputs.name
-    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
     storageAccountName: storage.outputs.name
-    formRecognizerName: formrecognizer.outputs.name
-    contentSafetyName: contentsafety.outputs.name
-    speechServiceName: speechService.outputs.name
-    computerVisionName: useAdvancedImageProcessing ? computerVision.outputs.name : ''
     clientKey: clientKey
-    openAIKeyName: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-    storageAccountKeyName: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
-    formRecognizerKeyName: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
-    searchKeyName: useKeyVault && databaseType == 'CosmosDB' ? storekeys.outputs.SEARCH_KEY_NAME : ''
-    contentSafetyKeyName: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
-    speechKeyName: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
-    computerVisionKeyName: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
-    useKeyVault: useKeyVault
-    keyVaultName: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
-    authType: authType
-    databaseType: databaseType
+    keyVaultName: keyvault.outputs.name
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
@@ -1289,7 +1158,6 @@ module storage 'core/storage/storage-account.bicep' = {
   params: {
     name: storageAccountName
     location: location
-    useKeyVault: useKeyVault
     sku: {
       name: 'Standard_GRS'
     }
@@ -1322,40 +1190,40 @@ module storage 'core/storage/storage-account.bicep' = {
 
 // USER ROLES
 // Storage Blob Data Contributor
-module storageRoleUser 'core/security/role.bicep' = if (authType == 'rbac' && principalId != '') {
+module storageRoleUser 'core/security/role.bicep' = if (principalId != '') {
   scope: rg
   name: 'storage-role-user'
   params: {
     principalId: principalId
     roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-    principalType: 'User'
+    //principalType: 'User'
   }
 }
 
 // Cognitive Services User
-module openaiRoleUser 'core/security/role.bicep' = if (authType == 'rbac' && principalId != '') {
+module openaiRoleUser 'core/security/role.bicep' = if (principalId != '') {
   scope: rg
   name: 'openai-role-user'
   params: {
     principalId: principalId
     roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
-    principalType: 'User'
+    //principalType: 'User'
   }
 }
 
 // Contributor
-module openaiRoleUserContributor 'core/security/role.bicep' = if (authType == 'rbac' && principalId != '') {
+module openaiRoleUserContributor 'core/security/role.bicep' = if (principalId != '') {
   scope: rg
   name: 'openai-role-user-contributor'
   params: {
     principalId: principalId
     roleDefinitionId: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
-    principalType: 'User'
+    //principalType: 'User'
   }
 }
 
 // Search Index Data Contributor
-module searchRoleUser 'core/security/role.bicep' = if (authType == 'rbac' && principalId != '' && databaseType == 'CosmosDB') {
+module searchRoleUser 'core/security/role.bicep' = if (principalId != '' && databaseType == 'CosmosDB') {
   scope: rg
   name: 'search-role-user'
   params: {
@@ -1372,7 +1240,6 @@ module machineLearning 'app/machinelearning.bicep' = if (orchestrationStrategy =
     location: location
     workspaceName: azureMachineLearningName
     storageAccountId: storage.outputs.id
-    keyVaultId: useKeyVault ? keyvault.outputs.id : ''
     applicationInsightsId: monitoring.outputs.applicationInsightsId
     azureOpenAIName: openai.outputs.name
     azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.name : ''
@@ -1387,7 +1254,6 @@ module createIndex './core/database/deploy_create_table_script.bicep' = if (data
     solutionLocation: location
     identity: managedIdentityModule.outputs.managedIdentityOutput.id
     baseUrl: baseUrl
-    keyVaultName: keyvault.outputs.name
     postgresSqlServerName: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
     webAppPrincipalName: hostingModel == 'code' ? web.outputs.FRONTEND_API_NAME : web_docker.outputs.FRONTEND_API_NAME
     adminAppPrincipalName: hostingModel == 'code'
@@ -1400,9 +1266,9 @@ module createIndex './core/database/deploy_create_table_script.bicep' = if (data
   }
   scope: rg
   dependsOn: hostingModel == 'code'
-    ? [keyvault, postgresDBModule, storekeys, web, adminweb]
+    ? [postgresDBModule, web, adminweb, function]
     : [
-        [keyvault, postgresDBModule, storekeys, web_docker, adminweb_docker]
+        [postgresDBModule, web_docker, adminweb_docker, function_docker]
       ]
 }
 
@@ -1420,7 +1286,6 @@ var azureOpenAIEmbeddingModelInfo = string({
 
 var azureCosmosDBInfo = string({
   account_name: databaseType == 'CosmosDB' ? cosmosDBModule.outputs.cosmosOutput.cosmosAccountName : ''
-  account_key: databaseType == 'CosmosDB' && useKeyVault ? storekeys.outputs.COSMOS_ACCOUNT_KEY_NAME : ''
   database_name: databaseType == 'CosmosDB' ? cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName : ''
   conversations_container_name: databaseType == 'CosmosDB'
     ? cosmosDBModule.outputs.cosmosOutput.cosmosContainerName
@@ -1435,26 +1300,22 @@ var azurePostgresDBInfo = string({
 
 var azureFormRecognizerInfo = string({
   endpoint: formrecognizer.outputs.endpoint
-  key: useKeyVault ? storekeys.outputs.FORM_RECOGNIZER_KEY_NAME : ''
 })
 
 var azureBlobStorageInfo = string({
   container_name: blobContainerName
   account_name: storageAccountName
-  account_key: useKeyVault ? storekeys.outputs.STORAGE_ACCOUNT_KEY_NAME : ''
 })
 
 var azureSpeechServiceInfo = string({
   service_name: speechServiceName
   service_region: location
-  service_key: useKeyVault ? storekeys.outputs.SPEECH_KEY_NAME : ''
   recognizer_languages: recognizedLanguages
 })
 
 var azureSearchServiceInfo = databaseType == 'CosmosDB'
   ? string({
       service_name: azureAISearchName
-      key: useKeyVault ? storekeys.outputs.SEARCH_KEY_NAME : ''
       service: search.outputs.endpoint
       use_semantic_search: azureSearchUseSemanticSearch
       semantic_search_config: azureSearchSemanticSearchConfig
@@ -1482,7 +1343,6 @@ var azureComputerVisionInfo = string({
   service_name: computerVisionName
   endpoint: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
   location: useAdvancedImageProcessing ? computerVision.outputs.location : ''
-  key: useKeyVault ? storekeys.outputs.COMPUTER_VISION_KEY_NAME : ''
   vectorize_image_api_version: computerVisionVectorizeImageApiVersion
   vectorize_image_model_version: computerVisionVectorizeImageModelVersion
 })
@@ -1497,17 +1357,10 @@ var azureOpenaiConfigurationInfo = string({
   temperature: azureOpenAITemperature
   api_version: azureOpenAIApiVersion
   resource: azureOpenAIResourceName
-  api_key: useKeyVault ? storekeys.outputs.OPENAI_KEY_NAME : ''
-})
-
-var azureKeyvaultInfo = string({
-  endpoint: useKeyVault ? keyvault.outputs.endpoint : ''
-  name: useKeyVault || authType == 'rbac' ? keyvault.outputs.name : ''
 })
 
 var azureContentSafetyInfo = string({
   endpoint: contentsafety.outputs.endpoint
-  key: useKeyVault ? storekeys.outputs.CONTENT_SAFETY_KEY_NAME : ''
 })
 
 var backendUrl = 'https://${functionName}.azurewebsites.net'
@@ -1519,7 +1372,6 @@ output AZURE_BLOB_STORAGE_INFO string = azureBlobStorageInfo
 output AZURE_COMPUTER_VISION_INFO string = azureComputerVisionInfo
 output AZURE_CONTENT_SAFETY_INFO string = azureContentSafetyInfo
 output AZURE_FORM_RECOGNIZER_INFO string = azureFormRecognizerInfo
-output AZURE_KEY_VAULT_INFO string = azureKeyvaultInfo
 output AZURE_LOCATION string = location
 output AZURE_OPENAI_MODEL_INFO string = azureOpenAIModelInfo
 output AZURE_OPENAI_CONFIGURATION_INFO string = azureOpenaiConfigurationInfo
@@ -1530,13 +1382,10 @@ output AZURE_SPEECH_SERVICE_INFO string = azureSpeechServiceInfo
 output AZURE_TENANT_ID string = tenant().tenantId
 output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
-output USE_KEY_VAULT bool = useKeyVault
-output AZURE_AUTH_TYPE string = authType
 output BACKEND_URL string = backendUrl
 output AzureWebJobsStorage string = hostingModel == 'code'
   ? function.outputs.AzureWebJobsStorage
   : function_docker.outputs.AzureWebJobsStorage
-output FUNCTION_KEY string = clientKey
 output FRONTEND_WEBSITE_NAME string = hostingModel == 'code'
   ? web.outputs.FRONTEND_API_URI
   : web_docker.outputs.FRONTEND_API_URI

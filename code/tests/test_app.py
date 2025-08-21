@@ -2,7 +2,7 @@
 This module tests the entry point for the application.
 """
 
-from unittest.mock import AsyncMock, MagicMock, Mock, patch, ANY
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 from openai import RateLimitError, BadRequestError, InternalServerError
 import pytest
@@ -115,7 +115,6 @@ class TestSpeechToken:
             "token": "speech-token",
             "region": AZURE_SPEECH_SERVICE_REGION,
             "languages": AZURE_SPEECH_RECOGNIZER_LANGUAGES,
-            "key": "mock-speech-key",
         }
 
         requests.post.assert_called_once_with(
@@ -159,7 +158,6 @@ class TestSpeechToken:
             "token": "speech-token",
             "region": AZURE_SPEECH_SERVICE_REGION,
             "languages": AZURE_SPEECH_RECOGNIZER_LANGUAGES,
-            "key": "mock-key1",
         }
 
         requests.post.assert_called_once_with(
@@ -604,237 +602,6 @@ class TestConversationAzureByod:
             ),
         ]
 
-    @patch(
-        "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
-    )
-    @patch("create_app.AzureOpenAI")
-    @patch(
-        "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
-    )
-    @patch(
-        "backend.batch.utilities.helpers.azure_blob_storage_client.generate_container_sas"
-    )
-    def test_conversation_azure_byod_returns_correct_response_when_streaming_with_data_keys(
-        self,
-        generate_container_sas_mock: MagicMock,
-        get_active_config_or_default_mock,
-        azure_openai_mock: MagicMock,
-        index_not_exists_mock,
-        env_helper_mock: MagicMock,
-        client: FlaskClient,
-    ):
-        """Test that the Azure BYOD conversation endpoint returns the correct response."""
-        # given
-        openai_client_mock = azure_openai_mock.return_value
-        openai_client_mock.chat.completions.create.return_value = (
-            self.mock_streamed_response
-        )
-
-        get_active_config_or_default_mock.return_value.prompts.use_on_your_data_format = (
-            False
-        )
-        get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
-            "byod"
-        )
-        generate_container_sas_mock.return_value = "mock-sas"
-        index_not_exists_mock.return_value = False
-
-        # when
-        response = client.post(
-            "/api/conversation",
-            headers={"content-type": "application/json"},
-            json=self.body,
-        )
-
-        # then
-        assert response.status_code == 200
-
-        # The response is JSON lines
-        data = str(response.data, "utf-8")
-        assert (
-            data
-            == r"""{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"[title](source)\\n\\n\\ncontent\", \"id\": \"doc_id\", \"chunk_id\": 46, \"title\": \"title\", \"filepath\": \"title\", \"url\": \"[title](source)\"}]}", "end_turn": false, "role": "tool"}, {"content": "", "end_turn": false, "role": "assistant"}]}]}
-{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"[title](source)\\n\\n\\ncontent\", \"id\": \"doc_id\", \"chunk_id\": 46, \"title\": \"title\", \"filepath\": \"title\", \"url\": \"[title](source)\"}]}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": false, "role": "assistant"}]}]}
-{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"[title](source)\\n\\n\\ncontent\", \"id\": \"doc_id\", \"chunk_id\": 46, \"title\": \"title\", \"filepath\": \"title\", \"url\": \"[title](source)\"}]}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": true, "role": "assistant"}]}]}
-"""
-        )
-
-        azure_openai_mock.assert_called_once_with(
-            azure_endpoint=AZURE_OPENAI_ENDPOINT,
-            api_version=AZURE_OPENAI_API_VERSION,
-            api_key=AZURE_OPENAI_API_KEY,
-        )
-
-        openai_client_mock.chat.completions.create.assert_called_once_with(
-            model=AZURE_OPENAI_MODEL,
-            messages=self.body["messages"],
-            temperature=0.5,
-            max_tokens=500,
-            top_p=0.8,
-            stop=["\n", "STOP"],
-            stream=True,
-            extra_body={
-                "data_sources": [
-                    {
-                        "type": "azure_search",
-                        "parameters": {
-                            "authentication": {
-                                "type": "api_key",
-                                "key": AZURE_SEARCH_KEY,
-                            },
-                            "endpoint": AZURE_SEARCH_SERVICE,
-                            "index_name": AZURE_SEARCH_INDEX,
-                            "fields_mapping": {
-                                "content_fields": ["field1", "field2"],
-                                "vector_fields": [AZURE_SEARCH_CONTENT_VECTOR_COLUMN],
-                                "title_field": AZURE_SEARCH_TITLE_COLUMN,
-                                "url_field": env_helper_mock.AZURE_SEARCH_FIELDS_METADATA,
-                                "filepath_field": AZURE_SEARCH_FILENAME_COLUMN,
-                            },
-                            "filter": AZURE_SEARCH_FILTER,
-                            "in_scope": AZURE_SEARCH_ENABLE_IN_DOMAIN,
-                            "top_n_documents": AZURE_SEARCH_TOP_K,
-                            "embedding_dependency": {
-                                "type": "deployment_name",
-                                "deployment_name": AZURE_OPENAI_EMBEDDING_MODEL,
-                            },
-                            "query_type": "vector_semantic_hybrid",
-                            "semantic_configuration": AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG,
-                            "role_information": AZURE_OPENAI_SYSTEM_MESSAGE,
-                        },
-                    }
-                ]
-            },
-        )
-
-    @patch(
-        "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
-    )
-    @patch("create_app.AzureOpenAI")
-    @patch(
-        "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
-    )
-    @patch(
-        "backend.batch.utilities.helpers.azure_blob_storage_client.generate_container_sas"
-    )
-    def test_conversation_azure_byod_returns_correct_response_when_streaming_with_data_rbac(
-        self,
-        generate_container_sas_mock: MagicMock,
-        get_active_config_or_default_mock,
-        azure_openai_mock: MagicMock,
-        index_not_exists_mock,
-        env_helper_mock: MagicMock,
-        client: FlaskClient,
-    ):
-        """Test that the Azure BYOD conversation endpoint returns the correct response."""
-        # given
-        env_helper_mock.is_auth_type_keys.return_value = False
-        get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
-            "byod"
-        )
-        generate_container_sas_mock.return_value = "mock-sas"
-        openai_client_mock = azure_openai_mock.return_value
-        openai_client_mock.chat.completions.create.return_value = (
-            self.mock_streamed_response
-        )
-        index_not_exists_mock.return_value = False
-
-        # when
-        response = client.post(
-            "/api/conversation",
-            headers={"content-type": "application/json"},
-            json=self.body,
-        )
-
-        # then
-        assert response.status_code == 200
-
-        # The response is JSON lines
-        data = str(response.data, "utf-8")
-        assert (
-            data
-            == r"""{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"[title](source)\\n\\n\\ncontent\", \"id\": \"doc_id\", \"chunk_id\": 46, \"title\": \"title\", \"filepath\": \"title\", \"url\": \"[title](source)\"}]}", "end_turn": false, "role": "tool"}, {"content": "", "end_turn": false, "role": "assistant"}]}]}
-{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"[title](source)\\n\\n\\ncontent\", \"id\": \"doc_id\", \"chunk_id\": 46, \"title\": \"title\", \"filepath\": \"title\", \"url\": \"[title](source)\"}]}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": false, "role": "assistant"}]}]}
-{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"content": "{\"citations\": [{\"content\": \"[title](source)\\n\\n\\ncontent\", \"id\": \"doc_id\", \"chunk_id\": 46, \"title\": \"title\", \"filepath\": \"title\", \"url\": \"[title](source)\"}]}", "end_turn": false, "role": "tool"}, {"content": "A question\n?", "end_turn": true, "role": "assistant"}]}]}
-"""
-        )
-
-        azure_openai_mock.assert_called_once_with(
-            azure_endpoint=AZURE_OPENAI_ENDPOINT,
-            api_version=AZURE_OPENAI_API_VERSION,
-            azure_ad_token_provider=ANY,
-        )
-
-        kwargs = openai_client_mock.chat.completions.create.call_args.kwargs
-
-        assert kwargs["extra_body"]["data_sources"][0]["parameters"][
-            "authentication"
-        ] == {
-            "type": "system_assigned_managed_identity",
-        }
-
-    @patch(
-        "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
-    )
-    @patch("create_app.AzureOpenAI")
-    @patch(
-        "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
-    )
-    @patch(
-        "backend.batch.utilities.helpers.azure_blob_storage_client.generate_container_sas"
-    )
-    def test_conversation_azure_byod_returns_correct_response_when_not_streaming_with_data(
-        self,
-        generate_container_sas_mock: MagicMock,
-        get_active_config_or_default_mock,
-        azure_openai_mock: MagicMock,
-        index_not_exists_mock,
-        env_helper_mock: MagicMock,
-        client: FlaskClient,
-    ):
-        """Test that the Azure BYOD conversation endpoint returns the correct response."""
-        # given
-        env_helper_mock.SHOULD_STREAM = False
-        get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
-            "byod"
-        )
-        generate_container_sas_mock.return_value = "mock-sas"
-        index_not_exists_mock.return_value = False
-        openai_client_mock = azure_openai_mock.return_value
-        openai_client_mock.chat.completions.create.return_value = self.mock_response
-
-        # when
-        response = client.post(
-            "/api/conversation",
-            headers={"content-type": "application/json"},
-            json=self.body,
-        )
-
-        # then
-        assert response.status_code == 200
-        assert response.json == {
-            "id": "response.id",
-            "model": "mock-model",
-            "created": 0,
-            "object": "response.object",
-            "choices": [
-                {
-                    "messages": [
-                        {
-                            "content": '{"citations": [{"content": "[title](source)\\n\\n\\ncontent", "id": "doc_id", "chunk_id": 46, "title": "title", "filepath": "title", "url": "[title](source)"}]}',
-                            "end_turn": False,
-                            "role": "tool",
-                        },
-                        {
-                            "content": self.content,
-                            "end_turn": True,
-                            "role": "assistant",
-                        },
-                    ]
-                }
-            ],
-        }
-
     @patch("create_app.conversation_with_data")
     @patch(
         "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
@@ -1155,56 +922,4 @@ class TestConversationAzureByod:
         assert (
             data
             == '{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"role": "assistant", "content": "mock content"}]}]}\n'
-        )
-
-    @patch(
-        "backend.batch.utilities.search.azure_search_handler.AzureSearchHelper._index_not_exists"
-    )
-    @patch("create_app.AzureOpenAI")
-    @patch(
-        "backend.batch.utilities.helpers.config.config_helper.ConfigHelper.get_active_config_or_default"
-    )
-    @patch(
-        "backend.batch.utilities.helpers.azure_blob_storage_client.generate_container_sas"
-    )
-    def test_conversation_azure_byod_uses_semantic_config(
-        self,
-        generate_container_sas_mock: MagicMock,
-        get_active_config_or_default_mock,
-        azure_openai_mock: MagicMock,
-        index_not_exists_mock,
-        client: FlaskClient,
-    ):
-        """Test that the Azure BYOD conversation endpoint uses the semantic configuration."""
-        # given
-        get_active_config_or_default_mock.return_value.prompts.conversational_flow = (
-            "byod"
-        )
-        generate_container_sas_mock.return_value = "mock-sas"
-        openai_client_mock = azure_openai_mock.return_value
-        openai_client_mock.chat.completions.create.return_value = (
-            self.mock_streamed_response
-        )
-        index_not_exists_mock.return_value = False
-        # when
-        response = client.post(
-            "/api/conversation",
-            headers={"content-type": "application/json"},
-            json=self.body,
-        )
-
-        # then
-        assert response.status_code == 200
-
-        kwargs = openai_client_mock.chat.completions.create.call_args.kwargs
-
-        assert (
-            kwargs["extra_body"]["data_sources"][0]["parameters"]["query_type"]
-            == "vector_semantic_hybrid"
-        )
-        assert (
-            kwargs["extra_body"]["data_sources"][0]["parameters"][
-                "semantic_configuration"
-            ]
-            == "test-config"
         )

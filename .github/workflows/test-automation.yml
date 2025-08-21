@@ -1,29 +1,29 @@
 name: Test Automation CWYD
 on:
-  push:
-    branches:
-      - main
-      - dev
-    paths:
-      - 'tests/e2e-test/**'
-  schedule:
-    - cron: '0 13 * * 3'  # Runs at 1 PM UTC once a week on Wednesday
-  workflow_dispatch:
+    workflow_call:
+      inputs:
+        web_url:
+          required: true
+          type: string
+        admin_url:
+          required: true
+          type: string
 
-env:
-    web_url: ${{ vars.CWYD_WEB_URL }}
-    admin_url: ${{ vars.CWYD_ADMIN_URL }}
-    accelerator_name: "Chat with your Data"
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      web_url: ${{ inputs.web_url }}
+      admin_url: ${{ inputs.admin_url }}
+      accelerator_name: "Chat with your Data"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.13'
 

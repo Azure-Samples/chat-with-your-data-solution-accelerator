@@ -209,6 +209,11 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
                                 env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN
                             ],
                             "title_field": env_helper.AZURE_SEARCH_TITLE_COLUMN or None,
+                            "source_field": env_helper.AZURE_SEARCH_SOURCE_COLUMN
+                            or None,
+                            "text_field": env_helper.AZURE_SEARCH_TEXT_COLUMN or None,
+                            "layoutText_field": env_helper.AZURE_SEARCH_LAYOUT_TEXT_COLUMN
+                            or None,
                             "url_field": env_helper.AZURE_SEARCH_FIELDS_METADATA
                             or None,
                             "filepath_field": (
@@ -521,7 +526,6 @@ def create_app():
             if response.status_code == 200:
                 return {
                     "token": response.text,
-                    "key": speech_key,
                     "region": env_helper.AZURE_SPEECH_SERVICE_REGION,
                     "languages": env_helper.AZURE_SPEECH_RECOGNIZER_LANGUAGES,
                 }
