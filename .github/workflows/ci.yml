@@ -10,6 +10,7 @@ on:
     - cron: '0 8,20 * * *'  # Runs at 8:00 AM and 8:00 PM GMT
   workflow_dispatch:
 
+
 permissions:
   contents: read
   packages: write
