@@ -1,4 +1,4 @@
-@maxLength(20)
+@maxLength(25)  // Changed from 20 to 25 to match parent template
 @minLength(4)
 @description('Used to generate names for all resources in this file')
 param resourceBaseName string
@@ -20,6 +20,8 @@ resource botService 'Microsoft.BotService/botServices@2021-03-01' = {
     displayName: botDisplayName
     endpoint: 'https://${botAppDomain}/api/messages'
     msaAppId: botAadAppClientId
+    msaAppType: 'SingleTenant'
+    msaAppTenantId: subscription().tenantId
   }
   sku: {
     name: botServiceSku
