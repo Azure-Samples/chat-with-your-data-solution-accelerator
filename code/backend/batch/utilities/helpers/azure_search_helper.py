@@ -2,7 +2,7 @@ import logging
 from typing import Union
 from langchain_community.vectorstores import AzureSearch
 from azure.core.credentials import AzureKeyCredential
-from azure.identity import DefaultAzureCredential
+from .azure_credential_utils import get_azure_credential
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.indexes.models import (
@@ -49,10 +49,10 @@ class AzureSearchHelper:
         if self.env_helper.is_auth_type_keys():
             return AzureKeyCredential(self.env_helper.AZURE_SEARCH_KEY)
         else:
-            return DefaultAzureCredential()
+            return get_azure_credential()
 
     def _create_search_client(
-        self, search_credential: Union[AzureKeyCredential, DefaultAzureCredential]
+        self, search_credential: Union[AzureKeyCredential, get_azure_credential]
     ) -> SearchClient:
         return SearchClient(
             endpoint=self.env_helper.AZURE_SEARCH_SERVICE,
@@ -61,7 +61,7 @@ class AzureSearchHelper:
         )
 
     def _create_search_index_client(
-        self, search_credential: Union[AzureKeyCredential, DefaultAzureCredential]
+        self, search_credential: Union[AzureKeyCredential, get_azure_credential]
     ):
         return SearchIndexClient(
             endpoint=self.env_helper.AZURE_SEARCH_SERVICE, credential=search_credential
@@ -132,6 +132,25 @@ class AzureSearchHelper:
                 filterable=True,
             ),
         ]
+        if self.env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+            logger.info("Adding 'text' field for integrated vectorization.")
+            fields.append(
+                SearchableField(
+                    name=self.env_helper.AZURE_SEARCH_TEXT_COLUMN,
+                    type=SearchFieldDataType.String,
+                    filterable=False,
+                    sortable=False,
+                )
+            )
+            logger.info("Adding 'layoutText' field for integrated vectorization.")
+            fields.append(
+                SearchableField(
+                    name=self.env_helper.AZURE_SEARCH_LAYOUT_TEXT_COLUMN,
+                    type=SearchFieldDataType.String,
+                    filterable=False,
+                    sortable=False,
+                )
+            )
 
         if self.env_helper.USE_ADVANCED_IMAGE_PROCESSING:
             logger.info("Adding image_vector field to index")
@@ -265,15 +284,27 @@ class AzureSearchHelper:
             ),
         ]
 
-        return AzureSearch(
-            azure_search_endpoint=self.env_helper.AZURE_SEARCH_SERVICE,
-            azure_search_key=(
-                self.env_helper.AZURE_SEARCH_KEY
-                if self.env_helper.is_auth_type_keys()
-                else None
-            ),
-            index_name=self.env_helper.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX,
-            embedding_function=self.llm_helper.get_embedding_model().embed_query,
-            fields=fields,
-            user_agent="langchain chatwithyourdata-sa",
-        )
+        if self.env_helper.AZURE_AUTH_TYPE == "rbac":
+            credential = get_azure_credential()
+            return AzureSearch(
+                azure_search_endpoint=self.env_helper.AZURE_SEARCH_SERVICE,
+                azure_search_key=None,  # Remove API key
+                index_name=self.env_helper.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX,
+                embedding_function=self.llm_helper.get_embedding_model().embed_query,
+                fields=fields,
+                user_agent="langchain chatwithyourdata-sa",
+                credential=credential,  # Add token credential or send none so it is auto handled by AzureSearch library
+            )
+        else:
+            return AzureSearch(
+                azure_search_endpoint=self.env_helper.AZURE_SEARCH_SERVICE,
+                azure_search_key=(
+                    self.env_helper.AZURE_SEARCH_KEY
+                    if self.env_helper.is_auth_type_keys()
+                    else None
+                ),
+                index_name=self.env_helper.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX,
+                embedding_function=self.llm_helper.get_embedding_model().embed_query,
+                fields=fields,
+                user_agent="langchain chatwithyourdata-sa",
+            )

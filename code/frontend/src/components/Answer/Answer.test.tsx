@@ -13,7 +13,7 @@ import { conversationResponseWithCitations } from "../../../__mocks__/SampleData
 jest.mock('microsoft-cognitiveservices-speech-sdk', () => {
   return {
     SpeechConfig: {
-      fromSubscription: jest.fn(),
+      fromAuthorizationToken: jest.fn(),
     },
     AudioConfig: {
       fromDefaultSpeakerOutput: jest.fn(),
@@ -51,7 +51,7 @@ const speechMockData = {
 jest.mock("microsoft-cognitiveservices-speech-sdk", () => {
   return {
     SpeechConfig: {
-      fromSubscription: jest.fn(),
+      fromAuthorizationToken: jest.fn(),
       fromSpeakerOutput: jest.fn().mockReturnValue({}),
     },
     AudioConfig: {

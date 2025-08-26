@@ -6,6 +6,7 @@ class ChunkingStrategy(Enum):
     PAGE = "page"
     FIXED_SIZE_OVERLAP = "fixed_size_overlap"
     PARAGRAPH = "paragraph"
+    JSON = "json"
 
 
 class ChunkingSettings:

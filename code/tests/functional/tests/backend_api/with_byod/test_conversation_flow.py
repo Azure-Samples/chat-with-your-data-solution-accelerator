@@ -147,6 +147,9 @@ def test_post_makes_correct_call_to_azure_openai(
                                     "AZURE_SEARCH_FIELDS_METADATA"
                                 ),
                                 "filepath_field": "filepath",
+                                "source_field": "source",
+                                "text_field": "text",
+                                "layoutText_field": "layoutText",
                             },
                             "filter": app_config.get("AZURE_SEARCH_FILTER"),
                             "in_scope": True,

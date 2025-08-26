@@ -22,7 +22,7 @@ from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
 from backend.api.chat_history import bp_chat_history_response
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
-from azure.identity import DefaultAzureCredential
+from backend.batch.utilities.helpers.azure_credential_utils import get_azure_credential
 from backend.batch.utilities.helpers.azure_blob_storage_client import (
     AzureBlobStorageClient,
 )
@@ -209,6 +209,11 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
                                 env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN
                             ],
                             "title_field": env_helper.AZURE_SEARCH_TITLE_COLUMN or None,
+                            "source_field": env_helper.AZURE_SEARCH_SOURCE_COLUMN
+                            or None,
+                            "text_field": env_helper.AZURE_SEARCH_TEXT_COLUMN or None,
+                            "layoutText_field": env_helper.AZURE_SEARCH_LAYOUT_TEXT_COLUMN
+                            or None,
                             "url_field": env_helper.AZURE_SEARCH_FIELDS_METADATA
                             or None,
                             "filepath_field": (
@@ -376,7 +381,7 @@ def get_speech_key(env_helper: EnvHelper):
     This is required to generate short-lived tokens when using RBAC.
     """
     client = CognitiveServicesManagementClient(
-        credential=DefaultAzureCredential(),
+        credential=get_azure_credential(),
         subscription_id=env_helper.AZURE_SUBSCRIPTION_ID,
     )
     keys = client.accounts.list_keys(
@@ -521,7 +526,6 @@ def create_app():
             if response.status_code == 200:
                 return {
                     "token": response.text,
-                    "key": speech_key,
                     "region": env_helper.AZURE_SPEECH_SERVICE_REGION,
                     "languages": env_helper.AZURE_SPEECH_RECOGNIZER_LANGUAGES,
                 }

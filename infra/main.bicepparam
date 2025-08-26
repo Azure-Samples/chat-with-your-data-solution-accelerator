@@ -3,11 +3,7 @@ using './main.bicep'
 param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', 'env_name')
 param location = readEnvironmentVariable('AZURE_LOCATION', 'location')
 param principalId = readEnvironmentVariable('AZURE_PRINCIPAL_ID', 'principal_id')
-
-
-// Please make sure to set this value to false when using rbac with AZURE_AUTH_TYPE
-param useKeyVault = bool(readEnvironmentVariable('USE_KEY_VAULT', 'true'))
-param authType = readEnvironmentVariable('AZURE_AUTH_TYPE', 'keys')
+param appEnvironment = readEnvironmentVariable('APP_ENV', 'Prod')
 
 // Deploying using json will set this to "container".
 param hostingModel = readEnvironmentVariable('AZURE_APP_SERVICE_HOSTING_MODEL', 'code')
@@ -27,20 +23,22 @@ param azureSearchVectorColumn = readEnvironmentVariable('AZURE_SEARCH_CONTENT_VE
 param azureSearchTitleColumn = readEnvironmentVariable('AZURE_SEARCH_TITLE_COLUMN', 'title')
 param azureSearchFieldsMetadata = readEnvironmentVariable('AZURE_SEARCH_FIELDS_METADATA', 'metadata')
 param azureSearchSourceColumn = readEnvironmentVariable('AZURE_SEARCH_SOURCE_COLUMN', 'source')
+param azureSearchTextColumn = readEnvironmentVariable('AZURE_SEARCH_TEXT_COLUMN', 'text')
+param azureSearchLayoutTextColumn = readEnvironmentVariable('AZURE_SEARCH_LAYOUT_TEXT_COLUMN', 'layoutText')
 param azureSearchChunkColumn = readEnvironmentVariable('AZURE_SEARCH_CHUNK_COLUMN', 'chunk')
 param azureSearchOffsetColumn = readEnvironmentVariable('AZURE_SEARCH_OFFSET_COLUMN', 'offset')
 
 // OpenAI parameters
 param azureOpenAIApiVersion = readEnvironmentVariable('AZURE_OPENAI_API_VERSION', '2024-02-01')
-param azureOpenAIModel = readEnvironmentVariable('AZURE_OPENAI_MODEL', 'gpt-4o')
-param azureOpenAIModelName = readEnvironmentVariable('AZURE_OPENAI_MODEL_NAME', 'gpt-4o')
-param azureOpenAIModelVersion = readEnvironmentVariable('AZURE_OPENAI_MODEL_VERSION', '2024-05-13')
+param azureOpenAIModel = readEnvironmentVariable('AZURE_OPENAI_MODEL', 'gpt-4.1')
+param azureOpenAIModelName = readEnvironmentVariable('AZURE_OPENAI_MODEL_NAME', 'gpt-4.1')
+param azureOpenAIModelVersion = readEnvironmentVariable('AZURE_OPENAI_MODEL_VERSION', '2025-04-14')
 param azureOpenAIModelCapacity = int(readEnvironmentVariable('AZURE_OPENAI_MODEL_CAPACITY', '30'))
 param useAdvancedImageProcessing = bool(readEnvironmentVariable('USE_ADVANCED_IMAGE_PROCESSING', 'false'))
 param advancedImageProcessingMaxImages = int(readEnvironmentVariable('ADVANCED_IMAGE_PROCESSING_MAX_IMAGES', '1'))
 param azureOpenAIVisionModel = readEnvironmentVariable('AZURE_OPENAI_VISION_MODEL', 'gpt-4')
 param azureOpenAIVisionModelName = readEnvironmentVariable('AZURE_OPENAI_VISION_MODEL_NAME', 'gpt-4')
-param azureOpenAIVisionModelVersion = readEnvironmentVariable('AZURE_OPENAI_VISION_MODEL_VERSION', 'vision-preview')
+param azureOpenAIVisionModelVersion = readEnvironmentVariable('AZURE_OPENAI_VISION_MODEL_VERSION', 'turbo-2024-04-09')
 param azureOpenAIVisionModelCapacity = int(readEnvironmentVariable('AZURE_OPENAI_VISION_MODEL_CAPACITY', '10'))
 param azureOpenAIEmbeddingModel = readEnvironmentVariable('AZURE_OPENAI_EMBEDDING_MODEL', 'text-embedding-ada-002')
 param azureOpenAIEmbeddingModelName = readEnvironmentVariable('AZURE_OPENAI_EMBEDDING_MODEL_NAME', 'text-embedding-ada-002')
@@ -79,3 +77,6 @@ param azureAISearchName = searchServiceName == '' ? 'search-${resourceToken}' : 
 param azureSearchIndex = readEnvironmentVariable('AZURE_SEARCH_INDEX', 'index-${resourceToken}')
 param azureOpenAIResourceName = readEnvironmentVariable('AZURE_OPENAI_RESOURCE', 'openai-${resourceToken}')
 param storageAccountName = readEnvironmentVariable('AZURE_BLOB_ACCOUNT_NAME', 'str${resourceToken}')
+
+param rgName = readEnvironmentVariable('AZURE_RESOURCE_GROUP', 'rg-${environmentName}')
+param existingLogAnalyticsWorkspaceId = readEnvironmentVariable('AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID', '')

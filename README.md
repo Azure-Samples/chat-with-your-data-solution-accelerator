@@ -176,12 +176,18 @@ Customers have the option to deploy this solution with PostgreSQL or Cosmos DB. 
 
 
 To review PostgreSQL configuration overview and steps, follow the link [here](docs/postgreSQL.md).
-![Solution Architecture - Chat with your data PostgreSQL](/docs/images/architrecture_pg.png)
+![Solution Architecture - Chat with your data PostgreSQL](/docs/images/architecture_pg.png)
 
 To review Cosmos DB configuration overview and steps, follow the link [here](docs/employee_assistance.md).
 ![Solution Architecture - Chat with your data CosmosDB](/docs/images/architecture_cdb.png)
 
 ### Deploy instructions
+<br/>
+
+> ⚠️ **Important: Check Azure OpenAI Quota Availability**
+ <br/>To ensure sufficient quota is available in your subscription, please follow [quota check instructions guide](./docs/QuotaCheck.md) before you deploy the solution.
+
+<br/>
 The "Deploy to Azure" button offers a one-click deployment where you don’t have to clone the code. If you would like a developer experience instead, follow the [local deployment instructions](./docs/LOCAL_DEPLOYMENT.md).
 
 Once you deploy to Azure, you will have the option to select PostgreSQL or Cosmos DB, see screenshot below.
@@ -194,10 +200,10 @@ Select either "PostgreSQL" or "Cosmos DB":
 
 When Deployment is complete, follow steps in [Set Up Authentication in Azure App Service](./docs/azure_app_service_auth_setup.md) to add app authentication to your web app running on Azure App Service
 
-**Note**: The default configuration deploys an OpenAI Model "gpt-4o" with version 2024-05-13. However, not all
+**Note**: The default configuration deploys an OpenAI Model "gpt-4.1" with version 2025-04-14. However, not all
 locations support this version. If you're deploying to a location that doesn't support version 2024-05-13, you'll need to
 switch to a lower version. To find out which versions are supported in different regions, visit the
-[GPT-4o Model Availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models?tabs=global-standard%2Cstandard-chat-completions#global-standard-model-availability) page.
+[GPT-4.1 Model Availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models?tabs=global-standard%2Cstandard-chat-completions#global-standard-model-availability) page.
 
 ### Testing the deployment
 1. Navigate to the admin site, where you can upload documents. It will be located at:

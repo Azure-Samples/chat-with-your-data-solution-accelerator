@@ -3,7 +3,8 @@ import os
 import logging
 import threading
 from dotenv import load_dotenv
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from azure.identity import get_bearer_token_provider
+from .azure_credential_utils import get_azure_credential
 from azure.keyvault.secrets import SecretClient
 
 from ..orchestrator.orchestration_strategy import OrchestrationStrategy
@@ -75,6 +76,10 @@ class EnvHelper:
         )
         self.AZURE_SEARCH_SOURCE_COLUMN = os.getenv(
             "AZURE_SEARCH_SOURCE_COLUMN", "source"
+        )
+        self.AZURE_SEARCH_TEXT_COLUMN = os.getenv("AZURE_SEARCH_TEXT_COLUMN", "text")
+        self.AZURE_SEARCH_LAYOUT_TEXT_COLUMN = os.getenv(
+            "AZURE_SEARCH_LAYOUT_TEXT_COLUMN", "layoutText"
         )
         self.AZURE_SEARCH_CHUNK_COLUMN = os.getenv("AZURE_SEARCH_CHUNK_COLUMN", "chunk")
         self.AZURE_SEARCH_OFFSET_COLUMN = os.getenv(
@@ -161,7 +166,7 @@ class EnvHelper:
                 "Unsupported DATABASE_TYPE. Please set DATABASE_TYPE to 'CosmosDB' or 'PostgreSQL'."
             )
 
-        self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "keys")
+        self.AZURE_AUTH_TYPE = os.getenv("AZURE_AUTH_TYPE", "rbac")
         # Azure OpenAI
         self.AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE", "")
         # Fetch AZURE_OPENAI_MODEL_INFO from environment
@@ -173,11 +178,9 @@ class EnvHelper:
             self.AZURE_OPENAI_MODEL_NAME = azure_openai_model_info.get("modelName", "")
         else:
             # Otherwise, fallback to individual environment variables
-            self.AZURE_OPENAI_MODEL = os.getenv(
-                "AZURE_OPENAI_MODEL", "gpt-4o"
-            )
+            self.AZURE_OPENAI_MODEL = os.getenv("AZURE_OPENAI_MODEL", "gpt-4.1")
             self.AZURE_OPENAI_MODEL_NAME = os.getenv(
-                "AZURE_OPENAI_MODEL_NAME", "gpt-4o"
+                "AZURE_OPENAI_MODEL_NAME", "gpt-4.1"
             )
 
         self.AZURE_OPENAI_VISION_MODEL = os.getenv("AZURE_OPENAI_VISION_MODEL", "gpt-4")
@@ -214,7 +217,7 @@ class EnvHelper:
         )
 
         self.AZURE_TOKEN_PROVIDER = get_bearer_token_provider(
-            DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+            get_azure_credential(), "https://cognitiveservices.azure.com/.default"
         )
         self.ADVANCED_IMAGE_PROCESSING_MAX_IMAGES = self.get_env_var_int(
             "ADVANCED_IMAGE_PROCESSING_MAX_IMAGES", 1
@@ -231,6 +234,7 @@ class EnvHelper:
         self.AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION = os.getenv(
             "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION", "2023-04-15"
         )
+        self.FUNCTION_KEY = os.getenv("FUNCTION_KEY", "")
 
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
@@ -239,6 +243,7 @@ class EnvHelper:
             self.AZURE_OPENAI_API_KEY = ""
             self.AZURE_SPEECH_KEY = None
             self.AZURE_COMPUTER_VISION_KEY = None
+            self.FUNCTION_KEY = self.secretHelper.get_secret("FUNCTION_KEY")
         else:
             self.AZURE_SEARCH_KEY = self.secretHelper.get_secret("AZURE_SEARCH_KEY")
             self.AZURE_OPENAI_API_KEY = self.secretHelper.get_secret(
@@ -266,7 +271,6 @@ class EnvHelper:
         os.environ["OPENAI_API_VERSION"] = self.OPENAI_API_VERSION
         # Azure Functions - Batch processing
         self.BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:7071")
-        self.FUNCTION_KEY = os.getenv("FUNCTION_KEY")
         self.AzureWebJobsStorage = os.getenv("AzureWebJobsStorage", "")
         self.DOCUMENT_PROCESSING_QUEUE_NAME = os.getenv(
             "DOCUMENT_PROCESSING_QUEUE_NAME", "doc-processing"
@@ -359,8 +363,8 @@ class EnvHelper:
         self.OPEN_AI_FUNCTIONS_SYSTEM_PROMPT = os.getenv(
             "OPEN_AI_FUNCTIONS_SYSTEM_PROMPT", ""
         )
-        self.SEMENTIC_KERNEL_SYSTEM_PROMPT = os.getenv(
-            "SEMENTIC_KERNEL_SYSTEM_PROMPT", ""
+        self.SEMANTIC_KERNEL_SYSTEM_PROMPT = os.getenv(
+            "SEMANTIC_KERNEL_SYSTEM_PROMPT", ""
         )
 
         self.ENFORCE_AUTH = self.get_env_var_bool("ENFORCE_AUTH", "True")
@@ -414,7 +418,7 @@ class SecretHelper:
 
         The constructor sets the USE_KEY_VAULT attribute based on the value of the USE_KEY_VAULT environment variable.
         If USE_KEY_VAULT is set to "true" (case-insensitive), it initializes a SecretClient object using the
-        AZURE_KEY_VAULT_ENDPOINT environment variable and the DefaultAzureCredential.
+        AZURE_KEY_VAULT_ENDPOINT environment variable and the get_azure_credential.
 
         Args:
             None
@@ -426,7 +430,7 @@ class SecretHelper:
         self.secret_client = None
         if self.USE_KEY_VAULT:
             self.secret_client = SecretClient(
-                os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), DefaultAzureCredential()
+                os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), get_azure_credential()
             )
 
     def get_secret(self, secret_name: str) -> str:

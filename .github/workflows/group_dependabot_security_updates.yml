@@ -1,0 +1,267 @@
+# Workflow: Group Dependabot PRs
+# Description:
+# This GitHub Actions workflow automatically groups open Dependabot PRs by ecosystem (pip, npm).
+# It cherry-picks individual PR changes into grouped branches, resolves merge conflicts automatically, and opens consolidated PRs.
+# It also closes the original Dependabot PRs and carries over their labels and metadata.
+# Improvements:
+# - Handles multiple conflicting files during cherry-pick
+# - Deduplicates entries in PR description
+# - Avoids closing original PRs unless grouped PR creation succeeds
+# - More efficient retry logic
+# - Ecosystem grouping is now configurable via native YAML map
+# - Uses safe namespaced branch naming (e.g. actions/grouped-...) to avoid developer conflict
+# - Ensures PR body formatting uses real newlines for better readability
+# - Adds strict error handling for script robustness
+# - Accounts for tool dependencies (jq, gh) and race conditions
+# - Optimized PR metadata lookup by preloading into associative array
+# - Supports --dry-run mode for validation/testing without side effects
+# - Note: PRs created during workflow execution will be picked up in the next scheduled run.
+
+name: Group Dependabot PRs
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Run daily at midnight UTC
+  workflow_dispatch:
+    inputs:
+      group_config_pip:
+        description: "Group name for pip ecosystem"
+        required: false
+        default: "backend"
+      group_config_npm:
+        description: "Group name for npm ecosystem"
+        required: false
+        default: "frontend"
+      group_config_yarn:
+        description: "Group name for yarn ecosystem"
+        required: false
+        default: "frontend"
+      dry_run:
+        description: "Run in dry-run mode (no changes will be pushed or PRs created/closed)"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  group-dependabot-prs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TARGET_BRANCH: "main"
+      DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+      GROUP_CONFIG_PIP: ${{ github.event.inputs.group_config_pip || 'backend' }}
+      GROUP_CONFIG_NPM: ${{ github.event.inputs.group_config_npm || 'frontend' }}
+      GROUP_CONFIG_YARN: ${{ github.event.inputs.group_config_yarn || 'frontend' }}
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+      - name: Install required tools
+        uses: awalsh128/cache-apt-pkgs-action@v1.3.1
+        with:
+          packages: "jq gh"
+
+      - name: Enable strict error handling
+        shell: bash
+        run: |
+          set -euo pipefail
+
+      - name: Fetch open Dependabot PRs targeting main
+        id: fetch_prs
+        run: |
+          gh pr list \
+            --search "author:dependabot[bot] base:$TARGET_BRANCH is:open" \
+            --limit 100 \
+            --json number,title,headRefName,labels,files,url \
+            --jq '[.[] | {number, title, url, ref: .headRefName, labels: [.labels[].name], files: [.files[].path]}]' > prs.json
+          cat prs.json
+
+      - name: Validate prs.json
+        run: |
+          jq empty prs.json 2> jq_error.log || { echo "Malformed JSON in prs.json: $(cat jq_error.log)"; exit 1; }
+
+      - name: Check if any PRs exist
+        id: check_prs
+        run: |
+          count=$(jq length prs.json)
+          echo "Found $count PRs"
+          if [ "$count" -eq 0 ]; then
+            echo "No PRs to group. Exiting."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Exit early if no PRs
+        if: steps.check_prs.outputs.skip == 'true'
+        run: exit 0
+
+      - name: Dry-run validation (CI/test only)
+        if: env.DRY_RUN == 'true'
+        run: |
+          echo "Running in dry-run mode. No changes will be pushed or PRs created/closed."
+          # Optionally, add more validation logic here (e.g., check grouped files, print planned actions).
+
+      - name: Group PRs by ecosystem and cherry-pick with retry
+        run: |
+          declare -A GROUP_CONFIG=(
+            [pip]="${GROUP_CONFIG_PIP:-backend}"
+            [npm]="${GROUP_CONFIG_NPM:-frontend}"
+            [yarn]="${GROUP_CONFIG_YARN:-frontend}"
+          )
+          mkdir -p grouped
+          jq -c '.[]' prs.json | while read pr; do
+            ref=$(echo "$pr" | jq -r '.ref')
+            number=$(echo "$pr" | jq -r '.number')
+            group="misc"
+            for key in "${!GROUP_CONFIG[@]}"; do
+              if [[ "$ref" == *"$key"* ]]; then
+                group="${GROUP_CONFIG[$key]}"
+                break
+              fi
+            done
+            echo "$number $ref $group" >> grouped/$group.txt
+          done
+
+          shopt -s nullglob
+          grouped_files=(grouped/*.txt)
+
+          if [ ${#grouped_files[@]} -eq 0 ]; then
+            echo "No groups were formed. Exiting."
+            exit 0
+          fi
+
+          declare -A pr_metadata_map
+          while IFS=$'\t' read -r number title url labels; do
+            pr_metadata_map["$number"]="$title|$url|$labels"
+          done < <(jq -r '.[] | "\(.number)\t\(.title)\t\(.url)\t\(.labels | join(","))"' prs.json)
+
+          for file in "${grouped_files[@]}"; do
+            group_name=$(basename "$file" .txt)
+            # Sanitize group_name: allow only alphanum, dash, underscore
+            safe_group_name=$(echo "$group_name" | tr -c '[:alnum:]_-' '-')
+            branch_name="security/grouped-${safe_group_name}-updates"
+            git checkout -B "$branch_name"
+
+            while read -r number ref group; do
+              git fetch origin "$ref"
+              if ! git cherry-pick FETCH_HEAD; then
+                echo "Conflict found in $ref. Attempting to resolve."
+                conflict_files=($(git diff --name-only --diff-filter=U))
+                if [ ${#conflict_files[@]} -gt 0 ]; then
+                  echo "Resolving conflicts in files: ${conflict_files[*]}"
+                  for conflict_file in "${conflict_files[@]}"; do
+                    echo "Resolving conflict in $conflict_file"
+                    git checkout --theirs "$conflict_file"
+                    git add "$conflict_file"
+                  done
+                  git cherry-pick --continue || {
+                    echo "Failed to continue cherry-pick. Aborting."
+                    git cherry-pick --abort
+                    continue 2
+                  }
+                else
+                  echo "No conflicting files found. Aborting."
+                  git cherry-pick --abort
+                  continue 2
+                fi
+              fi
+            done < "$file"
+
+            # Non-destructive push: check for drift before force-pushing
+            if [ "$DRY_RUN" == "true" ]; then
+              echo "[DRY-RUN] Skipping git push for $branch_name"
+            else
+              remote_hash=$(git ls-remote origin "$branch_name" | awk '{print $1}')
+              local_hash=$(git rev-parse "$branch_name")
+              if [ -n "$remote_hash" ] && [ "$remote_hash" != "$local_hash" ]; then
+                echo "Remote branch $branch_name has diverged. Skipping force-push to avoid overwriting changes."
+                continue
+              fi
+              git push --force-with-lease origin "$branch_name"
+            fi
+
+            new_lines=""
+            while read -r number ref group; do
+              IFS="|" read -r title url _ <<< "${pr_metadata_map["$number"]}"
+              new_lines+="$title - [#$number]($url)\n"
+            done < "$file"
+
+            pr_title="chore(deps): bump grouped $group_name Dependabot updates"
+            # Add --state open to ensure only open PRs are considered
+            existing_url=$(gh pr list --head "$branch_name" --base "$TARGET_BRANCH" --state open --json url --jq '.[0].url // empty')
+
+            if [ -n "$existing_url" ]; then
+              echo "PR already exists: $existing_url"
+              pr_url="$existing_url"
+              current_body=$(gh pr view "$pr_url" --json body --jq .body)
+              # Simplified duplicate-detection using Bash array
+              IFS=$'\n' read -d '' -r -a current_lines < <(printf '%s\0' "$current_body")
+              IFS=$'\n' read -d '' -r -a new_lines_arr < <(printf '%b\0' "$new_lines")
+              declare -A seen
+              for line in "${current_lines[@]}"; do
+                seen["$line"]=1
+              done
+              filtered_lines=""
+              for line in "${new_lines_arr[@]}"; do
+                if [[ -n "$line" && -z "${seen["$line"]}" ]]; then
+                  filtered_lines+="$line\n"
+                fi
+              done
+              # Ensure a newline separator between the existing body and new lines
+              if [ -n "$filtered_lines" ]; then
+                new_body="$current_body"$'\n'"$filtered_lines"
+              else
+                new_body="$current_body"
+              fi
+              if [ "$DRY_RUN" == "true" ]; then
+                echo "[DRY-RUN] Would update PR body for $pr_url"
+              else
+                tmpfile=$(mktemp)
+                printf '%s' "$new_body" > "$tmpfile"
+                gh pr edit "$pr_url" --body-file "$tmpfile"
+                rm -f "$tmpfile"
+              fi
+            else
+              pr_body=$(printf "This PR groups multiple open PRs by Dependabot for %s.\n\n%b" "$group_name" "$new_lines")
+              if [ "$DRY_RUN" == "true" ]; then
+                echo "[DRY-RUN] Would create PR titled: $pr_title"
+                echo "$pr_body"
+                pr_url=""
+              else
+                pr_url=$(gh pr create \
+                  --title "$pr_title" \
+                  --body "$pr_body" \
+                  --base "$TARGET_BRANCH" \
+                  --head "$branch_name")
+              fi
+            fi
+
+            if [ -n "$pr_url" ]; then
+              for number in $(cut -d ' ' -f1 "$file"); do
+                IFS="|" read -r _ _ labels <<< "${pr_metadata_map["$number"]}"
+                IFS="," read -ra label_arr <<< "$labels"
+                for label in "${label_arr[@]}"; do
+                  if [ "$DRY_RUN" == "true" ]; then
+                    echo "[DRY-RUN] Would add label $label to $pr_url"
+                  else
+                    gh pr edit "$pr_url" --add-label "$label"
+                  fi
+                done
+                if [ "$DRY_RUN" == "true" ]; then
+                  echo "[DRY-RUN] Would close PR #$number"
+                else
+                  gh pr close "$number" --comment "Grouped into $pr_url."
+                fi
+              done
+              echo "Grouped PR created. Leaving branch $branch_name for now."
+            else
+              echo "Grouped PR was not created. Skipping closing of original PRs."
+            fi
+          done

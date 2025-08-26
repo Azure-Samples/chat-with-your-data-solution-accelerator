@@ -99,7 +99,9 @@ def test_integrated_vectorization_datasouce_created(
                 "credentials": {
                     "connectionString": f"DefaultEndpointsProtocol=https;AccountName={app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','accountName')};AccountKey={app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','accountKey')};EndpointSuffix=core.windows.net"
                 },
-                "container": {"name": f"{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}"},
+                "container": {
+                    "name": f"{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}"
+                },
                 "dataDeletionDetectionPolicy": {
                     "@odata.type": "#Microsoft.Azure.Search.NativeBlobSoftDeleteDeletionDetectionPolicy"
                 },
@@ -209,6 +211,26 @@ def test_integrated_vectorization_index_created(
                         "sortable": True,
                         "facetable": True,
                         "analyzer": "keyword",
+                    },
+                    {
+                        "name": "text",
+                        "type": "Edm.String",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": True,
+                        "filterable": False,
+                        "sortable": False,
+                        "facetable": False,
+                    },
+                    {
+                        "name": "layoutText",
+                        "type": "Edm.String",
+                        "key": False,
+                        "retrievable": True,
+                        "searchable": True,
+                        "filterable": False,
+                        "sortable": False,
+                        "facetable": False,
                     },
                 ],
                 "semantic": {
