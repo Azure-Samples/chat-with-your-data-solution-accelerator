@@ -1,0 +1,159 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "solutionName": {
+      "value": "${AZURE_ENV_NAME}"
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    },
+    "principalId": {
+      "value": "${AZURE_PRINCIPAL_ID}"
+    },
+    "appEnvironment": {
+      "value": "${APP_ENV}"
+    },
+    "hostingModel": {
+      "value": "${AZURE_APP_SERVICE_HOSTING_MODEL}"
+    },
+    "azureSearchUseIntegratedVectorization": {
+      "value": false
+    },
+    "azureSearchUseSemanticSearch": {
+      "value": false
+    },
+    "orchestrationStrategy": {
+      "value": "${ORCHESTRATION_STRATEGY}"
+    },
+    "logLevel": {
+      "value": "${LOGLEVEL}"
+    },
+    "recognizedLanguages": {
+      "value": "${AZURE_SPEECH_RECOGNIZER_LANGUAGES}"
+    },
+    "conversationFlow": {
+      "value": "${CONVERSATION_FLOW}"
+    },
+    "azureSearchFieldId": {
+      "value": "${AZURE_SEARCH_FIELDS_ID}"
+    },
+    "azureSearchContentColumn": {
+      "value": "${AZURE_SEARCH_CONTENT_COLUMN}"
+    },
+    "azureSearchVectorColumn": {
+      "value": "${AZURE_SEARCH_CONTENT_VECTOR_COLUMN}"
+    },
+    "azureSearchTitleColumn": {
+      "value": "${AZURE_SEARCH_TITLE_COLUMN}"
+    },
+    "azureSearchFieldsMetadata": {
+      "value": "${AZURE_SEARCH_FIELDS_METADATA}"
+    },
+    "azureSearchSourceColumn": {
+      "value": "${AZURE_SEARCH_SOURCE_COLUMN}"
+    },
+    "azureSearchTextColumn": {
+      "value": "${AZURE_SEARCH_TEXT_COLUMN}"
+    },
+    "azureSearchLayoutTextColumn": {
+      "value": "${AZURE_SEARCH_LAYOUT_TEXT_COLUMN}"
+    },
+    "azureSearchChunkColumn": {
+      "value": "${AZURE_SEARCH_CHUNK_COLUMN}"
+    },
+    "azureSearchOffsetColumn": {
+      "value": "${AZURE_SEARCH_OFFSET_COLUMN}"
+    },
+    "azureOpenAIApiVersion": {
+      "value": "${AZURE_OPENAI_API_VERSION}"
+    },
+    "azureOpenAIModel": {
+      "value": "${AZURE_OPENAI_MODEL}"
+    },
+    "azureOpenAIModelName": {
+      "value": "${AZURE_OPENAI_MODEL_NAME}"
+    },
+    "azureOpenAIModelVersion": {
+      "value": "${AZURE_OPENAI_MODEL_VERSION}"
+    },
+    "azureOpenAIModelCapacity": {
+      "value": 30
+    },
+    "useAdvancedImageProcessing": {
+      "value": false
+    },
+    "advancedImageProcessingMaxImages": {
+      "value": 1
+    },
+    "azureOpenAIVisionModel": {
+      "value": "${AZURE_OPENAI_VISION_MODEL}"
+    },
+    "azureOpenAIVisionModelName": {
+      "value": "${AZURE_OPENAI_VISION_MODEL_NAME}"
+    },
+    "azureOpenAIVisionModelVersion": {
+      "value": "${AZURE_OPENAI_VISION_MODEL_VERSION}"
+    },
+    "azureOpenAIVisionModelCapacity": {
+      "value": 10
+    },
+    "azureOpenAIEmbeddingModel": {
+      "value": "${AZURE_OPENAI_EMBEDDING_MODEL}"
+    },
+    "azureOpenAIEmbeddingModelName": {
+      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_NAME}"
+    },
+    "azureOpenAIEmbeddingModelVersion": {
+      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_VERSION}"
+    },
+    "azureOpenAIEmbeddingModelCapacity": {
+      "value": 30
+    },
+    "azureOpenAIMaxTokens": {
+      "value": "${AZURE_OPENAI_MAX_TOKENS}"
+    },
+    "azureOpenAITemperature": {
+      "value": "${AZURE_OPENAI_TEMPERATURE}"
+    },
+    "azureOpenAITopP": {
+      "value": "${AZURE_OPENAI_TOP_P}"
+    },
+    "azureOpenAIStopSequence": {
+      "value": "${AZURE_OPENAI_STOP_SEQUENCE}"
+    },
+    "azureOpenAISystemMessage": {
+      "value": "${AZURE_OPENAI_SYSTEM_MESSAGE}"
+    },
+    "azureSearchTopK": {
+      "value": "${AZURE_SEARCH_TOP_K}"
+    },
+    "computerVisionLocation": {
+      "value": "${AZURE_COMPUTER_VISION_LOCATION}"
+    },
+    "computerVisionVectorizeImageApiVersion": {
+      "value": "${AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION}"
+    },
+    "computerVisionVectorizeImageModelVersion": {
+      "value": "${AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION}"
+    },
+    "azureAISearchName": {
+      "value": "${AZURE_SEARCH_SERVICE_NAME}"
+    },
+    "azureSearchIndex": {
+      "value": "${AZURE_SEARCH_INDEX}"
+    },
+    "azureOpenAIResourceName": {
+      "value": "${AZURE_OPENAI_RESOURCE}"
+    },
+    "storageAccountName": {
+      "value": "${AZURE_BLOB_ACCOUNT_NAME}"
+    },
+    "rgName": {
+      "value": "${AZURE_RESOURCE_GROUP}"
+    },
+    "existingLogAnalyticsWorkspaceId": {
+      "value": "${AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID}"
+    }
+  }
+}

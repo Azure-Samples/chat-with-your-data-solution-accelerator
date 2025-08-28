@@ -1,22 +1,12 @@
-targetScope = 'resourceGroup'
+targetScope = 'subscription'
 
-// @minLength(1)
-// @maxLength(20)
-// @description('Name of the the environment which is used to generate a short unique hash used in all resources.')
-// param environmentName string
-
+@minLength(1)
+@maxLength(20)
+@description('Name of the the environment which is used to generate a short unique hash used in all resources.')
+param environmentName string
 var abbrs = loadJsonContent('./abbreviations.json')
 
-// param resourceToken string = toLower(uniqueString(subscription().id, environmentName, location))
-
-@description('Optional. A unique application/solution name for all resources in this deployment. This should be 3-16 characters long.')
-@minLength(3)
-@maxLength(16)
-param solutionName string = 'cwyd'
-
-@maxLength(5)
-@description('Optional. A unique text value for the solution. This is used to ensure resource names are unique for global resources. Defaults to a 5-character substring of the unique string generated from the subscription ID, resource group name, and solution name.')
-param solutionUniqueText string = take(uniqueString(subscription().id, resourceGroup().name, solutionName), 5)
+param resourceToken string = toLower(uniqueString(subscription().id, environmentName, location))
 
 @description('Location for all resources, if you are using existing resource group provide the location of the resorce group.')
 @metadata({
@@ -26,27 +16,14 @@ param solutionUniqueText string = take(uniqueString(subscription().id, resourceG
 })
 param location string
 
-// @description('The resource group name which would be created or reused if existing')
-// param rgName string = 'rg-${environmentName}'
+@description('The resource group name which would be created or reused if existing')
+param rgName string = 'rg-${environmentName}'
 
 @description('Optional: Existing Log Analytics Workspace Resource ID')
 param existingLogAnalyticsWorkspaceId string = ''
 
-var solutionSuffix = toLower(trim(replace(
-  replace(
-    replace(replace(replace(replace('${solutionName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''),
-    ' ',
-    ''
-  ),
-  '*',
-  ''
-)))
-
-// @description('Name of App Service plan')
-// param hostingPlanName string = 'asp-${solutionSuffix}'
-
 @description('Name of App Service plan')
-var hostingPlanName string = 'asp-${solutionSuffix}'
+param hostingPlanName string = 'asp-${resourceToken}'
 
 @description('The pricing tier for the App Service plan')
 @allowed([
@@ -85,22 +62,22 @@ param skuTier string = 'Basic'
 param databaseType string = 'PostgreSQL'
 
 @description('Azure Cosmos DB Account Name')
-var azureCosmosDBAccountName string = 'cosmos-${solutionSuffix}'
+param azureCosmosDBAccountName string = 'cosmos-${resourceToken}'
 
 @description('Azure Postgres DB Account Name')
-var azurePostgresDBAccountName string = 'psql-${solutionSuffix}'
+param azurePostgresDBAccountName string = 'psql-${resourceToken}'
 
 @description('Name of Web App')
-var websiteName string = 'app-${solutionSuffix}'
+param websiteName string = 'app-${resourceToken}'
 
 @description('Name of Admin Web App')
-var adminWebsiteName string = '${websiteName}-admin'
+param adminWebsiteName string = '${websiteName}-admin'
 
 @description('Name of Application Insights')
-var applicationInsightsName string = 'appi-${solutionSuffix}'
+param applicationInsightsName string = 'appi-${resourceToken}'
 
 @description('Name of the Workbook')
-var workbookDisplayName string = 'workbook-${solutionSuffix}'
+param workbookDisplayName string = 'workbook-${resourceToken}'
 
 @description('Use semantic search')
 param azureSearchUseSemanticSearch bool = false
@@ -160,7 +137,7 @@ param azureSearchUrlColumn string = 'url'
 param azureSearchUseIntegratedVectorization bool = false
 
 @description('Name of Azure OpenAI Resource')
-var azureOpenAIResourceName string = 'oai-${solutionSuffix}'
+param azureOpenAIResourceName string = 'oai-${resourceToken}'
 
 @description('Name of Azure OpenAI Resource SKU')
 param azureOpenAISkuName string = 'S0'
@@ -245,7 +222,7 @@ param azureOpenAIEmbeddingModelVersion string = '2'
 param azureOpenAIEmbeddingModelCapacity int = 30
 
 @description('Name of Computer Vision Resource (if useAdvancedImageProcessing=true)')
-var computerVisionName string = 'cv-${solutionSuffix}'
+param computerVisionName string = 'cv-${resourceToken}'
 
 @description('Name of Computer Vision Resource SKU (if useAdvancedImageProcessing=true)')
 @allowed([
@@ -275,7 +252,7 @@ param computerVisionVectorizeImageApiVersion string = '2024-02-01'
 param computerVisionVectorizeImageModelVersion string = '2023-04-15'
 
 @description('Azure AI Search Resource')
-var azureAISearchName string = 'srch-${solutionSuffix}'
+param azureAISearchName string = 'srch-${resourceToken}'
 
 @description('The SKU of the search service you want to create. E.g. free or standard')
 @allowed([
@@ -288,34 +265,34 @@ var azureAISearchName string = 'srch-${solutionSuffix}'
 param azureSearchSku string = 'standard'
 
 @description('Azure AI Search Index')
-var azureSearchIndex string = 'index-${solutionSuffix}'
+param azureSearchIndex string = 'index-${resourceToken}'
 
 @description('Azure AI Search Indexer')
-var azureSearchIndexer string = 'indexer-${solutionSuffix}'
+param azureSearchIndexer string = 'indexer-${resourceToken}'
 
 @description('Azure AI Search Datasource')
-var azureSearchDatasource string = 'datasource-${solutionSuffix}'
+param azureSearchDatasource string = 'datasource-${resourceToken}'
 
 @description('Azure AI Search Conversation Log Index')
 param azureSearchConversationLogIndex string = 'conversations'
 
 @description('Name of Storage Account')
-var storageAccountName string = 'st${solutionSuffix}'
+param storageAccountName string = 'st${resourceToken}'
 
 @description('Name of Function App for Batch document processing')
-var functionName string = 'func-${solutionSuffix}'
+param functionName string = 'func-${resourceToken}'
 
 @description('Azure Form Recognizer Name')
-var formRecognizerName string = 'di-${solutionSuffix}'
+param formRecognizerName string = 'di-${resourceToken}'
 
 @description('Azure Content Safety Name')
-var contentSafetyName string = 'cs-${solutionSuffix}'
+param contentSafetyName string = 'cs-${resourceToken}'
 
 @description('Azure Speech Service Name')
-var speechServiceName string = 'spch-${solutionSuffix}'
+param speechServiceName string = 'spch-${resourceToken}'
 
 @description('Log Analytics Name')
-var logAnalyticsName string = 'log-${solutionSuffix}'
+param logAnalyticsName string = 'log-${resourceToken}'
 
 param newGuidString string = newGuid()
 param searchTag string = 'chatwithyourdata-sa'
@@ -342,43 +319,14 @@ param logLevel string = 'INFO'
 param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
 
 @description('Azure Machine Learning Name')
-var azureMachineLearningName string = 'mlw-${solutionSuffix}'
-
-@description('Optional. The tags to apply to all deployed Azure resources.')
-param tags resourceInput<'Microsoft.Resources/resourceGroups@2025-04-01'>.tags = {}
-
-@description('Optional. Enable monitoring applicable resources, aligned with the Well Architected Framework recommendations. This setting enables Application Insights and Log Analytics and configures all the resources applicable resources to send logs. Defaults to false.')
-param enableMonitoring bool = false
-
-@description('Optional. Enable scalability for applicable resources, aligned with the Well Architected Framework recommendations. Defaults to false.')
-param enableScalability bool = false
-
-@description('Optional. Enable redundancy for applicable resources, aligned with the Well Architected Framework recommendations. Defaults to false.')
-param enableRedundancy bool = false
-
-@description('Optional. Enable private networking for applicable resources, aligned with the Well Architected Framework recommendations. Defaults to false.')
-param enablePrivateNetworking bool = false
-
-@description('Optional. Size of the Jumpbox Virtual Machine when created. Set to custom value if enablePrivateNetworking is true.')
-param vmSize string?
-
-@secure()
-@description('Optional. The user name for the administrator account of the virtual machine. Allows to customize credentials if `enablePrivateNetworking` is set to true.')
-param virtualMachineAdminUsername string = take(newGuid(), 20)
-
-@description('Optional. The password for the administrator account of the virtual machine. Allows to customize credentials if `enablePrivateNetworking` is set to true.')
-@secure()
-param virtualMachineAdminPassword string = newGuid()
-
-@description('Optional. Enable/Disable usage telemetry for module.')
-param enableTelemetry bool = true
+param azureMachineLearningName string = 'mlw-${resourceToken}'
 
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
 var eventGridSystemTopicName = 'doc-processing'
-// var tags = { 'azd-env-name': solutionName }
-var keyVaultName = '${abbrs.security.keyVault}${solutionSuffix}'
+var tags = { 'azd-env-name': environmentName }
+var keyVaultName = '${abbrs.security.keyVault}${resourceToken}'
 var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
 var appversion = 'latest' // Update GIT deployment branch
 var registryName = 'cwydcontainerreg' // Update Registry name
@@ -401,369 +349,33 @@ var semanticKernelSystemPrompt = '''You help employees to navigate only private 
     If the input language is ambiguous, default to responding in English unless otherwise specified by the user.
     You **must not** respond if asked to List all documents in your repository.'''
 
-var allTags = union(
-  {
-    'azd-env-name': solutionName
-  },
-  tags
-)
-
-// var solutionSuffix = toLower(trim(replace(
-//   replace(
-//     replace(replace(replace(replace('${solutionName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''),
-//     ' ',
-//     ''
-//   ),
-//   '*',
-//   ''
-// )))
-
-// Region pairs list based on article in [Azure Database for MySQL Flexible Server - Azure Regions](https://learn.microsoft.com/azure/mysql/flexible-server/overview#azure-regions) for supported high availability regions for CosmosDB.
-var cosmosDbZoneRedundantHaRegionPairs = {
-  australiaeast: 'uksouth'
-  centralus: 'eastus2'
-  eastasia: 'southeastasia'
-  eastus: 'centralus'
-  eastus2: 'centralus'
-  japaneast: 'australiaeast'
-  northeurope: 'westeurope'
-  southeastasia: 'eastasia'
-  uksouth: 'westeurope'
-  westeurope: 'northeurope'
-}
-// Paired location calculated based on 'location' parameter. This location will be used by applicable resources if `enableScalability` is set to `true`
-var cosmosDbHaLocation = cosmosDbZoneRedundantHaRegionPairs[location]
-
-// Replica regions list based on article in [Azure regions list](https://learn.microsoft.com/azure/reliability/regions-list) and [Enhance resilience by replicating your Log Analytics workspace across regions](https://learn.microsoft.com/azure/azure-monitor/logs/workspace-replication#supported-regions) for supported regions for Log Analytics Workspace.
-var replicaRegionPairs = {
-  australiaeast: 'australiasoutheast'
-  centralus: 'westus'
-  eastasia: 'japaneast'
-  eastus: 'centralus'
-  eastus2: 'centralus'
-  japaneast: 'eastasia'
-  northeurope: 'westeurope'
-  southeastasia: 'eastasia'
-  uksouth: 'westeurope'
-  westeurope: 'northeurope'
-}
-var replicaLocation = replicaRegionPairs[location]
-
-// ============== //
-// Resources      //
-// ============== //
-
-#disable-next-line no-deployments-resources
-resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableTelemetry) {
-  name: '46d3xbcp.ptn.sa-multiagentcustauteng.${replace('-..--..-', '.', '-')}.${substring(uniqueString(deployment().name, location), 0, 4)}'
-  properties: {
-    mode: 'Incremental'
-    template: {
-      '$schema': 'https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#'
-      contentVersion: '1.0.0.0'
-      resources: []
-      outputs: {
-        telemetry: {
-          type: 'String'
-          value: 'For more information, see https://aka.ms/avm/TelemetryInfo'
-        }
-      }
-    }
-  }
-}
-
-// Extracts subscription, resource group, and workspace name from the resource ID when using an existing Log Analytics workspace
-var useExistingLogAnalytics = !empty(existingLogAnalyticsWorkspaceId)
-
-var existingLawSubscription = useExistingLogAnalytics ? split(existingLogAnalyticsWorkspaceId, '/')[2] : ''
-var existingLawResourceGroup = useExistingLogAnalytics ? split(existingLogAnalyticsWorkspaceId, '/')[4] : ''
-var existingLawName = useExistingLogAnalytics ? split(existingLogAnalyticsWorkspaceId, '/')[8] : ''
-
-resource existingLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2020-08-01' existing = if (useExistingLogAnalytics) {
-  name: existingLawName
-  scope: resourceGroup(existingLawSubscription, existingLawResourceGroup)
-}
-
-// ========== Log Analytics Workspace ========== //
-// WAF best practices for Log Analytics: https://learn.microsoft.com/en-us/azure/well-architected/service-guides/azure-log-analytics
-// WAF PSRules for Log Analytics: https://azure.github.io/PSRule.Rules.Azure/en/rules/resource/#azure-monitor-logs
-var logAnalyticsWorkspaceResourceName = 'log-${solutionSuffix}'
-module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.12.0' = if (enableMonitoring && !useExistingLogAnalytics) {
-  name: take('avm.res.operational-insights.workspace.${logAnalyticsWorkspaceResourceName}', 64)
-  params: {
-    name: logAnalyticsWorkspaceResourceName
-    tags: tags
-    location: location
-    enableTelemetry: enableTelemetry
-    skuName: 'PerGB2018'
-    dataRetention: 365
-    features: { enableLogAccessUsingOnlyResourcePermissions: true }
-    diagnosticSettings: [{ useThisWorkspace: true }]
-    // WAF aligned configuration for Redundancy
-    dailyQuotaGb: enableRedundancy ? 10 : null //WAF recommendation: 10 GB per day is a good starting point for most workloads
-    replication: enableRedundancy
-      ? {
-          enabled: true
-          location: replicaLocation
-        }
-      : null
-    // WAF aligned configuration for Private Networking
-    publicNetworkAccessForIngestion: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    publicNetworkAccessForQuery: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    dataSources: enablePrivateNetworking
-      ? [
-          {
-            tags: tags
-            eventLogName: 'Application'
-            eventTypes: [
-              {
-                eventType: 'Error'
-              }
-              {
-                eventType: 'Warning'
-              }
-              {
-                eventType: 'Information'
-              }
-            ]
-            kind: 'WindowsEvent'
-            name: 'applicationEvent'
-          }
-          {
-            counterName: '% Processor Time'
-            instanceName: '*'
-            intervalSeconds: 60
-            kind: 'WindowsPerformanceCounter'
-            name: 'windowsPerfCounter1'
-            objectName: 'Processor'
-          }
-          {
-            kind: 'IISLogs'
-            name: 'sampleIISLog1'
-            state: 'OnPremiseEnabled'
-          }
-        ]
-      : null
-  }
-}
-// Log Analytics Name, workspace ID, customer ID, and shared key (existing or new)
-var logAnalyticsWorkspaceName = useExistingLogAnalytics
-  ? existingLogAnalyticsWorkspace!.name
-  : logAnalyticsWorkspace!.outputs.name
-var logAnalyticsWorkspaceResourceId = useExistingLogAnalytics
-  ? existingLogAnalyticsWorkspaceId
-  : logAnalyticsWorkspace!.outputs.resourceId
-var logAnalyticsPrimarySharedKey = useExistingLogAnalytics
-  ? existingLogAnalyticsWorkspace!.listKeys().primarySharedKey
-  : logAnalyticsWorkspace!.outputs!.primarySharedKey
-var logAnalyticsWorkspaceId = useExistingLogAnalytics
-  ? existingLogAnalyticsWorkspace!.properties.customerId
-  : logAnalyticsWorkspace!.outputs.logAnalyticsWorkspaceId
-
-// ========== Application Insights ========== //
-// WAF best practices for Application Insights: https://learn.microsoft.com/en-us/azure/well-architected/service-guides/application-insights
-// WAF PSRules for  Application Insights: https://azure.github.io/PSRule.Rules.Azure/en/rules/resource/#application-insights
-var applicationInsightsResourceName = 'appi-${solutionSuffix}'
-module applicationInsights 'br/public:avm/res/insights/component:0.6.0' = if (enableMonitoring) {
-  name: take('avm.res.insights.component.${applicationInsightsResourceName}', 64)
-  params: {
-    name: applicationInsightsResourceName
-    tags: tags
-    location: location
-    enableTelemetry: enableTelemetry
-    retentionInDays: 365
-    kind: 'web'
-    disableIpMasking: false
-    flowType: 'Bluefield'
-    // WAF aligned configuration for Monitoring
-    workspaceResourceId: enableMonitoring ? logAnalyticsWorkspaceResourceId : ''
-    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceResourceId }] : null
-  }
-}
-
-var networkResourceName = 'network-${solutionSuffix}' // need to confirm
-module network 'modules/network.bicep' = if (enablePrivateNetworking) {
-  name: take('network-${solutionSuffix}-deployment', 64)
-  params: {
-    resourcesName: networkResourceName
-    logAnalyticsWorkSpaceResourceId: logAnalyticsWorkspaceResourceId
-    vmAdminUsername: virtualMachineAdminUsername ?? 'JumpboxAdminUser'
-    vmAdminPassword: virtualMachineAdminPassword ?? 'JumpboxAdminP@ssw0rd1234!'
-    vmSize: vmSize ?? 'Standard_DS2_v2' // Default VM size
-    location: location
-    tags: allTags
-    enableTelemetry: enableTelemetry
-  }
+// Organize resources in a resource group
+resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+  name: rgName
+  location: location
+  tags: union(tags, {
+    TemplateName: 'CWYD'
+  })
 }
 
 // ========== Managed Identity ========== //
-// ========== User Assigned Identity ========== //
-// WAF best practices for identity and access management: https://learn.microsoft.com/en-us/azure/well-architected/security/identity-access
-var userAssignedIdentityResourceName = 'id-${solutionSuffix}'
-module managedIdentityModule './core/security/managed-identity.bicep' = {
-  name: take('avm.res.managed-identity.user-assigned-identity.${userAssignedIdentityResourceName}', 64)
+module managedIdentityModule './core/security/managed-identity.bicep' = if (databaseType == 'PostgreSQL') {
+  name: 'deploy_managed_identity'
   params: {
-    // miName: '${abbrs.security.managedIdentity}${solutionSuffix}'
-    miName: userAssignedIdentityResourceName
-    // solutionName: solutionSuffix
+    miName: '${abbrs.security.managedIdentity}${resourceToken}'
+    solutionName: resourceToken
     solutionLocation: location
-    tags: tags
-    enableTelemetry: enableTelemetry
   }
-  scope: resourceGroup()
+  scope: rg
 }
 
-module privateDnsZonesCosmosDb 'br/public:avm/res/network/private-dns-zone:0.7.1' = if (enablePrivateNetworking) {
-  name: take('avm.res.network.private-dns-zone.cosmos-db.${solutionSuffix}', 64)
+module cosmosDBModule './core/database/cosmosdb.bicep' = if (databaseType == 'CosmosDB') {
+  name: 'deploy_cosmos_db'
   params: {
-    name: 'privatelink.documents.azure.com'
-    enableTelemetry: enableTelemetry
-    virtualNetworkLinks: [
-      {
-        name: take('vnetlink-${network.outputs.vnetName}-documents', 80)
-        virtualNetworkResourceId: network.outputs.vnetResourceId
-      }
-    ]
-    tags: tags
-  }
-}
-
-// var cosmosDbResourceName = 'cosmos-${solutionSuffix}'
-// var cosmosDbDatabaseName = 'macae'
-// var cosmosDbDatabaseMemoryContainerName = 'memory'
-
-//TODO: update to latest version of AVM module
-// module cosmosDb 'br/public:avm/res/document-db/database-account:0.15.0' = {
-//   name: take('avm.res.document-db.database-account.${cosmosDbResourceName}', 64)
-//   params: {
-//     // Required parameters
-//     name: cosmosDbResourceName
-//     location: location
-//     tags: tags
-//     enableTelemetry: enableTelemetry
-//     sqlDatabases: [
-//       {
-//         name: cosmosDbDatabaseName
-//         containers: [
-//           {
-//             name: cosmosDbDatabaseMemoryContainerName
-//             paths: [
-//               '/session_id'
-//             ]
-//             kind: 'Hash'
-//             version: 2
-//           }
-//         ]
-//       }
-//     ]
-//     dataPlaneRoleDefinitions: [
-//       {
-//         // Cosmos DB Built-in Data Contributor: https://docs.azure.cn/en-us/cosmos-db/nosql/security/reference-data-plane-roles#cosmos-db-built-in-data-contributor
-//         roleName: 'Cosmos DB SQL Data Contributor'
-//         dataActions: [
-//           'Microsoft.DocumentDB/databaseAccounts/readMetadata'
-//           'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers/*'
-//           'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers/items/*'
-//         ]
-//         assignments: [{ principalId: userAssignedIdentity.outputs.principalId }]
-//       }
-//     ]
-//     // WAF aligned configuration for Monitoring
-//     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId }] : null
-//     // WAF aligned configuration for Private Networking
-//     networkRestrictions: {
-//       networkAclBypass: 'None'
-//       publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-//     }
-//     privateEndpoints: enablePrivateNetworking
-//       ? [
-//           {
-//             name: 'pep-${cosmosDbResourceName}'
-//             customNetworkInterfaceName: 'nic-${cosmosDbResourceName}'
-//             privateDnsZoneGroup: {
-//               privateDnsZoneGroupConfigs: [{ privateDnsZoneResourceId: privateDnsZonesCosmosDb!.outputs.resourceId }]
-//             }
-//             service: 'Sql'
-//             subnetResourceId: virtualNetwork!.outputs.subnetResourceIds[0]
-//           }
-//         ]
-//       : []
-//     // WAF aligned configuration for Redundancy
-//     zoneRedundant: enableRedundancy ? true : false
-//     capabilitiesToAdd: enableRedundancy ? null : ['EnableServerless']
-//     automaticFailover: enableRedundancy ? true : false
-//     failoverLocations: enableRedundancy
-//       ? [
-//           {
-//             failoverPriority: 0
-//             isZoneRedundant: true
-//             locationName: location
-//           }
-//           {
-//             failoverPriority: 1
-//             isZoneRedundant: true
-//             locationName: cosmosDbHaLocation
-//           }
-//         ]
-//       : [
-//           {
-//             locationName: location
-//             failoverPriority: 0
-//           }
-//         ]
-//   }
-// }
-
-// // ========== AI Foundry: AI Services ========== //
-// // WAF best practices for Open AI: https://learn.microsoft.com/en-us/azure/well-architected/service-guides/azure-openai
-// var openAiSubResource = 'account'
-// var openAiPrivateDnsZones = {
-//   'privatelink.cognitiveservices.azure.com': openAiSubResource
-//   'privatelink.openai.azure.com': openAiSubResource
-//   'privatelink.services.ai.azure.com': openAiSubResource
-// }
-
-// module privateDnsZonesAiServices 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
-//   for zone in objectKeys(openAiPrivateDnsZones): if (enablePrivateNetworking) {
-//     name: take(
-//       'avm.res.network.private-dns-zone.ai-services.${uniqueString(aiFoundryAiServicesResourceName,zone)}.${solutionSuffix}',
-//       64
-//     )
-//     scope: resourceGroup()
-//     params: {
-//       name: zone
-//       tags: tags
-//       enableTelemetry: enableTelemetry
-//       virtualNetworkLinks: [
-//         {
-//           name: take('vnetlink-${virtualNetworkResourceName}-${split(zone, '.')[1]}', 80)
-//           virtualNetworkResourceId: virtualNetwork!.outputs.resourceId
-//         }
-//       ]
-//     }
-//   }
-// ]
-
-var cosmosDbResourceName = 'cosmos-${solutionSuffix}'
-module cosmosDBModule './modules/core/database/cosmosdb.bicep' = if (databaseType == 'CosmosDB') {
-  name: take('avm.res.document-db.database-account.${cosmosDbResourceName}', 64)
-  params: {
-    name: cosmosDbResourceName
+    name: azureCosmosDBAccountName
     location: location
-    tags: tags
-    enableTelemetry: enableTelemetry
-    enableMonitoring: enableMonitoring
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
-    enablePrivateNetworking: enablePrivateNetworking
-    subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
-    // virtualNetwork: enablePrivateNetworking ? virtualNetwork : null
-    avmPrivateDnsZones: enablePrivateNetworking ? [privateDnsZonesCosmosDb] : []
-    dnsZoneIndex: enablePrivateNetworking ? { cosmosDb: 0 } : {}
-    userAssignedIdentity: managedIdentityModule
-    enableRedundancy: enableRedundancy
-    cosmosDbHaLocation: cosmosDbHaLocation
   }
-  scope: resourceGroup()
+  scope: rg
 }
 
 module postgresDBModule './core/database/postgresdb.bicep' = if (databaseType == 'PostgreSQL') {
@@ -775,13 +387,13 @@ module postgresDBModule './core/database/postgresdb.bicep' = if (databaseType ==
     managedIdentityObjectName: managedIdentityModule.outputs.managedIdentityOutput.name
     allowAzureIPsFirewall: true
   }
-  scope: resourceGroup()
+  scope: rg
 }
 
 // Store secrets in a keyvault
 module keyvault './core/security/keyvault.bicep' = {
   name: 'keyvault'
-  scope: resourceGroup()
+  scope: rg
   params: {
     name: keyVaultName
     location: location
@@ -842,7 +454,7 @@ var openAiDeployments = concat(
 
 module openai 'core/ai/cognitiveservices.bicep' = {
   name: azureOpenAIResourceName
-  scope: resourceGroup()
+  scope: rg
   params: {
     name: azureOpenAIResourceName
     location: location
@@ -857,7 +469,7 @@ module openai 'core/ai/cognitiveservices.bicep' = {
 
 module computerVision 'core/ai/cognitiveservices.bicep' = if (useAdvancedImageProcessing) {
   name: 'computerVision'
-  scope: resourceGroup()
+  scope: rg
   params: {
     name: computerVisionName
     kind: 'ComputerVision'
@@ -871,7 +483,7 @@ module computerVision 'core/ai/cognitiveservices.bicep' = if (useAdvancedImagePr
 
 // Search Index Data Reader
 module searchIndexRoleOpenai 'core/security/role.bicep' = {
-  scope: resourceGroup()
+  scope: rg
   name: 'search-index-role-openai'
   params: {
     principalId: openai.outputs.identityPrincipalId
@@ -882,7 +494,7 @@ module searchIndexRoleOpenai 'core/security/role.bicep' = {
 
 // Search Service Contributor
 module searchServiceRoleOpenai 'core/security/role.bicep' = {
-  scope: resourceGroup()
+  scope: rg
   name: 'search-service-role-openai'
   params: {
     principalId: openai.outputs.identityPrincipalId
@@ -893,7 +505,7 @@ module searchServiceRoleOpenai 'core/security/role.bicep' = {
 
 // Storage Blob Data Reader
 module blobDataReaderRoleSearch 'core/security/role.bicep' = if (databaseType == 'CosmosDB') {
-  scope: resourceGroup()
+  scope: rg
   name: 'blob-data-reader-role-search'
   params: {
     principalId: search.outputs.identityPrincipalId
@@ -904,7 +516,7 @@ module blobDataReaderRoleSearch 'core/security/role.bicep' = if (databaseType ==
 
 // Cognitive Services OpenAI User
 module openAiRoleSearchService 'core/security/role.bicep' = if (databaseType == 'CosmosDB') {
-  scope: resourceGroup()
+  scope: rg
   name: 'openai-role-searchservice'
   params: {
     principalId: search.outputs.identityPrincipalId
@@ -914,7 +526,7 @@ module openAiRoleSearchService 'core/security/role.bicep' = if (databaseType == 
 }
 
 module speechService 'core/ai/cognitiveservices.bicep' = {
-  scope: resourceGroup()
+  scope: rg
   name: speechServiceName
   params: {
     name: speechServiceName
@@ -928,7 +540,7 @@ module speechService 'core/ai/cognitiveservices.bicep' = {
 
 module storekeys './app/storekeys.bicep' = {
   name: 'storekeys'
-  scope: resourceGroup()
+  scope: rg
   params: {
     keyVaultName: keyVaultName
     clientkey: clientKey
@@ -940,7 +552,7 @@ module storekeys './app/storekeys.bicep' = {
 
 module search './core/search/search-services.bicep' = if (databaseType == 'CosmosDB') {
   name: azureAISearchName
-  scope: resourceGroup()
+  scope: rg
   params: {
     name: azureAISearchName
     location: location
@@ -961,7 +573,7 @@ module search './core/search/search-services.bicep' = if (databaseType == 'Cosmo
 
 module hostingplan './core/host/appserviceplan.bicep' = {
   name: hostingPlanName
-  scope: resourceGroup()
+  scope: rg
   params: {
     name: hostingPlanName
     location: location
@@ -975,8 +587,8 @@ module hostingplan './core/host/appserviceplan.bicep' = {
 }
 
 module web './app/web.bicep' = if (hostingModel == 'code') {
-  name: take('module.web-sites.${websiteName}', 64)
-  scope: resourceGroup()
+  name: websiteName
+  scope: rg
   params: {
     name: websiteName
     location: location
@@ -1027,6 +639,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
         SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
         APP_ENV: appEnvironment
       },
+      // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
         ? {
             AZURE_COSMOSDB_ACCOUNT_NAME: cosmosDBModule.outputs.cosmosOutput.cosmosAccountName
@@ -1069,7 +682,7 @@ module web './app/web.bicep' = if (hostingModel == 'code') {
 
 module web_docker './app/web.bicep' = if (hostingModel == 'container') {
   name: '${websiteName}-docker'
-  scope: resourceGroup()
+  scope: rg
   params: {
     name: '${websiteName}-docker'
     location: location
@@ -1162,7 +775,7 @@ module web_docker './app/web.bicep' = if (hostingModel == 'container') {
 
 module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
   name: adminWebsiteName
-  scope: resourceGroup()
+  scope: rg
   params: {
     name: adminWebsiteName
     location: location
@@ -1247,7 +860,7 @@ module adminweb './app/adminweb.bicep' = if (hostingModel == 'code') {
 
 module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container') {
   name: '${adminWebsiteName}-docker'
-  scope: resourceGroup()
+  scope: rg
   params: {
     name: '${adminWebsiteName}-docker'
     location: location
@@ -1331,7 +944,7 @@ module adminweb_docker './app/adminweb.bicep' = if (hostingModel == 'container')
 
 module monitoring './core/monitor/monitoring.bicep' = {
   name: 'monitoring'
-  scope: resourceGroup()
+  scope: rg
   params: {
     applicationInsightsName: applicationInsightsName
     location: location
@@ -1346,7 +959,7 @@ module monitoring './core/monitor/monitoring.bicep' = {
 
 module workbook './app/workbook.bicep' = {
   name: 'workbook'
-  scope: resourceGroup()
+  scope: rg
   params: {
     workbookDisplayName: workbookDisplayName
     location: location
@@ -1366,7 +979,7 @@ module workbook './app/workbook.bicep' = {
 
 module function './app/function.bicep' = if (hostingModel == 'code') {
   name: functionName
-  scope: resourceGroup()
+  scope: rg
   params: {
     name: functionName
     location: location
@@ -1437,7 +1050,7 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
 
 module function_docker './app/function.bicep' = if (hostingModel == 'container') {
   name: '${functionName}-docker'
-  scope: resourceGroup()
+  scope: rg
   params: {
     name: '${functionName}-docker'
     location: location
@@ -1507,7 +1120,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
 
 module formrecognizer 'core/ai/cognitiveservices.bicep' = {
   name: formRecognizerName
-  scope: resourceGroup()
+  scope: rg
   params: {
     name: formRecognizerName
     location: location
@@ -1518,7 +1131,7 @@ module formrecognizer 'core/ai/cognitiveservices.bicep' = {
 
 module contentsafety 'core/ai/cognitiveservices.bicep' = {
   name: contentSafetyName
-  scope: resourceGroup()
+  scope: rg
   params: {
     name: contentSafetyName
     location: location
@@ -1529,7 +1142,7 @@ module contentsafety 'core/ai/cognitiveservices.bicep' = {
 
 module eventgrid 'app/eventgrid.bicep' = {
   name: eventGridSystemTopicName
-  scope: resourceGroup()
+  scope: rg
   params: {
     name: eventGridSystemTopicName
     location: location
@@ -1540,64 +1153,78 @@ module eventgrid 'app/eventgrid.bicep' = {
 }
 
 module storage 'core/storage/storage-account.bicep' = {
-  name: take('avm.res.storage.storage-account.${storageAccountName}', 64)
-  scope: resourceGroup()
+  name: storageAccountName
+  scope: rg
   params: {
-    storageAccountName: storageAccountName
+    name: storageAccountName
     location: location
-    tags: tags
-    accessTier: 'Hot'
-    enablePrivateNetworking: enablePrivateNetworking
-    enableTelemetry: enableTelemetry
-    solutionPrefix: solutionSuffix
-    avmManagedIdentity: managedIdentityModule
-    avmPrivateDnsZones: enablePrivateNetworking
-      ? [
-          /* Add your private DNS zone modules here, e.g. privateDnsZonesStorageBlob, privateDnsZonesStorageQueue */
-        ]
-      : []
-    dnsZoneIndex: enablePrivateNetworking ? { storageBlob: 0, storageQueue: 1 } : {}
-    avmVirtualNetwork: enablePrivateNetworking ? network : {}
+    sku: {
+      name: 'Standard_GRS'
+    }
+    deleteRetentionPolicy: azureSearchUseIntegratedVectorization
+      ? {
+          enabled: true
+          days: 7
+        }
+      : {}
+    containers: [
+      {
+        name: blobContainerName
+        publicAccess: 'None'
+      }
+      {
+        name: 'config'
+        publicAccess: 'None'
+      }
+    ]
+    queues: [
+      {
+        name: 'doc-processing'
+      }
+      {
+        name: 'doc-processing-poison'
+      }
+    ]
   }
 }
 
 // USER ROLES
 // Storage Blob Data Contributor
 module storageRoleUser 'core/security/role.bicep' = if (principalId != '') {
-  scope: resourceGroup()
+  scope: rg
   name: 'storage-role-user'
   params: {
     principalId: principalId
     roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-    principalType: 'User'
+    //principalType: 'User'
   }
 }
 
 // Cognitive Services User
 module openaiRoleUser 'core/security/role.bicep' = if (principalId != '') {
-  scope: resourceGroup()
+  scope: rg
   name: 'openai-role-user'
   params: {
     principalId: principalId
     roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
-    principalType: 'User'
+    //principalType: 'User'
   }
 }
 
 // Contributor
 module openaiRoleUserContributor 'core/security/role.bicep' = if (principalId != '') {
-  scope: resourceGroup()
+  scope: rg
   name: 'openai-role-user-contributor'
   params: {
     principalId: principalId
     roleDefinitionId: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
-    principalType: 'User'
+    //principalType: 'User'
   }
 }
 
 // Search Index Data Contributor
 module searchRoleUser 'core/security/role.bicep' = if (principalId != '' && databaseType == 'CosmosDB') {
-  scope: resourceGroup()
+  scope: rg
   name: 'search-role-user'
   params: {
     principalId: principalId
@@ -1607,7 +1234,7 @@ module searchRoleUser 'core/security/role.bicep' = if (principalId != '' && data
 }
 
 module machineLearning 'app/machinelearning.bicep' = if (orchestrationStrategy == 'prompt_flow') {
-  scope: resourceGroup()
+  scope: rg
   name: azureMachineLearningName
   params: {
     location: location
@@ -1637,7 +1264,7 @@ module createIndex './core/database/deploy_create_table_script.bicep' = if (data
       : function_docker.outputs.functionName
     managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
   }
-  scope: resourceGroup()
+  scope: rg
   dependsOn: hostingModel == 'code'
     ? [postgresDBModule, web, adminweb, function]
     : [
@@ -1749,7 +1376,7 @@ output AZURE_LOCATION string = location
 output AZURE_OPENAI_MODEL_INFO string = azureOpenAIModelInfo
 output AZURE_OPENAI_CONFIGURATION_INFO string = azureOpenaiConfigurationInfo
 output AZURE_OPENAI_EMBEDDING_MODEL_INFO string = azureOpenAIEmbeddingModelInfo
-output AZURE_RESOURCE_GROUP string = resourceGroup().name
+output AZURE_RESOURCE_GROUP string = rgName
 output AZURE_SEARCH_SERVICE_INFO string = azureSearchServiceInfo
 output AZURE_SPEECH_SERVICE_INFO string = azureSpeechServiceInfo
 output AZURE_TENANT_ID string = tenant().tenantId
@@ -1773,7 +1400,7 @@ output ADVANCED_IMAGE_PROCESSING_MAX_IMAGES int = advancedImageProcessingMaxImag
 output AZURE_ML_WORKSPACE_NAME string = orchestrationStrategy == 'prompt_flow'
   ? machineLearning.outputs.workspaceName
   : ''
-output RESOURCE_TOKEN string = solutionSuffix
+output RESOURCE_TOKEN string = resourceToken
 output AZURE_COSMOSDB_INFO string = azureCosmosDBInfo
 output AZURE_POSTGRESQL_INFO string = azurePostgresDBInfo
 output DATABASE_TYPE string = databaseType
