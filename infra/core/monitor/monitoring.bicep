@@ -80,36 +80,42 @@ var commonTags = union(tags, {
   'avm-version': '2024-08'
 })
 
-var diagnosticSettings = enableDiagnosticSettings ? [
-  {
-    name: 'self-diagnostics'
-    workspaceResourceId: logAnalyticsResourceId
-    metricCategories: [
+var diagnosticSettings = enableDiagnosticSettings
+  ? [
       {
-        category: 'AllMetrics'
-        enabled: true
+        name: 'self-diagnostics'
+        workspaceResourceId: logAnalyticsResourceId
+        metricCategories: [
+          {
+            category: 'AllMetrics'
+            enabled: true
+          }
+        ]
+        logCategories: [
+          {
+            category: 'AuditLogs'
+            enabled: true
+          }
+        ]
       }
     ]
-    logCategories: [
-      {
-        category: 'AuditLogs'
-        enabled: true
-      }
-    ]
-  }
-] : []
+  : []
 
-var lockConfig = enableResourceLocks ? {
-  kind: lockLevel
-  name: 'monitoring-solution-lock'
-} : {}
+var lockConfig = enableResourceLocks
+  ? {
+      kind: lockLevel
+      name: 'monitoring-solution-lock'
+    }
+  : {}
 
 // create a safe module name by truncating to 64 chars
 var logAnalyticsModuleName = take('avm.res.operational-insights.workspace.${logAnalyticsName}', 64)
 var appInsightsModuleName = take('avm.res.insights.component.${applicationInsightsName}', 64)
 
 // logAnalyticsResourceId will resolve to existing id when provided, otherwise compute the resourceId for the workspace we will create in this resource group
-var logAnalyticsResourceId = empty(existingLogAnalyticsWorkspaceId) ? resourceId('Microsoft.OperationalInsights/workspaces', logAnalyticsName) : existingLogAnalyticsWorkspaceId
+var logAnalyticsResourceId = empty(existingLogAnalyticsWorkspaceId)
+  ? resourceId('Microsoft.OperationalInsights/workspaces', logAnalyticsName)
+  : existingLogAnalyticsWorkspaceId
 
 // =========== //
 // Deployments //
@@ -134,6 +140,7 @@ module logAnalytics 'br/public:avm/res/operational-insights/workspace:0.9.0' = i
 
 module applicationInsights 'br/public:avm/res/insights/component:0.4.0' = {
   name: appInsightsModuleName
+  dependsOn: empty(existingLogAnalyticsWorkspaceId) ? [logAnalytics] : []
   params: {
     name: applicationInsightsName
     location: location
@@ -198,7 +205,9 @@ output applicationInsightsId string = applicationInsights.outputs.resourceId
 output logAnalyticsWorkspaceId string = logAnalyticsResourceId
 
 @description('Name of the Log Analytics workspace.')
-output logAnalyticsWorkspaceName string = empty(existingLogAnalyticsWorkspaceId) ? logAnalyticsName : last(split(existingLogAnalyticsWorkspaceId, '/'))
+output logAnalyticsWorkspaceName string = empty(existingLogAnalyticsWorkspaceId)
+  ? logAnalyticsName
+  : last(split(existingLogAnalyticsWorkspaceId, '/'))
 
 @description('Deployment location.')
 output location string = location
