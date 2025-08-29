@@ -15,10 +15,14 @@ param workbookContents string
 
 param location string = resourceGroup().location
 
+@description('Optional tags to apply to the workbook resource for governance and cost tracking.')
+param tags object = {}
+
 resource workbook_resource 'microsoft.insights/workbooks@2023-06-01' = {
   name: workbookId
   location: location
   kind: 'shared'
+  tags: tags
   properties: {
     displayName: workbookDisplayName
     serializedData: workbookContents

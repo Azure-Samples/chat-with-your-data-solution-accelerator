@@ -5,6 +5,12 @@ param tags object = {}
 
 param existingLogAnalyticsWorkspaceId string = ''
 
+@description('Number of days to retain data in the Log Analytics workspace.  Pick a cost/retention tradeoff suitable for your environment.')
+param retentionInDays int = 30
+
+@description('The SKU name for the Log Analytics workspace (e.g. PerGB2018, CapacityReservation, Free).')
+param skuName string = 'PerGB2018'
+
 var useExisting = !empty(existingLogAnalyticsWorkspaceId)
 var existingLawSubscriptionId = useExisting ? split(existingLogAnalyticsWorkspaceId, '/')[2] : ''
 var existingLawResourceGroup = useExisting ? split(existingLogAnalyticsWorkspaceId, '/')[4] : ''
@@ -20,12 +26,12 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if
   location: location
   tags: tags
   properties: any({
-    retentionInDays: 30
+    retentionInDays: retentionInDays
     features: {
       searchVersion: 1
     }
     sku: {
-      name: 'PerGB2018'
+      name: skuName
     }
   })
 }
