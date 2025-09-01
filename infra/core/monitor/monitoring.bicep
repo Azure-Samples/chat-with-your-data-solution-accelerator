@@ -1,219 +1,121 @@
-metadata name = 'applicationinsights-loganalytics-solution'
-metadata description = 'Creates a comprehensive monitoring solution with Application Insights and Log Analytics using Azure Verified Modules (AVM) following Well-Architected Framework (WAF) principles.'
+metadata name = 'monitoring-solution'
+metadata description = 'AVM WAF-compliant monitoring solution that integrates Application Insights with Log Analytics for centralized telemetry, diagnostics, and observability.'
 
 // ========== //
 // Parameters //
 // ========== //
+
 @description('Required. Name of the Log Analytics workspace.')
 param logAnalyticsName string
 
 @description('Required. Name of the Application Insights instance.')
 param applicationInsightsName string
 
-@description('Optional. Name of the Application Insights dashboard.')
-param applicationInsightsDashboardName string = ''
+@description('Required. Location for resources.')
+param location string
 
-@description('Optional. Location for all resources.')
-param location string = resourceGroup().location
+@description('Optional. SKU for the Log Analytics workspace.')
+@allowed([
+  'PerGB2018'
+])
+param logAnalyticsSku string = 'PerGB2018'
 
-@description('Optional. Tags of the resource.')
+@description('Optional. Retention period for Log Analytics (in days).')
+@minValue(30)
+@maxValue(730)
+param logRetentionInDays int = 30
+
+@description('Optional. Daily ingestion quota (GB) for cost control. -1 = unlimited.')
+@minValue(-1)
+param dailyQuotaGb int = -1
+
+@description('Optional. Resource lock setting for protecting monitoring resources.')
+@allowed([
+  'CanNotDelete'
+  'ReadOnly'
+  'None'
+])
+param lockLevel string = 'None'
+
+@description('Optional. Tags to apply to monitoring resources.')
 param tags object = {}
 
-@description('Optional. Resource ID of an existing Log Analytics workspace to use instead of creating a new one.')
+@description('Optional. Retention for Application Insights (in days). AVM/WAF recommends 365.')
+@minValue(30)
+@maxValue(730)
+param appInsightsRetentionInDays int = 365
+
+@description('Optional. Use an existing Log Analytics workspace by providing its resource ID. If provided, the module will not create a new workspace.')
 param existingLogAnalyticsWorkspaceId string = ''
 
-// Security (WAF)
-@description('Optional. Public network access type for ingestion.')
-@allowed(['Enabled', 'Disabled'])
-param publicNetworkAccessForIngestion string = 'Disabled'
+@description('Optional. Dashboard name to create/link for Application Insights (pass-through).')
+param applicationInsightsDashboardName string = ''
 
-@description('Optional. Public network access type for query.')
-@allowed(['Enabled', 'Disabled'])
-param publicNetworkAccessForQuery string = 'Enabled'
+// ========== //
+// Resources  //
+// ========== //
 
-@description('Optional. Disable Non-AAD based authentication.')
-param disableLocalAuth bool = true
-
-@description('Optional. Enable RBAC-only log access.')
-param enableLogAccessUsingOnlyResourcePermissions bool = true
-
-@description('Optional. Enable system assigned managed identity on the workspace.')
-param enableSystemAssignedIdentity bool = true
-
-// Cost Optimization (WAF)
-@description('Optional. Workspace daily ingestion quota (GB). -1 means unlimited.')
-@minValue(-1)
-param dailyQuotaGb int = 10
-
-@description('Optional. Data retention in days (Log Analytics).')
-@minValue(30)
-@maxValue(730)
-param dataRetention int = 90
-
-@description('Optional. Data retention in days (Application Insights).')
-@minValue(30)
-@maxValue(730)
-param applicationInsightsRetentionInDays int = 90
-
-// Operational Excellence (WAF)
-@description('Optional. Enable diagnostic settings.')
-param enableDiagnosticSettings bool = true
-
-@description('Optional. Sampling percentage for Application Insights telemetry.')
-@minValue(0)
-@maxValue(100)
-param samplingPercentage int = 100
-
-// Reliability (WAF)
-@description('Optional. Enable resource locks.')
-param enableResourceLocks bool = false
-
-@description('Optional. Lock type if enabled.')
-@allowed(['CanNotDelete', 'ReadOnly'])
-param lockLevel string = 'CanNotDelete'
-
-// ========= //
-// Variables //
-// ========= //
-var commonTags = union(tags, {
-  'monitoring-solution': 'chat-with-your-data'
-  'avm-version': '2024-08'
-})
-
-var diagnosticSettings = enableDiagnosticSettings
-  ? [
-      {
-        name: 'self-diagnostics'
-        workspaceResourceId: logAnalyticsResourceId
-        metricCategories: [
-          {
-            category: 'AllMetrics'
-            enabled: true
-          }
-        ]
-        logCategories: [
-          {
-            category: 'AuditLogs'
-            enabled: true
-          }
-        ]
-      }
-    ]
-  : []
-
-var lockConfig = enableResourceLocks
-  ? {
-      kind: lockLevel
-      name: 'monitoring-solution-lock'
-    }
-  : {}
-
-// create a safe module name by truncating to 64 chars
-var logAnalyticsModuleName = take('avm.res.operational-insights.workspace.${logAnalyticsName}', 64)
-var appInsightsModuleName = take('avm.res.insights.component.${applicationInsightsName}', 64)
-
-// logAnalyticsResourceId will resolve to existing id when provided, otherwise compute the resourceId for the workspace we will create in this resource group
-var logAnalyticsResourceId = empty(existingLogAnalyticsWorkspaceId)
-  ? resourceId('Microsoft.OperationalInsights/workspaces', logAnalyticsName)
-  : existingLogAnalyticsWorkspaceId
-
-// =========== //
-// Deployments //
-// =========== //
-module logAnalytics 'br/public:avm/res/operational-insights/workspace:0.9.0' = if (empty(existingLogAnalyticsWorkspaceId)) {
-  name: logAnalyticsModuleName
+// Log Analytics workspace
+module logAnalytics './loganalytics.bicep' = if (empty(existingLogAnalyticsWorkspaceId)) {
+  name: '${logAnalyticsName}-deploy'
   params: {
     name: logAnalyticsName
     location: location
-    tags: commonTags
-    publicNetworkAccessForIngestion: publicNetworkAccessForIngestion
-    publicNetworkAccessForQuery: publicNetworkAccessForQuery
-    useResourcePermissions: enableLogAccessUsingOnlyResourcePermissions
+    sku: logAnalyticsSku
+    retentionInDays: logRetentionInDays
     dailyQuotaGb: dailyQuotaGb
-    dataRetention: dataRetention
-    skuName: 'PerGB2018'
-    managedIdentities: enableSystemAssignedIdentity ? { systemAssigned: true } : {}
-    diagnosticSettings: diagnosticSettings
-    lock: lockConfig
+    lockLevel: lockLevel
+    tags: tags
   }
 }
 
-module applicationInsights 'br/public:avm/res/insights/component:0.4.0' = {
-  name: appInsightsModuleName
-  dependsOn: empty(existingLogAnalyticsWorkspaceId) ? [logAnalytics] : []
+var workspaceResourceId = empty(existingLogAnalyticsWorkspaceId)
+  ? logAnalytics!.outputs.workspaceResourceId
+  : existingLogAnalyticsWorkspaceId
+
+// Application Insights
+module appInsights './applicationinsights.bicep' = {
+  name: '${applicationInsightsName}-deploy'
   params: {
     name: applicationInsightsName
     location: location
-    tags: commonTags
-    workspaceResourceId: logAnalyticsResourceId
-    disableLocalAuth: disableLocalAuth
-    publicNetworkAccessForIngestion: publicNetworkAccessForIngestion
-    publicNetworkAccessForQuery: publicNetworkAccessForQuery
-    retentionInDays: applicationInsightsRetentionInDays
-    samplingPercentage: samplingPercentage
-    applicationType: 'web'
-    kind: 'web'
-    diagnosticSettings: diagnosticSettings
+    workspaceResourceId: workspaceResourceId
+    retentionInDays: appInsightsRetentionInDays
+    lockLevel: lockLevel
+    tags: tags
   }
 }
 
-module applicationInsightsDashboard 'br/public:avm/res/portal/dashboard:0.1.0' = if (!empty(applicationInsightsDashboardName)) {
-  name: 'appinsights-dashboard'
-  params: {
-    name: applicationInsightsDashboardName
-    location: location
-    tags: commonTags
-    lenses: []
-  }
-}
-
-// Optionally create resource-level management locks for Log Analytics and App Insights
-resource logAnalyticsLock 'Microsoft.Authorization/locks@2016-09-01' = if (enableResourceLocks) {
-  name: '${logAnalyticsName}-lock'
-  scope: resourceGroup()
-  properties: {
-    level: lockLevel
-    notes: 'Lock applied by AVM WAF monitoring template'
-  }
-}
-
-resource appInsightsLock 'Microsoft.Authorization/locks@2016-09-01' = if (enableResourceLocks) {
-  name: '${applicationInsightsName}-lock'
-  scope: resourceGroup()
-  properties: {
-    level: lockLevel
-    notes: 'Lock applied by AVM WAF monitoring template'
-  }
-}
-
-// ======= //
-// Outputs //
-// ======= //
-@description('Connection string of the Application Insights instance.')
-output applicationInsightsConnectionString string = applicationInsights.outputs.connectionString
-
-@description('Instrumentation key of the Application Insights instance.')
-output applicationInsightsInstrumentationKey string = applicationInsights.outputs.instrumentationKey
-
-@description('Name of the Application Insights instance.')
-output applicationInsightsName string = applicationInsights.outputs.name
-
-@description('Resource ID of the Application Insights instance.')
-output applicationInsightsId string = applicationInsights.outputs.resourceId
+// ========== //
+// Outputs    //
+// ========== //
 
 @description('Resource ID of the Log Analytics workspace.')
-output logAnalyticsWorkspaceId string = logAnalyticsResourceId
+output logAnalyticsWorkspaceId string = empty(existingLogAnalyticsWorkspaceId)
+  ? logAnalytics!.outputs.workspaceResourceId
+  : existingLogAnalyticsWorkspaceId
 
-@description('Name of the Log Analytics workspace.')
-output logAnalyticsWorkspaceName string = empty(existingLogAnalyticsWorkspaceId)
-  ? logAnalyticsName
-  : last(split(existingLogAnalyticsWorkspaceId, '/'))
+@description('Resource ID of the Application Insights instance.')
+output appInsightsId string = appInsights.outputs.appInsightsResourceId
 
-@description('Deployment location.')
-output location string = location
+// Compatibility aliases used by upstream templates
+@description('Legacy alias for the Application Insights resource id (backwards compatibility).')
+output applicationInsightsId string = appInsights.outputs.appInsightsResourceId
 
-@description('Resource group name.')
+@description('Application Insights resource name (backwards compatibility).')
+output applicationInsightsName string = applicationInsightsName
+
+@description('Application Insights connection string (backwards compatibility).')
+output applicationInsightsConnectionString string = appInsights.outputs.connectionString
+
+@description('Application Insights instrumentation key (backwards compatibility).')
+output applicationInsightsInstrumentationKey string = appInsights.outputs.instrumentationKey
+
+@description('Application Insights dashboard name (pass-through).')
+output applicationInsightsDashboardName string = applicationInsightsDashboardName
+
+@description('Resource Group name where monitoring resources are deployed.')
 output resourceGroupName string = resourceGroup().name
 
-@description('Principal ID of system-assigned MI if enabled.')
-output logAnalyticsSystemAssignedIdentityPrincipalId string = ''
+@description('Location where monitoring resources are deployed.')
+output location string = location

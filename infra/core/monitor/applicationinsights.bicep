@@ -1,73 +1,83 @@
-metadata description = 'Creates an Application Insights instance using Azure Verified Module (AVM) following Well-Architected Framework principles.'
+metadata name = 'applicationinsights-instance'
+metadata description = 'AVM WAF-compliant Application Insights wrapper using AVM module (br/public:avm/res/insights/component).'
 
-// Required parameters (maintaining backward compatibility)
+// ========== //
+// Parameters //
+// ========== //
+
+@description('Required. Name of the Application Insights instance.')
 param name string
-param logAnalyticsWorkspaceId string
 
-// Optional parameters aligned with WAF principles
-param dashboardName string = ''
-param location string = resourceGroup().location
-param tags object = {}
-param enableTelemetry bool = true
+@description('Required. Location of the Application Insights instance.')
+param location string
 
+@description('Optional. Resource ID of the linked Log Analytics workspace.')
+param workspaceResourceId string = ''
+
+@description('Optional. Application type (e.g., web, other).')
+@allowed([
+  'web'
+  'other'
+])
+param applicationType string = 'web'
+
+@description('Optional. Retention for Application Insights (in days). AVM/WAF recommends 365.')
 @minValue(30)
 @maxValue(730)
 param retentionInDays int = 365
 
-@minValue(0)
-@maxValue(100)
-param samplingPercentage int = 100
+@description('Optional. Enable telemetry collection.')
+param enableTelemetry bool = true
 
-@allowed([ 'Enabled', 'Disabled' ])
-param publicNetworkAccessForIngestion string = 'Enabled'
+@description('Optional. Resource lock setting.')
+@allowed([
+  'CanNotDelete'
+  'ReadOnly'
+  'None'
+])
+param lockLevel string = 'None'
 
-@allowed([ 'Enabled', 'Disabled' ])
-param publicNetworkAccessForQuery string = 'Enabled'
+@description('Optional. Tags to apply.')
+param tags object = {}
 
-param disableLocalAuth bool = false
-param diagnosticSettings array = []
+// ========== //
+// Resources  //
+// ========== //
 
-param roleAssignments array = []
-
-// 🔹 Application Insights deployment using AVM WAF
-module appInsights 'br/public:avm/res/insights/component:0.6.0' = {
-  name: substring('avm.res.insights.component.${name}', 0, (length('avm.res.insights.component.${name}') > 64) ? 64 : length('avm.res.insights.component.${name}'))
+module avmAppInsights 'br/public:avm/res/insights/component:0.6.0' = {
+  name: '${name}-deploy'
   params: {
     name: name
     location: location
     tags: tags
-
-    // Core settings
-    applicationType: 'web'
-    kind: 'web'
-    flowType: 'Bluefield'
     enableTelemetry: enableTelemetry
     retentionInDays: retentionInDays
-    samplingPercentage: samplingPercentage
-    publicNetworkAccessForIngestion: publicNetworkAccessForIngestion
-    publicNetworkAccessForQuery: publicNetworkAccessForQuery
-    disableLocalAuth: disableLocalAuth
+    kind: applicationType
     disableIpMasking: false
-
-    // Monitoring integration
-    workspaceResourceId: logAnalyticsWorkspaceId
-    diagnosticSettings: !empty(logAnalyticsWorkspaceId) ? [
-      {
-        workspaceResourceId: logAnalyticsWorkspaceId
-      }
-    ] : diagnosticSettings
-
-    roleAssignments: roleAssignments
+    flowType: 'Bluefield'
+    workspaceResourceId: empty(workspaceResourceId) ? '' : workspaceResourceId
+    diagnosticSettings: empty(workspaceResourceId) ? null : [{ workspaceResourceId: workspaceResourceId }]
   }
 }
 
-// 🔹 Outputs
-output connectionString string = appInsights.outputs.connectionString
-output instrumentationKey string = appInsights.outputs.instrumentationKey
-output name string = appInsights.outputs.name
-output id string = appInsights.outputs.resourceId
-output applicationId string = appInsights.outputs.applicationId
-output resourceGroupName string = appInsights.outputs.resourceGroupName
+// Apply a resource lock at deployment time if requested
+resource appInsightsLock 'Microsoft.Authorization/locks@2017-04-01' = if (lockLevel != 'None') {
+  name: '${name}-lock'
+  properties: {
+    level: lockLevel
+    notes: 'Lock applied per AVM WAF guidelines to prevent accidental deletion or modification.'
+  }
+}
 
-// preserve backward compatibility - indicate if a dashboard name was provided
-output dashboardNameProvided bool = !empty(dashboardName)
+// ========== //
+// Outputs    //
+// ========== //
+
+@description('Resource ID of the Application Insights instance.')
+output appInsightsResourceId string = avmAppInsights.outputs.resourceId
+
+@description('Instrumentation key of the Application Insights instance.')
+output instrumentationKey string = avmAppInsights.outputs.instrumentationKey
+
+@description('Connection string for Application Insights.')
+output connectionString string = avmAppInsights.outputs.connectionString
