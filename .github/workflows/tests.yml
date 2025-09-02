@@ -18,7 +18,7 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install Poetry
         run: pip install poetry
       - name: Setup python
@@ -58,7 +58,7 @@ jobs:
           result-encoding: string
           retries: 3
       - name: Download main coverage artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         if: github.event_name == 'pull_request' && steps.coverage-artifact.outputs.result != ''
         continue-on-error: true # There is a chance that the artifact doesn't exist, or has expired
         with:
