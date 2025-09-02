@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "16622972374116028481"
+      "templateHash": "5412563573380933665"
     }
   },
   "parameters": {
@@ -28581,9 +28581,10 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "13086177349200901938"
+              "templateHash": "17674972432627828730"
             },
-            "description": "Creates an Azure Cognitive Services instance with WAF-aligned options for networking, diagnostics, and identity."
+            "name": "cognitiveservices",
+            "description": "Creates an Azure Cognitive Services instance with AVM + WAF aligned defaults: private access by default, explicit private endpoints or IP rules allowed, and system-assigned identity enabled."
           },
           "parameters": {
             "name": {
@@ -28627,16 +28628,9 @@
                 "description": "Kind of Cognitive Services account (e.g., OpenAI, SpeechServices, etc.)."
               }
             },
-            "managedIdentity": {
-              "type": "bool",
-              "defaultValue": false,
-              "metadata": {
-                "description": "Whether to enable managed identity."
-              }
-            },
             "publicNetworkAccess": {
               "type": "string",
-              "defaultValue": "Enabled",
+              "defaultValue": "Disabled",
               "allowedValues": [
                 "Enabled",
                 "Disabled"
@@ -28655,6 +28649,13 @@
                 "description": "The SKU configuration (name and capacity)."
               }
             },
+            "managedIdentity": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Whether to enable managed identity (system-assigned)."
+              }
+            },
             "allowedIpRules": {
               "type": "array",
               "defaultValue": [],
@@ -28665,9 +28666,6 @@
             "privateEndpoints": {
               "type": "array",
               "defaultValue": [],
-              "allowedValues": [
-                []
-              ],
               "metadata": {
                 "description": "Optional array of private endpoint configurations."
               }
@@ -28681,7 +28679,7 @@
             },
             "networkAcls": {
               "type": "object",
-              "defaultValue": "[if(empty(parameters('allowedIpRules')), createObject('defaultAction', 'Allow'), createObject('ipRules', parameters('allowedIpRules'), 'defaultAction', 'Deny'))]"
+              "defaultValue": "[if(empty(parameters('allowedIpRules')), createObject('defaultAction', 'Deny'), createObject('ipRules', parameters('allowedIpRules'), 'defaultAction', 'Deny'))]"
             }
           },
           "resources": [
@@ -28835,9 +28833,10 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "13086177349200901938"
+              "templateHash": "17674972432627828730"
             },
-            "description": "Creates an Azure Cognitive Services instance with WAF-aligned options for networking, diagnostics, and identity."
+            "name": "cognitiveservices",
+            "description": "Creates an Azure Cognitive Services instance with AVM + WAF aligned defaults: private access by default, explicit private endpoints or IP rules allowed, and system-assigned identity enabled."
           },
           "parameters": {
             "name": {
@@ -28881,16 +28880,9 @@
                 "description": "Kind of Cognitive Services account (e.g., OpenAI, SpeechServices, etc.)."
               }
             },
-            "managedIdentity": {
-              "type": "bool",
-              "defaultValue": false,
-              "metadata": {
-                "description": "Whether to enable managed identity."
-              }
-            },
             "publicNetworkAccess": {
               "type": "string",
-              "defaultValue": "Enabled",
+              "defaultValue": "Disabled",
               "allowedValues": [
                 "Enabled",
                 "Disabled"
@@ -28909,6 +28901,13 @@
                 "description": "The SKU configuration (name and capacity)."
               }
             },
+            "managedIdentity": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Whether to enable managed identity (system-assigned)."
+              }
+            },
             "allowedIpRules": {
               "type": "array",
               "defaultValue": [],
@@ -28919,9 +28918,6 @@
             "privateEndpoints": {
               "type": "array",
               "defaultValue": [],
-              "allowedValues": [
-                []
-              ],
               "metadata": {
                 "description": "Optional array of private endpoint configurations."
               }
@@ -28935,7 +28931,7 @@
             },
             "networkAcls": {
               "type": "object",
-              "defaultValue": "[if(empty(parameters('allowedIpRules')), createObject('defaultAction', 'Allow'), createObject('ipRules', parameters('allowedIpRules'), 'defaultAction', 'Deny'))]"
+              "defaultValue": "[if(empty(parameters('allowedIpRules')), createObject('defaultAction', 'Deny'), createObject('ipRules', parameters('allowedIpRules'), 'defaultAction', 'Deny'))]"
             }
           },
           "resources": [
@@ -29361,9 +29357,10 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "13086177349200901938"
+              "templateHash": "17674972432627828730"
             },
-            "description": "Creates an Azure Cognitive Services instance with WAF-aligned options for networking, diagnostics, and identity."
+            "name": "cognitiveservices",
+            "description": "Creates an Azure Cognitive Services instance with AVM + WAF aligned defaults: private access by default, explicit private endpoints or IP rules allowed, and system-assigned identity enabled."
           },
           "parameters": {
             "name": {
@@ -29407,16 +29404,9 @@
                 "description": "Kind of Cognitive Services account (e.g., OpenAI, SpeechServices, etc.)."
               }
             },
-            "managedIdentity": {
-              "type": "bool",
-              "defaultValue": false,
-              "metadata": {
-                "description": "Whether to enable managed identity."
-              }
-            },
             "publicNetworkAccess": {
               "type": "string",
-              "defaultValue": "Enabled",
+              "defaultValue": "Disabled",
               "allowedValues": [
                 "Enabled",
                 "Disabled"
@@ -29435,6 +29425,13 @@
                 "description": "The SKU configuration (name and capacity)."
               }
             },
+            "managedIdentity": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Whether to enable managed identity (system-assigned)."
+              }
+            },
             "allowedIpRules": {
               "type": "array",
               "defaultValue": [],
@@ -29445,9 +29442,6 @@
             "privateEndpoints": {
               "type": "array",
               "defaultValue": [],
-              "allowedValues": [
-                []
-              ],
               "metadata": {
                 "description": "Optional array of private endpoint configurations."
               }
@@ -29461,7 +29455,7 @@
             },
             "networkAcls": {
               "type": "object",
-              "defaultValue": "[if(empty(parameters('allowedIpRules')), createObject('defaultAction', 'Allow'), createObject('ipRules', parameters('allowedIpRules'), 'defaultAction', 'Deny'))]"
+              "defaultValue": "[if(empty(parameters('allowedIpRules')), createObject('defaultAction', 'Deny'), createObject('ipRules', parameters('allowedIpRules'), 'defaultAction', 'Deny'))]"
             }
           },
           "resources": [
@@ -29681,21 +29675,30 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "1094478449749927695"
+              "templateHash": "576336336483937695"
             },
-            "description": "Creates an Azure AI Search instance."
+            "description": "AVM WAF-compliant Azure AI Search instance."
           },
           "parameters": {
             "name": {
-              "type": "string"
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Search service."
+              }
             },
             "location": {
               "type": "string",
-              "defaultValue": "[resourceGroup().location]"
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Location for the Search service."
+              }
             },
             "tags": {
               "type": "object",
-              "defaultValue": {}
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags to apply to the resource."
+              }
             },
             "sku": {
               "type": "object",
@@ -29705,20 +29708,32 @@
             },
             "authOptions": {
               "type": "object",
-              "defaultValue": {}
+              "defaultValue": {},
+              "metadata": {
+                "description": "Authentication options for the Search service."
+              }
             },
             "disableLocalAuth": {
               "type": "bool",
-              "defaultValue": false
+              "defaultValue": false,
+              "metadata": {
+                "description": "Disable local auth for the Search service."
+              }
             },
             "disabledDataExfiltrationOptions": {
               "type": "array",
-              "defaultValue": []
+              "defaultValue": [],
+              "metadata": {
+                "description": "Disabled data exfiltration options."
+              }
             },
             "encryptionWithCmk": {
               "type": "object",
               "defaultValue": {
                 "enforcement": "Unspecified"
+              },
+              "metadata": {
+                "description": "Encryption with CMK options."
               }
             },
             "hostingMode": {
@@ -29734,6 +29749,9 @@
               "defaultValue": {
                 "bypass": "None",
                 "ipRules": []
+              },
+              "metadata": {
+                "description": "Network rule set (bypass + ipRules)."
               }
             },
             "partitionCount": {
@@ -29760,7 +29778,45 @@
                 "free",
                 "standard"
               ]
+            },
+            "enablePrivateNetworking": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Enable private networking and create private endpoints when provided."
+              }
+            },
+            "privateEndpoints": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Optional array of private endpoint configurations. Each item should at least contain name and subnetId."
+              }
+            },
+            "logAnalyticsWorkspaceId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Optional Log Analytics workspace resource id for diagnostics (leave blank to disable)."
+              }
+            },
+            "avmManagedIdentity": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional AVM-managed identity object (outputs from the managed identity module) used for role assignments."
+              }
+            },
+            "avmVirtualNetwork": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional AVM virtual network module output used to pick subnet for private endpoints."
+              }
             }
+          },
+          "variables": {
+            "privateEndpointsToCreate": "[if(not(empty(parameters('privateEndpoints'))), parameters('privateEndpoints'), if(and(and(and(parameters('enablePrivateNetworking'), not(empty(parameters('avmVirtualNetwork')))), contains(parameters('avmVirtualNetwork'), 'outputs')), not(equals(parameters('avmVirtualNetwork').outputs.subnetPrivateEndpointsResourceId, ''))), createArray(createObject('name', format('{0}-pep', parameters('name')), 'subnetId', parameters('avmVirtualNetwork').outputs.subnetPrivateEndpointsResourceId)), createArray()))]"
           },
           "resources": [
             {
@@ -29780,11 +29836,74 @@
                 "hostingMode": "[parameters('hostingMode')]",
                 "networkRuleSet": "[parameters('networkRuleSet')]",
                 "partitionCount": "[parameters('partitionCount')]",
-                "publicNetworkAccess": "[parameters('publicNetworkAccess')]",
+                "publicNetworkAccess": "[if(parameters('enablePrivateNetworking'), 'disabled', parameters('publicNetworkAccess'))]",
                 "replicaCount": "[parameters('replicaCount')]",
                 "semanticSearch": "[parameters('semanticSearch')]"
               },
               "sku": "[parameters('sku')]"
+            },
+            {
+              "copy": {
+                "name": "privateEndpoint",
+                "count": "[length(variables('privateEndpointsToCreate'))]"
+              },
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2021-05-01",
+              "name": "[variables('privateEndpointsToCreate')[copyIndex()].name]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "subnet": {
+                  "id": "[variables('privateEndpointsToCreate')[copyIndex()].subnetId]"
+                },
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[format('{0}-link', variables('privateEndpointsToCreate')[copyIndex()].name)]",
+                    "properties": {
+                      "privateLinkServiceId": "[resourceId('Microsoft.Search/searchServices', parameters('name'))]",
+                      "groupIds": [
+                        "search"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Search/searchServices', parameters('name'))]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('logAnalyticsWorkspaceId')))]",
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[format('Microsoft.Search/searchServices/{0}', parameters('name'))]",
+              "name": "[format('{0}-diag', parameters('name'))]",
+              "properties": {
+                "workspaceId": "[parameters('logAnalyticsWorkspaceId')]",
+                "metrics": [
+                  {
+                    "category": "AllMetrics",
+                    "enabled": true
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Search/searchServices', parameters('name'))]"
+              ]
+            },
+            {
+              "condition": "[and(and(not(empty(parameters('avmManagedIdentity'))), contains(parameters('avmManagedIdentity'), 'outputs')), not(equals(parameters('avmManagedIdentity').outputs.principalId, '')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.Search/searchServices/{0}', parameters('name'))]",
+              "name": "[guid(subscription().id, resourceGroup().id, parameters('avmManagedIdentity').outputs.principalId, '7ca78c08-252a-4471-8644-bb5ff32d4ba0')]",
+              "properties": {
+                "principalId": "[parameters('avmManagedIdentity').outputs.principalId]",
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0')]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Search/searchServices', parameters('name'))]"
+              ]
             }
           ],
           "outputs": {
@@ -40274,9 +40393,10 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "13086177349200901938"
+              "templateHash": "17674972432627828730"
             },
-            "description": "Creates an Azure Cognitive Services instance with WAF-aligned options for networking, diagnostics, and identity."
+            "name": "cognitiveservices",
+            "description": "Creates an Azure Cognitive Services instance with AVM + WAF aligned defaults: private access by default, explicit private endpoints or IP rules allowed, and system-assigned identity enabled."
           },
           "parameters": {
             "name": {
@@ -40320,16 +40440,9 @@
                 "description": "Kind of Cognitive Services account (e.g., OpenAI, SpeechServices, etc.)."
               }
             },
-            "managedIdentity": {
-              "type": "bool",
-              "defaultValue": false,
-              "metadata": {
-                "description": "Whether to enable managed identity."
-              }
-            },
             "publicNetworkAccess": {
               "type": "string",
-              "defaultValue": "Enabled",
+              "defaultValue": "Disabled",
               "allowedValues": [
                 "Enabled",
                 "Disabled"
@@ -40348,6 +40461,13 @@
                 "description": "The SKU configuration (name and capacity)."
               }
             },
+            "managedIdentity": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Whether to enable managed identity (system-assigned)."
+              }
+            },
             "allowedIpRules": {
               "type": "array",
               "defaultValue": [],
@@ -40358,9 +40478,6 @@
             "privateEndpoints": {
               "type": "array",
               "defaultValue": [],
-              "allowedValues": [
-                []
-              ],
               "metadata": {
                 "description": "Optional array of private endpoint configurations."
               }
@@ -40374,7 +40491,7 @@
             },
             "networkAcls": {
               "type": "object",
-              "defaultValue": "[if(empty(parameters('allowedIpRules')), createObject('defaultAction', 'Allow'), createObject('ipRules', parameters('allowedIpRules'), 'defaultAction', 'Deny'))]"
+              "defaultValue": "[if(empty(parameters('allowedIpRules')), createObject('defaultAction', 'Deny'), createObject('ipRules', parameters('allowedIpRules'), 'defaultAction', 'Deny'))]"
             }
           },
           "resources": [
@@ -40524,9 +40641,10 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "13086177349200901938"
+              "templateHash": "17674972432627828730"
             },
-            "description": "Creates an Azure Cognitive Services instance with WAF-aligned options for networking, diagnostics, and identity."
+            "name": "cognitiveservices",
+            "description": "Creates an Azure Cognitive Services instance with AVM + WAF aligned defaults: private access by default, explicit private endpoints or IP rules allowed, and system-assigned identity enabled."
           },
           "parameters": {
             "name": {
@@ -40570,16 +40688,9 @@
                 "description": "Kind of Cognitive Services account (e.g., OpenAI, SpeechServices, etc.)."
               }
             },
-            "managedIdentity": {
-              "type": "bool",
-              "defaultValue": false,
-              "metadata": {
-                "description": "Whether to enable managed identity."
-              }
-            },
             "publicNetworkAccess": {
               "type": "string",
-              "defaultValue": "Enabled",
+              "defaultValue": "Disabled",
               "allowedValues": [
                 "Enabled",
                 "Disabled"
@@ -40598,6 +40709,13 @@
                 "description": "The SKU configuration (name and capacity)."
               }
             },
+            "managedIdentity": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Whether to enable managed identity (system-assigned)."
+              }
+            },
             "allowedIpRules": {
               "type": "array",
               "defaultValue": [],
@@ -40608,9 +40726,6 @@
             "privateEndpoints": {
               "type": "array",
               "defaultValue": [],
-              "allowedValues": [
-                []
-              ],
               "metadata": {
                 "description": "Optional array of private endpoint configurations."
               }
@@ -40624,7 +40739,7 @@
             },
             "networkAcls": {
               "type": "object",
-              "defaultValue": "[if(empty(parameters('allowedIpRules')), createObject('defaultAction', 'Allow'), createObject('ipRules', parameters('allowedIpRules'), 'defaultAction', 'Deny'))]"
+              "defaultValue": "[if(empty(parameters('allowedIpRules')), createObject('defaultAction', 'Deny'), createObject('ipRules', parameters('allowedIpRules'), 'defaultAction', 'Deny'))]"
             }
           },
           "resources": [

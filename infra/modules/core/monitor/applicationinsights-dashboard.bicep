@@ -1,8 +1,19 @@
 metadata description = 'Creates a dashboard for an Application Insights instance.'
 param name string
 param applicationInsightsName string
+
+// New AVM WAF parameters (optional)
+param avmWafName string = ''
+param avmWafResourceId string = '' // optional full resource id (if left empty avmWafName + current RG is used)
+
 param location string = resourceGroup().location
 param tags object = {}
+
+var avmWafResourceIdComputed = avmWafResourceId != ''
+  ? avmWafResourceId
+  : (avmWafName != ''
+      ? '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.Network/applicationGateways/${avmWafName}'
+      : '')
 
 // 2020-09-01-preview because that is the latest valid version
 resource applicationInsightsDashboard 'Microsoft.Portal/dashboards@2020-09-01-preview' = {
@@ -1209,6 +1220,253 @@ resource applicationInsightsDashboard 'Microsoft.Portal/dashboards@2020-09-01-pr
                           y: {
                             isVisible: true
                             axisType: 1
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+                {
+                  name: 'sharedTimeRange'
+                  isOptional: true
+                }
+              ]
+              #disable-next-line BCP036
+              type: 'Extension/HubsExtension/PartType/MonitorChartPart'
+              settings: {}
+            }
+          }
+        ]
+      }
+
+      // New lens for AVM WAF (order 1)
+      {
+        order: 1
+        parts: [
+          {
+            position: {
+              x: 0
+              y: 0
+              colSpan: 12
+              rowSpan: 1
+            }
+            metadata: {
+              inputs: []
+              type: 'Extension/HubsExtension/PartType/MarkdownPart'
+              settings: {
+                content: {
+                  settings: {
+                    content: '# AVM WAF'
+                    title: ''
+                    subtitle: ''
+                  }
+                }
+              }
+            }
+          }
+
+          // Total Requests (WAF)
+          {
+            position: {
+              x: 0
+              y: 1
+              colSpan: 6
+              rowSpan: 3
+            }
+            metadata: {
+              inputs: [
+                {
+                  name: 'options'
+                  value: {
+                    chart: {
+                      metrics: [
+                        {
+                          resourceMetadata: {
+                            id: avmWafResourceIdComputed
+                          }
+                          // metric name may differ in your environment; adjust as needed
+                          name: 'TotalRequests'
+                          aggregationType: 7
+                          namespace: 'Microsoft.Network/applicationGateways'
+                          metricVisualization: {
+                            displayName: 'Total requests'
+                            color: '#47BDF5'
+                          }
+                        }
+                      ]
+                      title: 'WAF — Total requests'
+                      visualization: {
+                        chartType: 2
+                        legendVisualization: {
+                          isVisible: true
+                          position: 2
+                          hideSubtitle: false
+                        }
+                        axisVisualization: {
+                          x: {
+                            isVisible: true
+                            axisType: 2
+                          }
+                          y: {
+                            isVisible: true
+                            axisType: 1
+                          }
+                        }
+                      }
+                      openBladeOnClick: {
+                        openBlade: true
+                        destinationBlade: {
+                          extensionName: 'HubsExtension'
+                          bladeName: 'ResourceMenuBlade'
+                          parameters: {
+                            id: avmWafResourceIdComputed
+                            menuid: 'metrics'
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+                {
+                  name: 'sharedTimeRange'
+                  isOptional: true
+                }
+              ]
+              #disable-next-line BCP036
+              type: 'Extension/HubsExtension/PartType/MonitorChartPart'
+              settings: {}
+            }
+          }
+
+          // Blocked Requests (WAF)
+          {
+            position: {
+              x: 6
+              y: 1
+              colSpan: 6
+              rowSpan: 3
+            }
+            metadata: {
+              inputs: [
+                {
+                  name: 'options'
+                  value: {
+                    chart: {
+                      metrics: [
+                        {
+                          resourceMetadata: {
+                            id: avmWafResourceIdComputed
+                          }
+                          // adjust metric name if your WAF exposes a different metric id for blocked requests
+                          name: 'WafBlockedRequests'
+                          aggregationType: 7
+                          namespace: 'Microsoft.Network/applicationGateways'
+                          metricVisualization: {
+                            displayName: 'Blocked requests'
+                            color: '#EC008C'
+                          }
+                        }
+                      ]
+                      title: 'WAF — Blocked requests'
+                      visualization: {
+                        chartType: 3
+                        legendVisualization: {
+                          isVisible: true
+                          position: 2
+                          hideSubtitle: false
+                        }
+                        axisVisualization: {
+                          x: {
+                            isVisible: true
+                            axisType: 2
+                          }
+                          y: {
+                            isVisible: true
+                            axisType: 1
+                          }
+                        }
+                      }
+                      openBladeOnClick: {
+                        openBlade: true
+                        destinationBlade: {
+                          extensionName: 'HubsExtension'
+                          bladeName: 'ResourceMenuBlade'
+                          parameters: {
+                            id: avmWafResourceIdComputed
+                            menuid: 'metrics'
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+                {
+                  name: 'sharedTimeRange'
+                  isOptional: true
+                }
+              ]
+              #disable-next-line BCP036
+              type: 'Extension/HubsExtension/PartType/MonitorChartPart'
+              settings: {}
+            }
+          }
+
+          // WAF Rule Matches (example)
+          {
+            position: {
+              x: 0
+              y: 4
+              colSpan: 12
+              rowSpan: 3
+            }
+            metadata: {
+              inputs: [
+                {
+                  name: 'options'
+                  value: {
+                    chart: {
+                      metrics: [
+                        {
+                          resourceMetadata: {
+                            id: avmWafResourceIdComputed
+                          }
+                          // example metric for matched rules — replace with the exact metric id from your environment if needed
+                          name: 'WafMatchedRequests'
+                          aggregationType: 7
+                          namespace: 'Microsoft.Network/applicationGateways'
+                          metricVisualization: {
+                            displayName: 'WAF rule matches'
+                            color: '#00BCF2'
+                          }
+                        }
+                      ]
+                      title: 'WAF — Rule matches'
+                      visualization: {
+                        chartType: 2
+                        legendVisualization: {
+                          isVisible: true
+                          position: 2
+                          hideSubtitle: false
+                        }
+                        axisVisualization: {
+                          x: {
+                            isVisible: true
+                            axisType: 2
+                          }
+                          y: {
+                            isVisible: true
+                            axisType: 1
+                          }
+                        }
+                      }
+                      openBladeOnClick: {
+                        openBlade: true
+                        destinationBlade: {
+                          extensionName: 'HubsExtension'
+                          bladeName: 'ResourceMenuBlade'
+                          parameters: {
+                            id: avmWafResourceIdComputed
+                            menuid: 'metrics'
                           }
                         }
                       }

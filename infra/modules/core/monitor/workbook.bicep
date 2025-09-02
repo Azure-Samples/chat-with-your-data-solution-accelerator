@@ -1,24 +1,40 @@
-@description('The friendly name for the workbook.  This name must be unique within a resource group.')
+metadata name = 'workbook'
+metadata description = 'AVM WAF-compliant Workbook deployment using Microsoft.Insights resource type. Ensures governance, observability, tagging, and consistency with other monitoring resources.'
+
+// ========== //
+// Parameters //
+// ========== //
+
+@description('Required. The friendly display name for the workbook. Must be unique within the resource group.')
 param workbookDisplayName string
 
-@description('The gallery that the workbook will been shown under. Supported values include workbook, tsg, etc. Usually, this is \'workbook\'')
+@description('Optional. The gallery category under which the workbook will appear. Supported values: workbook, tsg, etc.')
 param workbookType string = 'workbook'
 
-@description('The id of resource instance to which the workbook will be associated')
+@description('Optional. Resource ID of the source this workbook is associated with. Example: Log Analytics workspace or App Insights instance.')
 param workbookSourceId string = 'azure monitor'
 
-@description('The unique guid for this workbook instance')
+@description('Required. Unique GUID for this workbook instance. Acts as the resource name.')
 param workbookId string
 
-@description('The json content of the workbook')
+@description('Required. JSON content of the workbook definition.')
 param workbookContents string
 
+@description('Optional. Azure region where the workbook is deployed. Defaults to the resource group location.')
 param location string = resourceGroup().location
 
-resource workbook_resource 'microsoft.insights/workbooks@2023-06-01' = {
+@description('Optional. Tags to apply to the workbook resource for governance, cost tracking, and compliance.')
+param tags object = {}
+
+// ======== //
+// Resource //
+// ======== //
+
+resource workbook_resource 'Microsoft.Insights/workbooks@2023-06-01' = {
   name: workbookId
   location: location
   kind: 'shared'
+  tags: tags
   properties: {
     displayName: workbookDisplayName
     serializedData: workbookContents
@@ -28,4 +44,9 @@ resource workbook_resource 'microsoft.insights/workbooks@2023-06-01' = {
   }
 }
 
-output workbookId string = workbook_resource.id
+// ======= //
+// Outputs //
+// ======= //
+
+@description('The full resource ID of the deployed workbook.')
+output workbookResourceId string = workbook_resource.id

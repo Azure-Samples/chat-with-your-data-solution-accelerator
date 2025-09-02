@@ -1,4 +1,5 @@
-metadata description = 'Creates an Azure Cognitive Services instance with WAF-aligned options for networking, diagnostics, and identity.'
+metadata name = 'cognitiveservices'
+metadata description = 'Creates an Azure Cognitive Services instance with AVM + WAF aligned defaults: private access by default, explicit private endpoints or IP rules allowed, and system-assigned identity enabled.'
 
 @description('Name of the Cognitive Services account.')
 param name string
@@ -18,12 +19,9 @@ param deployments array = []
 @description('Kind of Cognitive Services account (e.g., OpenAI, SpeechServices, etc.).')
 param kind string = 'OpenAI'
 
-@description('Whether to enable managed identity.')
-param managedIdentity bool = false
-
 @description('Enable or disable public network access.')
 @allowed(['Enabled', 'Disabled'])
-param publicNetworkAccess string = 'Enabled'
+param publicNetworkAccess string = 'Disabled'
 
 @description('The SKU configuration (name and capacity).')
 param sku object = {
@@ -31,22 +29,22 @@ param sku object = {
   capacity: 1
 }
 
+@description('Whether to enable managed identity (system-assigned).')
+param managedIdentity bool = true
+
 @description('Optional array of allowed IP rules.')
 param allowedIpRules array = []
 
 @description('Optional array of private endpoint configurations.')
-@allowed([
-  []
-])
 param privateEndpoints array = []
 
 @description('Resource ID of a Log Analytics workspace for diagnostics (leave blank to disable).')
 param logAnalyticsWorkspaceId string = ''
 
-// Configure network ACLs
+// Configure network ACLs: deny by default, optionally allow IP rules when provided
 param networkAcls object = empty(allowedIpRules)
   ? {
-      defaultAction: 'Allow'
+      defaultAction: 'Deny'
     }
   : {
       ipRules: allowedIpRules
@@ -78,10 +76,10 @@ resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01
     name: deployment.name
     properties: {
       model: deployment.model
-      raiPolicyName: contains(deployment, 'raiPolicyName') ? deployment.raiPolicyName : null
+      raiPolicyName: contains(deployment, 'raiPolicyName') ? deployment['raiPolicyName'] : null
     }
     sku: contains(deployment, 'sku')
-      ? deployment.sku
+      ? deployment['sku']
       : {
           name: 'Standard'
           capacity: 20
@@ -89,7 +87,7 @@ resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01
   }
 ]
 
-// Private Endpoints (optional)
+// Private Endpoints
 resource privateEndpoint 'Microsoft.Network/privateEndpoints@2021-05-01' = [
   for pe in privateEndpoints: {
     name: pe.name
@@ -113,7 +111,7 @@ resource privateEndpoint 'Microsoft.Network/privateEndpoints@2021-05-01' = [
   }
 ]
 
-// Diagnostics (optional)
+// Diagnostics
 resource diagnostic 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (!empty(logAnalyticsWorkspaceId)) {
   name: '${name}-diag'
   scope: account
