@@ -1,6 +1,6 @@
-// ========== Cognitive Services (AVM + WAF aligned) ========== //
+// ========== Cognitive Services (AVM + WAF aligned) Wrapper ========== //
 metadata name = 'cognitiveservices'
-metadata description = 'Creates an Azure Cognitive Services instance with AVM + WAF aligned defaults: private access by default, explicit private endpoints or IP rules allowed, system-assigned identity enabled, local auth disabled, and diagnostics enabled.'
+metadata description = 'Wrapper for Azure Cognitive Services account with AVM + WAF aligned defaults: private access by default, explicit private endpoints or IP rules allowed, system-assigned identity enabled, local auth disabled, and diagnostics enabled.'
 
 // -------- Parameters -------- //
 @description('Name of the Cognitive Services account.')
@@ -12,45 +12,39 @@ param location string = resourceGroup().location
 @description('Tags to apply to the resource.')
 param tags object = {}
 
-@description('The custom subdomain name used to access the API. Defaults to the value of the name parameter.')
-param customSubDomainName string = name
-
 @description('Array of deployments for the Cognitive Services account.')
 param deployments array = []
 
-@description('Kind of Cognitive Services account (e.g., OpenAI, SpeechServices, AIServices).')
+@description('Kind of Cognitive Services account (e.g., OpenAI, SpeechServices, ComputerVision, FormRecognizer, ContentSafety).')
 param kind string = 'OpenAI'
 
-@description('Enable or disable public network access. Default is Disabled (WAF best practice).')
-@allowed(['Enabled', 'Disabled'])
-param publicNetworkAccess string = 'Disabled'
-
-@description('The SKU (tier).')
+@description('SKU name for the Cognitive Services account.')
 @allowed(['S0', 'S1', 'S2', 'S3'])
 param sku string = 'S0'
 
-@description('Whether to enable system-assigned managed identity.')
+@description('Enable system-assigned managed identity.')
 param managedIdentity bool = true
 
-@description('Disable local key-based auth (WAF best practice).')
-param disableLocalAuth bool = true
+@description('Enable/disable public network access. Default is Disabled (WAF best practice).')
+@allowed(['Enabled', 'Disabled'])
+param publicNetworkAccess string = 'Disabled'
 
-@description('Enable or disable telemetry.')
-param enableTelemetry bool = true
-
-@description('Resource ID of a Log Analytics workspace for diagnostics (leave blank to disable).')
+@description('Resource ID of Log Analytics workspace for diagnostics.')
 param logAnalyticsWorkspaceId string = ''
 
-@description('Enable private endpoints by linking to a virtual network.')
-param virtualNetworkEnabled bool = false
+@description('Enable private networking for the Cognitive Services account.')
+param enablePrivateNetworking bool = false
 
-@description('Subnet resource ID to use when creating private endpoints.')
+@description('Subnet resource ID for private endpoints if private networking is enabled.')
 param subnetResourceId string = ''
 
-@description('Virtual Network resource ID (parent VNet) to link private DNS zones. Must be provided when virtualNetworkEnabled is true.')
+@description('Virtual Network resource ID for linking private DNS zones if private networking is enabled.')
 param virtualNetworkResourceId string = ''
 
-// --------- Private DNS Zones --------- //
+@description('Enable/disable wrapper telemetry.')
+param enableTelemetry bool = true
+
+// -------- Private DNS Zones -------- //
 var cognitiveServicesSubResource = 'account'
 var cognitiveServicesPrivateDnsZones = {
   'privatelink.cognitiveservices.azure.com': cognitiveServicesSubResource
@@ -59,7 +53,7 @@ var cognitiveServicesPrivateDnsZones = {
 }
 
 module privateDnsZonesCognitiveServices 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
-  for zone in objectKeys(cognitiveServicesPrivateDnsZones): if (virtualNetworkEnabled && !empty(virtualNetworkResourceId)) {
+  for zone in objectKeys(cognitiveServicesPrivateDnsZones): if (enablePrivateNetworking && !empty(virtualNetworkResourceId)) {
     name: take('avm.res.network.private-dns-zone.cognitiveservices.${uniqueString(name, zone)}', 64)
     params: {
       name: zone
@@ -75,7 +69,7 @@ module privateDnsZonesCognitiveServices 'br/public:avm/res/network/private-dns-z
   }
 ]
 
-// --------- Build DNS Zone Group Configs (fix for BCP138) --------- //
+// -------- Build DNS Zone Group Configs -------- //
 var privateDnsZoneGroupConfigs = [
   for zone in objectKeys(cognitiveServicesPrivateDnsZones): {
     name: replace(zone, '.', '-')
@@ -83,7 +77,7 @@ var privateDnsZoneGroupConfigs = [
   }
 ]
 
-// --------- Cognitive Services Account (AVM) --------- //
+// -------- Cognitive Services Account (AVM) -------- //
 module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' = {
   name: take('avm.res.cognitive-services.account.${name}', 64)
   params: {
@@ -92,9 +86,9 @@ module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' =
     tags: tags
     kind: kind
     sku: sku
-    customSubDomainName: customSubDomainName
+    customSubDomainName: name
     publicNetworkAccess: publicNetworkAccess
-    disableLocalAuth: disableLocalAuth
+    disableLocalAuth: true
     managedIdentities: {
       systemAssigned: managedIdentity
     }
@@ -107,7 +101,8 @@ module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' =
           }
         ]
 
-    privateEndpoints: virtualNetworkEnabled
+    // Private endpoints only if private networking enabled
+    privateEndpoints: enablePrivateNetworking
       ? [
           {
             name: 'pep-${name}'
@@ -124,7 +119,7 @@ module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' =
   }
 }
 
-// --------- Outputs --------- //
+// -------- Outputs -------- //
 output endpoint string = cognitiveServices.outputs.endpoint
 output systemAssignedMIPrincipalId string = managedIdentity ? cognitiveServices.outputs.systemAssignedMIPrincipalId : ''
 output resourceId string = cognitiveServices.outputs.resourceId
