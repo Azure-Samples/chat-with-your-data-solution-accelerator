@@ -44,6 +44,12 @@ param virtualNetworkResourceId string = ''
 @description('Enable/disable wrapper telemetry.')
 param enableTelemetry bool = true
 
+@description('Create the private DNS zones from this module. Set to true for only one deployment to avoid conflicts.')
+param createPrivateDnsZones bool = false
+
+@description('Optional array of existing private DNS zone resource IDs to use for private endpoint DNS groups.')
+param privateDnsZoneResourceIds array = []
+
 // -------- Private DNS Zones -------- //
 var cognitiveServicesSubResource = 'account'
 var cognitiveServicesPrivateDnsZones = {
@@ -53,7 +59,7 @@ var cognitiveServicesPrivateDnsZones = {
 }
 
 module privateDnsZonesCognitiveServices 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
-  for zone in objectKeys(cognitiveServicesPrivateDnsZones): if (enablePrivateNetworking && !empty(virtualNetworkResourceId)) {
+  for zone in objectKeys(cognitiveServicesPrivateDnsZones): if (enablePrivateNetworking && createPrivateDnsZones) {
     name: take('avm.res.network.private-dns-zone.cognitiveservices.${uniqueString(name, zone)}', 64)
     params: {
       name: zone
