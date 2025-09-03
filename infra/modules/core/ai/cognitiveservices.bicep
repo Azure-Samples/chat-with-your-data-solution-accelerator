@@ -1,6 +1,8 @@
+// ========== Cognitive Services (AVM + WAF aligned) ========== //
 metadata name = 'cognitiveservices'
-metadata description = 'Creates an Azure Cognitive Services instance with AVM + WAF aligned defaults: private access by default, explicit private endpoints or IP rules allowed, and system-assigned identity enabled.'
+metadata description = 'Creates an Azure Cognitive Services instance with AVM + WAF aligned defaults: private access by default, explicit private endpoints or IP rules allowed, system-assigned identity enabled, local auth disabled, and diagnostics enabled.'
 
+// -------- Parameters -------- //
 @description('Name of the Cognitive Services account.')
 param name string
 
@@ -16,125 +18,115 @@ param customSubDomainName string = name
 @description('Array of deployments for the Cognitive Services account.')
 param deployments array = []
 
-@description('Kind of Cognitive Services account (e.g., OpenAI, SpeechServices, etc.).')
+@description('Kind of Cognitive Services account (e.g., OpenAI, SpeechServices, AIServices).')
 param kind string = 'OpenAI'
 
-@description('Enable or disable public network access.')
+@description('Enable or disable public network access. Default is Disabled (WAF best practice).')
 @allowed(['Enabled', 'Disabled'])
 param publicNetworkAccess string = 'Disabled'
 
-@description('The SKU configuration (name and capacity).')
-param sku object = {
-  name: 'S0'
-  capacity: 1
-}
+@description('The SKU (tier).')
+@allowed(['S0', 'S1', 'S2', 'S3'])
+param sku string = 'S0'
 
-@description('Whether to enable managed identity (system-assigned).')
+@description('Whether to enable system-assigned managed identity.')
 param managedIdentity bool = true
 
-@description('Optional array of allowed IP rules.')
-param allowedIpRules array = []
+@description('Disable local key-based auth (WAF best practice).')
+param disableLocalAuth bool = true
 
-@description('Optional array of private endpoint configurations.')
-param privateEndpoints array = []
+@description('Enable or disable telemetry.')
+param enableTelemetry bool = true
 
 @description('Resource ID of a Log Analytics workspace for diagnostics (leave blank to disable).')
 param logAnalyticsWorkspaceId string = ''
 
-// Configure network ACLs: deny by default, optionally allow IP rules when provided
-param networkAcls object = empty(allowedIpRules)
-  ? {
-      defaultAction: 'Deny'
-    }
-  : {
-      ipRules: allowedIpRules
-      defaultAction: 'Deny'
-    }
+@description('Enable private endpoints by linking to a virtual network.')
+param virtualNetworkEnabled bool = false
 
-// Cognitive Services Account
-resource account 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
-  name: name
-  location: location
-  tags: tags
-  kind: kind
-  properties: {
-    customSubDomainName: customSubDomainName
-    publicNetworkAccess: publicNetworkAccess
-    networkAcls: networkAcls
-  }
-  sku: sku
-  identity: {
-    type: managedIdentity ? 'SystemAssigned' : 'None'
-  }
+@description('Subnet resource ID to use when creating private endpoints.')
+param subnetResourceId string = ''
+
+@description('Virtual Network resource ID (parent VNet) to link private DNS zones. Must be provided when virtualNetworkEnabled is true.')
+param virtualNetworkResourceId string = ''
+
+// --------- Private DNS Zones --------- //
+var cognitiveServicesSubResource = 'account'
+var cognitiveServicesPrivateDnsZones = {
+  'privatelink.cognitiveservices.azure.com': cognitiveServicesSubResource
+  'privatelink.openai.azure.com': cognitiveServicesSubResource
+  'privatelink.services.ai.azure.com': cognitiveServicesSubResource
 }
 
-// Deployments
-@batchSize(1)
-resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = [
-  for deployment in deployments: {
-    parent: account
-    name: deployment.name
-    properties: {
-      model: deployment.model
-      raiPolicyName: contains(deployment, 'raiPolicyName') ? deployment['raiPolicyName'] : null
-    }
-    sku: contains(deployment, 'sku')
-      ? deployment['sku']
-      : {
-          name: 'Standard'
-          capacity: 20
-        }
-  }
-]
-
-// Private Endpoints
-resource privateEndpoint 'Microsoft.Network/privateEndpoints@2021-05-01' = [
-  for pe in privateEndpoints: {
-    name: pe.name
-    location: location
-    properties: {
-      subnet: {
-        id: pe.subnetId
-      }
-      privateLinkServiceConnections: [
+module privateDnsZonesCognitiveServices 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
+  for zone in objectKeys(cognitiveServicesPrivateDnsZones): if (virtualNetworkEnabled && !empty(virtualNetworkResourceId)) {
+    name: take('avm.res.network.private-dns-zone.cognitiveservices.${uniqueString(name, zone)}', 64)
+    params: {
+      name: zone
+      tags: tags
+      enableTelemetry: enableTelemetry
+      virtualNetworkLinks: [
         {
-          name: '${pe.name}-link'
-          properties: {
-            privateLinkServiceId: account.id
-            groupIds: [
-              'account'
-            ]
-          }
+          name: 'dnslink-${replace(zone, '.', '-')}'
+          virtualNetworkResourceId: virtualNetworkResourceId
         }
       ]
     }
   }
 ]
 
-// Diagnostics
-resource diagnostic 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (!empty(logAnalyticsWorkspaceId)) {
-  name: '${name}-diag'
-  scope: account
-  properties: {
-    workspaceId: logAnalyticsWorkspaceId
-    logs: [
-      {
-        category: 'Audit'
-        enabled: true
-      }
-    ]
-    metrics: [
-      {
-        category: 'AllMetrics'
-        enabled: true
-      }
-    ]
+// --------- Build DNS Zone Group Configs (fix for BCP138) --------- //
+var privateDnsZoneGroupConfigs = [
+  for zone in objectKeys(cognitiveServicesPrivateDnsZones): {
+    name: replace(zone, '.', '-')
+    privateDnsZoneResourceId: resourceId('Microsoft.Network/privateDnsZones', zone)
+  }
+]
+
+// --------- Cognitive Services Account (AVM) --------- //
+module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' = {
+  name: take('avm.res.cognitive-services.account.${name}', 64)
+  params: {
+    name: name
+    location: location
+    tags: tags
+    kind: kind
+    sku: sku
+    customSubDomainName: customSubDomainName
+    publicNetworkAccess: publicNetworkAccess
+    disableLocalAuth: disableLocalAuth
+    managedIdentities: {
+      systemAssigned: managedIdentity
+    }
+
+    diagnosticSettings: empty(logAnalyticsWorkspaceId)
+      ? []
+      : [
+          {
+            workspaceResourceId: logAnalyticsWorkspaceId
+          }
+        ]
+
+    privateEndpoints: virtualNetworkEnabled
+      ? [
+          {
+            name: 'pep-${name}'
+            customNetworkInterfaceName: 'nic-${name}'
+            subnetResourceId: subnetResourceId
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: privateDnsZoneGroupConfigs
+            }
+          }
+        ]
+      : []
+
+    deployments: deployments
   }
 }
 
-// Outputs
-output endpoint string = account.properties.endpoint
-output identityPrincipalId string = managedIdentity ? account.identity.principalId : ''
-output id string = account.id
-output name string = account.name
+// --------- Outputs --------- //
+output endpoint string = cognitiveServices.outputs.endpoint
+output systemAssignedMIPrincipalId string = managedIdentity ? cognitiveServices.outputs.systemAssignedMIPrincipalId : ''
+output resourceId string = cognitiveServices.outputs.resourceId
+output name string = cognitiveServices.outputs.name
 output location string = location
