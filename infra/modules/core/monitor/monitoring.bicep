@@ -7,7 +7,8 @@ metadata description = 'AVM WAF-compliant monitoring solution that integrates Ap
 
 @description('Required. Name of the Log Analytics workspace.')
 param logAnalyticsName string
-
+@description('Optional. Unique deployment suffix to avoid naming conflicts.')
+param deploymentSuffix string = utcNow('MMddHHmmss')
 @description('Required. Name of the Application Insights instance.')
 param applicationInsightsName string
 
@@ -57,7 +58,7 @@ param applicationInsightsDashboardName string = ''
 
 // Log Analytics workspace
 module logAnalytics './loganalytics.bicep' = if (empty(existingLogAnalyticsWorkspaceId)) {
-  name: '${logAnalyticsName}-deploy'
+  name: '${logAnalyticsName}-deploy-${deploymentSuffix}'
   params: {
     name: logAnalyticsName
     location: location
@@ -75,7 +76,7 @@ var workspaceResourceId = empty(existingLogAnalyticsWorkspaceId)
 
 // Application Insights
 module appInsights './applicationinsights.bicep' = {
-  name: '${applicationInsightsName}-deploy'
+  name: '${applicationInsightsName}-deploy--${deploymentSuffix}'
   params: {
     name: applicationInsightsName
     location: location

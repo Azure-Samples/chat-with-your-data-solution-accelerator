@@ -36,7 +36,7 @@ param enableTelemetry bool = true
   'None'
 ])
 param lockLevel string = 'None'
-
+param dashboardName string = ''
 @description('Optional. Tags to apply.')
 param tags object = {}
 
@@ -66,6 +66,14 @@ resource appInsightsLock 'Microsoft.Authorization/locks@2017-04-01' = if (lockLe
   properties: {
     level: lockLevel
     notes: 'Lock applied per AVM WAF guidelines to prevent accidental deletion or modification.'
+  }
+}
+module applicationInsightsDashboard 'applicationinsights-dashboard.bicep' = if (!empty(dashboardName)) {
+  name: 'application-insights-dashboard'
+  params: {
+    name: dashboardName
+    location: location
+    applicationInsightsName: name
   }
 }
 
