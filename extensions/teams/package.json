@@ -16,7 +16,8 @@
         "build": "tsc --build",
         "start": "node ./lib/index.js",
         "watch": "nodemon --exec \"npm run start\"",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "enable-sp": "node ./scripts/enable-service-principal.js"
     },
     "repository": {
         "type": "git",

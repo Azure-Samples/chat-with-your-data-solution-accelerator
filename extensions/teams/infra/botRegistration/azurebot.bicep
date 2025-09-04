@@ -10,9 +10,10 @@ param botServiceName string = resourceBaseName
 param botServiceSku string = 'F0'
 param botAadAppClientId string
 param botAppDomain string
+param botAadAppTenantId string
 
 // Register your web service as a bot with the Bot Framework
-resource botService 'Microsoft.BotService/botServices@2021-03-01' = {
+resource botService 'Microsoft.BotService/botServices@2023-09-15-preview' = {
   kind: 'azurebot'
   location: 'global'
   name: botServiceName
@@ -21,7 +22,7 @@ resource botService 'Microsoft.BotService/botServices@2021-03-01' = {
     endpoint: 'https://${botAppDomain}/api/messages'
     msaAppId: botAadAppClientId
     msaAppType: 'SingleTenant'
-    msaAppTenantId: subscription().tenantId
+    msaAppTenantId: botAadAppTenantId
   }
   sku: {
     name: botServiceSku
@@ -29,7 +30,7 @@ resource botService 'Microsoft.BotService/botServices@2021-03-01' = {
 }
 
 // Connect the bot service to Microsoft Teams
-resource botServiceMsTeamsChannel 'Microsoft.BotService/botServices/channels@2021-03-01' = {
+resource botServiceMsTeamsChannel 'Microsoft.BotService/botServices/channels@2023-09-15-preview' = {
   parent: botService
   location: 'global'
   name: 'MsTeamsChannel'
