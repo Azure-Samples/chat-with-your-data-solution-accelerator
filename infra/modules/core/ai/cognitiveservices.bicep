@@ -44,44 +44,21 @@ param virtualNetworkResourceId string = ''
 @description('Enable/disable wrapper telemetry.')
 param enableTelemetry bool = true
 
-@description('Create the private DNS zones from this module. Set to true for only one deployment to avoid conflicts.')
-param createPrivateDnsZones bool = false
+@description('Reference to AVM-deployed Private DNS Zone modules (array).')
+param avmPrivateDnsZones array = []
 
-@description('Optional array of existing private DNS zone resource IDs to use for private endpoint DNS groups.')
-param privateDnsZoneResourceIds array = []
+@description('DNS Zone index mapping object (e.g., { openAI: 1 }).')
+param dnsZoneIndex object = {}
 
-// -------- Private DNS Zones -------- //
-var cognitiveServicesSubResource = 'account'
-var cognitiveServicesPrivateDnsZones = {
-  'privatelink.cognitiveservices.azure.com': cognitiveServicesSubResource
-  'privatelink.openai.azure.com': cognitiveServicesSubResource
-  'privatelink.services.ai.azure.com': cognitiveServicesSubResource
-}
-
-module privateDnsZonesCognitiveServices 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
-  for zone in objectKeys(cognitiveServicesPrivateDnsZones): if (enablePrivateNetworking && createPrivateDnsZones) {
-    name: take('avm.res.network.private-dns-zone.cognitiveservices.${uniqueString(name, zone)}', 64)
-    params: {
-      name: zone
-      tags: tags
-      enableTelemetry: enableTelemetry
-      virtualNetworkLinks: [
-        {
-          name: 'dnslink-${replace(zone, '.', '-')}'
-          virtualNetworkResourceId: virtualNetworkResourceId
-        }
-      ]
-    }
-  }
-]
 
 // -------- Build DNS Zone Group Configs -------- //
-var privateDnsZoneGroupConfigs = [
-  for zone in objectKeys(cognitiveServicesPrivateDnsZones): {
-    name: replace(zone, '.', '-')
-    privateDnsZoneResourceId: resourceId('Microsoft.Network/privateDnsZones', zone)
+var privateDnsZoneGroupConfigs = enablePrivateNetworking ? [
+  {
+    name: 'cognitiveservices-dns'
+    privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.openAI]!.outputs.resourceId
   }
-]
+] : []
+
 
 // -------- Cognitive Services Account (AVM) -------- //
 module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' = {
