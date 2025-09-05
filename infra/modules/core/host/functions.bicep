@@ -3,15 +3,13 @@ param name string
 param location string = resourceGroup().location
 param tags object = {}
 
-// Import the type definition for managed identities
-import { managedIdentityAllType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
-
 // Reference Properties
 param applicationInsightsName string = ''
 param appServicePlanId string
 param keyVaultName string = ''
-param managedIdentity bool = true
-param userAssignedIdentity managedIdentityAllType = {}
+import { managedIdentityAllType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+@description('Optional. The managed identity definition for this resource.')
+param managedIdentities managedIdentityAllType?
 param storageAccountName string
 
 // Runtime Properties
@@ -118,12 +116,7 @@ module functions 'appservice.bicep' = {
     publicNetworkAccess: publicNetworkAccess
     privateEndpoints: privateEndpoints
     diagnosticSettings: diagnosticSettings
-    managedIdentities: union(
-      {
-        systemAssigned: managedIdentity
-      },
-      !empty(userAssignedIdentity) ? userAssignedIdentity : {}
-    )
+    managedIdentities: managedIdentities
     keyVaultAccessIdentityResourceId: !empty(keyVaultName)
       ? '${resourceGroup().id}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${keyVaultName}'
       : null
@@ -146,28 +139,10 @@ module functions 'appservice.bicep' = {
   }
 }
 
-// Simplify the user assigned identity handling
-var userAssignedResourceId = !empty(userAssignedIdentity) && !empty(userAssignedIdentity.?userAssignedResourceIds) && length(userAssignedIdentity.?userAssignedResourceIds ?? []) > 0
-  ? (userAssignedIdentity.?userAssignedResourceIds[0] ?? '')
-  : ''
-
-// We'll get the principal ID in the module role assignment if needed
-module storageBlobRoleFunction '../security/role.bicep' = {
-  name: 'storage-blob-role-function'
-  params: {
-    principalId: managedIdentity ? (functions.outputs.?systemAssignedMIPrincipalId ?? '') : userAssignedResourceId
-    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-    principalType: 'ServicePrincipal'
-  }
-}
-
 resource storage 'Microsoft.Storage/storageAccounts@2021-09-01' existing = {
   name: storageAccountName
 }
 
-output identityPrincipalId string = managedIdentity
-  ? (functions.outputs.?systemAssignedMIPrincipalId ?? '')
-  : userAssignedResourceId
 output name string = functions.outputs.name
 output uri string = functions.outputs.defaultHostname
 output azureWebJobsStorage string = storage.name

@@ -25,9 +25,6 @@ param runtimeVersion string = ''
 @description('The name of the Application Insights resource.')
 param applicationInsightsName string = ''
 
-@description('The name of the Key Vault where secrets should be stored.')
-param keyVaultName string = ''
-
 @description('The app settings to be applied to the web app.')
 @secure()
 param appSettings object = {}
@@ -46,7 +43,7 @@ param healthCheckPath string = ''
 param kind string = 'app,linux'
 
 @description('Optional. The managed identity definition for this resource.')
-param userAssignedIdentity object = {}
+param userAssignedIdentityResourceId string = ''
 
 @description('Optional. Diagnostic settings for the resource.')
 param diagnosticSettings array = []
@@ -110,68 +107,14 @@ module adminweb '../core/host/appservice.bicep' = {
     virtualNetworkSubnetId: virtualNetworkSubnetId
     publicNetworkAccess: empty(publicNetworkAccess) ? null : publicNetworkAccess
     privateEndpoints: privateEndpoints
-    managedIdentities: userAssignedIdentity
+    managedIdentities: {
+      systemAssigned: true
+      userAssignedResourceIds: [
+        userAssignedIdentityResourceId
+      ]
+    }
   }
 }
 
-// Resolve a principalId to grant KeyVault access (prefer systemAssigned, fallback to first userAssigned if provided)
-var firstUserAssignedIdentityResourceId = (!empty(userAssignedIdentity) && contains(
-    userAssignedIdentity,
-    'userAssignedResourceIds'
-  ) && length(userAssignedIdentity.userAssignedResourceIds) > 0)
-  ? userAssignedIdentity.userAssignedResourceIds[0]
-  : (!empty(userAssignedIdentity) && contains(userAssignedIdentity, 'id') ? userAssignedIdentity.id : '')
-
-var firstUserAssignedPrincipalId = !empty(firstUserAssignedIdentityResourceId)
-  ? reference(firstUserAssignedIdentityResourceId, '2018-11-30', 'Full').principalId
-  : ''
-
-var resolvedPrincipalId = !empty(adminweb.outputs.?systemAssignedMIPrincipalId)
-  ? adminweb.outputs.?systemAssignedMIPrincipalId
-  : (!empty(firstUserAssignedPrincipalId) ? firstUserAssignedPrincipalId : '')
-
-// Storage Blob Data Contributor
-module storageRoleBackend '../core/security/role.bicep' = {
-  name: 'storage-role-backend'
-  params: {
-    principalId: resolvedPrincipalId
-    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Cognitive Services User
-module openAIRoleBackend '../core/security/role.bicep' = {
-  name: 'openai-role-backend'
-  params: {
-    principalId: resolvedPrincipalId
-    roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Contributor
-module openAIRoleBackendContributor '../core/security/role.bicep' = {
-  name: 'openai-role-backend-contributor'
-  params: {
-    principalId: resolvedPrincipalId
-    roleDefinitionId: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Search Index Data Contributor
-module searchRoleBackend '../core/security/role.bicep' = {
-  name: 'search-role-backend'
-  params: {
-    principalId: resolvedPrincipalId
-    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-output WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID string? = !empty(adminweb.outputs.?systemAssignedMIPrincipalId)
-  ? adminweb.outputs.?systemAssignedMIPrincipalId
-  : (!empty(firstUserAssignedPrincipalId) ? firstUserAssignedPrincipalId : null)
 output WEBSITE_ADMIN_NAME string = adminweb.outputs.name
 output WEBSITE_ADMIN_URI string = 'https://${adminweb.outputs.defaultHostname}'

@@ -5,10 +5,10 @@ param accessTier string = 'Hot'
 param enablePrivateNetworking bool = false
 param enableTelemetry bool = true
 param solutionPrefix string = ''
-param avmManagedIdentity object
 param avmPrivateDnsZones array
 param dnsZoneIndex object
 param avmVirtualNetwork object
+param roleAssignments array = []
 
 module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
   name: take('avm.res.storage.storage-account.${storageAccountName}', 64)
@@ -22,13 +22,7 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
     accessTier: accessTier
     supportsHttpsTrafficOnly: true
 
-    roleAssignments: [
-      {
-        principalId: avmManagedIdentity.outputs.principalId
-        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
-        principalType: 'ServicePrincipal'
-      }
-    ]
+    roleAssignments: roleAssignments
 
     networkAcls: {
       bypass: 'AzureServices'

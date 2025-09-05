@@ -25,9 +25,6 @@ param runtimeName string = 'python'
 @description('The runtime version for the web app.')
 param runtimeVersion string = ''
 
-@description('The name of the Key Vault where secrets should be stored.')
-param keyVaultName string = ''
-
 @description('The app settings to be applied to the web app.')
 @secure()
 param appSettings object = {}
@@ -46,7 +43,7 @@ param healthCheckPath string = ''
 param kind string = 'app,linux'
 
 @description('Optional. The managed identity definition for this resource.')
-param userAssignedIdentity object = {}
+param userAssignedIdentityResourceId string = ''
 
 @description('Optional. Diagnostic settings for the resource.')
 param diagnosticSettings array = []
@@ -112,24 +109,14 @@ module web '../core/host/appservice.bicep' = {
     virtualNetworkSubnetId: virtualNetworkSubnetId
     publicNetworkAccess: empty(publicNetworkAccess) ? null : publicNetworkAccess
     privateEndpoints: privateEndpoints
-    managedIdentities: userAssignedIdentity
+    managedIdentities: {
+      systemAssigned: true
+      userAssignedResourceIds: [
+        userAssignedIdentityResourceId
+      ]
+    }
   }
 }
 
-// Resolve a principalId to grant KeyVault access (prefer systemAssigned, fallback to first userAssigned if provided)
-var firstUserAssignedIdentityResourceId = (!empty(userAssignedIdentity) && contains(
-    userAssignedIdentity,
-    'userAssignedResourceIds'
-  ) && length(userAssignedIdentity.userAssignedResourceIds) > 0)
-  ? userAssignedIdentity.userAssignedResourceIds[0]
-  : (!empty(userAssignedIdentity) && contains(userAssignedIdentity, 'id') ? userAssignedIdentity.id : '')
-
-var firstUserAssignedPrincipalId = !empty(firstUserAssignedIdentityResourceId)
-  ? reference(firstUserAssignedIdentityResourceId, '2018-11-30', 'Full').principalId
-  : ''
-
-output FRONTEND_API_IDENTITY_PRINCIPAL_ID string? = !empty(web.outputs.?systemAssignedMIPrincipalId)
-  ? web.outputs.?systemAssignedMIPrincipalId
-  : (!empty(firstUserAssignedPrincipalId) ? firstUserAssignedPrincipalId : null)
 output FRONTEND_API_NAME string = web.outputs.name
 output FRONTEND_API_URI string = 'https://${web.outputs.defaultHostname}'

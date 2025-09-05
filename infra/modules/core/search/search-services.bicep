@@ -9,8 +9,6 @@ param enablePrivateNetworking bool = false
 param subnetResourceId string = ''
 param avmPrivateDnsZones array = []
 param dnsZoneIndex object = {}
-// param privateDnsZoneResourceIds array = []
-param userAssignedIdentity object
 
 // Search-specific parameters
 param sku string = 'standard'
@@ -28,6 +26,7 @@ param networkRuleSet object = {
 param partitionCount int = 1
 param replicaCount int = 1
 param semanticSearch string = ''
+param userAssignedResourceId string = ''
 param roleAssignments array = []
 
 // // Define DNS zone group configs as a variable
@@ -82,10 +81,7 @@ module avmSearch 'br/public:avm/res/search/search-service:0.11.1' = {
         ]
       : []
 
-    // Identity and role assignments
-    managedIdentities: {
-      userAssignedResourceIds: [userAssignedIdentity.outputs.managedIdentityOutput.id]
-    }
+    managedIdentities: { systemAssigned: true, userAssignedResourceIds: [userAssignedResourceId] }
     roleAssignments: roleAssignments
   }
 }

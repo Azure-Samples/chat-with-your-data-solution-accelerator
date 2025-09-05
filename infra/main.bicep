@@ -5,8 +5,6 @@ targetScope = 'resourceGroup'
 // @description('Name of the the environment which is used to generate a short unique hash used in all resources.')
 // param environmentName string
 
-var abbrs = loadJsonContent('./abbreviations.json')
-
 // param resourceToken string = toLower(uniqueString(subscription().id, environmentName, location))
 
 @description('Optional. A unique application/solution name for all resources in this deployment. This should be 3-16 characters long.')
@@ -716,16 +714,57 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
     kind: 'OpenAI'
     sku: 'S0'
     deployments: openAiDeployments
-
+    userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
 
-    enableTelemetry: enableTelemetry
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : null
 
     // align with AVM conventions
     avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
     dnsZoneIndex: enablePrivateNetworking ? dnsZoneIndex : {}
+    roleAssignments: [
+      {
+        roleDefinitionIdOrName: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+        principalId: principalId
+        principalType: 'User'
+      }
+      {
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+        principalId: principalId
+        principalType: 'User'
+      }
+      {
+        roleDefinitionIdOrName: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
+        principalType: 'User'
+        principalId: principalId
+      }
+      {
+        roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+        principalId: principalId
+        principalType: 'User'
+      }
+    ]
   }
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
@@ -743,63 +782,12 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
 
-    enableTelemetry: enableTelemetry
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : null
 
     avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
     dnsZoneIndex: enablePrivateNetworking ? dnsZoneIndex : {}
   }
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
-}
-
-// Search Index Data Reader
-module searchIndexRoleOpenai 'modules/core/security/role.bicep' = {
-  scope: resourceGroup()
-  name: 'search-index-role-openai'
-  params: {
-    principalId: openai.outputs.systemAssignedMIPrincipalId
-    roleDefinitionId: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Search Service Contributor
-module searchServiceRoleOpenai 'modules/core/security/role.bicep' = {
-  scope: resourceGroup()
-  name: 'search-service-role-openai'
-  params: {
-    principalId: openai.outputs.systemAssignedMIPrincipalId
-    roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Storage Blob Data Reader
-module blobDataReaderRoleSearch 'modules/core/security/role.bicep' = if (databaseType == 'CosmosDB') {
-  scope: resourceGroup()
-  name: 'blob-data-reader-role-search'
-  params: {
-    principalId: search.outputs.searchOutput.identityPrincipalId
-    roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
-    search
-  ]
-}
-
-// Cognitive Services OpenAI User
-module openAiRoleSearchService 'modules/core/security/role.bicep' = if (databaseType == 'CosmosDB') {
-  scope: resourceGroup()
-  name: 'openai-role-searchservice'
-  params: {
-    principalId: search.outputs.searchOutput.identityPrincipalId
-    roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
-    search
-  ]
 }
 
 module speechService 'modules/core/ai/cognitiveservices.bicep' = {
@@ -814,25 +802,12 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
 
-    enableTelemetry: enableTelemetry
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : null
 
     avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
     dnsZoneIndex: enablePrivateNetworking ? dnsZoneIndex : {}
   }
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
-}
-
-module storekeys 'modules/app/storekeys.bicep' = {
-  name: 'storekeys'
-  scope: resourceGroup()
-  params: {
-    keyVaultName: keyVaultName
-    clientkey: clientKey
-  }
-  dependsOn: [
-    keyvault
-  ]
 }
 
 // module search 'modules/core/search/search-services.bicep' = if (databaseType == 'CosmosDB') {
@@ -930,13 +905,13 @@ module search 'modules/core/search/search-services.bicep' = if (databaseType == 
     tags: tags
     enableTelemetry: enableTelemetry
     enableMonitoring: enableMonitoring
+
     logAnalyticsWorkspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : ''
     avmPrivateDnsZones: enablePrivateNetworking ? [avmPrivateDnsZones[dnsZoneIndex.searchService]] : []
     dnsZoneIndex: enablePrivateNetworking ? { searchService: dnsZoneIndex.searchService } : {}
     // privateDnsZoneResourceIds: enablePrivateNetworking ? privateDnsZoneIds : []
-    userAssignedIdentity: managedIdentityModule
 
     sku: azureSearchSku
     authOptions: {
@@ -953,15 +928,16 @@ module search 'modules/core/search/search-services.bicep' = if (databaseType == 
     partitionCount: 1
     replicaCount: 1
     semanticSearch: azureSearchUseSemanticSearch ? 'free' : null
+    userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     roleAssignments: [
       {
-        roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f' // Search Index Data Reader
-        principalId: managedIdentityModule.outputs.managedIdentityOutput.principalId
+        roleDefinitionIdOrName: 'Search Index Data Contributor'
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
         principalType: 'ServicePrincipal'
       }
       {
-        roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0' // Search Service Contributor
-        principalId: managedIdentityModule.outputs.managedIdentityOutput.principalId
+        roleDefinitionIdOrName: 'Search Service Contributor'
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
         principalType: 'ServicePrincipal'
       }
     ]
@@ -1083,9 +1059,7 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
     runtimeVersion: '3.11'
     allowedOrigins: []
     appCommandLine: ''
-    userAssignedIdentity: {
-      userAssignedResourceIds: [managedIdentityModule.outputs.managedIdentityOutput.id]
-    }
+    userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId }] : []
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
@@ -1106,7 +1080,6 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
           }
         ]
       : []
-    keyVaultName: keyVaultName
     applicationInsightsName: enableMonitoring ? monitoring.outputs.applicationInsightsName : ''
     appSettings: union(
       {
@@ -1198,9 +1171,7 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
     useDocker: true
     allowedOrigins: []
     appCommandLine: ''
-    userAssignedIdentity: {
-      userAssignedResourceIds: [managedIdentityModule.outputs.managedIdentityOutput.id]
-    }
+    userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId }] : []
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
@@ -1221,7 +1192,6 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
           }
         ]
       : []
-    keyVaultName: keyVaultName
     applicationInsightsName: enableMonitoring ? monitoring.outputs.applicationInsightsName : ''
     appSettings: union(
       {
@@ -1312,6 +1282,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
     // Python runtime settings
     runtimeName: 'python'
     runtimeVersion: '3.11'
+    userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     // App settings
     appSettings: union(
       {
@@ -1340,7 +1311,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         BACKEND_URL: 'https://${functionName}.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-        FUNCTION_KEY: storekeys.outputs.FUNCTION_KEY
+        FUNCTION_KEY: clientKey
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
@@ -1419,6 +1390,7 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
     // Docker settings
     dockerFullImageName: '${registryName}.azurecr.io/rag-adminwebapp:${appversion}'
     useDocker: true
+    userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     // App settings
     appSettings: union(
       {
@@ -1447,7 +1419,7 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
         BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-        FUNCTION_KEY: storekeys.outputs.FUNCTION_KEY
+        FUNCTION_KEY: clientKey
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
@@ -1528,6 +1500,7 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
     storageAccountName: storage.outputs.name
     clientKey: clientKey
     keyVaultName: keyvault.outputs.name
+    userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     // WAF aligned configurations
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId }] : []
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
@@ -1619,6 +1592,7 @@ module function_docker 'modules/app/function.bicep' = if (hostingModel == 'conta
     storageAccountName: storage.outputs.name
     clientKey: clientKey
     keyVaultName: keyvault.outputs.name
+    userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     // WAF aligned configurations
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId }] : []
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
@@ -1745,7 +1719,6 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
 
-    enableTelemetry: enableTelemetry
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : null
 
     avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
@@ -1766,7 +1739,6 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
 
-    enableTelemetry: enableTelemetry
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : null
 
     avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
@@ -1798,7 +1770,18 @@ module storage 'modules/core/storage/storage-account.bicep' = {
     enablePrivateNetworking: enablePrivateNetworking
     enableTelemetry: enableTelemetry
     solutionPrefix: solutionSuffix
-    avmManagedIdentity: managedIdentityModule
+    roleAssignments: [
+      {
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+        principalType: 'ServicePrincipal'
+      }
+      {
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+        roleDefinitionIdOrName: 'Storage Queue Data Contributor'
+        principalType: 'ServicePrincipal'
+      }
+    ]
     avmPrivateDnsZones: enablePrivateNetworking
       ? [
           avmPrivateDnsZones[dnsZoneIndex.storageBlob]
@@ -1807,51 +1790,6 @@ module storage 'modules/core/storage/storage-account.bicep' = {
       : []
     dnsZoneIndex: enablePrivateNetworking ? { storageBlob: 0, storageQueue: 1 } : {}
     avmVirtualNetwork: enablePrivateNetworking ? network : {}
-  }
-}
-
-// USER ROLES
-// Storage Blob Data Contributor
-module storageRoleUser 'modules/core/security/role.bicep' = if (principalId != '') {
-  scope: resourceGroup()
-  name: 'storage-role-user'
-  params: {
-    principalId: principalId
-    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-    principalType: 'User'
-  }
-}
-
-// Cognitive Services User
-module openaiRoleUser 'modules/core/security/role.bicep' = if (principalId != '') {
-  scope: resourceGroup()
-  name: 'openai-role-user'
-  params: {
-    principalId: principalId
-    roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
-    principalType: 'User'
-  }
-}
-
-// Contributor
-module openaiRoleUserContributor 'modules/core/security/role.bicep' = if (principalId != '') {
-  scope: resourceGroup()
-  name: 'openai-role-user-contributor'
-  params: {
-    principalId: principalId
-    roleDefinitionId: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
-    principalType: 'User'
-  }
-}
-
-// Search Index Data Contributor
-module searchRoleUser 'modules/core/security/role.bicep' = if (principalId != '' && databaseType == 'CosmosDB') {
-  scope: resourceGroup()
-  name: 'search-role-user'
-  params: {
-    principalId: principalId
-    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
-    principalType: 'User'
   }
 }
 

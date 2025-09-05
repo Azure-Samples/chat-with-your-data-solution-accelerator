@@ -2,18 +2,18 @@
 param name string
 param location string
 param tags object = {}
-param enableTelemetry bool = true
 param enableMonitoring bool = false
 param logAnalyticsWorkspaceId string = ''
 param enablePrivateNetworking bool = false
 param subnetResourceId string = 'null'
 param avmPrivateDnsZones array = []
 param dnsZoneIndex object = {}
-param managedIdentity bool = true
+param userAssignedResourceId string = ''
 param kind string = 'OpenAI'
 @allowed(['S0', 'S1', 'S2', 'S3'])
 param sku string = 'S0'
 param deployments array = []
+param roleAssignments array = []
 
 // Resource variables
 var cognitiveResourceName = name
@@ -32,10 +32,8 @@ module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' =
     customSubDomainName: name
     disableLocalAuth: true
 
-    managedIdentities: {
-      systemAssigned: managedIdentity
-    }
-
+    managedIdentities: { systemAssigned: true, userAssignedResourceIds: [userAssignedResourceId] }
+    roleAssignments: roleAssignments
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceId }] : null
 
     networkAcls: enablePrivateNetworking ? { defaultAction: 'Deny', publicNetworkAccess: 'Disabled' } : { defaultAction: 'Allow', publicNetworkAccess: 'Enabled' }
@@ -66,5 +64,3 @@ output endpoint string = cognitiveServices.outputs.endpoint
 output resourceId string = cognitiveServices.outputs.resourceId
 output name string = cognitiveServices.outputs.name
 output location string = location
-var systemAssignedMIPrincipalIdValue = contains(cognitiveServices.outputs, 'systemAssignedMIPrincipalId') ? cognitiveServices.outputs.systemAssignedMIPrincipalId : ''
-output systemAssignedMIPrincipalId string = string(systemAssignedMIPrincipalIdValue)
