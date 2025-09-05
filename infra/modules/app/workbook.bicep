@@ -10,7 +10,7 @@ param azureOpenAIResourceName string
 param azureAISearchName string
 param storageAccountName string
 
-var wookbookContents = loadTextContent('../workbooks/workbook.json')
+var wookbookContents = loadTextContent('../../workbooks/workbook.json')
 var wookbookContentsSubReplaced = replace(wookbookContents, '{subscription-id}', subscription().id)
 var wookbookContentsRGReplaced = replace(wookbookContentsSubReplaced, '{resource-group}', resourceGroup().name)
 var wookbookContentsAppServicePlanReplaced = replace(wookbookContentsRGReplaced, '{app-service-plan}', hostingPlanName)

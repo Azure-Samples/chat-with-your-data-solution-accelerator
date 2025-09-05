@@ -1,6 +1,6 @@
 using './main.bicep'
 
-param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', 'env_name')
+// param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', 'env_name')
 param location = readEnvironmentVariable('AZURE_LOCATION', 'location')
 param principalId = readEnvironmentVariable('AZURE_PRINCIPAL_ID', 'principal_id')
 param appEnvironment = readEnvironmentVariable('APP_ENV', 'Prod')
@@ -61,7 +61,7 @@ param computerVisionVectorizeImageModelVersion = readEnvironmentVariable('AZURE_
 
 // We need the resourceToken to be unique for each deployment (copied from the main.bicep)
 var subscriptionId = readEnvironmentVariable('AZURE_SUBSCRIPTION_ID', 'subscription_id')
-param resourceToken = toLower(uniqueString(subscriptionId, environmentName, location))
+// param resourceToken = toLower(uniqueString(subscriptionId, environmentName, location))
 
 
 // Retrieve the Search Name from the Search Endpoint which will be in the format
@@ -72,13 +72,13 @@ param resourceToken = toLower(uniqueString(subscriptionId, environmentName, loca
 // service.
 var azureAISearchEndpoint = readEnvironmentVariable('AZURE_SEARCH_SERVICE', 'https://./')
 var searchServiceName = split(substring(azureAISearchEndpoint, 8, length(azureAISearchEndpoint) - 9), '.')[0]
-param azureAISearchName = searchServiceName == '' ? 'search-${resourceToken}' : searchServiceName
+// param azureAISearchName = searchServiceName == '' ? 'search-${resourceToken}' : searchServiceName
 
-param azureSearchIndex = readEnvironmentVariable('AZURE_SEARCH_INDEX', 'index-${resourceToken}')
-param azureOpenAIResourceName = readEnvironmentVariable('AZURE_OPENAI_RESOURCE', 'openai-${resourceToken}')
-param storageAccountName = readEnvironmentVariable('AZURE_BLOB_ACCOUNT_NAME', 'str${resourceToken}')
+// param azureSearchIndex = readEnvironmentVariable('AZURE_SEARCH_INDEX', 'index-${resourceToken}')
+// param azureOpenAIResourceName = readEnvironmentVariable('AZURE_OPENAI_RESOURCE', 'openai-${resourceToken}')
+// param storageAccountName = readEnvironmentVariable('AZURE_BLOB_ACCOUNT_NAME', 'str${resourceToken}')
 
-param rgName = readEnvironmentVariable('AZURE_RESOURCE_GROUP', 'rg-${environmentName}')
+// param rgName = readEnvironmentVariable('AZURE_RESOURCE_GROUP', 'rg-${environmentName}')
 param existingLogAnalyticsWorkspaceId = readEnvironmentVariable('AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID', '')
 
 param enableMonitoring = true

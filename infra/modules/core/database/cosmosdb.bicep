@@ -18,7 +18,7 @@ var cosmosDbDatabaseName = 'db_conversation_history'
 var cosmosDbContainerName = 'conversations'
 var partitionKeyPath = '/userId'
 
-module cosmosDb 'br/public:avm/res/document-db/database-account:0.15.0' = {
+module cosmosDb 'br/public:avm/res/document-db/database-account:0.15.1' = {
   name: take('avm.res.document-db.database-account.${cosmosDbResourceName}', 64)
   params: {
     name: cosmosDbResourceName

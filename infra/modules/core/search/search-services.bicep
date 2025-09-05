@@ -1,64 +1,98 @@
-metadata description = 'Creates an Azure AI Search instance.'
+@description('Wrapper for AVM Azure Cognitive Search module')
 param name string
-param location string = resourceGroup().location
+param location string
 param tags object = {}
+param enableTelemetry bool = true
+param enableMonitoring bool = false
+param logAnalyticsWorkspaceResourceId string = ''
+param enablePrivateNetworking bool = false
+param subnetResourceId string = ''
+param avmPrivateDnsZones array = []
+param dnsZoneIndex object = {}
+// param privateDnsZoneResourceIds array = []
+param userAssignedIdentity object
 
-param sku object = {
-  name: 'standard'
+// Search-specific parameters
+param sku string = 'standard'
+param authOptions object = {
+  aadOrApiKey: {
+    aadAuthFailureMode: 'http401WithBearerChallenge'
+  }
 }
-
-param authOptions object = {}
 param disableLocalAuth bool = false
-param disabledDataExfiltrationOptions array = []
-param encryptionWithCmk object = {
-  enforcement: 'Unspecified'
-}
-@allowed([
-  'default'
-  'highDensity'
-])
 param hostingMode string = 'default'
 param networkRuleSet object = {
-  bypass: 'None'
+  bypass: 'AzureServices'
   ipRules: []
 }
 param partitionCount int = 1
-@allowed([
-  'enabled'
-  'disabled'
-])
-param publicNetworkAccess string = 'enabled'
 param replicaCount int = 1
-@allowed([
-  'disabled'
-  'free'
-  'standard'
-])
-param semanticSearch string = 'disabled'
+param semanticSearch string = ''
+param roleAssignments array = []
 
-resource search 'Microsoft.Search/searchServices@2021-04-01-preview' = {
-  name: name
-  location: location
-  tags: tags
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
+// // Define DNS zone group configs as a variable
+// var privateDnsZoneGroupConfigs = [for zoneId in privateDnsZoneResourceIds: {
+//   privateDnsZoneResourceId: zoneId
+// }]
+
+var searchResourceName = name
+
+module avmSearch 'br/public:avm/res/search/search-service:0.11.1' = {
+  name: take('avm.res.search.search-service.${searchResourceName}', 64)
+  params: {
+    // Required parameters
+    name: searchResourceName
+    location: location
+    tags: tags
+    enableTelemetry: enableTelemetry
+    sku: sku
+
+    // WAF aligned configuration
     authOptions: authOptions
     disableLocalAuth: disableLocalAuth
-    disabledDataExfiltrationOptions: disabledDataExfiltrationOptions
-    encryptionWithCmk: encryptionWithCmk
     hostingMode: hostingMode
     networkRuleSet: networkRuleSet
     partitionCount: partitionCount
-    publicNetworkAccess: publicNetworkAccess
     replicaCount: replicaCount
     semanticSearch: semanticSearch
+
+    // WAF aligned configuration for Monitoring
+    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceResourceId }] : []
+
+    // WAF aligned configuration for Private Networking
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    privateEndpoints: enablePrivateNetworking
+      ? [
+          {
+            name: 'pep-${searchResourceName}'
+            customNetworkInterfaceName: 'nic-${searchResourceName}'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                { privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.searchService]!.outputs.resourceId }
+              ]
+            }
+            // privateDnsZoneGroup: !empty(privateDnsZoneResourceIds)
+            //   ? {
+            //       privateDnsZoneGroupConfigs: privateDnsZoneGroupConfigs
+            //     }
+            //   : null
+            service: 'searchService'
+            subnetResourceId: subnetResourceId
+          }
+        ]
+      : []
+
+    // Identity and role assignments
+    managedIdentities: {
+      userAssignedResourceIds: [userAssignedIdentity.outputs.managedIdentityOutput.id]
+    }
+    roleAssignments: roleAssignments
   }
-  sku: sku
 }
 
-output id string = search.id
-output endpoint string = 'https://${name}.search.windows.net/'
-output name string = search.name
-output identityPrincipalId string = search.identity.principalId
+output searchOutput object = {
+  searchName: avmSearch.outputs.name
+  searchEndpoint: avmSearch.outputs.endpoint
+  identityPrincipalId: avmSearch.outputs.systemAssignedMIPrincipalId!
+  resourceId: avmSearch.outputs.resourceId
+}

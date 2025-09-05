@@ -1,17 +1,98 @@
+@description('The name of the admin web app to create.')
 param name string
+
+@description('Location for all resources.')
 param location string = resourceGroup().location
+
+@description('Tags for all resources.')
 param tags object = {}
+
+@description('Origin URLs allowed to call this web app.')
 param allowedOrigins array = []
-param appServicePlanId string
+
+@description('Command to run when starting the web app.')
 param appCommandLine string = 'python -m streamlit run Admin.py --server.port 8000 --server.address 0.0.0.0 --server.enableXsrfProtection false'
+
+@description('The resource ID of the app service plan to use for the web app.')
+param serverFarmResourceId string
+
+@description('The runtime name for the web app.')
 param runtimeName string = 'python'
+
+@description('The runtime version for the web app.')
 param runtimeVersion string = ''
+
+@description('The name of the Application Insights resource.')
 param applicationInsightsName string = ''
+
+@description('The name of the Key Vault where secrets should be stored.')
 param keyVaultName string = ''
+
+@description('The app settings to be applied to the web app.')
 @secure()
 param appSettings object = {}
+
+@description('The full name of the Docker image if using containers.')
 param dockerFullImageName string = ''
+
+@description('Whether to use Docker for this web app.')
 param useDocker bool = dockerFullImageName != ''
+
+@description('The health check path for the web app.')
+param healthCheckPath string = ''
+
+// AVM WAF parameters
+@description('The kind of web app to create')
+param kind string = 'app,linux'
+
+@description('Optional. The managed identity definition for this resource.')
+param userAssignedIdentity object = {}
+
+@description('Optional. Diagnostic settings for the resource.')
+param diagnosticSettings array = []
+
+@description('Optional. To enable pulling image over Virtual Network.')
+param vnetImagePullEnabled bool = false
+
+@description('Optional. Virtual Network Route All enabled.')
+param vnetRouteAllEnabled bool = false
+
+@description('Optional. Azure Resource Manager ID of the Virtual network subnet.')
+param virtualNetworkSubnetId string = ''
+
+@description('Optional. Whether or not public network access is allowed for this resource.')
+param publicNetworkAccess string = ''
+
+@description('Optional. Configuration details for private endpoints.')
+param privateEndpoints array = []
+
+// Calculate the linuxFxVersion based on runtime or docker settings
+var linuxFxVersion = useDocker
+  ? 'DOCKER|${dockerFullImageName}'
+  : (empty(runtimeVersion) ? toUpper(runtimeName) : '${toUpper(runtimeName)}|${runtimeVersion}')
+
+// Site configuration
+var siteConfig = {
+  linuxFxVersion: linuxFxVersion
+  appCommandLine: useDocker ? '' : appCommandLine
+  healthCheckPath: healthCheckPath
+  cors: {
+    allowedOrigins: allowedOrigins
+  }
+  minTlsVersion: '1.2'
+}
+
+// Build the configs array expected by the child module (appsettings config)
+var appConfigs = [
+  {
+    name: 'appsettings'
+    properties: appSettings
+    applicationInsightResourceId: empty(applicationInsightsName) ? null : applicationInsightsName
+    storageAccountResourceId: null
+    storageAccountUseIdentityAuthentication: null
+    retainCurrentAppSettings: true
+  }
+]
 
 module adminweb '../core/host/appservice.bicep' = {
   name: '${name}-app-module'
@@ -19,25 +100,41 @@ module adminweb '../core/host/appservice.bicep' = {
     name: name
     location: location
     tags: tags
-    allowedOrigins: allowedOrigins
-    appCommandLine: useDocker ? '' : appCommandLine
-    runtimeName: runtimeName
-    runtimeVersion: runtimeVersion
-    keyVaultName: keyVaultName
-    dockerFullImageName: dockerFullImageName
-    scmDoBuildDuringDeployment: useDocker ? false : true
-    applicationInsightsName: applicationInsightsName
-    appServicePlanId: appServicePlanId
-    managedIdentity: !empty(keyVaultName)
-    appSettings: appSettings
+    kind: kind
+    serverFarmResourceId: serverFarmResourceId
+    siteConfig: siteConfig
+    configs: appConfigs
+    diagnosticSettings: diagnosticSettings
+    vnetImagePullEnabled: vnetImagePullEnabled
+    vnetRouteAllEnabled: vnetRouteAllEnabled
+    virtualNetworkSubnetId: virtualNetworkSubnetId
+    publicNetworkAccess: empty(publicNetworkAccess) ? null : publicNetworkAccess
+    privateEndpoints: privateEndpoints
+    managedIdentities: userAssignedIdentity
   }
 }
+
+// Resolve a principalId to grant KeyVault access (prefer systemAssigned, fallback to first userAssigned if provided)
+var firstUserAssignedIdentityResourceId = (!empty(userAssignedIdentity) && contains(
+    userAssignedIdentity,
+    'userAssignedResourceIds'
+  ) && length(userAssignedIdentity.userAssignedResourceIds) > 0)
+  ? userAssignedIdentity.userAssignedResourceIds[0]
+  : (!empty(userAssignedIdentity) && contains(userAssignedIdentity, 'id') ? userAssignedIdentity.id : '')
+
+var firstUserAssignedPrincipalId = !empty(firstUserAssignedIdentityResourceId)
+  ? reference(firstUserAssignedIdentityResourceId, '2018-11-30', 'Full').principalId
+  : ''
+
+var resolvedPrincipalId = !empty(adminweb.outputs.?systemAssignedMIPrincipalId)
+  ? adminweb.outputs.?systemAssignedMIPrincipalId
+  : (!empty(firstUserAssignedPrincipalId) ? firstUserAssignedPrincipalId : '')
 
 // Storage Blob Data Contributor
 module storageRoleBackend '../core/security/role.bicep' = {
   name: 'storage-role-backend'
   params: {
-    principalId: adminweb.outputs.identityPrincipalId
+    principalId: resolvedPrincipalId
     roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
     principalType: 'ServicePrincipal'
   }
@@ -47,19 +144,17 @@ module storageRoleBackend '../core/security/role.bicep' = {
 module openAIRoleBackend '../core/security/role.bicep' = {
   name: 'openai-role-backend'
   params: {
-    principalId: adminweb.outputs.identityPrincipalId
+    principalId: resolvedPrincipalId
     roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
     principalType: 'ServicePrincipal'
   }
 }
 
 // Contributor
-// This role is used to grant the service principal contributor access to the resource group
-// See if this is needed in the future.
 module openAIRoleBackendContributor '../core/security/role.bicep' = {
   name: 'openai-role-backend-contributor'
   params: {
-    principalId: adminweb.outputs.identityPrincipalId
+    principalId: resolvedPrincipalId
     roleDefinitionId: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
     principalType: 'ServicePrincipal'
   }
@@ -69,20 +164,22 @@ module openAIRoleBackendContributor '../core/security/role.bicep' = {
 module searchRoleBackend '../core/security/role.bicep' = {
   name: 'search-role-backend'
   params: {
-    principalId: adminweb.outputs.identityPrincipalId
+    principalId: resolvedPrincipalId
     roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
     principalType: 'ServicePrincipal'
   }
 }
 
-module adminwebaccess '../core/security/keyvault-access.bicep' = {
+module adminwebaccess '../core/security/keyvault-access.bicep' = if (!empty(keyVaultName)) {
   name: 'adminweb-keyvault-access'
   params: {
     keyVaultName: keyVaultName
-    principalId: adminweb.outputs.identityPrincipalId
+    principalId: resolvedPrincipalId
   }
 }
 
-output WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID string = adminweb.outputs.identityPrincipalId
+output WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID string? = !empty(adminweb.outputs.?systemAssignedMIPrincipalId)
+  ? adminweb.outputs.?systemAssignedMIPrincipalId
+  : (!empty(firstUserAssignedPrincipalId) ? firstUserAssignedPrincipalId : null)
 output WEBSITE_ADMIN_NAME string = adminweb.outputs.name
-output WEBSITE_ADMIN_URI string = adminweb.outputs.uri
+output WEBSITE_ADMIN_URI string = 'https://${adminweb.outputs.defaultHostname}'
