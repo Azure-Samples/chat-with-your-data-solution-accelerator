@@ -1,8 +1,15 @@
 metadata description = 'Creates a dashboard for an Application Insights instance.'
+
+@description('Required. Name of the dashboard (Portal Dashboard resource).')
 param name string
+
+@description('Required. Name of the existing Application Insights component to visualize.')
 param applicationInsightsName string
 
+@description('Optional. Azure location for the dashboard. Defaults to the resource group location.')
 param location string = resourceGroup().location
+
+@description('Optional. Tags to apply to the dashboard resource.')
 param tags object = {}
 
 module applicationInsightsDashboard 'br/public:avm/res/portal/dashboard:0.3.1' = {

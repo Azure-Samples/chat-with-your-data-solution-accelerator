@@ -635,7 +635,7 @@ module postgresDBModule './modules/core/database/postgresdb.bicep' = if (databas
 // Store secrets in a keyvault
 var keyVaultName = 'KV-${solutionSuffix}'
 module keyvault './modules/core/security/keyvault.bicep' = {
-  name: 'keyvault'
+  name: take('avm.res.key-vault.vault.${keyVaultName}', 64)
   scope: resourceGroup()
   params: {
     name: keyVaultName
