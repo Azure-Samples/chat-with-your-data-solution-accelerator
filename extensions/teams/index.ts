@@ -14,10 +14,6 @@ import {
 import { TeamsBot } from "./teamsBot";
 import config from "./config";
 
-// Log app configuration but never log secrets
-console.log(`Microsoft App Tenant ID: ${config.tenantId}`);
-console.log(`Microsoft App ID: ${config.botId}`);
-
 // Create adapter.
 // See https://aka.ms/about-bot-adapter to learn more about adapters.
 const credentialsFactory = new ConfigurationServiceClientCredentialFactory({

@@ -11,8 +11,6 @@ async function createServicePrincipal() {
     process.exit(1);
   }
   
-  console.log(`Creating service principal for AAD application with ID: ${appId}`);
-  
   try {
     // Check if Azure CLI is installed and logged in
     await execPromise('az account show');
