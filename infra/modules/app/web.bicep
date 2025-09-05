@@ -128,19 +128,6 @@ var firstUserAssignedPrincipalId = !empty(firstUserAssignedIdentityResourceId)
   ? reference(firstUserAssignedIdentityResourceId, '2018-11-30', 'Full').principalId
   : ''
 
-var keyVaultPrincipalId = !empty(web.outputs.?systemAssignedMIPrincipalId)
-  ? web.outputs.?systemAssignedMIPrincipalId
-  : (!empty(firstUserAssignedPrincipalId) ? firstUserAssignedPrincipalId : '')
-
-// Key Vault access (grant to the identity returned by the appservice wrapper)
-module webaccess '../core/security/keyvault-access.bicep' = if (!empty(keyVaultName)) {
-  name: 'web-keyvault-access'
-  params: {
-    keyVaultName: keyVaultName
-    principalId: keyVaultPrincipalId
-  }
-}
-
 output FRONTEND_API_IDENTITY_PRINCIPAL_ID string? = !empty(web.outputs.?systemAssignedMIPrincipalId)
   ? web.outputs.?systemAssignedMIPrincipalId
   : (!empty(firstUserAssignedPrincipalId) ? firstUserAssignedPrincipalId : null)

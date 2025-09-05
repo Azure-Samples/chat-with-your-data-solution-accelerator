@@ -170,14 +170,6 @@ module searchRoleBackend '../core/security/role.bicep' = {
   }
 }
 
-module adminwebaccess '../core/security/keyvault-access.bicep' = if (!empty(keyVaultName)) {
-  name: 'adminweb-keyvault-access'
-  params: {
-    keyVaultName: keyVaultName
-    principalId: resolvedPrincipalId
-  }
-}
-
 output WEBSITE_ADMIN_IDENTITY_PRINCIPAL_ID string? = !empty(adminweb.outputs.?systemAssignedMIPrincipalId)
   ? adminweb.outputs.?systemAssignedMIPrincipalId
   : (!empty(firstUserAssignedPrincipalId) ? firstUserAssignedPrincipalId : null)

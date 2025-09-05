@@ -347,6 +347,9 @@ var azureMachineLearningName string = 'mlw-${solutionSuffix}'
 @description('Optional. The tags to apply to all deployed Azure resources.')
 param tags resourceInput<'Microsoft.Resources/resourceGroups@2025-04-01'>.tags = {}
 
+@description('Optional. Enable purge protection for applicable resources, aligned with the Well Architected Framework recommendations. Defaults to false.')
+param enablePurgeProtection bool = false
+
 @description('Optional. Enable monitoring applicable resources, aligned with the Well Architected Framework recommendations. This setting enables Application Insights and Log Analytics and configures all the resources applicable resources to send logs. Defaults to false.')
 param enableMonitoring bool = false
 
@@ -378,7 +381,6 @@ var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
 var eventGridSystemTopicName = 'doc-processing'
 // var tags = { 'azd-env-name': solutionName }
-var keyVaultName = '${abbrs.security.keyVault}${solutionSuffix}'
 var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
 var appversion = 'latest' // Update GIT deployment branch
 var registryName = 'cwydcontainerreg' // Update Registry name
@@ -631,7 +633,8 @@ module postgresDBModule './modules/core/database/postgresdb.bicep' = if (databas
 }
 
 // Store secrets in a keyvault
-module keyvault 'modules/core/security/keyvault.bicep' = {
+var keyVaultName = 'KV-${solutionSuffix}'
+module keyvault './modules/core/security/keyvault.bicep' = {
   name: 'keyvault'
   scope: resourceGroup()
   params: {
@@ -639,9 +642,20 @@ module keyvault 'modules/core/security/keyvault.bicep' = {
     location: location
     tags: tags
     principalId: principalId
-    managedIdentityObjectId: databaseType == 'PostgreSQL'
-      ? managedIdentityModule.outputs.managedIdentityOutput.objectId
-      : ''
+    managedIdentityObjectId:managedIdentityModule.outputs.managedIdentityOutput.objectId
+    secrets: [
+      {
+        name: 'clientKey'
+        value: clientKey
+      }
+    ]
+    enablePurgeProtection: enablePurgeProtection
+    enableTelemetry: enableTelemetry
+    enableMonitoring: enableMonitoring
+    logAnalyticsWorkspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId
+    enablePrivateNetworking: enablePrivateNetworking
+    subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
+    avmPrivateDnsZone: enablePrivateNetworking ? avmPrivateDnsZones[dnsZoneIndex.keyVault] : null
   }
 }
 

@@ -189,14 +189,6 @@ module storageQueueRoleFunction '../core/security/role.bicep' = {
   }
 }
 
-module functionaccess '../core/security/keyvault-access.bicep' = if (!empty(keyVaultName)) {
-  name: 'function-keyvault-access'
-  params: {
-    keyVaultName: keyVaultName
-    principalId: identityPrincipalId
-  }
-}
-
 output FUNCTION_IDENTITY_PRINCIPAL_ID string = identityPrincipalId
 output functionName string = function.outputs.name
 output functionUri string = 'https://${function.outputs.uri}'
