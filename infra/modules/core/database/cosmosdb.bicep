@@ -9,7 +9,7 @@ param enablePrivateNetworking bool = false
 param subnetResourceId string = 'null'
 param avmPrivateDnsZones array = []
 param dnsZoneIndex object = {}
-param userAssignedIdentity object
+param userAssignedIdentityPrincipalId string
 param enableRedundancy bool = false
 param cosmosDbHaLocation string = ''
 
@@ -48,7 +48,7 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.15.1' = {
           'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers/*'
           'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers/items/*'
         ]
-        assignments: [{ principalId: userAssignedIdentity.outputs.principalId }]
+        assignments: [{ principalId: userAssignedIdentityPrincipalId }]
       }
     ]
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceResourceId }] : null

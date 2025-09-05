@@ -504,7 +504,7 @@ module network 'modules/network.bicep' = if (enablePrivateNetworking) {
 // WAF best practices for identity and access management: https://learn.microsoft.com/en-us/azure/well-architected/security/identity-access
 var userAssignedIdentityResourceName = 'id-${solutionSuffix}'
 module managedIdentityModule 'modules/core/security/managed-identity.bicep' = {
-  name: take('avm.res.managed-identity.user-assigned-identity.${userAssignedIdentityResourceName}', 64)
+  name: take('module.managed-identity.${userAssignedIdentityResourceName}', 64)
   params: {
     // miName: '${abbrs.security.managedIdentity}${solutionSuffix}'
     miName: userAssignedIdentityResourceName
@@ -579,7 +579,7 @@ module avmPrivateDnsZones 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
 // var privateDnsZoneIds = [for (zone, i) in privateDnsZones: resourceId('Microsoft.Network/privateDnsZones', zone)]
 
 module cosmosDBModule './modules/core/database/cosmosdb.bicep' = if (databaseType == 'CosmosDB') {
-  name: take('avm.res.document-db.database-account.${azureCosmosDBAccountName}', 64)
+  name: take('module.cosmos.database.${azureCosmosDBAccountName}', 64)
   params: {
     name: azureCosmosDBAccountName
     location: location
@@ -591,7 +591,7 @@ module cosmosDBModule './modules/core/database/cosmosdb.bicep' = if (databaseTyp
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
     avmPrivateDnsZones: enablePrivateNetworking ? [avmPrivateDnsZones[dnsZoneIndex.cosmosDB]] : []
     dnsZoneIndex: enablePrivateNetworking ? { cosmosDB: dnsZoneIndex.cosmosDB } : {}
-    userAssignedIdentity: managedIdentityModule
+    userAssignedIdentityPrincipalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
     enableRedundancy: enableRedundancy
     cosmosDbHaLocation: cosmosDbHaLocation
   }
@@ -599,7 +599,7 @@ module cosmosDBModule './modules/core/database/cosmosdb.bicep' = if (databaseTyp
 }
 
 module postgresDBModule './modules/core/database/postgresdb.bicep' = if (databaseType == 'PostgreSQL') {
-  name: take('avm.res.db-for-postgre-sql.flexible-server.${azurePostgresDBAccountName}', 64)
+  name: take('module.db-for-postgre-sql.${azurePostgresDBAccountName}', 64)
   params: {
     name: azurePostgresDBAccountName
     location: location
@@ -633,7 +633,7 @@ module postgresDBModule './modules/core/database/postgresdb.bicep' = if (databas
 // Store secrets in a keyvault
 var keyVaultName = 'KV-${solutionSuffix}'
 module keyvault './modules/core/security/keyvault.bicep' = {
-  name: take('avm.res.key-vault.vault.${keyVaultName}', 64)
+  name: take('module.key-vault.${keyVaultName}', 64)
   scope: resourceGroup()
   params: {
     name: keyVaultName
@@ -760,7 +760,7 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
         principalId: principalId
       }
       {
-        roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+        roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
         principalId: principalId
         principalType: 'User'
       }
@@ -783,7 +783,7 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
 
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : null
-
+    userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
     dnsZoneIndex: enablePrivateNetworking ? dnsZoneIndex : {}
   }
@@ -803,7 +803,7 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
 
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : null
-
+    userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
     dnsZoneIndex: enablePrivateNetworking ? dnsZoneIndex : {}
   }
@@ -927,7 +927,7 @@ module search 'modules/core/search/search-services.bicep' = if (databaseType == 
     }
     partitionCount: 1
     replicaCount: 1
-    semanticSearch: azureSearchUseSemanticSearch ? 'free' : null
+    semanticSearch: azureSearchUseSemanticSearch ? 'free' : 'disabled'
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     roleAssignments: [
       {
@@ -1047,7 +1047,7 @@ module webServerFarm 'br/public:avm/res/web/serverfarm:0.5.0' = {
 }
 
 module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
-  name: take('avm.res.web.site.${websiteName}', 64)
+  name: take('module.web.site.${websiteName}', 64)
   scope: resourceGroup()
   params: {
     name: websiteName
@@ -1159,7 +1159,7 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
 }
 
 module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
-  name: take('avm.res.web.site.${websiteName}-docker', 64)
+  name: take('module.web.site.${websiteName}-docker', 64)
   scope: resourceGroup()
   params: {
     name: '${websiteName}-docker'
@@ -1271,7 +1271,7 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
 }
 
 module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
-  name: take('avm.res.web.site.${adminWebsiteName}', 64)
+  name: take('module.web.site.${adminWebsiteName}', 64)
   scope: resourceGroup()
   params: {
     name: adminWebsiteName
@@ -1379,7 +1379,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
 }
 
 module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'container') {
-  name: take('avm.res.web.site.${adminWebsiteName}-docker', 64)
+  name: take('module.web.site.${adminWebsiteName}-docker', 64)
   scope: resourceGroup()
   params: {
     name: '${adminWebsiteName}-docker'
@@ -1720,7 +1720,7 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
 
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : null
-
+    userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
     dnsZoneIndex: enablePrivateNetworking ? dnsZoneIndex : {}
   }
@@ -1740,7 +1740,7 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
 
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : null
-
+    userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
     dnsZoneIndex: enablePrivateNetworking ? dnsZoneIndex : {}
   }
@@ -1760,7 +1760,7 @@ module eventgrid 'modules/app/eventgrid.bicep' = {
 }
 
 module storage 'modules/core/storage/storage-account.bicep' = {
-  name: take('avm.res.storage.storage-account.${storageAccountName}', 64)
+  name: take('module.storage.storage-account.${storageAccountName}', 64)
   scope: resourceGroup()
   params: {
     storageAccountName: storageAccountName
@@ -1795,7 +1795,7 @@ module storage 'modules/core/storage/storage-account.bicep' = {
 
 module machineLearning 'modules/app/machinelearning.bicep' = if (orchestrationStrategy == 'prompt_flow') {
   scope: resourceGroup()
-  name: take('avm.res.machine-learning.${azureMachineLearningName}', 64)
+  name: take('module.machine-learning.${azureMachineLearningName}', 64)
   params: {
     workspaceName: azureMachineLearningName
     location: location

@@ -86,7 +86,7 @@ module keyvault 'br/public:avm/res/key-vault/vault:0.12.1' = {
       principalId != '' ? [
         {
           principalId: principalId
-          principalType: 'ServicePrincipal'
+          principalType: 'User'
           roleDefinitionIdOrName: 'Key Vault Secrets User'
         }
       ] : []

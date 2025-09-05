@@ -25,7 +25,12 @@ param networkRuleSet object = {
 }
 param partitionCount int = 1
 param replicaCount int = 1
-param semanticSearch string = ''
+@allowed([
+  'disabled'
+  'free'
+  'standard'
+])
+param semanticSearch string = 'disabled'
 param userAssignedResourceId string = ''
 param roleAssignments array = []
 
