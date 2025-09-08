@@ -1121,8 +1121,8 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
         AZURE_SPEECH_SERVICE_NAME: speechServiceName
         AZURE_SPEECH_SERVICE_REGION: location
         AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
-        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-        ADVANCED_IMAGE_PROCESSING_MAX_IMAGES: advancedImageProcessingMaxImages
+        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing ? 'true' : 'false'
+        ADVANCED_IMAGE_PROCESSING_MAX_IMAGES: string(advancedImageProcessingMaxImages)
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
@@ -1136,8 +1136,8 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
             AZURE_COSMOSDB_ACCOUNT_NAME: cosmosDBModule!.outputs.cosmosOutput.cosmosAccountName
             AZURE_COSMOSDB_DATABASE_NAME: cosmosDBModule!.outputs.cosmosOutput.cosmosDatabaseName
             AZURE_COSMOSDB_CONVERSATIONS_CONTAINER_NAME: cosmosDBModule!.outputs.cosmosOutput.cosmosContainerName
-            AZURE_COSMOSDB_ENABLE_FEEDBACK: true
-            AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+            AZURE_COSMOSDB_ENABLE_FEEDBACK: 'true'
+            AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch ? 'true' : 'false'
             AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
             AZURE_SEARCH_INDEX: azureSearchIndex
             AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
@@ -1158,7 +1158,7 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
             AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
             AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
             AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization ? 'true' : 'false'
           }
         : databaseType == 'PostgreSQL'
             ? {
@@ -1233,8 +1233,8 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
         AZURE_SPEECH_SERVICE_NAME: speechServiceName
         AZURE_SPEECH_SERVICE_REGION: location
         AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
-        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
-        ADVANCED_IMAGE_PROCESSING_MAX_IMAGES: advancedImageProcessingMaxImages
+        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing ? 'true' : 'false'
+        ADVANCED_IMAGE_PROCESSING_MAX_IMAGES: string(advancedImageProcessingMaxImages)
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
@@ -1248,8 +1248,8 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
             AZURE_COSMOSDB_ACCOUNT_NAME: cosmosDBModule!.outputs.cosmosOutput.cosmosAccountName
             AZURE_COSMOSDB_DATABASE_NAME: cosmosDBModule!.outputs.cosmosOutput.cosmosDatabaseName
             AZURE_COSMOSDB_CONVERSATIONS_CONTAINER_NAME: cosmosDBModule!.outputs.cosmosOutput.cosmosContainerName
-            AZURE_COSMOSDB_ENABLE_FEEDBACK: true
-            AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+            AZURE_COSMOSDB_ENABLE_FEEDBACK: 'true'
+            AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch ? 'true' : 'false'
             AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
             AZURE_SEARCH_INDEX: azureSearchIndex
             AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
@@ -1270,7 +1270,7 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
             AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
             AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
             AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization ? 'true' : 'false'
           }
         : databaseType == 'PostgreSQL'
             ? {
@@ -1321,7 +1321,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
         AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
 
-        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing ? 'true' : 'false'
         BACKEND_URL: 'https://${functionName}.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
         FUNCTION_KEY: clientKey
@@ -1336,7 +1336,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
         ? {
             AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
             AZURE_SEARCH_INDEX: azureSearchIndex
-            AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+            AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch ? 'true' : 'false'
             AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
             AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
             AZURE_SEARCH_TOP_K: azureSearchTopK
@@ -1356,7 +1356,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
             AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
             AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
             AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization ? 'true' : 'false'
           }
         : databaseType == 'PostgreSQL'
             ? {
@@ -1429,7 +1429,7 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
         AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
 
-        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing ? 'true' : 'false'
         BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
         FUNCTION_KEY: clientKey
@@ -1444,7 +1444,7 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
         ? {
             AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
             AZURE_SEARCH_INDEX: azureSearchIndex
-            AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch
+            AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch ? 'true' : 'false'
             AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
             AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
             AZURE_SEARCH_TOP_K: azureSearchTopK
@@ -1464,7 +1464,7 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
             AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
             AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
             AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization ? 'true' : 'false'
           }
         : databaseType == 'PostgreSQL'
             ? {
@@ -1553,7 +1553,7 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
         AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
         AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
 
-        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing ? 'true' : 'false'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         LOGLEVEL: logLevel
@@ -1568,7 +1568,7 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
             AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
             AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
             AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization
+            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization ? 'true' : 'false'
             AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
             AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
             AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
@@ -1645,7 +1645,7 @@ module function_docker 'modules/app/function.bicep' = if (hostingModel == 'conta
         AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
         AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
 
-        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing
+        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing ? 'true' : 'false'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         LOGLEVEL: logLevel
