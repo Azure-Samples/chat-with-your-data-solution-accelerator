@@ -6,10 +6,8 @@ param tags object = {}
 // Reference Properties
 param applicationInsightsName string = ''
 param appServicePlanId string
-param keyVaultName string = ''
-import { managedIdentityAllType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
 @description('Optional. The managed identity definition for this resource.')
-param managedIdentities managedIdentityAllType?
+param userAssignedIdentityResourceId string = ''
 param storageAccountName string
 
 // Runtime Properties
@@ -97,7 +95,7 @@ module functions 'appservice.bicep' = {
         : 'DOCKER|${dockerFullImageName}'
       functionAppScaleLimit: functionAppScaleLimit
       minimumElasticInstanceCount: minimumElasticInstanceCount
-      numberOfWorkers: numberOfWorkers
+      numberOfWorkers: numberOfWorkers != -1 ? numberOfWorkers : null
       use32BitWorkerProcess: use32BitWorkerProcess
       cors: {
         allowedOrigins: allowedOrigins
@@ -116,10 +114,13 @@ module functions 'appservice.bicep' = {
     publicNetworkAccess: publicNetworkAccess
     privateEndpoints: privateEndpoints
     diagnosticSettings: diagnosticSettings
-    managedIdentities: managedIdentities
-    keyVaultAccessIdentityResourceId: !empty(keyVaultName)
-      ? '${resourceGroup().id}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${keyVaultName}'
-      : null
+    managedIdentities: {
+      systemAssigned: true
+      userAssignedResourceIds: [
+        userAssignedIdentityResourceId
+      ]
+    }
+    keyVaultAccessIdentityResourceId: userAssignedIdentityResourceId
     configs: [
       {
         name: 'appsettings'

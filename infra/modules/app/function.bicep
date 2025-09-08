@@ -30,9 +30,6 @@ param runtimeVersion string = ''
 @secure()
 param clientKey string
 
-@description('The name of the Key Vault where secrets should be stored.')
-param keyVaultName string = ''
-
 @description('The full name of the Docker image if using containers.')
 param dockerFullImageName string = ''
 
@@ -81,13 +78,7 @@ module function '../core/host/functions.bicep' = {
     applicationInsightsName: applicationInsightsName
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
-    managedIdentities: {
-      systemAssigned: true
-      userAssignedResourceIds: [
-        userAssignedIdentityResourceId
-      ]
-    }
-    keyVaultName: keyVaultName
+    userAssignedIdentityResourceId: userAssignedIdentityResourceId
     allowedOrigins: []
     alwaysOn: true
     appCommandLine: empty(dockerFullImageName) ? '' : ''
