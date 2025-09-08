@@ -407,6 +407,19 @@ var allTags = union(
   },
   tags
 )
+@description('Optional created by user name')
+param createdBy string = empty(deployer().userPrincipalName) ? '' : split(deployer().userPrincipalName, '@')[0]
+
+resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
+  name: 'default'
+  properties: {
+    tags: {
+      ...allTags
+      TemplateName: 'CWYD'
+      CreatedBy: createdBy
+    }
+  }
+}
 
 // var solutionSuffix = toLower(trim(replace(
 //   replace(
@@ -510,7 +523,7 @@ module managedIdentityModule 'modules/core/security/managed-identity.bicep' = {
     miName: userAssignedIdentityResourceName
     // solutionName: solutionSuffix
     solutionLocation: location
-    tags: tags
+    tags: allTags
     enableTelemetry: enableTelemetry
   }
   scope: resourceGroup()
@@ -562,7 +575,7 @@ module avmPrivateDnsZones 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
     name: 'avm.res.network.private-dns-zone.${contains(zone, 'azurecontainerapps.io') ? 'containerappenv' : split(zone, '.')[1]}'
     params: {
       name: zone
-      tags: tags
+      tags: allTags
       enableTelemetry: enableTelemetry
       virtualNetworkLinks: [
         {
@@ -583,7 +596,7 @@ module cosmosDBModule './modules/core/database/cosmosdb.bicep' = if (databaseTyp
   params: {
     name: azureCosmosDBAccountName
     location: location
-    tags: tags
+    tags: allTags
     enableTelemetry: enableTelemetry
     enableMonitoring: enableMonitoring
     logAnalyticsWorkspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId
@@ -603,7 +616,7 @@ module postgresDBModule './modules/core/database/postgresdb.bicep' = if (databas
   params: {
     name: azurePostgresDBAccountName
     location: location
-    tags: tags
+    tags: allTags
     enableTelemetry: enableTelemetry
     enableMonitoring: enableMonitoring
     logAnalyticsWorkspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId
@@ -638,7 +651,7 @@ module keyvault './modules/core/security/keyvault.bicep' = {
   params: {
     name: keyVaultName
     location: location
-    tags: tags
+    tags: allTags
     principalId: principalId
     managedIdentityObjectId:managedIdentityModule.outputs.managedIdentityOutput.objectId
     secrets: [
@@ -710,7 +723,7 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
   params: {
     name: azureOpenAIResourceName
     location: location
-    tags: tags
+    tags: allTags
     kind: 'OpenAI'
     sku: 'S0'
     deployments: openAiDeployments
@@ -776,7 +789,7 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
     name: computerVisionName
     kind: 'ComputerVision'
     location: computerVisionLocation != '' ? computerVisionLocation : location
-    tags: tags
+    tags: allTags
     sku: 'S0'
 
     enablePrivateNetworking: enablePrivateNetworking
@@ -837,7 +850,7 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
 //   params: {
 //     name: azureAISearchName
 //     location: location
-//     tags: tags
+//     tags: allTags
 //     sku: azureSearchSku
 //     authOptions: {
 //       aadOrApiKey: {
@@ -902,7 +915,7 @@ module search 'modules/core/search/search-services.bicep' = if (databaseType == 
   params: {
     name: azureAISearchName
     location: location
-    tags: tags
+    tags: allTags
     enableTelemetry: enableTelemetry
     enableMonitoring: enableMonitoring
 
@@ -949,7 +962,7 @@ module search 'modules/core/search/search-services.bicep' = if (databaseType == 
 //   params: {
 //     name: azureAISearchName
 //     location: location
-//     tags: tags
+//     tags: allTags
 //     authOptions: {
 //       aadOrApiKey: {
 //         aadAuthFailureMode: 'http401WithBearerChallenge'
@@ -1030,7 +1043,7 @@ module webServerFarm 'br/public:avm/res/web/serverfarm:0.5.0' = {
   scope: resourceGroup()
   params: {
     name: webServerFarmResourceName
-    tags: tags
+    tags: allTags
     enableTelemetry: enableTelemetry
     location: location
     reserved: true
@@ -1713,7 +1726,7 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
   params: {
     name: formRecognizerName
     location: location
-    tags: tags
+    tags: allTags
     kind: 'FormRecognizer'
 
     enablePrivateNetworking: enablePrivateNetworking
@@ -1733,7 +1746,7 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
   params: {
     name: contentSafetyName
     location: location
-    tags: tags
+    tags: allTags
     kind: 'ContentSafety'
 
     enablePrivateNetworking: enablePrivateNetworking
@@ -1747,25 +1760,13 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
 
-module eventgrid 'modules/app/eventgrid.bicep' = {
-  name: eventGridSystemTopicName
-  scope: resourceGroup()
-  params: {
-    name: eventGridSystemTopicName
-    location: location
-    storageAccountId: storage.outputs.id
-    queueName: queueName
-    blobContainerName: blobContainerName
-  }
-}
-
 module storage 'modules/core/storage/storage-account.bicep' = {
   name: take('module.storage.storage-account.${storageAccountName}', 64)
   scope: resourceGroup()
   params: {
     storageAccountName: storageAccountName
     location: location
-    tags: tags
+    tags: allTags
     accessTier: 'Hot'
     enablePrivateNetworking: enablePrivateNetworking
     enableTelemetry: enableTelemetry
@@ -1793,13 +1794,26 @@ module storage 'modules/core/storage/storage-account.bicep' = {
   }
 }
 
+module eventgrid 'modules/app/eventgrid.bicep' = {
+  name: eventGridSystemTopicName
+  scope: resourceGroup()
+  params: {
+    name: eventGridSystemTopicName
+    location: location
+    storageAccountId: storage.outputs.id
+    queueName: queueName
+    blobContainerName: blobContainerName
+  }
+  dependsOn:[storage]
+}
+
 module machineLearning 'modules/app/machinelearning.bicep' = if (orchestrationStrategy == 'prompt_flow') {
   scope: resourceGroup()
   name: take('module.machine-learning.${azureMachineLearningName}', 64)
   params: {
     workspaceName: azureMachineLearningName
     location: location
-    tags: tags
+    tags: allTags
     sku: 'Standard'
     storageAccountId: storage.outputs.id
     applicationInsightsId: monitoring.outputs.applicationInsightsId
