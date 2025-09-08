@@ -1,75 +1,85 @@
-param storageAccountName string
+metadata description = 'Creates an Azure storage account.'
+param name string
 param location string = resourceGroup().location
 param tags object = {}
+
+@allowed([
+  'Cool'
+  'Hot'
+  'Premium'
+])
 param accessTier string = 'Hot'
-param enablePrivateNetworking bool = false
-param enableTelemetry bool = true
-param solutionPrefix string = ''
-param avmManagedIdentity object
-param avmPrivateDnsZones array
-param dnsZoneIndex object
-param avmVirtualNetwork object
+param allowBlobPublicAccess bool = false
+param allowCrossTenantReplication bool = true
+param containers array = []
+param defaultToOAuthAuthentication bool = false
+param deleteRetentionPolicy object = {}
+@allowed(['AzureDnsZone', 'Standard'])
+param dnsEndpointType string = 'Standard'
+param kind string = 'StorageV2'
+param minimumTlsVersion string = 'TLS1_2'
+param queues array = []
+param supportsHttpsTrafficOnly bool = true
+param networkAcls object = {
+  bypass: 'AzureServices'
+  defaultAction: 'Allow'
+}
+@allowed(['Enabled', 'Disabled'])
+param publicNetworkAccess string = 'Enabled'
+param sku object = { name: 'Standard_LRS' }
 
-module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
-  name: take('avm.res.storage.storage-account.${storageAccountName}', 64)
-  params: {
-    name: storageAccountName
-    location: location
-    managedIdentities: { systemAssigned: true }
-    minimumTlsVersion: 'TLS1_2'
-    enableTelemetry: enableTelemetry
-    tags: tags
+resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
+  name: name
+  location: location
+  tags: tags
+  kind: kind
+  sku: sku
+  properties: {
     accessTier: accessTier
-    supportsHttpsTrafficOnly: true
+    allowBlobPublicAccess: allowBlobPublicAccess
+    allowCrossTenantReplication: allowCrossTenantReplication
+    allowSharedKeyAccess: false
+    defaultToOAuthAuthentication: defaultToOAuthAuthentication
+    dnsEndpointType: dnsEndpointType
+    minimumTlsVersion: minimumTlsVersion
+    networkAcls: networkAcls
+    publicNetworkAccess: publicNetworkAccess
+    supportsHttpsTrafficOnly: supportsHttpsTrafficOnly
+  }
 
-    roleAssignments: [
-      {
-        principalId: avmManagedIdentity.outputs.principalId
-        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
-        principalType: 'ServicePrincipal'
+  resource blobServices 'blobServices' = if (!empty(containers)) {
+    name: 'default'
+    properties: {
+      deleteRetentionPolicy: deleteRetentionPolicy
+    }
+    resource container 'containers' = [
+      for container in containers: {
+        name: container.name
+        properties: {
+          publicAccess: contains(container, 'publicAccess') ? container.publicAccess : 'None'
+        }
       }
     ]
+  }
 
-    networkAcls: {
-      bypass: 'AzureServices'
-      defaultAction: enablePrivateNetworking ? 'Deny' : 'Allow'
+  resource queueServices 'queueServices' = if (!empty(queues)) {
+    name: 'default'
+    properties: {
+      cors: {
+        corsRules: []
+      }
     }
-    allowBlobPublicAccess: enablePrivateNetworking ? true : false
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: 'pep-blob-${solutionPrefix}'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'storage-dns-zone-group-blob'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.storageBlob].outputs.resourceId
-                }
-              ]
-            }
-            subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0]
-            service: 'blob'
-          }
-          {
-            name: 'pep-queue-${solutionPrefix}'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'storage-dns-zone-group-queue'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.storageQueue].outputs.resourceId
-                }
-              ]
-            }
-            subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0]
-            service: 'queue'
-          }
-        ]
-      : []
+    resource queue 'queues' = [
+      for queue in queues: {
+        name: queue.name
+        properties: {
+          metadata: {}
+        }
+      }
+    ]
   }
 }
 
-output name string = avmStorageAccount.outputs.name
-output id string = avmStorageAccount.outputs.resourceId
-output primaryEndpoints object = avmStorageAccount.outputs.serviceEndpoints
+output name string = storage.name
+output id string = storage.id
+output primaryEndpoints object = storage.properties.primaryEndpoints

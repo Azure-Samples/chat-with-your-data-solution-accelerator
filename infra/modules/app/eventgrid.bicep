@@ -1,30 +1,42 @@
-@description('Azure Event Grid System Topic')
+@description('Name of the Event Grid System Topic')
 param name string
-param location string
-param tags object = {}
-param enableTelemetry bool = true
-param enableMonitoring bool = false
-param logAnalyticsWorkspaceResourceId string = ''
 
-// Event Grid-specific parameters
+@description('Location for the system topic (defaults to resource group location if not provided)')
+param location string = resourceGroup().location
+
+@description('Resource ID of the source Storage Account for the system topic')
 param storageAccountId string
+
+@description('Name of the Storage Queue to deliver events to')
 param queueName string
+
+@description('Blob container name to scope the subscription subject filter (prefix match). If empty, full account events are used.')
 param blobContainerName string
 
-var eventGridSystemTopicName = name
+@description('Optional: ISO-8601 expiration timestamp for the event subscription. Leave empty for no expiration.')
+param expirationTimeUtc string = '2099-01-01T11:00:21.715Z'
+
+@description('Apply a CanNotDelete lock (WAF). Set to false to omit.')
+param enableLock bool = true
+
+param userAssignedResourceId string
+
+@description('Tags to apply to the system topic.')
+param tags object = {}
+
+@description('Enable monitoring via diagnostic settings to a Log Analytics workspace.')
+param enableMonitoring bool = false
+
+@description('The resource ID of the Log Analytics workspace to send diagnostic logs to if monitoring is enabled.')
+param logAnalyticsWorkspaceResourceId string = ''
 
 module avmEventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.3' = {
-  name: take('avm.res.event-grid.system-topic.${eventGridSystemTopicName}', 64)
+  name: take('avm.res.event-grid.system-topic.${name}', 64)
   params: {
-    // Required parameters
-    name: eventGridSystemTopicName
-    location: location
-    tags: tags
-    enableTelemetry: enableTelemetry
+    name: name
     source: storageAccountId
     topicType: 'Microsoft.Storage.StorageAccounts'
-
-    // WAF aligned configuration for Monitoring
+    location: location
     diagnosticSettings: enableMonitoring
       ? [
           {
@@ -38,24 +50,17 @@ module avmEventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.3'
           }
         ]
       : []
-
-    // System-assigned managed identity for better security
-    managedIdentities: {
-      systemAssigned: true
-    }
-
-    // Event subscription configuration
     eventSubscriptions: [
       {
-        name: 'BlobEvents'
+        name: name
         destination: {
           endpointType: 'StorageQueue'
           properties: {
-            queueMessageTimeToLiveInSeconds: -1 // Never expire
             queueName: queueName
             resourceId: storageAccountId
           }
         }
+        eventDeliverySchema: 'EventGridSchema'
         filter: {
           includedEventTypes: [
             'Microsoft.Storage.BlobCreated'
@@ -66,30 +71,18 @@ module avmEventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.3'
         }
         retryPolicy: {
           maxDeliveryAttempts: 30
-          eventTimeToLiveInMinutes: 1440 // 24 hours
+          eventTimeToLiveInMinutes: 1440
         }
-        eventDeliverySchema: 'EventGridSchema'
+        expirationTimeUtc: empty(expirationTimeUtc) ? null : expirationTimeUtc
       }
     ]
-
-    // External role assignments to grant proper access to storage queue
-    externalResourceRoleAssignments: [
-      {
-        description: 'Allow Event Grid System Topic to write to storage queue'
-        resourceId: storageAccountId
-        roleDefinitionId: '974c5e8b-45b9-4653-ba55-5f855dd0fb88' // Storage Queue Data Contributor
-      }
-      {
-        description: 'Allow Event Grid System Topic to send messages to storage queue'
-        resourceId: storageAccountId
-        roleDefinitionId: 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a' // Storage Queue Data Message Sender
-      }
-    ]
+    lock: !enableLock ? null : {
+      kind: 'CanNotDelete'
+      name: 'lock-${name}'
+    }
+    managedIdentities: { systemAssigned: true, userAssignedResourceIds: [userAssignedResourceId] }
+    tags: tags
   }
 }
 
-output eventGridOutput object = {
-  name: avmEventGridSystemTopic.outputs.name
-  id: avmEventGridSystemTopic.outputs.resourceId
-  systemAssignedMIPrincipalId: avmEventGridSystemTopic.outputs.?systemAssignedMIPrincipalId
-}
+output name string = avmEventGridSystemTopic.outputs.name

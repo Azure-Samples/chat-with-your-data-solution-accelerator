@@ -1,36 +1,79 @@
+@description('Required. Name of the storage account (lowercase).')
 param storageAccountName string
+@description('Optional. Location for the storage account. Defaults to the resource group location.')
 param location string = resourceGroup().location
+@description('Optional. Tags to apply to the storage account.')
 param tags object = {}
+@allowed(['Cool','Hot','Premium','Cold'])
+@description('Optional. Specifies the access tier for BlobStorage, valid values: Cool, Hot, Premium, Cold.')
 param accessTier string = 'Hot'
-param enablePrivateNetworking bool = false
-param enableTelemetry bool = true
-param solutionPrefix string = ''
-param avmPrivateDnsZones array
-param dnsZoneIndex object
-param avmVirtualNetwork object
+@description('Optional. Minimum permitted TLS version for requests to the storage account.')
+param minimumTlsVersion string = 'TLS1_2'
+@description('Optional. Enforces HTTPS only traffic when set to true.')
+param supportsHttpsTrafficOnly bool = true
+@description('Optional. Storage account SKU (limited to values supported by AVM module version 0.21.0).')
+@allowed([
+  'Standard_LRS'
+  'Standard_GRS'
+  'Standard_RAGRS'
+  'Standard_ZRS'
+  'Standard_GZRS'
+  'Standard_RAGZRS'
+  'Premium_LRS'
+  'Premium_ZRS'
+])
+param skuName string = 'Standard_LRS'
+@description('Optional. Array of blob containers to create. Each item: { name: string, publicAccess?: string }')
+param containers array = []
+@description('Optional. Array of storage queues to create. Each item: { name: string }')
+param queues array = []
+@description('Optional. Role assignments for the storage account (array of objects with principalId, roleDefinitionIdOrName, principalType).')
 param roleAssignments array = []
+@description('Optional. Array of user assigned identity resource IDs.')
+param userAssignedIdentityResourceIds array = []
+@description('Required. Array of AVM private DNS zone module outputs used to associate private endpoints.')
+param avmPrivateDnsZones array
+@description('Required. Object containing keys used to index into avmPrivateDnsZones outputs (e.g. storageBlob, storageQueue).')
+param dnsZoneIndex object
+@description('Optional. If true, disables public network access and provisions private endpoints for blob and queue services.')
+param enablePrivateNetworking bool = false
+@description('Optional. Controls whether AVM telemetry is enabled for this deployment.')
+param enableTelemetry bool = true
+@description('Optional. A friendly string representing the application/solution name to give to all resource names in this deployment. This should be 3-16 characters long.')
+param solutionPrefix string = ''
+@description('Required. Output object from the AVM virtual network deployment containing subnet resource IDs used for private endpoints.')
+param avmVirtualNetwork object
 
-module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
+var containerItems = [for c in containers: {
+  name: c.name
+  publicAccess: c.publicAccess ?? 'None'
+}]
+
+var queueItems = [for q in queues: {
+  name: q.name
+}]
+
+var kind = 'StorageV2'
+
+module avmStorage 'br/public:avm/res/storage/storage-account:0.26.2' = {
   name: take('avm.res.storage.storage-account.${storageAccountName}', 64)
   params: {
     name: storageAccountName
     location: location
-    managedIdentities: { systemAssigned: true }
-    minimumTlsVersion: 'TLS1_2'
-    enableTelemetry: enableTelemetry
     tags: tags
+    enableTelemetry: enableTelemetry
+    minimumTlsVersion: minimumTlsVersion
+    supportsHttpsTrafficOnly: supportsHttpsTrafficOnly
     accessTier: accessTier
-    supportsHttpsTrafficOnly: true
-
+    skuName: skuName
+    kind: kind
+    blobServices: empty(containers) ? null : { containers: containerItems }
+    queueServices: empty(queues) ? null : { queues: queueItems }
+    managedIdentities: { systemAssigned: true, userAssignedResourceIds: userAssignedIdentityResourceIds }
     roleAssignments: roleAssignments
-
-    networkAcls: {
-      bypass: 'AzureServices'
-      defaultAction: enablePrivateNetworking ? 'Deny' : 'Allow'
-    }
     allowBlobPublicAccess: enablePrivateNetworking ? true : false
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-
+    networkAcls: { bypass: 'AzureServices', defaultAction: enablePrivateNetworking ? 'Deny' : 'Allow' }
     privateEndpoints: enablePrivateNetworking
       ? [
           {
@@ -64,6 +107,6 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
   }
 }
 
-output name string = avmStorageAccount.outputs.name
-output id string = avmStorageAccount.outputs.resourceId
-output primaryEndpoints object = avmStorageAccount.outputs.serviceEndpoints
+output name string = avmStorage.outputs.name
+output id string = avmStorage.outputs.resourceId
+output primaryEndpoints object = avmStorage.outputs.serviceEndpoints

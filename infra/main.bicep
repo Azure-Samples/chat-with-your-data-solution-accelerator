@@ -1709,7 +1709,7 @@ module workbook 'modules/app/workbook.bicep' = {
     adminWebsiteName: hostingModel == 'container'
       ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME
       : adminweb.outputs.WEBSITE_ADMIN_NAME
-    eventGridSystemTopicName: eventgrid.outputs.eventGridOutput.name
+    eventGridSystemTopicName: eventgrid.outputs.name
     logAnalyticsResourceId: monitoring.outputs.logAnalyticsWorkspaceId
     azureOpenAIResourceName: openai.outputs.name
     azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.searchOutput.searchName : ''
@@ -1801,8 +1801,11 @@ module eventgrid 'modules/app/eventgrid.bicep' = {
     storageAccountId: storage.outputs.id
     queueName: queueName
     blobContainerName: blobContainerName
+    tags: tags
+    userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
+    enableMonitoring: enableMonitoring
+    logAnalyticsWorkspaceResourceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : ''
   }
-  dependsOn:[storage]
 }
 
 module machineLearning 'modules/app/machinelearning.bicep' = if (orchestrationStrategy == 'prompt_flow') {
