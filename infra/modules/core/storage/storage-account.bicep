@@ -22,7 +22,7 @@ param supportsHttpsTrafficOnly bool = true
   'Premium_LRS'
   'Premium_ZRS'
 ])
-param skuName string = 'Standard_LRS'
+param skuName string = 'Standard_GRS'
 @description('Optional. Array of blob containers to create. Each item: { name: string, publicAccess?: string }')
 param containers array = []
 @description('Optional. Array of storage queues to create. Each item: { name: string }')

@@ -1769,6 +1769,25 @@ module storage 'modules/core/storage/storage-account.bicep' = {
     enablePrivateNetworking: enablePrivateNetworking
     enableTelemetry: enableTelemetry
     solutionPrefix: solutionSuffix
+    skuName: 'Standard_GRS'
+    containers: [
+      {
+        name: blobContainerName
+        publicAccess: 'None'
+      }
+      {
+        name: 'config'
+        publicAccess: 'None'
+      }
+    ]
+    queues: [
+      {
+        name: 'doc-processing'
+      }
+      {
+        name: 'doc-processing-poison'
+      }
+    ]
     roleAssignments: [
       {
         principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
