@@ -16,9 +16,6 @@ param blobContainerName string
 @description('Optional: ISO-8601 expiration timestamp for the event subscription. Leave empty for no expiration.')
 param expirationTimeUtc string = '2099-01-01T11:00:21.715Z'
 
-@description('Apply a CanNotDelete lock (WAF). Set to false to omit.')
-param enableLock bool = true
-
 param userAssignedResourceId string
 
 @description('Tags to apply to the system topic.')
@@ -76,10 +73,6 @@ module avmEventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.3'
         expirationTimeUtc: empty(expirationTimeUtc) ? null : expirationTimeUtc
       }
     ]
-    lock: !enableLock ? null : {
-      kind: 'CanNotDelete'
-      name: 'lock-${name}'
-    }
     managedIdentities: { systemAssigned: true, userAssignedResourceIds: [userAssignedResourceId] }
     tags: tags
   }
