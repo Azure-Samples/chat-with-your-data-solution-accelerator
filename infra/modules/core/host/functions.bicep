@@ -93,8 +93,8 @@ module functions 'appservice.bicep' = {
       linuxFxVersion: empty(dockerFullImageName)
         ? '${toUpper(runtimeName)}|${runtimeVersion}'
         : 'DOCKER|${dockerFullImageName}'
-      functionAppScaleLimit: functionAppScaleLimit
-      minimumElasticInstanceCount: minimumElasticInstanceCount
+      functionAppScaleLimit: functionAppScaleLimit != -1 ? functionAppScaleLimit : null
+      minimumElasticInstanceCount: minimumElasticInstanceCount != -1 ? minimumElasticInstanceCount : null
       numberOfWorkers: numberOfWorkers != -1 ? numberOfWorkers : null
       use32BitWorkerProcess: use32BitWorkerProcess
       cors: {
