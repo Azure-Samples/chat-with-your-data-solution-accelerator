@@ -1512,7 +1512,6 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     storageAccountName: storage.outputs.name
     clientKey: clientKey
-    keyVaultName: keyvault.outputs.name
     userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     // WAF aligned configurations
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId }] : []
@@ -1604,7 +1603,6 @@ module function_docker 'modules/app/function.bicep' = if (hostingModel == 'conta
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     storageAccountName: storage.outputs.name
     clientKey: clientKey
-    keyVaultName: keyvault.outputs.name
     userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     // WAF aligned configurations
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId }] : []
