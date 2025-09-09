@@ -92,8 +92,8 @@ module avmSearch 'br/public:avm/res/search/search-service:0.11.1' = {
 }
 
 output searchOutput object = {
-  searchName: avmSearch.outputs.name
-  searchEndpoint: avmSearch.outputs.endpoint
+  name: avmSearch.outputs.name
+  endpoint: avmSearch.outputs.endpoint
   identityPrincipalId: avmSearch.outputs.systemAssignedMIPrincipalId!
   resourceId: avmSearch.outputs.resourceId
 }

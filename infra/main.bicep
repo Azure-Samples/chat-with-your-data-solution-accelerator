@@ -1712,7 +1712,7 @@ module workbook 'modules/app/workbook.bicep' = {
     eventGridSystemTopicName: eventgrid.outputs.name
     logAnalyticsResourceId: monitoring.outputs.logAnalyticsWorkspaceId
     azureOpenAIResourceName: openai.outputs.name
-    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.searchOutput.searchName : ''
+    azureAISearchName: databaseType == 'CosmosDB' ? search.outputs.searchOutput.name : ''
     storageAccountName: storage.outputs.name
   }
 }

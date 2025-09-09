@@ -1,44 +1,55 @@
-@description('The name of the Azure Function App to create.')
+@description('Required. Name of the function app.')
 param name string
 
-@description('Location for all resources.')
-param location string = ''
+@description('Optional. Location for all resources.')
+param location string = resourceGroup().location
 
-@description('The resource ID of the app service plan to use.')
-param serverFarmResourceId string
-
-@description('The name of the storage account for the function app.')
-param storageAccountName string = ''
-
-@description('Tags for all resources.')
+@description('Optional. Tags of the resource.')
 param tags object = {}
 
-@description('App settings for the function app.')
+@description('Required. The resource ID of the app service plan to use for the function app.')
+param serverFarmResourceId string
+
+@description('Optional. The name of the storage account to use for the function app.')
+param storageAccountName string = ''
+
+@description('Optional. The name of the application insights instance to use with the function app.')
+param applicationInsightsName string = ''
+
+@description('Optional. Runtime name to use for the function app. Defaults to python.')
+@allowed([
+  'dotnet'
+  'dotnetcore'
+  'dotnet-isolated'
+  'node'
+  'python'
+  'java'
+  'powershell'
+  'custom'
+])
+param runtimeName string = 'python'
+
+@description('Optional. Runtime version to use for the function app.')
+param runtimeVersion string = ''
+
+@description('Optional. Docker image name to use for container function apps.')
+param dockerFullImageName string = ''
+
+@description('Optional. The resource ID of the user assigned identity for the function app.')
+param userAssignedIdentityResourceId string = ''
+
+@description('Optional. Settings for the function app.')
 @secure()
 param appSettings object = {}
 
-@description('The name of the Application Insights resource.')
-param applicationInsightsName string = ''
-
-@description('The runtime name for the function app.')
-param runtimeName string = 'python'
-
-@description('The runtime version for the function app.')
-param runtimeVersion string = ''
-
-@description('The client key for the function app.')
+@description('Optional. The client key to use for the function app.')
 @secure()
 param clientKey string
 
-@description('The full name of the Docker image if using containers.')
-param dockerFullImageName string = ''
+@description('Optional. Determines if HTTPS is required for the function app. When true, HTTP requests are redirected to HTTPS.')
+param httpsOnly bool = true
 
-// Import AVM type definitions
-import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
-import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
-
-// WAF aligned parameters
-@description('Optional. Azure Resource Manager ID of the Virtual network and subnet to be joined by Regional VNET Integration.')
+@description('Optional. Determines if the function app can integrate with a virtual network.')
 param virtualNetworkSubnetId string = ''
 
 @description('Optional. To enable accessing content over virtual network.')
@@ -50,21 +61,21 @@ param vnetImagePullEnabled bool = false
 @description('Optional. Virtual Network Route All enabled. This causes all outbound traffic to have Virtual Network Security Groups and User Defined Routes applied.')
 param vnetRouteAllEnabled bool = false
 
-@description('Optional. Whether or not public network access is allowed for this resource.')
+@description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
+param privateEndpoints array = []
+
+@description('Optional. The diagnostic settings of the service.')
+param diagnosticSettings array = []
+
+@description('Optional. Whether or not public network access is allowed for this resource. For security reasons it should be disabled when using private endpoints.')
 @allowed([
   'Enabled'
   'Disabled'
 ])
 param publicNetworkAccess string = 'Enabled'
 
-@description('Optional. Configuration details for private endpoints.')
-param privateEndpoints privateEndpointSingleServiceType[] = []
-
-@description('Optional. The diagnostic settings of the service.')
-param diagnosticSettings diagnosticSettingFullType[] = []
-
-@description('Optional. The managed identity definition for this resource.')
-param userAssignedIdentityResourceId string = ''
+var useDocker = !empty(dockerFullImageName)
+var kind = useDocker ? 'functionapp,linux,container' : 'functionapp,linux'
 
 module function '../core/host/functions.bicep' = {
   name: '${name}-app-module'
@@ -72,38 +83,32 @@ module function '../core/host/functions.bicep' = {
     name: name
     location: location
     tags: tags
-    kind: 'functionapp,linux'
-    appServicePlanId: serverFarmResourceId
+    kind: kind
+    serverFarmResourceId: serverFarmResourceId
     storageAccountName: storageAccountName
     applicationInsightsName: applicationInsightsName
     runtimeName: runtimeName
     runtimeVersion: runtimeVersion
+    dockerFullImageName: dockerFullImageName
     userAssignedIdentityResourceId: userAssignedIdentityResourceId
-    allowedOrigins: []
-    alwaysOn: true
-    appCommandLine: empty(dockerFullImageName) ? '' : ''
     appSettings: union(
       appSettings,
       {
-        FUNCTIONS_EXTENSION_VERSION: '~4'
-      },
-      !empty(dockerFullImageName) ? {} : { FUNCTIONS_WORKER_RUNTIME: runtimeName },
-      { AzureWebJobsStorage__accountName: storageAccountName }
+        WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
+      }
     )
-    dockerFullImageName: dockerFullImageName
-    // WAF aligned parameters
+    httpsOnly: httpsOnly
     virtualNetworkSubnetId: virtualNetworkSubnetId
     vnetContentShareEnabled: vnetContentShareEnabled
     vnetImagePullEnabled: vnetImagePullEnabled
     vnetRouteAllEnabled: vnetRouteAllEnabled
-    publicNetworkAccess: publicNetworkAccess
     privateEndpoints: privateEndpoints
     diagnosticSettings: diagnosticSettings
+    publicNetworkAccess: publicNetworkAccess
   }
 }
 
-// This resource type warning is expected and can be ignored as it's not available in bicep registry
-resource functionNameDefaultClientKey 'Microsoft.Web/sites/host/functionKeys@2022-09-01' = {
+resource functionNameDefaultClientKey 'Microsoft.Web/sites/host/functionKeys@2018-11-01' = {
   name: '${name}/default/clientKey'
   properties: {
     name: 'ClientKey'
@@ -120,7 +125,7 @@ resource waitFunctionDeploymentSection 'Microsoft.Resources/deploymentScripts@20
   name: 'WaitFunctionDeploymentSection'
   location: location
   properties: {
-    azPowerShellVersion: '11.0'
+    azPowerShellVersion: '3.0'
     scriptContent: 'start-sleep -Seconds 300'
     cleanupPreference: 'Always'
     retentionInterval: 'PT1H'
@@ -130,6 +135,8 @@ resource waitFunctionDeploymentSection 'Microsoft.Resources/deploymentScripts@20
   ]
 }
 
+@description('The name of the function app.')
 output functionName string = function.outputs.name
-output functionUri string = 'https://${function.outputs.uri}'
-output AzureWebJobsStorage string = storageAccountName
+
+@description('The Azure Web Jobs Storage connection string.')
+output AzureWebJobsStorage string = function.outputs.azureWebJobsStorage
