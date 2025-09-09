@@ -137,11 +137,13 @@ var appConfigs = [
         FUNCTIONS_EXTENSION_VERSION: extensionVersion
       },
       !useDocker ? { FUNCTIONS_WORKER_RUNTIME: runtimeName } : {},
-      { AzureWebJobsStorage__accountName: storageAccountName }
+      {
+        AzureWebJobsStorage__accountName: storageAccountName
+      }
     )
     applicationInsightResourceId: empty(applicationInsightsName) ? null : resourceId('Microsoft.Insights/components', applicationInsightsName)
-    storageAccountResourceId: null
-    storageAccountUseIdentityAuthentication: null
+    storageAccountResourceId: resourceId('Microsoft.Storage/storageAccounts', storageAccountName)
+    storageAccountUseIdentityAuthentication: true
     retainCurrentAppSettings: true
   }
 ]
@@ -187,6 +189,42 @@ module functions 'appservice.bicep' = {
     privateEndpoints: privateEndpoints
     diagnosticSettings: diagnosticSettings
     publicNetworkAccess: publicNetworkAccess
+  }
+}
+
+module resourceRoleAssignmentFunctionAppStorageBlobDataContributor 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+  name: 'avm.ptn.authorization.resource-role-assignment.${uniqueString(name,'Storage Blob Data Contributor')}'
+  params: {
+    roleName: 'Storage Blob Data Contributor'
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    principalId: functions.outputs.?systemAssignedMIPrincipalId
+    principalType: 'ServicePrincipal'
+    resourceId: resourceId('Microsoft.Storage/storageAccounts', storageAccountName)
+  }
+}
+
+module resourceRoleAssignmentFunctionAppStorageQueueDataContributor 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+  name: 'avm.ptn.authorization.resource-role-assignment.${uniqueString(name,'Storage Queue Data Contributor')}'
+  params: {
+    roleName: 'Storage Queue Data Contributor'
+    roleDefinitionId: '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
+    principalId: functions.outputs.?systemAssignedMIPrincipalId
+    principalType: 'ServicePrincipal'
+    resourceId: resourceId('Microsoft.Storage/storageAccounts', storageAccountName)
+  }
+}
+
+resource contributorRoleDefinition 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview' existing = {
+  scope: resourceGroup()
+  name: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
+}
+
+resource contributorRoleAssignmentFunctionApp 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(resourceGroup().id, contributorRoleDefinition.id)
+  properties: {
+    principalId: functions.outputs.?systemAssignedMIPrincipalId
+    roleDefinitionId: contributorRoleDefinition.id
+    principalType: 'ServicePrincipal'
   }
 }
 
