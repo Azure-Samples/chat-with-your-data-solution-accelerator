@@ -644,7 +644,7 @@ module postgresDBModule './modules/core/database/postgresdb.bicep' = if (databas
 }
 
 // Store secrets in a keyvault
-var keyVaultName = 'KV-${solutionSuffix}'
+var keyVaultName = 'kv-${solutionSuffix}'
 module keyvault './modules/core/security/keyvault.bicep' = {
   name: take('module.key-vault.${keyVaultName}', 64)
   scope: resourceGroup()
@@ -656,7 +656,7 @@ module keyvault './modules/core/security/keyvault.bicep' = {
     managedIdentityObjectId:managedIdentityModule.outputs.managedIdentityOutput.objectId
     secrets: [
       {
-        name: 'clientKey'
+        name: 'FUNCTION-KEY'
         value: clientKey
       }
     ]
@@ -737,43 +737,33 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
     avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
     dnsZoneIndex: enablePrivateNetworking ? dnsZoneIndex : {}
     roleAssignments: [
+      // {
+      //   roleDefinitionIdOrName: 'b24988ac-6180-42a0-ab88-20f7382dd24c' //Contributor
+      //   principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+      //   principalType: 'ServicePrincipal'
+      // }
+      // {
+      //   roleDefinitionIdOrName: 'b24988ac-6180-42a0-ab88-20f7382dd24c' //Contributor
+      //   principalType: 'User'
+      //   principalId: principalId
+      // }
       {
-        roleDefinitionIdOrName: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
         principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
         principalType: 'ServicePrincipal'
       }
       {
-        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908'
-        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
-        principalType: 'ServicePrincipal'
-      }
-      {
-        roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
-        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
-        principalType: 'ServicePrincipal'
-      }
-      {
-        roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
-        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
-        principalType: 'ServicePrincipal'
-      }
-      {
-        roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
         principalId: principalId
         principalType: 'User'
       }
       {
-        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908'
-        principalId: principalId
-        principalType: 'User'
+        roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd' // Cognitive Services Contributor
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+        principalType: 'ServicePrincipal'
       }
       {
-        roleDefinitionIdOrName: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
-        principalType: 'User'
-        principalId: principalId
-      }
-      {
-        roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+        roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd' // Cognitive Services Contributor
         principalId: principalId
         principalType: 'User'
       }
@@ -799,6 +789,18 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
     dnsZoneIndex: enablePrivateNetworking ? dnsZoneIndex : {}
+    roleAssignments: [
+      {
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
+        principalId: principalId
+        principalType: 'User'
+      }
+    ]
   }
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
@@ -819,6 +821,18 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
     dnsZoneIndex: enablePrivateNetworking ? dnsZoneIndex : {}
+    roleAssignments: [
+      {
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
+        principalId: principalId
+        principalType: 'User'
+      }
+    ]
   }
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
@@ -944,14 +958,24 @@ module search 'modules/core/search/search-services.bicep' = if (databaseType == 
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     roleAssignments: [
       {
-        roleDefinitionIdOrName: 'Search Index Data Contributor'
+        roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7' // Search Index Data Contributor
         principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
         principalType: 'ServicePrincipal'
       }
       {
-        roleDefinitionIdOrName: 'Search Service Contributor'
+        roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7' // Search Index Data Contributor
+        principalId: principalId
+        principalType: 'User'
+      }
+      {
+        roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0' // Search Service Contributor
         principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
         principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0' // Search Service Contributor
+        principalId: principalId
+        principalType: 'User'
       }
     ]
   }
@@ -1103,6 +1127,7 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
         AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.endpoint
         AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
         AZURE_OPENAI_MODEL: azureOpenAIModel
         AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -1117,7 +1142,6 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
         AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
         AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
-
         AZURE_SPEECH_SERVICE_NAME: speechServiceName
         AZURE_SPEECH_SERVICE_REGION: location
         AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
@@ -1129,6 +1153,7 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
         DATABASE_TYPE: databaseType
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
         SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
+        MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
         APP_ENV: appEnvironment
       },
       databaseType == 'CosmosDB'
@@ -1215,6 +1240,7 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
         // AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.endpoint
         AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
         AZURE_OPENAI_MODEL: azureOpenAIModel
         AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -1241,6 +1267,7 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
         DATABASE_TYPE: databaseType
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
         SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
+        MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
         APP_ENV: appEnvironment
       },
       databaseType == 'CosmosDB'
@@ -1306,6 +1333,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
         AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.endpoint
         AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
         AZURE_OPENAI_MODEL: azureOpenAIModel
         AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -1324,12 +1352,12 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing ? 'true' : 'false'
         BACKEND_URL: 'https://${functionName}.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-        FUNCTION_KEY: clientKey
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
         USE_KEY_VAULT: 'true'
+        MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
         APP_ENV: appEnvironment
       },
       databaseType == 'CosmosDB'
@@ -1414,6 +1442,7 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
         AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.endpoint
         AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
         AZURE_OPENAI_MODEL: azureOpenAIModel
         AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -1432,12 +1461,12 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing ? 'true' : 'false'
         BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-        FUNCTION_KEY: clientKey
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
         DATABASE_TYPE: databaseType
         USE_KEY_VAULT: 'true'
+        MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
         APP_ENV: appEnvironment
       },
       databaseType == 'CosmosDB'
@@ -1543,6 +1572,7 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
         AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.endpoint
         AZURE_OPENAI_MODEL: azureOpenAIModel
         AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
         AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
@@ -1558,6 +1588,7 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
         LOGLEVEL: logLevel
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
+        MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
         APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
@@ -1634,6 +1665,7 @@ module function_docker 'modules/app/function.bicep' = if (hostingModel == 'conta
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
         AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
+        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.endpoint
         AZURE_OPENAI_MODEL: azureOpenAIModel
         AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
         AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
@@ -1649,6 +1681,7 @@ module function_docker 'modules/app/function.bicep' = if (hostingModel == 'conta
         LOGLEVEL: logLevel
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
+        MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
         APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
@@ -1734,6 +1767,18 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
     dnsZoneIndex: enablePrivateNetworking ? dnsZoneIndex : {}
+    roleAssignments: [
+      {
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
+        principalId: principalId
+        principalType: 'User'
+      }
+    ]
   }
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
@@ -1754,6 +1799,18 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
     dnsZoneIndex: enablePrivateNetworking ? dnsZoneIndex : {}
+    roleAssignments: [
+      {
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
+        principalId: principalId
+        principalType: 'User'
+      }
+    ]
   }
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
@@ -1791,12 +1848,12 @@ module storage 'modules/core/storage/storage-account.bicep' = {
     roleAssignments: [
       {
         principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
-        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+        roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor
         principalType: 'ServicePrincipal'
       }
       {
         principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
-        roleDefinitionIdOrName: 'Storage Queue Data Contributor'
+        roleDefinitionIdOrName: '974c5e8b-45b9-4653-ba55-5f855dd0fb88' // Storage Queue Data Contributor
         principalType: 'ServicePrincipal'
       }
     ]

@@ -100,6 +100,12 @@ param dockerFullImageName string = ''
 @description('Optional. Whether to use Docker for the function app.')
 param useDocker bool = dockerFullImageName != ''
 
+@description('Optional. Whether to enable Oryx build for the function app. This is disabled when using Docker.')
+param enableOryxBuild bool = useDocker ? false : contains(kind, 'linux')
+
+@description('Optional. Determines if build should be done during deployment. This is disabled when using Docker.')
+param scmDoBuildDuringDeployment bool = useDocker ? false : true
+
 @description('Optional. Determines if HTTPS is required for the function app. When true, HTTP requests are redirected to HTTPS.')
 param httpsOnly bool = true
 
@@ -139,7 +145,14 @@ var appConfigs = [
       !useDocker ? { FUNCTIONS_WORKER_RUNTIME: runtimeName } : {},
       {
         AzureWebJobsStorage__accountName: storageAccountName
-      }
+      },
+      {
+        SCM_DO_BUILD_DURING_DEPLOYMENT: string(scmDoBuildDuringDeployment)
+      },
+      {
+        ENABLE_ORYX_BUILD: string(enableOryxBuild)
+      },
+      runtimeName == 'python' && appCommandLine == '' ? { PYTHON_ENABLE_GUNICORN_MULTIWORKERS: 'true' } : {}
     )
     applicationInsightResourceId: empty(applicationInsightsName) ? null : resourceId('Microsoft.Insights/components', applicationInsightsName)
     storageAccountResourceId: resourceId('Microsoft.Storage/storageAccounts', storageAccountName)
@@ -219,6 +232,9 @@ resource contributorRoleDefinition 'Microsoft.Authorization/roleDefinitions@2018
   name: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
 }
 
+// Contributor
+// This role is used to grant the service principal contributor access to the resource group
+// See if this is needed in the future.
 resource contributorRoleAssignmentFunctionApp 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(resourceGroup().id, contributorRoleDefinition.id)
   properties: {

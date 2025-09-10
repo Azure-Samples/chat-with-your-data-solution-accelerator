@@ -381,7 +381,7 @@ def get_speech_key(env_helper: EnvHelper):
     This is required to generate short-lived tokens when using RBAC.
     """
     client = CognitiveServicesManagementClient(
-        credential=get_azure_credential(),
+        credential=get_azure_credential(env_helper.MANAGED_IDENTITY_CLIENT_ID),
         subscription_id=env_helper.AZURE_SUBSCRIPTION_ID,
     )
     keys = client.accounts.list_keys(

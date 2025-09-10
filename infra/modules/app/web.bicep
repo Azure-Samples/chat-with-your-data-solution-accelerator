@@ -35,6 +35,12 @@ param dockerFullImageName string = ''
 @description('Whether to use Docker for this web app.')
 param useDocker bool = dockerFullImageName != ''
 
+@description('Optional. Whether to enable Oryx build for the function app. This is disabled when using Docker.')
+param enableOryxBuild bool = useDocker ? false : contains(kind, 'linux')
+
+@description('Optional. Determines if build should be done during deployment. This is disabled when using Docker.')
+param scmDoBuildDuringDeployment bool = useDocker ? false : true
+
 @description('The health check path for the web app.')
 param healthCheckPath string = ''
 
@@ -85,7 +91,16 @@ var siteConfig = {
 var appConfigs = [
   {
     name: 'appsettings'
-    properties: appSettings
+    properties: union(
+      appSettings,
+      {
+        SCM_DO_BUILD_DURING_DEPLOYMENT: string(scmDoBuildDuringDeployment)
+      },
+      {
+        ENABLE_ORYX_BUILD: string(enableOryxBuild)
+      },
+      runtimeName == 'python' && appCommandLine == '' ? { PYTHON_ENABLE_GUNICORN_MULTIWORKERS: 'true' } : {}
+    )
     applicationInsightResourceId: empty(applicationInsightsName) ? null : applicationInsightsName
     storageAccountResourceId: null
     storageAccountUseIdentityAuthentication: null

@@ -24,7 +24,7 @@ class AzurePostgresHelper:
             dbname = self.env_helper.POSTGRESQL_DATABASE
 
             # Acquire the access token
-            credential = get_azure_credential()
+            credential = get_azure_credential(self.env_helper.MANAGED_IDENTITY_CLIENT_ID)
             access_token = credential.get_token(
                 "https://ossrdbms-aad.database.windows.net/.default"
             )

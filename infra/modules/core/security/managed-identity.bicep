@@ -48,5 +48,6 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
 output managedIdentityOutput object = {
   id: userAssignedIdentity.outputs.resourceId
   objectId: userAssignedIdentity.outputs.principalId
+  clientId: userAssignedIdentity.outputs.clientId
   name: miName
 }
