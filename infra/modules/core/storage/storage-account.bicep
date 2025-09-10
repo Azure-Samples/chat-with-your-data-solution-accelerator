@@ -4,7 +4,7 @@ param storageAccountName string
 param location string = resourceGroup().location
 @description('Optional. Tags to apply to the storage account.')
 param tags object = {}
-@allowed(['Cool','Hot','Premium','Cold'])
+@allowed(['Cool', 'Hot', 'Premium', 'Cold'])
 @description('Optional. Specifies the access tier for BlobStorage, valid values: Cool, Hot, Premium, Cold.')
 param accessTier string = 'Hot'
 @description('Optional. Minimum permitted TLS version for requests to the storage account.')
@@ -44,14 +44,18 @@ param solutionPrefix string = ''
 @description('Required. Output object from the AVM virtual network deployment containing subnet resource IDs used for private endpoints.')
 param avmVirtualNetwork object
 
-var containerItems = [for c in containers: {
-  name: c.name
-  publicAccess: c.publicAccess ?? 'None'
-}]
+var containerItems = [
+  for c in containers: {
+    name: c.name
+    publicAccess: c.publicAccess ?? 'None'
+  }
+]
 
-var queueItems = [for q in queues: {
-  name: q.name
-}]
+var queueItems = [
+  for q in queues: {
+    name: q.name
+  }
+]
 
 var kind = 'StorageV2'
 
@@ -82,11 +86,11 @@ module avmStorage 'br/public:avm/res/storage/storage-account:0.26.2' = {
               privateDnsZoneGroupConfigs: [
                 {
                   name: 'storage-dns-zone-group-blob'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.storageBlob].outputs.resourceId
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.storageBlob].outputs.resourceId.value
                 }
               ]
             }
-            subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0]
+            subnetResourceId: avmVirtualNetwork.outputs.subnetPrivateEndpointsResourceId.value
             service: 'blob'
           }
           {
@@ -95,11 +99,11 @@ module avmStorage 'br/public:avm/res/storage/storage-account:0.26.2' = {
               privateDnsZoneGroupConfigs: [
                 {
                   name: 'storage-dns-zone-group-queue'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.storageQueue].outputs.resourceId
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.storageQueue].outputs.resourceId.value
                 }
               ]
             }
-            subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0]
+            subnetResourceId: avmVirtualNetwork.outputs.subnetPrivateEndpointsResourceId.value
             service: 'queue'
           }
         ]

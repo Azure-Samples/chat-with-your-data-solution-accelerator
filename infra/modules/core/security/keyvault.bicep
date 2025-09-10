@@ -67,7 +67,7 @@ module keyvault 'br/public:avm/res/key-vault/vault:0.12.1' = {
             customNetworkInterfaceName: 'nic-${name}'
             privateDnsZoneGroup: {
               privateDnsZoneGroupConfigs: [
-                { privateDnsZoneResourceId: avmPrivateDnsZone!.outputs.resourceId }
+                { privateDnsZoneResourceId: avmPrivateDnsZone!.outputs.resourceId.value }
               ]
             }
             service: 'vault'
@@ -76,20 +76,24 @@ module keyvault 'br/public:avm/res/key-vault/vault:0.12.1' = {
         ]
       : []
     roleAssignments: concat(
-      managedIdentityObjectId != '' ? [
-        {
-          principalId: managedIdentityObjectId
-          principalType: 'ServicePrincipal'
-          roleDefinitionIdOrName: 'Key Vault Secrets User'
-        }
-      ] : [],
-      principalId != '' ? [
-        {
-          principalId: principalId
-          principalType: 'User'
-          roleDefinitionIdOrName: 'Key Vault Secrets User'
-        }
-      ] : []
+      managedIdentityObjectId != ''
+        ? [
+            {
+              principalId: managedIdentityObjectId
+              principalType: 'ServicePrincipal'
+              roleDefinitionIdOrName: 'Key Vault Secrets User'
+            }
+          ]
+        : [],
+      principalId != ''
+        ? [
+            {
+              principalId: principalId
+              principalType: 'User'
+              roleDefinitionIdOrName: 'Key Vault Secrets User'
+            }
+          ]
+        : []
     )
     secrets: secrets
     enableTelemetry: enableTelemetry
