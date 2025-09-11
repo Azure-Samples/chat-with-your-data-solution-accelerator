@@ -1758,6 +1758,7 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
     restrictOutboundNetworkAccess: true
     allowedFqdnList: [
       '${storageAccountName}.blob.${environment().suffixes.storage}'
+      '${storageAccountName}.queue.${environment().suffixes.storage}'
     ]
     avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
     dnsZoneIndex: enablePrivateNetworking ? dnsZoneIndex : {}
