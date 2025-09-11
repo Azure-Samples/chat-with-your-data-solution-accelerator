@@ -76,7 +76,6 @@ module avmStorage 'br/public:avm/res/storage/storage-account:0.26.2' = {
     managedIdentities: { systemAssigned: true, userAssignedResourceIds: userAssignedIdentityResourceIds }
     roleAssignments: roleAssignments
     allowSharedKeyAccess : false
-    defaultToOAuthAuthentication: true
     allowBlobPublicAccess: enablePrivateNetworking ? true : false
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     networkAcls: {
