@@ -1339,6 +1339,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing ? 'true' : 'false'
         BACKEND_URL: 'https://${functionName}.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+        FUNCTION_KEY: 'FUNCTION-KEY'
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
@@ -1448,6 +1449,7 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing ? 'true' : 'false'
         BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
+        FUNCTION_KEY: 'FUNCTION-KEY'
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
@@ -1752,6 +1754,10 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
 
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : null
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
+    restrictOutboundNetworkAccess: true
+    allowedFqdnList: [
+      '${storageAccountName}.blob.${environment().suffixes.storage}'
+    ]
     avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
     dnsZoneIndex: enablePrivateNetworking ? dnsZoneIndex : {}
     roleAssignments: [

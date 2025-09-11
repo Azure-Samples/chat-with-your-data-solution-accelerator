@@ -75,9 +75,15 @@ module avmStorage 'br/public:avm/res/storage/storage-account:0.26.2' = {
     queueServices: empty(queues) ? null : { queues: queueItems }
     managedIdentities: { systemAssigned: true, userAssignedResourceIds: userAssignedIdentityResourceIds }
     roleAssignments: roleAssignments
+    allowSharedKeyAccess : false
+    defaultToOAuthAuthentication: true
     allowBlobPublicAccess: enablePrivateNetworking ? true : false
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    networkAcls: { bypass: 'AzureServices', defaultAction: enablePrivateNetworking ? 'Deny' : 'Allow' }
+    networkAcls: {
+      bypass: 'AzureServices'
+      defaultAction: (enablePrivateNetworking) ? 'Deny' : 'Allow'
+      ipRules: []
+    }
     privateEndpoints: enablePrivateNetworking
       ? [
           {
@@ -111,6 +117,11 @@ module avmStorage 'br/public:avm/res/storage/storage-account:0.26.2' = {
   }
 }
 
+@description('The name of the storage account.')
 output name string = avmStorage.outputs.name
+
+@description('The resource ID of the storage account.')
 output id string = avmStorage.outputs.resourceId
+
+@description('The primary endpoints for the storage account services (blob, queue, table, file, web, dfs).')
 output primaryEndpoints object = avmStorage.outputs.serviceEndpoints

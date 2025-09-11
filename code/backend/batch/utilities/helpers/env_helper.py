@@ -235,7 +235,7 @@ class EnvHelper:
         self.AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION = os.getenv(
             "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION", "2023-04-15"
         )
-        self.FUNCTION_KEY = self.secretHelper.get_secret("FUNCTION-KEY")
+        self.FUNCTION_KEY = self.secretHelper.get_secret("FUNCTION_KEY")
 
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
