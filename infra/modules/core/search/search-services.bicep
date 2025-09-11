@@ -40,6 +40,13 @@ param roleAssignments array = []
 // }]
 
 var searchResourceName = name
+var searchDnsIndex = dnsZoneIndex.searchService ?? 0
+var hasSearchDnsConfig = enablePrivateNetworking && (length(avmPrivateDnsZones) > searchDnsIndex)
+var searchPrivateDnsZoneGroupConfigs = hasSearchDnsConfig
+  ? [
+      { privateDnsZoneResourceId: avmPrivateDnsZones[searchDnsIndex].outputs.resourceId }
+    ]
+  : []
 
 module avmSearch 'br/public:avm/res/search/search-service:0.11.1' = {
   name: take('avm.res.search.search-service.${searchResourceName}', 64)
@@ -70,16 +77,11 @@ module avmSearch 'br/public:avm/res/search/search-service:0.11.1' = {
           {
             name: 'pep-${searchResourceName}'
             customNetworkInterfaceName: 'nic-${searchResourceName}'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                { privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.searchService]!.outputs.resourceId }
-              ]
-            }
-            // privateDnsZoneGroup: !empty(privateDnsZoneResourceIds)
-            //   ? {
-            //       privateDnsZoneGroupConfigs: privateDnsZoneGroupConfigs
-            //     }
-            //   : null
+            privateDnsZoneGroup: hasSearchDnsConfig
+              ? {
+                  privateDnsZoneGroupConfigs: searchPrivateDnsZoneGroupConfigs
+                }
+              : null
             service: 'searchService'
             subnetResourceId: subnetResourceId
           }
