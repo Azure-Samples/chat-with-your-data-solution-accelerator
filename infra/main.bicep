@@ -805,6 +805,7 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
 
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : null
+    disableLocalAuth: false
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
     dnsZoneIndex: enablePrivateNetworking ? dnsZoneIndex : {}

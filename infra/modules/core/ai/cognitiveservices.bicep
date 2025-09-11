@@ -35,6 +35,9 @@ param dnsZoneIndex object = {}
 @description('Optional. Resource ID of the user-assigned managed identity to be used by the Cognitive Services resource.')
 param userAssignedResourceId string = ''
 
+@description('Optional. Flag to disable local authentication for the Cognitive Services resource.')
+param disableLocalAuth bool = true
+
 @description('Optional. Flag to restrict outbound network access for the Cognitive Services resource.')
 param restrictOutboundNetworkAccess bool = true
 
@@ -69,7 +72,7 @@ module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' =
     kind: kind
     sku: sku
     customSubDomainName: customSubDomainName
-    disableLocalAuth: true
+    disableLocalAuth: disableLocalAuth
     managedIdentities: { systemAssigned: true, userAssignedResourceIds: [userAssignedResourceId] }
     roleAssignments: roleAssignments
     restrictOutboundNetworkAccess: restrictOutboundNetworkAccess
