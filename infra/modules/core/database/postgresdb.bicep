@@ -1,28 +1,67 @@
+// ========== PostgreSQL Flexible Server (AVM + WAF aligned) ========== //
+
+@description('The name of the PostgreSQL flexible server resource.')
 param name string
+
+@description('The Azure region where the PostgreSQL flexible server will be deployed.')
 param location string
+
+@description('Optional. Tags to be applied to the PostgreSQL flexible server resource.')
 param tags object = {}
+
+@description('Optional. Controls whether AVM telemetry is enabled for this deployment.')
 param enableTelemetry bool = true
+
+@description('Optional. Flag to enable monitoring diagnostics.')
 param enableMonitoring bool = false
+
+@description('Optional. Resource ID of the Log Analytics workspace to send diagnostics to.')
 param logAnalyticsWorkspaceResourceId string = ''
+
+@description('Optional. Flag to enable private networking for the PostgreSQL flexible server.')
 param enablePrivateNetworking bool = false
-param subnetResourceId string = '' // delegated subnet resource id; use empty string when not set
+
+@description('Optional. Resource ID of the delegated subnet to deploy the PostgreSQL flexible server to. Required when enablePrivateNetworking is true.')
+param subnetResourceId string = ''
+
+@description('Optional. Array of private DNS zones for the PostgreSQL flexible server.')
 param avmPrivateDnsZones array = []
+
+@description('Optional. Index object for DNS zone lookup.')
 param dnsZoneIndex object = {}
-// param userAssignedIdentity object = {}
+
+@description('Optional. Object ID of the managed identity to be assigned as a PostgreSQL administrator.')
 param managedIdentityObjectId string = ''
+
+@description('Optional. Name of the managed identity to be assigned as a PostgreSQL administrator.')
 param managedIdentityObjectName string = ''
 
+@description('Optional. The administrator login name for the PostgreSQL flexible server.')
 param administratorLogin string = 'admintest'
+
+@description('Optional. The administrator login password for the PostgreSQL flexible server.')
 @secure()
 param administratorLoginPassword string = 'Initial_0524'
+
+@description('Optional. The edition of the PostgreSQL flexible server.')
 param serverEdition string = 'Burstable'
+
+@description('Optional. The storage size in GB for the PostgreSQL flexible server.')
 param skuSizeGB int = 32
+
+@description('Optional. The compute SKU name for the PostgreSQL flexible server.')
 param dbInstanceType string = 'Standard_B1ms'
+
+@description('Optional. The availability zone where the PostgreSQL flexible server will be deployed.')
 param availabilityZone int = 1
+
+@description('Optional. Allow all IP addresses to access the PostgreSQL flexible server.')
 param allowAllIPsFirewall bool = false
+
+@description('Optional. Allow all Azure services to access the PostgreSQL flexible server.')
 param allowAzureIPsFirewall bool = false
 
-@description('PostgreSQL version')
+@description('Optional. PostgreSQL version.')
 @allowed([
   '11'
   '12'
@@ -35,6 +74,7 @@ param version string = '16'
 
 var postgresResourceName = '${name}-postgres'
 
+// AVM PostgreSQL Flexible Server module
 module postgres 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.13.1' = {
   name: take('avm.res.db-for-postgre-sql.flexible-server.${postgresResourceName}', 64)
   params: {
@@ -42,28 +82,24 @@ module postgres 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.13.1' = 
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
+
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceResourceId }] : null
 
-    // SKU / sizing (match reference param names)
     skuName: dbInstanceType
     tier: serverEdition
     storageSizeGB: skuSizeGB
     version: version
+    availabilityZone: availabilityZone
 
     administratorLogin: administratorLogin
     administratorLoginPassword: administratorLoginPassword
 
-    availabilityZone: availabilityZone
-
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-
-    // map to AVM expected names
     delegatedSubnetResourceId: enablePrivateNetworking ? subnetResourceId : null
     privateDnsZoneArmResourceId: (enablePrivateNetworking && length(avmPrivateDnsZones) > 0)
       ? avmPrivateDnsZones[dnsZoneIndex.postgres]!.outputs.resourceId
       : null
 
-    // add Azure AD administrators if provided
     administrators: managedIdentityObjectId != ''
       ? [
           {
@@ -97,6 +133,8 @@ module postgres 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.13.1' = 
   }
 }
 
+// -------- Outputs -------- //
+@description('Output object containing PostgreSQL server configuration details including server name, database name, username, and SSL mode.')
 output postgresDbOutput object = {
   postgresSQLName: postgres.name
   postgreSQLServerName: '${postgres.name}.postgres.database.azure.com'
