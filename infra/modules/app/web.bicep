@@ -95,9 +95,9 @@ var appConfigs = [
       appSettings,
       {
         SCM_DO_BUILD_DURING_DEPLOYMENT: string(scmDoBuildDuringDeployment)
-      },
-      {
         ENABLE_ORYX_BUILD: string(enableOryxBuild)
+        AZURE_RESOURCE_GROUP: resourceGroup().name
+        AZURE_SUBSCRIPTION_ID: subscription().subscriptionId
       },
       runtimeName == 'python' && appCommandLine == '' ? { PYTHON_ENABLE_GUNICORN_MULTIWORKERS: 'true' } : {}
     )

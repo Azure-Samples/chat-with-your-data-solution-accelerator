@@ -965,6 +965,16 @@ module search 'modules/core/search/search-services.bicep' = if (databaseType == 
         principalId: principalId
         principalType: 'User'
       }
+      {
+        roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f' // Search Index Data Reader
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f' // Search Index Data Reader
+        principalId: principalId
+        principalType: 'User'
+      }
     ]
   }
 }
