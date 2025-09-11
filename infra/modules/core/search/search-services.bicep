@@ -40,9 +40,10 @@ param roleAssignments array = []
 // }]
 
 var searchResourceName = name
-var searchDnsIndex = dnsZoneIndex.searchService ?? 0
-var hasSearchDnsConfig = enablePrivateNetworking && (length(avmPrivateDnsZones) > searchDnsIndex)
-var searchPrivateDnsZoneGroupConfigs = hasSearchDnsConfig
+// Only compute DNS-related values when private networking is enabled. When disabled, set safe defaults so these vars won't reference arrays or objects.
+var searchDnsIndex = enablePrivateNetworking ? (dnsZoneIndex.searchService ?? 0) : 0
+var hasSearchDnsConfig = enablePrivateNetworking ? (length(avmPrivateDnsZones) > searchDnsIndex) : false
+var searchPrivateDnsZoneGroupConfigs = enablePrivateNetworking && hasSearchDnsConfig
   ? [
       { privateDnsZoneResourceId: avmPrivateDnsZones[searchDnsIndex].outputs.resourceId }
     ]

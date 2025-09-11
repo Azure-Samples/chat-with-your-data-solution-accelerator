@@ -17,10 +17,10 @@ var cosmosDbDatabaseName = 'db_conversation_history'
 var cosmosDbContainerName = 'conversations'
 var partitionKeyPath = '/userId'
 
-// New: derive a safe index into the avmPrivateDnsZones array and compute whether a DNS config exists
-var cosmosDnsIndex = dnsZoneIndex.cosmosDb ?? dnsZoneIndex.cosmosDB ?? 0
-var hasCosmosDnsConfig = enablePrivateNetworking && (length(avmPrivateDnsZones) > cosmosDnsIndex)
-var cosmosPrivateDnsZoneGroupConfigs = hasCosmosDnsConfig
+// Only compute DNS-related values when private networking is enabled. When disabled, set safe defaults so these vars won't reference arrays or objects.
+var cosmosDnsIndex = enablePrivateNetworking ? (dnsZoneIndex.cosmosDb ?? dnsZoneIndex.cosmosDB ?? 0) : 0
+var hasCosmosDnsConfig = enablePrivateNetworking ? (length(avmPrivateDnsZones) > cosmosDnsIndex) : false
+var cosmosPrivateDnsZoneGroupConfigs = enablePrivateNetworking && hasCosmosDnsConfig
   ? [
       { privateDnsZoneResourceId: avmPrivateDnsZones[cosmosDnsIndex]!.outputs.resourceId }
     ]
