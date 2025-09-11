@@ -513,15 +513,11 @@ module network 'modules/network.bicep' = if (enablePrivateNetworking) {
 }
 
 // ========== Managed Identity ========== //
-// ========== User Assigned Identity ========== //
-// WAF best practices for identity and access management: https://learn.microsoft.com/en-us/azure/well-architected/security/identity-access
 var userAssignedIdentityResourceName = 'id-${solutionSuffix}'
 module managedIdentityModule 'modules/core/security/managed-identity.bicep' = {
   name: take('module.managed-identity.${userAssignedIdentityResourceName}', 64)
   params: {
-    // miName: '${abbrs.security.managedIdentity}${solutionSuffix}'
     miName: userAssignedIdentityResourceName
-    // solutionName: solutionSuffix
     solutionLocation: location
     tags: allTags
     enableTelemetry: enableTelemetry
@@ -533,20 +529,16 @@ module managedIdentityModule 'modules/core/security/managed-identity.bicep' = {
 var privateDnsZones = [
   'privatelink.cognitiveservices.azure.com'
   'privatelink.openai.azure.com'
-  // 'privatelink.services.ai.azure.com'
-  // 'privatelink.contentunderstanding.ai.azure.com'
   'privatelink.blob.${environment().suffixes.storage}'
   'privatelink.queue.${environment().suffixes.storage}'
   'privatelink.file.${environment().suffixes.storage}'
-  // 'privatelink.api.azureml.ms'
-  // 'privatelink.notebooks.azure.net'
-  'privatelink.mongo.cosmos.azure.com'
+  'privatelink.documents.azure.com'
   'privatelink.postgres.cosmos.azure.com'
-  // 'privatelink.azconfig.io'
   'privatelink.vaultcore.azure.net'
   'privatelink.azurecr.io'
   'privatelink.azurewebsites.net'
   'privatelink.search.windows.net'
+  'privatelink.api.azureml.ms'
 ]
 
 // DNS Zone Index Constants
@@ -559,9 +551,10 @@ var dnsZoneIndex = {
   cosmosDB: 5
   postgres: 6
   keyVault: 7
-  appService: 8
-  searchService: 9
-  machinelearning: 10
+  containerRegistry: 8
+  appService: 9
+  searchService: 10
+  machinelearning: 11
 }
 
 // ===================================================
@@ -586,10 +579,6 @@ module avmPrivateDnsZones 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
     }
   }
 ]
-
-// // Generate array of private DNS zone resource IDs from the deployed DNS zones
-// // Create an array of resource IDs for private DNS zones
-// var privateDnsZoneIds = [for (zone, i) in privateDnsZones: resourceId('Microsoft.Network/privateDnsZones', zone)]
 
 module cosmosDBModule './modules/core/database/cosmosdb.bicep' = if (databaseType == 'CosmosDB') {
   name: take('module.cosmos.database.${azureCosmosDBAccountName}', 64)
@@ -622,8 +611,6 @@ module postgresDBModule './modules/core/database/postgresdb.bicep' = if (databas
     logAnalyticsWorkspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
-    // Wire up the private DNS zone for Postgres using the shared private-dns-zone modules and dnsZoneIndex mapping
-    avmPrivateDnsZones: enablePrivateNetworking ? [avmPrivateDnsZones[dnsZoneIndex.postgres]] : []
     dnsZoneIndex: enablePrivateNetworking ? { postgres: dnsZoneIndex.postgres } : {}
     managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
     managedIdentityObjectName: managedIdentityModule.outputs.managedIdentityOutput.name

@@ -2,8 +2,10 @@
 param name string
 param location string
 param tags object = {}
+param customSubDomainName string = name
 param enableMonitoring bool = false
 param logAnalyticsWorkspaceId string = ''
+param enableTelemetry bool = false
 param enablePrivateNetworking bool = false
 param subnetResourceId string = 'null'
 param avmPrivateDnsZones array = []
@@ -29,15 +31,17 @@ module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' =
     tags: tags
     kind: kind
     sku: sku
-    customSubDomainName: name
+    customSubDomainName: customSubDomainName
     disableLocalAuth: true
-
     managedIdentities: { systemAssigned: true, userAssignedResourceIds: [userAssignedResourceId] }
     roleAssignments: roleAssignments
+    enableTelemetry: enableTelemetry
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceId }] : null
-
-    networkAcls: enablePrivateNetworking ? { defaultAction: 'Deny', publicNetworkAccess: 'Disabled' } : { defaultAction: 'Allow', publicNetworkAccess: 'Enabled' }
-
+    networkAcls: {
+      defaultAction: 'Allow'
+      virtualNetworkRules: []
+      ipRules: []
+    }
     privateEndpoints: enablePrivateNetworking
       ? [
           {
@@ -54,7 +58,6 @@ module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' =
           }
         ]
       : []
-
     deployments: deployments
   }
 }

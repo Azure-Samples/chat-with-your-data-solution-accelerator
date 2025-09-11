@@ -5,7 +5,6 @@ param enableTelemetry bool = true
 param enableMonitoring bool = false
 param logAnalyticsWorkspaceResourceId string = ''
 param enablePrivateNetworking bool = false
-// param virtualNetwork object = {}
 param subnetResourceId string = 'null'
 param avmPrivateDnsZones array = []
 param dnsZoneIndex object = {}
@@ -25,6 +24,7 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.15.1' = {
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
+    databaseAccountOfferType: 'Standard'
     sqlDatabases: [
       {
         name: cosmosDbDatabaseName
