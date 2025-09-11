@@ -17,6 +17,15 @@ var cosmosDbDatabaseName = 'db_conversation_history'
 var cosmosDbContainerName = 'conversations'
 var partitionKeyPath = '/userId'
 
+// New: derive a safe index into the avmPrivateDnsZones array and compute whether a DNS config exists
+var cosmosDnsIndex = dnsZoneIndex.cosmosDb ?? dnsZoneIndex.cosmosDB ?? 0
+var hasCosmosDnsConfig = enablePrivateNetworking && (length(avmPrivateDnsZones) > cosmosDnsIndex)
+var cosmosPrivateDnsZoneGroupConfigs = hasCosmosDnsConfig
+  ? [
+      { privateDnsZoneResourceId: avmPrivateDnsZones[cosmosDnsIndex]!.outputs.resourceId }
+    ]
+  : []
+
 module cosmosDb 'br/public:avm/res/document-db/database-account:0.15.1' = {
   name: take('avm.res.document-db.database-account.${cosmosDbResourceName}', 64)
   params: {
@@ -61,11 +70,11 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.15.1' = {
           {
             name: 'pep-${cosmosDbResourceName}'
             customNetworkInterfaceName: 'nic-${cosmosDbResourceName}'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                { privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cosmosDb]!.outputs.resourceId }
-              ]
-            }
+            privateDnsZoneGroup: hasCosmosDnsConfig
+              ? {
+                  privateDnsZoneGroupConfigs: cosmosPrivateDnsZoneGroupConfigs
+                }
+              : null
             service: 'Sql'
             subnetResourceId: subnetResourceId
           }
