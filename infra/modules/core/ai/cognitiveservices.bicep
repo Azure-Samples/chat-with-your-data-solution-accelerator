@@ -39,7 +39,7 @@ param userAssignedResourceId string = ''
 param restrictOutboundNetworkAccess bool = true
 
 @description('Optional. List of allowed FQDN.')
-param allowedFqdnList array? = []
+param allowedFqdnList array?
 
 @description('Optional. The kind of Cognitive Services resource to deploy.')
 param kind string = 'OpenAI'
