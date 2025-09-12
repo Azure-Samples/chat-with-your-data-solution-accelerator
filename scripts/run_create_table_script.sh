@@ -8,10 +8,11 @@ requirementFile="requirements.txt"
 requirementFileUrl=${baseUrl}"scripts/data_scripts/requirements.txt"
 resourceGroup="$2"
 serverName="$3"
-webAppPrincipalName="$4"
-adminAppPrincipalName="$5"
-functionAppPrincipalName="$6"
-managedIdentityName="$7"
+# webAppPrincipalName="$4"
+# adminAppPrincipalName="$5"
+# functionAppPrincipalName="$6"
+managedIdentityName="$4"
+managedIdentityClientId="$5"
 
 echo "Script Started"
 
@@ -32,10 +33,11 @@ echo "Download completed"
 
 #Replace key vault name
 # sed -i "s/kv_to-be-replaced/${keyvaultName}/g" "create_postgres_tables.py"
-sed -i "s/webAppPrincipalName/${webAppPrincipalName}/g" "create_postgres_tables.py"
-sed -i "s/adminAppPrincipalName/${adminAppPrincipalName}/g" "create_postgres_tables.py"
+# sed -i "s/webAppPrincipalName/${webAppPrincipalName}/g" "create_postgres_tables.py"
+# sed -i "s/adminAppPrincipalName/${adminAppPrincipalName}/g" "create_postgres_tables.py"
+sed -i "s/clientId-to-be-replaced/${managedIdentityClientId}/g" "create_postgres_tables.py"
 sed -i "s/managedIdentityName/${managedIdentityName}/g" "create_postgres_tables.py"
-sed -i "s/functionAppPrincipalName/${functionAppPrincipalName}/g" "create_postgres_tables.py"
+# sed -i "s/functionAppPrincipalName/${functionAppPrincipalName}/g" "create_postgres_tables.py"
 sed -i "s/serverName/${serverName}/g" "create_postgres_tables.py"
 
 pip install -r requirements.txt
