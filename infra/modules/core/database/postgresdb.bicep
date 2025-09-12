@@ -29,13 +29,6 @@ param managedIdentityObjectId string = ''
 @description('Optional. Name of the managed identity to be assigned as a PostgreSQL administrator.')
 param managedIdentityObjectName string = ''
 
-@description('Optional. The administrator login name for the PostgreSQL flexible server.')
-param administratorLogin string = 'admintest'
-
-@description('Optional. The administrator login password for the PostgreSQL flexible server.')
-@secure()
-param administratorLoginPassword string
-
 @description('Optional. The edition of the PostgreSQL flexible server.')
 param serverEdition string = 'Burstable'
 
@@ -83,9 +76,6 @@ module postgres 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.13.1' = 
     storageSizeGB: skuSizeGB
     version: version
     availabilityZone: availabilityZone
-
-    administratorLogin: administratorLogin
-    administratorLoginPassword: administratorLoginPassword
 
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     delegatedSubnetResourceId: enablePrivateNetworking ? subnetResourceId : null

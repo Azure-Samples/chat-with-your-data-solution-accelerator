@@ -609,9 +609,6 @@ module postgresDBModule './modules/core/database/postgresdb.bicep' = if (databas
     managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
     managedIdentityObjectName: managedIdentityModule.outputs.managedIdentityOutput.name
 
-    administratorLogin: websiteName
-    administratorLoginPassword: newGuidString
-
     serverEdition: 'Burstable'
     skuSizeGB: 32
     dbInstanceType: 'Standard_B1ms'
