@@ -123,7 +123,30 @@ module postgres 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.13.1' = 
           ]
         : []
     )
+
+    configurations: [
+      {
+        name: 'azure.extensions'
+        value: 'vector'
+        source: 'user-override'
+      }
+    ]
   }
+}
+
+resource delayScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+  name: 'waitForServerReady'
+  location: resourceGroup().location
+  kind: 'AzurePowerShell'
+  properties: {
+    azPowerShellVersion: '11.0'
+    scriptContent: 'start-sleep -Seconds 300'
+    cleanupPreference: 'Always'
+    retentionInterval: 'PT1H'
+  }
+  dependsOn: [
+    postgres
+  ]
 }
 
 // -------- Outputs -------- //
@@ -132,6 +155,5 @@ output postgresDbOutput object = {
   postgresSQLName: postgres.name
   postgreSQLServerName: '${postgres.name}.postgres.database.azure.com'
   postgreSQLDatabaseName: 'postgres'
-  postgreSQLDbUser: administratorLogin
   sslMode: 'Require'
 }

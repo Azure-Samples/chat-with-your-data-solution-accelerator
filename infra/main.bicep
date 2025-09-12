@@ -417,7 +417,6 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
       ...allTags
       TemplateName: 'CWYD'
       CreatedBy: createdBy
-      SecurityControl: 'Ignore'
     }
   }
 }
@@ -1160,6 +1159,7 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
         SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        AZURE_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
       },
       databaseType == 'CosmosDB'
@@ -1274,6 +1274,7 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
         SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        AZURE_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
       },
       databaseType == 'CosmosDB'
@@ -1551,6 +1552,7 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
     clientKey: clientKey
     // keyVaultName: keyvault.outputs.name
     userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
+    userAssignedIdentityClientId: managedIdentityModule.outputs.managedIdentityOutput.clientId
     // WAF aligned configurations
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId }] : []
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
@@ -1645,6 +1647,7 @@ module function_docker 'modules/app/function.bicep' = if (hostingModel == 'conta
     clientKey: clientKey
     // keyVaultName: keyvault.outputs.name
     userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
+    userAssignedIdentityClientId: managedIdentityModule.outputs.managedIdentityOutput.clientId
     // WAF aligned configurations
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId }] : []
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''

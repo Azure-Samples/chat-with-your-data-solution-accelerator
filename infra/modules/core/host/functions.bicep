@@ -14,11 +14,11 @@ param applicationInsightsName string = ''
 @description('Required. The resource ID of the app service plan to use for the function app.')
 param serverFarmResourceId string
 
-@description('Optional. Whether to use managed identity for the function app.')
-param managedIdentity bool = true
-
 @description('Optional. The resource ID of the user assigned identity for the function app.')
 param userAssignedIdentityResourceId string = ''
+
+@description('Optional. The client ID of the user assigned identity for the function app. This is required to set the AZURE_CLIENT_ID app setting so the function app can authenticate with the user assigned managed identity.')
+param userAssignedIdentityClientId string = ''
 
 @description('Optional. The name of the storage account to use for the function app.')
 param storageAccountName string
@@ -141,18 +141,15 @@ var appConfigs = [
       appSettings,
       {
         FUNCTIONS_EXTENSION_VERSION: extensionVersion
+        SCM_DO_BUILD_DURING_DEPLOYMENT: string(scmDoBuildDuringDeployment)
+        ENABLE_ORYX_BUILD: string(enableOryxBuild)
+        // Set the storage account settings to use user managed identity authentication
+        AzureWebJobsStorage__accountName: storageAccountName
+        AzureWebJobsStorage__credential: 'managedidentity'
+        AzureWebJobsStorage__clientId: userAssignedIdentityClientId
       },
       !useDocker ? { FUNCTIONS_WORKER_RUNTIME: runtimeName } : {},
-      {
-        AzureWebJobsStorage__accountName: storageAccountName
-      },
-      {
-        SCM_DO_BUILD_DURING_DEPLOYMENT: string(scmDoBuildDuringDeployment)
-      },
-      {
-        ENABLE_ORYX_BUILD: string(enableOryxBuild)
-      },
-      runtimeName == 'python' && appCommandLine == '' ? { PYTHON_ENABLE_GUNICORN_MULTIWORKERS: 'true' } : {}
+      runtimeName == 'python' && !useDocker ? { PYTHON_ENABLE_GUNICORN_MULTIWORKERS: 'true' } : {}
     )
     applicationInsightResourceId: empty(applicationInsightsName)
       ? null
@@ -206,45 +203,6 @@ module functions 'appservice.bicep' = {
     privateEndpoints: privateEndpoints
     diagnosticSettings: diagnosticSettings
     publicNetworkAccess: publicNetworkAccess
-  }
-}
-
-module resourceRoleAssignmentFunctionAppStorageBlobDataContributor 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: 'avm.ptn.authorization.resource-role-assignment.${uniqueString(name,'Storage Blob Data Contributor')}'
-  params: {
-    roleName: 'Storage Blob Data Contributor'
-    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-    principalId: functions.outputs.?systemAssignedMIPrincipalId
-    principalType: 'ServicePrincipal'
-    resourceId: resourceId('Microsoft.Storage/storageAccounts', storageAccountName)
-  }
-}
-
-module resourceRoleAssignmentFunctionAppStorageQueueDataContributor 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: 'avm.ptn.authorization.resource-role-assignment.${uniqueString(name,'Storage Queue Data Contributor')}'
-  params: {
-    roleName: 'Storage Queue Data Contributor'
-    roleDefinitionId: '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
-    principalId: functions.outputs.?systemAssignedMIPrincipalId
-    principalType: 'ServicePrincipal'
-    resourceId: resourceId('Microsoft.Storage/storageAccounts', storageAccountName)
-  }
-}
-
-resource contributorRoleDefinition 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview' existing = {
-  scope: resourceGroup()
-  name: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
-}
-
-// Contributor
-// This role is used to grant the service principal contributor access to the resource group
-// See if this is needed in the future.
-resource contributorRoleAssignmentFunctionApp 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(resourceGroup().id, contributorRoleDefinition.id)
-  properties: {
-    principalId: functions.outputs.?systemAssignedMIPrincipalId
-    roleDefinitionId: contributorRoleDefinition.id
-    principalType: 'ServicePrincipal'
   }
 }
 

@@ -38,6 +38,9 @@ param dockerFullImageName string = ''
 @description('Optional. The resource ID of the user assigned identity for the function app.')
 param userAssignedIdentityResourceId string = ''
 
+@description('Optional. The client ID of the user assigned identity for the function app. This is required to set the AZURE_CLIENT_ID app setting so the function app can authenticate with the user assigned managed identity.')
+param userAssignedIdentityClientId string = ''
+
 @description('Optional. Settings for the function app.')
 @secure()
 param appSettings object = {}
@@ -91,9 +94,13 @@ module function '../core/host/functions.bicep' = {
     runtimeVersion: runtimeVersion
     dockerFullImageName: dockerFullImageName
     userAssignedIdentityResourceId: userAssignedIdentityResourceId
-    appSettings: union(appSettings, {
-      WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
-    })
+    userAssignedIdentityClientId: userAssignedIdentityClientId
+    appSettings: union(
+      appSettings,
+      {
+        WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
+      }
+    )
     httpsOnly: httpsOnly
     virtualNetworkSubnetId: virtualNetworkSubnetId
     vnetContentShareEnabled: vnetContentShareEnabled
