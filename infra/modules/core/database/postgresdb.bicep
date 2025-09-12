@@ -38,6 +38,14 @@ param skuSizeGB int = 32
 @description('Optional. The compute SKU name for the PostgreSQL flexible server.')
 param dbInstanceType string = 'Standard_B1ms'
 
+@description('Optional. High availability mode. For Burstable tier, HA must be Disabled. Allowed values: Disabled, SameZone, ZoneRedundant')
+@allowed([
+  'Disabled'
+  'SameZone'
+  'ZoneRedundant'
+])
+param highAvailability string = serverEdition == 'Burstable' ? 'Disabled' : 'ZoneRedundant'
+
 @description('Optional. The availability zone where the PostgreSQL flexible server will be deployed.')
 param availabilityZone int = 1
 
@@ -76,6 +84,7 @@ module postgres 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.13.1' = 
     storageSizeGB: skuSizeGB
     version: version
     availabilityZone: availabilityZone
+    highAvailability: serverEdition == 'Burstable' ? 'Disabled' : highAvailability
 
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     delegatedSubnetResourceId: enablePrivateNetworking ? subnetResourceId : null
