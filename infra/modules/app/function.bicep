@@ -91,12 +91,9 @@ module function '../core/host/functions.bicep' = {
     runtimeVersion: runtimeVersion
     dockerFullImageName: dockerFullImageName
     userAssignedIdentityResourceId: userAssignedIdentityResourceId
-    appSettings: union(
-      appSettings,
-      {
-        WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
-      }
-    )
+    appSettings: union(appSettings, {
+      WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
+    })
     httpsOnly: httpsOnly
     virtualNetworkSubnetId: virtualNetworkSubnetId
     vnetContentShareEnabled: vnetContentShareEnabled
@@ -125,7 +122,7 @@ resource waitFunctionDeploymentSection 'Microsoft.Resources/deploymentScripts@20
   name: 'WaitFunctionDeploymentSection'
   location: location
   properties: {
-    azPowerShellVersion: '3.0'
+    azPowerShellVersion: '11.0'
     scriptContent: 'start-sleep -Seconds 300'
     cleanupPreference: 'Always'
     retentionInterval: 'PT1H'

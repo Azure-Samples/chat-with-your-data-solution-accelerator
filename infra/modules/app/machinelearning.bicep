@@ -37,6 +37,9 @@ param tags object = {}
 @description('Optional. Enable telemetry via a Globally Unique Identifier (GUID).')
 param enableTelemetry bool = true
 
+@description('Optional. The resource ID of the user-assigned managed identity to be used.')
+param userAssignedIdentityResourceId string = ''
+
 @description('Optional. The settings for network isolation mode in workspace.')
 param enablePrivateNetworking bool = false
 
@@ -64,9 +67,10 @@ module workspace 'br/public:avm/res/machine-learning-services/workspace:0.3.0' =
     enableTelemetry: enableTelemetry
     tags: tags
 
-    // Identity configuration
+    // Identity configuration - Using only user-assigned managed identity
     managedIdentities: {
-      systemAssigned: true
+      systemAssigned: false
+      userAssignedResourceIds: !empty(userAssignedIdentityResourceId) ? [userAssignedIdentityResourceId] : []
     }
 
     // Private networking configuration
@@ -181,4 +185,7 @@ resource aisearch_connection 'Microsoft.MachineLearningServices/workspaces/conne
 // Outputs to maintain compatibility with the previous implementation
 output workspaceName string = workspaceName
 output workspaceId string = workspace.outputs.resourceId
-output principalId string = workspace.outputs.systemAssignedMIPrincipalId
+// Use the user-assigned identity principal ID if available, otherwise return empty string
+output principalId string = !empty(userAssignedIdentityResourceId)
+  ? reference(userAssignedIdentityResourceId, '2023-01-31').principalId
+  : ''

@@ -101,7 +101,9 @@ var appConfigs = [
       },
       runtimeName == 'python' && appCommandLine == '' ? { PYTHON_ENABLE_GUNICORN_MULTIWORKERS: 'true' } : {}
     )
-    applicationInsightResourceId: empty(applicationInsightsName) ? null : applicationInsightsName
+    applicationInsightResourceId: empty(applicationInsightsName)
+      ? null
+      : resourceId('Microsoft.Insights/components', applicationInsightsName)
     storageAccountResourceId: null
     storageAccountUseIdentityAuthentication: null
     retainCurrentAppSettings: true
@@ -125,7 +127,7 @@ module web '../core/host/appservice.bicep' = {
     publicNetworkAccess: empty(publicNetworkAccess) ? null : publicNetworkAccess
     privateEndpoints: privateEndpoints
     managedIdentities: {
-      systemAssigned: true
+      systemAssigned: false
       userAssignedResourceIds: [
         userAssignedIdentityResourceId
       ]

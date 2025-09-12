@@ -27,6 +27,9 @@ param enableMonitoring bool = false
 @description('The resource ID of the Log Analytics workspace to send diagnostic logs to if monitoring is enabled.')
 param logAnalyticsWorkspaceResourceId string = ''
 
+@description('Enable/Disable usage telemetry for module.')
+param enableTelemetry bool = true
+
 module avmEventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.3' = {
   name: take('avm.res.event-grid.system-topic.${name}', 64)
   params: {
@@ -73,8 +76,10 @@ module avmEventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.3'
         expirationTimeUtc: empty(expirationTimeUtc) ? null : expirationTimeUtc
       }
     ]
-    managedIdentities: { systemAssigned: true, userAssignedResourceIds: [userAssignedResourceId] }
+    // Use only user-assigned identity
+    managedIdentities: { systemAssigned: false, userAssignedResourceIds: [userAssignedResourceId] }
     tags: tags
+    enableTelemetry: enableTelemetry
   }
 }
 

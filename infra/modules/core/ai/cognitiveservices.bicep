@@ -26,11 +26,8 @@ param enablePrivateNetworking bool = false
 @description('Optional. Resource ID of the subnet to deploy the Cognitive Services resource to. Required when enablePrivateNetworking is true.')
 param subnetResourceId string = 'null'
 
-@description('Optional. Array of private DNS zones for the Cognitive Services resource.')
-param avmPrivateDnsZones array = []
-
-@description('Optional. Index object for DNS zone lookup.')
-param dnsZoneIndex object = {}
+@description('Optional. Resource ID of the private DNS zone for the Cognitive Services resource.')
+param privateDnsZoneResourceId string = ''
 
 @description('Optional. Resource ID of the user-assigned managed identity to be used by the Cognitive Services resource.')
 param userAssignedResourceId string = ''
@@ -60,9 +57,6 @@ param roleAssignments array = []
 // Resource variables
 var cognitiveResourceName = name
 
-// Dynamically select DNS zone key based on kind
-var dnsZoneKey = (kind == 'OpenAI') ? 'openAI' : 'cognitiveServices'
-
 module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' = {
   name: take('avm.res.cognitive-services.account.${cognitiveResourceName}', 64)
   params: {
@@ -73,7 +67,7 @@ module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' =
     sku: sku
     customSubDomainName: customSubDomainName
     disableLocalAuth: disableLocalAuth
-    managedIdentities: { systemAssigned: true, userAssignedResourceIds: [userAssignedResourceId] }
+    managedIdentities: { systemAssigned: false, userAssignedResourceIds: [userAssignedResourceId] }
     roleAssignments: roleAssignments
     restrictOutboundNetworkAccess: restrictOutboundNetworkAccess
     allowedFqdnList: restrictOutboundNetworkAccess ? (allowedFqdnList ?? []) : []
@@ -86,19 +80,21 @@ module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' =
       ipRules: []
     }
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    privateEndpoints: enablePrivateNetworking
+    privateEndpoints: enablePrivateNetworking && !empty(privateDnsZoneResourceId)
       ? [
           {
             name: 'pep-${cognitiveResourceName}'
             customNetworkInterfaceName: 'nic-${cognitiveResourceName}'
+            service: 'account'
+            subnetResourceId: subnetResourceId
             privateDnsZoneGroup: {
               privateDnsZoneGroupConfigs: [
-                {
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex[dnsZoneKey]]!.outputs.resourceId.value
-                }
+                { privateDnsZoneResourceId: privateDnsZoneResourceId }
               ]
             }
-            subnetResourceId: subnetResourceId
+            // privateDnsZoneResourceIds: [
+            //   privateDnsZoneResourceId
+            // ]
           }
         ]
       : []

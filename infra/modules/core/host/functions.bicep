@@ -154,7 +154,9 @@ var appConfigs = [
       },
       runtimeName == 'python' && appCommandLine == '' ? { PYTHON_ENABLE_GUNICORN_MULTIWORKERS: 'true' } : {}
     )
-    applicationInsightResourceId: empty(applicationInsightsName) ? null : resourceId('Microsoft.Insights/components', applicationInsightsName)
+    applicationInsightResourceId: empty(applicationInsightsName)
+      ? null
+      : resourceId('Microsoft.Insights/components', applicationInsightsName)
     storageAccountResourceId: resourceId('Microsoft.Storage/storageAccounts', storageAccountName)
     storageAccountUseIdentityAuthentication: true
     retainCurrentAppSettings: true
@@ -190,9 +192,11 @@ module functions 'appservice.bicep' = {
     kind: kind
     managedIdentities: {
       systemAssigned: true
-      userAssignedResourceIds: [
-        userAssignedIdentityResourceId
-      ]
+      userAssignedResourceIds: !empty(userAssignedIdentityResourceId)
+        ? [
+            userAssignedIdentityResourceId
+          ]
+        : []
     }
     httpsOnly: httpsOnly
     virtualNetworkSubnetId: virtualNetworkSubnetId

@@ -119,7 +119,7 @@ module network 'network/main.bicep' = {
             }
           ]
         }
-        delegation: 'Microsoft.App/environments'
+        delegation: 'Microsoft.Web/serverFarms'
       }
       {
         name: 'peps'

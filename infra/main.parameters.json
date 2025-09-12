@@ -18,10 +18,10 @@
       "value": "${AZURE_APP_SERVICE_HOSTING_MODEL}"
     },
     "azureSearchUseIntegratedVectorization": {
-      "value": false
+      "value": "${AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION}"
     },
     "azureSearchUseSemanticSearch": {
-      "value": false
+      "value": "${AZURE_SEARCH_USE_SEMANTIC_SEARCH}"
     },
     "orchestrationStrategy": {
       "value": "${ORCHESTRATION_STRATEGY}"
@@ -78,13 +78,13 @@
       "value": "${AZURE_OPENAI_MODEL_VERSION}"
     },
     "azureOpenAIModelCapacity": {
-      "value": 30
+      "value": "${AZURE_OPENAI_MODEL_CAPACITY}"
     },
     "useAdvancedImageProcessing": {
-      "value": false
+      "value": "${USE_ADVANCED_IMAGE_PROCESSING}"
     },
     "advancedImageProcessingMaxImages": {
-      "value": 1
+      "value": "${ADVANCED_IMAGE_PROCESSING_MAX_IMAGES}"
     },
     "azureOpenAIVisionModel": {
       "value": "${AZURE_OPENAI_VISION_MODEL}"
@@ -96,7 +96,7 @@
       "value": "${AZURE_OPENAI_VISION_MODEL_VERSION}"
     },
     "azureOpenAIVisionModelCapacity": {
-      "value": 10
+      "value": "${AZURE_OPENAI_VISION_MODEL_CAPACITY}"
     },
     "azureOpenAIEmbeddingModel": {
       "value": "${AZURE_OPENAI_EMBEDDING_MODEL}"
@@ -108,7 +108,7 @@
       "value": "${AZURE_OPENAI_EMBEDDING_MODEL_VERSION}"
     },
     "azureOpenAIEmbeddingModelCapacity": {
-      "value": 30
+      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY}"
     },
     "azureOpenAIMaxTokens": {
       "value": "${AZURE_OPENAI_MAX_TOKENS}"
@@ -136,21 +136,6 @@
     },
     "computerVisionVectorizeImageModelVersion": {
       "value": "${AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION}"
-    },
-    "azureAISearchName": {
-      "value": "${AZURE_SEARCH_SERVICE_NAME}"
-    },
-    "azureSearchIndex": {
-      "value": "${AZURE_SEARCH_INDEX}"
-    },
-    "azureOpenAIResourceName": {
-      "value": "${AZURE_OPENAI_RESOURCE}"
-    },
-    "storageAccountName": {
-      "value": "${AZURE_BLOB_ACCOUNT_NAME}"
-    },
-    "rgName": {
-      "value": "${AZURE_RESOURCE_GROUP}"
     },
     "existingLogAnalyticsWorkspaceId": {
       "value": "${AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID}"

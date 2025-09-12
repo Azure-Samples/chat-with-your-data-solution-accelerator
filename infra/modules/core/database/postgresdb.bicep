@@ -20,15 +20,8 @@ param logAnalyticsWorkspaceResourceId string = ''
 
 @description('Optional. Flag to enable private networking for the PostgreSQL flexible server.')
 param enablePrivateNetworking bool = false
-
-@description('Optional. Resource ID of the delegated subnet to deploy the PostgreSQL flexible server to. Required when enablePrivateNetworking is true.')
-param subnetResourceId string = ''
-
-@description('Optional. Array of private DNS zones for the PostgreSQL flexible server.')
-param avmPrivateDnsZones array = []
-
-@description('Optional. Index object for DNS zone lookup.')
-param dnsZoneIndex object = {}
+param subnetResourceId string = '' // delegated subnet resource id; use empty string when not set
+param privateDnsZoneResourceId string = '' // Single private DNS zone resource ID as string
 
 @description('Optional. Object ID of the managed identity to be assigned as a PostgreSQL administrator.')
 param managedIdentityObjectId string = ''
@@ -41,7 +34,7 @@ param administratorLogin string = 'admintest'
 
 @description('Optional. The administrator login password for the PostgreSQL flexible server.')
 @secure()
-param administratorLoginPassword string = 'Initial_0524'
+param administratorLoginPassword string
 
 @description('Optional. The edition of the PostgreSQL flexible server.')
 param serverEdition string = 'Burstable'
@@ -96,8 +89,8 @@ module postgres 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.13.1' = 
 
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     delegatedSubnetResourceId: enablePrivateNetworking ? subnetResourceId : null
-    privateDnsZoneArmResourceId: (enablePrivateNetworking && length(avmPrivateDnsZones) > 0)
-      ? avmPrivateDnsZones[dnsZoneIndex.postgres]!.outputs.resourceId
+    privateDnsZoneArmResourceId: enablePrivateNetworking
+      ? !empty(privateDnsZoneResourceId) ? privateDnsZoneResourceId : null
       : null
 
     administrators: managedIdentityObjectId != ''

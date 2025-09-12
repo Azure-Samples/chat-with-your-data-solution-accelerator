@@ -7,8 +7,14 @@ param enableMonitoring bool = false
 param logAnalyticsWorkspaceResourceId string = ''
 param enablePrivateNetworking bool = false
 param subnetResourceId string = ''
-param avmPrivateDnsZones array = []
-param dnsZoneIndex object = {}
+param privateDnsZoneResourceIds array = []
+
+// Define DNS zone group configs as a variable
+var privateDnsZoneGroupConfigs = [
+  for zoneId in privateDnsZoneResourceIds: {
+    privateDnsZoneResourceId: zoneId
+  }
+]
 
 // Search-specific parameters
 param sku string = 'standard'
@@ -40,14 +46,14 @@ param roleAssignments array = []
 // }]
 
 var searchResourceName = name
-// Only compute DNS-related values when private networking is enabled. When disabled, set safe defaults so these vars won't reference arrays or objects.
-var searchDnsIndex = enablePrivateNetworking ? (dnsZoneIndex.searchService ?? 0) : 0
-var hasSearchDnsConfig = enablePrivateNetworking ? (length(avmPrivateDnsZones) > searchDnsIndex) : false
-var searchPrivateDnsZoneGroupConfigs = enablePrivateNetworking && hasSearchDnsConfig
-  ? [
-      { privateDnsZoneResourceId: avmPrivateDnsZones[searchDnsIndex].outputs.resourceId }
-    ]
-  : []
+// // Only compute DNS-related values when private networking is enabled. When disabled, set safe defaults so these vars won't reference arrays or objects.
+// var searchDnsIndex = enablePrivateNetworking ? (dnsZoneIndex.searchService ?? 0) : 0
+// var hasSearchDnsConfig = enablePrivateNetworking ? (length(avmPrivateDnsZones) > searchDnsIndex) : false
+// var searchPrivateDnsZoneGroupConfigs = enablePrivateNetworking && hasSearchDnsConfig
+//   ? [
+//       { privateDnsZoneResourceId: avmPrivateDnsZones[searchDnsIndex].outputs.resourceId }
+//     ]
+//   : []
 
 module avmSearch 'br/public:avm/res/search/search-service:0.11.1' = {
   name: take('avm.res.search.search-service.${searchResourceName}', 64)
@@ -78,25 +84,28 @@ module avmSearch 'br/public:avm/res/search/search-service:0.11.1' = {
           {
             name: 'pep-${searchResourceName}'
             customNetworkInterfaceName: 'nic-${searchResourceName}'
-            privateDnsZoneGroup: hasSearchDnsConfig
-              ? {
-                  privateDnsZoneGroupConfigs: searchPrivateDnsZoneGroupConfigs
-                }
-              : null
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: !empty(privateDnsZoneResourceIds) ? privateDnsZoneGroupConfigs : []
+            }
+            // privateDnsZoneGroup: !empty(privateDnsZoneResourceIds)
+            //   ? {
+            //       privateDnsZoneGroupConfigs: privateDnsZoneGroupConfigs
+            //     }
+            //   : null
             service: 'searchService'
             subnetResourceId: subnetResourceId
           }
         ]
       : []
 
-    managedIdentities: { systemAssigned: true, userAssignedResourceIds: [userAssignedResourceId] }
+    // Use only user-assigned identity
+    managedIdentities: { systemAssigned: false, userAssignedResourceIds: [userAssignedResourceId] }
     roleAssignments: roleAssignments
   }
 }
 
-output searchOutput object = {
-  name: avmSearch.outputs.name
-  endpoint: avmSearch.outputs.endpoint
-  identityPrincipalId: avmSearch.outputs.systemAssignedMIPrincipalId!
-  resourceId: avmSearch.outputs.resourceId
-}
+output searchName string = avmSearch.outputs.name
+output searchEndpoint string = avmSearch.outputs.endpoint
+output searchResourceId string = avmSearch.outputs.resourceId
+// output identityPrincipalId string = avmSearch.outputs.systemAssignedMIPrincipalId!
+// output identityResourceId string = avmSearch.outputs.resourceId

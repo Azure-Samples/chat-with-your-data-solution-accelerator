@@ -137,21 +137,6 @@
     "computerVisionVectorizeImageModelVersion": {
       "value": "${AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION}"
     },
-    "azureAISearchName": {
-      "value": "${AZURE_SEARCH_SERVICE}"
-    },
-    "azureSearchIndex": {
-      "value": "${AZURE_SEARCH_INDEX}"
-    },
-    "azureOpenAIResourceName": {
-      "value": "${AZURE_OPENAI_RESOURCE}"
-    },
-    "storageAccountName": {
-      "value": "${AZURE_BLOB_ACCOUNT_NAME}"
-    },
-    "rgName": {
-      "value": "${AZURE_RESOURCE_GROUP}"
-    },
     "existingLogAnalyticsWorkspaceId": {
       "value": "${AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID}"
     },

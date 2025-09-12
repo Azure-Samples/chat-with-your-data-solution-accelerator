@@ -6,8 +6,14 @@ param enableMonitoring bool = false
 param logAnalyticsWorkspaceResourceId string = ''
 param enablePrivateNetworking bool = false
 param subnetResourceId string = 'null'
-param avmPrivateDnsZones array = []
-param dnsZoneIndex object = {}
+// param privateDnsZoneResourceIds array = []
+@description('Conditional. Resource ID of the Private DNS Zone. Required if enablePrivateNetworking is true.')
+param privateDnsZoneResourceId string = ''
+
+// // Define DNS zone group configs as a variable
+// var privateDnsZoneGroupConfigs = [for zoneId in privateDnsZoneResourceIds: {
+//   privateDnsZoneResourceId: zoneId
+// }]
 param userAssignedIdentityPrincipalId string
 param enableRedundancy bool = false
 param cosmosDbHaLocation string = ''
@@ -17,14 +23,14 @@ var cosmosDbDatabaseName = 'db_conversation_history'
 var cosmosDbContainerName = 'conversations'
 var partitionKeyPath = '/userId'
 
-// Only compute DNS-related values when private networking is enabled. When disabled, set safe defaults so these vars won't reference arrays or objects.
-var cosmosDnsIndex = enablePrivateNetworking ? (dnsZoneIndex.cosmosDb ?? dnsZoneIndex.cosmosDB ?? 0) : 0
-var hasCosmosDnsConfig = enablePrivateNetworking ? (length(avmPrivateDnsZones) > cosmosDnsIndex) : false
-var cosmosPrivateDnsZoneGroupConfigs = enablePrivateNetworking && hasCosmosDnsConfig
-  ? [
-      { privateDnsZoneResourceId: avmPrivateDnsZones[cosmosDnsIndex]!.outputs.resourceId }
-    ]
-  : []
+// // Only compute DNS-related values when private networking is enabled. When disabled, set safe defaults so these vars won't reference arrays or objects.
+// var cosmosDnsIndex = enablePrivateNetworking ? (dnsZoneIndex.cosmosDb ?? dnsZoneIndex.cosmosDB ?? 0) : 0
+// var hasCosmosDnsConfig = enablePrivateNetworking ? (length(avmPrivateDnsZones) > cosmosDnsIndex) : false
+// var cosmosPrivateDnsZoneGroupConfigs = enablePrivateNetworking && hasCosmosDnsConfig
+//   ? [
+//       { privateDnsZoneResourceId: avmPrivateDnsZones[cosmosDnsIndex]!.outputs.resourceId }
+//     ]
+//   : []
 
 module cosmosDb 'br/public:avm/res/document-db/database-account:0.15.1' = {
   name: take('avm.res.document-db.database-account.${cosmosDbResourceName}', 64)
@@ -70,11 +76,12 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.15.1' = {
           {
             name: 'pep-${cosmosDbResourceName}'
             customNetworkInterfaceName: 'nic-${cosmosDbResourceName}'
-            privateDnsZoneGroup: hasCosmosDnsConfig
-              ? {
-                  privateDnsZoneGroupConfigs: cosmosPrivateDnsZoneGroupConfigs
-                }
-              : null
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                { privateDnsZoneResourceId: privateDnsZoneResourceId }
+                // { privateDnsZoneResourceId: avmPrivateDnsZone!.outputs.resourceId.value }
+              ]
+            }
             service: 'Sql'
             subnetResourceId: subnetResourceId
           }

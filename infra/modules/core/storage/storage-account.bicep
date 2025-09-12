@@ -31,18 +31,22 @@ param queues array = []
 param roleAssignments array = []
 @description('Optional. Array of user assigned identity resource IDs.')
 param userAssignedIdentityResourceIds array = []
-@description('Required. Array of AVM private DNS zone module outputs used to associate private endpoints.')
-param avmPrivateDnsZones array
-@description('Required. Object containing keys used to index into avmPrivateDnsZones outputs (e.g. storageBlob, storageQueue).')
-param dnsZoneIndex object
+@description('Required. Array of private DNS zone resource IDs used to associate private endpoints.')
+param privateDnsZoneResourceIds array = []
+// @description('Required. Array of AVM private DNS zone module outputs used to associate private endpoints.')
+// param avmPrivateDnsZones array
+// @description('Required. Object containing keys used to index into avmPrivateDnsZones outputs (e.g. storageBlob, storageQueue).')
+// param dnsZoneIndex object
 @description('Optional. If true, disables public network access and provisions private endpoints for blob and queue services.')
 param enablePrivateNetworking bool = false
 @description('Optional. Controls whether AVM telemetry is enabled for this deployment.')
 param enableTelemetry bool = true
 @description('Optional. A friendly string representing the application/solution name to give to all resource names in this deployment. This should be 3-16 characters long.')
 param solutionPrefix string = ''
-@description('Required. Output object from the AVM virtual network deployment containing subnet resource IDs used for private endpoints.')
-param avmVirtualNetwork object
+@description('Required. Subnet resource ID for private endpoints. This is a string, not an object.')
+param subnetResourceId string = ''
+// @description('Required. Output object from the AVM virtual network deployment containing subnet resource IDs used for private endpoints.')
+// param avmVirtualNetwork object
 
 var containerItems = [
   for c in containers: {
@@ -73,16 +77,12 @@ module avmStorage 'br/public:avm/res/storage/storage-account:0.26.2' = {
     kind: kind
     blobServices: empty(containers) ? null : { containers: containerItems }
     queueServices: empty(queues) ? null : { queues: queueItems }
-    managedIdentities: { systemAssigned: true, userAssignedResourceIds: userAssignedIdentityResourceIds }
+    // Use only user-assigned identities
+    managedIdentities: { systemAssigned: false, userAssignedResourceIds: userAssignedIdentityResourceIds }
     roleAssignments: roleAssignments
-    allowSharedKeyAccess : false
     allowBlobPublicAccess: enablePrivateNetworking ? true : false
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    networkAcls: {
-      bypass: 'AzureServices'
-      defaultAction: (enablePrivateNetworking) ? 'Deny' : 'Allow'
-      ipRules: []
-    }
+    networkAcls: { bypass: 'AzureServices', defaultAction: enablePrivateNetworking ? 'Deny' : 'Allow' }
     privateEndpoints: enablePrivateNetworking
       ? [
           {
@@ -91,11 +91,13 @@ module avmStorage 'br/public:avm/res/storage/storage-account:0.26.2' = {
               privateDnsZoneGroupConfigs: [
                 {
                   name: 'storage-dns-zone-group-blob'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.storageBlob].outputs.resourceId.value
+                  privateDnsZoneResourceId: privateDnsZoneResourceIds[0]
+                  // privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.storageBlob].outputs.resourceId.value
                 }
               ]
             }
-            subnetResourceId: avmVirtualNetwork.outputs.subnetPrivateEndpointsResourceId.value
+            subnetResourceId: subnetResourceId
+            // subnetResourceId: avmVirtualNetwork.outputs.subnetPrivateEndpointsResourceId.value
             service: 'blob'
           }
           {
@@ -104,11 +106,13 @@ module avmStorage 'br/public:avm/res/storage/storage-account:0.26.2' = {
               privateDnsZoneGroupConfigs: [
                 {
                   name: 'storage-dns-zone-group-queue'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.storageQueue].outputs.resourceId.value
+                  privateDnsZoneResourceId: privateDnsZoneResourceIds[1]
+                  // privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.storageQueue].outputs.resourceId.value
                 }
               ]
             }
-            subnetResourceId: avmVirtualNetwork.outputs.subnetPrivateEndpointsResourceId.value
+            subnetResourceId: subnetResourceId
+            // subnetResourceId: avmVirtualNetwork.outputs.subnetPrivateEndpointsResourceId.value
             service: 'queue'
           }
         ]
@@ -116,11 +120,6 @@ module avmStorage 'br/public:avm/res/storage/storage-account:0.26.2' = {
   }
 }
 
-@description('The name of the storage account.')
 output name string = avmStorage.outputs.name
-
-@description('The resource ID of the storage account.')
 output id string = avmStorage.outputs.resourceId
-
-@description('The primary endpoints for the storage account services (blob, queue, table, file, web, dfs).')
 output primaryEndpoints object = avmStorage.outputs.serviceEndpoints

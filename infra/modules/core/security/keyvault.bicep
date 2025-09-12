@@ -32,6 +32,9 @@ param logAnalyticsWorkspaceResourceId string = ''
 @description('Conditional. Resource ID of the subnet used for the private endpoint. Required if enablePrivateNetworking is true.')
 param subnetResourceId string = 'null'
 
+@description('Conditional. Resource ID of the Private DNS Zone. Required if enablePrivateNetworking is true.')
+param privateDnsZoneResourceId string = ''
+
 @description('Conditional. Module output contract supplying the Private DNS Zone. Required if enablePrivateNetworking is true.')
 param avmPrivateDnsZone object = {}
 
@@ -67,7 +70,8 @@ module keyvault 'br/public:avm/res/key-vault/vault:0.12.1' = {
             customNetworkInterfaceName: 'nic-${name}'
             privateDnsZoneGroup: {
               privateDnsZoneGroupConfigs: [
-                { privateDnsZoneResourceId: avmPrivateDnsZone!.outputs.resourceId.value }
+                { privateDnsZoneResourceId: privateDnsZoneResourceId }
+                // { privateDnsZoneResourceId: avmPrivateDnsZone!.outputs.resourceId.value }
               ]
             }
             service: 'vault'
