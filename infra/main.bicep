@@ -421,16 +421,6 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
   }
 }
 
-// var solutionSuffix = toLower(trim(replace(
-//   replace(
-//     replace(replace(replace(replace('${solutionName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''),
-//     ' ',
-//     ''
-//   ),
-//   '*',
-//   ''
-// )))
-
 // Region pairs list based on article in [Azure Database for MySQL Flexible Server - Azure Regions](https://learn.microsoft.com/azure/mysql/flexible-server/overview#azure-regions) for supported high availability regions for CosmosDB.
 var cosmosDbZoneRedundantHaRegionPairs = {
   australiaeast: 'uksouth'
@@ -729,16 +719,6 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
     // align with AVM conventions
     privateDnsZoneResourceId: enablePrivateNetworking ? avmPrivateDnsZones[dnsZoneIndex.openAI]!.outputs.resourceId : ''
     roleAssignments: [
-      // {
-      //   roleDefinitionIdOrName: 'b24988ac-6180-42a0-ab88-20f7382dd24c' //Contributor
-      //   principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
-      //   principalType: 'ServicePrincipal'
-      // }
-      // {
-      //   roleDefinitionIdOrName: 'b24988ac-6180-42a0-ab88-20f7382dd24c' //Contributor
-      //   principalType: 'User'
-      //   principalId: principalId
-      // }
       {
         roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
         principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
@@ -832,92 +812,6 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
 
-// module search 'modules/core/search/search-services.bicep' = if (databaseType == 'CosmosDB') {
-//   name: azureAISearchName
-//   scope: resourceGroup()
-//   params: {
-//     name: azureAISearchName
-//     location: location
-//     tags: {
-//       deployment: searchTag
-//     }
-//     sku: {
-//       name: azureSearchSku
-//     }
-//     authOptions: {
-//       aadOrApiKey: {
-//         aadAuthFailureMode: 'http403'
-//       }
-//     }
-//     semanticSearch: azureSearchUseSemanticSearch ? 'free' : null
-//   }
-// }
-
-// module search 'modules/core/search/search-services.bicep' = if (databaseType == 'CosmosDB') {
-//   name: azureAISearchName
-//   scope: resourceGroup()
-//   params: {
-//     name: azureAISearchName
-//     location: location
-//     tags: allTags
-//     sku: azureSearchSku
-//     authOptions: {
-//       aadOrApiKey: {
-//         aadAuthFailureMode: 'http401WithBearerChallenge'
-//       }
-//     }
-//     disableLocalAuth: false
-//     hostingMode: 'default'
-//     networkRuleSet: {
-//       bypass: 'AzureServices'
-//       ipRules: []
-//     }
-//     partitionCount: 1
-//     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-//     replicaCount: 1
-//     semanticSearch: azureSearchUseSemanticSearch ? 'free' : null
-//     managedIdentities: {
-//       userAssignedResourceIds: [managedIdentityModule.outputs.managedIdentityOutput.id]
-//     }
-//     diagnosticSettings: enableMonitoring
-//       ? [
-//           {
-//             workspaceResourceId: logAnalyticsWorkspaceResourceId
-//           }
-//         ]
-//       : []
-//     roleAssignments: [
-//       {
-//         roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f' // Search Index Data Reader
-//         principalId: managedIdentityModule.outputs.managedIdentityOutput.principalId
-//         principalType: 'ServicePrincipal'
-//       }
-//       {
-//         roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0' // Search Service Contributor
-//         principalId: managedIdentityModule.outputs.managedIdentityOutput.principalId
-//         principalType: 'ServicePrincipal'
-//       }
-//     ]
-//     privateEndpoints: enablePrivateNetworking
-//       ? [
-//           {
-//             name: 'pep-${azureAISearchName}'
-//             customNetworkInterfaceName: 'nic-${azureAISearchName}'
-//             privateDnsZoneGroup: {
-//               privateDnsZoneGroupConfigs: [
-//                 { privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.searchService]!.outputs.resourceId }
-//               ]
-//             }
-//             service: 'searchService'
-//             subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
-//           }
-//         ]
-//       : []
-//   }
-// }
-
-// Replace the current search service module reference with this:
-
 module search 'modules/core/search/search-services.bicep' = if (databaseType == 'CosmosDB') {
   name: azureAISearchName
   scope: resourceGroup()
@@ -985,84 +879,6 @@ module search 'modules/core/search/search-services.bicep' = if (databaseType == 
     ]
   }
 }
-
-// module search1 'br/public:avm/res/search/search-service:0.11.1' = if (databaseType == 'CosmosDB') {
-//   name: take('avm.res.cognitive-search-services.${azureAISearchName}', 64)
-//   params: {
-//     name: azureAISearchName
-//     location: location
-//     tags: allTags
-//     authOptions: {
-//       aadOrApiKey: {
-//         aadAuthFailureMode: 'http401WithBearerChallenge'
-//       }
-//     }
-//     diagnosticSettings: enableMonitoring
-//       ? [
-//           {
-//             workspaceResourceId: logAnalyticsWorkspaceResourceId
-//           }
-//         ]
-//       : null
-//     disableLocalAuth: false
-//     hostingMode: 'default'
-//     sku: azureSearchSku
-//     managedIdentities: {
-//       userAssignedResourceIds: [managedIdentityModule.outputs.managedIdentityOutput.id]
-//     }
-//     networkRuleSet: {
-//       bypass: 'AzureServices'
-//       ipRules: []
-//     }
-//     replicaCount: 1
-//     partitionCount: 1
-//     roleAssignments: [
-//       {
-//         roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f' // Search Index Data Reader
-//         principalId: managedIdentityModule.outputs.managedIdentityOutput.principalId
-//         principalType: 'ServicePrincipal'
-//       }
-//       {
-//         roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0' // Search Service Contributor
-//         principalId: managedIdentityModule.outputs.managedIdentityOutput.principalId
-//         principalType: 'ServicePrincipal'
-//       }
-//       // Add more role assignments as needed
-//     ]
-//     semanticSearch: azureSearchUseSemanticSearch ? 'free' : null
-//     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-//     privateEndpoints: enablePrivateNetworking
-//       ? [
-//           {
-//             name: 'pep-${azureAISearchName}'
-//             customNetworkInterfaceName: 'nic-${azureAISearchName}'
-//             privateDnsZoneGroup: {
-//               privateDnsZoneGroupConfigs: [
-//                 { privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.searchService]!.outputs.resourceId }
-//               ]
-//             }
-//             service: 'searchService'
-//             subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
-//           }
-//         ]
-//       : []
-//   }
-// }
-
-// module hostingplan 'modules/core/host/appserviceplan.bicep' = {
-//   name: hostingPlanName
-//   scope: resourceGroup()
-//   params: {
-//     name: hostingPlanName
-//     location: location
-//     sku: {
-//       name: hostingPlanSku
-//       tier: skuTier
-//     }
-//     reserved: true
-//     tags: { CostControl: 'Ignore' }
-//   }
-// }
 
 // AVM WAF - Server Farm + Web Site conversions
 var webServerFarmResourceName = hostingPlanName
