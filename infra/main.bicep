@@ -1008,7 +1008,7 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: websiteName
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )
@@ -1123,7 +1123,7 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: '${websiteName}-docker'
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )
@@ -1211,7 +1211,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.?outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.?outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: adminWebsiteName
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )
@@ -1321,7 +1321,7 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: '${adminWebsiteName}-docker'
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )
@@ -1439,7 +1439,7 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: functionName
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )
@@ -1534,7 +1534,7 @@ module function_docker 'modules/app/function.bicep' = if (hostingModel == 'conta
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.?outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.?outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: '${functionName}-docker'
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )
