@@ -39,6 +39,7 @@ class EnvHelper:
         # Azure
         self.AZURE_SUBSCRIPTION_ID = os.getenv("AZURE_SUBSCRIPTION_ID", "")
         self.AZURE_RESOURCE_GROUP = os.getenv("AZURE_RESOURCE_GROUP", "")
+        self.MANAGED_IDENTITY_CLIENT_ID = os.getenv("MANAGED_IDENTITY_CLIENT_ID", "")
 
         # Azure Search
         self.AZURE_SEARCH_SERVICE = os.getenv("AZURE_SEARCH_SERVICE", "")
@@ -217,7 +218,7 @@ class EnvHelper:
         )
 
         self.AZURE_TOKEN_PROVIDER = get_bearer_token_provider(
-            get_azure_credential(), "https://cognitiveservices.azure.com/.default"
+            get_azure_credential(self.MANAGED_IDENTITY_CLIENT_ID), "https://cognitiveservices.azure.com/.default"
         )
         self.ADVANCED_IMAGE_PROCESSING_MAX_IMAGES = self.get_env_var_int(
             "ADVANCED_IMAGE_PROCESSING_MAX_IMAGES", 1
@@ -234,7 +235,7 @@ class EnvHelper:
         self.AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION = os.getenv(
             "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION", "2023-04-15"
         )
-        self.FUNCTION_KEY = os.getenv("FUNCTION_KEY", "")
+        self.FUNCTION_KEY = self.secretHelper.get_secret("FUNCTION_KEY")
 
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
@@ -243,7 +244,6 @@ class EnvHelper:
             self.AZURE_OPENAI_API_KEY = ""
             self.AZURE_SPEECH_KEY = None
             self.AZURE_COMPUTER_VISION_KEY = None
-            self.FUNCTION_KEY = self.secretHelper.get_secret("FUNCTION_KEY")
         else:
             self.AZURE_SEARCH_KEY = self.secretHelper.get_secret("AZURE_SEARCH_KEY")
             self.AZURE_OPENAI_API_KEY = self.secretHelper.get_secret(
@@ -429,8 +429,11 @@ class SecretHelper:
         self.USE_KEY_VAULT = os.getenv("USE_KEY_VAULT", "").lower() == "true"
         self.secret_client = None
         if self.USE_KEY_VAULT:
+            vault_endpoint = os.environ.get("AZURE_KEY_VAULT_ENDPOINT")
+            if not vault_endpoint:
+                raise ValueError("AZURE_KEY_VAULT_ENDPOINT environment variable is required when USE_KEY_VAULT is true")
             self.secret_client = SecretClient(
-                os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), get_azure_credential()
+                vault_endpoint, get_azure_credential(client_id=os.getenv("MANAGED_IDENTITY_CLIENT_ID", None))
             )
 
     def get_secret(self, secret_name: str) -> str:

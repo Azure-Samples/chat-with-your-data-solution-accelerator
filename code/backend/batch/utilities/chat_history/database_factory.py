@@ -25,7 +25,7 @@ class DatabaseFactory:
                 f"https://{env_helper.AZURE_COSMOSDB_ACCOUNT}.documents.azure.com:443/"
             )
             credential = (
-                get_azure_credential()
+                get_azure_credential(env_helper.MANAGED_IDENTITY_CLIENT_ID)
                 if not env_helper.AZURE_COSMOSDB_ACCOUNT_KEY
                 else env_helper.AZURE_COSMOSDB_ACCOUNT_KEY
             )

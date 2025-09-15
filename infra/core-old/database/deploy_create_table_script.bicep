@@ -10,13 +10,13 @@ param managedIdentityName string
 param functionAppPrincipalName string
 
 resource create_index 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
-  kind:'AzureCLI'
+  kind: 'AzureCLI'
   name: 'create_postgres_table'
   location: solutionLocation // Replace with your desired location
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${identity}' : {}
+      '${identity}': {}
     }
   }
   properties: {
@@ -25,6 +25,6 @@ resource create_index 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
     arguments: '${baseUrl} ${resourceGroup().name} ${postgresSqlServerName} ${webAppPrincipalName} ${adminAppPrincipalName} ${functionAppPrincipalName} ${managedIdentityName}' // Specify any arguments for the script
     timeout: 'PT1H' // Specify the desired timeout duration
     retentionInterval: 'PT1H' // Specify the desired retention interval
-    cleanupPreference:'OnSuccess'
+    cleanupPreference: 'OnSuccess'
   }
 }

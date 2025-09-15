@@ -33,7 +33,7 @@ class AzureSearchSkillset:
             (
                 AzureKeyCredential(self.env_helper.AZURE_SEARCH_KEY)
                 if self.env_helper.is_auth_type_keys()
-                else get_azure_credential()
+                else get_azure_credential(self.env_helper.MANAGED_IDENTITY_CLIENT_ID)
             ),
         )
         self.integrated_vectorization_config = integrated_vectorization_config

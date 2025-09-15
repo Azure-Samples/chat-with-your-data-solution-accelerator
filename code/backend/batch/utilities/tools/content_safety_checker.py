@@ -19,7 +19,7 @@ class ContentSafetyChecker(AnswerProcessingBase):
             logger.info("Initializing ContentSafetyClient with RBAC authentication.")
             self.content_safety_client = ContentSafetyClient(
                 env_helper.AZURE_CONTENT_SAFETY_ENDPOINT,
-                get_azure_credential(),
+                get_azure_credential(env_helper.MANAGED_IDENTITY_CLIENT_ID),
             )
         else:
             logger.info(

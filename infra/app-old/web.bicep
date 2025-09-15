@@ -18,7 +18,6 @@ param healthCheckPath string = ''
 // Database parameters
 param databaseType string = 'CosmosDB' // 'CosmosDB' or 'PostgreSQL'
 
-
 module web '../core/host/appservice.bicep' = {
   name: '${name}-app-module'
   params: {
