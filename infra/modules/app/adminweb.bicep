@@ -64,7 +64,7 @@ param vnetRouteAllEnabled bool = false
 param virtualNetworkSubnetId string = ''
 
 @description('Optional. Whether or not public network access is allowed for this resource.')
-param publicNetworkAccess string = ''
+param publicNetworkAccess string?
 
 @description('Optional. Configuration details for private endpoints.')
 param privateEndpoints array = []

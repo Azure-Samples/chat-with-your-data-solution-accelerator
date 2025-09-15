@@ -75,7 +75,7 @@ param diagnosticSettings array = []
   'Enabled'
   'Disabled'
 ])
-param publicNetworkAccess string = 'Enabled'
+param publicNetworkAccess string?
 
 var useDocker = !empty(dockerFullImageName)
 var kind = useDocker ? 'functionapp,linux,container' : 'functionapp,linux'
@@ -95,12 +95,9 @@ module function '../core/host/functions.bicep' = {
     dockerFullImageName: dockerFullImageName
     userAssignedIdentityResourceId: userAssignedIdentityResourceId
     userAssignedIdentityClientId: userAssignedIdentityClientId
-    appSettings: union(
-      appSettings,
-      {
-        WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
-      }
-    )
+    appSettings: union(appSettings, {
+      WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
+    })
     httpsOnly: httpsOnly
     virtualNetworkSubnetId: virtualNetworkSubnetId
     vnetContentShareEnabled: vnetContentShareEnabled
@@ -108,7 +105,7 @@ module function '../core/host/functions.bicep' = {
     vnetRouteAllEnabled: vnetRouteAllEnabled
     privateEndpoints: privateEndpoints
     diagnosticSettings: diagnosticSettings
-    publicNetworkAccess: publicNetworkAccess
+    publicNetworkAccess: empty(publicNetworkAccess) ? null : publicNetworkAccess
   }
 }
 

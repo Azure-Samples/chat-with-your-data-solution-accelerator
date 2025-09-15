@@ -63,18 +63,6 @@ var hostingPlanName string = 'asp-${solutionSuffix}'
 ])
 param hostingPlanSku string = 'B3'
 
-@description('The sku tier for the App Service plan')
-@allowed([
-  'Free'
-  'Shared'
-  'Basic'
-  'Standard'
-  'Premium'
-  'PremiumV2'
-  'PremiumV3'
-])
-param skuTier string = 'Basic'
-
 @description('The type of database to deploy (cosmos or postgres)')
 @allowed([
   'PostgreSQL'
@@ -521,11 +509,9 @@ var privateDnsZones = [
   'privatelink.openai.azure.com'
   'privatelink.blob.${environment().suffixes.storage}'
   'privatelink.queue.${environment().suffixes.storage}'
-  'privatelink.file.${environment().suffixes.storage}'
   'privatelink.documents.azure.com'
   'privatelink.postgres.cosmos.azure.com'
   'privatelink.vaultcore.azure.net'
-  'privatelink.azurecr.io'
   'privatelink.azurewebsites.net'
   'privatelink.search.windows.net'
   'privatelink.api.azureml.ms'
@@ -537,14 +523,13 @@ var dnsZoneIndex = {
   openAI: 1
   storageBlob: 2
   storageQueue: 3
-  storageFile: 4
-  cosmosDB: 5 // 'privatelink.mongo.cosmos.azure.com'
-  postgresDB: 6 // 'privatelink.postgres.cosmos.azure.com'
-  keyVault: 7
-  containerRegistry: 8
-  appService: 9
-  searchService: 10
-  machinelearning: 11
+  cosmosDB: 4 // 'privatelink.mongo.cosmos.azure.com'
+  postgresDB: 5 // 'privatelink.postgres.cosmos.azure.com'
+  keyVault: 6
+  appService: 7
+  searchService: 8
+  machinelearning: 9
+  // The indexes for 'storageFile' and 'containerRegistry' have been removed as they were unused
 }
 
 // ===================================================
@@ -919,7 +904,7 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled' // Always enabling public network access
     privateEndpoints: enablePrivateNetworking
       ? [
           {
@@ -1033,7 +1018,7 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled' // Always enabling public network access
     privateEndpoints: enablePrivateNetworking
       ? [
           {
@@ -1221,7 +1206,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled' // Always enabling public network access
     privateEndpoints: enablePrivateNetworking
       ? [
           {
@@ -1331,7 +1316,7 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled' // Always enabling public network access
     privateEndpoints: enablePrivateNetworking
       ? [
           {
@@ -1371,7 +1356,7 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled' // Always enabling public network access
     privateEndpoints: enablePrivateNetworking
       ? [
           {
@@ -1466,7 +1451,7 @@ module function_docker 'modules/app/function.bicep' = if (hostingModel == 'conta
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled' // Always enabling public network access
     privateEndpoints: enablePrivateNetworking
       ? [
           {
