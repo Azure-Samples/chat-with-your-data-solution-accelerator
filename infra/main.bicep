@@ -690,7 +690,7 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
     location: location
     tags: allTags
     kind: 'OpenAI'
-    sku: 'S0'
+    sku: azureOpenAISkuName
     deployments: openAiDeployments
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     enablePrivateNetworking: enablePrivateNetworking
@@ -734,7 +734,7 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
     kind: 'ComputerVision'
     location: computerVisionLocation != '' ? computerVisionLocation : location
     tags: allTags
-    sku: 'S0'
+    sku: computerVisionSkuName
 
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null

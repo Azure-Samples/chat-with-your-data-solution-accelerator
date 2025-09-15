@@ -45,7 +45,7 @@ param allowedFqdnList array?
 param kind string = 'OpenAI'
 
 @description('Optional. The SKU of the Cognitive Services resource.')
-@allowed(['S0', 'S1', 'S2', 'S3'])
+@allowed(['F0', 'S0', 'S1', 'S2', 'S3'])
 param sku string = 'S0'
 
 @description('Optional. The deployments to create in the Cognitive Services resource.')
