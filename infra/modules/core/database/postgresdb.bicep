@@ -67,6 +67,7 @@ param allowAzureIPsFirewall bool = false
 param version string = '16'
 
 var postgresResourceName = '${name}-postgres'
+var serverName = postgresResourceName
 
 // AVM PostgreSQL Flexible Server module
 module postgres 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.13.1' = {
@@ -151,8 +152,8 @@ resource delayScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
 // -------- Outputs -------- //
 @description('Output object containing PostgreSQL server configuration details including server name, database name, username, and SSL mode.')
 output postgresDbOutput object = {
-  postgresSQLName: postgres.name
-  postgreSQLServerName: '${postgres.name}.postgres.database.azure.com'
+  postgresSQLName: serverName
+  postgreSQLServerName: '${serverName}.postgres.database.azure.com'
   postgreSQLDatabaseName: 'postgres'
   sslMode: 'Require'
 }

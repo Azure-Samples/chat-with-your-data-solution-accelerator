@@ -1740,13 +1740,6 @@ module createIndex 'modules/core/database/deploy_create_table_script.bicep' = if
     identity: managedIdentityModule.outputs.managedIdentityOutput.id
     baseUrl: baseUrl
     postgresSqlServerName: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-    webAppPrincipalName: hostingModel == 'code' ? web.outputs.FRONTEND_API_NAME : web_docker.outputs.FRONTEND_API_NAME
-    adminAppPrincipalName: hostingModel == 'code'
-      ? adminweb.outputs.WEBSITE_ADMIN_NAME
-      : adminweb_docker.outputs.WEBSITE_ADMIN_NAME
-    functionAppPrincipalName: hostingModel == 'code'
-      ? function.outputs.functionName
-      : function_docker.outputs.functionName
     managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
   }
   scope: resourceGroup()
