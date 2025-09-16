@@ -957,6 +957,7 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
         SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         AZURE_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
       },
@@ -1072,6 +1073,7 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
         SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         AZURE_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
       },
@@ -1164,6 +1166,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
         DATABASE_TYPE: databaseType
         USE_KEY_VAULT: 'true'
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         APP_ENV: appEnvironment
       },
       databaseType == 'CosmosDB'
@@ -1274,6 +1277,7 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
         DATABASE_TYPE: databaseType
         USE_KEY_VAULT: 'true'
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         APP_ENV: appEnvironment
       },
       databaseType == 'CosmosDB'
@@ -1398,6 +1402,7 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
@@ -1493,6 +1498,7 @@ module function_docker 'modules/app/function.bicep' = if (hostingModel == 'conta
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
