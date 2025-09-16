@@ -553,7 +553,7 @@ var dnsZoneIndex = {
 // - Excludes AI-related zones when using with an existing Foundry project
 // ===================================================
 @batchSize(5)
-module avmPrivateDnsZones 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
+module avmPrivateDnsZones './modules/network/private-dns-zone/main.bicep' = [
   for (zone, i) in privateDnsZones: if (enablePrivateNetworking) {
     name: 'avm.res.network.private-dns-zone.${contains(zone, 'azurecontainerapps.io') ? 'containerappenv' : split(zone, '.')[1]}'
     params: {
@@ -715,12 +715,19 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
 
     // align with AVM conventions
     privateDnsZoneResourceId: enablePrivateNetworking ? avmPrivateDnsZones[dnsZoneIndex.openAI]!.outputs.resourceId : ''
-    roleAssignments: [
+    roleAssignments: concat([
       {
         roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
         principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
         principalType: 'ServicePrincipal'
       }
+      {
+        roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd' // Cognitive Services Contributor
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+        principalType: 'ServicePrincipal'
+      }
+    ],
+    !empty(principalId) ? [
       {
         roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
         principalId: principalId
@@ -728,15 +735,10 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
       }
       {
         roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd' // Cognitive Services Contributor
-        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
-        principalType: 'ServicePrincipal'
-      }
-      {
-        roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd' // Cognitive Services Contributor
         principalId: principalId
         principalType: 'User'
       }
-    ]
+    ] : [])
   }
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
@@ -759,18 +761,19 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
     privateDnsZoneResourceId: enablePrivateNetworking
       ? avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
       : ''
-    roleAssignments: [
+    roleAssignments: concat([
       {
         roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
         principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
         principalType: 'ServicePrincipal'
-      }
+      }],
+    !empty(principalId) ? [
       {
         roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
         principalId: principalId
         principalType: 'User'
       }
-    ]
+    ] : [])
   }
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
@@ -793,18 +796,20 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
     privateDnsZoneResourceId: enablePrivateNetworking
       ? avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
       : ''
-    roleAssignments: [
+    roleAssignments: concat([
       {
         roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
         principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
         principalType: 'ServicePrincipal'
       }
+    ],
+    !empty(principalId) ? [
       {
         roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
         principalId: principalId
         principalType: 'User'
       }
-    ]
+    ] : [])
   }
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
@@ -842,21 +847,28 @@ module search 'modules/core/search/search-services.bicep' = if (databaseType == 
     replicaCount: 1
     semanticSearch: azureSearchUseSemanticSearch ? 'free' : 'disabled'
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
-    roleAssignments: [
+    roleAssignments: concat([
       {
         roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7' // Search Index Data Contributor
         principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
         principalType: 'ServicePrincipal'
-      }
-      {
-        roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7' // Search Index Data Contributor
-        principalId: principalId
-        principalType: 'User'
       }
       {
         roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0' // Search Service Contributor
         principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
         principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f' // Search Index Data Reader
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+        principalType: 'ServicePrincipal'
+      }
+    ],
+    !empty(principalId) ? [
+      {
+        roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7' // Search Index Data Contributor
+        principalId: principalId
+        principalType: 'User'
       }
       {
         roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0' // Search Service Contributor
@@ -865,15 +877,10 @@ module search 'modules/core/search/search-services.bicep' = if (databaseType == 
       }
       {
         roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f' // Search Index Data Reader
-        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
-        principalType: 'ServicePrincipal'
-      }
-      {
-        roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f' // Search Index Data Reader
         principalId: principalId
         principalType: 'User'
       }
-    ]
+    ] : [])
   }
 }
 
@@ -901,17 +908,22 @@ module webServerFarm 'br/public:avm/res/web/serverfarm:0.5.0' = {
   // scope: resourceGroup()
 }
 
-module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
-  name: take('module.web.site.${websiteName}', 64)
+module web 'modules/app/web.bicep' = if (hostingModel == 'code' || hostingModel == 'container') {
+  name: take('module.web.site.${websiteName}${hostingModel == 'container' ? '-docker' : ''}', 64)
   scope: resourceGroup()
   params: {
-    name: websiteName
+    // keep existing params but make them conditional so this single module covers both code and container hosting
+    name: hostingModel == 'container' ? '${websiteName}-docker' : websiteName
     location: location
-    tags: union(tags, { 'azd-service-name': 'web' })
-    kind: 'app,linux'
+    tags: union(tags, { 'azd-service-name': hostingModel == 'container' ? 'web-docker' : 'web' })
+    kind: hostingModel == 'container' ? 'app,linux,container' : 'app,linux'
     serverFarmResourceId: webServerFarm.outputs.resourceId
-    runtimeName: 'python'
-    runtimeVersion: '3.11'
+    // runtime settings apply only for code-hosted apps
+    runtimeName: hostingModel == 'code' ? 'python' : null
+    runtimeVersion: hostingModel == 'code' ? '3.11' : null
+    // docker-specific fields apply only for container-hosted apps
+    dockerFullImageName: hostingModel == 'container' ? '${registryName}.azurecr.io/rag-webapp:${appversion}' : null
+    useDocker: hostingModel == 'container' ? true : false
     allowedOrigins: []
     appCommandLine: ''
     userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
@@ -923,8 +935,8 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
     privateEndpoints: enablePrivateNetworking
       ? [
           {
-            name: take('pep-${websiteName}', 64)
-            customNetworkInterfaceName: 'nic-${websiteName}'
+            name: take('pep-${websiteName}${hostingModel == 'container' ? '-docker' : ''}', 64)
+            customNetworkInterfaceName: 'nic-${websiteName}${hostingModel == 'container' ? '-docker' : ''}'
             privateDnsZoneGroup: {
               privateDnsZoneGroupConfigs: [
                 { privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.appService]!.outputs.resourceId }
@@ -1008,140 +1020,28 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: websiteName
+                AZURE_POSTGRESQL_USER: hostingModel == 'container' ? '${websiteName}-docker' : websiteName
               }
             : {}
     )
   }
 }
 
-module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
-  name: take('module.web.site.${websiteName}-docker', 64)
+module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code'|| hostingModel == 'container') {
+  name: take('module.web.site.${adminWebsiteName}${hostingModel == 'container' ? '-docker' : ''}', 64)
   scope: resourceGroup()
   params: {
-    name: '${websiteName}-docker'
+    name: hostingModel == 'container' ? '${adminWebsiteName}-docker' : adminWebsiteName
     location: location
-    tags: union(tags, { 'azd-service-name': 'web-docker' })
-    kind: 'app,linux,container'
+    tags: union(tags, { 'azd-service-name': hostingModel == 'container' ? 'adminweb-docker' : 'adminweb' })
+    kind: hostingModel == 'container' ? 'app,linux,container' : 'app,linux'
     serverFarmResourceId: webServerFarm.outputs.resourceId
-    dockerFullImageName: '${registryName}.azurecr.io/rag-webapp:${appversion}'
-    useDocker: true
-    allowedOrigins: []
-    appCommandLine: ''
-    userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
-    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId }] : []
-    vnetRouteAllEnabled: enablePrivateNetworking ? true : false
-    vnetImagePullEnabled: enablePrivateNetworking ? true : false
-    virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: take('pep-${websiteName}-docker', 64)
-            customNetworkInterfaceName: 'nic-${websiteName}-docker'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                { privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.appService]!.outputs.resourceId }
-              ]
-            }
-            service: 'sites'
-            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
-          }
-        ]
-      : []
-    applicationInsightsName: enableMonitoring ? monitoring.outputs.applicationInsightsName : ''
-    appSettings: union(
-      {
-        AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-        AZURE_BLOB_CONTAINER_NAME: blobContainerName
-        AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
-        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
-        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.endpoint
-        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-        AZURE_OPENAI_MODEL: azureOpenAIModel
-        AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
-        AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
-        AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
-        AZURE_OPENAI_TOP_P: azureOpenAITopP
-        AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
-        AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
-        AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-        AZURE_OPENAI_STREAM: azureOpenAIStream
-        AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-        AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
-        AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
-
-        AZURE_SPEECH_SERVICE_NAME: speechServiceName
-        AZURE_SPEECH_SERVICE_REGION: location
-        AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
-        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing ? 'true' : 'false'
-        ADVANCED_IMAGE_PROCESSING_MAX_IMAGES: string(advancedImageProcessingMaxImages)
-        ORCHESTRATION_STRATEGY: orchestrationStrategy
-        CONVERSATION_FLOW: conversationFlow
-        LOGLEVEL: logLevel
-        DATABASE_TYPE: databaseType
-        OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
-        SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
-        MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
-        AZURE_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
-        APP_ENV: appEnvironment
-      },
-      databaseType == 'CosmosDB'
-        ? {
-            AZURE_COSMOSDB_ACCOUNT_NAME: cosmosDBModule!.outputs.cosmosOutput.cosmosAccountName
-            AZURE_COSMOSDB_DATABASE_NAME: cosmosDBModule!.outputs.cosmosOutput.cosmosDatabaseName
-            AZURE_COSMOSDB_CONVERSATIONS_CONTAINER_NAME: cosmosDBModule!.outputs.cosmosOutput.cosmosContainerName
-            AZURE_COSMOSDB_ENABLE_FEEDBACK: 'true'
-            AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch ? 'true' : 'false'
-            AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-            AZURE_SEARCH_INDEX: azureSearchIndex
-            AZURE_SEARCH_CONVERSATIONS_LOG_INDEX: azureSearchConversationLogIndex
-            AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
-            AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
-            AZURE_SEARCH_TOP_K: azureSearchTopK
-            AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
-            AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
-            AZURE_SEARCH_FILTER: azureSearchFilter
-            AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-            AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-            AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-            AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-            AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-            AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-            AZURE_SEARCH_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchTextColumn : ''
-            AZURE_SEARCH_LAYOUT_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchLayoutTextColumn : ''
-            AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-            AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
-            AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization ? 'true' : 'false'
-          }
-        : databaseType == 'PostgreSQL'
-            ? {
-                AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-                AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: '${websiteName}-docker'
-              }
-            : {}
-    )
-  }
-}
-
-module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
-  name: take('module.web.site.${adminWebsiteName}', 64)
-  scope: resourceGroup()
-  params: {
-    name: adminWebsiteName
-    location: location
-    tags: union(tags, { 'azd-service-name': 'adminweb' })
-    kind: 'app,linux'
-    serverFarmResourceId: webServerFarm.outputs.resourceId
-    // Python runtime settings
-    runtimeName: 'python'
-    runtimeVersion: '3.11'
+    // runtime settings apply only for code-hosted apps
+    runtimeName: hostingModel == 'code' ? 'python' : null
+    runtimeVersion: hostingModel == 'code' ? '3.11' : null
+    // docker-specific fields apply only for container-hosted apps
+    dockerFullImageName: hostingModel == 'container' ? '${registryName}.azurecr.io/rag-adminwebapp:${appversion}' : null
+    useDocker: hostingModel == 'container' ? true : false
     userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     // App settings
     appSettings: union(
@@ -1170,7 +1070,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
 
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing ? 'true' : 'false'
-        BACKEND_URL: 'https://${functionName}.azurewebsites.net'
+        BACKEND_URL: 'https://${hostingModel == 'container' ? 'adminweb-docker' : 'adminweb'}.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
         FUNCTION_KEY: 'FUNCTION-KEY'
         ORCHESTRATION_STRATEGY: orchestrationStrategy
@@ -1211,7 +1111,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.?outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.?outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: adminWebsiteName
+                AZURE_POSTGRESQL_USER: hostingModel == 'container' ? '${adminWebsiteName}-docker' : adminWebsiteName
               }
             : {}
     )
@@ -1240,130 +1140,20 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
   }
 }
 
-module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'container') {
-  name: take('module.web.site.${adminWebsiteName}-docker', 64)
+module function 'modules/app/function.bicep' = if (hostingModel == 'code' || hostingModel == 'container') {
+  name: hostingModel == 'container' ? '${functionName}-docker' : functionName
   scope: resourceGroup()
   params: {
-    name: '${adminWebsiteName}-docker'
+    name: hostingModel == 'container' ? '${functionName}-docker' : functionName
     location: location
-    tags: union(tags, { 'azd-service-name': 'adminweb-docker' })
-    kind: 'app,linux,container'
-    serverFarmResourceId: webServerFarm.outputs.resourceId
-    // Docker settings
-    dockerFullImageName: '${registryName}.azurecr.io/rag-adminwebapp:${appversion}'
-    useDocker: true
-    userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
-    // App settings
-    appSettings: union(
-      {
-        AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-        AZURE_BLOB_CONTAINER_NAME: blobContainerName
-        AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
-        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
-        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.endpoint
-        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-        AZURE_OPENAI_MODEL: azureOpenAIModel
-        AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
-        AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
-        AZURE_OPENAI_TEMPERATURE: azureOpenAITemperature
-        AZURE_OPENAI_TOP_P: azureOpenAITopP
-        AZURE_OPENAI_MAX_TOKENS: azureOpenAIMaxTokens
-        AZURE_OPENAI_STOP_SEQUENCE: azureOpenAIStopSequence
-        AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-        AZURE_OPENAI_STREAM: azureOpenAIStream
-        AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-        AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
-        AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
-
-        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing ? 'true' : 'false'
-        BACKEND_URL: 'https://${functionName}-docker.azurewebsites.net'
-        DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-        FUNCTION_KEY: 'FUNCTION-KEY'
-        ORCHESTRATION_STRATEGY: orchestrationStrategy
-        CONVERSATION_FLOW: conversationFlow
-        LOGLEVEL: logLevel
-        DATABASE_TYPE: databaseType
-        USE_KEY_VAULT: 'true'
-        MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
-        APP_ENV: appEnvironment
-      },
-      databaseType == 'CosmosDB'
-        ? {
-            AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-            AZURE_SEARCH_INDEX: azureSearchIndex
-            AZURE_SEARCH_USE_SEMANTIC_SEARCH: azureSearchUseSemanticSearch ? 'true' : 'false'
-            AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: azureSearchSemanticSearchConfig
-            AZURE_SEARCH_INDEX_IS_PRECHUNKED: azureSearchIndexIsPrechunked
-            AZURE_SEARCH_TOP_K: azureSearchTopK
-            AZURE_SEARCH_ENABLE_IN_DOMAIN: azureSearchEnableInDomain
-            AZURE_SEARCH_FILENAME_COLUMN: azureSearchFilenameColumn
-            AZURE_SEARCH_FILTER: azureSearchFilter
-            AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-            AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-            AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-            AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-            AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-            AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-            AZURE_SEARCH_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchTextColumn : ''
-            AZURE_SEARCH_LAYOUT_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchLayoutTextColumn : ''
-            AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-            AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
-            AZURE_SEARCH_URL_COLUMN: azureSearchUrlColumn
-            AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-            AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization ? 'true' : 'false'
-          }
-        : databaseType == 'PostgreSQL'
-            ? {
-                AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-                AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: '${adminWebsiteName}-docker'
-              }
-            : {}
-    )
-    applicationInsightsName: enableMonitoring ? monitoring.outputs.applicationInsightsName : ''
-    // WAF parameters
-    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId }] : []
-    vnetImagePullEnabled: enablePrivateNetworking ? true : false
-    vnetRouteAllEnabled: enablePrivateNetworking ? true : false
-    virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: take('pep-${adminWebsiteName}-docker', 64)
-            customNetworkInterfaceName: 'nic-${adminWebsiteName}-docker'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                { privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.appService]!.outputs.resourceId }
-              ]
-            }
-            service: 'sites'
-            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
-          }
-        ]
-      : []
-  }
-}
-
-module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
-  name: functionName
-  scope: resourceGroup()
-  params: {
-    name: functionName
-    location: location
-    tags: union(tags, { 'azd-service-name': 'function' })
+    tags: union(tags, { 'azd-service-name': hostingModel == 'container' ? 'function-docker' : 'function' })
     runtimeName: 'python'
     runtimeVersion: '3.11'
+    dockerFullImageName: hostingModel == 'container' ? '${registryName}.azurecr.io/rag-backend:${appversion}' : ''
     serverFarmResourceId: webServerFarm.outputs.resourceId
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     storageAccountName: storage.outputs.name
     clientKey: clientKey
-    // keyVaultName: keyvault.outputs.name
     userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     userAssignedIdentityClientId: managedIdentityModule.outputs.managedIdentityOutput.clientId
     // WAF aligned configurations
@@ -1375,8 +1165,8 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
     privateEndpoints: enablePrivateNetworking
       ? [
           {
-            name: take('pep-${functionName}', 64)
-            customNetworkInterfaceName: 'nic-${functionName}'
+            name: take('pep-${functionName}${hostingModel == 'container' ? '-docker' : ''}', 64)
+            customNetworkInterfaceName: 'nic-${functionName}${hostingModel == 'container' ? '-docker' : ''}'
             privateDnsZoneGroup: {
               privateDnsZoneGroupConfigs: [
                 { privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.appService]!.outputs.resourceId }
@@ -1415,7 +1205,6 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
         APP_ENV: appEnvironment
       },
-      // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
         ? {
             AZURE_SEARCH_INDEX: azureSearchIndex
@@ -1439,102 +1228,7 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: functionName
-              }
-            : {}
-    )
-  }
-}
-
-module function_docker 'modules/app/function.bicep' = if (hostingModel == 'container') {
-  name: '${functionName}-docker'
-  scope: resourceGroup()
-  params: {
-    name: '${functionName}-docker'
-    location: location
-    tags: union(tags, { 'azd-service-name': 'function-docker' })
-    dockerFullImageName: '${registryName}.azurecr.io/rag-backend:${appversion}'
-    serverFarmResourceId: webServerFarm.outputs.resourceId
-    applicationInsightsName: monitoring.outputs.applicationInsightsName
-    storageAccountName: storage.outputs.name
-    clientKey: clientKey
-    // keyVaultName: keyvault.outputs.name
-    userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
-    userAssignedIdentityClientId: managedIdentityModule.outputs.managedIdentityOutput.clientId
-    // WAF aligned configurations
-    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId }] : []
-    virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
-    vnetRouteAllEnabled: enablePrivateNetworking ? true : false
-    vnetImagePullEnabled: enablePrivateNetworking ? true : false
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: take('pep-${functionName}-docker', 64)
-            customNetworkInterfaceName: 'nic-${functionName}-docker'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                { privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.appService]!.outputs.resourceId }
-              ]
-            }
-            service: 'sites'
-            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
-          }
-        ]
-      : []
-    appSettings: union(
-      {
-        AZURE_BLOB_ACCOUNT_NAME: storageAccountName
-        AZURE_BLOB_CONTAINER_NAME: blobContainerName
-        AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
-        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
-        AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.endpoint
-        AZURE_OPENAI_MODEL: azureOpenAIModel
-        AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
-        AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
-        AZURE_OPENAI_EMBEDDING_MODEL: azureOpenAIEmbeddingModel
-        AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenAIEmbeddingModelName
-        AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
-        AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
-        AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-
-        USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing ? 'true' : 'false'
-        DOCUMENT_PROCESSING_QUEUE_NAME: queueName
-        ORCHESTRATION_STRATEGY: orchestrationStrategy
-        LOGLEVEL: logLevel
-        AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
-        DATABASE_TYPE: databaseType
-        MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
-        APP_ENV: appEnvironment
-      },
-      // Conditionally add database-specific settings
-      databaseType == 'CosmosDB'
-        ? {
-            AZURE_SEARCH_INDEX: azureSearchIndex
-            AZURE_SEARCH_SERVICE: 'https://${azureAISearchName}.search.windows.net'
-            AZURE_SEARCH_DATASOURCE_NAME: azureSearchDatasource
-            AZURE_SEARCH_INDEXER_NAME: azureSearchIndexer
-            AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: azureSearchUseIntegratedVectorization ? 'true' : 'false'
-            AZURE_SEARCH_FIELDS_ID: azureSearchFieldId
-            AZURE_SEARCH_CONTENT_COLUMN: azureSearchContentColumn
-            AZURE_SEARCH_CONTENT_VECTOR_COLUMN: azureSearchVectorColumn
-            AZURE_SEARCH_TITLE_COLUMN: azureSearchTitleColumn
-            AZURE_SEARCH_FIELDS_METADATA: azureSearchFieldsMetadata
-            AZURE_SEARCH_SOURCE_COLUMN: azureSearchSourceColumn
-            AZURE_SEARCH_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchTextColumn : ''
-            AZURE_SEARCH_LAYOUT_TEXT_COLUMN: azureSearchUseIntegratedVectorization ? azureSearchLayoutTextColumn : ''
-            AZURE_SEARCH_CHUNK_COLUMN: azureSearchChunkColumn
-            AZURE_SEARCH_OFFSET_COLUMN: azureSearchOffsetColumn
-            AZURE_SEARCH_TOP_K: azureSearchTopK
-          }
-        : databaseType == 'PostgreSQL'
-            ? {
-                AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.?outputs.postgresDbOutput.postgreSQLServerName
-                AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.?outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: '${functionName}-docker'
+                AZURE_POSTGRESQL_USER: hostingModel == 'container' ? '${functionName}-docker' : functionName
               }
             : {}
     )
@@ -1563,11 +1257,9 @@ module workbook 'modules/app/workbook.bicep' = {
     workbookDisplayName: workbookDisplayName
     location: location
     hostingPlanName: webServerFarm.outputs.name
-    functionName: hostingModel == 'container' ? function_docker.outputs.functionName : function.outputs.functionName
-    websiteName: hostingModel == 'container' ? web_docker.outputs.FRONTEND_API_NAME : web.outputs.FRONTEND_API_NAME
-    adminWebsiteName: hostingModel == 'container'
-      ? adminweb_docker.outputs.WEBSITE_ADMIN_NAME
-      : adminweb.outputs.WEBSITE_ADMIN_NAME
+    functionName: function.outputs.functionName
+    websiteName: web.outputs.FRONTEND_API_NAME
+    adminWebsiteName: adminweb.outputs.WEBSITE_ADMIN_NAME
     eventGridSystemTopicName: eventgrid.outputs.name
     logAnalyticsResourceId: monitoring.outputs.logAnalyticsWorkspaceId
     azureOpenAIResourceName: openai.outputs.name
@@ -1599,18 +1291,19 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
     privateDnsZoneResourceId: enablePrivateNetworking
       ? avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
       : ''
-    roleAssignments: [
+    roleAssignments: concat([
       {
         roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
         principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
         principalType: 'ServicePrincipal'
-      }
+      }],
+      !empty(principalId) ? [
       {
         roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
         principalId: principalId
         principalType: 'User'
       }
-    ]
+    ] : [])
   }
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
@@ -1632,18 +1325,20 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
     privateDnsZoneResourceId: enablePrivateNetworking
       ? avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
       : ''
-    roleAssignments: [
+    roleAssignments: concat([
       {
         roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
         principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
         principalType: 'ServicePrincipal'
       }
+    ],
+    !empty(principalId) ? [
       {
         roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
         principalId: principalId
         principalType: 'User'
       }
-    ]
+    ] : [])
   }
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
@@ -1759,10 +1454,8 @@ module createIndex 'modules/core/database/deploy_create_table_script.bicep' = if
   }
   scope: resourceGroup()
   dependsOn: hostingModel == 'code'
-    ? [postgresDBModule, web, adminweb, function]
-    : [
-        [postgresDBModule, web_docker, adminweb_docker, function_docker]
-      ]
+    ? [postgresDBModule, web, adminweb]
+    : [postgresDBModule, web, adminweb, function]
 }
 
 var azureOpenAIModelInfo = string({
@@ -1876,15 +1569,9 @@ output AZURE_TENANT_ID string = tenant().tenantId
 output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
 output BACKEND_URL string = backendUrl
-output AzureWebJobsStorage string = hostingModel == 'code'
-  ? function.outputs.AzureWebJobsStorage
-  : function_docker.outputs.AzureWebJobsStorage
-output FRONTEND_WEBSITE_NAME string = hostingModel == 'code'
-  ? web.outputs.FRONTEND_API_URI
-  : web_docker.outputs.FRONTEND_API_URI
-output ADMIN_WEBSITE_NAME string = hostingModel == 'code'
-  ? adminweb.outputs.WEBSITE_ADMIN_URI
-  : adminweb_docker.outputs.WEBSITE_ADMIN_URI
+output AzureWebJobsStorage string = function.outputs.AzureWebJobsStorage
+output FRONTEND_WEBSITE_NAME string = web.outputs.FRONTEND_API_URI
+output ADMIN_WEBSITE_NAME string = adminweb.outputs.WEBSITE_ADMIN_URI
 output LOGLEVEL string = logLevel
 output CONVERSATION_FLOW string = conversationFlow
 output USE_ADVANCED_IMAGE_PROCESSING bool = useAdvancedImageProcessing

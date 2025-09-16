@@ -53,7 +53,7 @@ param subnetResourceId string = ''
 param privateDnsZoneResourceIds array = []
 
 // Use the AVM module for Machine Learning Workspace
-module workspace 'br/public:avm/res/machine-learning-services/workspace:0.3.0' = {
+module workspace '../machine-learning-services/workspace/main.bicep' = {
   name: 'avm-${workspaceName}-deployment'
   params: {
     // Required parameters
@@ -127,6 +127,42 @@ module workspace 'br/public:avm/res/machine-learning-services/workspace:0.3.0' =
           }
         ]
       : []
+    connections:[
+    {
+      name: 'openai_connection'
+      category: 'AzureOpenAI'
+      target: azureOpenAIEndpoint
+      metadata: {
+        apiType: 'azure'
+        resourceId: azureOpenAIId
+      }
+      connectionProperties: {
+        authType: 'ApiKey'
+        credentials: {
+          key: listKeys(azureOpenAIId, '2023-05-01').key1
+        }
+      }
+    }
+    {
+      category: 'CognitiveSearch'
+      target: azureAISearchEndpoint
+      name: 'aisearch_connection'
+      connectionProperties: {
+        authType: 'ApiKey'
+        credentials: {
+          key: listAdminKeys(
+            resourceId(
+              subscription().subscriptionId,
+              resourceGroup().name,
+              'Microsoft.Search/searchServices',
+              azureAISearchName
+            ),
+            '2023-11-01'
+          ).primaryKey
+        }
+      }
+    }
+  ]
   }
 }
 
@@ -137,50 +173,6 @@ var azureOpenAIId = resourceId(
   'Microsoft.CognitiveServices/accounts',
   azureOpenAIName
 )
-
-// Create Azure OpenAI connection
-resource openai_connection 'Microsoft.MachineLearningServices/workspaces/connections@2024-01-01-preview' = {
-  name: '${workspaceName}/openai_connection'
-  properties: {
-    authType: 'ApiKey'
-    credentials: {
-      key: listKeys(azureOpenAIId, '2023-05-01').key1
-    }
-    category: 'AzureOpenAI'
-    target: azureOpenAIEndpoint
-    metadata: {
-      apiType: 'azure'
-      resourceId: azureOpenAIId
-    }
-  }
-  dependsOn: [
-    workspace
-  ]
-}
-
-// Create Azure AI Search connection if Azure AI Search is provided
-resource aisearch_connection 'Microsoft.MachineLearningServices/workspaces/connections@2024-01-01-preview' = if (azureAISearchName != '') {
-  name: '${workspaceName}/aisearch_connection'
-  properties: {
-    authType: 'ApiKey'
-    credentials: {
-      key: listAdminKeys(
-        resourceId(
-          subscription().subscriptionId,
-          resourceGroup().name,
-          'Microsoft.Search/searchServices',
-          azureAISearchName
-        ),
-        '2023-11-01'
-      ).primaryKey
-    }
-    category: 'CognitiveSearch'
-    target: azureAISearchEndpoint
-  }
-  dependsOn: [
-    workspace
-  ]
-}
 
 // Outputs to maintain compatibility with the previous implementation
 output workspaceName string = workspaceName

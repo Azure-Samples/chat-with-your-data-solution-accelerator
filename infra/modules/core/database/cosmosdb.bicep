@@ -32,7 +32,7 @@ var partitionKeyPath = '/userId'
 //     ]
 //   : []
 
-module cosmosDb 'br/public:avm/res/document-db/database-account:0.15.1' = {
+module cosmosDb '../../document-db/database-account/main.bicep' = {
   name: take('avm.res.document-db.database-account.${cosmosDbResourceName}', 64)
   params: {
     name: cosmosDbResourceName

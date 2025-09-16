@@ -63,7 +63,7 @@ var queueItems = [
 
 var kind = 'StorageV2'
 
-module avmStorage 'br/public:avm/res/storage/storage-account:0.26.2' = {
+module avmStorage '../../storage/storage-account/main.bicep' = {
   name: take('avm.res.storage.storage-account.${storageAccountName}', 64)
   params: {
     name: storageAccountName
