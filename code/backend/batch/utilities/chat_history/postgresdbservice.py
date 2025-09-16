@@ -33,7 +33,7 @@ class PostgresConversationClient(DatabaseClientBase):
                 database=self.database,
                 password=token,
                 port=5432,
-                ssl="require",
+                ssl=True,
             )
         except Exception as e:
             logger.error("Failed to connect to PostgreSQL: %s", e)

@@ -63,18 +63,6 @@ var hostingPlanName string = 'asp-${solutionSuffix}'
 ])
 param hostingPlanSku string = 'B3'
 
-@description('The sku tier for the App Service plan')
-@allowed([
-  'Free'
-  'Shared'
-  'Basic'
-  'Standard'
-  'Premium'
-  'PremiumV2'
-  'PremiumV3'
-])
-param skuTier string = 'Basic'
-
 @description('The type of database to deploy (cosmos or postgres)')
 @allowed([
   'PostgreSQL'
@@ -361,7 +349,7 @@ param enableRedundancy bool = false
 param enablePrivateNetworking bool = false
 
 @description('Optional. Size of the Jumpbox Virtual Machine when created. Set to custom value if enablePrivateNetworking is true.')
-param vmSize string?
+param vmSize string = 'Standard_DS2_v2'
 
 @secure()
 @description('Optional. The user name for the administrator account of the virtual machine. Allows to customize credentials if `enablePrivateNetworking` is set to true.')
@@ -521,11 +509,9 @@ var privateDnsZones = [
   'privatelink.openai.azure.com'
   'privatelink.blob.${environment().suffixes.storage}'
   'privatelink.queue.${environment().suffixes.storage}'
-  'privatelink.file.${environment().suffixes.storage}'
   'privatelink.documents.azure.com'
   'privatelink.postgres.cosmos.azure.com'
   'privatelink.vaultcore.azure.net'
-  'privatelink.azurecr.io'
   'privatelink.azurewebsites.net'
   'privatelink.search.windows.net'
   'privatelink.api.azureml.ms'
@@ -537,14 +523,13 @@ var dnsZoneIndex = {
   openAI: 1
   storageBlob: 2
   storageQueue: 3
-  storageFile: 4
-  cosmosDB: 5 // 'privatelink.mongo.cosmos.azure.com'
-  postgresDB: 6 // 'privatelink.postgres.cosmos.azure.com'
-  keyVault: 7
-  containerRegistry: 8
-  appService: 9
-  searchService: 10
-  machinelearning: 11
+  cosmosDB: 4 // 'privatelink.mongo.cosmos.azure.com'
+  postgresDB: 5 // 'privatelink.postgres.cosmos.azure.com'
+  keyVault: 6
+  appService: 7
+  searchService: 8
+  machinelearning: 9
+  // The indexes for 'storageFile' and 'containerRegistry' have been removed as they were unused
 }
 
 // ===================================================
@@ -705,7 +690,7 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
     location: location
     tags: allTags
     kind: 'OpenAI'
-    sku: 'S0'
+    sku: azureOpenAISkuName
     deployments: openAiDeployments
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     enablePrivateNetworking: enablePrivateNetworking
@@ -749,7 +734,7 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
     kind: 'ComputerVision'
     location: computerVisionLocation != '' ? computerVisionLocation : location
     tags: allTags
-    sku: 'S0'
+    sku: computerVisionSkuName
 
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
@@ -919,7 +904,7 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled' // Always enabling public network access
     privateEndpoints: enablePrivateNetworking
       ? [
           {
@@ -972,6 +957,7 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
         SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         AZURE_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
       },
@@ -1008,7 +994,7 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: websiteName
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )
@@ -1022,6 +1008,7 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
     name: '${websiteName}-docker'
     location: location
     tags: union(tags, { 'azd-service-name': 'web-docker' })
+    allTags: allTags
     kind: 'app,linux,container'
     serverFarmResourceId: webServerFarm.outputs.resourceId
     dockerFullImageName: '${registryName}.azurecr.io/rag-webapp:${appversion}'
@@ -1033,7 +1020,7 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled' // Always enabling public network access
     privateEndpoints: enablePrivateNetworking
       ? [
           {
@@ -1087,6 +1074,7 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
         SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         AZURE_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
       },
@@ -1123,7 +1111,7 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: '${websiteName}-docker'
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )
@@ -1137,6 +1125,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
     name: adminWebsiteName
     location: location
     tags: union(tags, { 'azd-service-name': 'adminweb' })
+    allTags: allTags
     kind: 'app,linux'
     serverFarmResourceId: webServerFarm.outputs.resourceId
     // Python runtime settings
@@ -1179,6 +1168,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
         DATABASE_TYPE: databaseType
         USE_KEY_VAULT: 'true'
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         APP_ENV: appEnvironment
       },
       databaseType == 'CosmosDB'
@@ -1211,7 +1201,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.?outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.?outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: adminWebsiteName
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )
@@ -1221,7 +1211,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled' // Always enabling public network access
     privateEndpoints: enablePrivateNetworking
       ? [
           {
@@ -1247,6 +1237,7 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
     name: '${adminWebsiteName}-docker'
     location: location
     tags: union(tags, { 'azd-service-name': 'adminweb-docker' })
+    allTags: allTags
     kind: 'app,linux,container'
     serverFarmResourceId: webServerFarm.outputs.resourceId
     // Docker settings
@@ -1289,6 +1280,7 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
         DATABASE_TYPE: databaseType
         USE_KEY_VAULT: 'true'
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         APP_ENV: appEnvironment
       },
       databaseType == 'CosmosDB'
@@ -1321,7 +1313,7 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: '${adminWebsiteName}-docker'
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )
@@ -1331,7 +1323,7 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled' // Always enabling public network access
     privateEndpoints: enablePrivateNetworking
       ? [
           {
@@ -1371,7 +1363,7 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled' // Always enabling public network access
     privateEndpoints: enablePrivateNetworking
       ? [
           {
@@ -1413,6 +1405,7 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
@@ -1439,7 +1432,7 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: functionName
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )
@@ -1466,7 +1459,7 @@ module function_docker 'modules/app/function.bicep' = if (hostingModel == 'conta
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled' // Always enabling public network access
     privateEndpoints: enablePrivateNetworking
       ? [
           {
@@ -1508,6 +1501,7 @@ module function_docker 'modules/app/function.bicep' = if (hostingModel == 'conta
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
@@ -1534,7 +1528,7 @@ module function_docker 'modules/app/function.bicep' = if (hostingModel == 'conta
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.?outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.?outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: '${functionName}-docker'
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )

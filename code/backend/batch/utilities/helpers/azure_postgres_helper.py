@@ -31,7 +31,7 @@ class AzurePostgresHelper:
 
             # Use the token in the connection string
             conn_string = (
-                f"host={host} user={user} dbname={dbname} password={access_token.token}"
+                f"host={host} user={user} dbname={dbname} password={access_token.token} sslmode=require"
             )
             self.conn = psycopg2.connect(conn_string)
             logger.info("Connected to Azure PostgreSQL successfully.")
