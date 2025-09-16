@@ -190,7 +190,7 @@ module functions 'appservice.bicep' = {
     clientAffinityEnabled: clientAffinityEnabled
     kind: kind
     managedIdentities: {
-      systemAssigned: true
+      systemAssigned: false
       userAssignedResourceIds: !empty(userAssignedIdentityResourceId)
         ? [
             userAssignedIdentityResourceId
