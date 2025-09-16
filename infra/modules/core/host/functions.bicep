@@ -143,6 +143,8 @@ var appConfigs = [
         FUNCTIONS_EXTENSION_VERSION: extensionVersion
         SCM_DO_BUILD_DURING_DEPLOYMENT: string(scmDoBuildDuringDeployment)
         ENABLE_ORYX_BUILD: string(enableOryxBuild)
+        AZURE_RESOURCE_GROUP: resourceGroup().name
+        AZURE_SUBSCRIPTION_ID: subscription().subscriptionId
         // Set the storage account settings to use user managed identity authentication
         AzureWebJobsStorage__accountName: storageAccountName
         AzureWebJobsStorage__credential: 'managedidentity'
