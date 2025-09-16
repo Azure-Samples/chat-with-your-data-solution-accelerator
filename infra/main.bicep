@@ -349,7 +349,7 @@ param enableRedundancy bool = false
 param enablePrivateNetworking bool = false
 
 @description('Optional. Size of the Jumpbox Virtual Machine when created. Set to custom value if enablePrivateNetworking is true.')
-param vmSize string?
+param vmSize string = 'Standard_DS2_v2'
 
 @secure()
 @description('Optional. The user name for the administrator account of the virtual machine. Allows to customize credentials if `enablePrivateNetworking` is set to true.')
@@ -690,7 +690,7 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
     location: location
     tags: allTags
     kind: 'OpenAI'
-    sku: 'S0'
+    sku: azureOpenAISkuName
     deployments: openAiDeployments
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     enablePrivateNetworking: enablePrivateNetworking
@@ -734,7 +734,7 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
     kind: 'ComputerVision'
     location: computerVisionLocation != '' ? computerVisionLocation : location
     tags: allTags
-    sku: 'S0'
+    sku: computerVisionSkuName
 
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
@@ -957,6 +957,7 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
         SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         AZURE_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
       },
@@ -993,7 +994,7 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code') {
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: websiteName
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )
@@ -1072,6 +1073,7 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
         SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         AZURE_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
       },
@@ -1108,7 +1110,7 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: '${websiteName}-docker'
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )
@@ -1164,6 +1166,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
         DATABASE_TYPE: databaseType
         USE_KEY_VAULT: 'true'
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         APP_ENV: appEnvironment
       },
       databaseType == 'CosmosDB'
@@ -1196,7 +1199,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.?outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.?outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: adminWebsiteName
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )
@@ -1274,6 +1277,7 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
         DATABASE_TYPE: databaseType
         USE_KEY_VAULT: 'true'
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         APP_ENV: appEnvironment
       },
       databaseType == 'CosmosDB'
@@ -1306,7 +1310,7 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: '${adminWebsiteName}-docker'
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )
@@ -1398,6 +1402,7 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
@@ -1424,7 +1429,7 @@ module function 'modules/app/function.bicep' = if (hostingModel == 'code') {
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: functionName
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )
@@ -1493,6 +1498,7 @@ module function_docker 'modules/app/function.bicep' = if (hostingModel == 'conta
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.managedIdentityOutput.clientId
+        MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.managedIdentityOutput.id
         APP_ENV: appEnvironment
       },
       // Conditionally add database-specific settings
@@ -1519,7 +1525,7 @@ module function_docker 'modules/app/function.bicep' = if (hostingModel == 'conta
             ? {
                 AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.?outputs.postgresDbOutput.postgreSQLServerName
                 AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.?outputs.postgresDbOutput.postgreSQLDatabaseName
-                AZURE_POSTGRESQL_USER: '${functionName}-docker'
+                AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
     )
