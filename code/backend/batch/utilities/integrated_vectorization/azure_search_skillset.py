@@ -11,6 +11,7 @@ from azure.search.documents.indexes.models import (
     SearchIndexerIndexProjectionsParameters,
     IndexProjectionMode,
     SearchIndexerSkillset,
+    SearchIndexerDataUserAssignedIdentity,
 )
 from azure.search.documents.indexes import SearchIndexerClient
 from ..helpers.config.config_helper import IntegratedVectorizationConfig
@@ -94,6 +95,9 @@ class AzureSearchSkillset:
                 self.env_helper.OPENAI_API_KEY
                 if self.env_helper.is_auth_type_keys()
                 else None
+            ),
+            auth_identity=SearchIndexerDataUserAssignedIdentity(
+                user_assigned_identity=self.env_helper.MANAGED_IDENTITY_RESOURCE_ID
             ),
             inputs=[
                 InputFieldMappingEntry(name="text", source="/document/pages/*"),

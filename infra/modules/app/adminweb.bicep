@@ -6,7 +6,7 @@ param location string = resourceGroup().location
 
 @description('Tags for all resources.')
 param tags object = {}
-
+param allTags object = {}
 @description('Origin URLs allowed to call this web app.')
 param allowedOrigins array = []
 
@@ -64,10 +64,11 @@ param vnetRouteAllEnabled bool = false
 param virtualNetworkSubnetId string = ''
 
 @description('Optional. Whether or not public network access is allowed for this resource.')
-param publicNetworkAccess string = ''
+param publicNetworkAccess string?
 
 @description('Optional. Configuration details for private endpoints.')
 param privateEndpoints array = []
+
 
 // Calculate the linuxFxVersion based on runtime or docker settings
 var linuxFxVersion = useDocker
@@ -93,9 +94,9 @@ var appConfigs = [
       appSettings,
       {
         SCM_DO_BUILD_DURING_DEPLOYMENT: string(scmDoBuildDuringDeployment)
-      },
-      {
         ENABLE_ORYX_BUILD: string(enableOryxBuild)
+        AZURE_RESOURCE_GROUP: resourceGroup().name
+        AZURE_SUBSCRIPTION_ID: subscription().subscriptionId
       },
       runtimeName == 'python' && appCommandLine == '' ? { PYTHON_ENABLE_GUNICORN_MULTIWORKERS: 'true' } : {}
     )
@@ -114,6 +115,7 @@ module adminweb '../core/host/appservice.bicep' = {
     name: name
     location: location
     tags: tags
+    allTags: allTags
     kind: kind
     serverFarmResourceId: serverFarmResourceId
     siteConfig: siteConfig
