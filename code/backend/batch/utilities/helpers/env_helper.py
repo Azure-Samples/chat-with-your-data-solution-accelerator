@@ -40,6 +40,7 @@ class EnvHelper:
         self.AZURE_SUBSCRIPTION_ID = os.getenv("AZURE_SUBSCRIPTION_ID", "")
         self.AZURE_RESOURCE_GROUP = os.getenv("AZURE_RESOURCE_GROUP", "")
         self.MANAGED_IDENTITY_CLIENT_ID = os.getenv("MANAGED_IDENTITY_CLIENT_ID", "")
+        self.MANAGED_IDENTITY_RESOURCE_ID = os.getenv("MANAGED_IDENTITY_RESOURCE_ID", "")
 
         # Azure Search
         self.AZURE_SEARCH_SERVICE = os.getenv("AZURE_SEARCH_SERVICE", "")

@@ -1,6 +1,7 @@
 from azure.search.documents.indexes.models import (
     SearchIndexerDataContainer,
     SearchIndexerDataSourceConnection,
+    SearchIndexerDataUserAssignedIdentity,
 )
 from azure.search.documents.indexes._generated.models import (
     NativeBlobSoftDeleteDeletionDetectionPolicy,
@@ -35,6 +36,9 @@ class AzureSearchDatasource:
             connection_string=connection_string,
             container=container,
             data_deletion_detection_policy=NativeBlobSoftDeleteDeletionDetectionPolicy(),
+            identity=SearchIndexerDataUserAssignedIdentity(
+                user_assigned_identity=self.env_helper.MANAGED_IDENTITY_RESOURCE_ID
+            ),
         )
         self.indexer_client.create_or_update_data_source_connection(
             data_source_connection
