@@ -6,6 +6,7 @@ param location string = resourceGroup().location
 
 @description('Tags for all resources.')
 param tags object = {}
+param allTags object = {}
 
 @description('Origin URLs allowed to call this web app.')
 param allowedOrigins array = []
@@ -116,6 +117,7 @@ module web '../core/host/appservice.bicep' = {
     name: name
     location: location
     tags: tags
+    allTags: allTags
     kind: kind
     serverFarmResourceId: serverFarmResourceId
     siteConfig: siteConfig

@@ -1007,6 +1007,7 @@ module web_docker 'modules/app/web.bicep' = if (hostingModel == 'container') {
     name: '${websiteName}-docker'
     location: location
     tags: union(tags, { 'azd-service-name': 'web-docker' })
+    allTags: allTags
     kind: 'app,linux,container'
     serverFarmResourceId: webServerFarm.outputs.resourceId
     dockerFullImageName: '${registryName}.azurecr.io/rag-webapp:${appversion}'
@@ -1122,6 +1123,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code') {
     name: adminWebsiteName
     location: location
     tags: union(tags, { 'azd-service-name': 'adminweb' })
+    allTags: allTags
     kind: 'app,linux'
     serverFarmResourceId: webServerFarm.outputs.resourceId
     // Python runtime settings
@@ -1232,6 +1234,7 @@ module adminweb_docker 'modules/app/adminweb.bicep' = if (hostingModel == 'conta
     name: '${adminWebsiteName}-docker'
     location: location
     tags: union(tags, { 'azd-service-name': 'adminweb-docker' })
+    allTags: allTags
     kind: 'app,linux,container'
     serverFarmResourceId: webServerFarm.outputs.resourceId
     // Docker settings
