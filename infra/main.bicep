@@ -674,7 +674,7 @@ var openAiDeployments = concat(
             version: azureOpenAIVisionModelVersion
           }
           sku: {
-            name: 'Standard'
+            name: 'GlobalStandard'
             capacity: azureOpenAIVisionModelCapacity
           }
         }
@@ -734,7 +734,7 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
   params: {
     name: computerVisionName
     kind: 'ComputerVision'
-    location: computerVisionLocation != '' ? computerVisionLocation : location
+    location: computerVisionLocation != '' ? computerVisionLocation : 'eastus' // Default to eastus if no location provided
     tags: allTags
     sku: computerVisionSkuName
 
