@@ -917,21 +917,6 @@ module web 'modules/app/web.bicep' = {
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
     publicNetworkAccess: 'Enabled' // Always enabling public network access
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: take('pep-${websiteName}${hostingModel == 'container' ? '-docker' : ''}', 64)
-            customNetworkInterfaceName: 'nic-${websiteName}${hostingModel == 'container' ? '-docker' : ''}'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                { privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.appService]!.outputs.resourceId }
-              ]
-            }
-            service: 'sites'
-            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
-          }
-        ]
-      : []
     applicationInsightsName: enableMonitoring ? monitoring.outputs.applicationInsightsName : ''
     appSettings: union(
       {
@@ -1057,7 +1042,7 @@ module adminweb 'modules/app/adminweb.bicep' = {
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
 
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing ? 'true' : 'false'
-        BACKEND_URL: 'https://${hostingModel == 'container' ? 'adminweb-docker' : 'adminweb'}.azurewebsites.net'
+        BACKEND_URL: 'https://${hostingModel == 'container' ? '${functionName}-docker' : functionName}.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
         FUNCTION_KEY: 'FUNCTION-KEY'
         ORCHESTRATION_STRATEGY: orchestrationStrategy
@@ -1110,21 +1095,6 @@ module adminweb 'modules/app/adminweb.bicep' = {
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
     publicNetworkAccess: 'Enabled' // Always enabling public network access
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: take('pep-${adminWebsiteName}', 64)
-            customNetworkInterfaceName: 'nic-${adminWebsiteName}'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                { privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.appService]!.outputs.resourceId }
-              ]
-            }
-            service: 'sites'
-            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
-          }
-        ]
-      : []
   }
 }
 
@@ -1150,21 +1120,6 @@ module function 'modules/app/function.bicep' = {
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     publicNetworkAccess: 'Enabled' // Always enabling public network access
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: take('pep-${functionName}${hostingModel == 'container' ? '-docker' : ''}', 64)
-            customNetworkInterfaceName: 'nic-${functionName}${hostingModel == 'container' ? '-docker' : ''}'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                { privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.appService]!.outputs.resourceId }
-              ]
-            }
-            service: 'sites'
-            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
-          }
-        ]
-      : []
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
