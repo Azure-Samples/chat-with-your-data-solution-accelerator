@@ -32,6 +32,9 @@ param privateDnsZoneResourceId string = ''
 @description('Optional. Resource ID of the user-assigned managed identity to be used by the Cognitive Services resource.')
 param userAssignedResourceId string = ''
 
+@description('Optional. Flag to enable a system-assigned managed identity for the Cognitive Services resource.')
+param enableSystemAssigned bool = false
+
 @description('Optional. Flag to disable local authentication for the Cognitive Services resource.')
 param disableLocalAuth bool = true
 
@@ -53,7 +56,8 @@ param deployments array = []
 
 @description('Optional. Array of role assignments to create for the Cognitive Services resource.')
 param roleAssignments array = []
-
+@description('Optional. Array of role assignments to apply to the system-assigned identity at the Cognitive Services account scope. Each item: { roleDefinitionId: "<GUID or built-in role definition id>" }')
+param systemAssignedRoleAssignments array = []
 // Resource variables
 var cognitiveResourceName = name
 
@@ -67,7 +71,7 @@ module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' =
     sku: sku
     customSubDomainName: customSubDomainName
     disableLocalAuth: disableLocalAuth
-    managedIdentities: { systemAssigned: false, userAssignedResourceIds: [userAssignedResourceId] }
+    managedIdentities: { systemAssigned: enableSystemAssigned, userAssignedResourceIds: [userAssignedResourceId] }
     roleAssignments: roleAssignments
     restrictOutboundNetworkAccess: restrictOutboundNetworkAccess
     allowedFqdnList: restrictOutboundNetworkAccess ? (allowedFqdnList ?? []) : []
@@ -101,7 +105,20 @@ module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' =
     deployments: deployments
   }
 }
-
+// --- System-assigned identity role assignments (optional) --- //
+@description('Role assignments applied to the system-assigned identity via AVM module. Objects can include: roleDefinitionId (req), roleName, principalType, resourceId.')
+module systemAssignedIdentityRoleAssignments 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = [
+  for assignment in systemAssignedRoleAssignments: if (enableSystemAssigned && !empty(systemAssignedRoleAssignments)) {
+    name: take('avm.ptn.authorization.resource-role-assignment.${uniqueString(cognitiveResourceName, assignment.roleDefinitionId, assignment.resourceId)}', 64)
+    params: {
+      roleDefinitionId: assignment.roleDefinitionId
+      principalId: cognitiveServices.outputs.systemAssignedMIPrincipalId
+      resourceId: assignment.resourceId
+      roleName: assignment.roleName
+      principalType: assignment.principalType
+    }
+  }
+]
 // -------- Outputs -------- //
 @description('The endpoint URL of the Cognitive Services resource.')
 output endpoint string = cognitiveServices.outputs.endpoint

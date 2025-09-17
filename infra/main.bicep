@@ -675,7 +675,7 @@ var openAiDeployments = concat(
             version: azureOpenAIVisionModelVersion
           }
           sku: {
-            name: 'Standard'
+            name: 'GlobalStandard'
             capacity: azureOpenAIVisionModelCapacity
           }
         }
@@ -694,6 +694,11 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
     sku: azureOpenAISkuName
     deployments: openAiDeployments
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
+    restrictOutboundNetworkAccess: true
+    allowedFqdnList: [
+      '${storageAccountName}.blob.${environment().suffixes.storage}'
+      '${storageAccountName}.queue.${environment().suffixes.storage}'
+    ]
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
 
@@ -735,7 +740,7 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
   params: {
     name: computerVisionName
     kind: 'ComputerVision'
-    location: computerVisionLocation != '' ? computerVisionLocation : location
+    location: computerVisionLocation != '' ? computerVisionLocation : 'eastus' // Default to eastus if no location provided
     tags: allTags
     sku: computerVisionSkuName
 
@@ -1236,9 +1241,15 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
     privateDnsZoneResourceId: enablePrivateNetworking
       ? avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
       : ''
+    enableSystemAssigned: true
     roleAssignments: concat([
       {
         roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
         principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
         principalType: 'ServicePrincipal'
       }],
@@ -1249,6 +1260,14 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
         principalType: 'User'
       }
     ] : [])
+    systemAssignedRoleAssignments: [
+      {
+        resourceId: storage.outputs.id
+        roleName: 'Storage Blob Data Contributor'
+        roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+        principalType: 'ServicePrincipal'
+      }
+    ]
   }
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
