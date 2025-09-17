@@ -695,9 +695,8 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     restrictOutboundNetworkAccess: true
     allowedFqdnList: [
-      '${azureOpenAIResourceName}.openai.azure.com'
-      'login.microsoftonline.com'
-      'sts.windows.net'
+      '${storageAccountName}.blob.${environment().suffixes.storage}'
+      '${storageAccountName}.queue.${environment().suffixes.storage}'
     ]
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
