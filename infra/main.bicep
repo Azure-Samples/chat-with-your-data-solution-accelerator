@@ -1289,7 +1289,7 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
       }
       {
         roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-        principalId: reference(resourceId('Microsoft.CognitiveServices/accounts', formRecognizerName), '2021-10-01').identity.principalId
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
         principalType: 'ServicePrincipal'
       }],
       !empty(principalId) ? [
