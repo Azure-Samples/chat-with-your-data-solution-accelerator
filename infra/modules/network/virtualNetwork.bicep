@@ -22,7 +22,7 @@ param logAnalyticsWorkspaceId string
 @description('Optional. Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
 
-// 1. Create NSGs for subnets 
+// 1. Create NSGs for subnets
 // using AVM Network Security Group module
 // https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/network/network-security-group
 
@@ -54,7 +54,7 @@ module virtualNetwork 'br/public:avm/res/network/virtual-network:0.7.0' = {
       for (subnet, i) in subnets: {
         name: subnet.name
         addressPrefixes: subnet.?addressPrefixes
-        networkSecurityGroupResourceId: !empty(subnet.?networkSecurityGroup) ? nsgs[i].outputs.resourceId : null
+        networkSecurityGroupResourceId: !empty(subnet.?networkSecurityGroup) ? nsgs[i]!.outputs.resourceId : null
         privateEndpointNetworkPolicies: subnet.?privateEndpointNetworkPolicies
         privateLinkServiceNetworkPolicies: subnet.?privateLinkServiceNetworkPolicies
         delegation: subnet.?delegation
@@ -92,7 +92,7 @@ output subnets subnetOutputType[] = [
     name: subnet.name
     resourceId: virtualNetwork.outputs.subnetResourceIds[i]
     nsgName: !empty(subnet.?networkSecurityGroup) ? subnet.?networkSecurityGroup.name : null
-    nsgResourceId: !empty(subnet.?networkSecurityGroup) ? nsgs[i].outputs.resourceId : null
+    nsgResourceId: !empty(subnet.?networkSecurityGroup) ? nsgs[i]!.outputs.resourceId : null
   }
 ]
 

@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "14381680802765579985"
+      "templateHash": "7912984718988455394"
     }
   },
   "parameters": {
@@ -33,7 +33,7 @@
         "azd": {
           "type": "location"
         },
-        "description": "Location for all resources, if you are using existing resource group provide the location of the resorce group."
+        "description": "Required. Location for all resources, if you are using existing resource group provide the location of the resorce group."
       }
     },
     "existingLogAnalyticsWorkspaceId": {
@@ -61,7 +61,7 @@
         "P4"
       ],
       "metadata": {
-        "description": "The pricing tier for the App Service plan"
+        "description": "Optional.The pricing tier for the App Service plan"
       }
     },
     "databaseType": {
@@ -72,217 +72,217 @@
         "CosmosDB"
       ],
       "metadata": {
-        "description": "The type of database to deploy (cosmos or postgres)"
+        "description": "Required. The type of database to deploy (cosmos or postgres)"
       }
     },
     "azureSearchUseSemanticSearch": {
       "type": "bool",
       "defaultValue": false,
       "metadata": {
-        "description": "Use semantic search"
+        "description": "Optional. Use semantic search"
       }
     },
     "azureSearchSemanticSearchConfig": {
       "type": "string",
       "defaultValue": "default",
       "metadata": {
-        "description": "Semantic search config"
+        "description": "Optional. Semantic search config"
       }
     },
     "azureSearchIndexIsPrechunked": {
       "type": "string",
       "defaultValue": "false",
       "metadata": {
-        "description": "Is the index prechunked"
+        "description": "Optional. Is the index prechunked"
       }
     },
     "azureSearchTopK": {
       "type": "string",
       "defaultValue": "5",
       "metadata": {
-        "description": "Top K results"
+        "description": "Optional. Top K results"
       }
     },
     "azureSearchEnableInDomain": {
       "type": "string",
       "defaultValue": "true",
       "metadata": {
-        "description": "Enable in domain"
+        "description": "Optional. Enable in domain"
       }
     },
     "azureSearchFieldId": {
       "type": "string",
       "defaultValue": "id",
       "metadata": {
-        "description": "Id columns"
+        "description": "Optional. Id columns"
       }
     },
     "azureSearchContentColumn": {
       "type": "string",
       "defaultValue": "content",
       "metadata": {
-        "description": "Content columns"
+        "description": "Optional. Content columns"
       }
     },
     "azureSearchVectorColumn": {
       "type": "string",
       "defaultValue": "content_vector",
       "metadata": {
-        "description": "Vector columns"
+        "description": "Optional. Vector columns"
       }
     },
     "azureSearchFilenameColumn": {
       "type": "string",
       "defaultValue": "filename",
       "metadata": {
-        "description": "Filename column"
+        "description": "Optional. Filename column"
       }
     },
     "azureSearchFilter": {
       "type": "string",
       "defaultValue": "",
       "metadata": {
-        "description": "Search filter"
+        "description": "Optional. Search filter"
       }
     },
     "azureSearchTitleColumn": {
       "type": "string",
       "defaultValue": "title",
       "metadata": {
-        "description": "Title column"
+        "description": "Optional. Title column"
       }
     },
     "azureSearchFieldsMetadata": {
       "type": "string",
       "defaultValue": "metadata",
       "metadata": {
-        "description": "Metadata column"
+        "description": "Optional. Metadata column"
       }
     },
     "azureSearchSourceColumn": {
       "type": "string",
       "defaultValue": "source",
       "metadata": {
-        "description": "Source column"
+        "description": "Optional. Source column"
       }
     },
     "azureSearchTextColumn": {
       "type": "string",
       "defaultValue": "text",
       "metadata": {
-        "description": "Text column"
+        "description": "Optional. Text column"
       }
     },
     "azureSearchLayoutTextColumn": {
       "type": "string",
       "defaultValue": "layoutText",
       "metadata": {
-        "description": "Layout Text column"
+        "description": "Optional. Layout Text column"
       }
     },
     "azureSearchChunkColumn": {
       "type": "string",
       "defaultValue": "chunk",
       "metadata": {
-        "description": "Chunk column"
+        "description": "Optional. Chunk column"
       }
     },
     "azureSearchOffsetColumn": {
       "type": "string",
       "defaultValue": "offset",
       "metadata": {
-        "description": "Offset column"
+        "description": "Optional. Offset column"
       }
     },
     "azureSearchUrlColumn": {
       "type": "string",
       "defaultValue": "url",
       "metadata": {
-        "description": "Url column"
+        "description": "Optional. Url column"
       }
     },
     "azureSearchUseIntegratedVectorization": {
       "type": "bool",
       "defaultValue": false,
       "metadata": {
-        "description": "Whether to use Azure Search Integrated Vectorization. If the database type is PostgreSQL, set this to false."
+        "description": "Optional. Whether to use Azure Search Integrated Vectorization. If the database type is PostgreSQL, set this to false."
       }
     },
     "azureOpenAISkuName": {
       "type": "string",
       "defaultValue": "S0",
       "metadata": {
-        "description": "Name of Azure OpenAI Resource SKU"
+        "description": "Optional. Name of Azure OpenAI Resource SKU"
       }
     },
     "azureOpenAIModel": {
       "type": "string",
       "defaultValue": "gpt-4.1",
       "metadata": {
-        "description": "Azure OpenAI Model Deployment Name"
+        "description": "Optional. Azure OpenAI Model Deployment Name"
       }
     },
     "azureOpenAIModelName": {
       "type": "string",
       "defaultValue": "gpt-4.1",
       "metadata": {
-        "description": "Azure OpenAI Model Name"
+        "description": "Optional. Azure OpenAI Model Name"
       }
     },
     "azureOpenAIModelVersion": {
       "type": "string",
       "defaultValue": "2025-04-14",
       "metadata": {
-        "description": "Azure OpenAI Model Version"
+        "description": "Optional. Azure OpenAI Model Version"
       }
     },
     "azureOpenAIModelCapacity": {
       "type": "int",
       "defaultValue": 30,
       "metadata": {
-        "description": "Azure OpenAI Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota"
+        "description": "Optional. Azure OpenAI Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota"
       }
     },
     "useAdvancedImageProcessing": {
       "type": "bool",
       "defaultValue": false,
       "metadata": {
-        "description": "Whether to enable the use of a vision LLM and Computer Vision for embedding images. If the database type is PostgreSQL, set this to false."
+        "description": "Optional. Whether to enable the use of a vision LLM and Computer Vision for embedding images. If the database type is PostgreSQL, set this to false."
       }
     },
     "advancedImageProcessingMaxImages": {
       "type": "int",
       "defaultValue": 1,
       "metadata": {
-        "description": "The maximum number of images to pass to the vision model in a single request"
+        "description": "Optional. The maximum number of images to pass to the vision model in a single request"
       }
     },
     "azureOpenAIVisionModel": {
       "type": "string",
       "defaultValue": "gpt-4",
       "metadata": {
-        "description": "Azure OpenAI Vision Model Deployment Name"
+        "description": "Optional. Azure OpenAI Vision Model Deployment Name"
       }
     },
     "azureOpenAIVisionModelName": {
       "type": "string",
       "defaultValue": "gpt-4",
       "metadata": {
-        "description": "Azure OpenAI Vision Model Name"
+        "description": "Optional. Azure OpenAI Vision Model Name"
       }
     },
     "azureOpenAIVisionModelVersion": {
       "type": "string",
       "defaultValue": "turbo-2024-04-09",
       "metadata": {
-        "description": "Azure OpenAI Vision Model Version"
+        "description": "Optional. Azure OpenAI Vision Model Version"
       }
     },
     "azureOpenAIVisionModelCapacity": {
       "type": "int",
       "defaultValue": 10,
       "metadata": {
-        "description": "Azure OpenAI Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota"
+        "description": "Optional. Azure OpenAI Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota"
       }
     },
     "orchestrationStrategy": {
@@ -295,7 +295,7 @@
         "prompt_flow"
       ],
       "metadata": {
-        "description": "Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain. If the database type is PostgreSQL, set this to sementic_kernel."
+        "description": "Required. Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain. If the database type is PostgreSQL, set this to sementic_kernel."
       }
     },
     "conversationFlow": {
@@ -306,84 +306,84 @@
         "byod"
       ],
       "metadata": {
-        "description": "Chat conversation type: custom or byod. If the database type is PostgreSQL, set this to custom."
+        "description": "Required. Chat conversation type: custom or byod. If the database type is PostgreSQL, set this to custom."
       }
     },
     "azureOpenAITemperature": {
       "type": "string",
       "defaultValue": "0",
       "metadata": {
-        "description": "Azure OpenAI Temperature"
+        "description": "Optional. Azure OpenAI Temperature"
       }
     },
     "azureOpenAITopP": {
       "type": "string",
       "defaultValue": "1",
       "metadata": {
-        "description": "Azure OpenAI Top P"
+        "description": "Optional. Azure OpenAI Top P"
       }
     },
     "azureOpenAIMaxTokens": {
       "type": "string",
       "defaultValue": "1000",
       "metadata": {
-        "description": "Azure OpenAI Max Tokens"
+        "description": "Optional. Azure OpenAI Max Tokens"
       }
     },
     "azureOpenAIStopSequence": {
       "type": "string",
       "defaultValue": "",
       "metadata": {
-        "description": "Azure OpenAI Stop Sequence"
+        "description": "Optional. Azure OpenAI Stop Sequence"
       }
     },
     "azureOpenAISystemMessage": {
       "type": "string",
       "defaultValue": "You are an AI assistant that helps people find information.",
       "metadata": {
-        "description": "Azure OpenAI System Message"
+        "description": "Optional. Azure OpenAI System Message"
       }
     },
     "azureOpenAIApiVersion": {
       "type": "string",
       "defaultValue": "2024-02-01",
       "metadata": {
-        "description": "Azure OpenAI Api Version"
+        "description": "Optional. Azure OpenAI Api Version"
       }
     },
     "azureOpenAIStream": {
       "type": "string",
       "defaultValue": "true",
       "metadata": {
-        "description": "Whether or not to stream responses from Azure OpenAI"
+        "description": "Optional. Whether or not to stream responses from Azure OpenAI"
       }
     },
     "azureOpenAIEmbeddingModel": {
       "type": "string",
       "defaultValue": "text-embedding-ada-002",
       "metadata": {
-        "description": "Azure OpenAI Embedding Model Deployment Name"
+        "description": "Optional. Azure OpenAI Embedding Model Deployment Name"
       }
     },
     "azureOpenAIEmbeddingModelName": {
       "type": "string",
       "defaultValue": "text-embedding-ada-002",
       "metadata": {
-        "description": "Azure OpenAI Embedding Model Name"
+        "description": "Optional. Azure OpenAI Embedding Model Name"
       }
     },
     "azureOpenAIEmbeddingModelVersion": {
       "type": "string",
       "defaultValue": "2",
       "metadata": {
-        "description": "Azure OpenAI Embedding Model Version"
+        "description": "Optional. Azure OpenAI Embedding Model Version"
       }
     },
     "azureOpenAIEmbeddingModelCapacity": {
       "type": "int",
       "defaultValue": 30,
       "metadata": {
-        "description": "Azure OpenAI Embedding Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota"
+        "description": "Optional. Azure OpenAI Embedding Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota"
       }
     },
     "computerVisionSkuName": {
@@ -394,7 +394,7 @@
         "S1"
       ],
       "metadata": {
-        "description": "Name of Computer Vision Resource SKU (if useAdvancedImageProcessing=true)"
+        "description": "Optional. Name of Computer Vision Resource SKU (if useAdvancedImageProcessing=true)"
       }
     },
     "computerVisionLocation": {
@@ -411,21 +411,21 @@
         ""
       ],
       "metadata": {
-        "description": "Location of Computer Vision Resource (if useAdvancedImageProcessing=true)"
+        "description": "Optional. Location of Computer Vision Resource (if useAdvancedImageProcessing=true)"
       }
     },
     "computerVisionVectorizeImageApiVersion": {
       "type": "string",
       "defaultValue": "2024-02-01",
       "metadata": {
-        "description": "Azure Computer Vision Vectorize Image API Version"
+        "description": "Optional. Azure Computer Vision Vectorize Image API Version"
       }
     },
     "computerVisionVectorizeImageModelVersion": {
       "type": "string",
       "defaultValue": "2023-04-15",
       "metadata": {
-        "description": "Azure Computer Vision Vectorize Image Model Version"
+        "description": "Optional. Azure Computer Vision Vectorize Image Model Version"
       }
     },
     "azureSearchSku": {
@@ -439,19 +439,22 @@
         "standard3"
       ],
       "metadata": {
-        "description": "The SKU of the search service you want to create. E.g. free or standard"
+        "description": "Optional. The SKU of the search service you want to create. E.g. free or standard"
       }
     },
     "azureSearchConversationLogIndex": {
       "type": "string",
       "defaultValue": "conversations",
       "metadata": {
-        "description": "Azure AI Search Conversation Log Index"
+        "description": "Optional. Azure AI Search Conversation Log Index"
       }
     },
     "newGuidString": {
       "type": "string",
-      "defaultValue": "[newGuid()]"
+      "defaultValue": "[newGuid()]",
+      "metadata": {
+        "description": "Optional. A new GUID string generated for this deployment. This can be used for unique naming if needed."
+      }
     },
     "searchTag": {
       "type": "string",
@@ -461,21 +464,21 @@
       "type": "string",
       "defaultValue": "",
       "metadata": {
-        "description": "Id of the user or app to assign application roles"
+        "description": "Optional. Id of the user or app to assign application roles"
       }
     },
     "appEnvironment": {
       "type": "string",
       "defaultValue": "Prod",
       "metadata": {
-        "description": "Application Environment"
+        "description": "Optional. Application Environment"
       }
     },
     "hostingModel": {
       "type": "string",
       "defaultValue": "container",
       "metadata": {
-        "description": "Hosting model for the web apps. This value is fixed as \"container\", which uses prebuilt containers for faster deployment."
+        "description": "Required. Hosting model for the web apps. This value is fixed as \"container\", which uses prebuilt containers for faster deployment."
       }
     },
     "logLevel": {
@@ -487,13 +490,16 @@
         "WARN",
         "INFO",
         "DEBUG"
-      ]
+      ],
+      "metadata": {
+        "description": "Optional. The log level for application logging. This setting controls the verbosity of logs emitted by the application. Allowed values are CRITICAL, ERROR, WARN, INFO, and DEBUG. The default value is INFO."
+      }
     },
     "recognizedLanguages": {
       "type": "string",
       "defaultValue": "en-US,fr-FR,de-DE,it-IT",
       "metadata": {
-        "description": "List of comma-separated languages to recognize from the speech input. Supported languages are listed here: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=stt#supported-languages"
+        "description": "Optional. List of comma-separated languages to recognize from the speech input. Supported languages are listed here: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=stt#supported-languages"
       }
     },
     "tags": {
@@ -707,7 +713,7 @@
       "apiVersion": "2021-04-01",
       "name": "default",
       "properties": {
-        "tags": "[shallowMerge(createArray(variables('allTags'), createObject('TemplateName', 'CWYD', 'CreatedBy', parameters('createdBy'), 'SecurityControl', 'Ignore')))]"
+        "tags": "[shallowMerge(createArray(variables('allTags'), createObject('TemplateName', 'CWYD', 'CreatedBy', parameters('createdBy'))))]"
       }
     },
     "avmTelemetry": {
@@ -14551,7 +14557,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "242227279377514675"
+              "templateHash": "6632480610516632840"
             },
             "name": "Private DNS Zones",
             "description": "This module deploys a Private DNS zone."
@@ -14699,9 +14705,6 @@
                 "description": "Optional. Enable/Disable usage telemetry for module."
               }
             }
-          },
-          "variables": {
-            "enableReferencedModulesTelemetry": false
           },
           "resources": {
             "avmTelemetry": {
@@ -14971,7 +14974,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "354886765616147471"
+              "templateHash": "2046364116237506370"
             }
           },
           "parameters": {
@@ -15111,7 +15114,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "10645813824784395220"
+                      "templateHash": "9020118330644733811"
                     },
                     "name": "Azure Cosmos DB account",
                     "description": "This module deploys an Azure Cosmos DB account. The API used for the account is determined by the child resources that are deployed."
@@ -16008,81 +16011,6 @@
                         }
                       }
                     },
-                    "roleAssignmentType": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string",
-                          "nullable": true,
-                          "metadata": {
-                            "description": "Optional. The name (as GUID) of the role assignment. If not provided, a GUID will be generated."
-                          }
-                        },
-                        "roleDefinitionIdOrName": {
-                          "type": "string",
-                          "metadata": {
-                            "description": "Required. The role to assign. You can provide either the display name of the role definition, the role definition GUID, or its fully qualified ID in the following format: '/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11'."
-                          }
-                        },
-                        "principalId": {
-                          "type": "string",
-                          "metadata": {
-                            "description": "Required. The principal ID of the principal (user/group/identity) to assign the role to."
-                          }
-                        },
-                        "principalType": {
-                          "type": "string",
-                          "allowedValues": [
-                            "Device",
-                            "ForeignGroup",
-                            "Group",
-                            "ServicePrincipal",
-                            "User"
-                          ],
-                          "nullable": true,
-                          "metadata": {
-                            "description": "Optional. The principal type of the assigned principal ID."
-                          }
-                        },
-                        "description": {
-                          "type": "string",
-                          "nullable": true,
-                          "metadata": {
-                            "description": "Optional. The description of the role assignment."
-                          }
-                        },
-                        "condition": {
-                          "type": "string",
-                          "nullable": true,
-                          "metadata": {
-                            "description": "Optional. The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase \"foo_storage_container\"."
-                          }
-                        },
-                        "conditionVersion": {
-                          "type": "string",
-                          "allowedValues": [
-                            "2.0"
-                          ],
-                          "nullable": true,
-                          "metadata": {
-                            "description": "Optional. Version of the condition."
-                          }
-                        },
-                        "delegatedManagedIdentityResourceId": {
-                          "type": "string",
-                          "nullable": true,
-                          "metadata": {
-                            "description": "Optional. The Resource Id of the delegated managed identity resource."
-                          }
-                        }
-                      },
-                      "metadata": {
-                        "description": "An AVM-aligned type for a role assignment.",
-                        "__bicep_imported_from!": {
-                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
-                        }
-                      }
-                    },
                     "sqlRoleAssignmentType": {
                       "type": "object",
                       "properties": {
@@ -16240,22 +16168,6 @@
                         "description": "Optional. The maximum lag time in minutes. Required for \"BoundedStaleness\" consistency level. Valid ranges, Single Region: 5 to 84600. Multi Region: 300 to 86400. Defaults to 300."
                       }
                     },
-                    "serverVersion": {
-                      "type": "string",
-                      "defaultValue": "4.2",
-                      "allowedValues": [
-                        "3.2",
-                        "3.6",
-                        "4.0",
-                        "4.2",
-                        "5.0",
-                        "6.0",
-                        "7.0"
-                      ],
-                      "metadata": {
-                        "description": "Optional. Specifies the MongoDB server version to use if using Azure Cosmos DB for MongoDB RU. Defaults to \"4.2\"."
-                      }
-                    },
                     "sqlDatabases": {
                       "type": "array",
                       "items": {
@@ -16287,16 +16199,6 @@
                         "description": "Optional. The lock settings of the service."
                       }
                     },
-                    "roleAssignments": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/definitions/roleAssignmentType"
-                      },
-                      "nullable": true,
-                      "metadata": {
-                        "description": "Optional. An array of control plane Azure role-based access control assignments."
-                      }
-                    },
                     "dataPlaneRoleDefinitions": {
                       "type": "array",
                       "items": {
@@ -16305,16 +16207,6 @@
                       "nullable": true,
                       "metadata": {
                         "description": "Optional. Configurations for Azure Cosmos DB for NoSQL native role-based access control definitions. Allows the creations of custom role definitions."
-                      }
-                    },
-                    "dataPlaneRoleAssignments": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/definitions/dataPlaneRoleAssignmentType"
-                      },
-                      "nullable": true,
-                      "metadata": {
-                        "description": "Optional. Configurations for Azure Cosmos DB for NoSQL native role-based access control assignments."
                       }
                     },
                     "diagnosticSettings": {
@@ -16436,19 +16328,7 @@
                   "variables": {
                     "enableReferencedModulesTelemetry": false,
                     "formattedUserAssignedIdentities": "[reduce(map(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createArray()), lambda('id', createObject(format('{0}', lambdaVariables('id')), createObject()))), createObject(), lambda('cur', 'next', union(lambdaVariables('cur'), lambdaVariables('next'))))]",
-                    "identity": "[if(not(empty(parameters('managedIdentities'))), createObject('type', if(coalesce(tryGet(parameters('managedIdentities'), 'systemAssigned'), false()), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'SystemAssigned,UserAssigned', 'SystemAssigned'), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'UserAssigned', null())), 'userAssignedIdentities', if(not(empty(variables('formattedUserAssignedIdentities'))), variables('formattedUserAssignedIdentities'), null())), null())]",
-                    "builtInControlPlaneRoleNames": {
-                      "Contributor": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
-                      "Cosmos DB Account Reader Role": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'fbdf93bf-df7d-467e-a4d2-9458aa1360c8')]",
-                      "Cosmos DB Operator": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '230815da-be43-4aae-9cb4-875f7bd000aa')]",
-                      "CosmosBackupOperator": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'db7b14f2-5adf-42da-9f96-f2ee17bab5cb')]",
-                      "CosmosRestoreOperator": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5432c526-bc82-444a-b7ba-57c5b0b5b34f')]",
-                      "DocumentDB Account Contributor": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5bd9cd88-fe45-4216-938b-f97437e15450')]",
-                      "Owner": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635')]",
-                      "Reader": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')]",
-                      "Role Based Access Control Administrator": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f58310d9-a9f6-439a-9e8d-f62e7b41a168')]",
-                      "User Access Administrator": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9')]"
-                    }
+                    "identity": "[if(not(empty(parameters('managedIdentities'))), createObject('type', if(coalesce(tryGet(parameters('managedIdentities'), 'systemAssigned'), false()), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'SystemAssigned,UserAssigned', 'SystemAssigned'), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'UserAssigned', null())), 'userAssignedIdentities', if(not(empty(variables('formattedUserAssignedIdentities'))), variables('formattedUserAssignedIdentities'), null())), null())]"
                   },
                   "resources": {
                     "avmTelemetry": {
@@ -21133,7 +21013,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "613919470501731074"
+              "templateHash": "15762001763255941689"
             },
             "description": "Creates an Azure Key Vault."
           },
@@ -21217,13 +21097,6 @@
               "defaultValue": "",
               "metadata": {
                 "description": "Conditional. Resource ID of the Private DNS Zone. Required if enablePrivateNetworking is true."
-              }
-            },
-            "avmPrivateDnsZone": {
-              "type": "object",
-              "defaultValue": {},
-              "metadata": {
-                "description": "Conditional. Module output contract supplying the Private DNS Zone. Required if enablePrivateNetworking is true."
               }
             },
             "principalId": {
@@ -35274,7 +35147,6 @@
           "publicNetworkAccess": {
             "value": "Enabled"
           },
-          "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', take(format('pep-{0}{1}', variables('websiteName'), if(equals(parameters('hostingModel'), 'container'), '-docker', '')), 64), 'customNetworkInterfaceName', format('nic-{0}{1}', variables('websiteName'), if(equals(parameters('hostingModel'), 'container'), '-docker', '')), 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('privateDnsZoneResourceId', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').appService)).outputs.resourceId.value))), 'service', 'sites', 'subnetResourceId', reference('network').outputs.subnetPrivateEndpointsResourceId.value))), createObject('value', createArray()))]",
           "applicationInsightsName": "[if(parameters('enableMonitoring'), createObject('value', reference('monitoring').outputs.applicationInsightsName.value), createObject('value', ''))]",
           "appSettings": {
             "value": "[union(createObject('AZURE_BLOB_ACCOUNT_NAME', variables('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference('formrecognizer').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference('contentsafety').outputs.endpoint.value, 'AZURE_KEY_VAULT_ENDPOINT', reference('keyvault').outputs.endpoint.value, 'AZURE_OPENAI_RESOURCE', variables('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'AZURE_SPEECH_SERVICE_NAME', variables('speechServiceName'), 'AZURE_SPEECH_SERVICE_REGION', parameters('location'), 'AZURE_SPEECH_RECOGNIZER_LANGUAGES', parameters('recognizedLanguages'), 'USE_ADVANCED_IMAGE_PROCESSING', if(parameters('useAdvancedImageProcessing'), 'true', 'false'), 'ADVANCED_IMAGE_PROCESSING_MAX_IMAGES', string(parameters('advancedImageProcessingMaxImages')), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'DATABASE_TYPE', parameters('databaseType'), 'OPEN_AI_FUNCTIONS_SYSTEM_PROMPT', variables('openAIFunctionsSystemPrompt'), 'SEMANTIC_KERNEL_SYSTEM_PROMPT', variables('semanticKernelSystemPrompt'), 'MANAGED_IDENTITY_CLIENT_ID', reference('managedIdentityModule').outputs.managedIdentityOutput.value.clientId, 'MANAGED_IDENTITY_RESOURCE_ID', reference('managedIdentityModule').outputs.managedIdentityOutput.value.id, 'AZURE_CLIENT_ID', reference('managedIdentityModule').outputs.managedIdentityOutput.value.clientId, 'APP_ENV', parameters('appEnvironment')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_COSMOSDB_ACCOUNT_NAME', reference('cosmosDBModule').outputs.cosmosOutput.value.cosmosAccountName, 'AZURE_COSMOSDB_DATABASE_NAME', reference('cosmosDBModule').outputs.cosmosOutput.value.cosmosDatabaseName, 'AZURE_COSMOSDB_CONVERSATIONS_CONTAINER_NAME', reference('cosmosDBModule').outputs.cosmosOutput.value.cosmosContainerName, 'AZURE_COSMOSDB_ENABLE_FEEDBACK', 'true', 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', if(parameters('azureSearchUseSemanticSearch'), 'true', 'false'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', variables('azureAISearchName')), 'AZURE_SEARCH_INDEX', variables('azureSearchIndex'), 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', parameters('azureSearchConversationLogIndex'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', if(parameters('azureSearchUseIntegratedVectorization'), 'true', 'false')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', reference('postgresDBModule').outputs.postgresDbOutput.value.postgreSQLServerName, 'AZURE_POSTGRESQL_DATABASE_NAME', reference('postgresDBModule').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'AZURE_POSTGRESQL_USER', reference('managedIdentityModule').outputs.managedIdentityOutput.value.name), createObject())))]"
@@ -37536,7 +37408,6 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').appService)]",
         "computerVision",
         "contentsafety",
         "cosmosDBModule",
@@ -37581,7 +37452,7 @@
             "value": "[reference('managedIdentityModule').outputs.managedIdentityOutput.value.id]"
           },
           "appSettings": {
-            "value": "[union(createObject('AZURE_BLOB_ACCOUNT_NAME', variables('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference('formrecognizer').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference('contentsafety').outputs.endpoint.value, 'AZURE_KEY_VAULT_ENDPOINT', reference('keyvault').outputs.endpoint.value, 'AZURE_OPENAI_RESOURCE', variables('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'USE_ADVANCED_IMAGE_PROCESSING', if(parameters('useAdvancedImageProcessing'), 'true', 'false'), 'BACKEND_URL', format('https://{0}.azurewebsites.net', if(equals(parameters('hostingModel'), 'container'), 'adminweb-docker', 'adminweb')), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'FUNCTION_KEY', 'FUNCTION-KEY', 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'DATABASE_TYPE', parameters('databaseType'), 'USE_KEY_VAULT', 'true', 'MANAGED_IDENTITY_CLIENT_ID', reference('managedIdentityModule').outputs.managedIdentityOutput.value.clientId, 'MANAGED_IDENTITY_RESOURCE_ID', reference('managedIdentityModule').outputs.managedIdentityOutput.value.id, 'APP_ENV', parameters('appEnvironment')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', variables('azureAISearchName')), 'AZURE_SEARCH_INDEX', variables('azureSearchIndex'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', if(parameters('azureSearchUseSemanticSearch'), 'true', 'false'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_DATASOURCE_NAME', variables('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', variables('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', if(parameters('azureSearchUseIntegratedVectorization'), 'true', 'false')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', tryGet(if(equals(parameters('databaseType'), 'PostgreSQL'), reference('postgresDBModule'), null()), 'outputs', 'postgresDbOutput', 'value', 'postgreSQLServerName'), 'AZURE_POSTGRESQL_DATABASE_NAME', tryGet(if(equals(parameters('databaseType'), 'PostgreSQL'), reference('postgresDBModule'), null()), 'outputs', 'postgresDbOutput', 'value', 'postgreSQLDatabaseName'), 'AZURE_POSTGRESQL_USER', reference('managedIdentityModule').outputs.managedIdentityOutput.value.name), createObject())))]"
+            "value": "[union(createObject('AZURE_BLOB_ACCOUNT_NAME', variables('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference('formrecognizer').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference('contentsafety').outputs.endpoint.value, 'AZURE_KEY_VAULT_ENDPOINT', reference('keyvault').outputs.endpoint.value, 'AZURE_OPENAI_RESOURCE', variables('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'USE_ADVANCED_IMAGE_PROCESSING', if(parameters('useAdvancedImageProcessing'), 'true', 'false'), 'BACKEND_URL', format('https://{0}.azurewebsites.net', if(equals(parameters('hostingModel'), 'container'), format('{0}-docker', variables('functionName')), variables('functionName'))), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'FUNCTION_KEY', 'FUNCTION-KEY', 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'DATABASE_TYPE', parameters('databaseType'), 'USE_KEY_VAULT', 'true', 'MANAGED_IDENTITY_CLIENT_ID', reference('managedIdentityModule').outputs.managedIdentityOutput.value.clientId, 'MANAGED_IDENTITY_RESOURCE_ID', reference('managedIdentityModule').outputs.managedIdentityOutput.value.id, 'APP_ENV', parameters('appEnvironment')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', variables('azureAISearchName')), 'AZURE_SEARCH_INDEX', variables('azureSearchIndex'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', if(parameters('azureSearchUseSemanticSearch'), 'true', 'false'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_DATASOURCE_NAME', variables('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', variables('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', if(parameters('azureSearchUseIntegratedVectorization'), 'true', 'false')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', tryGet(if(equals(parameters('databaseType'), 'PostgreSQL'), reference('postgresDBModule'), null()), 'outputs', 'postgresDbOutput', 'value', 'postgreSQLServerName'), 'AZURE_POSTGRESQL_DATABASE_NAME', tryGet(if(equals(parameters('databaseType'), 'PostgreSQL'), reference('postgresDBModule'), null()), 'outputs', 'postgresDbOutput', 'value', 'postgreSQLDatabaseName'), 'AZURE_POSTGRESQL_USER', reference('managedIdentityModule').outputs.managedIdentityOutput.value.name), createObject())))]"
           },
           "applicationInsightsName": "[if(parameters('enableMonitoring'), createObject('value', reference('monitoring').outputs.applicationInsightsName.value), createObject('value', ''))]",
           "diagnosticSettings": "[if(parameters('enableMonitoring'), createObject('value', createArray(createObject('workspaceResourceId', reference('monitoring').outputs.logAnalyticsWorkspaceId.value))), createObject('value', createArray()))]",
@@ -37590,8 +37461,7 @@
           "virtualNetworkSubnetId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference('network').outputs.subnetWebResourceId.value), createObject('value', ''))]",
           "publicNetworkAccess": {
             "value": "Enabled"
-          },
-          "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', take(format('pep-{0}', variables('adminWebsiteName')), 64), 'customNetworkInterfaceName', format('nic-{0}', variables('adminWebsiteName')), 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('privateDnsZoneResourceId', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').appService)).outputs.resourceId.value))), 'service', 'sites', 'subnetResourceId', reference('network').outputs.subnetPrivateEndpointsResourceId.value))), createObject('value', createArray()))]"
+          }
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -39849,7 +39719,6 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').appService)]",
         "computerVision",
         "contentsafety",
         "formrecognizer",
@@ -39910,7 +39779,6 @@
           "publicNetworkAccess": {
             "value": "Enabled"
           },
-          "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', take(format('pep-{0}{1}', variables('functionName'), if(equals(parameters('hostingModel'), 'container'), '-docker', '')), 64), 'customNetworkInterfaceName', format('nic-{0}{1}', variables('functionName'), if(equals(parameters('hostingModel'), 'container'), '-docker', '')), 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('privateDnsZoneResourceId', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').appService)).outputs.resourceId.value))), 'service', 'sites', 'subnetResourceId', reference('network').outputs.subnetWebResourceId.value))), createObject('value', createArray()))]",
           "appSettings": {
             "value": "[union(createObject('AZURE_BLOB_ACCOUNT_NAME', variables('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference('formrecognizer').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference('contentsafety').outputs.endpoint.value, 'AZURE_KEY_VAULT_ENDPOINT', reference('keyvault').outputs.endpoint.value, 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'AZURE_OPENAI_RESOURCE', variables('azureOpenAIResourceName'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'USE_ADVANCED_IMAGE_PROCESSING', if(parameters('useAdvancedImageProcessing'), 'true', 'false'), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'LOGLEVEL', parameters('logLevel'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'DATABASE_TYPE', parameters('databaseType'), 'MANAGED_IDENTITY_CLIENT_ID', reference('managedIdentityModule').outputs.managedIdentityOutput.value.clientId, 'MANAGED_IDENTITY_RESOURCE_ID', reference('managedIdentityModule').outputs.managedIdentityOutput.value.id, 'APP_ENV', parameters('appEnvironment')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_SEARCH_INDEX', variables('azureSearchIndex'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', variables('azureAISearchName')), 'AZURE_SEARCH_DATASOURCE_NAME', variables('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', variables('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', if(parameters('azureSearchUseIntegratedVectorization'), 'true', 'false'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', reference('postgresDBModule').outputs.postgresDbOutput.value.postgreSQLServerName, 'AZURE_POSTGRESQL_DATABASE_NAME', reference('postgresDBModule').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'AZURE_POSTGRESQL_USER', reference('managedIdentityModule').outputs.managedIdentityOutput.value.name), createObject())))]"
           }
@@ -42579,7 +42447,6 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').appService)]",
         "computerVision",
         "contentsafety",
         "formrecognizer",

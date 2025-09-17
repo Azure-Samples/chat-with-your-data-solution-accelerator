@@ -64,18 +64,6 @@ param maxStalenessPrefix int = 100000
 @description('Optional. The maximum lag time in minutes. Required for "BoundedStaleness" consistency level. Valid ranges, Single Region: 5 to 84600. Multi Region: 300 to 86400. Defaults to 300.')
 param maxIntervalInSeconds int = 300
 
-@description('Optional. Specifies the MongoDB server version to use if using Azure Cosmos DB for MongoDB RU. Defaults to "4.2".')
-@allowed([
-  '3.2'
-  '3.6'
-  '4.0'
-  '4.2'
-  '5.0'
-  '6.0'
-  '7.0'
-])
-param serverVersion string = '4.2'
-
 @description('Optional. Configuration for databases when using Azure Cosmos DB for NoSQL.')
 param sqlDatabases sqlDatabaseType[]?
 
@@ -89,15 +77,8 @@ import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.6.0'
 @description('Optional. The lock settings of the service.')
 param lock lockType?
 
-import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
-@description('Optional. An array of control plane Azure role-based access control assignments.')
-param roleAssignments roleAssignmentType[]?
-
 @description('Optional. Configurations for Azure Cosmos DB for NoSQL native role-based access control definitions. Allows the creations of custom role definitions.')
 param dataPlaneRoleDefinitions dataPlaneRoleDefinitionType[]?
-
-@description('Optional. Configurations for Azure Cosmos DB for NoSQL native role-based access control assignments.')
-param dataPlaneRoleAssignments dataPlaneRoleAssignmentType[]?
 
 import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
 @description('Optional. The diagnostic settings for the service.')
@@ -183,40 +164,6 @@ var identity = !empty(managedIdentities)
       userAssignedIdentities: !empty(formattedUserAssignedIdentities) ? formattedUserAssignedIdentities : null
     }
   : null
-
-var builtInControlPlaneRoleNames = {
-  Contributor: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
-  'Cosmos DB Account Reader Role': subscriptionResourceId(
-    'Microsoft.Authorization/roleDefinitions',
-    'fbdf93bf-df7d-467e-a4d2-9458aa1360c8'
-  )
-  'Cosmos DB Operator': subscriptionResourceId(
-    'Microsoft.Authorization/roleDefinitions',
-    '230815da-be43-4aae-9cb4-875f7bd000aa'
-  )
-  CosmosBackupOperator: subscriptionResourceId(
-    'Microsoft.Authorization/roleDefinitions',
-    'db7b14f2-5adf-42da-9f96-f2ee17bab5cb'
-  )
-  CosmosRestoreOperator: subscriptionResourceId(
-    'Microsoft.Authorization/roleDefinitions',
-    '5432c526-bc82-444a-b7ba-57c5b0b5b34f'
-  )
-  'DocumentDB Account Contributor': subscriptionResourceId(
-    'Microsoft.Authorization/roleDefinitions',
-    '5bd9cd88-fe45-4216-938b-f97437e15450'
-  )
-  Owner: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635')
-  Reader: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')
-  'Role Based Access Control Administrator': subscriptionResourceId(
-    'Microsoft.Authorization/roleDefinitions',
-    'f58310d9-a9f6-439a-9e8d-f62e7b41a168'
-  )
-  'User Access Administrator': subscriptionResourceId(
-    'Microsoft.Authorization/roleDefinitions',
-    '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9'
-  )
-}
 
 #disable-next-line no-deployments-resources
 resource avmTelemetry 'Microsoft.Resources/deployments@2024-07-01' = if (enableTelemetry) {

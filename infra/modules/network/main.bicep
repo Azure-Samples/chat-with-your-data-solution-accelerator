@@ -92,12 +92,12 @@ output vnetResourceId string = virtualNetwork.outputs.resourceId
 import { subnetOutputType } from 'virtualNetwork.bicep'
 output subnets subnetOutputType[] = virtualNetwork.outputs.subnets // This one holds critical info for subnets, including NSGs
 
-output bastionSubnetId string = bastionHost.outputs.subnetId
-output bastionSubnetName string = bastionHost.outputs.subnetName
-output bastionHostId string = bastionHost.outputs.resourceId
-output bastionHostName string = bastionHost.outputs.name
+output bastionSubnetId string = bastionHost!.outputs.subnetId
+output bastionSubnetName string = bastionHost!.outputs.subnetName
+output bastionHostId string = bastionHost!.outputs.resourceId
+output bastionHostName string = bastionHost!.outputs.name
 
-output jumpboxSubnetName string = jumpbox.outputs.subnetName
-output jumpboxSubnetId string = jumpbox.outputs.subnetId
-output jumpboxName string = jumpbox.outputs.name
-output jumpboxResourceId string = jumpbox.outputs.resourceId
+output jumpboxSubnetName string = jumpbox!.outputs.subnetName
+output jumpboxSubnetId string = jumpbox!.outputs.subnetId
+output jumpboxName string = jumpbox!.outputs.name
+output jumpboxResourceId string = jumpbox!.outputs.resourceId
