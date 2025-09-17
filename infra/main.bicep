@@ -695,9 +695,8 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     restrictOutboundNetworkAccess: true
     allowedFqdnList: [
-      '${azureOpenAIResourceName}.openai.azure.com'
-      'login.microsoftonline.com'
-      'sts.windows.net'
+      '${storageAccountName}.blob.${environment().suffixes.storage}'
+      '${storageAccountName}.queue.${environment().suffixes.storage}'
     ]
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
@@ -1305,6 +1304,14 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
         principalType: 'User'
       }
     ] : [])
+    systemAssignedRoleAssignments: [
+      {
+        resourceId: storage.outputs.id
+        roleName: 'Storage Blob Data Contributor'
+        roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+        principalType: 'ServicePrincipal'
+      }
+    ]
   }
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }

@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "11346995240301467778"
+      "templateHash": "12934036214952180196"
     }
   },
   "parameters": {
@@ -24490,9 +24490,8 @@
           },
           "allowedFqdnList": {
             "value": [
-              "[format('{0}.openai.azure.com', variables('azureOpenAIResourceName'))]",
-              "login.microsoftonline.com",
-              "sts.windows.net"
+              "[format('{0}.blob.{1}', variables('storageAccountName'), environment().suffixes.storage)]",
+              "[format('{0}.queue.{1}', variables('storageAccountName'), environment().suffixes.storage)]"
             ]
           },
           "enablePrivateNetworking": {
@@ -24513,7 +24512,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "8803403740911067122"
+              "templateHash": "2732773948066765374"
             }
           },
           "parameters": {
@@ -24653,6 +24652,13 @@
               "defaultValue": [],
               "metadata": {
                 "description": "Optional. Array of role assignments to create for the Cognitive Services resource."
+              }
+            },
+            "systemAssignedRoleAssignments": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Optional. Array of role assignments to apply to the system-assigned identity at the Cognitive Services account scope. Each item: { roleDefinitionId: \"<GUID or built-in role definition id>\" }"
               }
             }
           },
@@ -26981,6 +26987,263 @@
                     }
                   }
                 }
+              }
+            },
+            "systemAssignedIdentityRoleAssignments": {
+              "copy": {
+                "name": "systemAssignedIdentityRoleAssignments",
+                "count": "[length(parameters('systemAssignedRoleAssignments'))]"
+              },
+              "condition": "[and(parameters('enableSystemAssigned'), not(empty(parameters('systemAssignedRoleAssignments'))))]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "[take(format('avm.ptn.authorization.resource-role-assignment.{0}', uniqueString(variables('cognitiveResourceName'), parameters('systemAssignedRoleAssignments')[copyIndex()].roleDefinitionId, parameters('systemAssignedRoleAssignments')[copyIndex()].resourceId)), 64)]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "roleDefinitionId": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].roleDefinitionId]"
+                  },
+                  "principalId": {
+                    "value": "[reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value]"
+                  },
+                  "resourceId": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].resourceId]"
+                  },
+                  "roleName": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].roleName]"
+                  },
+                  "principalType": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].principalType]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.32.4.45862",
+                      "templateHash": "14634305923902101494"
+                    },
+                    "name": "Resource-scoped role assignment",
+                    "description": "This module deploys a Role Assignment for a specific resource."
+                  },
+                  "parameters": {
+                    "resourceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The scope for the role assignment, fully qualified resourceId."
+                      }
+                    },
+                    "name": {
+                      "type": "string",
+                      "defaultValue": "[guid(parameters('resourceId'), parameters('principalId'), if(contains(parameters('roleDefinitionId'), '/providers/Microsoft.Authorization/roleDefinitions/'), parameters('roleDefinitionId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))))]",
+                      "metadata": {
+                        "description": "Optional. The unique guid name for the role assignment."
+                      }
+                    },
+                    "roleDefinitionId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The role definition ID for the role assignment."
+                      }
+                    },
+                    "roleName": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Optional. The name for the role, used for logging."
+                      }
+                    },
+                    "principalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The Principal or Object ID of the Security Principal (User, Group, Service Principal, Managed Identity)."
+                      }
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "allowedValues": [
+                        "ServicePrincipal",
+                        "Group",
+                        "User",
+                        "ForeignGroup",
+                        "Device",
+                        ""
+                      ],
+                      "metadata": {
+                        "description": "Optional. The principal type of the assigned principal ID."
+                      }
+                    },
+                    "description": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Optional. The description of role assignment."
+                      }
+                    },
+                    "enableTelemetry": {
+                      "type": "bool",
+                      "defaultValue": true,
+                      "metadata": {
+                        "description": "Optional. Enable/Disable usage telemetry for module."
+                      }
+                    }
+                  },
+                  "variables": {
+                    "$fxv#0": {
+                      "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                      "contentVersion": "1.0.0.0",
+                      "parameters": {
+                        "scope": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "roleDefinitionId": {
+                          "type": "string"
+                        },
+                        "principalId": {
+                          "type": "string"
+                        },
+                        "principalType": {
+                          "type": "string",
+                          "allowedValues": [
+                            "Device",
+                            "ForeignGroup",
+                            "Group",
+                            "ServicePrincipal",
+                            "User",
+                            ""
+                          ],
+                          "defaultValue": "",
+                          "metadata": {
+                            "description": "Optional. The principal type of the assigned principal ID."
+                          }
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      },
+                      "resources": [
+                        {
+                          "type": "Microsoft.Authorization/roleAssignments",
+                          "apiVersion": "2022-04-01",
+                          "scope": "[[parameters('scope')]",
+                          "name": "[[parameters('name')]",
+                          "properties": {
+                            "roleDefinitionId": "[[parameters('roleDefinitionId')]",
+                            "principalId": "[[parameters('principalId')]",
+                            "principalType": "[[parameters('principalType')]",
+                            "description": "[[parameters('description')]"
+                          }
+                        }
+                      ],
+                      "outputs": {
+                        "roleAssignmentId": {
+                          "type": "string",
+                          "value": "[[extensionResourceId(parameters('scope'), 'Microsoft.Authorization/roleAssignments', parameters('name'))]"
+                        }
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "condition": "[parameters('enableTelemetry')]",
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2024-03-01",
+                      "name": "[format('46d3xbcp.ptn.authorization-resourceroleassignment.{0}.{1}', replace('0.1.2', '.', '-'), substring(uniqueString(deployment().name), 0, 4))]",
+                      "properties": {
+                        "mode": "Incremental",
+                        "template": {
+                          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                          "contentVersion": "1.0.0.0",
+                          "resources": [],
+                          "outputs": {
+                            "telemetry": {
+                              "type": "String",
+                              "value": "For more information, see https://aka.ms/avm/TelemetryInfo"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2023-07-01",
+                      "name": "[format('{0}-ResourceRoleAssignment', guid(parameters('resourceId'), parameters('principalId'), parameters('roleDefinitionId')))]",
+                      "properties": {
+                        "mode": "Incremental",
+                        "expressionEvaluationOptions": {
+                          "scope": "Outer"
+                        },
+                        "template": "[variables('$fxv#0')]",
+                        "parameters": {
+                          "scope": {
+                            "value": "[parameters('resourceId')]"
+                          },
+                          "name": {
+                            "value": "[parameters('name')]"
+                          },
+                          "roleDefinitionId": {
+                            "value": "[if(contains(parameters('roleDefinitionId'), '/providers/Microsoft.Authorization/roleDefinitions/'), parameters('roleDefinitionId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId')))]"
+                          },
+                          "principalId": {
+                            "value": "[parameters('principalId')]"
+                          },
+                          "principalType": {
+                            "value": "[parameters('principalType')]"
+                          },
+                          "description": {
+                            "value": "[parameters('description')]"
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The GUID of the Role Assignment."
+                      },
+                      "value": "[parameters('name')]"
+                    },
+                    "roleName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name for the role, used for logging."
+                      },
+                      "value": "[parameters('roleName')]"
+                    },
+                    "resourceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The resource ID of the Role Assignment."
+                      },
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-ResourceRoleAssignment', guid(parameters('resourceId'), parameters('principalId'), parameters('roleDefinitionId')))), '2023-07-01').outputs.roleAssignmentId.value]"
+                    },
+                    "resourceGroupName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name of the resource group the role assignment was applied at."
+                      },
+                      "value": "[resourceGroup().name]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "cognitiveServices"
+              ],
+              "metadata": {
+                "description": "Role assignments applied to the system-assigned identity via AVM module. Objects can include: roleDefinitionId (req), roleName, principalType, resourceId."
               }
             }
           },
@@ -27068,7 +27331,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "8803403740911067122"
+              "templateHash": "2732773948066765374"
             }
           },
           "parameters": {
@@ -27208,6 +27471,13 @@
               "defaultValue": [],
               "metadata": {
                 "description": "Optional. Array of role assignments to create for the Cognitive Services resource."
+              }
+            },
+            "systemAssignedRoleAssignments": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Optional. Array of role assignments to apply to the system-assigned identity at the Cognitive Services account scope. Each item: { roleDefinitionId: \"<GUID or built-in role definition id>\" }"
               }
             }
           },
@@ -29536,6 +29806,263 @@
                     }
                   }
                 }
+              }
+            },
+            "systemAssignedIdentityRoleAssignments": {
+              "copy": {
+                "name": "systemAssignedIdentityRoleAssignments",
+                "count": "[length(parameters('systemAssignedRoleAssignments'))]"
+              },
+              "condition": "[and(parameters('enableSystemAssigned'), not(empty(parameters('systemAssignedRoleAssignments'))))]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "[take(format('avm.ptn.authorization.resource-role-assignment.{0}', uniqueString(variables('cognitiveResourceName'), parameters('systemAssignedRoleAssignments')[copyIndex()].roleDefinitionId, parameters('systemAssignedRoleAssignments')[copyIndex()].resourceId)), 64)]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "roleDefinitionId": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].roleDefinitionId]"
+                  },
+                  "principalId": {
+                    "value": "[reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value]"
+                  },
+                  "resourceId": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].resourceId]"
+                  },
+                  "roleName": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].roleName]"
+                  },
+                  "principalType": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].principalType]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.32.4.45862",
+                      "templateHash": "14634305923902101494"
+                    },
+                    "name": "Resource-scoped role assignment",
+                    "description": "This module deploys a Role Assignment for a specific resource."
+                  },
+                  "parameters": {
+                    "resourceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The scope for the role assignment, fully qualified resourceId."
+                      }
+                    },
+                    "name": {
+                      "type": "string",
+                      "defaultValue": "[guid(parameters('resourceId'), parameters('principalId'), if(contains(parameters('roleDefinitionId'), '/providers/Microsoft.Authorization/roleDefinitions/'), parameters('roleDefinitionId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))))]",
+                      "metadata": {
+                        "description": "Optional. The unique guid name for the role assignment."
+                      }
+                    },
+                    "roleDefinitionId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The role definition ID for the role assignment."
+                      }
+                    },
+                    "roleName": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Optional. The name for the role, used for logging."
+                      }
+                    },
+                    "principalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The Principal or Object ID of the Security Principal (User, Group, Service Principal, Managed Identity)."
+                      }
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "allowedValues": [
+                        "ServicePrincipal",
+                        "Group",
+                        "User",
+                        "ForeignGroup",
+                        "Device",
+                        ""
+                      ],
+                      "metadata": {
+                        "description": "Optional. The principal type of the assigned principal ID."
+                      }
+                    },
+                    "description": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Optional. The description of role assignment."
+                      }
+                    },
+                    "enableTelemetry": {
+                      "type": "bool",
+                      "defaultValue": true,
+                      "metadata": {
+                        "description": "Optional. Enable/Disable usage telemetry for module."
+                      }
+                    }
+                  },
+                  "variables": {
+                    "$fxv#0": {
+                      "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                      "contentVersion": "1.0.0.0",
+                      "parameters": {
+                        "scope": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "roleDefinitionId": {
+                          "type": "string"
+                        },
+                        "principalId": {
+                          "type": "string"
+                        },
+                        "principalType": {
+                          "type": "string",
+                          "allowedValues": [
+                            "Device",
+                            "ForeignGroup",
+                            "Group",
+                            "ServicePrincipal",
+                            "User",
+                            ""
+                          ],
+                          "defaultValue": "",
+                          "metadata": {
+                            "description": "Optional. The principal type of the assigned principal ID."
+                          }
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      },
+                      "resources": [
+                        {
+                          "type": "Microsoft.Authorization/roleAssignments",
+                          "apiVersion": "2022-04-01",
+                          "scope": "[[parameters('scope')]",
+                          "name": "[[parameters('name')]",
+                          "properties": {
+                            "roleDefinitionId": "[[parameters('roleDefinitionId')]",
+                            "principalId": "[[parameters('principalId')]",
+                            "principalType": "[[parameters('principalType')]",
+                            "description": "[[parameters('description')]"
+                          }
+                        }
+                      ],
+                      "outputs": {
+                        "roleAssignmentId": {
+                          "type": "string",
+                          "value": "[[extensionResourceId(parameters('scope'), 'Microsoft.Authorization/roleAssignments', parameters('name'))]"
+                        }
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "condition": "[parameters('enableTelemetry')]",
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2024-03-01",
+                      "name": "[format('46d3xbcp.ptn.authorization-resourceroleassignment.{0}.{1}', replace('0.1.2', '.', '-'), substring(uniqueString(deployment().name), 0, 4))]",
+                      "properties": {
+                        "mode": "Incremental",
+                        "template": {
+                          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                          "contentVersion": "1.0.0.0",
+                          "resources": [],
+                          "outputs": {
+                            "telemetry": {
+                              "type": "String",
+                              "value": "For more information, see https://aka.ms/avm/TelemetryInfo"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2023-07-01",
+                      "name": "[format('{0}-ResourceRoleAssignment', guid(parameters('resourceId'), parameters('principalId'), parameters('roleDefinitionId')))]",
+                      "properties": {
+                        "mode": "Incremental",
+                        "expressionEvaluationOptions": {
+                          "scope": "Outer"
+                        },
+                        "template": "[variables('$fxv#0')]",
+                        "parameters": {
+                          "scope": {
+                            "value": "[parameters('resourceId')]"
+                          },
+                          "name": {
+                            "value": "[parameters('name')]"
+                          },
+                          "roleDefinitionId": {
+                            "value": "[if(contains(parameters('roleDefinitionId'), '/providers/Microsoft.Authorization/roleDefinitions/'), parameters('roleDefinitionId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId')))]"
+                          },
+                          "principalId": {
+                            "value": "[parameters('principalId')]"
+                          },
+                          "principalType": {
+                            "value": "[parameters('principalType')]"
+                          },
+                          "description": {
+                            "value": "[parameters('description')]"
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The GUID of the Role Assignment."
+                      },
+                      "value": "[parameters('name')]"
+                    },
+                    "roleName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name for the role, used for logging."
+                      },
+                      "value": "[parameters('roleName')]"
+                    },
+                    "resourceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The resource ID of the Role Assignment."
+                      },
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-ResourceRoleAssignment', guid(parameters('resourceId'), parameters('principalId'), parameters('roleDefinitionId')))), '2023-07-01').outputs.roleAssignmentId.value]"
+                    },
+                    "resourceGroupName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name of the resource group the role assignment was applied at."
+                      },
+                      "value": "[resourceGroup().name]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "cognitiveServices"
+              ],
+              "metadata": {
+                "description": "Role assignments applied to the system-assigned identity via AVM module. Objects can include: roleDefinitionId (req), roleName, principalType, resourceId."
               }
             }
           },
@@ -29624,7 +30151,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "8803403740911067122"
+              "templateHash": "2732773948066765374"
             }
           },
           "parameters": {
@@ -29764,6 +30291,13 @@
               "defaultValue": [],
               "metadata": {
                 "description": "Optional. Array of role assignments to create for the Cognitive Services resource."
+              }
+            },
+            "systemAssignedRoleAssignments": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Optional. Array of role assignments to apply to the system-assigned identity at the Cognitive Services account scope. Each item: { roleDefinitionId: \"<GUID or built-in role definition id>\" }"
               }
             }
           },
@@ -32092,6 +32626,263 @@
                     }
                   }
                 }
+              }
+            },
+            "systemAssignedIdentityRoleAssignments": {
+              "copy": {
+                "name": "systemAssignedIdentityRoleAssignments",
+                "count": "[length(parameters('systemAssignedRoleAssignments'))]"
+              },
+              "condition": "[and(parameters('enableSystemAssigned'), not(empty(parameters('systemAssignedRoleAssignments'))))]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "[take(format('avm.ptn.authorization.resource-role-assignment.{0}', uniqueString(variables('cognitiveResourceName'), parameters('systemAssignedRoleAssignments')[copyIndex()].roleDefinitionId, parameters('systemAssignedRoleAssignments')[copyIndex()].resourceId)), 64)]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "roleDefinitionId": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].roleDefinitionId]"
+                  },
+                  "principalId": {
+                    "value": "[reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value]"
+                  },
+                  "resourceId": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].resourceId]"
+                  },
+                  "roleName": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].roleName]"
+                  },
+                  "principalType": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].principalType]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.32.4.45862",
+                      "templateHash": "14634305923902101494"
+                    },
+                    "name": "Resource-scoped role assignment",
+                    "description": "This module deploys a Role Assignment for a specific resource."
+                  },
+                  "parameters": {
+                    "resourceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The scope for the role assignment, fully qualified resourceId."
+                      }
+                    },
+                    "name": {
+                      "type": "string",
+                      "defaultValue": "[guid(parameters('resourceId'), parameters('principalId'), if(contains(parameters('roleDefinitionId'), '/providers/Microsoft.Authorization/roleDefinitions/'), parameters('roleDefinitionId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))))]",
+                      "metadata": {
+                        "description": "Optional. The unique guid name for the role assignment."
+                      }
+                    },
+                    "roleDefinitionId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The role definition ID for the role assignment."
+                      }
+                    },
+                    "roleName": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Optional. The name for the role, used for logging."
+                      }
+                    },
+                    "principalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The Principal or Object ID of the Security Principal (User, Group, Service Principal, Managed Identity)."
+                      }
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "allowedValues": [
+                        "ServicePrincipal",
+                        "Group",
+                        "User",
+                        "ForeignGroup",
+                        "Device",
+                        ""
+                      ],
+                      "metadata": {
+                        "description": "Optional. The principal type of the assigned principal ID."
+                      }
+                    },
+                    "description": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Optional. The description of role assignment."
+                      }
+                    },
+                    "enableTelemetry": {
+                      "type": "bool",
+                      "defaultValue": true,
+                      "metadata": {
+                        "description": "Optional. Enable/Disable usage telemetry for module."
+                      }
+                    }
+                  },
+                  "variables": {
+                    "$fxv#0": {
+                      "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                      "contentVersion": "1.0.0.0",
+                      "parameters": {
+                        "scope": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "roleDefinitionId": {
+                          "type": "string"
+                        },
+                        "principalId": {
+                          "type": "string"
+                        },
+                        "principalType": {
+                          "type": "string",
+                          "allowedValues": [
+                            "Device",
+                            "ForeignGroup",
+                            "Group",
+                            "ServicePrincipal",
+                            "User",
+                            ""
+                          ],
+                          "defaultValue": "",
+                          "metadata": {
+                            "description": "Optional. The principal type of the assigned principal ID."
+                          }
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      },
+                      "resources": [
+                        {
+                          "type": "Microsoft.Authorization/roleAssignments",
+                          "apiVersion": "2022-04-01",
+                          "scope": "[[parameters('scope')]",
+                          "name": "[[parameters('name')]",
+                          "properties": {
+                            "roleDefinitionId": "[[parameters('roleDefinitionId')]",
+                            "principalId": "[[parameters('principalId')]",
+                            "principalType": "[[parameters('principalType')]",
+                            "description": "[[parameters('description')]"
+                          }
+                        }
+                      ],
+                      "outputs": {
+                        "roleAssignmentId": {
+                          "type": "string",
+                          "value": "[[extensionResourceId(parameters('scope'), 'Microsoft.Authorization/roleAssignments', parameters('name'))]"
+                        }
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "condition": "[parameters('enableTelemetry')]",
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2024-03-01",
+                      "name": "[format('46d3xbcp.ptn.authorization-resourceroleassignment.{0}.{1}', replace('0.1.2', '.', '-'), substring(uniqueString(deployment().name), 0, 4))]",
+                      "properties": {
+                        "mode": "Incremental",
+                        "template": {
+                          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                          "contentVersion": "1.0.0.0",
+                          "resources": [],
+                          "outputs": {
+                            "telemetry": {
+                              "type": "String",
+                              "value": "For more information, see https://aka.ms/avm/TelemetryInfo"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2023-07-01",
+                      "name": "[format('{0}-ResourceRoleAssignment', guid(parameters('resourceId'), parameters('principalId'), parameters('roleDefinitionId')))]",
+                      "properties": {
+                        "mode": "Incremental",
+                        "expressionEvaluationOptions": {
+                          "scope": "Outer"
+                        },
+                        "template": "[variables('$fxv#0')]",
+                        "parameters": {
+                          "scope": {
+                            "value": "[parameters('resourceId')]"
+                          },
+                          "name": {
+                            "value": "[parameters('name')]"
+                          },
+                          "roleDefinitionId": {
+                            "value": "[if(contains(parameters('roleDefinitionId'), '/providers/Microsoft.Authorization/roleDefinitions/'), parameters('roleDefinitionId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId')))]"
+                          },
+                          "principalId": {
+                            "value": "[parameters('principalId')]"
+                          },
+                          "principalType": {
+                            "value": "[parameters('principalType')]"
+                          },
+                          "description": {
+                            "value": "[parameters('description')]"
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The GUID of the Role Assignment."
+                      },
+                      "value": "[parameters('name')]"
+                    },
+                    "roleName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name for the role, used for logging."
+                      },
+                      "value": "[parameters('roleName')]"
+                    },
+                    "resourceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The resource ID of the Role Assignment."
+                      },
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-ResourceRoleAssignment', guid(parameters('resourceId'), parameters('principalId'), parameters('roleDefinitionId')))), '2023-07-01').outputs.roleAssignmentId.value]"
+                    },
+                    "resourceGroupName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name of the resource group the role assignment was applied at."
+                      },
+                      "value": "[resourceGroup().name]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "cognitiveServices"
+              ],
+              "metadata": {
+                "description": "Role assignments applied to the system-assigned identity via AVM module. Objects can include: roleDefinitionId (req), roleName, principalType, resourceId."
               }
             }
           },
@@ -48838,6 +49629,16 @@
           },
           "roleAssignments": {
             "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.managedIdentityOutput.value.objectId, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe', 'principalId', reference('managedIdentityModule').outputs.managedIdentityOutput.value.objectId, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId'), 'principalType', 'User')), createArray()))]"
+          },
+          "systemAssignedRoleAssignments": {
+            "value": [
+              {
+                "resourceId": "[reference('storage').outputs.id.value]",
+                "roleName": "Storage Blob Data Contributor",
+                "roleDefinitionId": "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
+                "principalType": "ServicePrincipal"
+              }
+            ]
           }
         },
         "template": {
@@ -48848,7 +49649,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "8803403740911067122"
+              "templateHash": "2732773948066765374"
             }
           },
           "parameters": {
@@ -48988,6 +49789,13 @@
               "defaultValue": [],
               "metadata": {
                 "description": "Optional. Array of role assignments to create for the Cognitive Services resource."
+              }
+            },
+            "systemAssignedRoleAssignments": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Optional. Array of role assignments to apply to the system-assigned identity at the Cognitive Services account scope. Each item: { roleDefinitionId: \"<GUID or built-in role definition id>\" }"
               }
             }
           },
@@ -51317,6 +52125,263 @@
                   }
                 }
               }
+            },
+            "systemAssignedIdentityRoleAssignments": {
+              "copy": {
+                "name": "systemAssignedIdentityRoleAssignments",
+                "count": "[length(parameters('systemAssignedRoleAssignments'))]"
+              },
+              "condition": "[and(parameters('enableSystemAssigned'), not(empty(parameters('systemAssignedRoleAssignments'))))]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "[take(format('avm.ptn.authorization.resource-role-assignment.{0}', uniqueString(variables('cognitiveResourceName'), parameters('systemAssignedRoleAssignments')[copyIndex()].roleDefinitionId, parameters('systemAssignedRoleAssignments')[copyIndex()].resourceId)), 64)]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "roleDefinitionId": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].roleDefinitionId]"
+                  },
+                  "principalId": {
+                    "value": "[reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value]"
+                  },
+                  "resourceId": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].resourceId]"
+                  },
+                  "roleName": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].roleName]"
+                  },
+                  "principalType": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].principalType]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.32.4.45862",
+                      "templateHash": "14634305923902101494"
+                    },
+                    "name": "Resource-scoped role assignment",
+                    "description": "This module deploys a Role Assignment for a specific resource."
+                  },
+                  "parameters": {
+                    "resourceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The scope for the role assignment, fully qualified resourceId."
+                      }
+                    },
+                    "name": {
+                      "type": "string",
+                      "defaultValue": "[guid(parameters('resourceId'), parameters('principalId'), if(contains(parameters('roleDefinitionId'), '/providers/Microsoft.Authorization/roleDefinitions/'), parameters('roleDefinitionId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))))]",
+                      "metadata": {
+                        "description": "Optional. The unique guid name for the role assignment."
+                      }
+                    },
+                    "roleDefinitionId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The role definition ID for the role assignment."
+                      }
+                    },
+                    "roleName": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Optional. The name for the role, used for logging."
+                      }
+                    },
+                    "principalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The Principal or Object ID of the Security Principal (User, Group, Service Principal, Managed Identity)."
+                      }
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "allowedValues": [
+                        "ServicePrincipal",
+                        "Group",
+                        "User",
+                        "ForeignGroup",
+                        "Device",
+                        ""
+                      ],
+                      "metadata": {
+                        "description": "Optional. The principal type of the assigned principal ID."
+                      }
+                    },
+                    "description": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Optional. The description of role assignment."
+                      }
+                    },
+                    "enableTelemetry": {
+                      "type": "bool",
+                      "defaultValue": true,
+                      "metadata": {
+                        "description": "Optional. Enable/Disable usage telemetry for module."
+                      }
+                    }
+                  },
+                  "variables": {
+                    "$fxv#0": {
+                      "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                      "contentVersion": "1.0.0.0",
+                      "parameters": {
+                        "scope": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "roleDefinitionId": {
+                          "type": "string"
+                        },
+                        "principalId": {
+                          "type": "string"
+                        },
+                        "principalType": {
+                          "type": "string",
+                          "allowedValues": [
+                            "Device",
+                            "ForeignGroup",
+                            "Group",
+                            "ServicePrincipal",
+                            "User",
+                            ""
+                          ],
+                          "defaultValue": "",
+                          "metadata": {
+                            "description": "Optional. The principal type of the assigned principal ID."
+                          }
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      },
+                      "resources": [
+                        {
+                          "type": "Microsoft.Authorization/roleAssignments",
+                          "apiVersion": "2022-04-01",
+                          "scope": "[[parameters('scope')]",
+                          "name": "[[parameters('name')]",
+                          "properties": {
+                            "roleDefinitionId": "[[parameters('roleDefinitionId')]",
+                            "principalId": "[[parameters('principalId')]",
+                            "principalType": "[[parameters('principalType')]",
+                            "description": "[[parameters('description')]"
+                          }
+                        }
+                      ],
+                      "outputs": {
+                        "roleAssignmentId": {
+                          "type": "string",
+                          "value": "[[extensionResourceId(parameters('scope'), 'Microsoft.Authorization/roleAssignments', parameters('name'))]"
+                        }
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "condition": "[parameters('enableTelemetry')]",
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2024-03-01",
+                      "name": "[format('46d3xbcp.ptn.authorization-resourceroleassignment.{0}.{1}', replace('0.1.2', '.', '-'), substring(uniqueString(deployment().name), 0, 4))]",
+                      "properties": {
+                        "mode": "Incremental",
+                        "template": {
+                          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                          "contentVersion": "1.0.0.0",
+                          "resources": [],
+                          "outputs": {
+                            "telemetry": {
+                              "type": "String",
+                              "value": "For more information, see https://aka.ms/avm/TelemetryInfo"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2023-07-01",
+                      "name": "[format('{0}-ResourceRoleAssignment', guid(parameters('resourceId'), parameters('principalId'), parameters('roleDefinitionId')))]",
+                      "properties": {
+                        "mode": "Incremental",
+                        "expressionEvaluationOptions": {
+                          "scope": "Outer"
+                        },
+                        "template": "[variables('$fxv#0')]",
+                        "parameters": {
+                          "scope": {
+                            "value": "[parameters('resourceId')]"
+                          },
+                          "name": {
+                            "value": "[parameters('name')]"
+                          },
+                          "roleDefinitionId": {
+                            "value": "[if(contains(parameters('roleDefinitionId'), '/providers/Microsoft.Authorization/roleDefinitions/'), parameters('roleDefinitionId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId')))]"
+                          },
+                          "principalId": {
+                            "value": "[parameters('principalId')]"
+                          },
+                          "principalType": {
+                            "value": "[parameters('principalType')]"
+                          },
+                          "description": {
+                            "value": "[parameters('description')]"
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The GUID of the Role Assignment."
+                      },
+                      "value": "[parameters('name')]"
+                    },
+                    "roleName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name for the role, used for logging."
+                      },
+                      "value": "[parameters('roleName')]"
+                    },
+                    "resourceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The resource ID of the Role Assignment."
+                      },
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-ResourceRoleAssignment', guid(parameters('resourceId'), parameters('principalId'), parameters('roleDefinitionId')))), '2023-07-01').outputs.roleAssignmentId.value]"
+                    },
+                    "resourceGroupName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name of the resource group the role assignment was applied at."
+                      },
+                      "value": "[resourceGroup().name]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "cognitiveServices"
+              ],
+              "metadata": {
+                "description": "Role assignments applied to the system-assigned identity via AVM module. Objects can include: roleDefinitionId (req), roleName, principalType, resourceId."
+              }
             }
           },
           "outputs": {
@@ -51355,7 +52420,8 @@
         "avmPrivateDnsZones",
         "managedIdentityModule",
         "monitoring",
-        "network"
+        "network",
+        "storage"
       ]
     },
     "contentsafety": {
@@ -51401,7 +52467,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "8803403740911067122"
+              "templateHash": "2732773948066765374"
             }
           },
           "parameters": {
@@ -51541,6 +52607,13 @@
               "defaultValue": [],
               "metadata": {
                 "description": "Optional. Array of role assignments to create for the Cognitive Services resource."
+              }
+            },
+            "systemAssignedRoleAssignments": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Optional. Array of role assignments to apply to the system-assigned identity at the Cognitive Services account scope. Each item: { roleDefinitionId: \"<GUID or built-in role definition id>\" }"
               }
             }
           },
@@ -53869,6 +54942,263 @@
                     }
                   }
                 }
+              }
+            },
+            "systemAssignedIdentityRoleAssignments": {
+              "copy": {
+                "name": "systemAssignedIdentityRoleAssignments",
+                "count": "[length(parameters('systemAssignedRoleAssignments'))]"
+              },
+              "condition": "[and(parameters('enableSystemAssigned'), not(empty(parameters('systemAssignedRoleAssignments'))))]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "[take(format('avm.ptn.authorization.resource-role-assignment.{0}', uniqueString(variables('cognitiveResourceName'), parameters('systemAssignedRoleAssignments')[copyIndex()].roleDefinitionId, parameters('systemAssignedRoleAssignments')[copyIndex()].resourceId)), 64)]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "roleDefinitionId": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].roleDefinitionId]"
+                  },
+                  "principalId": {
+                    "value": "[reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value]"
+                  },
+                  "resourceId": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].resourceId]"
+                  },
+                  "roleName": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].roleName]"
+                  },
+                  "principalType": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].principalType]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.32.4.45862",
+                      "templateHash": "14634305923902101494"
+                    },
+                    "name": "Resource-scoped role assignment",
+                    "description": "This module deploys a Role Assignment for a specific resource."
+                  },
+                  "parameters": {
+                    "resourceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The scope for the role assignment, fully qualified resourceId."
+                      }
+                    },
+                    "name": {
+                      "type": "string",
+                      "defaultValue": "[guid(parameters('resourceId'), parameters('principalId'), if(contains(parameters('roleDefinitionId'), '/providers/Microsoft.Authorization/roleDefinitions/'), parameters('roleDefinitionId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))))]",
+                      "metadata": {
+                        "description": "Optional. The unique guid name for the role assignment."
+                      }
+                    },
+                    "roleDefinitionId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The role definition ID for the role assignment."
+                      }
+                    },
+                    "roleName": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Optional. The name for the role, used for logging."
+                      }
+                    },
+                    "principalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The Principal or Object ID of the Security Principal (User, Group, Service Principal, Managed Identity)."
+                      }
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "allowedValues": [
+                        "ServicePrincipal",
+                        "Group",
+                        "User",
+                        "ForeignGroup",
+                        "Device",
+                        ""
+                      ],
+                      "metadata": {
+                        "description": "Optional. The principal type of the assigned principal ID."
+                      }
+                    },
+                    "description": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Optional. The description of role assignment."
+                      }
+                    },
+                    "enableTelemetry": {
+                      "type": "bool",
+                      "defaultValue": true,
+                      "metadata": {
+                        "description": "Optional. Enable/Disable usage telemetry for module."
+                      }
+                    }
+                  },
+                  "variables": {
+                    "$fxv#0": {
+                      "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                      "contentVersion": "1.0.0.0",
+                      "parameters": {
+                        "scope": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "roleDefinitionId": {
+                          "type": "string"
+                        },
+                        "principalId": {
+                          "type": "string"
+                        },
+                        "principalType": {
+                          "type": "string",
+                          "allowedValues": [
+                            "Device",
+                            "ForeignGroup",
+                            "Group",
+                            "ServicePrincipal",
+                            "User",
+                            ""
+                          ],
+                          "defaultValue": "",
+                          "metadata": {
+                            "description": "Optional. The principal type of the assigned principal ID."
+                          }
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      },
+                      "resources": [
+                        {
+                          "type": "Microsoft.Authorization/roleAssignments",
+                          "apiVersion": "2022-04-01",
+                          "scope": "[[parameters('scope')]",
+                          "name": "[[parameters('name')]",
+                          "properties": {
+                            "roleDefinitionId": "[[parameters('roleDefinitionId')]",
+                            "principalId": "[[parameters('principalId')]",
+                            "principalType": "[[parameters('principalType')]",
+                            "description": "[[parameters('description')]"
+                          }
+                        }
+                      ],
+                      "outputs": {
+                        "roleAssignmentId": {
+                          "type": "string",
+                          "value": "[[extensionResourceId(parameters('scope'), 'Microsoft.Authorization/roleAssignments', parameters('name'))]"
+                        }
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "condition": "[parameters('enableTelemetry')]",
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2024-03-01",
+                      "name": "[format('46d3xbcp.ptn.authorization-resourceroleassignment.{0}.{1}', replace('0.1.2', '.', '-'), substring(uniqueString(deployment().name), 0, 4))]",
+                      "properties": {
+                        "mode": "Incremental",
+                        "template": {
+                          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                          "contentVersion": "1.0.0.0",
+                          "resources": [],
+                          "outputs": {
+                            "telemetry": {
+                              "type": "String",
+                              "value": "For more information, see https://aka.ms/avm/TelemetryInfo"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2023-07-01",
+                      "name": "[format('{0}-ResourceRoleAssignment', guid(parameters('resourceId'), parameters('principalId'), parameters('roleDefinitionId')))]",
+                      "properties": {
+                        "mode": "Incremental",
+                        "expressionEvaluationOptions": {
+                          "scope": "Outer"
+                        },
+                        "template": "[variables('$fxv#0')]",
+                        "parameters": {
+                          "scope": {
+                            "value": "[parameters('resourceId')]"
+                          },
+                          "name": {
+                            "value": "[parameters('name')]"
+                          },
+                          "roleDefinitionId": {
+                            "value": "[if(contains(parameters('roleDefinitionId'), '/providers/Microsoft.Authorization/roleDefinitions/'), parameters('roleDefinitionId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId')))]"
+                          },
+                          "principalId": {
+                            "value": "[parameters('principalId')]"
+                          },
+                          "principalType": {
+                            "value": "[parameters('principalType')]"
+                          },
+                          "description": {
+                            "value": "[parameters('description')]"
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The GUID of the Role Assignment."
+                      },
+                      "value": "[parameters('name')]"
+                    },
+                    "roleName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name for the role, used for logging."
+                      },
+                      "value": "[parameters('roleName')]"
+                    },
+                    "resourceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The resource ID of the Role Assignment."
+                      },
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-ResourceRoleAssignment', guid(parameters('resourceId'), parameters('principalId'), parameters('roleDefinitionId')))), '2023-07-01').outputs.roleAssignmentId.value]"
+                    },
+                    "resourceGroupName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name of the resource group the role assignment was applied at."
+                      },
+                      "value": "[resourceGroup().name]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "cognitiveServices"
+              ],
+              "metadata": {
+                "description": "Role assignments applied to the system-assigned identity via AVM module. Objects can include: roleDefinitionId (req), roleName, principalType, resourceId."
               }
             }
           },
@@ -57403,8 +58733,8 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "managedIdentityModule",
         "network"
       ]
