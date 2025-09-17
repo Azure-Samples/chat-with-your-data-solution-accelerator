@@ -41,6 +41,7 @@ param hostingPlanName string = 'asp-${resourceToken}'
   'P4'
 ])
 param hostingPlanSku string = 'B3'
+
 @description('The sku tier for the App Service plan')
 @allowed([
   'Free'
