@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "14381680802765579985"
+      "templateHash": "11346995240301467778"
     }
   },
   "parameters": {
@@ -692,7 +692,7 @@
         }
       }
     ],
-    "openAiDeployments": "[concat(variables('defaultOpenAiDeployments'), if(parameters('useAdvancedImageProcessing'), createArray(createObject('name', parameters('azureOpenAIVisionModel'), 'model', createObject('format', 'OpenAI', 'name', parameters('azureOpenAIVisionModelName'), 'version', parameters('azureOpenAIVisionModelVersion')), 'sku', createObject('name', 'Standard', 'capacity', parameters('azureOpenAIVisionModelCapacity')))), createArray()))]",
+    "openAiDeployments": "[concat(variables('defaultOpenAiDeployments'), if(parameters('useAdvancedImageProcessing'), createArray(createObject('name', parameters('azureOpenAIVisionModel'), 'model', createObject('format', 'OpenAI', 'name', parameters('azureOpenAIVisionModelName'), 'version', parameters('azureOpenAIVisionModelVersion')), 'sku', createObject('name', 'GlobalStandard', 'capacity', parameters('azureOpenAIVisionModelCapacity')))), createArray()))]",
     "webServerFarmResourceName": "[variables('hostingPlanName')]",
     "azureOpenAIModelInfo": "[string(createObject('model', parameters('azureOpenAIModel'), 'model_name', parameters('azureOpenAIModelName'), 'model_version', parameters('azureOpenAIModelVersion')))]",
     "azureOpenAIEmbeddingModelInfo": "[string(createObject('model', parameters('azureOpenAIEmbeddingModel'), 'model_name', parameters('azureOpenAIEmbeddingModelName'), 'model_version', parameters('azureOpenAIEmbeddingModelVersion')))]",
@@ -707,7 +707,7 @@
       "apiVersion": "2021-04-01",
       "name": "default",
       "properties": {
-        "tags": "[shallowMerge(createArray(variables('allTags'), createObject('TemplateName', 'CWYD', 'CreatedBy', parameters('createdBy'), 'SecurityControl', 'Ignore')))]"
+        "tags": "[shallowMerge(createArray(variables('allTags'), createObject('TemplateName', 'CWYD', 'CreatedBy', parameters('createdBy'))))]"
       }
     },
     "avmTelemetry": {
@@ -24485,6 +24485,16 @@
           "userAssignedResourceId": {
             "value": "[reference('managedIdentityModule').outputs.managedIdentityOutput.value.id]"
           },
+          "restrictOutboundNetworkAccess": {
+            "value": true
+          },
+          "allowedFqdnList": {
+            "value": [
+              "[format('{0}.openai.azure.com', variables('azureOpenAIResourceName'))]",
+              "login.microsoftonline.com",
+              "sts.windows.net"
+            ]
+          },
           "enablePrivateNetworking": {
             "value": "[parameters('enablePrivateNetworking')]"
           },
@@ -24503,7 +24513,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "2692697546055923781"
+              "templateHash": "8803403740911067122"
             }
           },
           "parameters": {
@@ -24580,6 +24590,13 @@
               "defaultValue": "",
               "metadata": {
                 "description": "Optional. Resource ID of the user-assigned managed identity to be used by the Cognitive Services resource."
+              }
+            },
+            "enableSystemAssigned": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Flag to enable a system-assigned managed identity for the Cognitive Services resource."
               }
             },
             "disableLocalAuth": {
@@ -24676,7 +24693,7 @@
                   },
                   "managedIdentities": {
                     "value": {
-                      "systemAssigned": false,
+                      "systemAssigned": "[parameters('enableSystemAssigned')]",
                       "userAssignedResourceIds": [
                         "[parameters('userAssignedResourceId')]"
                       ]
@@ -27023,7 +27040,7 @@
           "kind": {
             "value": "ComputerVision"
           },
-          "location": "[if(not(equals(parameters('computerVisionLocation'), '')), createObject('value', parameters('computerVisionLocation')), createObject('value', parameters('location')))]",
+          "location": "[if(not(equals(parameters('computerVisionLocation'), '')), createObject('value', parameters('computerVisionLocation')), createObject('value', 'eastus'))]",
           "tags": {
             "value": "[variables('allTags')]"
           },
@@ -27051,7 +27068,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "2692697546055923781"
+              "templateHash": "8803403740911067122"
             }
           },
           "parameters": {
@@ -27128,6 +27145,13 @@
               "defaultValue": "",
               "metadata": {
                 "description": "Optional. Resource ID of the user-assigned managed identity to be used by the Cognitive Services resource."
+              }
+            },
+            "enableSystemAssigned": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Flag to enable a system-assigned managed identity for the Cognitive Services resource."
               }
             },
             "disableLocalAuth": {
@@ -27224,7 +27248,7 @@
                   },
                   "managedIdentities": {
                     "value": {
-                      "systemAssigned": false,
+                      "systemAssigned": "[parameters('enableSystemAssigned')]",
                       "userAssignedResourceIds": [
                         "[parameters('userAssignedResourceId')]"
                       ]
@@ -29600,7 +29624,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "2692697546055923781"
+              "templateHash": "8803403740911067122"
             }
           },
           "parameters": {
@@ -29677,6 +29701,13 @@
               "defaultValue": "",
               "metadata": {
                 "description": "Optional. Resource ID of the user-assigned managed identity to be used by the Cognitive Services resource."
+              }
+            },
+            "enableSystemAssigned": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Flag to enable a system-assigned managed identity for the Cognitive Services resource."
               }
             },
             "disableLocalAuth": {
@@ -29773,7 +29804,7 @@
                   },
                   "managedIdentities": {
                     "value": {
-                      "systemAssigned": false,
+                      "systemAssigned": "[parameters('enableSystemAssigned')]",
                       "userAssignedResourceIds": [
                         "[parameters('userAssignedResourceId')]"
                       ]
@@ -39910,7 +39941,7 @@
           "publicNetworkAccess": {
             "value": "Enabled"
           },
-          "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', take(format('pep-{0}{1}', variables('functionName'), if(equals(parameters('hostingModel'), 'container'), '-docker', '')), 64), 'customNetworkInterfaceName', format('nic-{0}{1}', variables('functionName'), if(equals(parameters('hostingModel'), 'container'), '-docker', '')), 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('privateDnsZoneResourceId', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').appService)).outputs.resourceId.value))), 'service', 'sites', 'subnetResourceId', reference('network').outputs.subnetWebResourceId.value))), createObject('value', createArray()))]",
+          "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', take(format('pep-{0}{1}', variables('functionName'), if(equals(parameters('hostingModel'), 'container'), '-docker', '')), 64), 'customNetworkInterfaceName', format('nic-{0}{1}', variables('functionName'), if(equals(parameters('hostingModel'), 'container'), '-docker', '')), 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('privateDnsZoneResourceId', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').appService)).outputs.resourceId.value))), 'service', 'sites', 'subnetResourceId', reference('network').outputs.subnetPrivateEndpointsResourceId.value))), createObject('value', createArray()))]",
           "appSettings": {
             "value": "[union(createObject('AZURE_BLOB_ACCOUNT_NAME', variables('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference('formrecognizer').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference('contentsafety').outputs.endpoint.value, 'AZURE_KEY_VAULT_ENDPOINT', reference('keyvault').outputs.endpoint.value, 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'AZURE_OPENAI_RESOURCE', variables('azureOpenAIResourceName'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'USE_ADVANCED_IMAGE_PROCESSING', if(parameters('useAdvancedImageProcessing'), 'true', 'false'), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'LOGLEVEL', parameters('logLevel'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'DATABASE_TYPE', parameters('databaseType'), 'MANAGED_IDENTITY_CLIENT_ID', reference('managedIdentityModule').outputs.managedIdentityOutput.value.clientId, 'MANAGED_IDENTITY_RESOURCE_ID', reference('managedIdentityModule').outputs.managedIdentityOutput.value.id, 'APP_ENV', parameters('appEnvironment')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_SEARCH_INDEX', variables('azureSearchIndex'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', variables('azureAISearchName')), 'AZURE_SEARCH_DATASOURCE_NAME', variables('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', variables('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', if(parameters('azureSearchUseIntegratedVectorization'), 'true', 'false'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', reference('postgresDBModule').outputs.postgresDbOutput.value.postgreSQLServerName, 'AZURE_POSTGRESQL_DATABASE_NAME', reference('postgresDBModule').outputs.postgresDbOutput.value.postgreSQLDatabaseName, 'AZURE_POSTGRESQL_USER', reference('managedIdentityModule').outputs.managedIdentityOutput.value.name), createObject())))]"
           }
@@ -48582,7 +48613,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "68114798306146084"
+              "templateHash": "15145535415197431472"
             }
           },
           "parameters": {
@@ -48621,7 +48652,7 @@
             }
           },
           "variables": {
-            "wookbookContents": "{\"version\":\"Notebook/1.0\",\"items\":[{\"type\":1,\"content\":\"@{json=# Chat With Your Data Monitoring}\",\"name\":\"Heading\"},{\"type\":9,\"content\":\"@{version=KqlParameterItem/1.0; crossComponentResources=System.Object[]; parameters=System.Object[]; style=pills; queryType=1; resourceType=microsoft.resourcegraph/resources}\",\"conditionalVisibility\":\"@{parameterName=never; comparison=isEqualTo; value=show}\",\"name\":\"Resource Parameters\"},{\"type\":9,\"content\":\"@{version=KqlParameterItem/1.0; crossComponentResources=System.Object[]; parameters=System.Object[]; style=pills; queryType=1; resourceType=microsoft.resourcegraph/resources}\",\"name\":\"Time Picker\"},{\"type\":11,\"content\":\"@{version=LinkItem/1.0; style=tabs; links=System.Object[]}\",\"name\":\"links - 4\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Operations}\",\"name\":\"Operations Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Resources}\",\"name\":\"Resources Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Open AI}\",\"name\":\"Open AI Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=AI Search}\",\"name\":\"Search Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Storage}\",\"name\":\"Storage Group\"}],\"fallbackResourceIds\":[\"azure monitor\"],\"styleSettings\":{\"paddingStyle\":\"narrow\",\"spacingStyle\":\"narrow\"},\"$schema\":\"https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json\"}\r\n",
+            "wookbookContents": "{\"version\":\"Notebook/1.0\",\"items\":[{\"type\":1,\"content\":\"@{json=# Chat With Your Data Monitoring}\",\"name\":\"Heading\"},{\"type\":9,\"content\":\"@{version=KqlParameterItem/1.0; crossComponentResources=System.Object[]; parameters=System.Object[]; style=pills; queryType=1; resourceType=microsoft.resourcegraph/resources}\",\"conditionalVisibility\":\"@{parameterName=never; comparison=isEqualTo; value=show}\",\"name\":\"Resource Parameters\"},{\"type\":9,\"content\":\"@{version=KqlParameterItem/1.0; crossComponentResources=System.Object[]; parameters=System.Object[]; style=pills; queryType=1; resourceType=microsoft.resourcegraph/resources}\",\"name\":\"Time Picker\"},{\"type\":11,\"content\":\"@{version=LinkItem/1.0; style=tabs; links=System.Object[]}\",\"name\":\"links - 4\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Operations}\",\"name\":\"Operations Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Resources}\",\"name\":\"Resources Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Open AI}\",\"name\":\"Open AI Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=AI Search}\",\"name\":\"Search Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Storage}\",\"name\":\"Storage Group\"}],\"fallbackResourceIds\":[\"azure monitor\"],\"styleSettings\":{\"paddingStyle\":\"narrow\",\"spacingStyle\":\"narrow\"},\"$schema\":\"https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json\"}\n",
             "wookbookContentsSubReplaced": "[replace(variables('wookbookContents'), '{subscription-id}', subscription().id)]",
             "wookbookContentsRGReplaced": "[replace(variables('wookbookContentsSubReplaced'), '{resource-group}', resourceGroup().name)]",
             "wookbookContentsAppServicePlanReplaced": "[replace(variables('wookbookContentsRGReplaced'), '{app-service-plan}', parameters('hostingPlanName'))]",
@@ -48802,8 +48833,11 @@
             ]
           },
           "privateDnsZoneResourceId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)).outputs.resourceId.value), createObject('value', ''))]",
+          "enableSystemAssigned": {
+            "value": true
+          },
           "roleAssignments": {
-            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.managedIdentityOutput.value.objectId, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId'), 'principalType', 'User')), createArray()))]"
+            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.managedIdentityOutput.value.objectId, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe', 'principalId', reference('managedIdentityModule').outputs.managedIdentityOutput.value.objectId, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId'), 'principalType', 'User')), createArray()))]"
           }
         },
         "template": {
@@ -48814,7 +48848,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "2692697546055923781"
+              "templateHash": "8803403740911067122"
             }
           },
           "parameters": {
@@ -48891,6 +48925,13 @@
               "defaultValue": "",
               "metadata": {
                 "description": "Optional. Resource ID of the user-assigned managed identity to be used by the Cognitive Services resource."
+              }
+            },
+            "enableSystemAssigned": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Flag to enable a system-assigned managed identity for the Cognitive Services resource."
               }
             },
             "disableLocalAuth": {
@@ -48987,7 +49028,7 @@
                   },
                   "managedIdentities": {
                     "value": {
-                      "systemAssigned": false,
+                      "systemAssigned": "[parameters('enableSystemAssigned')]",
                       "userAssignedResourceIds": [
                         "[parameters('userAssignedResourceId')]"
                       ]
@@ -51360,7 +51401,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "2692697546055923781"
+              "templateHash": "8803403740911067122"
             }
           },
           "parameters": {
@@ -51437,6 +51478,13 @@
               "defaultValue": "",
               "metadata": {
                 "description": "Optional. Resource ID of the user-assigned managed identity to be used by the Cognitive Services resource."
+              }
+            },
+            "enableSystemAssigned": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Flag to enable a system-assigned managed identity for the Cognitive Services resource."
               }
             },
             "disableLocalAuth": {
@@ -51533,7 +51581,7 @@
                   },
                   "managedIdentities": {
                     "value": {
-                      "systemAssigned": false,
+                      "systemAssigned": "[parameters('enableSystemAssigned')]",
                       "userAssignedResourceIds": [
                         "[parameters('userAssignedResourceId')]"
                       ]
@@ -57355,8 +57403,8 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "managedIdentityModule",
         "network"
       ]
