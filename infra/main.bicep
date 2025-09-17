@@ -1280,10 +1280,16 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
     privateDnsZoneResourceId: enablePrivateNetworking
       ? avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
       : ''
+    enableSystemAssigned: true
     roleAssignments: concat([
       {
         roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
         principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+        principalId: reference(resourceId('Microsoft.CognitiveServices/accounts', formRecognizerName), '2021-10-01').identity.principalId
         principalType: 'ServicePrincipal'
       }],
       !empty(principalId) ? [
