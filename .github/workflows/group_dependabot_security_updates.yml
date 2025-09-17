@@ -65,9 +65,10 @@ jobs:
           git config --global user.email "github-actions@github.com"
 
       - name: Install required tools
-        uses: awalsh128/cache-apt-pkgs-action@v1.3.1
-        with:
-          packages: "jq gh"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq gh
+        shell: bash
 
       - name: Enable strict error handling
         shell: bash
