@@ -893,7 +893,7 @@ module webServerFarm 'br/public:avm/res/web/serverfarm:0.5.0' = {
   // scope: resourceGroup()
 }
 
-module web 'modules/app/web.bicep' = if (hostingModel == 'code' || hostingModel == 'container') {
+module web 'modules/app/web.bicep' = {
   name: take('module.web.site.${websiteName}${hostingModel == 'container' ? '-docker' : ''}', 64)
   scope: resourceGroup()
   params: {
@@ -1013,7 +1013,7 @@ module web 'modules/app/web.bicep' = if (hostingModel == 'code' || hostingModel 
   }
 }
 
-module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code'|| hostingModel == 'container') {
+module adminweb 'modules/app/adminweb.bicep' = {
   name: take('module.web.site.${adminWebsiteName}${hostingModel == 'container' ? '-docker' : ''}', 64)
   scope: resourceGroup()
   params: {
@@ -1128,7 +1128,7 @@ module adminweb 'modules/app/adminweb.bicep' = if (hostingModel == 'code'|| host
   }
 }
 
-module function 'modules/app/function.bicep' = if (hostingModel == 'code' || hostingModel == 'container') {
+module function 'modules/app/function.bicep' = {
   name: hostingModel == 'container' ? '${functionName}-docker' : functionName
   scope: resourceGroup()
   params: {
