@@ -19,6 +19,7 @@ from azure.search.documents.indexes.models import (
     SemanticPrioritizedFields,
     SemanticField,
     SearchIndex,
+    SearchIndexerDataUserAssignedIdentity,
 )
 from ..helpers.env_helper import EnvHelper
 from ..helpers.azure_credential_utils import get_azure_credential
@@ -144,6 +145,9 @@ class AzureSearchIndex:
             azure_open_ai_parameters = AzureOpenAIParameters(
                 resource_uri=self.env_helper.AZURE_OPENAI_ENDPOINT,
                 deployment_id=self.env_helper.AZURE_OPENAI_EMBEDDING_MODEL,
+                auth_identity=SearchIndexerDataUserAssignedIdentity(
+                    user_assigned_identity=self.env_helper.MANAGED_IDENTITY_RESOURCE_ID
+                ),
             )
 
         return VectorSearch(
