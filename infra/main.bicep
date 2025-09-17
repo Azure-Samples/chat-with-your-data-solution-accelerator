@@ -1292,11 +1292,6 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
         roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
         principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
         principalType: 'ServicePrincipal'
-      }
-      {
-        roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
-        principalType: 'ServicePrincipal'
       }],
       !empty(principalId) ? [
       {
@@ -1305,6 +1300,14 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
         principalType: 'User'
       }
     ] : [])
+    systemAssignedRoleAssignments: [
+      {
+        resourceId: storage.outputs.id
+        roleName: 'Storage Blob Data Contributor'
+        roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+        principalType: 'ServicePrincipal'
+      }
+    ]
   }
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
