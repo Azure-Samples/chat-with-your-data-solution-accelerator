@@ -35,6 +35,7 @@ class EnvHelper:
         self.secretHelper = SecretHelper()
 
         self.LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
+        self.APP_ENV = os.getenv("APP_ENV", "Prod").lower()
 
         # Azure
         self.AZURE_SUBSCRIPTION_ID = os.getenv("AZURE_SUBSCRIPTION_ID", "")

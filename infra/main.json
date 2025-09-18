@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "10419899725003138093"
+      "templateHash": "16678023206335272184"
     }
   },
   "parameters": {
@@ -691,7 +691,13 @@
       }
     ],
     "openAiDeployments": "[concat(variables('defaultOpenAiDeployments'), if(parameters('useAdvancedImageProcessing'), createArray(createObject('name', parameters('azureOpenAIVisionModel'), 'model', createObject('format', 'OpenAI', 'name', parameters('azureOpenAIVisionModelName'), 'version', parameters('azureOpenAIVisionModelVersion')), 'sku', createObject('name', 'GlobalStandard', 'capacity', parameters('azureOpenAIVisionModelCapacity')))), createArray()))]",
-    "webServerFarmResourceName": "[variables('hostingPlanName')]"
+    "webServerFarmResourceName": "[variables('hostingPlanName')]",
+    "azureOpenAIModelInfo": "[string(createObject('model', parameters('azureOpenAIModel'), 'model_name', parameters('azureOpenAIModelName'), 'model_version', parameters('azureOpenAIModelVersion')))]",
+    "azureOpenAIEmbeddingModelInfo": "[string(createObject('model', parameters('azureOpenAIEmbeddingModel'), 'model_name', parameters('azureOpenAIEmbeddingModelName'), 'model_version', parameters('azureOpenAIEmbeddingModelVersion')))]",
+    "azureBlobStorageInfo": "[string(createObject('container_name', variables('blobContainerName'), 'account_name', variables('storageAccountName')))]",
+    "azureSpeechServiceInfo": "[string(createObject('service_name', variables('speechServiceName'), 'service_region', parameters('location'), 'recognizer_languages', parameters('recognizedLanguages')))]",
+    "azureOpenaiConfigurationInfo": "[string(createObject('service_name', variables('speechServiceName'), 'stream', parameters('azureOpenAIStream'), 'system_message', parameters('azureOpenAISystemMessage'), 'stop_sequence', parameters('azureOpenAIStopSequence'), 'max_tokens', parameters('azureOpenAIMaxTokens'), 'top_p', parameters('azureOpenAITopP'), 'temperature', parameters('azureOpenAITemperature'), 'api_version', parameters('azureOpenAIApiVersion'), 'resource', variables('azureOpenAIResourceName')))]",
+    "backendUrl": "[format('https://{0}.azurewebsites.net', variables('functionName'))]"
   },
   "resources": {
     "resourceGroupTags": {
@@ -32854,6 +32860,25 @@
           },
           "roleAssignments": {
             "value": "[concat(createArray(createObject('roleDefinitionIdOrName', '8ebe5a00-799e-43f5-93ac-243d3dce84a7', 'principalId', reference('managedIdentityModule').outputs.managedIdentityOutput.value.objectId, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '7ca78c08-252a-4471-8644-bb5ff32d4ba0', 'principalId', reference('managedIdentityModule').outputs.managedIdentityOutput.value.objectId, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '1407120a-92aa-4202-b7e9-c0e197c71c8f', 'principalId', reference('managedIdentityModule').outputs.managedIdentityOutput.value.objectId, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', '8ebe5a00-799e-43f5-93ac-243d3dce84a7', 'principalId', parameters('principalId'), 'principalType', 'User'), createObject('roleDefinitionIdOrName', '7ca78c08-252a-4471-8644-bb5ff32d4ba0', 'principalId', parameters('principalId'), 'principalType', 'User'), createObject('roleDefinitionIdOrName', '1407120a-92aa-4202-b7e9-c0e197c71c8f', 'principalId', parameters('principalId'), 'principalType', 'User')), createArray()))]"
+          },
+          "enableSystemAssigned": {
+            "value": true
+          },
+          "systemAssignedRoleAssignments": {
+            "value": [
+              {
+                "resourceId": "[reference('storage').outputs.id.value]",
+                "roleName": "Storage Blob Data Contributor",
+                "roleDefinitionId": "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
+                "principalType": "ServicePrincipal"
+              },
+              {
+                "resourceId": "[reference('openai').outputs.resourceId.value]",
+                "roleName": "Cognitive Services User",
+                "roleDefinitionId": "a97b65f3-24c7-4388-baec-2e87135dc908",
+                "principalType": "ServicePrincipal"
+              }
+            ]
           }
         },
         "template": {
@@ -32864,7 +32889,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "11611652729786179984"
+              "templateHash": "8563441367522490973"
             }
           },
           "parameters": {
@@ -32956,6 +32981,20 @@
             "roleAssignments": {
               "type": "array",
               "defaultValue": []
+            },
+            "enableSystemAssigned": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Flag to enable a system-assigned managed identity for the Cognitive Services resource."
+              }
+            },
+            "systemAssignedRoleAssignments": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Optional. Array of role assignments to apply to the system-assigned identity at the search service scope. Each item: { roleDefinitionId: \"<GUID or built-in role definition id>\" }"
+              }
             }
           },
           "variables": {
@@ -33022,7 +33061,7 @@
                   "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', format('pep-{0}', variables('searchResourceName')), 'customNetworkInterfaceName', format('nic-{0}', variables('searchResourceName')), 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', if(not(empty(parameters('privateDnsZoneResourceIds'))), variables('privateDnsZoneGroupConfigs'), createArray())), 'service', 'searchService', 'subnetResourceId', parameters('subnetResourceId')))), createObject('value', createArray()))]",
                   "managedIdentities": {
                     "value": {
-                      "systemAssigned": false,
+                      "systemAssigned": "[parameters('enableSystemAssigned')]",
                       "userAssignedResourceIds": [
                         "[parameters('userAssignedResourceId')]"
                       ]
@@ -35320,6 +35359,263 @@
                   }
                 }
               }
+            },
+            "systemAssignedIdentityRoleAssignments": {
+              "copy": {
+                "name": "systemAssignedIdentityRoleAssignments",
+                "count": "[length(parameters('systemAssignedRoleAssignments'))]"
+              },
+              "condition": "[and(parameters('enableSystemAssigned'), not(empty(parameters('systemAssignedRoleAssignments'))))]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "[take(format('avm.ptn.authorization.resource-role-assignment.{0}', uniqueString(variables('searchResourceName'), parameters('systemAssignedRoleAssignments')[copyIndex()].roleDefinitionId, parameters('systemAssignedRoleAssignments')[copyIndex()].resourceId)), 64)]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "roleDefinitionId": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].roleDefinitionId]"
+                  },
+                  "principalId": {
+                    "value": "[reference('avmSearch').outputs.systemAssignedMIPrincipalId.value]"
+                  },
+                  "resourceId": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].resourceId]"
+                  },
+                  "roleName": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].roleName]"
+                  },
+                  "principalType": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].principalType]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.32.4.45862",
+                      "templateHash": "14634305923902101494"
+                    },
+                    "name": "Resource-scoped role assignment",
+                    "description": "This module deploys a Role Assignment for a specific resource."
+                  },
+                  "parameters": {
+                    "resourceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The scope for the role assignment, fully qualified resourceId."
+                      }
+                    },
+                    "name": {
+                      "type": "string",
+                      "defaultValue": "[guid(parameters('resourceId'), parameters('principalId'), if(contains(parameters('roleDefinitionId'), '/providers/Microsoft.Authorization/roleDefinitions/'), parameters('roleDefinitionId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))))]",
+                      "metadata": {
+                        "description": "Optional. The unique guid name for the role assignment."
+                      }
+                    },
+                    "roleDefinitionId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The role definition ID for the role assignment."
+                      }
+                    },
+                    "roleName": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Optional. The name for the role, used for logging."
+                      }
+                    },
+                    "principalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The Principal or Object ID of the Security Principal (User, Group, Service Principal, Managed Identity)."
+                      }
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "allowedValues": [
+                        "ServicePrincipal",
+                        "Group",
+                        "User",
+                        "ForeignGroup",
+                        "Device",
+                        ""
+                      ],
+                      "metadata": {
+                        "description": "Optional. The principal type of the assigned principal ID."
+                      }
+                    },
+                    "description": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Optional. The description of role assignment."
+                      }
+                    },
+                    "enableTelemetry": {
+                      "type": "bool",
+                      "defaultValue": true,
+                      "metadata": {
+                        "description": "Optional. Enable/Disable usage telemetry for module."
+                      }
+                    }
+                  },
+                  "variables": {
+                    "$fxv#0": {
+                      "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                      "contentVersion": "1.0.0.0",
+                      "parameters": {
+                        "scope": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "roleDefinitionId": {
+                          "type": "string"
+                        },
+                        "principalId": {
+                          "type": "string"
+                        },
+                        "principalType": {
+                          "type": "string",
+                          "allowedValues": [
+                            "Device",
+                            "ForeignGroup",
+                            "Group",
+                            "ServicePrincipal",
+                            "User",
+                            ""
+                          ],
+                          "defaultValue": "",
+                          "metadata": {
+                            "description": "Optional. The principal type of the assigned principal ID."
+                          }
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      },
+                      "resources": [
+                        {
+                          "type": "Microsoft.Authorization/roleAssignments",
+                          "apiVersion": "2022-04-01",
+                          "scope": "[[parameters('scope')]",
+                          "name": "[[parameters('name')]",
+                          "properties": {
+                            "roleDefinitionId": "[[parameters('roleDefinitionId')]",
+                            "principalId": "[[parameters('principalId')]",
+                            "principalType": "[[parameters('principalType')]",
+                            "description": "[[parameters('description')]"
+                          }
+                        }
+                      ],
+                      "outputs": {
+                        "roleAssignmentId": {
+                          "type": "string",
+                          "value": "[[extensionResourceId(parameters('scope'), 'Microsoft.Authorization/roleAssignments', parameters('name'))]"
+                        }
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "condition": "[parameters('enableTelemetry')]",
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2024-03-01",
+                      "name": "[format('46d3xbcp.ptn.authorization-resourceroleassignment.{0}.{1}', replace('0.1.2', '.', '-'), substring(uniqueString(deployment().name), 0, 4))]",
+                      "properties": {
+                        "mode": "Incremental",
+                        "template": {
+                          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                          "contentVersion": "1.0.0.0",
+                          "resources": [],
+                          "outputs": {
+                            "telemetry": {
+                              "type": "String",
+                              "value": "For more information, see https://aka.ms/avm/TelemetryInfo"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2023-07-01",
+                      "name": "[format('{0}-ResourceRoleAssignment', guid(parameters('resourceId'), parameters('principalId'), parameters('roleDefinitionId')))]",
+                      "properties": {
+                        "mode": "Incremental",
+                        "expressionEvaluationOptions": {
+                          "scope": "Outer"
+                        },
+                        "template": "[variables('$fxv#0')]",
+                        "parameters": {
+                          "scope": {
+                            "value": "[parameters('resourceId')]"
+                          },
+                          "name": {
+                            "value": "[parameters('name')]"
+                          },
+                          "roleDefinitionId": {
+                            "value": "[if(contains(parameters('roleDefinitionId'), '/providers/Microsoft.Authorization/roleDefinitions/'), parameters('roleDefinitionId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId')))]"
+                          },
+                          "principalId": {
+                            "value": "[parameters('principalId')]"
+                          },
+                          "principalType": {
+                            "value": "[parameters('principalType')]"
+                          },
+                          "description": {
+                            "value": "[parameters('description')]"
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The GUID of the Role Assignment."
+                      },
+                      "value": "[parameters('name')]"
+                    },
+                    "roleName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name for the role, used for logging."
+                      },
+                      "value": "[parameters('roleName')]"
+                    },
+                    "resourceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The resource ID of the Role Assignment."
+                      },
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-ResourceRoleAssignment', guid(parameters('resourceId'), parameters('principalId'), parameters('roleDefinitionId')))), '2023-07-01').outputs.roleAssignmentId.value]"
+                    },
+                    "resourceGroupName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name of the resource group the role assignment was applied at."
+                      },
+                      "value": "[resourceGroup().name]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "avmSearch"
+              ],
+              "metadata": {
+                "description": "Role assignments applied to the system-assigned identity via AVM module. Objects can include: roleDefinitionId (req), roleName, principalType, resourceId."
+              }
             }
           },
           "outputs": {
@@ -35342,7 +35638,9 @@
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').searchService)]",
         "managedIdentityModule",
         "monitoring",
-        "network"
+        "network",
+        "openai",
+        "storage"
       ]
     },
     "webServerFarm": {
@@ -58277,8 +58575,8 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "managedIdentityModule",
         "network"
       ]
@@ -63403,6 +63701,239 @@
         "postgresDBModule",
         "storage"
       ]
+    }
+  },
+  "outputs": {
+    "APPLICATIONINSIGHTS_CONNECTION_STRING": {
+      "type": "string",
+      "metadata": {
+        "description": "Connection string for the Application Insights instance"
+      },
+      "value": "[if(parameters('enableMonitoring'), reference('monitoring').outputs.applicationInsightsConnectionString.value, '')]"
+    },
+    "AZURE_APP_SERVICE_HOSTING_MODEL": {
+      "type": "string",
+      "metadata": {
+        "description": "App Service hosting model used (code or container)"
+      },
+      "value": "[parameters('hostingModel')]"
+    },
+    "APP_ENV": {
+      "type": "string",
+      "metadata": {
+        "description": "Application environment (e.g., Prod, Dev)"
+      },
+      "value": "[parameters('appEnvironment')]"
+    },
+    "AZURE_BLOB_STORAGE_INFO": {
+      "type": "string",
+      "metadata": {
+        "description": "Blob storage info (container and account)"
+      },
+      "value": "[variables('azureBlobStorageInfo')]"
+    },
+    "AZURE_COMPUTER_VISION_INFO": {
+      "type": "string",
+      "metadata": {
+        "description": "Computer Vision service information"
+      },
+      "value": "[string(createObject('service_name', variables('computerVisionName'), 'endpoint', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.endpoint.value, ''), 'location', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.location.value, ''), 'vectorize_image_api_version', parameters('computerVisionVectorizeImageApiVersion'), 'vectorize_image_model_version', parameters('computerVisionVectorizeImageModelVersion')))]"
+    },
+    "AZURE_CONTENT_SAFETY_INFO": {
+      "type": "string",
+      "metadata": {
+        "description": "Content Safety service endpoint information"
+      },
+      "value": "[string(createObject('endpoint', reference('contentsafety').outputs.endpoint.value))]"
+    },
+    "AZURE_FORM_RECOGNIZER_INFO": {
+      "type": "string",
+      "metadata": {
+        "description": "Form Recognizer service endpoint information"
+      },
+      "value": "[string(createObject('endpoint', reference('formrecognizer').outputs.endpoint.value))]"
+    },
+    "AZURE_LOCATION": {
+      "type": "string",
+      "metadata": {
+        "description": "Primary deployment location"
+      },
+      "value": "[parameters('location')]"
+    },
+    "AZURE_OPENAI_MODEL_INFO": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure OpenAI model information"
+      },
+      "value": "[variables('azureOpenAIModelInfo')]"
+    },
+    "AZURE_OPENAI_CONFIGURATION_INFO": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure OpenAI configuration details"
+      },
+      "value": "[variables('azureOpenaiConfigurationInfo')]"
+    },
+    "AZURE_OPENAI_EMBEDDING_MODEL_INFO": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure OpenAI embedding model information"
+      },
+      "value": "[variables('azureOpenAIEmbeddingModelInfo')]"
+    },
+    "AZURE_RESOURCE_GROUP": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the resource group"
+      },
+      "value": "[resourceGroup().name]"
+    },
+    "AZURE_SEARCH_SERVICE_INFO": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure Cognitive Search service information (if deployed)"
+      },
+      "value": "[if(equals(parameters('databaseType'), 'CosmosDB'), string(createObject('service_name', variables('azureAISearchName'), 'service', reference('search').outputs.searchEndpoint.value, 'use_semantic_search', parameters('azureSearchUseSemanticSearch'), 'semantic_search_config', parameters('azureSearchSemanticSearchConfig'), 'index_is_prechunked', parameters('azureSearchIndexIsPrechunked'), 'top_k', parameters('azureSearchTopK'), 'enable_in_domain', parameters('azureSearchEnableInDomain'), 'content_column', parameters('azureSearchContentColumn'), 'content_vector_column', parameters('azureSearchVectorColumn'), 'filename_column', parameters('azureSearchFilenameColumn'), 'filter', parameters('azureSearchFilter'), 'title_column', parameters('azureSearchTitleColumn'), 'fields_metadata', parameters('azureSearchFieldsMetadata'), 'source_column', parameters('azureSearchSourceColumn'), 'text_column', parameters('azureSearchTextColumn'), 'layout_column', parameters('azureSearchLayoutTextColumn'), 'url_column', parameters('azureSearchUrlColumn'), 'use_integrated_vectorization', parameters('azureSearchUseIntegratedVectorization'), 'index', variables('azureSearchIndex'), 'indexer_name', variables('azureSearchIndexer'), 'datasource_name', variables('azureSearchDatasource'))), '')]"
+    },
+    "AZURE_SPEECH_SERVICE_INFO": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure Speech service information"
+      },
+      "value": "[variables('azureSpeechServiceInfo')]"
+    },
+    "AZURE_TENANT_ID": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure tenant identifier"
+      },
+      "value": "[tenant().tenantId]"
+    },
+    "DOCUMENT_PROCESSING_QUEUE_NAME": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the document processing queue"
+      },
+      "value": "[variables('queueName')]"
+    },
+    "ORCHESTRATION_STRATEGY": {
+      "type": "string",
+      "metadata": {
+        "description": "Orchestration strategy selected (openai_function, semantic_kernel, etc.)"
+      },
+      "value": "[parameters('orchestrationStrategy')]"
+    },
+    "BACKEND_URL": {
+      "type": "string",
+      "metadata": {
+        "description": "Backend URL for the function app"
+      },
+      "value": "[variables('backendUrl')]"
+    },
+    "AzureWebJobsStorage": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure WebJobs Storage connection string for the Functions app"
+      },
+      "value": "[reference('function').outputs.AzureWebJobsStorage.value]"
+    },
+    "FRONTEND_WEBSITE_NAME": {
+      "type": "string",
+      "metadata": {
+        "description": "Frontend web application URI"
+      },
+      "value": "[reference('web').outputs.FRONTEND_API_URI.value]"
+    },
+    "ADMIN_WEBSITE_NAME": {
+      "type": "string",
+      "metadata": {
+        "description": "Admin web application URI"
+      },
+      "value": "[reference('adminweb').outputs.WEBSITE_ADMIN_URI.value]"
+    },
+    "LOGLEVEL": {
+      "type": "string",
+      "metadata": {
+        "description": "Configured log level for applications"
+      },
+      "value": "[parameters('logLevel')]"
+    },
+    "CONVERSATION_FLOW": {
+      "type": "string",
+      "metadata": {
+        "description": "Conversation flow type in use (custom or byod)"
+      },
+      "value": "[parameters('conversationFlow')]"
+    },
+    "USE_ADVANCED_IMAGE_PROCESSING": {
+      "type": "bool",
+      "metadata": {
+        "description": "Whether advanced image processing is enabled"
+      },
+      "value": "[parameters('useAdvancedImageProcessing')]"
+    },
+    "AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION": {
+      "type": "bool",
+      "metadata": {
+        "description": "Whether Azure Search is using integrated vectorization"
+      },
+      "value": "[parameters('azureSearchUseIntegratedVectorization')]"
+    },
+    "ADVANCED_IMAGE_PROCESSING_MAX_IMAGES": {
+      "type": "int",
+      "metadata": {
+        "description": "Maximum number of images sent per advanced image processing request"
+      },
+      "value": "[parameters('advancedImageProcessingMaxImages')]"
+    },
+    "AZURE_ML_WORKSPACE_NAME": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure Machine Learning workspace name when using prompt_flow orchestration"
+      },
+      "value": "[if(equals(parameters('orchestrationStrategy'), 'prompt_flow'), reference('machineLearning').outputs.workspaceName.value, '')]"
+    },
+    "RESOURCE_TOKEN": {
+      "type": "string",
+      "metadata": {
+        "description": "Unique token for this solution deployment (short suffix)"
+      },
+      "value": "[variables('solutionSuffix')]"
+    },
+    "AZURE_COSMOSDB_INFO": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB related information (account/database/container)"
+      },
+      "value": "[string(createObject('account_name', if(equals(parameters('databaseType'), 'CosmosDB'), reference('cosmosDBModule').outputs.cosmosOutput.value.cosmosAccountName, ''), 'database_name', if(equals(parameters('databaseType'), 'CosmosDB'), reference('cosmosDBModule').outputs.cosmosOutput.value.cosmosDatabaseName, ''), 'conversations_container_name', if(equals(parameters('databaseType'), 'CosmosDB'), reference('cosmosDBModule').outputs.cosmosOutput.value.cosmosContainerName, '')))]"
+    },
+    "AZURE_POSTGRESQL_INFO": {
+      "type": "string",
+      "metadata": {
+        "description": "PostgreSQL related information (host/database/user)"
+      },
+      "value": "[string(createObject('host_name', if(equals(parameters('databaseType'), 'PostgreSQL'), reference('postgresDBModule').outputs.postgresDbOutput.value.postgreSQLServerName, ''), 'database_name', if(equals(parameters('databaseType'), 'PostgreSQL'), reference('postgresDBModule').outputs.postgresDbOutput.value.postgreSQLDatabaseName, ''), 'user', ''))]"
+    },
+    "DATABASE_TYPE": {
+      "type": "string",
+      "metadata": {
+        "description": "Selected database type for this deployment"
+      },
+      "value": "[parameters('databaseType')]"
+    },
+    "OPEN_AI_FUNCTIONS_SYSTEM_PROMPT": {
+      "type": "string",
+      "metadata": {
+        "description": "System prompt for OpenAI functions"
+      },
+      "value": "[variables('openAIFunctionsSystemPrompt')]"
+    },
+    "SEMANTIC_KERNEL_SYSTEM_PROMPT": {
+      "type": "string",
+      "metadata": {
+        "description": "System prompt used by the Semantic Kernel orchestration"
+      },
+      "value": "[variables('semanticKernelSystemPrompt')]"
     }
   }
 }

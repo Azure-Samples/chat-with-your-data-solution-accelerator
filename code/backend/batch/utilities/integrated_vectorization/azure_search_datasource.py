@@ -36,8 +36,12 @@ class AzureSearchDatasource:
             connection_string=connection_string,
             container=container,
             data_deletion_detection_policy=NativeBlobSoftDeleteDeletionDetectionPolicy(),
-            identity=SearchIndexerDataUserAssignedIdentity(
-                user_assigned_identity=self.env_helper.MANAGED_IDENTITY_RESOURCE_ID
+            identity=(
+                None
+                if getattr(self.env_helper, "APP_ENV", "").lower() == "dev"
+                else SearchIndexerDataUserAssignedIdentity(
+                    user_assigned_identity=self.env_helper.MANAGED_IDENTITY_RESOURCE_ID
+                )
             ),
         )
         self.indexer_client.create_or_update_data_source_connection(
