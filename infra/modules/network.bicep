@@ -131,6 +131,16 @@ module network 'network/main.bicep' = {
           securityRules: []
         }
       }
+      {
+        name: 'deployment-scripts'
+        addressPrefixes: ['10.0.4.0/24']
+        networkSecurityGroup: {
+          name: 'nsg-deployment-scripts'
+          securityRules: []
+        }
+        delegation: 'Microsoft.ContainerInstance/containerGroups'
+        serviceEndpoints: ['Microsoft.Storage']
+      }
     ]
     bastionConfiguration: {
       name: 'bas-${resourcesName}'
@@ -244,6 +254,12 @@ output subnetPrivateEndpointsResourceId string = first(filter(network.outputs.su
 
 @description('Resource ID of the Bastion Host.')
 output bastionResourceId string = network.outputs.bastionHostId
+
+@description('Resource ID of the subnet for deployment scripts.')
+output subnetDeploymentScriptsResourceId string = first(filter(
+  network.outputs.subnets,
+  s => s.name == 'deployment-scripts'
+)).?resourceId ?? ''
 
 @description('Resource ID of the Jumpbox VM.')
 output jumpboxResourceId string = network.outputs.jumpboxResourceId

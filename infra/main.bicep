@@ -1407,19 +1407,32 @@ module machineLearning 'modules/app/machinelearning.bicep' = if (orchestrationSt
   }
 }
 
-module createIndex 'modules/core/database/deploy_create_table_script.bicep' = if (databaseType == 'PostgreSQL') {
-  name: 'deploy_create_table_script'
+//========== Deployment script to upload data ========== //
+module createIndex 'br/public:avm/res/resources/deployment-script:0.5.1' =  if (databaseType == 'PostgreSQL') {
+  name: take('avm.res.resources.deployment-script.createIndex', 64)
   params: {
-    solutionLocation: location
-    identity: managedIdentityModule.outputs.managedIdentityOutput.id
-    baseUrl: baseUrl
-    postgresSqlServerName: postgresDBModule!.outputs.postgresDbOutput.postgreSQLServerName
-    managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
+    kind: 'AzureCLI'
+    name: 'copy_demo_Data'
+    azCliVersion: '2.52.0'
+    cleanupPreference: 'Always'
+    location: location
+    managedIdentities: {
+      userAssignedResourceIds: [
+        managedIdentityModule.outputs.managedIdentityOutput.id
+      ]
+    }
+    retentionInterval: 'PT1H'
+    runOnce: true
+    primaryScriptUri: '${baseUrl}scripts/run_create_table_script.sh'
+    arguments: '${baseUrl} ${resourceGroup().name} ${postgresDBModule!.outputs.postgresDbOutput.postgreSQLServerName} ${managedIdentityModule.outputs.managedIdentityOutput.name}'
+    storageAccountResourceId: storage.outputs.id
+    subnetResourceIds: enablePrivateNetworking ? [
+      network!.outputs.subnetDeploymentScriptsResourceId
+    ] : null
+    tags: tags
+    timeout: 'PT1H'
   }
-  scope: resourceGroup()
-  dependsOn: hostingModel == 'code'
-    ? [postgresDBModule, web, adminweb]
-    : [postgresDBModule, web, adminweb, function]
+  dependsOn: [web, adminweb, function]
 }
 
 var azureOpenAIModelInfo = string({
