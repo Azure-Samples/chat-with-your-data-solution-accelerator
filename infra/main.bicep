@@ -1045,6 +1045,12 @@ module search 'modules/core/search/search-services.bicep' = if (databaseType == 
         roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
         principalType: 'ServicePrincipal'
       }
+      {
+        resourceId: openai.outputs.resourceId
+        roleName: 'Cognitive Services OpenAI User'
+        roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+        principalType: 'ServicePrincipal'
+      }
     ]
   }
 }

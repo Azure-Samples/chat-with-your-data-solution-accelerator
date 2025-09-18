@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "16854127182224391242"
+      "templateHash": "18400197968684403108"
     }
   },
   "parameters": {
@@ -22804,6 +22804,12 @@
                 "resourceId": "[reference('openai').outputs.resourceId.value]",
                 "roleName": "Cognitive Services User",
                 "roleDefinitionId": "a97b65f3-24c7-4388-baec-2e87135dc908",
+                "principalType": "ServicePrincipal"
+              },
+              {
+                "resourceId": "[reference('openai').outputs.resourceId.value]",
+                "roleName": "Cognitive Services OpenAI User",
+                "roleDefinitionId": "5e0bd9bd-7b93-4f28-af87-19fc36ad61bd",
                 "principalType": "ServicePrincipal"
               }
             ]
@@ -48280,9 +48286,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "managedIdentityModule",
         "network"
       ]
