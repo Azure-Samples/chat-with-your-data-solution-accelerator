@@ -367,7 +367,7 @@ var eventGridSystemTopicName = 'doc-processing'
 // var tags = { 'azd-env-name': solutionName }
 var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/waf-avm/'
 var appversion = 'latest' // Update GIT deployment branch
-var registryName = 'cwydcontainerreg' // Update Registry name
+var registryName = 'cwydcontainerregpk' // Update Registry name
 
 var openAIFunctionsSystemPrompt = '''You help employees to navigate only private information sources.
     You must prioritize the function call over your general knowledge for any question by calling the search_documents function.
@@ -491,32 +491,32 @@ module managedIdentityModule 'br/public:avm/res/managed-identity/user-assigned-i
 
 // ========== Private DNS Zones ========== //
 var privateDnsZones = [
-  'privatelink.cognitiveservices.azure.com'
-  'privatelink.openai.azure.com'
+  'privatelink.documents.azure.com'
+  'privatelink.postgres.database.azure.com'
   'privatelink.blob.${environment().suffixes.storage}'
   'privatelink.queue.${environment().suffixes.storage}'
   'privatelink.file.${environment().suffixes.storage}'
-  'privatelink.documents.azure.com'
-  'privatelink.postgres.cosmos.azure.com'
-  'privatelink.vaultcore.azure.net'
-  'privatelink.azurewebsites.net'
   'privatelink.search.windows.net'
+  'privatelink.cognitiveservices.azure.com'
+  'privatelink.openai.azure.com'
+  'privatelink.vaultcore.azure.net'
   'privatelink.api.azureml.ms'
+  'privatelink.azurewebsites.net'
 ]
 
 // DNS Zone Index Constants
 var dnsZoneIndex = {
-  cognitiveServices: 0
-  openAI: 1
+  cosmosDB: 0 // 'privatelink.mongo.cosmos.azure.com'
+  postgresDB: 1 // 'privatelink.postgres.cosmos.azure.com'
   storageBlob: 2
   storageQueue: 3
   storageFile: 4 // 'privatelink.file.core.windows.net'
-  cosmosDB: 5 // 'privatelink.mongo.cosmos.azure.com'
-  postgresDB: 6 // 'privatelink.postgres.cosmos.azure.com'
-  keyVault: 7
-  appService: 8
-  searchService: 9
-  machinelearning: 10
+  searchService: 5
+  cognitiveServices: 6
+  openAI: 7
+  keyVault: 8
+  machinelearning: 9
+  appService: 10
   // The indexes for 'storageFile' and 'containerRegistry' have been removed as they were unused
 }
 
@@ -649,10 +649,24 @@ module postgresDBModule 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.
     highAvailability: 'Disabled'
 
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    delegatedSubnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
-    privateDnsZoneArmResourceId: enablePrivateNetworking
-      ? avmPrivateDnsZones[dnsZoneIndex.postgresDB]!.outputs.resourceId
-      : ''
+    //delegatedSubnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
+    privateEndpoints: enablePrivateNetworking
+      ? [
+          {
+            name: 'pep-${postgresResourceName}'
+            customNetworkInterfaceName: 'nic-${postgresResourceName}'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.postgresDB]!.outputs.resourceId
+                }
+              ]
+            }
+            service: 'postgresqlServer'
+            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
+          }
+        ]
+      : []
 
     administrators: managedIdentityModule.outputs.principalId != ''
       ? [
@@ -664,7 +678,7 @@ module postgresDBModule 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.
         ]
       : null
 
-    firewallRules: concat(
+    firewallRules: enablePrivateNetworking ? [] : concat(
       allowAllIPsFirewall
         ? [
             {
@@ -702,7 +716,7 @@ module pgSqlDelayScript 'br/public:avm/res/resources/deployment-script:0.5.1' = 
     tags: tags
     kind: 'AzurePowerShell'
     enableTelemetry: enableTelemetry
-    scriptContent: 'start-sleep -Seconds 300'
+    scriptContent: enablePrivateNetworking ? 'start-sleep -Seconds 120' : 'start-sleep -Seconds 300'
     azPowerShellVersion: '11.0'
     timeout: 'PT15M'
     cleanupPreference: 'Always'
@@ -715,30 +729,69 @@ module pgSqlDelayScript 'br/public:avm/res/resources/deployment-script:0.5.1' = 
 
 // Store secrets in a keyvault
 var keyVaultName = 'kv-${solutionSuffix}'
-module keyvault './modules/core/security/keyvault.bicep' = {
-  name: take('module.key-vault.${keyVaultName}', 64)
-  scope: resourceGroup()
+module keyvault 'br/public:avm/res/key-vault/vault:0.12.1' = {
+  name: take('avm.res.key-vault.vault.${keyVaultName}', 64)
   params: {
     name: keyVaultName
     location: location
-    tags: allTags
-    principalId: principalId
-    managedIdentityObjectId: managedIdentityModule.outputs.principalId
+    tags: tags
+    sku: 'standard'
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    networkAcls: {
+      defaultAction: 'Allow'
+    }
+    enablePurgeProtection: enablePurgeProtection
+    enableVaultForDeployment: true
+    enableVaultForDiskEncryption: true
+    enableVaultForTemplateDeployment: true
+    enableRbacAuthorization: true
+    enableSoftDelete: true
+    softDeleteRetentionInDays: 7
+    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId }] : null
+    privateEndpoints: enablePrivateNetworking
+      ? [
+          {
+            name: 'pep-${keyVaultName}'
+            customNetworkInterfaceName: 'nic-${keyVaultName}'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.keyVault]!.outputs.resourceId
+                }
+              ]
+            }
+            service: 'vault'
+            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
+          }
+        ]
+      : []
+    roleAssignments: concat(
+      managedIdentityModule.outputs.principalId != ''
+        ? [
+            {
+              principalId: managedIdentityModule.outputs.principalId
+              principalType: 'ServicePrincipal'
+              roleDefinitionIdOrName: 'Key Vault Secrets User'
+            }
+          ]
+        : [],
+      principalId != ''
+        ? [
+            {
+              principalId: principalId
+              principalType: 'User'
+              roleDefinitionIdOrName: 'Key Vault Secrets User'
+            }
+          ]
+        : []
+    )
     secrets: [
       {
         name: 'FUNCTION-KEY'
         value: clientKey
       }
     ]
-    enablePurgeProtection: enablePurgeProtection
     enableTelemetry: enableTelemetry
-    enableMonitoring: enableMonitoring
-    logAnalyticsWorkspaceResourceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : ''
-    enablePrivateNetworking: enablePrivateNetworking
-    subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
-    privateDnsZoneResourceId: enablePrivateNetworking
-      ? avmPrivateDnsZones[dnsZoneIndex.keyVault]!.outputs.resourceId
-      : ''
   }
 }
 
@@ -981,7 +1034,7 @@ module search 'modules/core/search/search-services.bicep' = if (databaseType == 
     enableSystemAssigned: true
     systemAssignedRoleAssignments: [
       {
-        resourceId: storage.outputs.id
+        resourceId: storage.outputs.resourceId
         roleName: 'Storage Blob Data Contributor'
         roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
         principalType: 'ServicePrincipal'
@@ -1054,7 +1107,7 @@ module web 'modules/app/web.bicep' = {
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
         AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.endpoint
+        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.uri
         AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
         AZURE_OPENAI_MODEL: azureOpenAIModel
         AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -1152,7 +1205,7 @@ module adminweb 'modules/app/adminweb.bicep' = {
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
         AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.endpoint
+        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.uri
         AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
         AZURE_OPENAI_MODEL: azureOpenAIModel
         AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -1256,7 +1309,7 @@ module function 'modules/app/function.bicep' = {
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
         AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.endpoint
+        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.uri
         AZURE_OPENAI_MODEL: azureOpenAIModel
         AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
         AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
@@ -1387,7 +1440,7 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
     ] : [])
     systemAssignedRoleAssignments: [
       {
-        resourceId: storage.outputs.id
+        resourceId: storage.outputs.resourceId
         roleName: 'Storage Blob Data Contributor'
         roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
         principalType: 'ServicePrincipal'
@@ -1432,36 +1485,40 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
 
-module storage 'modules/core/storage/storage-account.bicep' = {
-  name: take('module.storage.storage-account.${storageAccountName}', 64)
-  scope: resourceGroup()
+module storage './modules/storage/storage-account/main.bicep' = {
+  name: take('avm.res.storage.storage-account.${storageAccountName}', 64)
   params: {
-    storageAccountName: storageAccountName
+    name: storageAccountName
     location: location
-    tags: allTags
-    accessTier: 'Hot'
-    enablePrivateNetworking: enablePrivateNetworking
+    tags: tags
     enableTelemetry: enableTelemetry
-    solutionPrefix: solutionSuffix
+    supportsHttpsTrafficOnly: true
+    accessTier: 'Hot'
     skuName: 'Standard_GRS'
-    containers: [
-      {
-        name: blobContainerName
-        publicAccess: 'None'
-      }
-      {
-        name: 'config'
-        publicAccess: 'None'
-      }
-    ]
-    queues: [
-      {
-        name: 'doc-processing'
-      }
-      {
-        name: 'doc-processing-poison'
-      }
-    ]
+    kind: 'StorageV2'
+    blobServices: {
+      containers: [
+        {
+          name: blobContainerName
+          publicAccess: 'None'
+        }
+        {
+          name: 'config'
+          publicAccess: 'None'
+        }
+    ] }
+    queueServices: {
+      queues: [
+        {
+          name: 'doc-processing'
+        }
+        {
+          name: 'doc-processing-poison'
+        }
+      ]
+    }
+    // Use only user-assigned identities
+    managedIdentities: { systemAssigned: false, userAssignedResourceIds: [] }
     roleAssignments: [
       {
         principalId: managedIdentityModule.outputs.principalId
@@ -1479,16 +1536,54 @@ module storage 'modules/core/storage/storage-account.bicep' = {
         principalType: 'ServicePrincipal'
       }
     ]
-    privateDnsZoneResourceIds: enablePrivateNetworking
+    allowSharedKeyAccess: true
+    allowBlobPublicAccess: enablePrivateNetworking ? true : false
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    networkAcls: { bypass: 'AzureServices', defaultAction: enablePrivateNetworking ? 'Deny' : 'Allow' }
+    privateEndpoints: enablePrivateNetworking
       ? [
-          avmPrivateDnsZones[dnsZoneIndex.storageBlob]!.outputs.resourceId
-          avmPrivateDnsZones[dnsZoneIndex.storageQueue]!.outputs.resourceId
+          {
+            name: 'pep-blob-${solutionSuffix}'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'storage-dns-zone-group-blob'
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.storageBlob]!.outputs.resourceId
+                  // privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.storageBlob].outputs.resourceId.value
+                }
+              ]
+            }
+            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
+            service: 'blob'
+          }
+          {
+            name: 'pep-queue-${solutionSuffix}'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'storage-dns-zone-group-queue'
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.storageQueue]!.outputs.resourceId
+                }
+              ]
+            }
+            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
+            service: 'queue'
+          }
+          {
+            name: 'pep-file-${solutionSuffix}'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'storage-dns-zone-group-file'
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.storageFile]!.outputs.resourceId
+                }
+              ]
+            }
+            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
+            service: 'file'
+          }
         ]
       : []
-    subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : ''
-    // avmPrivateDnsZones: enablePrivateNetworking ? avmPrivateDnsZones : []
-    // dnsZoneIndex: enablePrivateNetworking ? dnsZoneIndex : {}
-    // avmVirtualNetwork: enablePrivateNetworking ? network : {}
   }
 }
 
@@ -1498,7 +1593,7 @@ module eventgrid 'modules/app/eventgrid.bicep' = {
   params: {
     name: eventGridSystemTopicName
     location: location
-    storageAccountId: storage.outputs.id
+    storageAccountId: storage.outputs.resourceId
     queueName: queueName
     blobContainerName: blobContainerName
     tags: tags
@@ -1517,7 +1612,7 @@ module machineLearning 'modules/app/machinelearning.bicep' = if (orchestrationSt
     location: location
     tags: allTags
     sku: 'Standard'
-    storageAccountId: storage.outputs.id
+    storageAccountId: storage.outputs.resourceId
     applicationInsightsId: enableMonitoring ? monitoring!.outputs.applicationInsightsId : ''
     azureOpenAIName: openai.outputs.name
     azureAISearchName: databaseType == 'CosmosDB' ? search!.outputs.searchName : ''
@@ -1542,7 +1637,7 @@ module createIndex 'br/public:avm/res/resources/deployment-script:0.5.1' =  if (
   name: take('avm.res.resources.deployment-script.createIndex', 64)
   params: {
     kind: 'AzureCLI'
-    name: 'copy_demo_Data'
+    name: 'copy_demo_Data_${solutionSuffix}'
     azCliVersion: '2.52.0'
     cleanupPreference: 'Always'
     location: location
@@ -1555,14 +1650,14 @@ module createIndex 'br/public:avm/res/resources/deployment-script:0.5.1' =  if (
     runOnce: true
     primaryScriptUri: '${baseUrl}scripts/run_create_table_script.sh'
     arguments: '${baseUrl} ${resourceGroup().name} ${postgresDBModule!.outputs.fqdn} ${managedIdentityModule.outputs.name}'
-    storageAccountResourceId: storage.outputs.id
+    storageAccountResourceId: storage.outputs.resourceId
     subnetResourceIds: enablePrivateNetworking ? [
       network!.outputs.subnetDeploymentScriptsResourceId
     ] : null
     tags: tags
-    timeout: 'PT1H'
+    timeout: 'PT5M'
   }
-  //dependsOn: [web, adminweb, function]
+  dependsOn: [pgSqlDelayScript]
 }
 
 var azureOpenAIModelInfo = string({
