@@ -16,7 +16,7 @@ param solutionName string = 'cwyd'
 @description('Optional. A unique text value for the solution. This is used to ensure resource names are unique for global resources. Defaults to a 5-character substring of the unique string generated from the subscription ID, resource group name, and solution name.')
 param solutionUniqueText string = take(uniqueString(subscription().id, resourceGroup().name, solutionName), 5)
 
-@description('Location for all resources, if you are using existing resource group provide the location of the resorce group.')
+@description('Required. Location for all resources, if you are using existing resource group provide the location of the resorce group.')
 @metadata({
   azd: {
     type: 'location'
@@ -43,10 +43,10 @@ var solutionSuffix = toLower(trim(replace(
 // @description('Name of App Service plan')
 // param hostingPlanName string = 'asp-${solutionSuffix}'
 
-@description('Name of App Service plan')
+@description('Optional. Name of App Service plan')
 var hostingPlanName string = 'asp-${solutionSuffix}'
 
-@description('The pricing tier for the App Service plan')
+@description('Optional.The pricing tier for the App Service plan')
 @allowed([
   'F1'
   'D1'
@@ -63,7 +63,7 @@ var hostingPlanName string = 'asp-${solutionSuffix}'
 ])
 param hostingPlanSku string = 'B3'
 
-@description('The type of database to deploy (cosmos or postgres)')
+@description('Required. The type of database to deploy (cosmos or postgres)')
 @allowed([
   'PostgreSQL'
   'CosmosDB'
@@ -88,100 +88,100 @@ var applicationInsightsName string = 'appi-${solutionSuffix}'
 @description('Name of the Workbook')
 var workbookDisplayName string = 'workbook-${solutionSuffix}'
 
-@description('Use semantic search')
+@description('Optional. Use semantic search')
 param azureSearchUseSemanticSearch bool = false
 
-@description('Semantic search config')
+@description('Optional. Semantic search config')
 param azureSearchSemanticSearchConfig string = 'default'
 
-@description('Is the index prechunked')
+@description('Optional. Is the index prechunked')
 param azureSearchIndexIsPrechunked string = 'false'
 
-@description('Top K results')
+@description('Optional. Top K results')
 param azureSearchTopK string = '5'
 
-@description('Enable in domain')
+@description('Optional. Enable in domain')
 param azureSearchEnableInDomain string = 'true'
 
-@description('Id columns')
+@description('Optional. Id columns')
 param azureSearchFieldId string = 'id'
 
-@description('Content columns')
+@description('Optional. Content columns')
 param azureSearchContentColumn string = 'content'
 
-@description('Vector columns')
+@description('Optional. Vector columns')
 param azureSearchVectorColumn string = 'content_vector'
 
-@description('Filename column')
+@description('Optional. Filename column')
 param azureSearchFilenameColumn string = 'filename'
 
-@description('Search filter')
+@description('Optional. Search filter')
 param azureSearchFilter string = ''
 
-@description('Title column')
+@description('Optional. Title column')
 param azureSearchTitleColumn string = 'title'
 
-@description('Metadata column')
+@description('Optional. Metadata column')
 param azureSearchFieldsMetadata string = 'metadata'
 
-@description('Source column')
+@description('Optional. Source column')
 param azureSearchSourceColumn string = 'source'
 
-@description('Text column')
+@description('Optional. Text column')
 param azureSearchTextColumn string = 'text'
 
-@description('Layout Text column')
+@description('Optional. Layout Text column')
 param azureSearchLayoutTextColumn string = 'layoutText'
 
-@description('Chunk column')
+@description('Optional. Chunk column')
 param azureSearchChunkColumn string = 'chunk'
 
-@description('Offset column')
+@description('Optional. Offset column')
 param azureSearchOffsetColumn string = 'offset'
 
-@description('Url column')
+@description('Optional. Url column')
 param azureSearchUrlColumn string = 'url'
 
-@description('Whether to use Azure Search Integrated Vectorization. If the database type is PostgreSQL, set this to false.')
+@description('Optional. Whether to use Azure Search Integrated Vectorization. If the database type is PostgreSQL, set this to false.')
 param azureSearchUseIntegratedVectorization bool = false
 
-@description('Name of Azure OpenAI Resource')
+@description('Optional. Name of Azure OpenAI Resource')
 var azureOpenAIResourceName string = 'oai-${solutionSuffix}'
 
-@description('Name of Azure OpenAI Resource SKU')
+@description('Optional. Name of Azure OpenAI Resource SKU')
 param azureOpenAISkuName string = 'S0'
 
-@description('Azure OpenAI Model Deployment Name')
+@description('Optional. Azure OpenAI Model Deployment Name')
 param azureOpenAIModel string = 'gpt-4.1'
 
-@description('Azure OpenAI Model Name')
+@description('Optional. Azure OpenAI Model Name')
 param azureOpenAIModelName string = 'gpt-4.1'
 
-@description('Azure OpenAI Model Version')
+@description('Optional. Azure OpenAI Model Version')
 param azureOpenAIModelVersion string = '2025-04-14'
 
-@description('Azure OpenAI Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
+@description('Optional. Azure OpenAI Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIModelCapacity int = 30
 
-@description('Whether to enable the use of a vision LLM and Computer Vision for embedding images. If the database type is PostgreSQL, set this to false.')
+@description('Optional. Whether to enable the use of a vision LLM and Computer Vision for embedding images. If the database type is PostgreSQL, set this to false.')
 param useAdvancedImageProcessing bool = false
 
-@description('The maximum number of images to pass to the vision model in a single request')
+@description('Optional. The maximum number of images to pass to the vision model in a single request')
 param advancedImageProcessingMaxImages int = 1
 
-@description('Azure OpenAI Vision Model Deployment Name')
+@description('Optional. Azure OpenAI Vision Model Deployment Name')
 param azureOpenAIVisionModel string = 'gpt-4'
 
-@description('Azure OpenAI Vision Model Name')
+@description('Optional. Azure OpenAI Vision Model Name')
 param azureOpenAIVisionModelName string = 'gpt-4'
 
-@description('Azure OpenAI Vision Model Version')
+@description('Optional. Azure OpenAI Vision Model Version')
 param azureOpenAIVisionModelVersion string = 'turbo-2024-04-09'
 
-@description('Azure OpenAI Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
+@description('Optional. Azure OpenAI Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIVisionModelCapacity int = 10
 
-@description('Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain. If the database type is PostgreSQL, set this to sementic_kernel.')
+@description('Required. Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain. If the database type is PostgreSQL, set this to sementic_kernel.')
 @allowed([
   'openai_function'
   'semantic_kernel'
@@ -190,57 +190,57 @@ param azureOpenAIVisionModelCapacity int = 10
 ])
 param orchestrationStrategy string = 'semantic_kernel'
 
-@description('Chat conversation type: custom or byod. If the database type is PostgreSQL, set this to custom.')
+@description('Required. Chat conversation type: custom or byod. If the database type is PostgreSQL, set this to custom.')
 @allowed([
   'custom'
   'byod'
 ])
 param conversationFlow string = 'custom'
 
-@description('Azure OpenAI Temperature')
+@description('Optional. Azure OpenAI Temperature')
 param azureOpenAITemperature string = '0'
 
-@description('Azure OpenAI Top P')
+@description('Optional. Azure OpenAI Top P')
 param azureOpenAITopP string = '1'
 
-@description('Azure OpenAI Max Tokens')
+@description('Optional. Azure OpenAI Max Tokens')
 param azureOpenAIMaxTokens string = '1000'
 
-@description('Azure OpenAI Stop Sequence')
+@description('Optional. Azure OpenAI Stop Sequence')
 param azureOpenAIStopSequence string = ''
 
-@description('Azure OpenAI System Message')
+@description('Optional. Azure OpenAI System Message')
 param azureOpenAISystemMessage string = 'You are an AI assistant that helps people find information.'
 
-@description('Azure OpenAI Api Version')
+@description('Optional. Azure OpenAI Api Version')
 param azureOpenAIApiVersion string = '2024-02-01'
 
-@description('Whether or not to stream responses from Azure OpenAI')
+@description('Optional. Whether or not to stream responses from Azure OpenAI')
 param azureOpenAIStream string = 'true'
 
-@description('Azure OpenAI Embedding Model Deployment Name')
+@description('Optional. Azure OpenAI Embedding Model Deployment Name')
 param azureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
 
-@description('Azure OpenAI Embedding Model Name')
+@description('Optional. Azure OpenAI Embedding Model Name')
 param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
 
-@description('Azure OpenAI Embedding Model Version')
+@description('Optional. Azure OpenAI Embedding Model Version')
 param azureOpenAIEmbeddingModelVersion string = '2'
 
-@description('Azure OpenAI Embedding Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
+@description('Optional. Azure OpenAI Embedding Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota')
 param azureOpenAIEmbeddingModelCapacity int = 30
 
-@description('Name of Computer Vision Resource (if useAdvancedImageProcessing=true)')
+@description('Optional. Name of Computer Vision Resource (if useAdvancedImageProcessing=true)')
 var computerVisionName string = 'cv-${solutionSuffix}'
 
-@description('Name of Computer Vision Resource SKU (if useAdvancedImageProcessing=true)')
+@description('Optional. Name of Computer Vision Resource SKU (if useAdvancedImageProcessing=true)')
 @allowed([
   'F0'
   'S1'
 ])
 param computerVisionSkuName string = 'S1'
 
-@description('Location of Computer Vision Resource (if useAdvancedImageProcessing=true)')
+@description('Optional. Location of Computer Vision Resource (if useAdvancedImageProcessing=true)')
 @allowed([
   // List taken from https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/image-retrieval?tabs=python#prerequisites
   'eastus'
@@ -254,16 +254,16 @@ param computerVisionSkuName string = 'S1'
 ])
 param computerVisionLocation string = ''
 
-@description('Azure Computer Vision Vectorize Image API Version')
+@description('Optional. Azure Computer Vision Vectorize Image API Version')
 param computerVisionVectorizeImageApiVersion string = '2024-02-01'
 
-@description('Azure Computer Vision Vectorize Image Model Version')
+@description('Optional. Azure Computer Vision Vectorize Image Model Version')
 param computerVisionVectorizeImageModelVersion string = '2023-04-15'
 
 @description('Azure AI Search Resource')
 var azureAISearchName string = 'srch-${solutionSuffix}'
 
-@description('The SKU of the search service you want to create. E.g. free or standard')
+@description('Optional. The SKU of the search service you want to create. E.g. free or standard')
 @allowed([
   'free'
   'basic'
@@ -282,7 +282,7 @@ var azureSearchIndexer string = 'indexer-${solutionSuffix}'
 @description('Azure AI Search Datasource')
 var azureSearchDatasource string = 'datasource-${solutionSuffix}'
 
-@description('Azure AI Search Conversation Log Index')
+@description('Optional. Azure AI Search Conversation Log Index')
 param azureSearchConversationLogIndex string = 'conversations'
 
 @description('Name of Storage Account')
@@ -303,18 +303,19 @@ var speechServiceName string = 'spch-${solutionSuffix}'
 @description('Log Analytics Name')
 var logAnalyticsName string = 'log-${solutionSuffix}'
 
+@description('Optional. A new GUID string generated for this deployment. This can be used for unique naming if needed.')
 param newGuidString string = newGuid()
-param searchTag string = 'chatwithyourdata-sa'
 
-@description('Id of the user or app to assign application roles')
+@description('Optional. Id of the user or app to assign application roles')
 param principalId string = ''
 
-@description('Application Environment')
+@description('Optional. Application Environment')
 param appEnvironment string = 'Prod'
 
-@description('Hosting model for the web apps. This value is fixed as "container", which uses prebuilt containers for faster deployment.')
+@description('Required. Hosting model for the web apps. This value is fixed as "container", which uses prebuilt containers for faster deployment.')
 param hostingModel string = 'container'
 
+@description('Optional. The log level for application logging. This setting controls the verbosity of logs emitted by the application. Allowed values are CRITICAL, ERROR, WARN, INFO, and DEBUG. The default value is INFO.')
 @allowed([
   'CRITICAL'
   'ERROR'
@@ -324,10 +325,10 @@ param hostingModel string = 'container'
 ])
 param logLevel string = 'INFO'
 
-@description('List of comma-separated languages to recognize from the speech input. Supported languages are listed here: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=stt#supported-languages')
+@description('Optional. List of comma-separated languages to recognize from the speech input. Supported languages are listed here: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=stt#supported-languages')
 param recognizedLanguages string = 'en-US,fr-FR,de-DE,it-IT'
 
-@description('Azure Machine Learning Name')
+@description('Optional. Azure Machine Learning Name')
 var azureMachineLearningName string = 'mlw-${solutionSuffix}'
 
 @description('Optional. The tags to apply to all deployed Azure resources.')
@@ -395,10 +396,10 @@ var allTags = union(
   },
   tags
 )
-@description('Optional created by user name')
+@description('Optional. created by user name')
 param createdBy string = empty(deployer().userPrincipalName) ? '' : split(deployer().userPrincipalName, '@')[0]
 
-resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
+resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
   name: 'default'
   properties: {
     tags: {
@@ -922,28 +923,13 @@ module web 'modules/app/web.bicep' = {
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
     publicNetworkAccess: 'Enabled' // Always enabling public network access
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: take('pep-${websiteName}${hostingModel == 'container' ? '-docker' : ''}', 64)
-            customNetworkInterfaceName: 'nic-${websiteName}${hostingModel == 'container' ? '-docker' : ''}'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                { privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.appService]!.outputs.resourceId }
-              ]
-            }
-            service: 'sites'
-            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
-          }
-        ]
-      : []
     applicationInsightsName: enableMonitoring ? monitoring.outputs.applicationInsightsName : ''
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
         AZURE_BLOB_CONTAINER_NAME: blobContainerName
         AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision!.outputs.endpoint : ''
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
         AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
@@ -1009,8 +995,8 @@ module web 'modules/app/web.bicep' = {
           }
         : databaseType == 'PostgreSQL'
             ? {
-                AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-                AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+                AZURE_POSTGRESQL_HOST_NAME: postgresDBModule!.outputs.postgresDbOutput.postgreSQLServerName
+                AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule!.outputs.postgresDbOutput.postgreSQLDatabaseName
                 AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
@@ -1041,7 +1027,7 @@ module adminweb 'modules/app/adminweb.bicep' = {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
         AZURE_BLOB_CONTAINER_NAME: blobContainerName
         AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision!.outputs.endpoint : ''
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
         AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
@@ -1062,7 +1048,7 @@ module adminweb 'modules/app/adminweb.bicep' = {
         AZURE_OPENAI_EMBEDDING_MODEL_VERSION: azureOpenAIEmbeddingModelVersion
 
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing ? 'true' : 'false'
-        BACKEND_URL: 'https://${hostingModel == 'container' ? 'adminweb-docker' : 'adminweb'}.azurewebsites.net'
+        BACKEND_URL: 'https://${hostingModel == 'container' ? '${functionName}-docker' : functionName}.azurewebsites.net'
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
         FUNCTION_KEY: 'FUNCTION-KEY'
         ORCHESTRATION_STRATEGY: orchestrationStrategy
@@ -1115,21 +1101,6 @@ module adminweb 'modules/app/adminweb.bicep' = {
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
     publicNetworkAccess: 'Enabled' // Always enabling public network access
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: take('pep-${adminWebsiteName}', 64)
-            customNetworkInterfaceName: 'nic-${adminWebsiteName}'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                { privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.appService]!.outputs.resourceId }
-              ]
-            }
-            service: 'sites'
-            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
-          }
-        ]
-      : []
   }
 }
 
@@ -1155,27 +1126,12 @@ module function 'modules/app/function.bicep' = {
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     publicNetworkAccess: 'Enabled' // Always enabling public network access
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: take('pep-${functionName}${hostingModel == 'container' ? '-docker' : ''}', 64)
-            customNetworkInterfaceName: 'nic-${functionName}${hostingModel == 'container' ? '-docker' : ''}'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                { privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.appService]!.outputs.resourceId }
-              ]
-            }
-            service: 'sites'
-            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
-          }
-        ]
-      : []
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
         AZURE_BLOB_CONTAINER_NAME: blobContainerName
         AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
+        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision!.outputs.endpoint : ''
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
         AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
@@ -1220,8 +1176,8 @@ module function 'modules/app/function.bicep' = {
           }
         : databaseType == 'PostgreSQL'
             ? {
-                AZURE_POSTGRESQL_HOST_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
-                AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName
+                AZURE_POSTGRESQL_HOST_NAME: postgresDBModule!.outputs.postgresDbOutput.postgreSQLServerName
+                AZURE_POSTGRESQL_DATABASE_NAME: postgresDBModule!.outputs.postgresDbOutput.postgreSQLDatabaseName
                 AZURE_POSTGRESQL_USER: managedIdentityModule.outputs.managedIdentityOutput.name
               }
             : {}
@@ -1457,7 +1413,7 @@ module createIndex 'modules/core/database/deploy_create_table_script.bicep' = if
     solutionLocation: location
     identity: managedIdentityModule.outputs.managedIdentityOutput.id
     baseUrl: baseUrl
-    postgresSqlServerName: postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName
+    postgresSqlServerName: postgresDBModule!.outputs.postgresDbOutput.postgreSQLServerName
     managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
   }
   scope: resourceGroup()
@@ -1479,16 +1435,16 @@ var azureOpenAIEmbeddingModelInfo = string({
 })
 
 var azureCosmosDBInfo = string({
-  account_name: databaseType == 'CosmosDB' ? cosmosDBModule.outputs.cosmosOutput.cosmosAccountName : ''
-  database_name: databaseType == 'CosmosDB' ? cosmosDBModule.outputs.cosmosOutput.cosmosDatabaseName : ''
+  account_name: databaseType == 'CosmosDB' ? cosmosDBModule!.outputs.cosmosOutput.cosmosAccountName : ''
+  database_name: databaseType == 'CosmosDB' ? cosmosDBModule!.outputs.cosmosOutput.cosmosDatabaseName : ''
   conversations_container_name: databaseType == 'CosmosDB'
-    ? cosmosDBModule.outputs.cosmosOutput.cosmosContainerName
+    ? cosmosDBModule!.outputs.cosmosOutput.cosmosContainerName
     : ''
 })
 
 var azurePostgresDBInfo = string({
-  host_name: databaseType == 'PostgreSQL' ? postgresDBModule.outputs.postgresDbOutput.postgreSQLServerName : ''
-  database_name: databaseType == 'PostgreSQL' ? postgresDBModule.outputs.postgresDbOutput.postgreSQLDatabaseName : ''
+  host_name: databaseType == 'PostgreSQL' ? postgresDBModule!.outputs.postgresDbOutput.postgreSQLServerName : ''
+  database_name: databaseType == 'PostgreSQL' ? postgresDBModule!.outputs.postgresDbOutput.postgreSQLDatabaseName : ''
   user: ''
 })
 
@@ -1535,8 +1491,8 @@ var azureSearchServiceInfo = databaseType == 'CosmosDB'
 
 var azureComputerVisionInfo = string({
   service_name: computerVisionName
-  endpoint: useAdvancedImageProcessing ? computerVision.outputs.endpoint : ''
-  location: useAdvancedImageProcessing ? computerVision.outputs.location : ''
+  endpoint: useAdvancedImageProcessing ? computerVision!.outputs.endpoint : ''
+  location: useAdvancedImageProcessing ? computerVision!.outputs.location : ''
   vectorize_image_api_version: computerVisionVectorizeImageApiVersion
   vectorize_image_model_version: computerVisionVectorizeImageModelVersion
 })
@@ -1559,38 +1515,103 @@ var azureContentSafetyInfo = string({
 
 var backendUrl = 'https://${functionName}.azurewebsites.net'
 
+@description('Connection string for the Application Insights instance')
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
+
+@description('App Service hosting model used (code or container)')
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
+
+@description('Application environment (e.g., Prod, Dev)')
 output APP_ENV string = appEnvironment
+
+@description('Blob storage info (container and account)')
 output AZURE_BLOB_STORAGE_INFO string = azureBlobStorageInfo
+
+@description('Computer Vision service information')
 output AZURE_COMPUTER_VISION_INFO string = azureComputerVisionInfo
+
+@description('Content Safety service endpoint information')
 output AZURE_CONTENT_SAFETY_INFO string = azureContentSafetyInfo
+
+@description('Form Recognizer service endpoint information')
 output AZURE_FORM_RECOGNIZER_INFO string = azureFormRecognizerInfo
+
+@description('Primary deployment location')
 output AZURE_LOCATION string = location
+
+@description('Azure OpenAI model information')
 output AZURE_OPENAI_MODEL_INFO string = azureOpenAIModelInfo
+
+@description('Azure OpenAI configuration details')
 output AZURE_OPENAI_CONFIGURATION_INFO string = azureOpenaiConfigurationInfo
+
+@description('Azure OpenAI embedding model information')
 output AZURE_OPENAI_EMBEDDING_MODEL_INFO string = azureOpenAIEmbeddingModelInfo
+
+@description('Name of the resource group')
 output AZURE_RESOURCE_GROUP string = resourceGroup().name
+
+@description('Azure Cognitive Search service information (if deployed)')
 output AZURE_SEARCH_SERVICE_INFO string = azureSearchServiceInfo
+
+@description('Azure Speech service information')
 output AZURE_SPEECH_SERVICE_INFO string = azureSpeechServiceInfo
+
+@description('Azure tenant identifier')
 output AZURE_TENANT_ID string = tenant().tenantId
+
+@description('Name of the document processing queue')
 output DOCUMENT_PROCESSING_QUEUE_NAME string = queueName
+
+@description('Orchestration strategy selected (openai_function, semantic_kernel, etc.)')
 output ORCHESTRATION_STRATEGY string = orchestrationStrategy
+
+@description('Backend URL for the function app')
 output BACKEND_URL string = backendUrl
+
+@description('Azure WebJobs Storage connection string for the Functions app')
 output AzureWebJobsStorage string = function.outputs.AzureWebJobsStorage
+
+@description('Frontend web application URI')
 output FRONTEND_WEBSITE_NAME string = web.outputs.FRONTEND_API_URI
+
+@description('Admin web application URI')
 output ADMIN_WEBSITE_NAME string = adminweb.outputs.WEBSITE_ADMIN_URI
+
+@description('Configured log level for applications')
 output LOGLEVEL string = logLevel
+
+@description('Conversation flow type in use (custom or byod)')
 output CONVERSATION_FLOW string = conversationFlow
+
+@description('Whether advanced image processing is enabled')
 output USE_ADVANCED_IMAGE_PROCESSING bool = useAdvancedImageProcessing
+
+@description('Whether Azure Search is using integrated vectorization')
 output AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION bool = azureSearchUseIntegratedVectorization
+
+@description('Maximum number of images sent per advanced image processing request')
 output ADVANCED_IMAGE_PROCESSING_MAX_IMAGES int = advancedImageProcessingMaxImages
+
+@description('Azure Machine Learning workspace name when using prompt_flow orchestration')
 output AZURE_ML_WORKSPACE_NAME string = orchestrationStrategy == 'prompt_flow'
-  ? machineLearning.outputs.workspaceName
+  ? machineLearning!.outputs.workspaceName
   : ''
+
+@description('Unique token for this solution deployment (short suffix)')
 output RESOURCE_TOKEN string = solutionSuffix
+
+@description('Cosmos DB related information (account/database/container)')
 output AZURE_COSMOSDB_INFO string = azureCosmosDBInfo
+
+@description('PostgreSQL related information (host/database/user)')
 output AZURE_POSTGRESQL_INFO string = azurePostgresDBInfo
+
+@description('Selected database type for this deployment')
 output DATABASE_TYPE string = databaseType
+
+@description('System prompt for OpenAI functions')
 output OPEN_AI_FUNCTIONS_SYSTEM_PROMPT string = openAIFunctionsSystemPrompt
+
+@description('System prompt used by the Semantic Kernel orchestration')
 output SEMANTIC_KERNEL_SYSTEM_PROMPT string = semanticKernelSystemPrompt

@@ -57,7 +57,7 @@ module subnetResource 'br/public:avm/res/network/virtual-network/subnet:0.1.2' =
     virtualNetworkName: vnetName
     name: subnet.?name ?? ''
     addressPrefixes: subnet.?addressPrefixes
-    networkSecurityGroupResourceId: nsg.outputs.resourceId
+    networkSecurityGroupResourceId: nsg!.outputs.resourceId
     enableTelemetry: enableTelemetry
   }
 }
@@ -97,10 +97,10 @@ module vm '../compute/virtual-machine/main.bicep' = {
         ipConfigurations: [
           {
             name: 'ipconfig1'
-            subnetResourceId: subnetResource.outputs.resourceId
+            subnetResourceId: subnetResource!.outputs.resourceId
           }
         ]
-        networkSecurityGroupResourceId: nsg.outputs.resourceId
+        networkSecurityGroupResourceId: nsg!.outputs.resourceId
         diagnosticSettings: [
           {
             name: 'jumpboxDiagnostics'
@@ -129,10 +129,10 @@ output resourceId string = vm.outputs.resourceId
 output name string = vm.outputs.name
 output location string = vm.outputs.location
 
-output subnetId string = subnetResource.outputs.resourceId
-output subnetName string = subnetResource.outputs.name
-output nsgId string = nsg.outputs.resourceId
-output nsgName string = nsg.outputs.name
+output subnetId string = subnetResource!.outputs.resourceId
+output subnetName string = subnetResource!.outputs.name
+output nsgId string = nsg!.outputs.resourceId
+output nsgName string = nsg!.outputs.name
 
 @export()
 @description('Custom type definition for establishing Jumpbox Virtual Machine and its associated resources.')

@@ -35,9 +35,6 @@ param subnetResourceId string = 'null'
 @description('Conditional. Resource ID of the Private DNS Zone. Required if enablePrivateNetworking is true.')
 param privateDnsZoneResourceId string = ''
 
-@description('Conditional. Module output contract supplying the Private DNS Zone. Required if enablePrivateNetworking is true.')
-param avmPrivateDnsZone object = {}
-
 @description('Optional. Object ID (principalId) of an additional principal to assign Key Vault Secrets User role.')
 param principalId string = ''
 

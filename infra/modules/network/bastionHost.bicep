@@ -27,7 +27,7 @@ import { subnetType } from 'virtualNetwork.bicep'
 @description('Optional. Subnet configuration for the Jumpbox VM.')
 param subnet subnetType?
 
-// 1. Create AzureBastionSubnet NSG 
+// 1. Create AzureBastionSubnet NSG
 // using AVM Network Security Group module
 // https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/network/network-security-group
 module nsg 'br/public:avm/res/network/network-security-group:0.5.1' = if (!empty(subnet)) {
@@ -49,7 +49,7 @@ module bastionSubnet 'br/public:avm/res/network/virtual-network/subnet:0.1.2' = 
     virtualNetworkName: vnetName
     name: 'AzureBastionSubnet' // this name required as is for Azure Bastion Host subnet
     addressPrefixes: subnet.?addressPrefixes
-    networkSecurityGroupResourceId: nsg.outputs.resourceId
+    networkSecurityGroupResourceId: nsg!.outputs.resourceId
     enableTelemetry: enableTelemetry
   }
 }
@@ -90,8 +90,8 @@ module bastionHost 'br/public:avm/res/network/bastion-host:0.6.1' = {
 
 output resourceId string = bastionHost.outputs.resourceId
 output name string = bastionHost.outputs.name
-output subnetId string = bastionSubnet.outputs.resourceId
-output subnetName string = bastionSubnet.outputs.name
+output subnetId string = bastionSubnet!.outputs.resourceId
+output subnetName string = bastionSubnet!.outputs.name
 
 @export()
 @description('Custom type definition for establishing Bastion Host for remote connection.')

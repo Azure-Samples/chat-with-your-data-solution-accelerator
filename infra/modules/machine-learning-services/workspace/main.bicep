@@ -272,8 +272,8 @@ resource workspace 'Microsoft.MachineLearningServices/workspaces@2024-10-01-prev
           keyVaultProperties: {
             keyVaultArmId: cMKKeyVault.id
             keyIdentifier: !empty(customerManagedKey.?keyVersion ?? '')
-              ? '${cMKKeyVault::cMKKey.properties.keyUri}/${customerManagedKey!.keyVersion}'
-              : cMKKeyVault::cMKKey.properties.keyUriWithVersion
+              ? '${cMKKeyVault::cMKKey!.properties.keyUri}/${customerManagedKey!.keyVersion}'
+              : cMKKeyVault::cMKKey!.properties.keyUriWithVersion
           }
         }
       : null
