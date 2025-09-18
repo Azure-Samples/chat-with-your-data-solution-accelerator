@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "301495053729115026"
+      "templateHash": "3440047483804613872"
     }
   },
   "parameters": {
@@ -784,7 +784,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "14313147793001631799"
+              "templateHash": "13557515220490517788"
             }
           },
           "parameters": {
@@ -940,6 +940,20 @@
                           "name": "nsg-peps",
                           "securityRules": []
                         }
+                      },
+                      {
+                        "name": "deployment-scripts",
+                        "addressPrefixes": [
+                          "10.0.4.0/24"
+                        ],
+                        "networkSecurityGroup": {
+                          "name": "nsg-deployment-scripts",
+                          "securityRules": []
+                        },
+                        "delegation": "Microsoft.ContainerInstance/containerGroups",
+                        "serviceEndpoints": [
+                          "Microsoft.Storage"
+                        ]
                       }
                     ]
                   },
@@ -13936,6 +13950,13 @@
                 "description": "Resource ID of the Bastion Host."
               },
               "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('network-{0}-create', parameters('resourcesName')), 64)), '2022-09-01').outputs.bastionHostId.value]"
+            },
+            "subnetDeploymentScriptsResourceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the subnet for deployment scripts."
+              },
+              "value": "[coalesce(tryGet(first(filter(reference(resourceId('Microsoft.Resources/deployments', take(format('network-{0}-create', parameters('resourcesName')), 64)), '2022-09-01').outputs.subnets.value, lambda('s', equals(lambdaVariables('s').name, 'deployment-scripts')))), 'resourceId'), '')]"
             },
             "jumpboxResourceId": {
               "type": "string",
@@ -58596,8 +58617,8 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "managedIdentityModule",
         "network"
       ]
@@ -63141,89 +63162,590 @@
       "condition": "[equals(parameters('databaseType'), 'PostgreSQL')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
-      "name": "deploy_create_table_script",
+      "name": "[take('avm.res.resources.deployment-script.createIndex', 64)]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
         },
         "mode": "Incremental",
         "parameters": {
-          "solutionLocation": {
+          "kind": {
+            "value": "AzureCLI"
+          },
+          "name": {
+            "value": "copy_demo_Data"
+          },
+          "azCliVersion": {
+            "value": "2.52.0"
+          },
+          "cleanupPreference": {
+            "value": "Always"
+          },
+          "location": {
             "value": "[parameters('location')]"
           },
-          "identity": {
-            "value": "[reference('managedIdentityModule').outputs.managedIdentityOutput.value.id]"
+          "managedIdentities": {
+            "value": {
+              "userAssignedResourceIds": [
+                "[reference('managedIdentityModule').outputs.managedIdentityOutput.value.id]"
+              ]
+            }
           },
-          "baseUrl": {
-            "value": "[variables('baseUrl')]"
+          "retentionInterval": {
+            "value": "PT1H"
           },
-          "postgresSqlServerName": {
-            "value": "[reference('postgresDBModule').outputs.postgresDbOutput.value.postgreSQLServerName]"
+          "runOnce": {
+            "value": true
           },
-          "managedIdentityName": {
-            "value": "[reference('managedIdentityModule').outputs.managedIdentityOutput.value.name]"
+          "primaryScriptUri": {
+            "value": "[format('{0}scripts/run_create_table_script.sh', variables('baseUrl'))]"
+          },
+          "arguments": {
+            "value": "[format('{0} {1} {2} {3}', variables('baseUrl'), resourceGroup().name, reference('postgresDBModule').outputs.postgresDbOutput.value.postgreSQLServerName, reference('managedIdentityModule').outputs.managedIdentityOutput.value.name)]"
+          },
+          "storageAccountResourceId": {
+            "value": "[reference('storage').outputs.id.value]"
+          },
+          "subnetResourceIds": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(reference('network').outputs.subnetDeploymentScriptsResourceId.value)), createObject('value', null()))]",
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "timeout": {
+            "value": "PT1H"
           }
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.0",
           "contentVersion": "1.0.0.0",
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "10580770504224323155"
+              "version": "0.32.4.45862",
+              "templateHash": "8965217851411422458"
+            },
+            "name": "Deployment Scripts",
+            "description": "This module deploys Deployment Scripts.",
+            "owner": "Azure/module-maintainers"
+          },
+          "definitions": {
+            "environmentVariableType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. The name of the environment variable."
+                  }
+                },
+                "secureValue": {
+                  "type": "securestring",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Conditional. The value of the secure environment variable. Required if `value` is null."
+                  }
+                },
+                "value": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Conditional. The value of the environment variable. Required if `secureValue` is null."
+                  }
+                }
+              }
+            },
+            "lockType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Specify the name of lock."
+                  }
+                },
+                "kind": {
+                  "type": "string",
+                  "allowedValues": [
+                    "CanNotDelete",
+                    "None",
+                    "ReadOnly"
+                  ],
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Specify the type of lock."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "An AVM-aligned type for a lock.",
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.2.1"
+                }
+              }
+            },
+            "managedIdentityOnlyUserAssignedType": {
+              "type": "object",
+              "properties": {
+                "userAssignedResourceIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The resource ID(s) to assign to the resource. Required if a user assigned identity is used for encryption."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "An AVM-aligned type for a managed identity configuration. To be used if only user-assigned identities are supported by the resource provider.",
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.2.1"
+                }
+              }
+            },
+            "roleAssignmentType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The name (as GUID) of the role assignment. If not provided, a GUID will be generated."
+                  }
+                },
+                "roleDefinitionIdOrName": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. The role to assign. You can provide either the display name of the role definition, the role definition GUID, or its fully qualified ID in the following format: '/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11'."
+                  }
+                },
+                "principalId": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. The principal ID of the principal (user/group/identity) to assign the role to."
+                  }
+                },
+                "principalType": {
+                  "type": "string",
+                  "allowedValues": [
+                    "Device",
+                    "ForeignGroup",
+                    "Group",
+                    "ServicePrincipal",
+                    "User"
+                  ],
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The principal type of the assigned principal ID."
+                  }
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The description of the role assignment."
+                  }
+                },
+                "condition": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase \"foo_storage_container\"."
+                  }
+                },
+                "conditionVersion": {
+                  "type": "string",
+                  "allowedValues": [
+                    "2.0"
+                  ],
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Version of the condition."
+                  }
+                },
+                "delegatedManagedIdentityResourceId": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The Resource Id of the delegated managed identity resource."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "An AVM-aligned type for a role assignment.",
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.2.1"
+                }
+              }
             }
           },
           "parameters": {
-            "solutionLocation": {
+            "name": {
               "type": "string",
+              "maxLength": 90,
               "metadata": {
-                "description": "Specifies the location for resources."
+                "description": "Required. Name of the Deployment Script."
               }
             },
-            "baseUrl": {
-              "type": "string"
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Optional. Location for all resources."
+              }
             },
-            "identity": {
-              "type": "string"
+            "kind": {
+              "type": "string",
+              "allowedValues": [
+                "AzureCLI",
+                "AzurePowerShell"
+              ],
+              "metadata": {
+                "description": "Required. Specifies the Kind of the Deployment Script."
+              }
             },
-            "postgresSqlServerName": {
-              "type": "string"
+            "managedIdentities": {
+              "$ref": "#/definitions/managedIdentityOnlyUserAssignedType",
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. The managed identity definition for this resource."
+              }
             },
-            "managedIdentityName": {
-              "type": "string"
+            "tags": {
+              "type": "object",
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. Resource tags."
+              }
+            },
+            "azPowerShellVersion": {
+              "type": "string",
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. Azure PowerShell module version to be used. See a list of supported Azure PowerShell versions: https://mcr.microsoft.com/v2/azuredeploymentscripts-powershell/tags/list."
+              }
+            },
+            "azCliVersion": {
+              "type": "string",
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. Azure CLI module version to be used. See a list of supported Azure CLI versions: https://mcr.microsoft.com/v2/azure-cli/tags/list."
+              }
+            },
+            "scriptContent": {
+              "type": "string",
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. Script body. Max length: 32000 characters. To run an external script, use primaryScriptURI instead."
+              }
+            },
+            "primaryScriptUri": {
+              "type": "string",
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. Uri for the external script. This is the entry point for the external script. To run an internal script, use the scriptContent parameter instead."
+              }
+            },
+            "environmentVariables": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/environmentVariableType"
+              },
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. The environment variables to pass over to the script."
+              }
+            },
+            "supportingScriptUris": {
+              "type": "array",
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. List of supporting files for the external script (defined in primaryScriptUri). Does not work with internal scripts (code defined in scriptContent)."
+              }
+            },
+            "subnetResourceIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. List of subnet IDs to use for the container group. This is required if you want to run the deployment script in a private network. When using a private network, the `Storage File Data Privileged Contributor` role needs to be assigned to the user-assigned managed identity and the deployment principal needs to have permissions to list the storage account keys. Also, Shared-Keys must not be disabled on the used storage account [ref](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/deployment-script-vnet)."
+              }
+            },
+            "arguments": {
+              "type": "string",
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. Command-line arguments to pass to the script. Arguments are separated by spaces."
+              }
+            },
+            "retentionInterval": {
+              "type": "string",
+              "defaultValue": "P1D",
+              "metadata": {
+                "description": "Optional. Interval for which the service retains the script resource after it reaches a terminal state. Resource will be deleted when this duration expires. Duration is based on ISO 8601 pattern (for example P7D means one week)."
+              }
+            },
+            "baseTime": {
+              "type": "string",
+              "defaultValue": "[utcNow('yyyy-MM-dd-HH-mm-ss')]",
+              "metadata": {
+                "description": "Generated. Do not provide a value! This date value is used to make sure the script run every time the template is deployed."
+              }
+            },
+            "runOnce": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. When set to false, script will run every time the template is deployed. When set to true, the script will only run once."
+              }
+            },
+            "cleanupPreference": {
+              "type": "string",
+              "defaultValue": "Always",
+              "allowedValues": [
+                "Always",
+                "OnSuccess",
+                "OnExpiration"
+              ],
+              "metadata": {
+                "description": "Optional. The clean up preference when the script execution gets in a terminal state. Specify the preference on when to delete the deployment script resources. The default value is Always, which means the deployment script resources are deleted despite the terminal state (Succeeded, Failed, canceled)."
+              }
+            },
+            "containerGroupName": {
+              "type": "string",
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. Container group name, if not specified then the name will get auto-generated. Not specifying a 'containerGroupName' indicates the system to generate a unique name which might end up flagging an Azure Policy as non-compliant. Use 'containerGroupName' when you have an Azure Policy that expects a specific naming convention or when you want to fully control the name. 'containerGroupName' property must be between 1 and 63 characters long, must contain only lowercase letters, numbers, and dashes and it cannot start or end with a dash and consecutive dashes are not allowed."
+              }
+            },
+            "storageAccountResourceId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Optional. The resource ID of the storage account to use for this deployment script. If none is provided, the deployment script uses a temporary, managed storage account."
+              }
+            },
+            "timeout": {
+              "type": "string",
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. Maximum allowed script execution time specified in ISO 8601 format. Default value is PT1H - 1 hour; 'PT30M' - 30 minutes; 'P5D' - 5 days; 'P1Y' 1 year."
+              }
+            },
+            "lock": {
+              "$ref": "#/definitions/lockType",
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. The lock settings of the service."
+              }
+            },
+            "roleAssignments": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/roleAssignmentType"
+              },
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. Array of role assignments to create."
+              }
+            },
+            "enableTelemetry": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Optional. Enable/Disable usage telemetry for module."
+              }
             }
           },
-          "resources": [
-            {
-              "type": "Microsoft.Resources/deploymentScripts",
-              "apiVersion": "2020-10-01",
-              "name": "create_postgres_table",
-              "kind": "AzureCLI",
-              "location": "[parameters('solutionLocation')]",
-              "identity": {
-                "type": "UserAssigned",
-                "userAssignedIdentities": {
-                  "[format('{0}', parameters('identity'))]": {}
-                }
+          "variables": {
+            "copy": [
+              {
+                "name": "formattedRoleAssignments",
+                "count": "[length(coalesce(parameters('roleAssignments'), createArray()))]",
+                "input": "[union(coalesce(parameters('roleAssignments'), createArray())[copyIndex('formattedRoleAssignments')], createObject('roleDefinitionId', coalesce(tryGet(variables('builtInRoleNames'), coalesce(parameters('roleAssignments'), createArray())[copyIndex('formattedRoleAssignments')].roleDefinitionIdOrName), if(contains(coalesce(parameters('roleAssignments'), createArray())[copyIndex('formattedRoleAssignments')].roleDefinitionIdOrName, '/providers/Microsoft.Authorization/roleDefinitions/'), coalesce(parameters('roleAssignments'), createArray())[copyIndex('formattedRoleAssignments')].roleDefinitionIdOrName, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', coalesce(parameters('roleAssignments'), createArray())[copyIndex('formattedRoleAssignments')].roleDefinitionIdOrName)))))]"
               },
-              "properties": {
-                "azCliVersion": "2.52.0",
-                "primaryScriptUri": "[format('{0}scripts/run_create_table_script.sh', parameters('baseUrl'))]",
-                "arguments": "[format('{0} {1} {2} {3}', parameters('baseUrl'), resourceGroup().name, parameters('postgresSqlServerName'), parameters('managedIdentityName'))]",
-                "timeout": "PT1H",
-                "retentionInterval": "PT1H",
-                "cleanupPreference": "OnSuccess"
+              {
+                "name": "subnetIds",
+                "count": "[length(coalesce(parameters('subnetResourceIds'), createArray()))]",
+                "input": {
+                  "id": "[coalesce(parameters('subnetResourceIds'), createArray())[copyIndex('subnetIds')]]"
+                }
               }
+            ],
+            "builtInRoleNames": {
+              "Contributor": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+              "Owner": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635')]",
+              "Reader": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')]",
+              "Role Based Access Control Administrator": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f58310d9-a9f6-439a-9e8d-f62e7b41a168')]",
+              "User Access Administrator": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9')]"
+            },
+            "containerSettings": {
+              "containerGroupName": "[parameters('containerGroupName')]",
+              "subnetIds": "[if(not(empty(coalesce(variables('subnetIds'), createArray()))), variables('subnetIds'), null())]"
+            },
+            "formattedUserAssignedIdentities": "[reduce(map(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createArray()), lambda('id', createObject(format('{0}', lambdaVariables('id')), createObject()))), createObject(), lambda('cur', 'next', union(lambdaVariables('cur'), lambdaVariables('next'))))]",
+            "identity": "[if(not(empty(parameters('managedIdentities'))), createObject('type', if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'UserAssigned', null()), 'userAssignedIdentities', if(not(empty(variables('formattedUserAssignedIdentities'))), variables('formattedUserAssignedIdentities'), null())), null())]"
+          },
+          "resources": {
+            "storageAccount": {
+              "condition": "[not(empty(parameters('storageAccountResourceId')))]",
+              "existing": true,
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2023-05-01",
+              "subscriptionId": "[split(if(not(empty(parameters('storageAccountResourceId'))), parameters('storageAccountResourceId'), '//'), '/')[2]]",
+              "resourceGroup": "[split(if(not(empty(parameters('storageAccountResourceId'))), parameters('storageAccountResourceId'), '////'), '/')[4]]",
+              "name": "[last(split(if(not(empty(parameters('storageAccountResourceId'))), parameters('storageAccountResourceId'), 'dummyAccount'), '/'))]"
+            },
+            "avmTelemetry": {
+              "condition": "[parameters('enableTelemetry')]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2024-03-01",
+              "name": "[format('46d3xbcp.res.resources-deploymentscript.{0}.{1}', replace('0.5.1', '.', '-'), substring(uniqueString(deployment().name, parameters('location')), 0, 4))]",
+              "properties": {
+                "mode": "Incremental",
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "resources": [],
+                  "outputs": {
+                    "telemetry": {
+                      "type": "String",
+                      "value": "For more information, see https://aka.ms/avm/TelemetryInfo"
+                    }
+                  }
+                }
+              }
+            },
+            "deploymentScript": {
+              "type": "Microsoft.Resources/deploymentScripts",
+              "apiVersion": "2023-08-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": "[variables('identity')]",
+              "kind": "[parameters('kind')]",
+              "properties": {
+                "azPowerShellVersion": "[if(equals(parameters('kind'), 'AzurePowerShell'), parameters('azPowerShellVersion'), null())]",
+                "azCliVersion": "[if(equals(parameters('kind'), 'AzureCLI'), parameters('azCliVersion'), null())]",
+                "containerSettings": "[if(not(empty(variables('containerSettings'))), variables('containerSettings'), null())]",
+                "storageAccountSettings": "[if(not(empty(parameters('storageAccountResourceId'))), if(not(empty(parameters('storageAccountResourceId'))), createObject('storageAccountKey', if(empty(parameters('subnetResourceIds')), listKeys(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', split(if(not(empty(parameters('storageAccountResourceId'))), parameters('storageAccountResourceId'), '//'), '/')[2], split(if(not(empty(parameters('storageAccountResourceId'))), parameters('storageAccountResourceId'), '////'), '/')[4]), 'Microsoft.Storage/storageAccounts', last(split(if(not(empty(parameters('storageAccountResourceId'))), parameters('storageAccountResourceId'), 'dummyAccount'), '/'))), '2023-01-01').keys[0].value, null()), 'storageAccountName', last(split(parameters('storageAccountResourceId'), '/'))), null()), null())]",
+                "arguments": "[parameters('arguments')]",
+                "environmentVariables": "[parameters('environmentVariables')]",
+                "scriptContent": "[if(not(empty(parameters('scriptContent'))), parameters('scriptContent'), null())]",
+                "primaryScriptUri": "[if(not(empty(parameters('primaryScriptUri'))), parameters('primaryScriptUri'), null())]",
+                "supportingScriptUris": "[if(not(empty(parameters('supportingScriptUris'))), parameters('supportingScriptUris'), null())]",
+                "cleanupPreference": "[parameters('cleanupPreference')]",
+                "forceUpdateTag": "[if(parameters('runOnce'), resourceGroup().name, parameters('baseTime'))]",
+                "retentionInterval": "[parameters('retentionInterval')]",
+                "timeout": "[parameters('timeout')]"
+              }
+            },
+            "deploymentScript_lock": {
+              "condition": "[and(not(empty(coalesce(parameters('lock'), createObject()))), not(equals(tryGet(parameters('lock'), 'kind'), 'None')))]",
+              "type": "Microsoft.Authorization/locks",
+              "apiVersion": "2020-05-01",
+              "scope": "[format('Microsoft.Resources/deploymentScripts/{0}', parameters('name'))]",
+              "name": "[coalesce(tryGet(parameters('lock'), 'name'), format('lock-{0}', parameters('name')))]",
+              "properties": {
+                "level": "[coalesce(tryGet(parameters('lock'), 'kind'), '')]",
+                "notes": "[if(equals(tryGet(parameters('lock'), 'kind'), 'CanNotDelete'), 'Cannot delete resource or child resources.', 'Cannot delete or modify the resource or child resources.')]"
+              },
+              "dependsOn": [
+                "deploymentScript"
+              ]
+            },
+            "deploymentScript_roleAssignments": {
+              "copy": {
+                "name": "deploymentScript_roleAssignments",
+                "count": "[length(coalesce(variables('formattedRoleAssignments'), createArray()))]"
+              },
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.Resources/deploymentScripts/{0}', parameters('name'))]",
+              "name": "[coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'name'), guid(resourceId('Microsoft.Resources/deploymentScripts', parameters('name')), coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].principalId, coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].roleDefinitionId))]",
+              "properties": {
+                "roleDefinitionId": "[coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].roleDefinitionId]",
+                "principalId": "[coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].principalId]",
+                "description": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'description')]",
+                "principalType": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'principalType')]",
+                "condition": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition')]",
+                "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
+                "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
+              },
+              "dependsOn": [
+                "deploymentScript"
+              ]
+            },
+            "deploymentScriptLogs": {
+              "existing": true,
+              "type": "Microsoft.Resources/deploymentScripts/logs",
+              "apiVersion": "2023-08-01",
+              "name": "[format('{0}/{1}', parameters('name'), 'default')]",
+              "dependsOn": [
+                "deploymentScript"
+              ]
             }
-          ]
+          },
+          "outputs": {
+            "resourceId": {
+              "type": "string",
+              "metadata": {
+                "description": "The resource ID of the deployment script."
+              },
+              "value": "[resourceId('Microsoft.Resources/deploymentScripts', parameters('name'))]"
+            },
+            "resourceGroupName": {
+              "type": "string",
+              "metadata": {
+                "description": "The resource group the deployment script was deployed into."
+              },
+              "value": "[resourceGroup().name]"
+            },
+            "name": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the deployment script."
+              },
+              "value": "[parameters('name')]"
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "The location the resource was deployed into."
+              },
+              "value": "[reference('deploymentScript', '2023-08-01', 'full').location]"
+            },
+            "outputs": {
+              "type": "object",
+              "metadata": {
+                "description": "The output of the deployment script."
+              },
+              "value": "[coalesce(tryGet(reference('deploymentScript'), 'outputs'), createObject())]"
+            },
+            "deploymentScriptLogs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "metadata": {
+                "description": "The logs of the deployment script."
+              },
+              "value": "[split(reference('deploymentScriptLogs').log, '\n')]"
+            }
+          }
         }
       },
       "dependsOn": [
         "adminweb",
         "function",
         "managedIdentityModule",
+        "network",
         "postgresDBModule",
+        "storage",
         "web"
       ]
     }
