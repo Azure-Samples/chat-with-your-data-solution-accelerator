@@ -8,9 +8,6 @@ metadata description = 'AVM WAF-compliant monitoring solution that integrates Ap
 @description('Required. Name of the Log Analytics workspace.')
 param logAnalyticsName string
 
-@description('Optional. Unique deployment suffix to avoid naming conflicts.')
-param deploymentSuffix string = utcNow('MMddHHmmss')
-
 @description('Required. Name of the Application Insights instance.')
 param applicationInsightsName string
 
