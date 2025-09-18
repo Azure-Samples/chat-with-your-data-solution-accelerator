@@ -872,6 +872,21 @@ module search 'modules/core/search/search-services.bicep' = if (databaseType == 
         principalType: 'User'
       }
     ] : [])
+    enableSystemAssigned: true
+    systemAssignedRoleAssignments: [
+      {
+        resourceId: storage.outputs.id
+        roleName: 'Storage Blob Data Contributor'
+        roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+        principalType: 'ServicePrincipal'
+      }
+      {
+        resourceId: openai.outputs.resourceId
+        roleName: 'Cognitive Services User'
+        roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+        principalType: 'ServicePrincipal'
+      }
+    ]
   }
 }
 
