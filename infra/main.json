@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "4875280775213452164"
+      "templateHash": "933370309310804724"
     }
   },
   "parameters": {
@@ -32883,6 +32883,25 @@
           },
           "roleAssignments": {
             "value": "[concat(createArray(createObject('roleDefinitionIdOrName', '8ebe5a00-799e-43f5-93ac-243d3dce84a7', 'principalId', reference('managedIdentityModule').outputs.managedIdentityOutput.value.objectId, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '7ca78c08-252a-4471-8644-bb5ff32d4ba0', 'principalId', reference('managedIdentityModule').outputs.managedIdentityOutput.value.objectId, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '1407120a-92aa-4202-b7e9-c0e197c71c8f', 'principalId', reference('managedIdentityModule').outputs.managedIdentityOutput.value.objectId, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', '8ebe5a00-799e-43f5-93ac-243d3dce84a7', 'principalId', parameters('principalId'), 'principalType', 'User'), createObject('roleDefinitionIdOrName', '7ca78c08-252a-4471-8644-bb5ff32d4ba0', 'principalId', parameters('principalId'), 'principalType', 'User'), createObject('roleDefinitionIdOrName', '1407120a-92aa-4202-b7e9-c0e197c71c8f', 'principalId', parameters('principalId'), 'principalType', 'User')), createArray()))]"
+          },
+          "enableSystemAssigned": {
+            "value": true
+          },
+          "systemAssignedRoleAssignments": {
+            "value": [
+              {
+                "resourceId": "[reference('storage').outputs.id.value]",
+                "roleName": "Storage Blob Data Contributor",
+                "roleDefinitionId": "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
+                "principalType": "ServicePrincipal"
+              },
+              {
+                "resourceId": "[reference('openai').outputs.resourceId.value]",
+                "roleName": "Cognitive Services User",
+                "roleDefinitionId": "a97b65f3-24c7-4388-baec-2e87135dc908",
+                "principalType": "ServicePrincipal"
+              }
+            ]
           }
         },
         "template": {
@@ -32893,7 +32912,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "11611652729786179984"
+              "templateHash": "8563441367522490973"
             }
           },
           "parameters": {
@@ -32985,6 +33004,20 @@
             "roleAssignments": {
               "type": "array",
               "defaultValue": []
+            },
+            "enableSystemAssigned": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Flag to enable a system-assigned managed identity for the Cognitive Services resource."
+              }
+            },
+            "systemAssignedRoleAssignments": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Optional. Array of role assignments to apply to the system-assigned identity at the search service scope. Each item: { roleDefinitionId: \"<GUID or built-in role definition id>\" }"
+              }
             }
           },
           "variables": {
@@ -33051,7 +33084,7 @@
                   "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', format('pep-{0}', variables('searchResourceName')), 'customNetworkInterfaceName', format('nic-{0}', variables('searchResourceName')), 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', if(not(empty(parameters('privateDnsZoneResourceIds'))), variables('privateDnsZoneGroupConfigs'), createArray())), 'service', 'searchService', 'subnetResourceId', parameters('subnetResourceId')))), createObject('value', createArray()))]",
                   "managedIdentities": {
                     "value": {
-                      "systemAssigned": false,
+                      "systemAssigned": "[parameters('enableSystemAssigned')]",
                       "userAssignedResourceIds": [
                         "[parameters('userAssignedResourceId')]"
                       ]
@@ -35349,6 +35382,263 @@
                   }
                 }
               }
+            },
+            "systemAssignedIdentityRoleAssignments": {
+              "copy": {
+                "name": "systemAssignedIdentityRoleAssignments",
+                "count": "[length(parameters('systemAssignedRoleAssignments'))]"
+              },
+              "condition": "[and(parameters('enableSystemAssigned'), not(empty(parameters('systemAssignedRoleAssignments'))))]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "[take(format('avm.ptn.authorization.resource-role-assignment.{0}', uniqueString(variables('searchResourceName'), parameters('systemAssignedRoleAssignments')[copyIndex()].roleDefinitionId, parameters('systemAssignedRoleAssignments')[copyIndex()].resourceId)), 64)]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "roleDefinitionId": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].roleDefinitionId]"
+                  },
+                  "principalId": {
+                    "value": "[reference('avmSearch').outputs.systemAssignedMIPrincipalId.value]"
+                  },
+                  "resourceId": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].resourceId]"
+                  },
+                  "roleName": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].roleName]"
+                  },
+                  "principalType": {
+                    "value": "[parameters('systemAssignedRoleAssignments')[copyIndex()].principalType]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.32.4.45862",
+                      "templateHash": "14634305923902101494"
+                    },
+                    "name": "Resource-scoped role assignment",
+                    "description": "This module deploys a Role Assignment for a specific resource."
+                  },
+                  "parameters": {
+                    "resourceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The scope for the role assignment, fully qualified resourceId."
+                      }
+                    },
+                    "name": {
+                      "type": "string",
+                      "defaultValue": "[guid(parameters('resourceId'), parameters('principalId'), if(contains(parameters('roleDefinitionId'), '/providers/Microsoft.Authorization/roleDefinitions/'), parameters('roleDefinitionId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))))]",
+                      "metadata": {
+                        "description": "Optional. The unique guid name for the role assignment."
+                      }
+                    },
+                    "roleDefinitionId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The role definition ID for the role assignment."
+                      }
+                    },
+                    "roleName": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Optional. The name for the role, used for logging."
+                      }
+                    },
+                    "principalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The Principal or Object ID of the Security Principal (User, Group, Service Principal, Managed Identity)."
+                      }
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "allowedValues": [
+                        "ServicePrincipal",
+                        "Group",
+                        "User",
+                        "ForeignGroup",
+                        "Device",
+                        ""
+                      ],
+                      "metadata": {
+                        "description": "Optional. The principal type of the assigned principal ID."
+                      }
+                    },
+                    "description": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Optional. The description of role assignment."
+                      }
+                    },
+                    "enableTelemetry": {
+                      "type": "bool",
+                      "defaultValue": true,
+                      "metadata": {
+                        "description": "Optional. Enable/Disable usage telemetry for module."
+                      }
+                    }
+                  },
+                  "variables": {
+                    "$fxv#0": {
+                      "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                      "contentVersion": "1.0.0.0",
+                      "parameters": {
+                        "scope": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "roleDefinitionId": {
+                          "type": "string"
+                        },
+                        "principalId": {
+                          "type": "string"
+                        },
+                        "principalType": {
+                          "type": "string",
+                          "allowedValues": [
+                            "Device",
+                            "ForeignGroup",
+                            "Group",
+                            "ServicePrincipal",
+                            "User",
+                            ""
+                          ],
+                          "defaultValue": "",
+                          "metadata": {
+                            "description": "Optional. The principal type of the assigned principal ID."
+                          }
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      },
+                      "resources": [
+                        {
+                          "type": "Microsoft.Authorization/roleAssignments",
+                          "apiVersion": "2022-04-01",
+                          "scope": "[[parameters('scope')]",
+                          "name": "[[parameters('name')]",
+                          "properties": {
+                            "roleDefinitionId": "[[parameters('roleDefinitionId')]",
+                            "principalId": "[[parameters('principalId')]",
+                            "principalType": "[[parameters('principalType')]",
+                            "description": "[[parameters('description')]"
+                          }
+                        }
+                      ],
+                      "outputs": {
+                        "roleAssignmentId": {
+                          "type": "string",
+                          "value": "[[extensionResourceId(parameters('scope'), 'Microsoft.Authorization/roleAssignments', parameters('name'))]"
+                        }
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "condition": "[parameters('enableTelemetry')]",
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2024-03-01",
+                      "name": "[format('46d3xbcp.ptn.authorization-resourceroleassignment.{0}.{1}', replace('0.1.2', '.', '-'), substring(uniqueString(deployment().name), 0, 4))]",
+                      "properties": {
+                        "mode": "Incremental",
+                        "template": {
+                          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                          "contentVersion": "1.0.0.0",
+                          "resources": [],
+                          "outputs": {
+                            "telemetry": {
+                              "type": "String",
+                              "value": "For more information, see https://aka.ms/avm/TelemetryInfo"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2023-07-01",
+                      "name": "[format('{0}-ResourceRoleAssignment', guid(parameters('resourceId'), parameters('principalId'), parameters('roleDefinitionId')))]",
+                      "properties": {
+                        "mode": "Incremental",
+                        "expressionEvaluationOptions": {
+                          "scope": "Outer"
+                        },
+                        "template": "[variables('$fxv#0')]",
+                        "parameters": {
+                          "scope": {
+                            "value": "[parameters('resourceId')]"
+                          },
+                          "name": {
+                            "value": "[parameters('name')]"
+                          },
+                          "roleDefinitionId": {
+                            "value": "[if(contains(parameters('roleDefinitionId'), '/providers/Microsoft.Authorization/roleDefinitions/'), parameters('roleDefinitionId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId')))]"
+                          },
+                          "principalId": {
+                            "value": "[parameters('principalId')]"
+                          },
+                          "principalType": {
+                            "value": "[parameters('principalType')]"
+                          },
+                          "description": {
+                            "value": "[parameters('description')]"
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The GUID of the Role Assignment."
+                      },
+                      "value": "[parameters('name')]"
+                    },
+                    "roleName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name for the role, used for logging."
+                      },
+                      "value": "[parameters('roleName')]"
+                    },
+                    "resourceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The resource ID of the Role Assignment."
+                      },
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-ResourceRoleAssignment', guid(parameters('resourceId'), parameters('principalId'), parameters('roleDefinitionId')))), '2023-07-01').outputs.roleAssignmentId.value]"
+                    },
+                    "resourceGroupName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name of the resource group the role assignment was applied at."
+                      },
+                      "value": "[resourceGroup().name]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "avmSearch"
+              ],
+              "metadata": {
+                "description": "Role assignments applied to the system-assigned identity via AVM module. Objects can include: roleDefinitionId (req), roleName, principalType, resourceId."
+              }
             }
           },
           "outputs": {
@@ -35371,7 +35661,9 @@
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').searchService)]",
         "managedIdentityModule",
         "monitoring",
-        "network"
+        "network",
+        "openai",
+        "storage"
       ]
     },
     "webServerFarm": {
@@ -49288,7 +49580,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "68114798306146084"
+              "templateHash": "15145535415197431472"
             }
           },
           "parameters": {
@@ -49327,7 +49619,7 @@
             }
           },
           "variables": {
-            "wookbookContents": "{\"version\":\"Notebook/1.0\",\"items\":[{\"type\":1,\"content\":\"@{json=# Chat With Your Data Monitoring}\",\"name\":\"Heading\"},{\"type\":9,\"content\":\"@{version=KqlParameterItem/1.0; crossComponentResources=System.Object[]; parameters=System.Object[]; style=pills; queryType=1; resourceType=microsoft.resourcegraph/resources}\",\"conditionalVisibility\":\"@{parameterName=never; comparison=isEqualTo; value=show}\",\"name\":\"Resource Parameters\"},{\"type\":9,\"content\":\"@{version=KqlParameterItem/1.0; crossComponentResources=System.Object[]; parameters=System.Object[]; style=pills; queryType=1; resourceType=microsoft.resourcegraph/resources}\",\"name\":\"Time Picker\"},{\"type\":11,\"content\":\"@{version=LinkItem/1.0; style=tabs; links=System.Object[]}\",\"name\":\"links - 4\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Operations}\",\"name\":\"Operations Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Resources}\",\"name\":\"Resources Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Open AI}\",\"name\":\"Open AI Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=AI Search}\",\"name\":\"Search Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Storage}\",\"name\":\"Storage Group\"}],\"fallbackResourceIds\":[\"azure monitor\"],\"styleSettings\":{\"paddingStyle\":\"narrow\",\"spacingStyle\":\"narrow\"},\"$schema\":\"https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json\"}\r\n",
+            "wookbookContents": "{\"version\":\"Notebook/1.0\",\"items\":[{\"type\":1,\"content\":\"@{json=# Chat With Your Data Monitoring}\",\"name\":\"Heading\"},{\"type\":9,\"content\":\"@{version=KqlParameterItem/1.0; crossComponentResources=System.Object[]; parameters=System.Object[]; style=pills; queryType=1; resourceType=microsoft.resourcegraph/resources}\",\"conditionalVisibility\":\"@{parameterName=never; comparison=isEqualTo; value=show}\",\"name\":\"Resource Parameters\"},{\"type\":9,\"content\":\"@{version=KqlParameterItem/1.0; crossComponentResources=System.Object[]; parameters=System.Object[]; style=pills; queryType=1; resourceType=microsoft.resourcegraph/resources}\",\"name\":\"Time Picker\"},{\"type\":11,\"content\":\"@{version=LinkItem/1.0; style=tabs; links=System.Object[]}\",\"name\":\"links - 4\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Operations}\",\"name\":\"Operations Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Resources}\",\"name\":\"Resources Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Open AI}\",\"name\":\"Open AI Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=AI Search}\",\"name\":\"Search Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Storage}\",\"name\":\"Storage Group\"}],\"fallbackResourceIds\":[\"azure monitor\"],\"styleSettings\":{\"paddingStyle\":\"narrow\",\"spacingStyle\":\"narrow\"},\"$schema\":\"https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json\"}\n",
             "wookbookContentsSubReplaced": "[replace(variables('wookbookContents'), '{subscription-id}', subscription().id)]",
             "wookbookContentsRGReplaced": "[replace(variables('wookbookContentsSubReplaced'), '{resource-group}', resourceGroup().name)]",
             "wookbookContentsAppServicePlanReplaced": "[replace(variables('wookbookContentsRGReplaced'), '{app-service-plan}', parameters('hostingPlanName'))]",
@@ -58617,8 +58909,8 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "managedIdentityModule",
         "network"
       ]

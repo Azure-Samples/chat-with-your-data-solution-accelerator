@@ -145,8 +145,12 @@ class AzureSearchIndex:
             azure_open_ai_parameters = AzureOpenAIParameters(
                 resource_uri=self.env_helper.AZURE_OPENAI_ENDPOINT,
                 deployment_id=self.env_helper.AZURE_OPENAI_EMBEDDING_MODEL,
-                auth_identity=SearchIndexerDataUserAssignedIdentity(
-                    user_assigned_identity=self.env_helper.MANAGED_IDENTITY_RESOURCE_ID
+                auth_identity=(
+                    None
+                    if getattr(self.env_helper, "APP_ENV", "").lower() == "dev"
+                    else SearchIndexerDataUserAssignedIdentity(
+                        user_assigned_identity=self.env_helper.MANAGED_IDENTITY_RESOURCE_ID
+                    )
                 ),
             )
 

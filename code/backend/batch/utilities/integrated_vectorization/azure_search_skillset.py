@@ -96,8 +96,12 @@ class AzureSearchSkillset:
                 if self.env_helper.is_auth_type_keys()
                 else None
             ),
-            auth_identity=SearchIndexerDataUserAssignedIdentity(
-                user_assigned_identity=self.env_helper.MANAGED_IDENTITY_RESOURCE_ID
+            auth_identity=(
+                None
+                if getattr(self.env_helper, "APP_ENV", "").lower() == "dev"
+                else SearchIndexerDataUserAssignedIdentity(
+                    user_assigned_identity=self.env_helper.MANAGED_IDENTITY_RESOURCE_ID
+                )
             ),
             inputs=[
                 InputFieldMappingEntry(name="text", source="/document/pages/*"),
