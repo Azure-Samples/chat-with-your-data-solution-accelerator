@@ -80,6 +80,7 @@ module avmStorage '../../storage/storage-account/main.bicep' = {
     // Use only user-assigned identities
     managedIdentities: { systemAssigned: false, userAssignedResourceIds: userAssignedIdentityResourceIds }
     roleAssignments: roleAssignments
+    allowSharedKeyAccess: true
     allowBlobPublicAccess: enablePrivateNetworking ? true : false
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     networkAcls: { bypass: 'AzureServices', defaultAction: enablePrivateNetworking ? 'Deny' : 'Allow' }

@@ -24,9 +24,6 @@ param solutionUniqueText string = take(uniqueString(subscription().id, resourceG
 })
 param location string
 
-// @description('The resource group name which would be created or reused if existing')
-// param rgName string = 'rg-${environmentName}'
-
 @description('Optional: Existing Log Analytics Workspace Resource ID')
 param existingLogAnalyticsWorkspaceId string = ''
 
@@ -464,24 +461,12 @@ resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableT
   }
 }
 
-// Extracts subscription, resource group, and workspace name from the resource ID when using an existing Log Analytics workspace
-var useExistingLogAnalytics = !empty(existingLogAnalyticsWorkspaceId)
-
-var existingLawSubscription = useExistingLogAnalytics ? split(existingLogAnalyticsWorkspaceId, '/')[2] : ''
-var existingLawResourceGroup = useExistingLogAnalytics ? split(existingLogAnalyticsWorkspaceId, '/')[4] : ''
-var existingLawName = useExistingLogAnalytics ? split(existingLogAnalyticsWorkspaceId, '/')[8] : ''
-
-resource existingLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2020-08-01' existing = if (useExistingLogAnalytics) {
-  name: existingLawName
-  scope: resourceGroup(existingLawSubscription, existingLawResourceGroup)
-}
-
 var networkResourceName = take('network-${solutionSuffix}', 25) // limit to 25 chars
 module network 'modules/network.bicep' = if (enablePrivateNetworking) {
   name: take('network-${solutionSuffix}-deployment', 64)
   params: {
     resourcesName: networkResourceName
-    logAnalyticsWorkSpaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId
+    logAnalyticsWorkSpaceResourceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : ''
     vmAdminUsername: virtualMachineAdminUsername ?? 'JumpboxAdminUser'
     vmAdminPassword: virtualMachineAdminPassword ?? 'JumpboxAdminP@ssw0rd1234!'
     vmSize: vmSize ?? 'Standard_DS2_v2' // Default VM size
@@ -564,7 +549,7 @@ module cosmosDBModule './modules/core/database/cosmosdb.bicep' = if (databaseTyp
     tags: allTags
     enableTelemetry: enableTelemetry
     enableMonitoring: enableMonitoring
-    logAnalyticsWorkspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId
+    logAnalyticsWorkspaceResourceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : ''
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
     privateDnsZoneResourceId: enablePrivateNetworking
@@ -585,7 +570,7 @@ module postgresDBModule './modules/core/database/postgresdb.bicep' = if (databas
     tags: allTags
     enableTelemetry: enableTelemetry
     enableMonitoring: enableMonitoring
-    logAnalyticsWorkspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId
+    logAnalyticsWorkspaceResourceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : ''
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
     // Wire up the private DNS zone for Postgres using direct resource ID
@@ -627,7 +612,7 @@ module keyvault './modules/core/security/keyvault.bicep' = {
     enablePurgeProtection: enablePurgeProtection
     enableTelemetry: enableTelemetry
     enableMonitoring: enableMonitoring
-    logAnalyticsWorkspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId
+    logAnalyticsWorkspaceResourceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : ''
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
     privateDnsZoneResourceId: enablePrivateNetworking
@@ -702,7 +687,7 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
 
-    logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : null
+    logAnalyticsWorkspaceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : null
 
     // align with AVM conventions
     privateDnsZoneResourceId: enablePrivateNetworking ? avmPrivateDnsZones[dnsZoneIndex.openAI]!.outputs.resourceId : ''
@@ -747,7 +732,7 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
 
-    logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : null
+    logAnalyticsWorkspaceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : null
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     privateDnsZoneResourceId: enablePrivateNetworking
       ? avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
@@ -781,7 +766,7 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
 
-    logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : null
+    logAnalyticsWorkspaceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : null
     disableLocalAuth: false
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     privateDnsZoneResourceId: enablePrivateNetworking
@@ -815,7 +800,7 @@ module search 'modules/core/search/search-services.bicep' = if (databaseType == 
     enableTelemetry: enableTelemetry
     enableMonitoring: enableMonitoring
 
-    logAnalyticsWorkspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId
+    logAnalyticsWorkspaceResourceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : ''
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : ''
     privateDnsZoneResourceIds: enablePrivateNetworking
@@ -889,7 +874,7 @@ module webServerFarm 'br/public:avm/res/web/serverfarm:0.5.0' = {
     reserved: true
     kind: 'linux'
     // WAF aligned configuration for Monitoring
-    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId }] : null
+    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId }] : null
     // WAF aligned configuration for Scalability
     skuName: enableScalability || enableRedundancy ? 'P1v3' : hostingPlanSku
     skuCapacity: enableScalability ? 3 : 1
@@ -918,12 +903,12 @@ module web 'modules/app/web.bicep' = {
     allowedOrigins: []
     appCommandLine: ''
     userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
-    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId }] : []
+    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId }] : []
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
     publicNetworkAccess: 'Enabled' // Always enabling public network access
-    applicationInsightsName: enableMonitoring ? monitoring.outputs.applicationInsightsName : ''
+    applicationInsightsName: enableMonitoring ? monitoring!.outputs.applicationInsightsName : ''
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
@@ -1094,9 +1079,9 @@ module adminweb 'modules/app/adminweb.bicep' = {
               }
             : {}
     )
-    applicationInsightsName: enableMonitoring ? monitoring.outputs.applicationInsightsName : ''
+    applicationInsightsName: enableMonitoring ? monitoring!.outputs.applicationInsightsName : ''
     // WAF parameters
-    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId }] : []
+    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId }] : []
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
@@ -1115,13 +1100,13 @@ module function 'modules/app/function.bicep' = {
     runtimeVersion: '3.11'
     dockerFullImageName: hostingModel == 'container' ? '${registryName}.azurecr.io/rag-backend:${appversion}' : ''
     serverFarmResourceId: webServerFarm.outputs.resourceId
-    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    applicationInsightsName: enableMonitoring ? monitoring!.outputs.applicationInsightsName : ''
     storageAccountName: storage.outputs.name
     clientKey: clientKey
     userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     userAssignedIdentityClientId: managedIdentityModule.outputs.managedIdentityOutput.clientId
     // WAF aligned configurations
-    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceId }] : []
+    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId }] : []
     virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
@@ -1185,7 +1170,7 @@ module function 'modules/app/function.bicep' = {
   }
 }
 
-module monitoring 'modules/core/monitor/monitoring.bicep' = {
+module monitoring 'modules/core/monitor/monitoring.bicep' = if (enableMonitoring) {
   name: 'monitoring'
   scope: resourceGroup()
   params: {
@@ -1197,10 +1182,13 @@ module monitoring 'modules/core/monitor/monitoring.bicep' = {
     logAnalyticsName: logAnalyticsName
     applicationInsightsDashboardName: 'dash-${applicationInsightsName}'
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
+    enableTelemetry: enableTelemetry
+    enablePrivateNetworking: enablePrivateNetworking
+    enableRedundancy: enableRedundancy
   }
 }
 
-module workbook 'modules/app/workbook.bicep' = {
+module workbook 'modules/app/workbook.bicep' = if (enableMonitoring) {
   name: 'workbook'
   scope: resourceGroup()
   params: {
@@ -1211,7 +1199,7 @@ module workbook 'modules/app/workbook.bicep' = {
     websiteName: web.outputs.FRONTEND_API_NAME
     adminWebsiteName: adminweb.outputs.WEBSITE_ADMIN_NAME
     eventGridSystemTopicName: eventgrid.outputs.name
-    logAnalyticsResourceId: monitoring.outputs.logAnalyticsWorkspaceId
+    logAnalyticsResourceId: monitoring!.outputs.logAnalyticsWorkspaceId
     azureOpenAIResourceName: openai.outputs.name
     azureAISearchName: databaseType == 'CosmosDB' ? search!.outputs.searchName : ''
     storageAccountName: storage.outputs.name
@@ -1231,7 +1219,7 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
 
-    logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : null
+    logAnalyticsWorkspaceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : null
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     restrictOutboundNetworkAccess: true
     allowedFqdnList: [
@@ -1284,7 +1272,7 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
 
-    logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : null
+    logAnalyticsWorkspaceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : null
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     privateDnsZoneResourceId: enablePrivateNetworking
       ? avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
@@ -1348,6 +1336,11 @@ module storage 'modules/core/storage/storage-account.bicep' = {
         roleDefinitionIdOrName: '974c5e8b-45b9-4653-ba55-5f855dd0fb88' // Storage Queue Data Contributor
         principalType: 'ServicePrincipal'
       }
+      {
+        principalId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+        roleDefinitionIdOrName: 'Storage File Data Privileged Contributor'
+        principalType: 'ServicePrincipal'
+      }
     ]
     privateDnsZoneResourceIds: enablePrivateNetworking
       ? [
@@ -1374,7 +1367,7 @@ module eventgrid 'modules/app/eventgrid.bicep' = {
     tags: tags
     userAssignedResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
     enableMonitoring: enableMonitoring
-    logAnalyticsWorkspaceResourceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : ''
+    logAnalyticsWorkspaceResourceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : ''
     enableTelemetry: enableTelemetry
   }
 }
@@ -1388,7 +1381,7 @@ module machineLearning 'modules/app/machinelearning.bicep' = if (orchestrationSt
     tags: allTags
     sku: 'Standard'
     storageAccountId: storage.outputs.id
-    applicationInsightsId: monitoring.outputs.applicationInsightsId
+    applicationInsightsId: enableMonitoring ? monitoring!.outputs.applicationInsightsId : ''
     azureOpenAIName: openai.outputs.name
     azureAISearchName: databaseType == 'CosmosDB' ? search!.outputs.searchName : ''
     azureAISearchEndpoint: databaseType == 'CosmosDB' ? search!.outputs.searchEndpoint : ''
@@ -1396,7 +1389,7 @@ module machineLearning 'modules/app/machinelearning.bicep' = if (orchestrationSt
     // WAF aligned parameters
     enableTelemetry: enableTelemetry
     userAssignedIdentityResourceId: managedIdentityModule.outputs.managedIdentityOutput.id
-    logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : ''
+    logAnalyticsWorkspaceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : ''
     enablePrivateNetworking: enablePrivateNetworking
     subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : ''
     privateDnsZoneResourceIds: enablePrivateNetworking
@@ -1432,7 +1425,7 @@ module createIndex 'br/public:avm/res/resources/deployment-script:0.5.1' =  if (
     tags: tags
     timeout: 'PT1H'
   }
-  dependsOn: [web, adminweb, function]
+  //dependsOn: [web, adminweb, function]
 }
 
 var azureOpenAIModelInfo = string({
@@ -1529,7 +1522,7 @@ var azureContentSafetyInfo = string({
 var backendUrl = 'https://${functionName}.azurewebsites.net'
 
 @description('Connection string for the Application Insights instance')
-output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
+output APPLICATIONINSIGHTS_CONNECTION_STRING string = enableMonitoring ? monitoring!.outputs.applicationInsightsConnectionString : ''
 
 @description('App Service hosting model used (code or container)')
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel

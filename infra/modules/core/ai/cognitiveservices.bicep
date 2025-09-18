@@ -119,6 +119,7 @@ module systemAssignedIdentityRoleAssignments 'br/public:avm/ptn/authorization/re
     }
   }
 ]
+
 // -------- Outputs -------- //
 @description('The endpoint URL of the Cognitive Services resource.')
 output endpoint string = cognitiveServices.outputs.endpoint
