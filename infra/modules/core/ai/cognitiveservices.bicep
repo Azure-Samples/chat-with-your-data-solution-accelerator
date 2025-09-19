@@ -61,7 +61,7 @@ param systemAssignedRoleAssignments array = []
 // Resource variables
 var cognitiveResourceName = name
 
-module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' = {
+module cognitiveServices '../../cognitive-services/account/cognitive-services.bicep' = {
   name: take('avm.res.cognitive-services.account.${cognitiveResourceName}', 64)
   params: {
     name: cognitiveResourceName
@@ -78,7 +78,7 @@ module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' =
     enableTelemetry: enableTelemetry
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceId }] : null
     networkAcls: {
-      bypass: 'AzureServices'
+      bypass: kind == 'OpenAI' || kind == 'AIServices' ? 'AzureServices' : null
       defaultAction: enablePrivateNetworking ? 'Deny' : 'Allow'
       virtualNetworkRules: []
       ipRules: []
@@ -109,7 +109,10 @@ module cognitiveServices 'br/public:avm/res/cognitive-services/account:0.10.2' =
 @description('Role assignments applied to the system-assigned identity via AVM module. Objects can include: roleDefinitionId (req), roleName, principalType, resourceId.')
 module systemAssignedIdentityRoleAssignments 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = [
   for assignment in systemAssignedRoleAssignments: if (enableSystemAssigned && !empty(systemAssignedRoleAssignments)) {
-    name: take('avm.ptn.authorization.resource-role-assignment.${uniqueString(cognitiveResourceName, assignment.roleDefinitionId, assignment.resourceId)}', 64)
+    name: take(
+      'avm.ptn.authorization.resource-role-assignment.${uniqueString(cognitiveResourceName, assignment.roleDefinitionId, assignment.resourceId)}',
+      64
+    )
     params: {
       roleDefinitionId: assignment.roleDefinitionId
       principalId: cognitiveServices.outputs.systemAssignedMIPrincipalId

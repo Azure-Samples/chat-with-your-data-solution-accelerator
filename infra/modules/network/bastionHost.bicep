@@ -2,19 +2,19 @@
 // Create Azure Bastion Subnet and Azure Bastion Host
 // /****************************************************************************************************************************/
 
-@description('Name of the Azure Bastion Host resource.')
+@description('Required. The name of the Azure Bastion Host resource.')
 param name string
 
-@description('Azure region to deploy resources.')
+@description('Required. Azure region to deploy resources.')
 param location string = resourceGroup().location
 
-@description('Resource ID of the Virtual Network where the Azure Bastion Host will be deployed.')
+@description('Required. Resource ID of the Virtual Network where the Azure Bastion Host will be deployed.')
 param vnetId string
 
-@description('Name of the Virtual Network where the Azure Bastion Host will be deployed.')
+@description('Required. Name of the Virtual Network where the Azure Bastion Host will be deployed.')
 param vnetName string
 
-@description('Resource ID of the Log Analytics Workspace for monitoring and diagnostics.')
+@description('Required. Resource ID of the Log Analytics Workspace for monitoring and diagnostics.')
 param logAnalyticsWorkspaceId string
 
 @description('Optional. Tags to apply to the resources.')
@@ -57,7 +57,7 @@ module bastionSubnet 'br/public:avm/res/network/virtual-network/subnet:0.1.2' = 
 // 3. Create Azure Bastion Host in AzureBastionsubnetSubnet using AVM Bastion Host module
 // https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/network/bastion-host
 
-module bastionHost 'br/public:avm/res/network/bastion-host:0.6.1' = {
+module bastionHost 'br/public:avm/res/network/bastion-host:0.8.0' = {
   name: take('bastionHost-${vnetName}-${name}', 64)
   params: {
     name: name
@@ -80,7 +80,7 @@ module bastionHost 'br/public:avm/res/network/bastion-host:0.6.1' = {
     enableTelemetry: enableTelemetry
     publicIPAddressObject: {
       name: 'pip-${name}'
-      zones: []
+      availabilityZones: [1, 2, 3]
     }
   }
   dependsOn: [
@@ -88,15 +88,22 @@ module bastionHost 'br/public:avm/res/network/bastion-host:0.6.1' = {
   ]
 }
 
+@description('Resource ID of the Azure Bastion Host deployment.')
 output resourceId string = bastionHost.outputs.resourceId
+
+@description('Name of the Azure Bastion Host deployment.')
 output name string = bastionHost.outputs.name
+
+@description('Resource ID of the AzureBastionSubnet created for the Bastion Host, if created.')
 output subnetId string = bastionSubnet!.outputs.resourceId
+
+@description('Name of the AzureBastionSubnet created for the Bastion Host, if created.')
 output subnetName string = bastionSubnet!.outputs.name
 
 @export()
 @description('Custom type definition for establishing Bastion Host for remote connection.')
 type bastionHostConfigurationType = {
-  @description('The name of the Bastion Host resource.')
+  @description('Required. The name of the Bastion Host resource.')
   name: string
 
   @description('Optional. Subnet configuration for the Jumpbox VM.')

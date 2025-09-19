@@ -416,7 +416,7 @@ resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableT
   }
 }
 
-module vm_nic 'modules/nic-configuration.bicep' = [
+module vm_nic 'nic-configuration/nic-configuration.bicep' = [
   for (nicConfiguration, index) in nicConfigurations: {
     name: '${uniqueString(deployment().name, location)}-VM-Nic-${index}'
     params: {
@@ -611,7 +611,7 @@ resource vm_configurationAssignment 'Microsoft.Maintenance/configurationAssignme
   scope: vm
 }
 
-module vm_microsoftAntiMalwareExtension 'extension/main.bicep' = if (extensionAntiMalwareConfig.enabled) {
+module vm_microsoftAntiMalwareExtension 'extension/extension.bicep' = if (extensionAntiMalwareConfig.enabled) {
   name: '${uniqueString(deployment().name, location)}-VM-MicrosoftAntiMalware'
   params: {
     virtualMachineName: vm.name
@@ -638,7 +638,7 @@ module vm_microsoftAntiMalwareExtension 'extension/main.bicep' = if (extensionAn
   }
 }
 
-module vm_azureGuestConfigurationExtension 'extension/main.bicep' = if (extensionGuestConfigurationExtension.enabled) {
+module vm_azureGuestConfigurationExtension 'extension/extension.bicep' = if (extensionGuestConfigurationExtension.enabled) {
   name: '${uniqueString(deployment().name, location)}-VM-GuestConfiguration'
   params: {
     virtualMachineName: vm.name
@@ -800,7 +800,7 @@ type publicKeyType = {
   path: string
 }
 
-import { ipConfigurationType } from 'modules/nic-configuration.bicep'
+import { ipConfigurationType } from 'nic-configuration/nic-configuration.bicep'
 import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
 import { subResourceType } from 'br/public:avm/res/network/network-interface:0.5.1'
 

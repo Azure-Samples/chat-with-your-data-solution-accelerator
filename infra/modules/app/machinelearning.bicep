@@ -53,7 +53,7 @@ param subnetResourceId string = ''
 param privateDnsZoneResourceIds array = []
 
 // Use the AVM module for Machine Learning Workspace
-module workspace '../machine-learning-services/workspace/main.bicep' = {
+module workspace '../machine-learning-services/workspace/ml_workspace.bicep' = {
   name: 'avm-${workspaceName}-deployment'
   params: {
     // Required parameters
@@ -127,42 +127,42 @@ module workspace '../machine-learning-services/workspace/main.bicep' = {
           }
         ]
       : []
-    connections:[
-    {
-      name: 'openai_connection'
-      category: 'AzureOpenAI'
-      target: azureOpenAIEndpoint
-      metadata: {
-        apiType: 'azure'
-        resourceId: azureOpenAIId
-      }
-      connectionProperties: {
-        authType: 'ApiKey'
-        credentials: {
-          key: listKeys(azureOpenAIId, '2023-05-01').key1
+    connections: [
+      {
+        name: 'openai_connection'
+        category: 'AzureOpenAI'
+        target: azureOpenAIEndpoint
+        metadata: {
+          apiType: 'azure'
+          resourceId: azureOpenAIId
+        }
+        connectionProperties: {
+          authType: 'ApiKey'
+          credentials: {
+            key: listKeys(azureOpenAIId, '2023-05-01').key1
+          }
         }
       }
-    }
-    {
-      category: 'CognitiveSearch'
-      target: azureAISearchEndpoint
-      name: 'aisearch_connection'
-      connectionProperties: {
-        authType: 'ApiKey'
-        credentials: {
-          key: listAdminKeys(
-            resourceId(
-              subscription().subscriptionId,
-              resourceGroup().name,
-              'Microsoft.Search/searchServices',
-              azureAISearchName
-            ),
-            '2023-11-01'
-          ).primaryKey
+      {
+        category: 'CognitiveSearch'
+        target: azureAISearchEndpoint
+        name: 'aisearch_connection'
+        connectionProperties: {
+          authType: 'ApiKey'
+          credentials: {
+            key: listAdminKeys(
+              resourceId(
+                subscription().subscriptionId,
+                resourceGroup().name,
+                'Microsoft.Search/searchServices',
+                azureAISearchName
+              ),
+              '2023-11-01'
+            ).primaryKey
+          }
         }
       }
-    }
-  ]
+    ]
   }
 }
 

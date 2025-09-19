@@ -1,16 +1,16 @@
 /****************************************************************************************************************************/
 // Networking - NSGs, VNET and Subnets. Each subnet has its own NSG
 /****************************************************************************************************************************/
-@description('Name of the virtual network.')
+@description('Required. Name of the virtual network.')
 param name string
 
-@description('Azure region to deploy resources.')
+@description('Required. Azure region to deploy resources.')
 param location string = resourceGroup().location
 
 @description('Required. An Array of 1 or more IP Address Prefixes OR the resource ID of the IPAM pool to be used for the Virtual Network. When specifying an IPAM pool resource ID you must also set a value for the parameter called `ipamPoolNumberOfIpAddresses`.')
 param addressPrefixes array
 
-@description('An array of subnets to be created within the virtual network. Each subnet can have its own configuration and associated Network Security Group (NSG).')
+@description('Optional. An array of subnets to be created within the virtual network. Each subnet can have its own configuration and associated Network Security Group (NSG).')
 param subnets subnetType[]
 
 @description('Optional. Tags to be applied to the resources.')

@@ -86,8 +86,6 @@ param enableTelemetry bool = true
 // Variables   //
 // =========== //
 
-var enableReferencedModulesTelemetry bool = false
-
 var builtInRoleNames = {
   Contributor: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
   'Key Vault Administrator': subscriptionResourceId(
@@ -258,7 +256,7 @@ resource keyVault_diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021
   }
 ]
 
-module keyVault_secrets 'secret/main.bicep' = [
+module keyVault_secrets 'secret/secret.bicep' = [
   for (secret, index) in (secrets ?? []): {
     name: '${uniqueString(deployment().name, location)}-KeyVault-Secret-${index}'
     params: {
@@ -271,7 +269,7 @@ module keyVault_secrets 'secret/main.bicep' = [
       contentType: secret.?contentType
       tags: secret.?tags ?? tags
       roleAssignments: secret.?roleAssignments
-      enableTelemetry: enableReferencedModulesTelemetry
+      enableTelemetry: enableTelemetry
     }
   }
 ]
@@ -313,7 +311,7 @@ module keyVault_privateEndpoints 'br/public:avm/res/network/private-endpoint:0.1
           ]
         : null
       subnetResourceId: privateEndpoint.subnetResourceId
-      enableTelemetry: enableReferencedModulesTelemetry
+      enableTelemetry: enableTelemetry
       location: privateEndpoint.?location ?? reference(
         split(privateEndpoint.subnetResourceId, '/subnets/')[0],
         '2020-06-01',

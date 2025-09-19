@@ -102,7 +102,7 @@ resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   tags: tags
 }
 
-module privateDnsZone_virtualNetworkLinks 'virtual-network-link/main.bicep' = [
+module privateDnsZone_virtualNetworkLinks 'virtual-network-link/virtual-network-link.bicep' = [
   for (virtualNetworkLink, index) in (virtualNetworkLinks ?? []): {
     name: '${uniqueString(deployment().name, location)}-PrivateDnsZone-VNetLink-${index}'
     params: {
