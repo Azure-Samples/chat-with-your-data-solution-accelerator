@@ -54,14 +54,17 @@ def get_citations(citation_list):
             else citation["url"]
         )
         title = citation["title"]
-        url = get_markdown_url(metadata["source"], title, container_sas)
+        source = metadata["source"]
+        if "_SAS_TOKEN_PLACEHOLDER_" not in source:
+            source += "_SAS_TOKEN_PLACEHOLDER_"
+        url = get_markdown_url(source, title, container_sas)
         citations_dict["citations"].append(
             {
                 "content": url + "\n\n\n" + citation["content"],
                 "id": metadata["id"],
                 "chunk_id": (
                     re.findall(r"\d+", metadata["chunk_id"])[-1]
-                    if metadata["chunk_id"] is not None
+                    if metadata.get("chunk_id") is not None
                     else metadata["chunk"]
                 ),
                 "title": title,
@@ -209,11 +212,6 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
                                 env_helper.AZURE_SEARCH_CONTENT_VECTOR_COLUMN
                             ],
                             "title_field": env_helper.AZURE_SEARCH_TITLE_COLUMN or None,
-                            "source_field": env_helper.AZURE_SEARCH_SOURCE_COLUMN
-                            or None,
-                            "text_field": env_helper.AZURE_SEARCH_TEXT_COLUMN or None,
-                            "layoutText_field": env_helper.AZURE_SEARCH_LAYOUT_TEXT_COLUMN
-                            or None,
                             "url_field": env_helper.AZURE_SEARCH_FIELDS_METADATA
                             or None,
                             "filepath_field": (

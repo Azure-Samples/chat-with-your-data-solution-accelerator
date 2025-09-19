@@ -1016,6 +1016,7 @@ module function './app/function.bicep' = if (hostingModel == 'code') {
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
         APP_ENV: appEnvironment
+        BACKEND_URL: backendUrl
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -1086,6 +1087,7 @@ module function_docker './app/function.bicep' = if (hostingModel == 'container')
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
         APP_ENV: appEnvironment
+        BACKEND_URL: backendUrl
       },
       // Conditionally add database-specific settings
       databaseType == 'CosmosDB'
@@ -1363,7 +1365,7 @@ var azureContentSafetyInfo = string({
   endpoint: contentsafety.outputs.endpoint
 })
 
-var backendUrl = 'https://${functionName}.azurewebsites.net'
+var backendUrl = hostingModel == 'container' ? 'https://${functionName}-docker.azurewebsites.net' : 'https://${functionName}.azurewebsites.net'
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output AZURE_APP_SERVICE_HOSTING_MODEL string = hostingModel
