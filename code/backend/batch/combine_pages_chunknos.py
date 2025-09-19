@@ -15,7 +15,6 @@ def combine_pages_and_chunknos(req: func.HttpRequest) -> func.HttpResponse:
 
     try:
         req_body = req.get_json()
-        logging.info(f"Request body: {req_body}")
         values = req_body.get("values", [])
 
         response_values = []
@@ -43,7 +42,6 @@ def combine_pages_and_chunknos(req: func.HttpRequest) -> func.HttpResponse:
             )
 
         # Return the response in the format expected by the WebApiSkill
-        logging.info(f"Response values: {response_values}")
         return func.HttpResponse(
             body=json.dumps({"values": response_values}),
             mimetype="application/json",
