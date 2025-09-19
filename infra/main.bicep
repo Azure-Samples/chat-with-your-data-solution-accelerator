@@ -842,6 +842,8 @@ var openAiDeployments = concat(
     : []
 )
 
+// Keep private networking disabled for OpenAI when using integrated vectorization in Azure Cognitive Search, as indexer requires it.
+var enablePrivateNetworkingForOpenAI = enablePrivateNetworking && azureSearchUseIntegratedVectorization == false
 module openai 'modules/core/ai/cognitiveservices.bicep' = {
   name: azureOpenAIResourceName
   scope: resourceGroup()
@@ -858,13 +860,13 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
       '${storageAccountName}.blob.${environment().suffixes.storage}'
       '${storageAccountName}.queue.${environment().suffixes.storage}'
     ]
-    enablePrivateNetworking: enablePrivateNetworking
-    subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
+    enablePrivateNetworking: enablePrivateNetworkingForOpenAI
+    subnetResourceId: enablePrivateNetworkingForOpenAI ? network!.outputs.subnetPrivateEndpointsResourceId : null
 
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : null
 
     // align with AVM conventions
-    privateDnsZoneResourceId: enablePrivateNetworking ? avmPrivateDnsZones[dnsZoneIndex.openAI]!.outputs.resourceId : ''
+    privateDnsZoneResourceId: enablePrivateNetworkingForOpenAI ? avmPrivateDnsZones[dnsZoneIndex.openAI]!.outputs.resourceId : ''
     roleAssignments: concat([
       {
         roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
@@ -890,7 +892,7 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
       }
     ] : [])
   }
-  dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
+  dependsOn: enablePrivateNetworkingForOpenAI ? avmPrivateDnsZones : []
 }
 
 module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvancedImageProcessing) {
