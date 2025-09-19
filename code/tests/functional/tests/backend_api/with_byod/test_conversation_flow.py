@@ -85,7 +85,7 @@ def test_azure_byod_responds_successfully_when_streaming(
     # Check tool message
     tool_message = final_response_json["choices"][0]["messages"][0]
     assert tool_message["role"] == "tool"
-    assert tool_message["end_turn"] == False
+    assert tool_message["end_turn"] is False
     assert "content" in tool_message
 
     # Parse citations from content
@@ -103,7 +103,7 @@ def test_azure_byod_responds_successfully_when_streaming(
     # Check assistant message
     assistant_message = final_response_json["choices"][0]["messages"][1]
     assert assistant_message["role"] == "assistant"
-    assert assistant_message["end_turn"] == True
+    assert assistant_message["end_turn"] is True
     assert assistant_message["content"] == "42 is the meaning of life"
 
 
@@ -148,8 +148,7 @@ def test_post_makes_correct_call_to_azure_openai(
 
     for request_log in requests_log:
         request = request_log[0]
-        if (request.path == f"/openai/deployments/{app_config.get_from_json('AZURE_OPENAI_MODEL_INFO','model')}/chat/completions"
-            and request.method == "POST"):
+        if (request.path == f"/openai/deployments/{app_config.get_from_json('AZURE_OPENAI_MODEL_INFO','model')}/chat/completions" and request.method == "POST"):
 
             request_json = request.json
 

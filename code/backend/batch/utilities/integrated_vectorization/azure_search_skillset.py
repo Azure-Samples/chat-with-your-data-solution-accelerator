@@ -87,7 +87,7 @@ class AzureSearchSkillset:
             outputs=[
                 OutputFieldMappingEntry(name="textItems", target_name="pages"),
                 OutputFieldMappingEntry(name="ordinalPositions", target_name="chunk_nos"),
-                ],
+            ],
         )
 
         # Custom WebApi skill to combine pages and chunk numbers into a single structure

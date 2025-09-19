@@ -4,6 +4,7 @@ import json
 
 bp_combine_pages_and_chunknos = func.Blueprint()
 
+
 @bp_combine_pages_and_chunknos.route(route="combine_pages_and_chunknos", methods=["POST"], auth_level=func.AuthLevel.ANONYMOUS)
 def combine_pages_and_chunknos(req: func.HttpRequest) -> func.HttpResponse:
     """
