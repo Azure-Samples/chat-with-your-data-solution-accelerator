@@ -142,100 +142,100 @@ module network 'network/main.bicep' = {
         serviceEndpoints: ['Microsoft.Storage']
       }
     ]
-    bastionConfiguration: {
-      name: 'bas-${resourcesName}'
-      subnet: {
-        name: 'AzureBastionSubnet'
-        addressPrefixes: ['10.0.10.0/26']
-        networkSecurityGroup: {
-          name: 'nsg-AzureBastionSubnet'
-          securityRules: [
-            {
-              name: 'AllowGatewayManager'
-              properties: {
-                access: 'Allow'
-                direction: 'Inbound'
-                priority: 2702
-                protocol: '*'
-                sourcePortRange: '*'
-                destinationPortRange: '443'
-                sourceAddressPrefix: 'GatewayManager'
-                destinationAddressPrefix: '*'
-              }
-            }
-            {
-              name: 'AllowHttpsInBound'
-              properties: {
-                access: 'Allow'
-                direction: 'Inbound'
-                priority: 2703
-                protocol: '*'
-                sourcePortRange: '*'
-                destinationPortRange: '443'
-                sourceAddressPrefix: 'Internet'
-                destinationAddressPrefix: '*'
-              }
-            }
-            {
-              name: 'AllowSshRdpOutbound'
-              properties: {
-                access: 'Allow'
-                direction: 'Outbound'
-                priority: 100
-                protocol: '*'
-                sourcePortRange: '*'
-                destinationPortRanges: ['22', '3389']
-                sourceAddressPrefix: '*'
-                destinationAddressPrefix: 'VirtualNetwork'
-              }
-            }
-            {
-              name: 'AllowAzureCloudOutbound'
-              properties: {
-                access: 'Allow'
-                direction: 'Outbound'
-                priority: 110
-                protocol: 'Tcp'
-                sourcePortRange: '*'
-                destinationPortRange: '443'
-                sourceAddressPrefix: '*'
-                destinationAddressPrefix: 'AzureCloud'
-              }
-            }
-          ]
-        }
-      }
-    }
-    jumpboxConfiguration: {
-      name: 'vm-jumpbox-${resourcesName}'
-      size: vmSize
-      username: vmAdminUsername
-      password: vmAdminPassword
-      subnet: {
-        name: 'jumpbox'
-        addressPrefixes: ['10.0.12.0/23'] // /23 (10.0.12.0 - 10.0.13.255), 512 addresses
-        networkSecurityGroup: {
-          name: 'nsg-jumbox'
-          securityRules: [
-            {
-              name: 'AllowRdpFromBastion'
-              properties: {
-                access: 'Allow'
-                direction: 'Inbound'
-                priority: 100
-                protocol: 'Tcp'
-                sourcePortRange: '*'
-                destinationPortRange: '3389'
-                sourceAddressPrefixes: [
-                  '10.0.10.0/26' // Azure Bastion subnet
-                ]
-                destinationAddressPrefixes: ['10.0.12.0/23']
-              }
-            }
-          ]
-        }
-      }
-    }
+    // bastionConfiguration: {
+    //   name: 'bas-${resourcesName}'
+    //   subnet: {
+    //     name: 'AzureBastionSubnet'
+    //     addressPrefixes: ['10.0.10.0/26']
+    //     networkSecurityGroup: {
+    //       name: 'nsg-AzureBastionSubnet'
+    //       securityRules: [
+    //         {
+    //           name: 'AllowGatewayManager'
+    //           properties: {
+    //             access: 'Allow'
+    //             direction: 'Inbound'
+    //             priority: 2702
+    //             protocol: '*'
+    //             sourcePortRange: '*'
+    //             destinationPortRange: '443'
+    //             sourceAddressPrefix: 'GatewayManager'
+    //             destinationAddressPrefix: '*'
+    //           }
+    //         }
+    //         {
+    //           name: 'AllowHttpsInBound'
+    //           properties: {
+    //             access: 'Allow'
+    //             direction: 'Inbound'
+    //             priority: 2703
+    //             protocol: '*'
+    //             sourcePortRange: '*'
+    //             destinationPortRange: '443'
+    //             sourceAddressPrefix: 'Internet'
+    //             destinationAddressPrefix: '*'
+    //           }
+    //         }
+    //         {
+    //           name: 'AllowSshRdpOutbound'
+    //           properties: {
+    //             access: 'Allow'
+    //             direction: 'Outbound'
+    //             priority: 100
+    //             protocol: '*'
+    //             sourcePortRange: '*'
+    //             destinationPortRanges: ['22', '3389']
+    //             sourceAddressPrefix: '*'
+    //             destinationAddressPrefix: 'VirtualNetwork'
+    //           }
+    //         }
+    //         {
+    //           name: 'AllowAzureCloudOutbound'
+    //           properties: {
+    //             access: 'Allow'
+    //             direction: 'Outbound'
+    //             priority: 110
+    //             protocol: 'Tcp'
+    //             sourcePortRange: '*'
+    //             destinationPortRange: '443'
+    //             sourceAddressPrefix: '*'
+    //             destinationAddressPrefix: 'AzureCloud'
+    //           }
+    //         }
+    //       ]
+    //     }
+    //   }
+    // }
+    // jumpboxConfiguration: {
+    //   name: 'vm-jumpbox-${resourcesName}'
+    //   size: vmSize
+    //   username: vmAdminUsername
+    //   password: vmAdminPassword
+    //   subnet: {
+    //     name: 'jumpbox'
+    //     addressPrefixes: ['10.0.12.0/23'] // /23 (10.0.12.0 - 10.0.13.255), 512 addresses
+    //     networkSecurityGroup: {
+    //       name: 'nsg-jumbox'
+    //       securityRules: [
+    //         {
+    //           name: 'AllowRdpFromBastion'
+    //           properties: {
+    //             access: 'Allow'
+    //             direction: 'Inbound'
+    //             priority: 100
+    //             protocol: 'Tcp'
+    //             sourcePortRange: '*'
+    //             destinationPortRange: '3389'
+    //             sourceAddressPrefixes: [
+    //               '10.0.10.0/26' // Azure Bastion subnet
+    //             ]
+    //             destinationAddressPrefixes: ['10.0.12.0/23']
+    //           }
+    //         }
+    //       ]
+    //     }
+    //   }
+    // }
     enableTelemetry: enableTelemetry
   }
 }
@@ -252,8 +252,8 @@ output subnetWebResourceId string = first(filter(network.outputs.subnets, s => s
 @description('Resource ID of the "peps" subnet for Private Endpoints.')
 output subnetPrivateEndpointsResourceId string = first(filter(network.outputs.subnets, s => s.name == 'peps')).?resourceId ?? ''
 
-@description('Resource ID of the Bastion Host.')
-output bastionResourceId string = network.outputs.bastionHostId
+// @description('Resource ID of the Bastion Host.')
+// output bastionResourceId string = network.outputs.bastionHostId
 
 @description('Resource ID of the subnet for deployment scripts.')
 output subnetDeploymentScriptsResourceId string = first(filter(
@@ -261,5 +261,5 @@ output subnetDeploymentScriptsResourceId string = first(filter(
   s => s.name == 'deployment-scripts'
 )).?resourceId ?? ''
 
-@description('Resource ID of the Jumpbox VM.')
-output jumpboxResourceId string = network.outputs.jumpboxResourceId
+// @description('Resource ID of the Jumpbox VM.')
+// output jumpboxResourceId string = network.outputs.jumpboxResourceId
