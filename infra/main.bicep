@@ -55,7 +55,7 @@ param hostingPlanSku string = 'B3'
   'PostgreSQL'
   'CosmosDB'
 ])
-param databaseType string = 'PostgreSQL'
+param databaseType string = 'CosmosDB'
 
 @description('Azure Cosmos DB Account Name.')
 var azureCosmosDBAccountName string = 'cosmos-${solutionSuffix}'
@@ -491,7 +491,6 @@ var privateDnsZones = [
   'privatelink.openai.azure.com'
   'privatelink.vaultcore.azure.net'
   'privatelink.api.azureml.ms'
-  'privatelink.azurewebsites.net'
 ]
 
 // DNS Zone Index Constants
@@ -506,7 +505,6 @@ var dnsZoneIndex = {
   openAI: 7
   keyVault: 8
   machinelearning: 9
-  appService: 10
   // The indexes for 'storageFile' and 'containerRegistry' have been removed as they were unused
 }
 
@@ -834,7 +832,7 @@ var openAiDeployments = concat(
 )
 
 // Keep private networking disabled for OpenAI when using integrated vectorization in Azure Cognitive Search, as indexer requires it.
-var enablePrivateNetworkingForOpenAI = enablePrivateNetworking && azureSearchUseIntegratedVectorization == false
+var enablePrivateNetworkingForOpenAI = enablePrivateNetworking // && azureSearchUseIntegratedVectorization == false
 module openai 'modules/core/ai/cognitiveservices.bicep' = {
   name: azureOpenAIResourceName
   scope: resourceGroup()
