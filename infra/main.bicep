@@ -55,7 +55,7 @@ param hostingPlanSku string = 'B3'
   'PostgreSQL'
   'CosmosDB'
 ])
-param databaseType string = 'CosmosDB'
+param databaseType string = 'PostgreSQL'
 
 @description('Azure Cosmos DB Account Name.')
 var azureCosmosDBAccountName string = 'cosmos-${solutionSuffix}'
