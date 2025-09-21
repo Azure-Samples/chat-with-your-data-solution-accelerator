@@ -704,7 +704,7 @@ module pgSqlDelayScript 'br/public:avm/res/resources/deployment-script:0.5.1' = 
     tags: tags
     kind: 'AzurePowerShell'
     enableTelemetry: enableTelemetry
-    scriptContent: enablePrivateNetworking ? 'start-sleep -Seconds 120' : 'start-sleep -Seconds 300'
+    scriptContent: 'start-sleep -Seconds 300'
     azPowerShellVersion: '11.0'
     timeout: 'PT15M'
     cleanupPreference: 'Always'

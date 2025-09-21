@@ -18,7 +18,7 @@
       "value": "${AZURE_APP_SERVICE_HOSTING_MODEL=code}"
     },
     "databaseType": {
-      "value": "${DATABASE_TYPE=PostgreSQL}"
+      "value": "${DATABASE_TYPE}"
     },
     "azureSearchUseIntegratedVectorization": {
       "value": "${AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION=false}"

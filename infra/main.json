@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "463664674355342947"
+      "templateHash": "6266543668417059167"
     }
   },
   "parameters": {
@@ -21407,7 +21407,9 @@
           "enableTelemetry": {
             "value": "[parameters('enableTelemetry')]"
           },
-          "scriptContent": "[if(parameters('enablePrivateNetworking'), createObject('value', 'start-sleep -Seconds 120'), createObject('value', 'start-sleep -Seconds 300'))]",
+          "scriptContent": {
+            "value": "start-sleep -Seconds 300"
+          },
           "azPowerShellVersion": {
             "value": "11.0"
           },
@@ -56364,8 +56366,8 @@
       },
       "dependsOn": [
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "managedIdentityModule",
         "network"
       ]
@@ -56601,7 +56603,6 @@
       ]
     },
     "avmEventGridSystemTopic": {
-      "condition": "[parameters('enableMonitoring')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
       "name": "[take(format('avm.res.event-grid.system-topic.{0}', variables('eventGridSystemTopicName')), 64)]",
