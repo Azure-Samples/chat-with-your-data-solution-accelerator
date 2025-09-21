@@ -56,8 +56,7 @@ param deployments array = []
 
 @description('Optional. Array of role assignments to create for the Cognitive Services resource.')
 param roleAssignments array = []
-@description('Optional. Array of role assignments to apply to the system-assigned identity at the Cognitive Services account scope. Each item: { roleDefinitionId: "<GUID or built-in role definition id>" }')
-param systemAssignedRoleAssignments array = []
+
 // Resource variables
 var cognitiveResourceName = name
 
@@ -105,23 +104,6 @@ module cognitiveServices '../../cognitive-services/account/cognitive-services.bi
     deployments: deployments
   }
 }
-// --- System-assigned identity role assignments (optional) --- //
-@description('Role assignments applied to the system-assigned identity via AVM module. Objects can include: roleDefinitionId (req), roleName, principalType, resourceId.')
-module systemAssignedIdentityRoleAssignments 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = [
-  for assignment in systemAssignedRoleAssignments: if (enableSystemAssigned && !empty(systemAssignedRoleAssignments)) {
-    name: take(
-      'avm.ptn.authorization.resource-role-assignment.${uniqueString(cognitiveResourceName, assignment.roleDefinitionId, assignment.resourceId)}',
-      64
-    )
-    params: {
-      roleDefinitionId: assignment.roleDefinitionId
-      principalId: cognitiveServices.outputs.systemAssignedMIPrincipalId
-      resourceId: assignment.resourceId
-      roleName: assignment.roleName
-      principalType: assignment.principalType
-    }
-  }
-]
 
 // -------- Outputs -------- //
 @description('The endpoint URL of the Cognitive Services resource.')
@@ -135,3 +117,6 @@ output name string = cognitiveServices.outputs.name
 
 @description('The Azure region where the Cognitive Services resource is deployed.')
 output location string = location
+
+@description('The principal ID of the system-assigned managed identity, if enabled.')
+output systemAssignedMIPrincipalId string = enableSystemAssigned ? cognitiveServices.outputs.systemAssignedMIPrincipalId : ''
