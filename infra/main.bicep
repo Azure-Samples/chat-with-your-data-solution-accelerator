@@ -1344,6 +1344,7 @@ module function 'modules/app/function.bicep' = {
         DATABASE_TYPE: databaseType
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.clientId
         MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.resourceId
+        AZURE_CLIENT_ID: managedIdentityModule.outputs.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
       },
       databaseType == 'CosmosDB'
