@@ -830,8 +830,6 @@ var openAiDeployments = concat(
     : []
 )
 
-// Keep private networking disabled for OpenAI when using integrated vectorization in Azure Cognitive Search, as indexer requires it.
-var enablePrivateNetworkingForOpenAI = enablePrivateNetworking && azureSearchUseIntegratedVectorization == false
 module openai 'modules/core/ai/cognitiveservices.bicep' = {
   name: azureOpenAIResourceName
   scope: resourceGroup()
@@ -886,7 +884,7 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
         : []
     )
   }
-  dependsOn: enablePrivateNetworkingForOpenAI ? avmPrivateDnsZones : []
+  dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
 
 module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvancedImageProcessing) {

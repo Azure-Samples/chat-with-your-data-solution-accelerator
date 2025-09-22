@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "5060547412943026398"
+      "templateHash": "13005999981929939317"
     }
   },
   "parameters": {
@@ -697,7 +697,6 @@
       }
     ],
     "openAiDeployments": "[concat(variables('defaultOpenAiDeployments'), if(parameters('useAdvancedImageProcessing'), createArray(createObject('name', parameters('azureOpenAIVisionModel'), 'model', createObject('format', 'OpenAI', 'name', parameters('azureOpenAIVisionModelName'), 'version', parameters('azureOpenAIVisionModelVersion')), 'sku', createObject('name', 'GlobalStandard', 'capacity', parameters('azureOpenAIVisionModelCapacity')))), createArray()))]",
-    "enablePrivateNetworkingForOpenAI": "[and(parameters('enablePrivateNetworking'), equals(parameters('azureSearchUseIntegratedVectorization'), false()))]",
     "enablePrivateNetworkingSpeech": false,
     "webServerFarmResourceName": "[variables('hostingPlanName')]",
     "postgresDBFqdn": "[format('{0}.postgres.database.azure.com', variables('postgresResourceName'))]",
@@ -56366,9 +56365,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "managedIdentityModule",
         "network"
       ]
