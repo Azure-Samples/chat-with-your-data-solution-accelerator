@@ -1,10 +1,13 @@
-@maxLength(20)
+@maxLength(25)
 @minLength(4)
 @description('Used to generate names for all resources in this file')
 param resourceBaseName string
 
 @description('Required when create Azure Bot service')
 param botAadAppClientId string
+
+@description('Required when using SingleTenant or UserAssignedMSI app type')
+param botAadAppTenantId string
 
 @secure()
 @description('Required by Bot Framework package in your bot project')
@@ -69,6 +72,10 @@ resource webApp 'Microsoft.Web/sites@2021-02-01' = {
           name: 'AZURE_FUNCTION_URL'
           value: azureFunctionURL
         }
+        {
+          name: 'TEAMS_APP_TENANT_ID'
+          value: botAadAppTenantId
+        }
       ]
       ftpsState: 'FtpsOnly'
     }
@@ -81,6 +88,7 @@ module azureBotRegistration './botRegistration/azurebot.bicep' = {
   params: {
     resourceBaseName: resourceBaseName
     botAadAppClientId: botAadAppClientId
+    botAadAppTenantId: botAadAppTenantId
     botAppDomain: webApp.properties.defaultHostName
     botDisplayName: botDisplayName
   }

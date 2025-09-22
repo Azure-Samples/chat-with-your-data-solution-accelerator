@@ -55,7 +55,10 @@ def reprocess_all():
 
 def add_urls():
     urls = st.session_state["urls"].split("\n")
-    add_url_embeddings(urls)
+    result = add_url_embeddings(urls)
+    # If URLs are valid and processed, clear the textarea
+    if result:
+        st.session_state["urls"] = ""
 
 
 def sanitize_metadata_value(value):
@@ -67,7 +70,7 @@ def add_url_embeddings(urls: list[str]):
     has_valid_url = bool(list(filter(str.strip, urls)))
     if not has_valid_url:
         st.error("Please enter at least one valid URL.")
-        return
+        return False
 
     params = {}
     if env_helper.FUNCTION_KEY is not None:
@@ -80,9 +83,11 @@ def add_url_embeddings(urls: list[str]):
         )
         r = requests.post(url=backend_url, params=params, json=body)
         if not r.ok:
-            raise ValueError(f"Error {r.status_code}: {r.text}")
+            st.error(f"Error {r.status_code}: {r.text}")
+            return False
         else:
             st.success(f"Embeddings added successfully for {url}")
+    return True
 
 
 try:
