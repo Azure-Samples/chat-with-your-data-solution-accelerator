@@ -40,7 +40,7 @@ resource sqlRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinit
   }
 }
 
-module databaseAccount_sqlRoleAssignments '../sql-role-assignment/main.bicep' = [
+module databaseAccount_sqlRoleAssignments '../sql-role-assignment/sql-role-assignment.bicep' = [
   for (sqlRoleAssignment, index) in (sqlRoleAssignments ?? []): {
     name: '${uniqueString(deployment().name)}-sqlra-${index}'
     params: {

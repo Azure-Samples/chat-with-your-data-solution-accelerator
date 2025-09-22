@@ -300,7 +300,7 @@ resource workspace 'Microsoft.MachineLearningServices/workspaces@2024-10-01-prev
   kind: kind
 }
 
-module workspace_connections 'connection/main.bicep' = [
+module workspace_connections 'connection/connection.bicep' = [
   for connection in (connections ?? []): {
     name: '${workspace.name}-${connection.name}-connection'
     params: {
@@ -580,7 +580,7 @@ output location string = workspace.location
 //   defaultWorkspaceResourceGroup: string?
 // }
 
-import { categoryType, connectionPropertyType } from 'connection/main.bicep'
+import { categoryType, connectionPropertyType } from 'connection/connection.bicep'
 
 @export()
 @sys.description('The type for the workspace connection.')

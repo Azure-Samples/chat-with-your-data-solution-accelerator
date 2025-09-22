@@ -537,7 +537,7 @@ module storageAccount_privateEndpoints 'br/public:avm/res/network/private-endpoi
 ]
 
 // Containers
-module storageAccount_blobServices 'blob-service/main.bicep' = if (!empty(blobServices)) {
+module storageAccount_blobServices 'blob-service/blob-service.bicep' = if (!empty(blobServices)) {
   name: '${uniqueString(deployment().name, location)}-Storage-BlobServices'
   params: {
     storageAccountName: storageAccount.name
@@ -562,7 +562,7 @@ module storageAccount_blobServices 'blob-service/main.bicep' = if (!empty(blobSe
 }
 
 // Queue
-module storageAccount_queueServices 'queue-service/main.bicep' = if (!empty(queueServices)) {
+module storageAccount_queueServices 'queue-service/queue-service.bicep' = if (!empty(queueServices)) {
   name: '${uniqueString(deployment().name, location)}-Storage-QueueServices'
   params: {
     storageAccountName: storageAccount.name

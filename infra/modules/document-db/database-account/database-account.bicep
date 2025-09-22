@@ -260,8 +260,8 @@ resource databaseAccount 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = {
           enableAnalyticalStorage: enableAnalyticalStorage
         }
       : {})
-      disableLocalAuth: disableLocalAuthentication
-      disableKeyBasedMetadataWriteAccess: disableKeyBasedMetadataWriteAccess
+    disableLocalAuth: disableLocalAuthentication
+    disableKeyBasedMetadataWriteAccess: disableKeyBasedMetadataWriteAccess
   }
 }
 
@@ -305,7 +305,7 @@ resource databaseAccount_diagnosticSettings 'Microsoft.Insights/diagnosticSettin
   }
 ]
 
-module databaseAccount_sqlDatabases 'sql-database/main.bicep' = [
+module databaseAccount_sqlDatabases 'sql-database/sql-database.bicep' = [
   for sqlDatabase in (sqlDatabases ?? []): {
     name: '${uniqueString(deployment().name, location)}-sqldb-${sqlDatabase.name}'
     params: {
@@ -318,7 +318,7 @@ module databaseAccount_sqlDatabases 'sql-database/main.bicep' = [
   }
 ]
 
-module databaseAccount_sqlRoleDefinitions 'sql-role-definition/main.bicep' = [
+module databaseAccount_sqlRoleDefinitions 'sql-role-definition/sql-role-definition.bicep' = [
   for (nosqlRoleDefinition, index) in (dataPlaneRoleDefinitions ?? []): {
     name: '${uniqueString(deployment().name, location)}-sqlrd-${index}'
     params: {
@@ -420,7 +420,7 @@ type dataPlaneRoleAssignmentType = {
   principalId: string
 }
 
-import { sqlRoleAssignmentType } from 'sql-role-definition/main.bicep'
+import { sqlRoleAssignmentType } from 'sql-role-definition/sql-role-definition.bicep'
 @export()
 @description('The type for an Azure Cosmos DB for NoSQL or Table native role-based access control definition.')
 type dataPlaneRoleDefinitionType = {

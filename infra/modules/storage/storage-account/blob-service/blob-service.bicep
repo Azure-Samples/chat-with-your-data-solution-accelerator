@@ -148,7 +148,7 @@ resource blobServices_diagnosticSettings 'Microsoft.Insights/diagnosticSettings@
   }
 ]
 
-module blobServices_container 'container/main.bicep' = [
+module blobServices_container 'container/container.bicep' = [
   for (container, index) in (containers ?? []): {
     name: '${deployment().name}-Container-${index}'
     params: {

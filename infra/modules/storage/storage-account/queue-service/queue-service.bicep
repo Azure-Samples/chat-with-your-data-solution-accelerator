@@ -63,7 +63,7 @@ resource queueServices_diagnosticSettings 'Microsoft.Insights/diagnosticSettings
   }
 ]
 
-module queueServices_queues 'queue/main.bicep' = [
+module queueServices_queues 'queue/queue.bicep' = [
   for (queue, index) in (queues ?? []): {
     name: '${deployment().name}-Queue-${index}'
     params: {
