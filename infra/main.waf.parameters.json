@@ -45,7 +45,7 @@
       "value": "${AZURE_SEARCH_FILENAME_COLUMN=filename}"
     },
     "azureSearchFilter": {
-      "value": "${AZURE_SEARCH_FILTER=}"
+      "value": "${AZURE_SEARCH_FILTER}"
     },
     "azureSearchUrlColumn": {
       "value": "${AZURE_SEARCH_URL_COLUMN=url}"
