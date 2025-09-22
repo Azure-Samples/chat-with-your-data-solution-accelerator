@@ -382,7 +382,7 @@ module postgresDBModule './core/database/postgresdb.bicep' = if (databaseType ==
   name: 'deploy_postgres_sql'
   params: {
     solutionName: azurePostgresDBAccountName
-    solutionLocation: 'eastus2'
+    solutionLocation: location
     managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
     managedIdentityObjectName: managedIdentityModule.outputs.managedIdentityOutput.name
     allowAzureIPsFirewall: true
