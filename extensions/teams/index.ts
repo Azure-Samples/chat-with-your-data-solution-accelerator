@@ -19,7 +19,8 @@ import config from "./config";
 const credentialsFactory = new ConfigurationServiceClientCredentialFactory({
   MicrosoftAppId: config.botId,
   MicrosoftAppPassword: config.botPassword,
-  MicrosoftAppType: "MultiTenant",
+  MicrosoftAppType: "SingleTenant",
+  MicrosoftAppTenantId: config.tenantId
 });
 
 const botFrameworkAuthentication = new ConfigurationBotFrameworkAuthentication(

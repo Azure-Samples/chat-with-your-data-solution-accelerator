@@ -17,11 +17,41 @@
     "hostingModel": {
       "value": "${AZURE_APP_SERVICE_HOSTING_MODEL=code}"
     },
+    "hostingPlanSku": {
+      "value": "${HOSTING_PLAN_SKU=B3}"
+    },
+    "databaseType": {
+      "value": "${DATABASE_TYPE=PostgreSQL}"
+    },
     "azureSearchUseIntegratedVectorization": {
       "value": "${AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION=false}"
     },
     "azureSearchUseSemanticSearch": {
       "value": "${AZURE_SEARCH_USE_SEMANTIC_SEARCH=false}"
+    },
+    "azureSearchSemanticSearchConfig": {
+      "value": "${AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG=default}"
+    },
+    "azureSearchIndexIsPrechunked": {
+      "value": "${AZURE_SEARCH_INDEX_IS_PRECHUNKED=false}"
+    },
+    "azureSearchSku": {
+      "value": "${AZURE_SEARCH_SKU=standard}"
+    },
+    "azureSearchEnableInDomain": {
+      "value": "${AZURE_SEARCH_ENABLE_IN_DOMAIN=true}"
+    },
+    "azureSearchFilenameColumn": {
+      "value": "${AZURE_SEARCH_FILENAME_COLUMN=filename}"
+    },
+    "azureSearchFilter": {
+      "value": "${AZURE_SEARCH_FILTER}"
+    },
+    "azureSearchUrlColumn": {
+      "value": "${AZURE_SEARCH_URL_COLUMN=url}"
+    },
+    "azureSearchConversationLogIndex": {
+      "value": "${AZURE_SEARCH_CONVERSATION_LOG_INDEX=conversations}"
     },
     "orchestrationStrategy": {
       "value": "${ORCHESTRATION_STRATEGY=openai_function}"
@@ -80,6 +110,12 @@
     "azureOpenAIModelCapacity": {
       "value": "${AZURE_OPENAI_MODEL_CAPACITY=30}"
     },
+    "azureOpenAISkuName": {
+      "value": "${AZURE_OPENAI_SKU_NAME=S0}"
+    },
+    "azureOpenAIStream": {
+      "value": "${AZURE_OPENAI_STREAM=true}"
+    },
     "useAdvancedImageProcessing": {
       "value": "${USE_ADVANCED_IMAGE_PROCESSING=false}"
     },
@@ -131,6 +167,9 @@
     "computerVisionLocation": {
       "value": "${AZURE_COMPUTER_VISION_LOCATION}"
     },
+    "computerVisionSkuName": {
+      "value": "${COMPUTER_VISION_SKU_NAME=S1}"
+    },
     "computerVisionVectorizeImageApiVersion": {
       "value": "${AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION=2024-02-01}"
     },
@@ -148,6 +187,18 @@
     },
     "enableScalability": {
       "value": true
+    },
+    "enableRedundancy": {
+      "value": "${ENABLE_REDUNDANCY=false}"
+    },
+    "enablePurgeProtection": {
+      "value": "${ENABLE_PURGE_PROTECTION=false}"
+    },
+    "enableTelemetry": {
+      "value": "${ENABLE_TELEMETRY=true}"
+    },
+    "tags": {
+      "value": {}
     },
      "vmSize": {
       "value": "${AZURE_ENV_JUMPBOX_SIZE}"
