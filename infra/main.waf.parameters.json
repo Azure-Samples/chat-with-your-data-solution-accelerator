@@ -120,7 +120,7 @@
       "value": "${AZURE_OPENAI_TOP_P=1}"
     },
     "azureOpenAIStopSequence": {
-      "value": "${AZURE_OPENAI_STOP_SEQUENCE=\n}"
+      "value": "${AZURE_OPENAI_STOP_SEQUENCE}"
     },
     "azureOpenAISystemMessage": {
       "value": "${AZURE_OPENAI_SYSTEM_MESSAGE=You are an AI assistant that helps people find information.}"
