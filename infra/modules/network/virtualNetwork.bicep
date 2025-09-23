@@ -27,7 +27,7 @@ param enableTelemetry bool = true
 // https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/network/network-security-group
 
 @batchSize(1)
-module nsgs 'br/public:avm/res/network/network-security-group:0.5.1' = [
+module nsgs '../network-security-group/network-security-group.bicep' = [
   for (subnet, i) in subnets: if (!empty(subnet.?networkSecurityGroup)) {
     name: take('${name}-${subnet.?networkSecurityGroup.name}-networksecuritygroup', 64)
     params: {
@@ -83,10 +83,13 @@ module virtualNetwork 'br/public:avm/res/network/virtual-network:0.7.0' = {
   }
 }
 
+@description('The name of the virtual network.')
 output name string = virtualNetwork.outputs.name
+
+@description('The resource ID of the virtual network.')
 output resourceId string = virtualNetwork.outputs.resourceId
 
-// combined output array that holds subnet details along with NSG information
+@description('An array of subnet information including associated network security group details.')
 output subnets subnetOutputType[] = [
   for (subnet, i) in subnets: {
     name: subnet.name

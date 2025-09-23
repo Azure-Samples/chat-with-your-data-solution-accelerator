@@ -37,7 +37,7 @@ param enableTelemetry bool = true
 // 1. Create Jumpbox NSG
 // using AVM Network Security Group module
 // https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/network/network-security-group
-module nsg 'br/public:avm/res/network/network-security-group:0.5.1' = if (!empty(subnet)) {
+module nsg '../network-security-group/network-security-group.bicep' = if (!empty(subnet)) {
   name: '${vnetName}-${subnet.?networkSecurityGroup.name}'
   params: {
     name: '${subnet.?networkSecurityGroup.name}-${vnetName}'

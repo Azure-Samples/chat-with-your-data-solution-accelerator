@@ -119,4 +119,6 @@ output name string = cognitiveServices.outputs.name
 output location string = location
 
 @description('The principal ID of the system-assigned managed identity, if enabled.')
-output systemAssignedMIPrincipalId string = enableSystemAssigned ? cognitiveServices.outputs.systemAssignedMIPrincipalId : ''
+output systemAssignedMIPrincipalId string = enableSystemAssigned
+  ? cognitiveServices.outputs.systemAssignedMIPrincipalId
+  : ''

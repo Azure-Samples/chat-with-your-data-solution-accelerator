@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
 
 name: chat-with-your-data-solution-accelerator
-# metadata:
-#   template: chat-with-your-data-solution-accelerator@1.7.0
+metadata:
+   template: chat-with-your-data-solution-accelerator@1.7.0
 hooks:
   postprovision:
     # run: ./infra/prompt-flow/create-prompt-flow.sh
