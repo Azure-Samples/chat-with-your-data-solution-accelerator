@@ -21,7 +21,7 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
                 credential=(
                     AzureKeyCredential(self.env_helper.AZURE_SEARCH_KEY)
                     if self.env_helper.is_auth_type_keys()
-                    else get_azure_credential()
+                    else get_azure_credential(self.env_helper.MANAGED_IDENTITY_CLIENT_ID)
                 ),
             )
 
@@ -170,7 +170,7 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
             credential=(
                 AzureKeyCredential(self.env_helper.AZURE_SEARCH_KEY)
                 if self.env_helper.is_auth_type_keys()
-                else get_azure_credential()
+                else get_azure_credential(self.env_helper.MANAGED_IDENTITY_CLIENT_ID)
             ),
         )
 

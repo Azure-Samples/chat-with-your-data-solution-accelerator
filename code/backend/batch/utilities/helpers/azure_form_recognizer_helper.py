@@ -19,7 +19,7 @@ class AzureFormRecognizerClient:
         if env_helper.AZURE_AUTH_TYPE == "rbac":
             self.document_analysis_client = DocumentAnalysisClient(
                 endpoint=self.AZURE_FORM_RECOGNIZER_ENDPOINT,
-                credential=get_azure_credential(),
+                credential=get_azure_credential(env_helper.MANAGED_IDENTITY_CLIENT_ID),
                 headers={
                     "x-ms-useragent": "chat-with-your-data-solution-accelerator/1.0.0"
                 },

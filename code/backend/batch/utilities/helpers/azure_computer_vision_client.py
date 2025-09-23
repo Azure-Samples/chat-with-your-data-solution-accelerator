@@ -27,6 +27,7 @@ class AzureComputerVisionClient:
         self.model_version = (
             env_helper.AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION
         )
+        self.managed_identity_client_id = env_helper.MANAGED_IDENTITY_CLIENT_ID
 
     def vectorize_image(self, image_url: str) -> list[float]:
         logger.info(f"Making call to computer vision to vectorize image: {image_url}")
@@ -57,7 +58,7 @@ class AzureComputerVisionClient:
                 headers["Ocp-Apim-Subscription-Key"] = self.key
             else:
                 token_provider = get_bearer_token_provider(
-                    get_azure_credential(), self.__TOKEN_SCOPE
+                    get_azure_credential(self.managed_identity_client_id), self.__TOKEN_SCOPE
                 )
                 headers["Authorization"] = "Bearer " + token_provider()
 
