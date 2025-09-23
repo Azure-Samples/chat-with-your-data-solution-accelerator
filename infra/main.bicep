@@ -173,7 +173,6 @@ param azureOpenAIVisionModelCapacity int = 10
   'openai_function'
   'semantic_kernel'
   'langchain'
-  'prompt_flow'
 ])
 param orchestrationStrategy string = 'semantic_kernel'
 
@@ -351,10 +350,9 @@ var blobContainerName = 'documents'
 var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
 var eventGridSystemTopicName = 'doc-processing'
-// var tags = { 'azd-env-name': solutionName }
-var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/waf-avm/'
+var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
 var appversion = 'latest' // Update GIT deployment branch
-var registryName = 'cwydcontainerregpk' // Update Registry name
+var registryName = 'cwydcontainerreg' // Update Registry name
 
 var openAIFunctionsSystemPrompt = '''You help employees to navigate only private information sources.
     You must prioritize the function call over your general knowledge for any question by calling the search_documents function.
@@ -380,8 +378,11 @@ var allTags = union(
   },
   tags
 )
-@description('Optional. The name of user who is creating this deployment.')
-param createdBy string = empty(deployer().userPrincipalName) ? '' : split(deployer().userPrincipalName, '@')[0]
+
+@description('Optional. Created by user name.')
+param createdBy string = contains(deployer(), 'userPrincipalName')
+  ? split(deployer().userPrincipalName, '@')[0]
+  : deployer().objectId
 
 resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
   name: 'default'
@@ -391,7 +392,6 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
       ...allTags
       TemplateName: 'CWYD'
       CreatedBy: createdBy
-      SecurityControl: 'Ignore'
     }
   }
 }
@@ -456,9 +456,9 @@ module network 'modules/network.bicep' = if (enablePrivateNetworking) {
   params: {
     resourcesName: networkResourceName
     logAnalyticsWorkSpaceResourceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : ''
-    vmAdminUsername: !empty(virtualMachineAdminUsername) ? virtualMachineAdminUsername : 'JumpboxAdminUser'
-    vmAdminPassword: !empty(virtualMachineAdminPassword) ? virtualMachineAdminPassword : 'JumpboxAdminP@ssw0rd1234!'
-    vmSize: vmSize ?? 'Standard_DS2_v2' // Default VM size
+    vmAdminUsername: empty(virtualMachineAdminUsername) ? 'JumpboxAdminUser' : virtualMachineAdminUsername
+    vmAdminPassword: empty(virtualMachineAdminPassword) ? 'JumpboxAdminP@ssw0rd1234!' : virtualMachineAdminPassword
+    vmSize: empty(vmSize) ? 'Standard_DS2_v2' : vmSize
     location: location
     tags: allTags
     enableTelemetry: enableTelemetry
@@ -503,7 +503,6 @@ var dnsZoneIndex = {
   openAI: 7
   keyVault: 8
   machinelearning: 9
-  // The indexes for 'storageFile' and 'containerRegistry' have been removed as they were unused
 }
 
 // ===================================================
@@ -635,7 +634,6 @@ module postgresDBModule 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.
     highAvailability: enableRedundancy ? 'ZoneRedundant' : 'Disabled'
     highAvailabilityZone: enableRedundancy ? 2 : -1
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    //delegatedSubnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
     privateEndpoints: enablePrivateNetworking
       ? [
           {
@@ -929,7 +927,9 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
 
-var enablePrivateNetworkingSpeech = false // Speech service does not work with private endpoints in all regions, so default to false
+// The Web socket from front end application connects to Speech service over a public internet and it does not work over a Private endpoint.
+// So public access is enabled even if AVM WAF is enabled.
+var enablePrivateNetworkingSpeech = false
 module speechService 'modules/core/ai/cognitiveservices.bicep' = {
   name: speechServiceName
   scope: resourceGroup()
@@ -1011,7 +1011,6 @@ module search 'br/public:avm/res/search/search-service:0.11.1' = if (databaseTyp
                 {
                   name: 'search-dns-zone-group-blob'
                   privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.searchService]!.outputs.resourceId
-                  // privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.storageBlob].outputs.resourceId.value
                 }
               ]
             }
@@ -1085,7 +1084,6 @@ module webServerFarm 'br/public:avm/res/web/serverfarm:0.5.0' = {
     // WAF aligned configuration for Redundancy
     zoneRedundant: enableRedundancy ? true : false
   }
-  // scope: resourceGroup()
 }
 
 var postgresDBFqdn = '${postgresResourceName}.postgres.database.azure.com'
@@ -1490,6 +1488,9 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
 
+// If advanced image processing is used, storage account already should be publicly accessible.
+// Computer Vision requires files to be publicly accessible as per the official docsumentation: https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/blob-storage-search
+var enablePrivateEndpointsStorage = enablePrivateNetworking && !useAdvancedImageProcessing
 module storage './modules/storage/storage-account/storage-account.bicep' = {
   name: take('avm.res.storage.storage-account.${storageAccountName}', 64)
   params: {
@@ -1543,9 +1544,9 @@ module storage './modules/storage/storage-account/storage-account.bicep' = {
       }
     ]
     allowSharedKeyAccess: true
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    networkAcls: { bypass: 'AzureServices', defaultAction: enablePrivateNetworking ? 'Deny' : 'Allow' }
-    privateEndpoints: enablePrivateNetworking
+    publicNetworkAccess: enablePrivateEndpointsStorage ? 'Disabled' : 'Enabled'
+    networkAcls: { bypass: 'AzureServices', defaultAction: enablePrivateEndpointsStorage ? 'Deny' : 'Allow' }
+    privateEndpoints: enablePrivateEndpointsStorage
       ? [
           {
             name: 'pep-blob-${solutionSuffix}'
@@ -1554,7 +1555,6 @@ module storage './modules/storage/storage-account/storage-account.bicep' = {
                 {
                   name: 'storage-dns-zone-group-blob'
                   privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.storageBlob]!.outputs.resourceId
-                  // privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.storageBlob].outputs.resourceId.value
                 }
               ]
             }
@@ -1667,37 +1667,37 @@ var systemAssignedRoleAssignments = union(
   databaseType == 'CosmosDB'
     ? [
         {
-        principalId: search.outputs.systemAssignedMIPrincipalId
-        resourceId: storage.outputs.resourceId
-        roleName: 'Storage Blob Data Contributor'
-        roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-        principalType: 'ServicePrincipal'
-      }
-      {
-        principalId: search.outputs.systemAssignedMIPrincipalId
-        resourceId: openai.outputs.resourceId
-        roleName: 'Cognitive Services User'
-        roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
-        principalType: 'ServicePrincipal'
-      }
-      {
-        principalId: search.outputs.systemAssignedMIPrincipalId
-        resourceId: openai.outputs.resourceId
-        roleName: 'Cognitive Services OpenAI User'
-        roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
-        principalType: 'ServicePrincipal'
-      }
-    ]
+          principalId: search.outputs.systemAssignedMIPrincipalId
+          resourceId: storage.outputs.resourceId
+          roleName: 'Storage Blob Data Contributor'
+          roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+          principalType: 'ServicePrincipal'
+        }
+        {
+          principalId: search.outputs.systemAssignedMIPrincipalId
+          resourceId: openai.outputs.resourceId
+          roleName: 'Cognitive Services User'
+          roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+          principalType: 'ServicePrincipal'
+        }
+        {
+          principalId: search.outputs.systemAssignedMIPrincipalId
+          resourceId: openai.outputs.resourceId
+          roleName: 'Cognitive Services OpenAI User'
+          roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+          principalType: 'ServicePrincipal'
+        }
+      ]
     : [],
-    [
-      {
-        principalId: formrecognizer.outputs.systemAssignedMIPrincipalId
-        resourceId: storage.outputs.resourceId
-        roleName: 'Storage Blob Data Contributor'
-        roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-        principalType: 'ServicePrincipal'
-      }
-    ]
+  [
+    {
+      principalId: formrecognizer.outputs.systemAssignedMIPrincipalId
+      resourceId: storage.outputs.resourceId
+      roleName: 'Storage Blob Data Contributor'
+      roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+      principalType: 'ServicePrincipal'
+    }
+  ]
 )
 
 @description('Role assignments applied to the system-assigned identity via AVM module. Objects can include: roleDefinitionId (req), roleName, principalType, resourceId.')
