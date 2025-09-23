@@ -194,7 +194,7 @@ param azureOpenAITopP string = '1'
 param azureOpenAIMaxTokens string = '1000'
 
 @description('Optional. Azure OpenAI Stop Sequence.')
-param azureOpenAIStopSequence string = ''
+param azureOpenAIStopSequence string = '\n'
 
 @description('Optional. Azure OpenAI System Message.')
 param azureOpenAISystemMessage string = 'You are an AI assistant that helps people find information.'
