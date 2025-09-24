@@ -150,7 +150,7 @@ jobs:
       - name: Pre-build image and deploy
         uses: devcontainers/ci@v0.3
         env:
-                      AZURE_ENV_NAME: ${{ env.UNIQUE_SOLUTION_SUFFIX }}
+                      AZURE_ENV_NAME: ${{ env.SOLUTION_SUFFIX }}
                       AZURE_LOCATION: ${{ env.AZURE_LOCATION }}
                       AZURE_RESOURCE_GROUP: ${{ env.RESOURCE_GROUP_NAME }}
         with:
