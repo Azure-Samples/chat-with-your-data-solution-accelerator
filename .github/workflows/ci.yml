@@ -112,7 +112,7 @@ jobs:
           fi
           # Set output for other jobs
           echo "RESOURCE_GROUP_NAME=${{ env.RESOURCE_GROUP_NAME }}" >> $GITHUB_OUTPUT
-          azd env new my-env --location ${{ env.AZURE_LOCATION }} --subscription $AZURE_SUBSCRIPTION_ID
+          azd env new cwyd-deploy --location ${{ env.AZURE_LOCATION }} --subscription $AZURE_SUBSCRIPTION_ID
           azd env set AZURE_RESOURCE_GROUP ${{ env.RESOURCE_GROUP_NAME }}
           azd env set AZURE_LOCATION ${{ env.AZURE_LOCATION }}
 
@@ -127,7 +127,7 @@ jobs:
           echo "SOLUTION_SUFFIX=${UNIQUE_SOLUTION_SUFFIX}" >> $GITHUB_ENV
           echo "SOLUTION_SUFFIX=${UNIQUE_SOLUTION_SUFFIX}" >> $GITHUB_OUTPUT
           echo "Generated SOLUTION_SUFFIX: ${UNIQUE_SOLUTION_SUFFIX}"
-          azd env set AZURE_ENV_NAME: ${{ env.SOLUTION_SUFFIX }}
+          azd env set AZURE_ENV_NAME ${{ env.SOLUTION_SUFFIX }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
