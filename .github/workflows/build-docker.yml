@@ -65,4 +65,4 @@ jobs:
         cache-from: type=registry,ref=${{ inputs.new_registry }}/${{ inputs.app_name }}:${{ github.ref_name == 'main' && 'latest_waf' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo'|| github.ref_name == 'dependabotchanges' && 'dependabotchanges' || github.head_ref || github.ref_name }}
         tags: |
           ${{ inputs.new_registry }}/${{ inputs.app_name }}:${{ github.ref_name == 'main' && 'latest_waf' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo'|| github.ref_name == 'dependabotchanges' && 'dependabotchanges' || github.head_ref || 'default' }}
-          ${{ inputs.new_registry }}/${{ inputs.app_name }}:${{ steps.date.outputs.date }}_${{ github.run_number }}
+          ${{ inputs.new_registry }}/${{ inputs.app_name }}:${{ github.ref_name == 'main' && 'latest_waf' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo'|| github.ref_name == 'dependabotchanges' && 'dependabotchanges' || github.head_ref || 'default' }}_${{ steps.date.outputs.date }}_${{ github.run_number }}
