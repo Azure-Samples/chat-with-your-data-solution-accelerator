@@ -350,7 +350,7 @@ var blobContainerName = 'documents'
 var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
 var eventGridSystemTopicName = 'doc-processing'
-var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/dev/'
+var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
 
 @description('Optional. Image version tag to use.')
 param appversion string = 'latest_waf' // Update GIT deployment branch
