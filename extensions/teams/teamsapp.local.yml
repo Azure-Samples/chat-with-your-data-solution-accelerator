@@ -25,6 +25,14 @@ provision:
       # The Microsoft Entra application's client secret created for bot.
       botPassword: SECRET_BOT_PASSWORD
 
+  # Create service principal for the Microsoft Entra application
+  - uses: cli/runNpmCommand
+    name: Enable Service Principal
+    with:
+      args: run enable-sp
+    env:
+      BOT_ID: ${{BOT_ID}}
+
   # Create or update the bot registration on dev.botframework.com
   - uses: botFramework/create
     with:
@@ -76,5 +84,6 @@ deploy:
       envs:
         BOT_ID: ${{BOT_ID}}
         BOT_PASSWORD: ${{SECRET_BOT_PASSWORD}}
+        TEAMS_APP_TENANT_ID: ${{TEAMS_APP_TENANT_ID}}
         AZURE_FUNCTION_URL: ${{AZURE_FUNCTION_URL}}
         AZURE_APP_API_BASE_URL: ${{AZURE_APP_API_BASE_URL}}
