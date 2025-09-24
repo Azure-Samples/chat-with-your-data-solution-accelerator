@@ -90,11 +90,11 @@ jobs:
         id: set-image-tag
         run: |
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
-            echo "imageTag=latest" >> $GITHUB_ENV
-            echo "::set-output name=imageTag::latest"
+            echo "imageTag=latest_waf" >> $GITHUB_ENV
+            echo "::set-output name=imageTag::latest_waf"
           elif [[ "${{ github.ref_name }}" == "main" ]]; then
-            echo "imageTag=latest" >> $GITHUB_ENV
-            echo "::set-output name=imageTag::latest"
+            echo "imageTag=latest_waf" >> $GITHUB_ENV
+            echo "::set-output name=imageTag::latest_waf"
           else
             echo "imageTag=${{ github.ref_name }}" >> $GITHUB_ENV
             echo "::set-output name=imageTag::${{ github.ref_name }}"

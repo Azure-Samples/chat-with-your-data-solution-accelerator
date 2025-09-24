@@ -208,6 +208,9 @@
     },
     "virtualMachineAdminPassword": {
       "value": "${AZURE_ENV_VM_ADMIN_PASSWORD}"
+    },
+    "appversion": {
+      "value": "${AZURE_IMAGE_TAG=latest_waf}"
     }
   }
 }
