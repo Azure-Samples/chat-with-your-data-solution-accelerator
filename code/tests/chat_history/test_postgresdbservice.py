@@ -39,7 +39,7 @@ async def test_connect(mock_credential, mock_connect, postgres_client, mock_conn
         database="test_db",
         password="mock_token",
         port=5432,
-        ssl="require",
+        ssl=True,
     )
     assert postgres_client.conn == mock_connection
 
