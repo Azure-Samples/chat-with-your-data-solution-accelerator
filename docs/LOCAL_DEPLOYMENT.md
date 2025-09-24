@@ -109,11 +109,14 @@ You need to assign the following roles to your `PRINCIPALID` (you can get your '
 
 | Role | GUID |
 |----|----|
-|  Cognitive Services OpenAI Contributor | a001fd3d-188f-4b5d-821b-7da978bf7442 |
-| Search Service Contributor | 7ca78c08-252a-4471-8644-bb5ff32d4ba0 |
+| Cognitive Services OpenAI User | 5e0bd9bd-7b93-4f28-af87-19fc36ad61bd |
+| Cognitive Services User | a97b65f3-24c7-4388-baec-2e87135dc908 |
+| Cosmos DB SQL Data Contributor | 00000000-0000-0000-0000-000000000002 ([How to assign](https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-setup-rbac#role-assignments)) |
+| Key Vault Secrets User | 4633458b-17de-408a-b874-0445c86b69e6 |
 | Search Index Data Contributor | 8ebe5a00-799e-43f5-93ac-243d3dce84a7 |
-| Storage Blob Data Reader | 2a2b9908-6ea1-4ae2-8e65-a410df84e7d1 |
-| Reader | acdd72a7-3385-48ef-bd42-f606fba81ae7 |
+| Search Service Contributor | 7ca78c08-252a-4471-8644-bb5ff32d4ba0 |
+| Storage Blob Data Contributor | ba92f5b4-2d11-453d-a403-e96b0029c9fe |
+| Storage Queue Data Contributor | 974c5e8b-45b9-4653-ba55-5f855dd0fb88 |
 
 ### Programatically assign roles
 You can also update the `principalId` value with your own principalId in the `main.bicep` file.
@@ -204,7 +207,7 @@ poetry run func start
 Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions).
 
 #### Debugging the batch processing functions locally
-Rename the file `local.settings.json.sample` in the `batch` folder to `local.settings.json` and update the `AzureWebJobsStorage` value with the storage account connection string.
+Rename the file `local.settings.json.sample` in the `batch` folder to `local.settings.json` and update the `AzureWebJobsStorage__accountName` value with the storage account name.
 
 Copy the .env file from [previous section](#local-debugging) to the `batch` folder.
 
@@ -284,7 +287,7 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 |AZURE_SPEECH_SERVICE_KEY | | The key of the Azure Speech service|
 |AZURE_SPEECH_SERVICE_NAME | | The name of the Azure Speech service|
 |AZURE_SPEECH_SERVICE_REGION | | The region (location) of the Azure Speech service|
-|AzureWebJobsStorage||The connection string to the Azure Blob Storage for the Azure Functions Batch processing|
+|AzureWebJobsStorage__accountName||The name of the Azure Blob Storage account for the Azure Functions Batch processing|
 |BACKEND_URL||The URL for the Backend Batch Azure Function. Use http://localhost:7071 for local execution|
 |CONVERSATION_FLOW | custom | Chat conversation type: custom or byod (Bring Your Own Data)|
 |DATABASE_TYPE | PostgreSQL | The type of database to deploy (cosmos or postgres)|
