@@ -207,7 +207,7 @@ poetry run func start
 Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions).
 
 #### Debugging the batch processing functions locally
-Rename the file `local.settings.json.sample` in the `batch` folder to `local.settings.json` and update the `AzureWebJobsStorage` value with the storage account connection string.
+Rename the file `local.settings.json.sample` in the `batch` folder to `local.settings.json` and update the `AzureWebJobsStorage__accountName` value with the storage account name.
 
 Copy the .env file from [previous section](#local-debugging) to the `batch` folder.
 
@@ -287,7 +287,7 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 |AZURE_SPEECH_SERVICE_KEY | | The key of the Azure Speech service|
 |AZURE_SPEECH_SERVICE_NAME | | The name of the Azure Speech service|
 |AZURE_SPEECH_SERVICE_REGION | | The region (location) of the Azure Speech service|
-|AzureWebJobsStorage||The connection string to the Azure Blob Storage for the Azure Functions Batch processing|
+|AzureWebJobsStorage__accountName||The name of the Azure Blob Storage account for the Azure Functions Batch processing|
 |BACKEND_URL||The URL for the Backend Batch Azure Function. Use http://localhost:7071 for local execution|
 |CONVERSATION_FLOW | custom | Chat conversation type: custom or byod (Bring Your Own Data)|
 |DATABASE_TYPE | PostgreSQL | The type of database to deploy (cosmos or postgres)|
