@@ -66,7 +66,7 @@ azd-login: ## 🔑 Login to Azure with azd and a SPN
 deploy: azd-login ## Deploy everything to Azure
 	@echo -e "\e[34m$@\e[0m" || true
 	@azd env new ${AZURE_ENV_NAME} --location ${AZURE_LOCATION}
-    @azd env set AZURE_RESOURCE_GROUP ${AZURE_RESOURCE_GROUP}
+	@azd env set AZURE_RESOURCE_GROUP ${AZURE_RESOURCE_GROUP}
 
 	# Provision and deploy
 	@azd provision --no-prompt
