@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "9386566030108900112"
+      "templateHash": "18240520707417591350"
     }
   },
   "parameters": {
@@ -21075,7 +21075,7 @@
           "diagnosticSettings": "[if(parameters('enableMonitoring'), createObject('value', createArray(createObject('workspaceResourceId', reference('monitoring').outputs.logAnalyticsWorkspaceId.value))), createObject('value', null()))]",
           "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', format('pep-{0}', variables('keyVaultName')), 'customNetworkInterfaceName', format('nic-{0}', variables('keyVaultName')), 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('privateDnsZoneResourceId', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').keyVault)).outputs.resourceId.value))), 'service', 'vault', 'subnetResourceId', reference('network').outputs.subnetPrivateEndpointsResourceId.value))), createObject('value', createArray()))]",
           "roleAssignments": {
-            "value": "[concat(if(not(equals(reference('managedIdentityModule').outputs.principalId.value, '')), createArray(createObject('principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionIdOrName', 'Key Vault Secrets User')), createArray()), if(not(equals(parameters('principalId'), '')), createArray(createObject('principalId', parameters('principalId'), 'principalType', 'User', 'roleDefinitionIdOrName', 'Key Vault Secrets User')), createArray()))]"
+            "value": "[concat(if(not(equals(reference('managedIdentityModule').outputs.principalId.value, '')), createArray(createObject('principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionIdOrName', 'Key Vault Secrets User')), createArray()), if(not(equals(parameters('principalId'), '')), createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionIdOrName', 'Key Vault Secrets User')), createArray()))]"
           },
           "secrets": {
             "value": [
@@ -23257,7 +23257,7 @@
           "logAnalyticsWorkspaceId": "[if(parameters('enableMonitoring'), createObject('value', reference('monitoring').outputs.logAnalyticsWorkspaceId.value), createObject('value', null()))]",
           "privateDnsZoneResourceId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)).outputs.resourceId.value), createObject('value', ''))]",
           "roleAssignments": {
-            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId'), 'principalType', 'User'), createObject('roleDefinitionIdOrName', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd', 'principalId', parameters('principalId'), 'principalType', 'User')), createArray()))]"
+            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId')), createObject('roleDefinitionIdOrName', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd', 'principalId', parameters('principalId'))), createArray()))]"
           }
         },
         "template": {
@@ -25863,7 +25863,7 @@
           },
           "privateDnsZoneResourceId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)).outputs.resourceId.value), createObject('value', ''))]",
           "roleAssignments": {
-            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId'), 'principalType', 'User')), createArray()))]"
+            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId'))), createArray()))]"
           }
         },
         "template": {
@@ -28470,7 +28470,7 @@
           },
           "privateDnsZoneResourceId": "[if(variables('enablePrivateNetworkingSpeech'), createObject('value', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)).outputs.resourceId.value), createObject('value', ''))]",
           "roleAssignments": {
-            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId'), 'principalType', 'User')), createArray()))]"
+            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId'))), createArray()))]"
           }
         },
         "template": {
@@ -31100,7 +31100,7 @@
             }
           },
           "roleAssignments": {
-            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', '8ebe5a00-799e-43f5-93ac-243d3dce84a7', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '7ca78c08-252a-4471-8644-bb5ff32d4ba0', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '1407120a-92aa-4202-b7e9-c0e197c71c8f', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', '8ebe5a00-799e-43f5-93ac-243d3dce84a7', 'principalId', parameters('principalId'), 'principalType', 'User'), createObject('roleDefinitionIdOrName', '7ca78c08-252a-4471-8644-bb5ff32d4ba0', 'principalId', parameters('principalId'), 'principalType', 'User'), createObject('roleDefinitionIdOrName', '1407120a-92aa-4202-b7e9-c0e197c71c8f', 'principalId', parameters('principalId'), 'principalType', 'User')), createArray()))]"
+            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', '8ebe5a00-799e-43f5-93ac-243d3dce84a7', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '7ca78c08-252a-4471-8644-bb5ff32d4ba0', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '1407120a-92aa-4202-b7e9-c0e197c71c8f', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', '8ebe5a00-799e-43f5-93ac-243d3dce84a7', 'principalId', parameters('principalId')), createObject('roleDefinitionIdOrName', '7ca78c08-252a-4471-8644-bb5ff32d4ba0', 'principalId', parameters('principalId')), createObject('roleDefinitionIdOrName', '1407120a-92aa-4202-b7e9-c0e197c71c8f', 'principalId', parameters('principalId'))), createArray()))]"
           }
         },
         "template": {
@@ -46986,7 +46986,7 @@
             "value": true
           },
           "roleAssignments": {
-            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId'), 'principalType', 'User')), createArray()))]"
+            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId'))), createArray()))]"
           }
         },
         "template": {
@@ -49590,7 +49590,7 @@
           },
           "privateDnsZoneResourceId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)).outputs.resourceId.value), createObject('value', ''))]",
           "roleAssignments": {
-            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId'), 'principalType', 'User')), createArray()))]"
+            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId'))), createArray()))]"
           }
         },
         "template": {
@@ -55436,9 +55436,9 @@
         }
       },
       "dependsOn": [
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "managedIdentityModule",
         "network"
       ]
@@ -55493,7 +55493,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "15145535415197431472"
+              "templateHash": "68114798306146084"
             }
           },
           "parameters": {
@@ -55532,7 +55532,7 @@
             }
           },
           "variables": {
-            "wookbookContents": "{\"version\":\"Notebook/1.0\",\"items\":[{\"type\":1,\"content\":\"@{json=# Chat With Your Data Monitoring}\",\"name\":\"Heading\"},{\"type\":9,\"content\":\"@{version=KqlParameterItem/1.0; crossComponentResources=System.Object[]; parameters=System.Object[]; style=pills; queryType=1; resourceType=microsoft.resourcegraph/resources}\",\"conditionalVisibility\":\"@{parameterName=never; comparison=isEqualTo; value=show}\",\"name\":\"Resource Parameters\"},{\"type\":9,\"content\":\"@{version=KqlParameterItem/1.0; crossComponentResources=System.Object[]; parameters=System.Object[]; style=pills; queryType=1; resourceType=microsoft.resourcegraph/resources}\",\"name\":\"Time Picker\"},{\"type\":11,\"content\":\"@{version=LinkItem/1.0; style=tabs; links=System.Object[]}\",\"name\":\"links - 4\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Operations}\",\"name\":\"Operations Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Resources}\",\"name\":\"Resources Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Open AI}\",\"name\":\"Open AI Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=AI Search}\",\"name\":\"Search Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Storage}\",\"name\":\"Storage Group\"}],\"fallbackResourceIds\":[\"azure monitor\"],\"styleSettings\":{\"paddingStyle\":\"narrow\",\"spacingStyle\":\"narrow\"},\"$schema\":\"https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json\"}\n",
+            "wookbookContents": "{\"version\":\"Notebook/1.0\",\"items\":[{\"type\":1,\"content\":\"@{json=# Chat With Your Data Monitoring}\",\"name\":\"Heading\"},{\"type\":9,\"content\":\"@{version=KqlParameterItem/1.0; crossComponentResources=System.Object[]; parameters=System.Object[]; style=pills; queryType=1; resourceType=microsoft.resourcegraph/resources}\",\"conditionalVisibility\":\"@{parameterName=never; comparison=isEqualTo; value=show}\",\"name\":\"Resource Parameters\"},{\"type\":9,\"content\":\"@{version=KqlParameterItem/1.0; crossComponentResources=System.Object[]; parameters=System.Object[]; style=pills; queryType=1; resourceType=microsoft.resourcegraph/resources}\",\"name\":\"Time Picker\"},{\"type\":11,\"content\":\"@{version=LinkItem/1.0; style=tabs; links=System.Object[]}\",\"name\":\"links - 4\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Operations}\",\"name\":\"Operations Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Resources}\",\"name\":\"Resources Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Open AI}\",\"name\":\"Open AI Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=AI Search}\",\"name\":\"Search Group\"},{\"type\":12,\"content\":\"@{version=NotebookGroup/1.0; groupType=editable; items=System.Object[]}\",\"conditionalVisibility\":\"@{parameterName=selTab; comparison=isEqualTo; value=Storage}\",\"name\":\"Storage Group\"}],\"fallbackResourceIds\":[\"azure monitor\"],\"styleSettings\":{\"paddingStyle\":\"narrow\",\"spacingStyle\":\"narrow\"},\"$schema\":\"https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json\"}\r\n",
             "wookbookContentsSubReplaced": "[replace(variables('wookbookContents'), '{subscription-id}', subscription().id)]",
             "wookbookContentsRGReplaced": "[replace(variables('wookbookContentsSubReplaced'), '{resource-group}', resourceGroup().name)]",
             "wookbookContentsAppServicePlanReplaced": "[replace(variables('wookbookContentsRGReplaced'), '{app-service-plan}', parameters('hostingPlanName'))]",
