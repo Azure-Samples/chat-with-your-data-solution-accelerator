@@ -30,7 +30,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
             "https://ossrdbms-aad.database.windows.net/.default"
         )
         mock_connect.assert_called_once_with(
-            "host=mock_host user=mock_user dbname=mock_database password=mock-access-token"
+            "host=mock_host user=mock_user dbname=mock_database password=mock-access-token sslmode=require"
         )
 
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
@@ -92,7 +92,7 @@ class TestAzurePostgresHelper(unittest.TestCase):
         # Assert
         self.assertEqual(results, mock_results)
         mock_connect.assert_called_once_with(
-            "host=mock_host user=mock_user dbname=mock_database password=mock-access-token"
+            "host=mock_host user=mock_user dbname=mock_database password=mock-access-token sslmode=require"
         )
 
     @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
