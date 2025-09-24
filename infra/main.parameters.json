@@ -178,6 +178,9 @@
     },
     "existingLogAnalyticsWorkspaceId": {
       "value": "${AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID}"
+    },
+    "appversion": {
+      "value": "${AZURE_IMAGE_TAG=latest_waf}"
     }
   }
 }
