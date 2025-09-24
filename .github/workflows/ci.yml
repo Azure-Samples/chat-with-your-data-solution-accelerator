@@ -166,7 +166,7 @@ jobs:
                               az account set --subscription $AZURE_SUBSCRIPTION_ID
 
                               # Capture deployment output to a log file
-                              make ci 2>&1 | tee ci_output.log
+                              # make ci 2>&1 | tee ci_output.log
                               make deploy 2>&1 | tee deploy_output.log
 
                               # Try to extract URLs from deployment logs as backup
