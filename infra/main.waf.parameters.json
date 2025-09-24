@@ -1,0 +1,216 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "solutionName": {
+      "value": "${AZURE_ENV_NAME}"
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    },
+    "principalId": {
+      "value": "${AZURE_PRINCIPAL_ID}"
+    },
+    "appEnvironment": {
+      "value": "${APP_ENV=Prod}"
+    },
+    "hostingModel": {
+      "value": "${AZURE_APP_SERVICE_HOSTING_MODEL=code}"
+    },
+    "hostingPlanSku": {
+      "value": "${HOSTING_PLAN_SKU=B3}"
+    },
+    "databaseType": {
+      "value": "${DATABASE_TYPE=PostgreSQL}"
+    },
+    "azureSearchUseIntegratedVectorization": {
+      "value": "${AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION=false}"
+    },
+    "azureSearchUseSemanticSearch": {
+      "value": "${AZURE_SEARCH_USE_SEMANTIC_SEARCH=false}"
+    },
+    "azureSearchSemanticSearchConfig": {
+      "value": "${AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG=default}"
+    },
+    "azureSearchIndexIsPrechunked": {
+      "value": "${AZURE_SEARCH_INDEX_IS_PRECHUNKED=false}"
+    },
+    "azureSearchSku": {
+      "value": "${AZURE_SEARCH_SKU=standard}"
+    },
+    "azureSearchEnableInDomain": {
+      "value": "${AZURE_SEARCH_ENABLE_IN_DOMAIN=true}"
+    },
+    "azureSearchFilenameColumn": {
+      "value": "${AZURE_SEARCH_FILENAME_COLUMN=filename}"
+    },
+    "azureSearchFilter": {
+      "value": "${AZURE_SEARCH_FILTER}"
+    },
+    "azureSearchUrlColumn": {
+      "value": "${AZURE_SEARCH_URL_COLUMN=url}"
+    },
+    "azureSearchConversationLogIndex": {
+      "value": "${AZURE_SEARCH_CONVERSATION_LOG_INDEX=conversations}"
+    },
+    "orchestrationStrategy": {
+      "value": "${ORCHESTRATION_STRATEGY=openai_function}"
+    },
+    "logLevel": {
+      "value": "${LOGLEVEL=INFO}"
+    },
+    "recognizedLanguages": {
+      "value": "${AZURE_SPEECH_RECOGNIZER_LANGUAGES=en-US,fr-FR,de-DE,it-IT}"
+    },
+    "conversationFlow": {
+      "value": "${CONVERSATION_FLOW=custom}"
+    },
+    "azureSearchFieldId": {
+      "value": "${AZURE_SEARCH_FIELDS_ID=id}"
+    },
+    "azureSearchContentColumn": {
+      "value": "${AZURE_SEARCH_CONTENT_COLUMN=content}"
+    },
+    "azureSearchVectorColumn": {
+      "value": "${AZURE_SEARCH_CONTENT_VECTOR_COLUMN=content_vector}"
+    },
+    "azureSearchTitleColumn": {
+      "value": "${AZURE_SEARCH_TITLE_COLUMN=title}"
+    },
+    "azureSearchFieldsMetadata": {
+      "value": "${AZURE_SEARCH_FIELDS_METADATA=metadata}"
+    },
+    "azureSearchSourceColumn": {
+      "value": "${AZURE_SEARCH_SOURCE_COLUMN=source}"
+    },
+    "azureSearchTextColumn": {
+      "value": "${AZURE_SEARCH_TEXT_COLUMN=text}"
+    },
+    "azureSearchLayoutTextColumn": {
+      "value": "${AZURE_SEARCH_LAYOUT_TEXT_COLUMN=layoutText}"
+    },
+    "azureSearchChunkColumn": {
+      "value": "${AZURE_SEARCH_CHUNK_COLUMN=chunk}"
+    },
+    "azureSearchOffsetColumn": {
+      "value": "${AZURE_SEARCH_OFFSET_COLUMN=offset}"
+    },
+    "azureOpenAIApiVersion": {
+      "value": "${AZURE_OPENAI_API_VERSION=2024-02-01}"
+    },
+    "azureOpenAIModel": {
+      "value": "${AZURE_OPENAI_MODEL=gpt-4.1}"
+    },
+    "azureOpenAIModelName": {
+      "value": "${AZURE_OPENAI_MODEL_NAME=gpt-4.1}"
+    },
+    "azureOpenAIModelVersion": {
+      "value": "${AZURE_OPENAI_MODEL_VERSION=2025-04-14}"
+    },
+    "azureOpenAIModelCapacity": {
+      "value": "${AZURE_OPENAI_MODEL_CAPACITY=30}"
+    },
+    "azureOpenAISkuName": {
+      "value": "${AZURE_OPENAI_SKU_NAME=S0}"
+    },
+    "azureOpenAIStream": {
+      "value": "${AZURE_OPENAI_STREAM=true}"
+    },
+    "useAdvancedImageProcessing": {
+      "value": "${USE_ADVANCED_IMAGE_PROCESSING=false}"
+    },
+    "advancedImageProcessingMaxImages": {
+      "value": "${ADVANCED_IMAGE_PROCESSING_MAX_IMAGES=1}"
+    },
+    "azureOpenAIVisionModel": {
+      "value": "${AZURE_OPENAI_VISION_MODEL=gpt-4}"
+    },
+    "azureOpenAIVisionModelName": {
+      "value": "${AZURE_OPENAI_VISION_MODEL_NAME=gpt-4}"
+    },
+    "azureOpenAIVisionModelVersion": {
+      "value": "${AZURE_OPENAI_VISION_MODEL_VERSION=turbo-2024-04-09}"
+    },
+    "azureOpenAIVisionModelCapacity": {
+      "value": "${AZURE_OPENAI_VISION_MODEL_CAPACITY=10}"
+    },
+    "azureOpenAIEmbeddingModel": {
+      "value": "${AZURE_OPENAI_EMBEDDING_MODEL=text-embedding-ada-002}"
+    },
+    "azureOpenAIEmbeddingModelName": {
+      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_NAME=text-embedding-ada-002}"
+    },
+    "azureOpenAIEmbeddingModelVersion": {
+      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_VERSION=2}"
+    },
+    "azureOpenAIEmbeddingModelCapacity": {
+      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY=30}"
+    },
+    "azureOpenAIMaxTokens": {
+      "value": "${AZURE_OPENAI_MAX_TOKENS=1000}"
+    },
+    "azureOpenAITemperature": {
+      "value": "${AZURE_OPENAI_TEMPERATURE=0}"
+    },
+    "azureOpenAITopP": {
+      "value": "${AZURE_OPENAI_TOP_P=1}"
+    },
+    "azureOpenAIStopSequence": {
+      "value": "${AZURE_OPENAI_STOP_SEQUENCE}"
+    },
+    "azureOpenAISystemMessage": {
+      "value": "${AZURE_OPENAI_SYSTEM_MESSAGE=You are an AI assistant that helps people find information.}"
+    },
+    "azureSearchTopK": {
+      "value": "${AZURE_SEARCH_TOP_K=5}"
+    },
+    "computerVisionLocation": {
+      "value": "${AZURE_COMPUTER_VISION_LOCATION}"
+    },
+    "computerVisionSkuName": {
+      "value": "${COMPUTER_VISION_SKU_NAME=S1}"
+    },
+    "computerVisionVectorizeImageApiVersion": {
+      "value": "${AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION=2024-02-01}"
+    },
+    "computerVisionVectorizeImageModelVersion": {
+      "value": "${AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION=2023-04-15}"
+    },
+    "existingLogAnalyticsWorkspaceId": {
+      "value": "${AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID}"
+    },
+    "enableMonitoring": {
+      "value": true
+    },
+    "enablePrivateNetworking": {
+      "value": true
+    },
+    "enableScalability": {
+      "value": true
+    },
+    "enableRedundancy": {
+      "value": "${ENABLE_REDUNDANCY=false}"
+    },
+    "enablePurgeProtection": {
+      "value": "${ENABLE_PURGE_PROTECTION=false}"
+    },
+    "enableTelemetry": {
+      "value": "${ENABLE_TELEMETRY=true}"
+    },
+    "tags": {
+      "value": {}
+    },
+     "vmSize": {
+      "value": "${AZURE_ENV_JUMPBOX_SIZE}"
+    },
+    "virtualMachineAdminUsername": {
+      "value": "${AZURE_ENV_VM_ADMIN_USERNAME}"
+    },
+    "virtualMachineAdminPassword": {
+      "value": "${AZURE_ENV_VM_ADMIN_PASSWORD}"
+    },
+    "appversion": {
+      "value": "${AZURE_IMAGE_TAG=latest_waf}"
+    }
+  }
+}
