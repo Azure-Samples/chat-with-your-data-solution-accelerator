@@ -65,9 +65,17 @@ azd-login: ## 🔑 Login to Azure with azd and a SPN
 # Fixed Makefile section for deploy target
 deploy: azd-login ## Deploy everything to Azure
 	@echo -e "\e[34m$@\e[0m" || true
-	@echo ${AZURE_ENV_NAME}
-	@echo ${AZURE_LOCATION}
-	@echo ${AZURE_RESOURCE_GROUP}
+	 # Debug environment variables
+    @echo "=== Environment Variables ==="
+    @echo "AZURE_ENV_NAME: '${AZURE_ENV_NAME}'"
+    @echo "AZURE_LOCATION: '${AZURE_LOCATION}'"
+    @echo "AZURE_RESOURCE_GROUP: '${AZURE_RESOURCE_GROUP}'"
+
+    # Validate required variables
+    @if [ -z "${AZURE_ENV_NAME}" ]; then echo "❌ AZURE_ENV_NAME not set"; exit 1; fi
+    @if [ -z "${AZURE_LOCATION}" ]; then echo "❌ AZURE_LOCATION not set"; exit 1; fi
+    @if [ -z "${AZURE_RESOURCE_GROUP}" ]; then echo "❌ AZURE_RESOURCE_GROUP not set"; exit 1; fi
+
 	@azd env new ${AZURE_ENV_NAME} --location ${AZURE_LOCATION}
 	@azd env set AZURE_RESOURCE_GROUP ${AZURE_RESOURCE_GROUP}
 

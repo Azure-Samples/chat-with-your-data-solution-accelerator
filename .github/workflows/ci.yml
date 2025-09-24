@@ -189,6 +189,7 @@ jobs:
                               AZURE_SUBSCRIPTION_ID
                               AZURE_ENV_NAME
                               AZURE_LOCATION
+                              AZURE_RESOURCE_GROUP
                               AUTH_ENABLED=false
                               AZURE_USE_AUTHENTICATION=false
                               AZURE_ENABLE_AUTH=false
