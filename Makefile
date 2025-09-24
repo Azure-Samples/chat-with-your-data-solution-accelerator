@@ -65,7 +65,6 @@ azd-login: ## 🔑 Login to Azure with azd and a SPN
 # Fixed Makefile section for deploy target
 deploy: azd-login ## Deploy everything to Azure
 	@echo -e "\e[34m$@\e[0m" || true
-	 # Debug environment variables
     @echo "=== Environment Variables ==="
     @echo "AZURE_ENV_NAME: '${AZURE_ENV_NAME}'"
     @echo "AZURE_LOCATION: '${AZURE_LOCATION}'"
