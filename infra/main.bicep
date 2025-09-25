@@ -1339,6 +1339,7 @@ module function 'modules/app/function.bicep' = {
         MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.resourceId
         AZURE_CLIENT_ID: managedIdentityModule.outputs.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
+        BACKEND_URL: backendUrl
       },
       databaseType == 'CosmosDB'
         ? {
