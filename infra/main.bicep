@@ -35,18 +35,10 @@ var hostingPlanName string = 'asp-${solutionSuffix}'
 
 @description('Optional. The pricing tier for the App Service plan.')
 @allowed([
-  'F1'
-  'D1'
-  'B1'
   'B2'
   'B3'
-  'S1'
   'S2'
   'S3'
-  'P1'
-  'P2'
-  'P3'
-  'P4'
 ])
 param hostingPlanSku string = 'B3'
 
@@ -148,7 +140,7 @@ param azureOpenAIModelName string = 'gpt-4.1'
 param azureOpenAIModelVersion string = '2025-04-14'
 
 @description('Optional. Azure OpenAI Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota.')
-param azureOpenAIModelCapacity int = 30
+param azureOpenAIModelCapacity int = 150
 
 @description('Optional. Whether to enable the use of a vision LLM and Computer Vision for embedding images. If the database type is PostgreSQL, set this to false.')
 param useAdvancedImageProcessing bool = false
@@ -214,7 +206,7 @@ param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
 param azureOpenAIEmbeddingModelVersion string = '2'
 
 @description('Optional. Azure OpenAI Embedding Model Capacity - See here for more info https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota .')
-param azureOpenAIEmbeddingModelCapacity int = 30
+param azureOpenAIEmbeddingModelCapacity int = 100
 
 @description('Optional. Name of Computer Vision Resource (if useAdvancedImageProcessing=true).')
 var computerVisionName string = 'cv-${solutionSuffix}'

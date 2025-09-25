@@ -90,7 +90,7 @@ jobs:
         id: generate_rg_name
         run: |
           echo "Generating a unique resource group name..."
-          ACCL_NAME="ca"  # Account name as specified
+          ACCL_NAME="cwyd"  # Account name as specified
           SHORT_UUID=$(uuidgen | cut -d'-' -f1)
           UNIQUE_RG_NAME="arg-${ACCL_NAME}-${SHORT_UUID}"
           echo "RESOURCE_GROUP_NAME=${UNIQUE_RG_NAME}" >> $GITHUB_ENV

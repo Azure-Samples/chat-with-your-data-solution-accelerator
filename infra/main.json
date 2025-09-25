@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "18240520707417591350"
+      "templateHash": "14151002700383033945"
     }
   },
   "parameters": {
@@ -48,18 +48,10 @@
       "type": "string",
       "defaultValue": "B3",
       "allowedValues": [
-        "F1",
-        "D1",
-        "B1",
         "B2",
         "B3",
-        "S1",
         "S2",
-        "S3",
-        "P1",
-        "P2",
-        "P3",
-        "P4"
+        "S3"
       ],
       "metadata": {
         "description": "Optional. The pricing tier for the App Service plan."
@@ -239,7 +231,7 @@
     },
     "azureOpenAIModelCapacity": {
       "type": "int",
-      "defaultValue": 30,
+      "defaultValue": 150,
       "metadata": {
         "description": "Optional. Azure OpenAI Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota."
       }
@@ -381,7 +373,7 @@
     },
     "azureOpenAIEmbeddingModelCapacity": {
       "type": "int",
-      "defaultValue": 30,
+      "defaultValue": 100,
       "metadata": {
         "description": "Optional. Azure OpenAI Embedding Model Capacity - See here for more info https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota ."
       }
@@ -55436,9 +55428,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "managedIdentityModule",
         "network"
       ]
