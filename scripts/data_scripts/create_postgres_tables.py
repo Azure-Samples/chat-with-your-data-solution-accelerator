@@ -1,63 +1,9 @@
 from azure_credential_utils import get_azure_credential
 import psycopg2
-from psycopg2 import sql
 
-key_vault_name = "kv_to-be-replaced"
-principal_name = "webAppPrincipalName"
-admin_principal_name = "adminAppPrincipalName"
-function_app_principal_name = "functionAppPrincipalName"
 user = "managedIdentityName"
 host = "serverName"
 dbname = "postgres"
-
-
-def grant_permissions(cursor, dbname, schema_name, principal_name):
-    """
-    Grants database and schema-level permissions to a specified principal.
-
-    Parameters:
-    - cursor: psycopg2 cursor object for database operations.
-    - dbname: Name of the database to grant CONNECT permission.
-    - schema_name: Name of the schema to grant table-level permissions.
-    - principal_name: Name of the principal (role or user) to grant permissions.
-    """
-
-    # Check if the principal exists in the database
-    cursor.execute(
-        sql.SQL("SELECT 1 FROM pg_roles WHERE rolname = {principal}").format(
-            principal=sql.Literal(principal_name)
-        )
-    )
-    if cursor.fetchone() is None:
-        add_principal_user_query = sql.SQL(
-            "SELECT * FROM pgaadauth_create_principal({principal}, false, false)"
-        )
-        cursor.execute(
-            add_principal_user_query.format(
-                principal=sql.Literal(principal_name),
-            )
-        )
-
-    # Grant CONNECT on database
-    grant_connect_query = sql.SQL("GRANT CONNECT ON DATABASE {database} TO {principal}")
-    cursor.execute(
-        grant_connect_query.format(
-            database=sql.Identifier(dbname),
-            principal=sql.Identifier(principal_name),
-        )
-    )
-    print(f"Granted CONNECT on database '{dbname}' to '{principal_name}'")
-
-    # Grant SELECT, INSERT, UPDATE, DELETE on schema tables
-    grant_permissions_query = sql.SQL(
-        "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA {schema} TO {principal}"
-    )
-    cursor.execute(
-        grant_permissions_query.format(
-            schema=sql.Identifier(schema_name),
-            principal=sql.Identifier(principal_name),
-        )
-    )
 
 
 # Acquire the access token
@@ -135,14 +81,6 @@ cursor.execute(
 )
 conn.commit()
 
-grant_permissions(cursor, dbname, "public", principal_name)
-conn.commit()
-
-grant_permissions(cursor, dbname, "public", admin_principal_name)
-conn.commit()
-
-grant_permissions(cursor, dbname, "public", function_app_principal_name)
-conn.commit()
 
 cursor.execute("ALTER TABLE public.conversations OWNER TO azure_pg_admin;")
 cursor.execute("ALTER TABLE public.messages OWNER TO azure_pg_admin;")

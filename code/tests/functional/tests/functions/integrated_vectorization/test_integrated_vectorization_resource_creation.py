@@ -102,6 +102,10 @@ def test_integrated_vectorization_datasouce_created(
                 "container": {
                     "name": f"{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}"
                 },
+                "identity": {
+                    "@odata.type": "#Microsoft.Azure.Search.DataUserAssignedIdentity",
+                    "userAssignedIdentity": ""
+                },
                 "dataDeletionDetectionPolicy": {
                     "@odata.type": "#Microsoft.Azure.Search.NativeBlobSoftDeleteDeletionDetectionPolicy"
                 },
@@ -384,6 +388,10 @@ def test_integrated_vectorization_skillset_created(
                         "resourceUri": f"https://localhost:{httpserver.port}/",
                         "deploymentId": f"{app_config.get_from_json('AZURE_OPENAI_EMBEDDING_MODEL_INFO','model')}",
                         "apiKey": f"{app_config.get('AZURE_OPENAI_API_KEY')}",
+                        "authIdentity": {
+                            "@odata.type": "#Microsoft.Azure.Search.DataUserAssignedIdentity",
+                            "userAssignedIdentity": ""
+                        },
                     },
                     {
                         "@odata.type": "#Microsoft.Skills.Util.ShaperSkill",

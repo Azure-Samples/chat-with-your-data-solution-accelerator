@@ -9,12 +9,13 @@ import mimetypes
 from os import path
 import sys
 import re
+from urllib.parse import quote
+
 import requests
 from openai import AzureOpenAI, Stream, APIStatusError
 from openai.types.chat import ChatCompletionChunk
 from flask import Flask, Response, request, Request, jsonify
 from dotenv import load_dotenv
-from urllib.parse import quote
 from backend.batch.utilities.helpers.env_helper import EnvHelper
 from backend.batch.utilities.helpers.azure_search_helper import AzureSearchHelper
 from backend.batch.utilities.helpers.orchestrator_helper import Orchestrator
@@ -22,6 +23,7 @@ from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
 from backend.api.chat_history import bp_chat_history_response
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
+from azure.core.exceptions import ClientAuthenticationError, ResourceNotFoundError, ServiceRequestError
 from backend.batch.utilities.helpers.azure_credential_utils import get_azure_credential
 from backend.batch.utilities.helpers.azure_blob_storage_client import (
     AzureBlobStorageClient,
@@ -379,7 +381,7 @@ def get_speech_key(env_helper: EnvHelper):
     This is required to generate short-lived tokens when using RBAC.
     """
     client = CognitiveServicesManagementClient(
-        credential=get_azure_credential(),
+        credential=get_azure_credential(env_helper.MANAGED_IDENTITY_CLIENT_ID),
         subscription_id=env_helper.AZURE_SUBSCRIPTION_ID,
     )
     keys = client.accounts.list_keys(
@@ -416,6 +418,96 @@ def create_app():
     @app.route("/api/health", methods=["GET"])
     def health():
         return "OK"
+
+    @app.route("/api/files/<filename>", methods=["GET"])
+    def get_file(filename):
+        """
+        Download a file from the 'docs' container in Azure Blob Storage using Managed Identity.
+
+        Args:
+            filename (str): Name of the file to retrieve from storage
+
+        Returns:
+            Flask Response: The file content with appropriate headers, or error response
+        """
+        logger.info("File download request for: %s", filename)
+
+        try:
+            # Enhanced input validation - prevent path traversal and unauthorized access
+            if not filename:
+                logger.warning("Empty filename provided")
+                return jsonify({"error": "Filename is required"}), 400
+
+            # Prevent path traversal attacks
+            if '..' in filename or '/' in filename or '\\' in filename:
+                logger.warning("Invalid filename with path traversal attempt: %s", filename)
+                return jsonify({"error": "Invalid filename"}), 400
+
+            # Validate filename length and characters
+            if len(filename) > 255:
+                logger.warning("Filename too long: %s", filename)
+                return jsonify({"error": "Filename too long"}), 400
+
+            # Only allow safe characters (alphanumeric, dots, dashes, underscores, spaces)
+            if not re.match(r'^[a-zA-Z0-9._\-\s]+$', filename):
+                logger.warning("Filename contains invalid characters: %s", filename)
+                return jsonify({"error": "Invalid filename characters"}), 400
+
+            # Initialize blob storage client with 'documents' container
+            blob_client = AzureBlobStorageClient(container_name="documents")
+
+            # Check if file exists
+            if not blob_client.file_exists(filename):
+                logger.info("File not found: %s", filename)
+                return jsonify({"error": "File not found"}), 404
+
+            # Download the file
+            file_data = blob_client.download_file(filename)
+
+            # Determine content type based on file extension
+            content_type, _ = mimetypes.guess_type(filename)
+            if not content_type:
+                content_type = 'application/octet-stream'
+
+            file_size = len(file_data)
+            logger.info("File downloaded successfully: %s, size: %d bytes", filename, file_size)
+
+            # For large files (>10MB), consider implementing streaming
+            if file_size > 10 * 1024 * 1024:  # 10MB threshold
+                logger.info("Large file detected: %s, size: %d bytes", filename, file_size)
+
+            # Create response with comprehensive headers
+            response = Response(
+                file_data,
+                status=200,
+                mimetype=content_type,
+                headers={
+                    'Content-Disposition': f'inline; filename="{filename}"',
+                    'Content-Length': str(file_size),
+                    'Cache-Control': 'public, max-age=3600',
+                    'X-Content-Type-Options': 'nosniff',
+                    'X-Frame-Options': 'DENY',
+                    'Content-Security-Policy': "default-src 'none'"
+                }
+            )
+
+            return response
+
+        except (ClientAuthenticationError, ResourceNotFoundError, ServiceRequestError) as e:
+            # Handle specific Azure errors
+            if isinstance(e, ClientAuthenticationError):
+                logger.error("Authentication failed for file %s: %s", filename, str(e))
+                return jsonify({"error": "Authentication failed"}), 401
+            elif isinstance(e, ResourceNotFoundError):
+                logger.info("File not found: %s", filename)
+                return jsonify({"error": "File not found"}), 404
+            elif isinstance(e, ServiceRequestError):
+                logger.error("Storage service error for file %s: %s", filename, str(e))
+                return jsonify({"error": "Storage service unavailable"}), 503
+        except Exception as e:
+            error_message = str(e)
+            logger.exception("Unexpected error downloading file %s: %s", filename, error_message)
+            return jsonify({"error": "Internal server error"}), 500
 
     def conversation_azure_byod():
         logger.info("Method conversation_azure_byod started")

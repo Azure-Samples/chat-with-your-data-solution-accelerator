@@ -6,6 +6,9 @@ from backend.batch.utilities.integrated_vectorization.azure_search_datasource im
 from azure.search.documents.indexes._generated.models import (
     NativeBlobSoftDeleteDeletionDetectionPolicy,
 )
+from azure.search.documents.indexes.models import (
+    SearchIndexerDataUserAssignedIdentity,
+)
 
 AZURE_AUTH_TYPE = "keys"
 AZURE_SEARCH_KEY = "mock-key"
@@ -18,6 +21,8 @@ AZURE_BLOB_ACCOUNT_NAME = "mock-account-name"
 AZURE_BLOB_ACCOUNT_KEY = "mock-key"
 AZURE_SUBSCRIPTION_ID = "mock-subscriptionid"
 AZURE_RESOURCE_GROUP = "mock-resource-group"
+AZURE_BLOB_CONTAINER_NAME = "mock-container-name"
+MANAGED_IDENTITY_RESOURCE_ID = "/subscriptions/mock-sub/resourceGroups/mock-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/mock-identity"
 
 
 @pytest.fixture(autouse=True)
@@ -33,6 +38,13 @@ def env_helper_mock():
         env_helper.AZURE_OPENAI_ENDPOINT = AZURE_OPENAI_ENDPOINT
         env_helper.AZURE_OPENAI_EMBEDDING_MODEL = AZURE_OPENAI_EMBEDDING_MODEL
         env_helper.AZURE_SEARCH_DATASOURCE_NAME = AZURE_SEARCH_DATASOURCE_NAME
+        env_helper.AZURE_BLOB_ACCOUNT_NAME = AZURE_BLOB_ACCOUNT_NAME
+        env_helper.AZURE_BLOB_ACCOUNT_KEY = AZURE_BLOB_ACCOUNT_KEY
+        env_helper.AZURE_SUBSCRIPTION_ID = AZURE_SUBSCRIPTION_ID
+        env_helper.AZURE_RESOURCE_GROUP = AZURE_RESOURCE_GROUP
+        env_helper.AZURE_BLOB_CONTAINER_NAME = AZURE_BLOB_CONTAINER_NAME
+        env_helper.MANAGED_IDENTITY_RESOURCE_ID = MANAGED_IDENTITY_RESOURCE_ID
+        env_helper.APP_ENV = "prod"
 
         yield env_helper
 
@@ -89,6 +101,9 @@ def test_create_or_update_datasource_keys(
         connection_string=keys_datasource_connection,
         container=search_indexer_data_container_mock.return_value,
         data_deletion_detection_policy=NativeBlobSoftDeleteDeletionDetectionPolicy(),
+        identity=SearchIndexerDataUserAssignedIdentity(
+            user_assigned_identity=env_helper_mock.MANAGED_IDENTITY_RESOURCE_ID
+        ),
     )
 
 
@@ -123,4 +138,43 @@ def test_create_or_update_datasource_rbac(
         connection_string=rbac_datasource_connection,
         container=search_indexer_data_container_mock.return_value,
         data_deletion_detection_policy=NativeBlobSoftDeleteDeletionDetectionPolicy(),
+        identity=SearchIndexerDataUserAssignedIdentity(
+            user_assigned_identity=env_helper_mock.MANAGED_IDENTITY_RESOURCE_ID
+        ),
+    )
+
+
+def test_create_or_update_datasource_dev_environment(
+    search_indexer_client_mock: MagicMock,
+    search_indexer_data_container_mock: MagicMock,
+    env_helper_mock: MagicMock,
+    search_indexer_datasource_connection_mock: MagicMock,
+):
+    # given
+    env_helper_mock.is_auth_type_keys.return_value = False
+    env_helper_mock.AZURE_AUTH_TYPE = "rbac"
+    env_helper_mock.APP_ENV = "dev"  # Override for dev environment
+    rbac_datasource_connection = f"ResourceId=/subscriptions/{env_helper_mock.AZURE_SUBSCRIPTION_ID}/resourceGroups/{env_helper_mock.AZURE_RESOURCE_GROUP}/providers/Microsoft.Storage/storageAccounts/{env_helper_mock.AZURE_BLOB_ACCOUNT_NAME}/;"
+
+    azure_search_iv_datasource_helper = AzureSearchDatasource(env_helper_mock)
+
+    # when
+    azure_search_iv_datasource_helper.create_or_update_datasource()
+
+    # then
+
+    assert (
+        azure_search_iv_datasource_helper.indexer_client
+        == search_indexer_client_mock.return_value
+    )
+    search_indexer_data_container_mock.assert_called_once_with(
+        name=env_helper_mock.AZURE_BLOB_CONTAINER_NAME
+    )
+    search_indexer_datasource_connection_mock.assert_called_once_with(
+        name=env_helper_mock.AZURE_SEARCH_DATASOURCE_NAME,
+        type="azureblob",
+        connection_string=rbac_datasource_connection,
+        container=search_indexer_data_container_mock.return_value,
+        data_deletion_detection_policy=NativeBlobSoftDeleteDeletionDetectionPolicy(),
+        identity=None,
     )
