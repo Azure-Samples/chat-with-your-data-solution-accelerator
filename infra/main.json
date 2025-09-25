@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "7004073046163258445"
+      "templateHash": "14151002700383033945"
     }
   },
   "parameters": {
@@ -48,18 +48,10 @@
       "type": "string",
       "defaultValue": "B3",
       "allowedValues": [
-        "F1",
-        "D1",
-        "B1",
         "B2",
         "B3",
-        "S1",
         "S2",
-        "S3",
-        "P1",
-        "P2",
-        "P3",
-        "P4"
+        "S3"
       ],
       "metadata": {
         "description": "Optional. The pricing tier for the App Service plan."
@@ -55436,9 +55428,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "managedIdentityModule",
         "network"
       ]
