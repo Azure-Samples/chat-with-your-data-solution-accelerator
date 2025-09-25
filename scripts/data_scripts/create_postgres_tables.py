@@ -2,7 +2,7 @@ from azure_credential_utils import get_azure_credential
 import psycopg2
 from psycopg2 import sql
 
-principalId = "principalId"
+principalId = "userPrincipalId"
 user = "managedIdentityName"
 host = "serverName"
 dbname = "postgres"

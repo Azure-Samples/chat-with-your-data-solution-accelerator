@@ -28,7 +28,7 @@ curl --output "$requirementFile" "$requirementFileUrl"
 echo "Download completed"
 
 # Replace placeholders in the python script with actual values
-sed -i "s/principalId/${principalId}/g" "create_postgres_tables.py"
+sed -i "s/userPrincipalId/${principalId}/g" "create_postgres_tables.py"
 sed -i "s/managedIdentityName/${managedIdentityName}/g" "create_postgres_tables.py"
 sed -i "s/serverName/${serverName}/g" "create_postgres_tables.py"
 
