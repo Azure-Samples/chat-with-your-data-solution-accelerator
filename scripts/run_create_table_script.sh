@@ -7,7 +7,8 @@ requirementFile="requirements.txt"
 requirementFileUrl=${baseUrl}"scripts/data_scripts/requirements.txt"
 resourceGroup="$2"
 serverName="$3"
-managedIdentityName="$4"
+principalId="$4"
+managedIdentityName="$5"
 
 echo "Script Started"
 
@@ -27,6 +28,7 @@ curl --output "$requirementFile" "$requirementFileUrl"
 echo "Download completed"
 
 # Replace placeholders in the python script with actual values
+sed -i "s/principalId/${principalId}/g" "create_postgres_tables.py"
 sed -i "s/managedIdentityName/${managedIdentityName}/g" "create_postgres_tables.py"
 sed -i "s/serverName/${serverName}/g" "create_postgres_tables.py"
 

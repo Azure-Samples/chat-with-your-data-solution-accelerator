@@ -1729,7 +1729,7 @@ module createIndex 'br/public:avm/res/resources/deployment-script:0.5.1' = if (d
     retentionInterval: 'PT1H'
     runOnce: true
     primaryScriptUri: '${baseUrl}scripts/run_create_table_script.sh'
-    arguments: '${baseUrl} ${resourceGroup().name} ${postgresDBModule!.outputs.fqdn} ${managedIdentityModule.outputs.name}'
+    arguments: '${baseUrl} ${resourceGroup().name} ${postgresDBModule!.outputs.fqdn} ${principalId} ${managedIdentityModule.outputs.name}'
     storageAccountResourceId: storage.outputs.resourceId
     subnetResourceIds: enablePrivateNetworking
       ? [
