@@ -148,7 +148,7 @@ param azureOpenAIModelName string = 'gpt-4.1'
 param azureOpenAIModelVersion string = '2025-04-14'
 
 @description('Optional. Azure OpenAI Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota.')
-param azureOpenAIModelCapacity int = 30
+param azureOpenAIModelCapacity int = 150
 
 @description('Optional. Whether to enable the use of a vision LLM and Computer Vision for embedding images. If the database type is PostgreSQL, set this to false.')
 param useAdvancedImageProcessing bool = false
@@ -214,7 +214,7 @@ param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
 param azureOpenAIEmbeddingModelVersion string = '2'
 
 @description('Optional. Azure OpenAI Embedding Model Capacity - See here for more info https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota .')
-param azureOpenAIEmbeddingModelCapacity int = 30
+param azureOpenAIEmbeddingModelCapacity int = 100
 
 @description('Optional. Name of Computer Vision Resource (if useAdvancedImageProcessing=true).')
 var computerVisionName string = 'cv-${solutionSuffix}'
@@ -768,7 +768,6 @@ module keyvault './modules/key-vault/vault/vault.bicep' = {
         ? [
             {
               principalId: principalId
-              principalType: 'User'
               roleDefinitionIdOrName: 'Key Vault Secrets User'
             }
           ]
@@ -874,12 +873,10 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
             {
               roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
               principalId: principalId
-              principalType: 'User'
             }
             {
               roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd' // Cognitive Services Contributor
               principalId: principalId
-              principalType: 'User'
             }
           ]
         : []
@@ -921,7 +918,6 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
             {
               roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
               principalId: principalId
-              principalType: 'User'
             }
           ]
         : []
@@ -966,7 +962,6 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
             {
               roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
               principalId: principalId
-              principalType: 'User'
             }
           ]
         : []
@@ -1048,17 +1043,14 @@ module search 'br/public:avm/res/search/search-service:0.11.1' = if (databaseTyp
             {
               roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7' // Search Index Data Contributor
               principalId: principalId
-              principalType: 'User'
             }
             {
               roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0' // Search Service Contributor
               principalId: principalId
-              principalType: 'User'
             }
             {
               roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f' // Search Index Data Reader
               principalId: principalId
-              principalType: 'User'
             }
           ]
         : []
@@ -1441,7 +1433,6 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
             {
               roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
               principalId: principalId
-              principalType: 'User'
             }
           ]
         : []
@@ -1482,7 +1473,6 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
             {
               roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
               principalId: principalId
-              principalType: 'User'
             }
           ]
         : []
