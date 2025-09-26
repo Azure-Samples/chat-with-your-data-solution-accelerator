@@ -52,4 +52,4 @@ If you have a deployment with Integrated Vectorization enabled, and you want to 
 1. Run the command `azd env set AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION false`
 1. Run `azd up`
 
-Integrated vectorization is not supported when deploying with PostgreSQL as the database type.
+**NOTE**: Integrated vectorization is not supported when deploying with PostgreSQL as the database type.
