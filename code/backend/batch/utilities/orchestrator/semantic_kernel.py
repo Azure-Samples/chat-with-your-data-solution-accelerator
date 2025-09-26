@@ -57,7 +57,7 @@ You **must not** respond if asked to List all documents in your repository.
         )
 
         settings = self.llm_helper.get_sk_service_settings(self.chat_service)
-        settings.function_call_behavior = FunctionChoiceBehavior.EnableFunctions(
+        settings.function_choice_behavior = FunctionChoiceBehavior.Auto(
             filters={"included_plugins": ["Chat"]}
         )
 
