@@ -842,10 +842,13 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
     deployments: openAiDeployments
     userAssignedResourceId: managedIdentityModule.outputs.resourceId
     restrictOutboundNetworkAccess: true
-    allowedFqdnList: [
-      '${storageAccountName}.blob.${environment().suffixes.storage}'
-      '${storageAccountName}.queue.${environment().suffixes.storage}'
-    ]
+    allowedFqdnList: concat(
+      [
+        '${storageAccountName}.blob.${environment().suffixes.storage}'
+        '${storageAccountName}.queue.${environment().suffixes.storage}'
+      ],
+      databaseType == 'CosmosDB' ? ['${azureAISearchName}.search.windows.net'] : []
+    )
     enablePrivateNetworking: enablePrivateNetworking
     enableMonitoring: enableMonitoring
     enableTelemetry: enableTelemetry

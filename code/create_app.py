@@ -199,7 +199,8 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
                             }
                             if env_helper.is_auth_type_keys()
                             else {
-                                "type": "system_assigned_managed_identity",
+                                "type": "user_assigned_managed_identity",
+                                "managed_identity_resource_id": env_helper.MANAGED_IDENTITY_RESOURCE_ID,
                             }
                         ),
                         "endpoint": env_helper.AZURE_SEARCH_SERVICE,
