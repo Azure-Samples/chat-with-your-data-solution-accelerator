@@ -8,6 +8,8 @@
 ## User Story
 This feature allows chunking and vectorization of data during ingestion into Azure AI Search through built-in pull-indexers. It supports automatic processing of data directly from storage - meaning the user can just upload their data to Azure Blob Storage and the built-in pull-indexers will do the chunking, vectorization and indexing. This removes the need for Chat With Your Data to explicitly perform chunking, vectorization and pushing to the search index. Read [more](https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-vectorization).
 
+Integrated vectorization is not supported when deploying with PostgreSQL as the database type.
+
 **NOTE**: Every instance of Chat With Your Data will need to be configured whether or not to use Integrated Vectorization at **deployment time**. Once deployed, you will be unable to switch between enabling and disabling Integrated Vectorization when the application is running. In order to run a fresh deployment to switch to and from Integrated Vectorization, refer to the following sections in this document:
 
 * [To switch from Integrated Vectorization disabled to enabled](#local-deployment---if-you-already-have-a-previous-deployment)
@@ -49,3 +51,5 @@ If you have a deployment with Integrated Vectorization enabled, and you want to 
 ![Delete Search Index](images/delete-search-datasource.png)
 1. Run the command `azd env set AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION false`
 1. Run `azd up`
+
+Integrated vectorization is not supported when deploying with PostgreSQL as the database type.
