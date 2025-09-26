@@ -206,6 +206,9 @@ jobs:
                               DISABLE_AUTHENTICATION=true
                               NO_AUTH=true
                               SKIP_AUTH=true
+                              AZURE_PRINCIPAL_ID
+                              AZURE_PRINCIPAL_NAME
+                              AZURE_PRINCIPAL_TYPE
 
       - name: Extract URLs from deployment
         id: extract-urls
