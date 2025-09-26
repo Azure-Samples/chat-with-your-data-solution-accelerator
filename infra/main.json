@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "14151002700383033945"
+      "templateHash": "7458720404578271218"
     }
   },
   "parameters": {
@@ -23231,10 +23231,7 @@
             "value": true
           },
           "allowedFqdnList": {
-            "value": [
-              "[format('{0}.blob.{1}', variables('storageAccountName'), environment().suffixes.storage)]",
-              "[format('{0}.queue.{1}', variables('storageAccountName'), environment().suffixes.storage)]"
-            ]
+            "value": "[concat(createArray(format('{0}.blob.{1}', variables('storageAccountName'), environment().suffixes.storage), format('{0}.queue.{1}', variables('storageAccountName'), environment().suffixes.storage)), if(equals(parameters('databaseType'), 'CosmosDB'), createArray(format('{0}.search.windows.net', variables('azureAISearchName'))), createArray()))]"
           },
           "enablePrivateNetworking": {
             "value": "[parameters('enablePrivateNetworking')]"
@@ -55431,8 +55428,6 @@
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "managedIdentityModule",
         "network"
       ]
