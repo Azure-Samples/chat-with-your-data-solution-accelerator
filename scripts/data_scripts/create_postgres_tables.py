@@ -1,11 +1,59 @@
 from azure_credential_utils import get_azure_credential
 import psycopg2
 from psycopg2 import sql
+import requests
 
 principalId = "userPrincipalId"
 user = "managedIdentityName"
 host = "serverName"
 dbname = "postgres"
+
+
+def get_user_principal_name(principal_id, credential):
+    """
+    Get user principal name (UPN/email) from a principal ID using Microsoft Graph API.
+
+    Parameters:
+    - principal_id: The Azure AD object ID of the user or service principal
+    - credential: Azure credential object for authentication
+
+    Returns:
+    - UPN/email of the user or the principal_id if not found
+    """
+    try:
+        # Get access token for Microsoft Graph
+        token = credential.get_token("https://graph.microsoft.com/.default")
+
+        headers = {
+            "Authorization": f"Bearer {token.token}",
+            "Content-Type": "application/json"
+        }
+
+        # Try to get user details
+        user_url = f"https://graph.microsoft.com/v1.0/users/{principal_id}"
+        response = requests.get(user_url, headers=headers, timeout=30)
+
+        if response.status_code == 200:
+            user_data = response.json()
+            # Return userPrincipalName if available, otherwise return mail
+            return user_data.get("userPrincipalName", user_data.get("mail", principal_id))
+
+        # If not found as user, try as service principal
+        sp_url = f"https://graph.microsoft.com/v1.0/servicePrincipals/{principal_id}"
+        response = requests.get(sp_url, headers=headers, timeout=30)
+
+        if response.status_code == 200:
+            sp_data = response.json()
+            # For service principals, use appId or displayName as identifier
+            return sp_data.get("displayName", principal_id)
+
+        # If neither found, return the ID itself
+        print(f"Could not find UPN for principal ID {principal_id}. Using ID as fallback.")
+        return principal_id
+
+    except Exception as e:
+        print(f"Error retrieving UPN: {str(e)}")
+        return principal_id
 
 
 def grant_permissions(cursor, dbname, schema_name, principal_id):
@@ -133,7 +181,8 @@ cursor.execute(
 conn.commit()
 
 if principalId and principalId.strip():
-    grant_permissions(cursor, dbname, "public", principalId)
+    identifier_to_use = get_user_principal_name(principalId, cred)
+    grant_permissions(cursor, dbname, "public", identifier_to_use)
     conn.commit()
 
 cursor.execute("ALTER TABLE public.conversations OWNER TO azure_pg_admin;")
