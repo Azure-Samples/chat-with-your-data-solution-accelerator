@@ -70,18 +70,13 @@ jobs:
           credential = DefaultAzureCredential()
           token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default").token
 
-          db_params = {
-              "user": aad_user,   # Use service principal name
-              "password": token,   # Use AAD token instead of password
-              "host": pg_host,
-              "port": "5432",
-              "dbname": "postgres",
-              "sslmode": "require"
-          }
+          conn_string = "host={0} user={1} dbname={2} password={3} sslmode=require".format(
+            pg_host, client_id, "postgres", token)
+
           csv_file = "exported_data_vector_score.csv"
           target_table = "vector_store"
           try:
-              with psycopg2.connect(**db_params) as conn:
+              with psycopg2.connect(conn_string) as conn:
                   with conn.cursor() as cur:
                       with open(csv_file, "r", encoding="utf-8") as f:
                           next(f)  # Skip header
