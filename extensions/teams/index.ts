@@ -19,7 +19,7 @@ import config from "./config";
 const credentialsFactory = new ConfigurationServiceClientCredentialFactory({
   MicrosoftAppId: config.botId,
   MicrosoftAppPassword: config.botPassword,
-  MicrosoftAppType: "SingleTenant",
+  MicrosoftAppType: "SingleTenant", // Enable multitenant mode for local development
   MicrosoftAppTenantId: config.tenantId
 });
 

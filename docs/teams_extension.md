@@ -32,11 +32,11 @@ This extension enables users to experience Chat with your data within Teams, wit
 
 ![ENV](images/teams-1.png)
 
-4. Locate the environment variable _AZURE_FUNCTION_URL_.
-5. Replace the `<FUNCTION_APP_NAME>` and `<FUNCTION_KEY>` with your actual Function App name and function key
+4. Locate the environment variables _AZURE_FUNCTION_URL_ and _AZURE_APP_API_BASE_URL_.
+5. Replace the `<FUNCTION_APP_NAME>` and `<FUNCTION_KEY>` with your actual Function App name and function key, and replace `<APP-NAME>` with your actual App Service name
     ```env
     AZURE_FUNCTION_URL=https://<FUNCTION_APP_NAME>.azurewebsites.net/api/GetConversationResponse?code=<FUNCTION_KEY>
-
+    AZURE_APP_API_BASE_URL=https://<APP-NAME>.azurewebsites.net/
     ```
     ![Env](images/teams-deploy-env.png)
 6. Save the file.

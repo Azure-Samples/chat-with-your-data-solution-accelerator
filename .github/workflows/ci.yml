@@ -25,6 +25,9 @@ jobs:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_PRINCIPAL_ID: ${{ secrets.AZURE_PRINCIPAL_ID }}
+      AZURE_PRINCIPAL_NAME: ${{ secrets.AZURE_PRINCIPAL_NAME }}
+      AZURE_PRINCIPAL_TYPE: 'ServicePrincipal'
 
     outputs:
       imageTag: ${{ steps.set-image-tag.outputs.imageTag }}
@@ -203,6 +206,9 @@ jobs:
                               DISABLE_AUTHENTICATION=true
                               NO_AUTH=true
                               SKIP_AUTH=true
+                              AZURE_PRINCIPAL_ID
+                              AZURE_PRINCIPAL_NAME
+                              AZURE_PRINCIPAL_TYPE
 
       - name: Extract URLs from deployment
         id: extract-urls
@@ -299,8 +305,6 @@ jobs:
 
                 echo "=== PostgreSQL Configuration Summary ==="
                 echo "Host Endpoint: $PG_HOST_DESTINATION"
-                echo "Username: admintest (hardcoded)"
-                echo "Password: Initial_0524 (hardcoded)"
                 echo "Database: postgres (hardcoded)"
                 echo "Port: 5432 (hardcoded)"
 
@@ -311,40 +315,51 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-                pip install psycopg2-binary python-dotenv
+                pip install psycopg2-binary python-dotenv azure-identity
 
+      - name: Populate PostgreSQL Database
+        run: |
+          python - <<EOF
+          import os
+          import psycopg2
+          from azure.identity import ClientSecretCredential
 
-      # - name: Populate PostgreSQL Database
-      #   run: |
-      #     python - <<EOF
-      #     import os
-      #     import psycopg2
+          tenant_id = os.environ["AZURE_TENANT_ID"]
+          client_id = os.environ["AZURE_CLIENT_ID"]
+          client_secret = os.environ["AZURE_CLIENT_SECRET"]
+          pg_host = os.environ.get("PG_HOST_DESTINATION", "localhost")
 
-      #     db_params = {
-      #         "user": "admintest",
-      #         "password": "Initial_0524",
-      #         "host": os.environ.get("PG_HOST_DESTINATION", "localhost"),
-      #         "port": "5432",
-      #         "dbname": "postgres",
-      #         "sslmode": "require"
-      #     }
+          # Acquire Azure AD access token for PostgreSQL
+          credential = ClientSecretCredential(tenant_id, client_id, client_secret)
+          token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default").token
+
+          db_params = {
+              "user": client_id,   # Use service principal clientId
+              "password": token,   # Use AAD token instead of password
+              "host": pg_host,
+              "port": "5432",
+              "dbname": "postgres",
+              "sslmode": "require"
+          }
 
       #     csv_file = "exported_data_vector_score.csv"
       #     target_table = "vector_store"
 
-      #     try:
-      #         with psycopg2.connect(**db_params) as conn:
-      #             with conn.cursor() as cur:
-      #                 with open(csv_file, "r", encoding="utf-8") as f:
-      #                     next(f)  # Skip header
-      #                     cur.copy_expert(f"COPY {target_table} FROM STDIN WITH CSV", f)
-      #             conn.commit()
-      #             print(f"✅ Imported data from '{csv_file}' into table '{target_table}'.")
-      #     except Exception as e:
-      #         print(f"❌ Error during import: {e}")
-      #     EOF
-
-
+          try:
+              with psycopg2.connect(**db_params) as conn:
+                  with conn.cursor() as cur:
+                      with open(csv_file, "r", encoding="utf-8") as f:
+                          next(f)  # Skip header
+                          cur.copy_expert(f"COPY {target_table} FROM STDIN WITH CSV", f)
+                  conn.commit()
+                  print(f"✅ Imported data from '{csv_file}' into table '{target_table}'.")
+          except Exception as e:
+              print(f"❌ Error during import: {e}")
+          EOF
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
       - name: Final Status Check
         id: final-status
