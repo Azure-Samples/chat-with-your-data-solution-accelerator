@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "2391105079639179141"
+      "templateHash": "10335641937823504813"
     }
   },
   "parameters": {
@@ -48,18 +48,10 @@
       "type": "string",
       "defaultValue": "B3",
       "allowedValues": [
-        "F1",
-        "D1",
-        "B1",
         "B2",
         "B3",
-        "S1",
         "S2",
-        "S3",
-        "P1",
-        "P2",
-        "P3",
-        "P4"
+        "S3"
       ],
       "metadata": {
         "description": "Optional. The pricing tier for the App Service plan."
