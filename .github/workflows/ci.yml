@@ -64,13 +64,14 @@ jobs:
           client_id = os.environ["AZURE_CLIENT_ID"]
           name = os.environ["AZURE_PRINCIPAL_NAME"]
           pg_host = "psql-pslc93v4kjv-postgres.postgres.database.azure.com"
+          aad_user = f"{client_id}@{tenant_id}"
 
           # Acquire Azure AD access token for PostgreSQL
-          credential = DefaultAzureCredential(client_id=client_id)
+          credential = DefaultAzureCredential()
           token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default").token
 
           db_params = {
-              "user": name,   # Use service principal name
+              "user": aad_user,   # Use service principal name
               "password": token,   # Use AAD token instead of password
               "host": pg_host,
               "port": "5432",
