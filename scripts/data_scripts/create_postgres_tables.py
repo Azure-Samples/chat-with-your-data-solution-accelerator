@@ -1,8 +1,6 @@
 from azure_credential_utils import get_azure_credential
 import psycopg2
-from psycopg2 import sql
 
-principalId = "userPrincipalId"
 user = "managedIdentityName"
 host = "serverName"
 dbname = "postgres"
@@ -18,14 +16,6 @@ conn_string = "host={0} user={1} dbname={2} password={3} sslmode=require".format
 )
 conn = psycopg2.connect(conn_string)
 cursor = conn.cursor()
-
-# Grant admin privileges to the principal
-cursor.execute(
-    sql.SQL("ALTER ROLE {} WITH SUPERUSER").format(
-        sql.Identifier(principalId)
-    )
-)
-conn.commit()
 
 # Drop and recreate the conversations table
 cursor.execute("DROP TABLE IF EXISTS conversations")

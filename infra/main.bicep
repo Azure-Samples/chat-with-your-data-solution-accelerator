@@ -292,8 +292,12 @@ var logAnalyticsName string = 'log-${solutionSuffix}'
 @description('Optional. A new GUID string generated for this deployment. This can be used for unique naming if needed.')
 param newGuidString string = newGuid()
 
-@description('Optional. Id of the user or app to assign application roles.')
-param principalId string = ''
+@description('Optional. Principal object for user or service principal to assign application roles. Format: {"id":"<object-id>", "name":"<name-or-upn>", "type":"User|Group|ServicePrincipal"}')
+param principal object = {
+  id: ''                 // Principal ID
+  name: ''               // Principal name
+  type: 'User'           // Principal type ('User', 'Group', or 'ServicePrincipal')
+}
 
 @description('Optional. Application Environment.')
 param appEnvironment string = 'Prod'
@@ -655,15 +659,26 @@ module postgresDBModule 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.
         ]
       : []
 
-    administrators: managedIdentityModule.outputs.principalId != ''
-      ? [
-          {
-            objectId: managedIdentityModule.outputs.principalId
-            principalName: managedIdentityModule.outputs.name
-            principalType: 'ServicePrincipal'
-          }
-        ]
-      : null
+    administrators: concat(
+      managedIdentityModule.outputs.principalId != ''
+        ? [
+            {
+              objectId: managedIdentityModule.outputs.principalId
+              principalName: managedIdentityModule.outputs.name
+              principalType: 'ServicePrincipal'
+            }
+          ]
+        : [],
+      !empty(principal.id)
+        ? [
+            {
+              objectId: principal.id
+              principalName: principal.name
+              principalType: principal.type
+            }
+          ]
+        : []
+    )
 
     firewallRules: enablePrivateNetworking
       ? []
@@ -764,10 +779,10 @@ module keyvault './modules/key-vault/vault/vault.bicep' = {
             }
           ]
         : [],
-      principalId != ''
+      !empty(principal.id)
         ? [
             {
-              principalId: principalId
+              principalId: principal.id
               roleDefinitionIdOrName: 'Key Vault Secrets User'
             }
           ]
@@ -868,15 +883,15 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
           principalType: 'ServicePrincipal'
         }
       ],
-      !empty(principalId)
+      !empty(principal.id)
         ? [
             {
               roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
-              principalId: principalId
+              principalId: principal.id
             }
             {
               roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd' // Cognitive Services Contributor
-              principalId: principalId
+              principalId: principal.id
             }
           ]
         : []
@@ -913,11 +928,11 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
           principalType: 'ServicePrincipal'
         }
       ],
-      !empty(principalId)
+      !empty(principal.id)
         ? [
             {
               roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
-              principalId: principalId
+              principalId: principal.id
             }
           ]
         : []
@@ -957,11 +972,11 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
           principalType: 'ServicePrincipal'
         }
       ],
-      !empty(principalId)
+      !empty(principal.id)
         ? [
             {
               roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
-              principalId: principalId
+              principalId: principal.id
             }
           ]
         : []
@@ -1038,19 +1053,19 @@ module search 'br/public:avm/res/search/search-service:0.11.1' = if (databaseTyp
           principalType: 'ServicePrincipal'
         }
       ],
-      !empty(principalId)
+      !empty(principal.id)
         ? [
             {
               roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7' // Search Index Data Contributor
-              principalId: principalId
+              principalId: principal.id
             }
             {
               roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0' // Search Service Contributor
-              principalId: principalId
+              principalId: principal.id
             }
             {
               roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f' // Search Index Data Reader
-              principalId: principalId
+              principalId: principal.id
             }
           ]
         : []
@@ -1428,11 +1443,11 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
           principalType: 'ServicePrincipal'
         }
       ],
-      !empty(principalId)
+      !empty(principal.id)
         ? [
             {
               roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
-              principalId: principalId
+              principalId: principal.id
             }
           ]
         : []
@@ -1468,11 +1483,11 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
           principalType: 'ServicePrincipal'
         }
       ],
-      !empty(principalId)
+      !empty(principal.id)
         ? [
             {
               roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
-              principalId: principalId
+              principalId: principal.id
             }
           ]
         : []
@@ -1719,7 +1734,7 @@ module createIndex 'br/public:avm/res/resources/deployment-script:0.5.1' = if (d
     retentionInterval: 'PT1H'
     runOnce: true
     primaryScriptUri: '${baseUrl}scripts/run_create_table_script.sh'
-    arguments: '${baseUrl} ${resourceGroup().name} ${postgresDBModule!.outputs.fqdn} ${principalId} ${managedIdentityModule.outputs.name}'
+    arguments: '${baseUrl} ${resourceGroup().name} ${postgresDBModule!.outputs.fqdn} ${managedIdentityModule.outputs.name}'
     storageAccountResourceId: storage.outputs.resourceId
     subnetResourceIds: enablePrivateNetworking
       ? [
