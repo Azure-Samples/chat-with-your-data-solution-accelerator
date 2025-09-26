@@ -67,6 +67,7 @@ def grant_permissions(cursor, dbname, schema_name, principal_id):
     - principal_id: ID of the principal (role or user) to grant permissions.
     """
 
+    print(f"Granting permissions to principal '{principal_id}'")
     # Check if the principal exists in the database
     cursor.execute(
         sql.SQL("SELECT 1 FROM pg_roles WHERE rolname = {principal}").format(
@@ -182,6 +183,7 @@ conn.commit()
 
 if principalId and principalId.strip():
     identifier_to_use = get_user_principal_name(principalId, cred)
+    print(f"Using identifier '{identifier_to_use}' for principal ID '{principalId}'")
     grant_permissions(cursor, dbname, "public", identifier_to_use)
     conn.commit()
 
