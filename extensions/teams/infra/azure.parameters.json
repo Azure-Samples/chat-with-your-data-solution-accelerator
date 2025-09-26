@@ -17,6 +17,9 @@
     "azureFunctionURL": {
       "value": "${{AZURE_FUNCTION_URL}}"
     },
+    "azureAppApiBaseUrl": {
+      "value": "${{AZURE_APP_API_BASE_URL}}"
+    },
     "webAppSKU": {
       "value": "B1"
     },
