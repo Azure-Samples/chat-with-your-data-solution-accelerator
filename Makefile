@@ -177,5 +177,10 @@ disable-auth-fixed:
 	fi
 
 destroy: azd-login ## 🧨 Destroy everything in Azure
-	@echo -e "\e[34m$@\e[0m" || true
-	@azd down --force --purge --no-prompt
+    @if [ -n "$(AZURE_RESOURCE_GROUP)" ]; then \
+        echo "Using resource group: $(AZURE_RESOURCE_GROUP)"; \
+        azd down --force --purge --no-prompt --resource-group $(AZURE_RESOURCE_GROUP); \
+    else \
+        echo "AZURE_RESOURCE_GROUP is not set"; \
+        exit 1; \
+    fi
