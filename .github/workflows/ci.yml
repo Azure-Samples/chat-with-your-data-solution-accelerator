@@ -423,6 +423,7 @@ jobs:
             AZURE_SUBSCRIPTION_ID
             AZURE_ENV_NAME
             AZURE_LOCATION
+            AZURE_RESOURCE_GROUP
 
       - name: Send Notification on Failure
         if: failure()
