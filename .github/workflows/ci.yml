@@ -25,9 +25,9 @@ jobs:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_PRINCIPAL_ID: ${{ secrets.AZURE_PRINCIPAL_ID }}
-      AZURE_PRINCIPAL_NAME: ${{ secrets.AZURE_PRINCIPAL_NAME }}
-      AZURE_PRINCIPAL_TYPE: 'ServicePrincipal'
+      CUSTOM_PRINCIPAL_ID: ${{ secrets.CUSTOM_PRINCIPAL_ID }}
+      CUSTOM_PRINCIPAL_NAME: ${{ secrets.CUSTOM_PRINCIPAL_NAME }}
+      CUSTOM_PRINCIPAL_TYPE: 'ServicePrincipal'
 
     outputs:
       imageTag: ${{ steps.set-image-tag.outputs.imageTag }}
@@ -206,9 +206,9 @@ jobs:
                               DISABLE_AUTHENTICATION=true
                               NO_AUTH=true
                               SKIP_AUTH=true
-                              AZURE_PRINCIPAL_ID
-                              AZURE_PRINCIPAL_NAME
-                              AZURE_PRINCIPAL_TYPE
+                              CUSTOM_PRINCIPAL_ID
+                              CUSTOM_PRINCIPAL_NAME
+                              CUSTOM_PRINCIPAL_TYPE
 
       - name: Extract URLs from deployment
         id: extract-urls
