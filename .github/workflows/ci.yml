@@ -402,10 +402,10 @@ jobs:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_ENV_NAME: ${{ github.run_id }}
+      AZURE_ENV_NAME: ${{ needs.deploy.outputs.solution_suffix }}  # Get from deploy job
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
       imageTag: ${{ needs.deploy.outputs.imageTag }}
-      AZURE_RESOURCE_GROUP: ${{ needs.deploy.outputs.resource_group }}  # Add this line
+      AZURE_RESOURCE_GROUP: ${{ needs.deploy.outputs.resource_group }}
 
     steps:
       - name: Checkout code

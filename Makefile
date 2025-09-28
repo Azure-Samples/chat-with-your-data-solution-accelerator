@@ -178,6 +178,7 @@ disable-auth-fixed:
 
 destroy: azd-login ## 🧨 Destroy everything in Azure
 	@if [ -n "$(AZURE_RESOURCE_GROUP)" ]; then \
+		azd env select ${AZURE_ENV_NAME}; \
 		echo "Using resource group: $(AZURE_RESOURCE_GROUP)"; \
 		azd env set AZURE_RESOURCE_GROUP $(AZURE_RESOURCE_GROUP); \
 		azd down --force --purge --no-prompt; \
