@@ -34,6 +34,7 @@ jobs:
       web_url: ${{ steps.extract-urls.outputs.web_url }}
       admin_url: ${{ steps.extract-urls.outputs.admin_url }}
       DEPLOYMENT_SUCCESS: ${{ steps.final-status.outputs.DEPLOYMENT_SUCCESS }}
+      resource_group: ${{ steps.check_create_rg.outputs.RESOURCE_GROUP_NAME }}  # Add this line
 
     steps:
       - name: Checkout code
@@ -404,6 +405,7 @@ jobs:
       AZURE_ENV_NAME: ${{ github.run_id }}
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
       imageTag: ${{ needs.deploy.outputs.imageTag }}
+      AZURE_RESOURCE_GROUP: ${{ needs.deploy.outputs.resource_group }}  # Add this line
 
     steps:
       - name: Checkout code
