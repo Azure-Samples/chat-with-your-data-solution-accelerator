@@ -57,10 +57,6 @@ azd-login: ## 🔑 Login to Azure with azd and a SPN
 	@echo -e "\e[34m$@\e[0m" || true
 	@azd auth login --client-id ${AZURE_CLIENT_ID} --client-secret ${AZURE_CLIENT_SECRET} --tenant-id ${AZURE_TENANT_ID}
 
-azd-login: ## 🔑 Login to Azure with azd and a SPN
-	@echo -e "\e[34m$@\e[0m" || true
-	@azd auth login --client-id ${AZURE_CLIENT_ID} --client-secret ${AZURE_CLIENT_SECRET} --tenant-id ${AZURE_TENANT_ID}
-
 # Fixed Makefile section for deploy target
 # Fixed Makefile section for deploy target
 deploy: azd-login ## Deploy everything to Azure
@@ -178,4 +174,5 @@ disable-auth-fixed:
 
 destroy: azd-login ## 🧨 Destroy everything in Azure
 	@echo -e "\e[34m$@\e[0m" || true
+	@azd env select $(AZURE_ENV_NAME) || true
 	@azd down --force --purge --no-prompt
