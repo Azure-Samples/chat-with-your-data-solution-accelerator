@@ -58,7 +58,6 @@ azd-login: ## 🔑 Login to Azure with azd and a SPN
 	@azd auth login --client-id ${AZURE_CLIENT_ID} --client-secret ${AZURE_CLIENT_SECRET} --tenant-id ${AZURE_TENANT_ID}
 
 # Fixed Makefile section for deploy target
-# Fixed Makefile section for deploy target
 deploy: azd-login ## Deploy everything to Azure
 	@echo -e "\e[34m$@\e[0m" || true
 	@echo "AZURE_ENV_NAME: '${AZURE_ENV_NAME}'"
@@ -122,15 +121,10 @@ deploy: azd-login ## Deploy everything to Azure
 		echo "$$PG_HOST_VAL" > pg_host.txt
 
 
-
-
-
 	@echo "=== PostgreSQL Configuration ==="
-	@echo "Username: admintest (hardcoded)"
 	@echo "Database: postgres (hardcoded)"
 	@echo "Port: 5432 (hardcoded)"
 	@echo "Host: $$(cat pg_host.txt 2>/dev/null || echo 'Not available')"
-	@echo "Password: Initial_0524 (hardcoded)"
 
 # Helper target to check current authentication status
 check-auth:
