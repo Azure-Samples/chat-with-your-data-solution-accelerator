@@ -34,7 +34,8 @@ jobs:
       web_url: ${{ steps.extract-urls.outputs.web_url }}
       admin_url: ${{ steps.extract-urls.outputs.admin_url }}
       DEPLOYMENT_SUCCESS: ${{ steps.final-status.outputs.DEPLOYMENT_SUCCESS }}
-      resource_group: ${{ steps.check_create_rg.outputs.RESOURCE_GROUP_NAME }}  # Add this line
+      resource_group: ${{ steps.check_create_rg.outputs.RESOURCE_GROUP_NAME }}
+      solution_suffix: ${{ steps.generate_solution_prefix.outputs.SOLUTION_SUFFIX }}
 
     steps:
       - name: Checkout code
