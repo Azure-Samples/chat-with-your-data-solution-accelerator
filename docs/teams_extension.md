@@ -17,6 +17,7 @@ This extension enables users to experience Chat with your data within Teams, wit
 - [Visual Studio Code](https://code.visualstudio.com/)
     - Extensions
         - [Microsoft 365 Agents Toolkit](https://marketplace.visualstudio.com/items?itemName=TeamsDevApp.ms-teams-vscode-extension) (optional: Teams extension only)
+        - [Microsoft 365 Agents Toolkit](https://marketplace.visualstudio.com/items?itemName=TeamsDevApp.ms-teams-vscode-extension) (optional: Teams extension only)
 - Install [Node.js](https://nodejs.org/en)
   - Install the LTS version (Recommended for Most Users)
 - [Enable custom Teams apps and turn on custom app uploading](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/prepare-your-o365-tenant#enable-custom-teams-apps-and-turn-on-custom-app-uploading) (optional: Teams extension only)
@@ -42,6 +43,7 @@ This extension enables users to experience Chat with your data within Teams, wit
 6. Save the file.
 7. Select Teams Toolkit from the navigation panel.
 
+![Microsoft 365 Agents Toolkit in VS Code](images/teams-2.png)
 ![Microsoft 365 Agents Toolkit in VS Code](images/teams-2.png)
 
 8. Within the Microsoft 365 Agents Toolkit panel, login to the following accounts:

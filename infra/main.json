@@ -6,7 +6,11 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
+<<<<<<< HEAD
       "templateHash": "5895320887545019006"
+=======
+      "templateHash": "7004073046163258445"
+>>>>>>> main
     }
   },
   "parameters": {
@@ -29,17 +33,25 @@
     },
     "location": {
       "type": "string",
+<<<<<<< HEAD
       "allowedValues": [
         "australiaeast",
         "eastus2",
         "japaneast",
         "uksouth"
       ],
+=======
+      "defaultValue": "[resourceGroup().location]",
+>>>>>>> main
       "metadata": {
         "azd": {
           "type": "location"
         },
+<<<<<<< HEAD
         "description": "Required. Azure region for all services. Regions are restricted to guarantee compatibility with paired regions and replica locations for data redundancy and failover scenarios based on articles [Azure regions list](https://learn.microsoft.com/azure/reliability/regions-list) and [Azure Database for MySQL Flexible Server - Azure Regions](https://learn.microsoft.com/azure/mysql/flexible-server/overview#azure-regions)."
+=======
+        "description": "Optional. Location for all resources, if you are using existing resource group provide the location of the resorce group."
+>>>>>>> main
       }
     },
     "existingLogAnalyticsWorkspaceId": {
@@ -329,7 +341,11 @@
     },
     "azureOpenAIStopSequence": {
       "type": "string",
+<<<<<<< HEAD
       "defaultValue": "\\n",
+=======
+      "defaultValue": "\n",
+>>>>>>> main
       "metadata": {
         "description": "Optional. Azure OpenAI Stop Sequence."
       }
@@ -449,6 +465,7 @@
     "newGuidString": {
       "type": "string",
       "defaultValue": "[newGuid()]",
+<<<<<<< HEAD
       "metadata": {
         "description": "Optional. A new GUID string generated for this deployment. This can be used for unique naming if needed."
       }
@@ -462,6 +479,17 @@
       },
       "metadata": {
         "description": "Optional. Principal object for user or service principal to assign application roles. Format: {\"id\":\"<object-id>\", \"name\":\"<name-or-upn>\", \"type\":\"User|Group|ServicePrincipal\"}"
+=======
+      "metadata": {
+        "description": "Optional. A new GUID string generated for this deployment. This can be used for unique naming if needed."
+      }
+    },
+    "principalId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional. Id of the user or app to assign application roles."
+>>>>>>> main
       }
     },
     "appEnvironment": {
@@ -17676,9 +17704,13 @@
           "highAvailabilityZone": "[if(parameters('enableRedundancy'), createObject('value', 2), createObject('value', -1))]",
           "publicNetworkAccess": "[if(parameters('enablePrivateNetworking'), createObject('value', 'Disabled'), createObject('value', 'Enabled'))]",
           "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', format('pep-{0}', variables('postgresResourceName')), 'customNetworkInterfaceName', format('nic-{0}', variables('postgresResourceName')), 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('privateDnsZoneResourceId', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').postgresDB)).outputs.resourceId.value))), 'service', 'postgresqlServer', 'subnetResourceId', reference('network').outputs.subnetPrivateEndpointsResourceId.value))), createObject('value', createArray()))]",
+<<<<<<< HEAD
           "administrators": {
             "value": "[concat(if(not(equals(reference('managedIdentityModule').outputs.principalId.value, '')), createArray(createObject('objectId', reference('managedIdentityModule').outputs.principalId.value, 'principalName', reference('managedIdentityModule').outputs.name.value, 'principalType', 'ServicePrincipal')), createArray()), if(not(empty(parameters('principal').id)), createArray(createObject('objectId', parameters('principal').id, 'principalName', parameters('principal').name, 'principalType', parameters('principal').type)), createArray()))]"
           },
+=======
+          "administrators": "[if(not(equals(reference('managedIdentityModule').outputs.principalId.value, '')), createObject('value', createArray(createObject('objectId', reference('managedIdentityModule').outputs.principalId.value, 'principalName', reference('managedIdentityModule').outputs.name.value, 'principalType', 'ServicePrincipal'))), createObject('value', null()))]",
+>>>>>>> main
           "firewallRules": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray()), createObject('value', concat(if(variables('allowAllIPsFirewall'), createArray(createObject('name', 'allow-all-IPs', 'startIpAddress', '0.0.0.0', 'endIpAddress', '255.255.255.255')), createArray()), if(variables('allowAzureIPsFirewall'), createArray(createObject('name', 'allow-all-azure-internal-IPs', 'startIpAddress', '0.0.0.0', 'endIpAddress', '0.0.0.0')), createArray()))))]",
           "configurations": {
             "value": [
@@ -21078,7 +21110,11 @@
           "diagnosticSettings": "[if(parameters('enableMonitoring'), createObject('value', createArray(createObject('workspaceResourceId', reference('monitoring').outputs.logAnalyticsWorkspaceId.value))), createObject('value', null()))]",
           "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', format('pep-{0}', variables('keyVaultName')), 'customNetworkInterfaceName', format('nic-{0}', variables('keyVaultName')), 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('privateDnsZoneResourceId', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').keyVault)).outputs.resourceId.value))), 'service', 'vault', 'subnetResourceId', reference('network').outputs.subnetPrivateEndpointsResourceId.value))), createObject('value', createArray()))]",
           "roleAssignments": {
+<<<<<<< HEAD
             "value": "[concat(if(not(equals(reference('managedIdentityModule').outputs.principalId.value, '')), createArray(createObject('principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionIdOrName', 'Key Vault Secrets User')), createArray()), if(not(empty(parameters('principal').id)), createArray(createObject('principalId', parameters('principal').id, 'roleDefinitionIdOrName', 'Key Vault Secrets User')), createArray()))]"
+=======
+            "value": "[concat(if(not(equals(reference('managedIdentityModule').outputs.principalId.value, '')), createArray(createObject('principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionIdOrName', 'Key Vault Secrets User')), createArray()), if(not(equals(parameters('principalId'), '')), createArray(createObject('principalId', parameters('principalId'), 'roleDefinitionIdOrName', 'Key Vault Secrets User')), createArray()))]"
+>>>>>>> main
           },
           "secrets": {
             "value": [
@@ -23260,7 +23296,11 @@
           "logAnalyticsWorkspaceId": "[if(parameters('enableMonitoring'), createObject('value', reference('monitoring').outputs.logAnalyticsWorkspaceId.value), createObject('value', null()))]",
           "privateDnsZoneResourceId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)).outputs.resourceId.value), createObject('value', ''))]",
           "roleAssignments": {
+<<<<<<< HEAD
             "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principal').id)), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principal').id), createObject('roleDefinitionIdOrName', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd', 'principalId', parameters('principal').id)), createArray()))]"
+=======
+            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId')), createObject('roleDefinitionIdOrName', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd', 'principalId', parameters('principalId'))), createArray()))]"
+>>>>>>> main
           }
         },
         "template": {
@@ -25866,7 +25906,11 @@
           },
           "privateDnsZoneResourceId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)).outputs.resourceId.value), createObject('value', ''))]",
           "roleAssignments": {
+<<<<<<< HEAD
             "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principal').id)), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principal').id)), createArray()))]"
+=======
+            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId'))), createArray()))]"
+>>>>>>> main
           }
         },
         "template": {
@@ -28473,7 +28517,11 @@
           },
           "privateDnsZoneResourceId": "[if(variables('enablePrivateNetworkingSpeech'), createObject('value', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)).outputs.resourceId.value), createObject('value', ''))]",
           "roleAssignments": {
+<<<<<<< HEAD
             "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principal').id)), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principal').id)), createArray()))]"
+=======
+            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId'))), createArray()))]"
+>>>>>>> main
           }
         },
         "template": {
@@ -31103,7 +31151,11 @@
             }
           },
           "roleAssignments": {
+<<<<<<< HEAD
             "value": "[concat(createArray(createObject('roleDefinitionIdOrName', '8ebe5a00-799e-43f5-93ac-243d3dce84a7', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '7ca78c08-252a-4471-8644-bb5ff32d4ba0', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '1407120a-92aa-4202-b7e9-c0e197c71c8f', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principal').id)), createArray(createObject('roleDefinitionIdOrName', '8ebe5a00-799e-43f5-93ac-243d3dce84a7', 'principalId', parameters('principal').id), createObject('roleDefinitionIdOrName', '7ca78c08-252a-4471-8644-bb5ff32d4ba0', 'principalId', parameters('principal').id), createObject('roleDefinitionIdOrName', '1407120a-92aa-4202-b7e9-c0e197c71c8f', 'principalId', parameters('principal').id)), createArray()))]"
+=======
+            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', '8ebe5a00-799e-43f5-93ac-243d3dce84a7', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '7ca78c08-252a-4471-8644-bb5ff32d4ba0', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '1407120a-92aa-4202-b7e9-c0e197c71c8f', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', '8ebe5a00-799e-43f5-93ac-243d3dce84a7', 'principalId', parameters('principalId')), createObject('roleDefinitionIdOrName', '7ca78c08-252a-4471-8644-bb5ff32d4ba0', 'principalId', parameters('principalId')), createObject('roleDefinitionIdOrName', '1407120a-92aa-4202-b7e9-c0e197c71c8f', 'principalId', parameters('principalId'))), createArray()))]"
+>>>>>>> main
           }
         },
         "template": {
@@ -46989,7 +47041,11 @@
             "value": true
           },
           "roleAssignments": {
+<<<<<<< HEAD
             "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principal').id)), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principal').id)), createArray()))]"
+=======
+            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId'))), createArray()))]"
+>>>>>>> main
           }
         },
         "template": {
@@ -49593,7 +49649,11 @@
           },
           "privateDnsZoneResourceId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)).outputs.resourceId.value), createObject('value', ''))]",
           "roleAssignments": {
+<<<<<<< HEAD
             "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principal').id)), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principal').id)), createArray()))]"
+=======
+            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(not(empty(parameters('principalId'))), createArray(createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', parameters('principalId'))), createArray()))]"
+>>>>>>> main
           }
         },
         "template": {
@@ -55439,9 +55499,15 @@
         }
       },
       "dependsOn": [
+<<<<<<< HEAD
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+=======
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
+>>>>>>> main
         "managedIdentityModule",
         "network"
       ]
