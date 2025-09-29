@@ -10,9 +10,9 @@
     },
     "principal": {
       "value": {
-        "id": "${AZURE_PRINCIPAL_ID}",
-        "name": "${AZURE_PRINCIPAL_NAME}",
-        "type": "${AZURE_PRINCIPAL_TYPE=User}"
+        "id": "${PRINCIPAL_ID}",
+        "name": "${PRINCIPAL_NAME}",
+        "type": "${PRINCIPAL_TYPE=User}"
       }
     },
     "appEnvironment": {

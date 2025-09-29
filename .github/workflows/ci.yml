@@ -25,15 +25,17 @@ jobs:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_PRINCIPAL_ID: ${{ secrets.AZURE_PRINCIPAL_ID }}
-      AZURE_PRINCIPAL_NAME: ${{ secrets.AZURE_PRINCIPAL_NAME }}
-      AZURE_PRINCIPAL_TYPE: 'ServicePrincipal'
+      PRINCIPAL_ID: ${{ secrets.PRINCIPAL_ID }}
+      PRINCIPAL_NAME: ${{ secrets.PRINCIPAL_NAME }}
+      PRINCIPAL_TYPE: 'ServicePrincipal'
 
     outputs:
       imageTag: ${{ steps.set-image-tag.outputs.imageTag }}
       web_url: ${{ steps.extract-urls.outputs.web_url }}
       admin_url: ${{ steps.extract-urls.outputs.admin_url }}
       DEPLOYMENT_SUCCESS: ${{ steps.final-status.outputs.DEPLOYMENT_SUCCESS }}
+      resource_group: ${{ steps.check_create_rg.outputs.RESOURCE_GROUP_NAME }}
+      solution_suffix: ${{ steps.generate_solution_prefix.outputs.SOLUTION_SUFFIX }}
 
     steps:
       - name: Checkout code
@@ -206,9 +208,9 @@ jobs:
                               DISABLE_AUTHENTICATION=true
                               NO_AUTH=true
                               SKIP_AUTH=true
-                              AZURE_PRINCIPAL_ID
-                              AZURE_PRINCIPAL_NAME
-                              AZURE_PRINCIPAL_TYPE
+                              PRINCIPAL_ID
+                              PRINCIPAL_NAME
+                              PRINCIPAL_TYPE
 
       - name: Extract URLs from deployment
         id: extract-urls
@@ -401,9 +403,10 @@ jobs:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_ENV_NAME: ${{ github.run_id }}
+      AZURE_ENV_NAME: ${{ needs.deploy.outputs.solution_suffix }}  # Get from deploy job
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
       imageTag: ${{ needs.deploy.outputs.imageTag }}
+      AZURE_RESOURCE_GROUP: ${{ needs.deploy.outputs.resource_group }}
 
     steps:
       - name: Checkout code
@@ -423,6 +426,7 @@ jobs:
             AZURE_SUBSCRIPTION_ID
             AZURE_ENV_NAME
             AZURE_LOCATION
+            AZURE_RESOURCE_GROUP
 
       - name: Send Notification on Failure
         if: failure()
