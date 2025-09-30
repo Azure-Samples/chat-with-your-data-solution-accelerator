@@ -8,8 +8,12 @@
     "location": {
       "value": "${AZURE_LOCATION}"
     },
-    "principalId": {
-      "value": "${AZURE_PRINCIPAL_ID}"
+    "principal": {
+      "value": {
+        "id": "${PRINCIPAL_ID}",
+        "name": "${PRINCIPAL_NAME}",
+        "type": "${PRINCIPAL_TYPE=User}"
+      }
     },
     "appEnvironment": {
       "value": "${APP_ENV=Prod}"

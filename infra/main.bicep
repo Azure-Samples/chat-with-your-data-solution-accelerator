@@ -9,13 +9,15 @@ param solutionName string = 'cwyd'
 @description('Optional. A unique text value for the solution. This is used to ensure resource names are unique for global resources. Defaults to a 5-character substring of the unique string generated from the subscription ID, resource group name, and solution name.')
 param solutionUniqueText string = take(uniqueString(subscription().id, resourceGroup().name, solutionName), 5)
 
-@description('Optional. Location for all resources, if you are using existing resource group provide the location of the resorce group.')
-@metadata({
-  azd: {
-    type: 'location'
-  }
-})
-param location string = resourceGroup().location
+@allowed([
+  'australiaeast'
+  'eastus2'
+  'japaneast'
+  'uksouth'
+])
+@metadata({ azd: { type: 'location' } })
+@description('Required. Azure region for all services. Regions are restricted to guarantee compatibility with paired regions and replica locations for data redundancy and failover scenarios based on articles [Azure regions list](https://learn.microsoft.com/azure/reliability/regions-list) and [Azure Database for MySQL Flexible Server - Azure Regions](https://learn.microsoft.com/azure/mysql/flexible-server/overview#azure-regions).')
+param location string
 
 @description('Optional. Existing Log Analytics Workspace Resource ID.')
 param existingLogAnalyticsWorkspaceId string = ''
@@ -185,7 +187,7 @@ param azureOpenAITopP string = '1'
 param azureOpenAIMaxTokens string = '1000'
 
 @description('Optional. Azure OpenAI Stop Sequence.')
-param azureOpenAIStopSequence string = '\n'
+param azureOpenAIStopSequence string = '\\n'
 
 @description('Optional. Azure OpenAI System Message.')
 param azureOpenAISystemMessage string = 'You are an AI assistant that helps people find information.'
@@ -284,8 +286,12 @@ var logAnalyticsName string = 'log-${solutionSuffix}'
 @description('Optional. A new GUID string generated for this deployment. This can be used for unique naming if needed.')
 param newGuidString string = newGuid()
 
-@description('Optional. Id of the user or app to assign application roles.')
-param principalId string = ''
+@description('Optional. Principal object for user or service principal to assign application roles. Format: {"id":"<object-id>", "name":"<name-or-upn>", "type":"User|Group|ServicePrincipal"}')
+param principal object = {
+  id: ''                 // Principal ID
+  name: ''               // Principal name
+  type: 'User'           // Principal type ('User', 'Group', or 'ServicePrincipal')
+}
 
 @description('Optional. Application Environment.')
 param appEnvironment string = 'Prod'
@@ -647,15 +653,26 @@ module postgresDBModule 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.
         ]
       : []
 
-    administrators: managedIdentityModule.outputs.principalId != ''
-      ? [
-          {
-            objectId: managedIdentityModule.outputs.principalId
-            principalName: managedIdentityModule.outputs.name
-            principalType: 'ServicePrincipal'
-          }
-        ]
-      : null
+    administrators: concat(
+      managedIdentityModule.outputs.principalId != ''
+        ? [
+            {
+              objectId: managedIdentityModule.outputs.principalId
+              principalName: managedIdentityModule.outputs.name
+              principalType: 'ServicePrincipal'
+            }
+          ]
+        : [],
+      !empty(principal.id)
+        ? [
+            {
+              objectId: principal.id
+              principalName: principal.name
+              principalType: principal.type
+            }
+          ]
+        : []
+    )
 
     firewallRules: enablePrivateNetworking
       ? []
@@ -756,10 +773,10 @@ module keyvault './modules/key-vault/vault/vault.bicep' = {
             }
           ]
         : [],
-      principalId != ''
+      !empty(principal.id)
         ? [
             {
-              principalId: principalId
+              principalId: principal.id
               roleDefinitionIdOrName: 'Key Vault Secrets User'
             }
           ]
@@ -863,15 +880,15 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
           principalType: 'ServicePrincipal'
         }
       ],
-      !empty(principalId)
+      !empty(principal.id)
         ? [
             {
               roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
-              principalId: principalId
+              principalId: principal.id
             }
             {
               roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd' // Cognitive Services Contributor
-              principalId: principalId
+              principalId: principal.id
             }
           ]
         : []
@@ -908,11 +925,11 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
           principalType: 'ServicePrincipal'
         }
       ],
-      !empty(principalId)
+      !empty(principal.id)
         ? [
             {
               roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
-              principalId: principalId
+              principalId: principal.id
             }
           ]
         : []
@@ -952,11 +969,11 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
           principalType: 'ServicePrincipal'
         }
       ],
-      !empty(principalId)
+      !empty(principal.id)
         ? [
             {
               roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
-              principalId: principalId
+              principalId: principal.id
             }
           ]
         : []
@@ -1033,19 +1050,19 @@ module search 'br/public:avm/res/search/search-service:0.11.1' = if (databaseTyp
           principalType: 'ServicePrincipal'
         }
       ],
-      !empty(principalId)
+      !empty(principal.id)
         ? [
             {
               roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7' // Search Index Data Contributor
-              principalId: principalId
+              principalId: principal.id
             }
             {
               roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0' // Search Service Contributor
-              principalId: principalId
+              principalId: principal.id
             }
             {
               roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f' // Search Index Data Reader
-              principalId: principalId
+              principalId: principal.id
             }
           ]
         : []
@@ -1424,11 +1441,11 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
           principalType: 'ServicePrincipal'
         }
       ],
-      !empty(principalId)
+      !empty(principal.id)
         ? [
             {
               roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
-              principalId: principalId
+              principalId: principal.id
             }
           ]
         : []
@@ -1464,11 +1481,11 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
           principalType: 'ServicePrincipal'
         }
       ],
-      !empty(principalId)
+      !empty(principal.id)
         ? [
             {
               roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' //Cognitive Services User
-              principalId: principalId
+              principalId: principal.id
             }
           ]
         : []
