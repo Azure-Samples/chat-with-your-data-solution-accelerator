@@ -16,7 +16,7 @@ gpt4.1:30, text-embedding-ada-002:30
 ```
 ### 📌 Default Regions:
 ```
-francecentral, australiaeast, uksouth, eastus2, northcentralus, swedencentral, westus, westus2, southcentralus
+australiaeast, eastus2, japaneast, uksouth
 ```
 ### Usage Scenarios:
 - No parameters passed → Default models and capacities will be checked in default regions.
@@ -41,17 +41,17 @@ francecentral, australiaeast, uksouth, eastus2, northcentralus, swedencentral, w
   ./quota_check_params.sh --models gpt4.1:30,text-embedding-ada-002:30
   ```
 ✔️ Check default models in specific region(s):
-  ```
-./quota_check_params.sh --regions eastus2,westus
-  ```
-✔️ Passing Both models and regions:
-  ```
-  ./quota_check_params.sh --models gpt4.1:30 --regions eastus2,westus
-  ```
+```
+./quota_check_params.sh --regions eastus2,japaneast
+```
+✔️ Passing both models and regions:
+```
+./quota_check_params.sh --models gpt4.1:30 --regions eastus2,japaneast
+```
 ✔️ All parameters combined:
-  ```
- ./quota_check_params.sh --models gpt4.1:30,text-embedding-ada-002:30 --regions eastus2,westus --verbose
-  ```
+```
+./quota_check_params.sh --models gpt4.1:30,text-embedding-ada-002:30 --regions eastus2,japaneast --verbose
+```
 
 ### **Sample Output**
 The final table lists regions with available quota. You can select any of these regions for deployment.
@@ -99,3 +99,5 @@ The final table lists regions with available quota. You can select any of these 
     az login
     ```
 6. Rerun the script after installing Azure CLI.
+
+> **Note:** The solution is restricted to these specific regions to ensure compatibility with paired regions and data redundancy requirements: australiaeast, eastus2, japaneast, uksouth.
