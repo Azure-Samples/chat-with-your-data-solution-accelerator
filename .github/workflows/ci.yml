@@ -110,7 +110,7 @@ jobs:
           rg_exists=$(az group exists --name ${{ env.RESOURCE_GROUP_NAME }})
           if [ "$rg_exists" = "false" ]; then
             echo "Resource group does not exist. Creating..."
-            az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.AZURE_LOCATION }} --tags SecurityControl=Ignore || { echo "Error creating resource group"; exit 1; }
+            az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.AZURE_LOCATION }} --tags SecurityControl=Ignore CreatedBy="Pipeline" || { echo "Error creating resource group"; exit 1; }
           else
             echo "Resource group already exists."
           fi
