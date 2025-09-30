@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "5895320887545019006"
+      "templateHash": "9518149285531278918"
     }
   },
   "parameters": {
@@ -55436,9 +55436,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "managedIdentityModule",
         "network"
       ]
