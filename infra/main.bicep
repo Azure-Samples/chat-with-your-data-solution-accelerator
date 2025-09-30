@@ -851,10 +851,13 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
     deployments: openAiDeployments
     userAssignedResourceId: managedIdentityModule.outputs.resourceId
     restrictOutboundNetworkAccess: true
-    allowedFqdnList: [
-      '${storageAccountName}.blob.${environment().suffixes.storage}'
-      '${storageAccountName}.queue.${environment().suffixes.storage}'
-    ]
+    allowedFqdnList: concat(
+      [
+        '${storageAccountName}.blob.${environment().suffixes.storage}'
+        '${storageAccountName}.queue.${environment().suffixes.storage}'
+      ],
+      databaseType == 'CosmosDB' ? ['${azureAISearchName}.search.windows.net'] : []
+    )
     enablePrivateNetworking: enablePrivateNetworking
     enableMonitoring: enableMonitoring
     enableTelemetry: enableTelemetry
@@ -1348,6 +1351,7 @@ module function 'modules/app/function.bicep' = {
         MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.resourceId
         AZURE_CLIENT_ID: managedIdentityModule.outputs.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
+        BACKEND_URL: backendUrl
       },
       databaseType == 'CosmosDB'
         ? {
@@ -1830,7 +1834,7 @@ var azureContentSafetyInfo = string({
   endpoint: contentsafety.outputs.endpoint
 })
 
-var backendUrl = 'https://${functionName}.azurewebsites.net'
+var backendUrl = hostingModel == 'container' ? 'https://${functionName}-docker.azurewebsites.net' : 'https://${functionName}.azurewebsites.net'
 
 @description('Connection string for the Application Insights instance.')
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = enableMonitoring
