@@ -112,7 +112,7 @@
       "value": "${AZURE_OPENAI_MODEL_VERSION=2025-04-14}"
     },
     "azureOpenAIModelCapacity": {
-      "value": "${AZURE_OPENAI_MODEL_CAPACITY=30}"
+      "value": "${AZURE_OPENAI_MODEL_CAPACITY=150}"
     },
     "azureOpenAISkuName": {
       "value": "${AZURE_OPENAI_SKU_NAME=S0}"
@@ -148,7 +148,7 @@
       "value": "${AZURE_OPENAI_EMBEDDING_MODEL_VERSION=2}"
     },
     "azureOpenAIEmbeddingModelCapacity": {
-      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY=30}"
+      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY=100}"
     },
     "azureOpenAIMaxTokens": {
       "value": "${AZURE_OPENAI_MAX_TOKENS=1000}"
