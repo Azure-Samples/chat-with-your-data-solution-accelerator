@@ -188,7 +188,8 @@ To review Cosmos DB configuration overview and steps, follow the link [here](doc
  <br/>To ensure sufficient quota is available in your subscription, please follow [quota check instructions guide](./docs/QuotaCheck.md) before you deploy the solution.
 
 <br/>
-The "Deploy to Azure" button offers a one-click deployment where you don’t have to clone the code. If you would like a developer experience instead, follow the [local deployment instructions](./docs/LOCAL_DEPLOYMENT.md).
+
+The "Deploy to Azure" button offers a one-click deployment where you don’t have to clone the code. If you would like a developer experience instead, follow the [local deployment instructions](./docs/LOCAL_DEPLOYMENT.md)
 
 Once you deploy to Azure, you will have the option to select PostgreSQL or Cosmos DB, see screenshot below.
 
