@@ -1,5 +1,9 @@
 # AVM Post Deployment Guide
 
+> **📋 Note**: This guide is specifically for post-deployment steps after using the AVM template. For complete deployment from scratch, see the main [deployment guide](../Readme.md).
+
+---
+
 This document provides guidance on post-deployment steps after deploying the Chat with your data - Solution accelerator from the [AVM (Azure Verified Modules) repository](https://github.com/Azure/bicep-registry-modules/tree/main/avm/ptn/sa/chat-with-your-data).
 
 ## Pre-requisites
@@ -53,8 +57,3 @@ Consider these additional configurations for enhanced functionality:
 - 🔄 **[Integrated Vectorization](./integrated_vectorization.md)** - Configure advanced AI search features
 - 💬 **[Conversation Flow Options](./conversation_flow_options.md)** - Customize the chat experience
 - 🎤 **[Speech-to-Text](./speech_to_text.md)** - Add voice interaction capabilities
-
-
----
-
-> **📋 Note**: This guide is specifically for post-deployment steps after using the AVM template. For complete deployment from scratch, see the main [deployment guide](../Readme.md).
