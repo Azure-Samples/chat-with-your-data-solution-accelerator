@@ -49,3 +49,5 @@ If you have a deployment with Integrated Vectorization enabled, and you want to 
 ![Delete Search Index](images/delete-search-datasource.png)
 1. Run the command `azd env set AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION false`
 1. Run `azd up`
+
+**NOTE**: Integrated vectorization is not supported when deploying with PostgreSQL as the database type.

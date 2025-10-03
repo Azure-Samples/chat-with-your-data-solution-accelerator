@@ -17,6 +17,9 @@ param botAadAppClientSecret string
 @description('Required by Bot Framework azureFunctionURL')
 param azureFunctionURL string
 
+@description('Base URL for the Azure Web App API endpoints used for file access')
+param azureAppApiBaseUrl string
+
 param webAppSKU string
 
 @maxLength(42)
@@ -71,6 +74,10 @@ resource webApp 'Microsoft.Web/sites@2021-02-01' = {
         {
           name: 'AZURE_FUNCTION_URL'
           value: azureFunctionURL
+        }
+        {
+          name: 'AZURE_APP_API_BASE_URL'
+          value: azureAppApiBaseUrl
         }
         {
           name: 'TEAMS_APP_TENANT_ID'

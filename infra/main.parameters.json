@@ -8,8 +8,12 @@
     "location": {
       "value": "${AZURE_LOCATION}"
     },
-    "principalId": {
-      "value": "${AZURE_PRINCIPAL_ID}"
+    "principal": {
+      "value": {
+        "id": "${PRINCIPAL_ID}",
+        "name": "${PRINCIPAL_NAME}",
+        "type": "${PRINCIPAL_TYPE=User}"
+      }
     },
     "appEnvironment": {
       "value": "${APP_ENV=Prod}"
@@ -108,7 +112,7 @@
       "value": "${AZURE_OPENAI_MODEL_VERSION=2025-04-14}"
     },
     "azureOpenAIModelCapacity": {
-      "value": "${AZURE_OPENAI_MODEL_CAPACITY=30}"
+      "value": "${AZURE_OPENAI_MODEL_CAPACITY=150}"
     },
     "azureOpenAISkuName": {
       "value": "${AZURE_OPENAI_SKU_NAME=S0}"
@@ -144,7 +148,7 @@
       "value": "${AZURE_OPENAI_EMBEDDING_MODEL_VERSION=2}"
     },
     "azureOpenAIEmbeddingModelCapacity": {
-      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY=30}"
+      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY=100}"
     },
     "azureOpenAIMaxTokens": {
       "value": "${AZURE_OPENAI_MAX_TOKENS=1000}"

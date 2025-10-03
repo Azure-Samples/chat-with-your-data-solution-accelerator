@@ -4,6 +4,8 @@
 
 > **Note for macOS Developers**: If you are using macOS on Apple Silicon (ARM64) the DevContainer will **not** work. This is due to a limitation with the Azure Functions Core Tools (see [here](https://github.com/Azure/azure-functions-core-tools/issues/3112)). We recommend using the [Non DevContainer Setup](./NON_DEVCONTAINER_SETUP.md) instructions to run the accelerator locally.
 
+> **Note:** This solution accelerator requires **Azure Developer CLI (azd) version 1.18.0 or higher**. Please ensure you have the latest version installed before proceeding with deployment. [Download azd here](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd).
+
 The easiest way to run this accelerator is in a VS Code Dev Containers, which will open the project in your local VS Code using the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers):
 
 1. Start Docker Desktop (install it if not already installed)
@@ -280,7 +282,7 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 |AZURE_SEARCH_TITLE_COLUMN||Field from your Azure AI Search index that gives a relevant title or header for your data content to display in the UI.|
 |AZURE_SEARCH_TOP_K|5|The number of documents to retrieve from Azure AI Search.|
 |AZURE_SEARCH_URL_COLUMN||Field from your Azure AI Search index that contains a URL for the document, e.g. an Azure Blob Storage URI. This value is not currently used.|
-|AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION ||Whether to use [Integrated Vectorization](https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-vectorization)|
+|AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION ||Whether to use [Integrated Vectorization](https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-vectorization). If the database type is PostgreSQL, set this to false.|
 |AZURE_SEARCH_USE_SEMANTIC_SEARCH|False|Whether or not to use semantic search|
 |AZURE_SPEECH_RECOGNIZER_LANGUAGES | en-US,fr-FR,de-DE,it-IT | Comma-separated list of languages to recognize from speech input|
 |AZURE_SPEECH_REGION_ENDPOINT | | The regional endpoint of the Azure Speech service|
@@ -299,7 +301,7 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 |OPEN_AI_FUNCTIONS_SYSTEM_PROMPT | | System prompt for OpenAI functions orchestration|
 |ORCHESTRATION_STRATEGY | openai_function | Orchestration strategy. Use Azure OpenAI Functions (openai_function), Semantic Kernel (semantic_kernel),  LangChain (langchain) or Prompt Flow (prompt_flow) for messages orchestration. If you are using a new model version 0613 select any strategy, if you are using a 0314 model version select "langchain". Note that both `openai_function` and `semantic_kernel` use OpenAI function calling. Prompt Flow option is still in development and does not support RBAC or integrated vectorization as of yet.|
 |SEMANTIC_KERNEL_SYSTEM_PROMPT | | System prompt used by the Semantic Kernel orchestration|
-|USE_ADVANCED_IMAGE_PROCESSING | false | Whether to enable the use of a vision LLM and Computer Vision for embedding images|
+|USE_ADVANCED_IMAGE_PROCESSING | false | Whether to enable the use of a vision LLM and Computer Vision for embedding images. If the database type is PostgreSQL, set this to false.|
 |USE_KEY_VAULT | true | Whether to use Azure Key Vault for storing secrets|
 
 ## Bicep

@@ -1,5 +1,5 @@
 import logging
-from azure.search.documents.indexes.models import SearchIndexer, FieldMapping
+from azure.search.documents.indexes.models import SearchIndexer, FieldMapping, FieldMappingFunction
 from azure.search.documents.indexes import SearchIndexerClient
 from ..helpers.env_helper import EnvHelper
 from ..helpers.azure_credential_utils import get_azure_credential
@@ -35,6 +35,13 @@ class AzureSearchIndexer:
                 }
             },
             field_mappings=[
+                FieldMapping(
+                    source_field_name="metadata_storage_path",
+                    target_field_name="id",
+                    mapping_function=FieldMappingFunction(
+                        name="base64Encode", parameters={"useHttpServerUtilityUrlTokenEncode": False}
+                    )
+                ),
                 FieldMapping(
                     source_field_name="metadata_storage_path",
                     target_field_name="source",
