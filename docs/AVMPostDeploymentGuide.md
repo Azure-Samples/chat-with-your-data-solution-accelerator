@@ -1,6 +1,6 @@
 # AVM Post Deployment Guide
 
-> **📋 Note**: This guide is specifically for post-deployment steps after using the AVM template. For complete deployment from scratch, see the main [deployment guide](../Readme.md).
+> **📋 Note**: This guide is specifically for post-deployment steps after using the AVM template. For complete deployment from scratch, see the main [deployment guide](../README.md).
 
 ---
 
