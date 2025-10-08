@@ -17,10 +17,16 @@ function rewriteCitationUrl(markdownText: string) {
     (match, title, url) => {
       try {
         const parsed = new URL(url);
+        const blobStorageHost = 'blob.core.windows.net';
 
-        // Take only the last segment of the path
-        const filename = parsed.pathname.split('/').pop();
-        return `[${title}](/api/files/${filename})`;
+        if (parsed.hostname.includes(blobStorageHost)) {
+          // Extract the filename from the path
+          const filename = parsed.pathname.split('/').pop();
+          return `[${title}](/api/files/${filename})`;
+        } else {
+          // Return the full external URL
+          return `[${title}](${parsed.href})`;
+        }
       } catch {
         return match; // fallback if URL parsing fails
       }
