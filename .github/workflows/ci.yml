@@ -25,16 +25,28 @@ jobs:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      PRINCIPAL_ID: ${{ secrets.PRINCIPAL_ID }}
+      PRINCIPAL_NAME: ${{ secrets.PRINCIPAL_NAME }}
+      PRINCIPAL_TYPE: 'ServicePrincipal'
 
     outputs:
       imageTag: ${{ steps.set-image-tag.outputs.imageTag }}
       web_url: ${{ steps.extract-urls.outputs.web_url }}
       admin_url: ${{ steps.extract-urls.outputs.admin_url }}
       DEPLOYMENT_SUCCESS: ${{ steps.final-status.outputs.DEPLOYMENT_SUCCESS }}
+      resource_group: ${{ steps.check_create_rg.outputs.RESOURCE_GROUP_NAME }}
+      solution_suffix: ${{ steps.generate_solution_prefix.outputs.SOLUTION_SUFFIX }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+
+      - name: Install AZD
+        run: |
+          set -e
+          echo "Fetching deployment output..."
+          # Install azd (Azure Developer CLI) - required by process_sample_data.sh
+          curl -fsSL https://aka.ms/install-azd.sh | bash
 
       - name: Run Quota Check
         id: quota-check
@@ -43,7 +55,7 @@ jobs:
           export AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
           export AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
           export AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-          export GPT_MIN_CAPACITY="30"
+          export GPT_MIN_CAPACITY="150"
           export TEXT_EMBEDDING_MIN_CAPACITY="30"
           export AZURE_REGIONS="${{ vars.AZURE_REGIONS }}"
 
@@ -79,6 +91,45 @@ jobs:
           echo "Selected Region: $VALID_REGION"
           echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
 
+      - name: Generate Resource Group Name
+        id: generate_rg_name
+        run: |
+          echo "Generating a unique resource group name..."
+          ACCL_NAME="cwyd"  # Account name as specified
+          SHORT_UUID=$(uuidgen | cut -d'-' -f1)
+          UNIQUE_RG_NAME="arg-${ACCL_NAME}-${SHORT_UUID}"
+          echo "RESOURCE_GROUP_NAME=${UNIQUE_RG_NAME}" >> $GITHUB_ENV
+          echo "Generated RESOURCE_GROUP_NAME: ${UNIQUE_RG_NAME}"
+
+      - name: Check and Create Resource Group
+        id: check_create_rg
+        run: |
+          echo "RESOURCE_GROUP: ${{ env.RESOURCE_GROUP_NAME }}"
+          set -e
+          echo "Checking if resource group exists..."
+          rg_exists=$(az group exists --name ${{ env.RESOURCE_GROUP_NAME }})
+          if [ "$rg_exists" = "false" ]; then
+            echo "Resource group does not exist. Creating..."
+            az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.AZURE_LOCATION }} --tags SecurityControl=Ignore CreatedBy="Pipeline" || { echo "Error creating resource group"; exit 1; }
+          else
+            echo "Resource group already exists."
+          fi
+          # Set output for other jobs
+          echo "RESOURCE_GROUP_NAME=${{ env.RESOURCE_GROUP_NAME }}" >> $GITHUB_OUTPUT
+
+
+      - name: Generate Unique Solution Prefix
+        id: generate_solution_prefix
+        run: |
+          set -e
+          COMMON_PART="pslc"
+          TIMESTAMP=$(date +%s)
+          UPDATED_TIMESTAMP=$(echo $TIMESTAMP | tail -c 3)
+          UNIQUE_SOLUTION_SUFFIX="${COMMON_PART}${UPDATED_TIMESTAMP}"
+          echo "SOLUTION_SUFFIX=${UNIQUE_SOLUTION_SUFFIX}" >> $GITHUB_ENV
+          echo "SOLUTION_SUFFIX=${UNIQUE_SOLUTION_SUFFIX}" >> $GITHUB_OUTPUT
+          echo "Generated SOLUTION_SUFFIX: ${UNIQUE_SOLUTION_SUFFIX}"
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -90,11 +141,11 @@ jobs:
         id: set-image-tag
         run: |
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
-            echo "imageTag=latest" >> $GITHUB_ENV
-            echo "::set-output name=imageTag::latest"
+            echo "imageTag=latest_waf" >> $GITHUB_ENV
+            echo "::set-output name=imageTag::latest_waf"
           elif [[ "${{ github.ref_name }}" == "main" ]]; then
-            echo "imageTag=latest" >> $GITHUB_ENV
-            echo "::set-output name=imageTag::latest"
+            echo "imageTag=latest_waf" >> $GITHUB_ENV
+            echo "::set-output name=imageTag::latest_waf"
           else
             echo "imageTag=${{ github.ref_name }}" >> $GITHUB_ENV
             echo "::set-output name=imageTag::${{ github.ref_name }}"
@@ -103,8 +154,9 @@ jobs:
       - name: Pre-build image and deploy
         uses: devcontainers/ci@v0.3
         env:
-                      AZURE_ENV_NAME: ${{ github.run_id }}
+                      AZURE_ENV_NAME: ${{ env.SOLUTION_SUFFIX }}
                       AZURE_LOCATION: ${{ env.AZURE_LOCATION }}
+                      AZURE_RESOURCE_GROUP: ${{ env.RESOURCE_GROUP_NAME }}
         with:
                             push: never
                             imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
@@ -141,6 +193,7 @@ jobs:
                               AZURE_SUBSCRIPTION_ID
                               AZURE_ENV_NAME
                               AZURE_LOCATION
+                              AZURE_RESOURCE_GROUP
                               AUTH_ENABLED=false
                               AZURE_USE_AUTHENTICATION=false
                               AZURE_ENABLE_AUTH=false
@@ -155,6 +208,9 @@ jobs:
                               DISABLE_AUTHENTICATION=true
                               NO_AUTH=true
                               SKIP_AUTH=true
+                              PRINCIPAL_ID
+                              PRINCIPAL_NAME
+                              PRINCIPAL_TYPE
 
       - name: Extract URLs from deployment
         id: extract-urls
@@ -251,8 +307,6 @@ jobs:
 
                 echo "=== PostgreSQL Configuration Summary ==="
                 echo "Host Endpoint: $PG_HOST_DESTINATION"
-                echo "Username: admintest (hardcoded)"
-                echo "Password: Initial_0524 (hardcoded)"
                 echo "Database: postgres (hardcoded)"
                 echo "Port: 5432 (hardcoded)"
 
@@ -263,19 +317,28 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-                pip install psycopg2-binary python-dotenv
-
+                pip install psycopg2-binary python-dotenv azure-identity
 
       - name: Populate PostgreSQL Database
         run: |
           python - <<EOF
           import os
           import psycopg2
+          from azure.identity import ClientSecretCredential
+
+          tenant_id = os.environ["AZURE_TENANT_ID"]
+          client_id = os.environ["AZURE_CLIENT_ID"]
+          client_secret = os.environ["AZURE_CLIENT_SECRET"]
+          pg_host = os.environ.get("PG_HOST_DESTINATION", "localhost")
+
+          # Acquire Azure AD access token for PostgreSQL
+          credential = ClientSecretCredential(tenant_id, client_id, client_secret)
+          token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default").token
 
           db_params = {
-              "user": "admintest",
-              "password": "Initial_0524",
-              "host": os.environ.get("PG_HOST_DESTINATION", "localhost"),
+              "user": client_id,   # Use service principal clientId
+              "password": token,   # Use AAD token instead of password
+              "host": pg_host,
               "port": "5432",
               "dbname": "postgres",
               "sslmode": "require"
@@ -295,8 +358,10 @@ jobs:
           except Exception as e:
               print(f"❌ Error during import: {e}")
           EOF
-
-
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
       - name: Final Status Check
         id: final-status
@@ -338,9 +403,10 @@ jobs:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_ENV_NAME: ${{ github.run_id }}
+      AZURE_ENV_NAME: ${{ needs.deploy.outputs.solution_suffix }}  # Get from deploy job
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
       imageTag: ${{ needs.deploy.outputs.imageTag }}
+      AZURE_RESOURCE_GROUP: ${{ needs.deploy.outputs.resource_group }}
 
     steps:
       - name: Checkout code
@@ -360,6 +426,7 @@ jobs:
             AZURE_SUBSCRIPTION_ID
             AZURE_ENV_NAME
             AZURE_LOCATION
+            AZURE_RESOURCE_GROUP
 
       - name: Send Notification on Failure
         if: failure()

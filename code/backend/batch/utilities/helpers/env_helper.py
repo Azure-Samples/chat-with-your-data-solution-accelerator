@@ -3,7 +3,8 @@ import os
 import logging
 import threading
 from dotenv import load_dotenv
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from azure.identity import get_bearer_token_provider
+from .azure_credential_utils import get_azure_credential
 from azure.keyvault.secrets import SecretClient
 
 from ..orchestrator.orchestration_strategy import OrchestrationStrategy
@@ -34,10 +35,13 @@ class EnvHelper:
         self.secretHelper = SecretHelper()
 
         self.LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
+        self.APP_ENV = os.getenv("APP_ENV", "Prod").lower()
 
         # Azure
         self.AZURE_SUBSCRIPTION_ID = os.getenv("AZURE_SUBSCRIPTION_ID", "")
         self.AZURE_RESOURCE_GROUP = os.getenv("AZURE_RESOURCE_GROUP", "")
+        self.MANAGED_IDENTITY_CLIENT_ID = os.getenv("MANAGED_IDENTITY_CLIENT_ID", "")
+        self.MANAGED_IDENTITY_RESOURCE_ID = os.getenv("MANAGED_IDENTITY_RESOURCE_ID", "")
 
         # Azure Search
         self.AZURE_SEARCH_SERVICE = os.getenv("AZURE_SEARCH_SERVICE", "")
@@ -216,7 +220,7 @@ class EnvHelper:
         )
 
         self.AZURE_TOKEN_PROVIDER = get_bearer_token_provider(
-            DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+            get_azure_credential(self.MANAGED_IDENTITY_CLIENT_ID), "https://cognitiveservices.azure.com/.default"
         )
         self.ADVANCED_IMAGE_PROCESSING_MAX_IMAGES = self.get_env_var_int(
             "ADVANCED_IMAGE_PROCESSING_MAX_IMAGES", 1
@@ -233,7 +237,7 @@ class EnvHelper:
         self.AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION = os.getenv(
             "AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION", "2023-04-15"
         )
-        self.FUNCTION_KEY = os.getenv("FUNCTION_KEY", "")
+        self.FUNCTION_KEY = self.secretHelper.get_secret("FUNCTION_KEY")
 
         # Initialize Azure keys based on authentication type and environment settings.
         # When AZURE_AUTH_TYPE is "rbac", azure keys are None or an empty string.
@@ -242,7 +246,6 @@ class EnvHelper:
             self.AZURE_OPENAI_API_KEY = ""
             self.AZURE_SPEECH_KEY = None
             self.AZURE_COMPUTER_VISION_KEY = None
-            self.FUNCTION_KEY = self.secretHelper.get_secret("FUNCTION_KEY")
         else:
             self.AZURE_SEARCH_KEY = self.secretHelper.get_secret("AZURE_SEARCH_KEY")
             self.AZURE_OPENAI_API_KEY = self.secretHelper.get_secret(
@@ -362,8 +365,8 @@ class EnvHelper:
         self.OPEN_AI_FUNCTIONS_SYSTEM_PROMPT = os.getenv(
             "OPEN_AI_FUNCTIONS_SYSTEM_PROMPT", ""
         )
-        self.SEMENTIC_KERNEL_SYSTEM_PROMPT = os.getenv(
-            "SEMENTIC_KERNEL_SYSTEM_PROMPT", ""
+        self.SEMANTIC_KERNEL_SYSTEM_PROMPT = os.getenv(
+            "SEMANTIC_KERNEL_SYSTEM_PROMPT", ""
         )
 
         self.ENFORCE_AUTH = self.get_env_var_bool("ENFORCE_AUTH", "True")
@@ -417,7 +420,7 @@ class SecretHelper:
 
         The constructor sets the USE_KEY_VAULT attribute based on the value of the USE_KEY_VAULT environment variable.
         If USE_KEY_VAULT is set to "true" (case-insensitive), it initializes a SecretClient object using the
-        AZURE_KEY_VAULT_ENDPOINT environment variable and the DefaultAzureCredential.
+        AZURE_KEY_VAULT_ENDPOINT environment variable and the get_azure_credential.
 
         Args:
             None
@@ -428,8 +431,11 @@ class SecretHelper:
         self.USE_KEY_VAULT = os.getenv("USE_KEY_VAULT", "").lower() == "true"
         self.secret_client = None
         if self.USE_KEY_VAULT:
+            vault_endpoint = os.environ.get("AZURE_KEY_VAULT_ENDPOINT")
+            if not vault_endpoint:
+                raise ValueError("AZURE_KEY_VAULT_ENDPOINT environment variable is required when USE_KEY_VAULT is true")
             self.secret_client = SecretClient(
-                os.environ.get("AZURE_KEY_VAULT_ENDPOINT"), DefaultAzureCredential()
+                vault_endpoint, get_azure_credential(client_id=os.getenv("MANAGED_IDENTITY_CLIENT_ID", None))
             )
 
     def get_secret(self, secret_name: str) -> str:

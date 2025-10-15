@@ -102,6 +102,10 @@ def test_integrated_vectorization_datasouce_created(
                 "container": {
                     "name": f"{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}"
                 },
+                "identity": {
+                    "@odata.type": "#Microsoft.Azure.Search.DataUserAssignedIdentity",
+                    "userAssignedIdentity": ""
+                },
                 "dataDeletionDetectionPolicy": {
                     "@odata.type": "#Microsoft.Azure.Search.NativeBlobSoftDeleteDeletionDetectionPolicy"
                 },
@@ -351,22 +355,57 @@ def test_integrated_vectorization_skillset_created(
                         "inputs": [
                             {"name": "text", "source": "/document/merged_content"}
                         ],
-                        "outputs": [{"name": "textItems", "targetName": "pages"}],
+                        "outputs": [
+                            {"name": "textItems", "targetName": "pages"},
+                            {"name": "ordinalPositions", "targetName": "chunk_nos"},
+                        ],
                         "textSplitMode": "pages",
                         "maximumPageLength": 800,
                         "pageOverlapLength": 100,
                     },
                     {
+                        "@odata.type": "#Microsoft.Skills.Custom.WebApiSkill",
+                        "description": "Combine pages and chunk numbers together",
+                        "context": "/document",
+                        "inputs": [
+                            {"name": "pages", "source": "/document/pages"},
+                            {"name": "chunk_nos", "source": "/document/chunk_nos"},
+                        ],
+                        "outputs": [
+                            {"name": "pages_with_chunks", "targetName": "pages_with_chunks"}
+                        ],
+                        "uri": f"{app_config.get('BACKEND_URL')}/api/combine_pages_and_chunknos",
+                        "httpMethod": "POST",
+                    },
+                    {
                         "@odata.type": "#Microsoft.Skills.Text.AzureOpenAIEmbeddingSkill",
                         "description": "Skill to generate embeddings via Azure OpenAI",
-                        "context": "/document/pages/*",
-                        "inputs": [{"name": "text", "source": "/document/pages/*"}],
+                        "context": "/document/pages_with_chunks/*",
+                        "inputs": [{"name": "text", "source": "/document/pages_with_chunks/*/page_text"}],
                         "outputs": [
                             {"name": "embedding", "targetName": "content_vector"}
                         ],
                         "resourceUri": f"https://localhost:{httpserver.port}/",
                         "deploymentId": f"{app_config.get_from_json('AZURE_OPENAI_EMBEDDING_MODEL_INFO','model')}",
                         "apiKey": f"{app_config.get('AZURE_OPENAI_API_KEY')}",
+                        "authIdentity": {
+                            "@odata.type": "#Microsoft.Azure.Search.DataUserAssignedIdentity",
+                            "userAssignedIdentity": ""
+                        },
+                    },
+                    {
+                        "@odata.type": "#Microsoft.Skills.Util.ShaperSkill",
+                        "description": "Structure metadata fields into a complex object",
+                        "context": "/document/pages_with_chunks/*",
+                        "inputs": [
+                            {"name": "id", "source": "/document/id"},
+                            {"name": "source", "source": "/document/metadata_storage_path"},
+                            {"name": "title", "source": "/document/title"},
+                            {"name": "chunk", "source": "/document/pages_with_chunks/*/chunk_no"},
+                        ],
+                        "outputs": [
+                            {"name": "output", "targetName": "metadata_object"}
+                        ],
                     },
                 ],
                 "indexProjections": {
@@ -374,17 +413,21 @@ def test_integrated_vectorization_skillset_created(
                         {
                             "targetIndexName": f"{app_config.get('AZURE_SEARCH_INDEX')}",
                             "parentKeyFieldName": "id",
-                            "sourceContext": "/document/pages/*",
+                            "sourceContext": "/document/pages_with_chunks/*",
                             "mappings": [
-                                {"name": "content", "source": "/document/pages/*"},
+                                {"name": "content", "source": "/document/pages_with_chunks/*/page_text"},
                                 {
                                     "name": "content_vector",
-                                    "source": "/document/pages/*/content_vector",
+                                    "source": "/document/pages_with_chunks/*/content_vector",
                                 },
                                 {"name": "title", "source": "/document/title"},
                                 {
                                     "name": "source",
                                     "source": "/document/metadata_storage_path",
+                                },
+                                {
+                                    "name": "metadata",
+                                    "source": "/document/pages_with_chunks/*/metadata_object",
                                 },
                             ],
                         }

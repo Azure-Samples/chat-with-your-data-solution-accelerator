@@ -57,15 +57,20 @@ azd-login: ## 🔑 Login to Azure with azd and a SPN
 	@echo -e "\e[34m$@\e[0m" || true
 	@azd auth login --client-id ${AZURE_CLIENT_ID} --client-secret ${AZURE_CLIENT_SECRET} --tenant-id ${AZURE_TENANT_ID}
 
-azd-login: ## 🔑 Login to Azure with azd and a SPN
-	@echo -e "\e[34m$@\e[0m" || true
-	@azd auth login --client-id ${AZURE_CLIENT_ID} --client-secret ${AZURE_CLIENT_SECRET} --tenant-id ${AZURE_TENANT_ID}
-
-# Fixed Makefile section for deploy target
 # Fixed Makefile section for deploy target
 deploy: azd-login ## Deploy everything to Azure
 	@echo -e "\e[34m$@\e[0m" || true
-	@azd env new ${AZURE_ENV_NAME}
+	@echo "AZURE_ENV_NAME: '${AZURE_ENV_NAME}'"
+	@echo "AZURE_LOCATION: '${AZURE_LOCATION}'"
+	@echo "AZURE_RESOURCE_GROUP: '${AZURE_RESOURCE_GROUP}'"
+
+	# Validate required variables
+	@if [ -z "${AZURE_ENV_NAME}" ]; then echo "❌ AZURE_ENV_NAME not set"; exit 1; fi
+	@if [ -z "${AZURE_LOCATION}" ]; then echo "❌ AZURE_LOCATION not set"; exit 1; fi
+	@if [ -z "${AZURE_RESOURCE_GROUP}" ]; then echo "❌ AZURE_RESOURCE_GROUP not set"; exit 1; fi
+
+	@azd env new ${AZURE_ENV_NAME} --location ${AZURE_LOCATION}
+	@azd env set AZURE_RESOURCE_GROUP ${AZURE_RESOURCE_GROUP}
 
 	# Provision and deploy
 	@azd provision --no-prompt
@@ -116,15 +121,10 @@ deploy: azd-login ## Deploy everything to Azure
 		echo "$$PG_HOST_VAL" > pg_host.txt
 
 
-
-
-
 	@echo "=== PostgreSQL Configuration ==="
-	@echo "Username: admintest (hardcoded)"
 	@echo "Database: postgres (hardcoded)"
 	@echo "Port: 5432 (hardcoded)"
 	@echo "Host: $$(cat pg_host.txt 2>/dev/null || echo 'Not available')"
-	@echo "Password: Initial_0524 (hardcoded)"
 
 # Helper target to check current authentication status
 check-auth:
@@ -168,4 +168,5 @@ disable-auth-fixed:
 
 destroy: azd-login ## 🧨 Destroy everything in Azure
 	@echo -e "\e[34m$@\e[0m" || true
+	@azd env select $(AZURE_ENV_NAME) || true
 	@azd down --force --purge --no-prompt
