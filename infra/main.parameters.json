@@ -183,6 +183,36 @@
     "existingLogAnalyticsWorkspaceId": {
       "value": "${AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID}"
     },
+    "enableMonitoring": {
+      "value": true
+    },
+    "enablePrivateNetworking": {
+      "value": true
+    },
+    "enableScalability": {
+      "value": true
+    },
+    "enableRedundancy": {
+      "value": "${ENABLE_REDUNDANCY=false}"
+    },
+    "enablePurgeProtection": {
+      "value": "${ENABLE_PURGE_PROTECTION=false}"
+    },
+    "enableTelemetry": {
+      "value": "${ENABLE_TELEMETRY=true}"
+    },
+    "tags": {
+      "value": {}
+    },
+     "vmSize": {
+      "value": "${AZURE_ENV_JUMPBOX_SIZE}"
+    },
+    "virtualMachineAdminUsername": {
+      "value": "${AZURE_ENV_VM_ADMIN_USERNAME}"
+    },
+    "virtualMachineAdminPassword": {
+      "value": "${AZURE_ENV_VM_ADMIN_PASSWORD}"
+    },
     "appversion": {
       "value": "${AZURE_IMAGE_TAG=latest_waf}"
     }

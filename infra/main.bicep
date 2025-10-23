@@ -288,9 +288,9 @@ param newGuidString string = newGuid()
 
 @description('Optional. Principal object for user or service principal to assign application roles. Format: {"id":"<object-id>", "name":"<name-or-upn>", "type":"User|Group|ServicePrincipal"}')
 param principal object = {
-  id: ''                 // Principal ID
-  name: ''               // Principal name
-  type: 'User'           // Principal type ('User', 'Group', or 'ServicePrincipal')
+  id: '' // Principal ID
+  name: '' // Principal name
+  type: 'User' // Principal type ('User', 'Group', or 'ServicePrincipal')
 }
 
 @description('Optional. Application Environment.')
@@ -393,6 +393,7 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
       ...allTags
       TemplateName: 'CWYD'
       CreatedBy: createdBy
+      SecurityControl: 'Ignore'
     }
   }
 }
@@ -451,18 +452,162 @@ resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableT
   }
 }
 
-var networkResourceName = take('network-${solutionSuffix}', 25) // limit to 25 chars
-module network 'modules/network.bicep' = if (enablePrivateNetworking) {
-  name: take('network-${solutionSuffix}-deployment', 64)
+// var networkResourceName = take('network-${solutionSuffix}', 25) // limit to 25 chars
+// module network 'modules/network.bicep' = if (enablePrivateNetworking) {
+//   name: take('network-${solutionSuffix}-deployment', 64)
+//   params: {
+//     resourcesName: networkResourceName
+//     logAnalyticsWorkSpaceResourceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : ''
+//     vmAdminUsername: empty(virtualMachineAdminUsername) ? 'JumpboxAdminUser' : virtualMachineAdminUsername
+//     vmAdminPassword: empty(virtualMachineAdminPassword) ? 'JumpboxAdminP@ssw0rd1234!' : virtualMachineAdminPassword
+//     vmSize: empty(vmSize) ? 'Standard_DS2_v2' : vmSize
+//     location: location
+//     tags: allTags
+//     enableTelemetry: enableTelemetry
+//   }
+// }
+
+// Virtual Network with NSGs and Subnets
+module virtualNetwork 'modules/virtualNetwork.bicep' = if (enablePrivateNetworking) {
+  name: take('module.virtualNetwork.${solutionSuffix}', 64)
   params: {
-    resourcesName: networkResourceName
-    logAnalyticsWorkSpaceResourceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : ''
-    vmAdminUsername: empty(virtualMachineAdminUsername) ? 'JumpboxAdminUser' : virtualMachineAdminUsername
-    vmAdminPassword: empty(virtualMachineAdminPassword) ? 'JumpboxAdminP@ssw0rd1234!' : virtualMachineAdminPassword
-    vmSize: empty(vmSize) ? 'Standard_DS2_v2' : vmSize
+    name: 'vnet-${solutionSuffix}'
+    addressPrefixes: ['10.0.0.0/20'] // 4096 addresses (enough for 8 /23 subnets or 16 /24)
     location: location
-    tags: allTags
+    tags: tags
+    logAnalyticsWorkspaceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : ''
+    resourceSuffix: solutionSuffix
     enableTelemetry: enableTelemetry
+  }
+}
+
+// Azure Bastion Host
+var bastionHostName = 'bas-${solutionSuffix}'
+module bastionHost 'br/public:avm/res/network/bastion-host:0.6.1' = if (enablePrivateNetworking) {
+  name: take('avm.res.network.bastion-host.${bastionHostName}', 64)
+  params: {
+    name: bastionHostName
+    skuName: 'Standard'
+    location: location
+    virtualNetworkResourceId: virtualNetwork!.outputs.resourceId
+    diagnosticSettings: [
+      {
+        name: 'bastionDiagnostics'
+        workspaceResourceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : ''
+        logCategoriesAndGroups: [
+          {
+            categoryGroup: 'allLogs'
+            enabled: true
+          }
+        ]
+      }
+    ]
+    tags: tags
+    enableTelemetry: enableTelemetry
+    publicIPAddressObject: {
+      name: 'pip-${bastionHostName}'
+      zones: []
+    }
+  }
+}
+
+// Jumpbox Virtual Machine
+var jumpboxVmName = take('vm-jumpbox-${solutionSuffix}', 15)
+module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enablePrivateNetworking) {
+  name: take('avm.res.compute.virtual-machine.${jumpboxVmName}', 64)
+  params: {
+    name: take(jumpboxVmName, 15) // Shorten VM name to 15 characters to avoid Azure limits
+    vmSize: vmSize ?? 'Standard_DS2_v2'
+    location: location
+    adminUsername: virtualMachineAdminUsername ?? 'JumpboxAdminUser'
+    adminPassword: virtualMachineAdminPassword ?? 'JumpboxAdminP@ssw0rd1234!'
+    tags: tags
+    zone: 0
+    imageReference: {
+      offer: 'WindowsServer'
+      publisher: 'MicrosoftWindowsServer'
+      sku: '2019-datacenter'
+      version: 'latest'
+    }
+    osType: 'Windows'
+    osDisk: {
+      name: 'osdisk-${jumpboxVmName}'
+      managedDisk: {
+        storageAccountType: 'Standard_LRS'
+      }
+    }
+    encryptionAtHost: false // Some Azure subscriptions do not support encryption at host
+    nicConfigurations: [
+      {
+        name: 'nic-${jumpboxVmName}'
+        ipConfigurations: [
+          {
+            name: 'ipconfig1'
+            subnetResourceId: virtualNetwork!.outputs.jumpboxSubnetResourceId
+          }
+        ]
+        diagnosticSettings: [
+          {
+            name: 'jumpboxDiagnostics'
+            workspaceResourceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : ''
+            logCategoriesAndGroups: [
+              {
+                categoryGroup: 'allLogs'
+                enabled: true
+              }
+            ]
+            metricCategories: [
+              {
+                category: 'AllMetrics'
+                enabled: true
+              }
+            ]
+          }
+        ]
+      }
+    ]
+    enableTelemetry: enableTelemetry
+  }
+}
+
+// Create Maintenance Configuration for VM
+// Required for PSRule.Rules.Azure compliance: Azure.VM.MaintenanceConfig
+// using AVM Virtual Machine module
+// https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/compute/virtual-machine
+
+module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-configuration:0.3.1' = {
+  name: take('avm.res.maintenance.maintenance-configuration.${jumpboxVmName}', 64)
+  params: {
+    name: 'mc-${jumpboxVmName}'
+    location: location
+    tags: tags
+    enableTelemetry: enableTelemetry
+    extensionProperties: {
+      InGuestPatchMode: 'User'
+    }
+    maintenanceScope: 'InGuestPatch'
+    maintenanceWindow: {
+      startDateTime: '2024-06-16 00:00'
+      duration: '03:55'
+      timeZone: 'W. Europe Standard Time'
+      recurEvery: '1Day'
+    }
+    visibility: 'Custom'
+    installPatches: {
+      rebootSetting: 'IfRequired'
+      windowsParameters: {
+        classificationsToInclude: [
+          'Critical'
+          'Security'
+        ]
+      }
+      linuxParameters: {
+        classificationsToInclude: [
+          'Critical'
+          'Security'
+        ]
+      }
+    }
   }
 }
 
@@ -521,8 +666,8 @@ module avmPrivateDnsZones './modules/private-dns-zone/private-dns-zone.bicep' = 
       enableTelemetry: enableTelemetry
       virtualNetworkLinks: [
         {
-          name: take('vnetlink-${network!.outputs.vnetName}-${split(zone, '.')[1]}', 80)
-          virtualNetworkResourceId: network!.outputs.vnetResourceId
+          name: take('vnetlink-${virtualNetwork!.outputs.name}-${split(zone, '.')[1]}', 80)
+          virtualNetworkResourceId: virtualNetwork!.outputs.resourceId
         }
       ]
     }
@@ -583,7 +728,7 @@ module cosmosDBModule './modules/document-db/database-account/database-account.b
               ]
             }
             service: 'Sql'
-            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
           }
         ]
       : []
@@ -648,7 +793,7 @@ module postgresDBModule 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.
               ]
             }
             service: 'postgresqlServer'
-            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
           }
         ]
       : []
@@ -759,7 +904,7 @@ module keyvault './modules/key-vault/vault/vault.bicep' = {
               ]
             }
             service: 'vault'
-            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
           }
         ]
       : []
@@ -861,7 +1006,7 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
     enablePrivateNetworking: enablePrivateNetworking
     enableMonitoring: enableMonitoring
     enableTelemetry: enableTelemetry
-    subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
+    subnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.pepsSubnetResourceId : null
 
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : null
 
@@ -910,7 +1055,7 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
     enablePrivateNetworking: enablePrivateNetworking
     enableMonitoring: enableMonitoring
     enableTelemetry: enableTelemetry
-    subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
+    subnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.pepsSubnetResourceId : null
 
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : null
     userAssignedResourceId: managedIdentityModule.outputs.resourceId
@@ -953,7 +1098,7 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
     enablePrivateNetworking: enablePrivateNetworkingSpeech
     enableMonitoring: enableMonitoring
     enableTelemetry: enableTelemetry
-    subnetResourceId: enablePrivateNetworkingSpeech ? network!.outputs.subnetPrivateEndpointsResourceId : null
+    subnetResourceId: enablePrivateNetworkingSpeech ? virtualNetwork!.outputs.pepsSubnetResourceId : null
 
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : null
     disableLocalAuth: false
@@ -1024,7 +1169,7 @@ module search 'br/public:avm/res/search/search-service:0.11.1' = if (databaseTyp
                 }
               ]
             }
-            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
             service: 'searchService'
           }
         ]
@@ -1116,7 +1261,7 @@ module web 'modules/app/web.bicep' = {
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId }] : []
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
-    virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
+    virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webSubnetResourceId : ''
     publicNetworkAccess: 'Enabled' // Always enabling public network access
     applicationInsightsName: enableMonitoring ? monitoring!.outputs.applicationInsightsName : ''
     appSettings: union(
@@ -1295,7 +1440,7 @@ module adminweb 'modules/app/adminweb.bicep' = {
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId }] : []
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
-    virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
+    virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webSubnetResourceId : ''
     publicNetworkAccess: 'Enabled' // Always enabling public network access
   }
 }
@@ -1318,7 +1463,7 @@ module function 'modules/app/function.bicep' = {
     userAssignedIdentityClientId: managedIdentityModule.outputs.clientId
     // WAF aligned configurations
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId }] : []
-    virtualNetworkSubnetId: enablePrivateNetworking ? network!.outputs.subnetWebResourceId : ''
+    virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webSubnetResourceId : ''
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     publicNetworkAccess: 'Enabled' // Always enabling public network access
@@ -1415,7 +1560,7 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
     enablePrivateNetworking: enablePrivateNetworking
     enableMonitoring: enableMonitoring
     enableTelemetry: enableTelemetry
-    subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
+    subnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.pepsSubnetResourceId : null
 
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : null
     userAssignedResourceId: managedIdentityModule.outputs.resourceId
@@ -1466,7 +1611,7 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
     enablePrivateNetworking: enablePrivateNetworking
     enableMonitoring: enableMonitoring
     enableTelemetry: enableTelemetry
-    subnetResourceId: enablePrivateNetworking ? network!.outputs.subnetPrivateEndpointsResourceId : null
+    subnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.pepsSubnetResourceId : null
 
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : null
     userAssignedResourceId: managedIdentityModule.outputs.resourceId
@@ -1564,7 +1709,7 @@ module storage './modules/storage/storage-account/storage-account.bicep' = {
                 }
               ]
             }
-            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
             service: 'blob'
           }
           {
@@ -1577,7 +1722,7 @@ module storage './modules/storage/storage-account/storage-account.bicep' = {
                 }
               ]
             }
-            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
             service: 'queue'
           }
           {
@@ -1590,7 +1735,7 @@ module storage './modules/storage/storage-account/storage-account.bicep' = {
                 }
               ]
             }
-            subnetResourceId: network!.outputs.subnetPrivateEndpointsResourceId
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
             service: 'file'
           }
         ]
@@ -1736,7 +1881,7 @@ module createIndex 'br/public:avm/res/resources/deployment-script:0.5.1' = if (d
     storageAccountResourceId: storage.outputs.resourceId
     subnetResourceIds: enablePrivateNetworking
       ? [
-          network!.outputs.subnetDeploymentScriptsResourceId
+          virtualNetwork!.outputs.deploymentScriptsSubnetResourceId
         ]
       : null
     tags: tags
@@ -1834,7 +1979,9 @@ var azureContentSafetyInfo = string({
   endpoint: contentsafety.outputs.endpoint
 })
 
-var backendUrl = hostingModel == 'container' ? 'https://${functionName}-docker.azurewebsites.net' : 'https://${functionName}.azurewebsites.net'
+var backendUrl = hostingModel == 'container'
+  ? 'https://${functionName}-docker.azurewebsites.net'
+  : 'https://${functionName}.azurewebsites.net'
 
 @description('Connection string for the Application Insights instance.')
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = enableMonitoring
