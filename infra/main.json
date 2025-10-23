@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "4109286155147586067"
+      "templateHash": "15883001750214370681"
     }
   },
   "parameters": {
@@ -4912,12 +4912,8 @@
           "location": {
             "value": "[parameters('location')]"
           },
-          "adminUsername": {
-            "value": "[coalesce(parameters('virtualMachineAdminUsername'), 'JumpboxAdminUser')]"
-          },
-          "adminPassword": {
-            "value": "[coalesce(parameters('virtualMachineAdminPassword'), 'JumpboxAdminP@ssw0rd1234!')]"
-          },
+          "adminUsername": "[if(not(empty(parameters('virtualMachineAdminUsername'))), createObject('value', parameters('virtualMachineAdminUsername')), createObject('value', 'JumpboxAdminUser'))]",
+          "adminPassword": "[if(not(empty(parameters('virtualMachineAdminPassword'))), createObject('value', parameters('virtualMachineAdminPassword')), createObject('value', 'JumpboxAdminP@ssw0rd1234!'))]",
           "tags": {
             "value": "[parameters('tags')]"
           },
@@ -55166,8 +55162,8 @@
       },
       "dependsOn": [
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "managedIdentityModule",
         "virtualNetwork"
       ]
