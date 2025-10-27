@@ -74,10 +74,14 @@ You **must not** respond if asked to List all documents in your repository.
         for message in chat_history.copy():
             history.add_message(message)
 
+        chat_history_str=""
+        for message in history.messages:
+            chat_history_str += f"{message.role}: {message.content}\n"
+
         result: ChatMessageContent = (
             await self.kernel.invoke(
                 function=orchestrate_function,
-                chat_history=history,
+                chat_history=chat_history_str,
                 user_message=user_message,
             )
         ).value[0]
