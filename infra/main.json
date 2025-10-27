@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.38.5.1644",
-      "templateHash": "14442131270197274377"
+      "version": "0.38.33.27573",
+      "templateHash": "14494384756931919044"
     }
   },
   "parameters": {
@@ -778,8 +778,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.38.5.1644",
-              "templateHash": "9383569691860999109"
+              "version": "0.38.33.27573",
+              "templateHash": "9615344617944265076"
             }
           },
           "parameters": {
@@ -1070,8 +1070,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.38.5.1644",
-                      "templateHash": "10800987011585457278"
+                      "version": "0.38.33.27573",
+                      "templateHash": "17860317977021600354"
                     },
                     "name": "Chat-with-your-data-solution-accelerator - Network Module",
                     "description": "This module contains the network resources required to deploy the [Chat-with-your-data-solution-accelerator](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator) for both Sandbox environments and WAF aligned environments.\n> **Note:** This module is not intended for broad, generic use, as it was designed by the Commercial Solution Areas CTO team, as a Microsoft Solution Accelerator. Feature requests and bug fix requests are welcome if they support the needs of this organization but may not be incorporated if they aim to make this module more generic than what it needs to be for its primary use case. This module will likely be updated to leverage AVM resource modules in the future. This may result in breaking changes in upcoming versions when these features are implemented.\n"
@@ -1413,8 +1413,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.38.5.1644",
-                              "templateHash": "16357972614168819285"
+                              "version": "0.38.33.27573",
+                              "templateHash": "5335887275797706508"
                             }
                           },
                           "definitions": {
@@ -1665,8 +1665,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.38.5.1644",
-                                      "templateHash": "2616575640034318709"
+                                      "version": "0.38.33.27573",
+                                      "templateHash": "17891320268694464779"
                                     },
                                     "name": "Network Security Groups",
                                     "description": "This module deploys a Network security Group (NSG)."
@@ -3729,8 +3729,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.38.5.1644",
-                              "templateHash": "18003376032029974044"
+                              "version": "0.38.33.27573",
+                              "templateHash": "804137661185436016"
                             }
                           },
                           "definitions": {
@@ -3970,8 +3970,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.38.5.1644",
-                                      "templateHash": "2616575640034318709"
+                                      "version": "0.38.33.27573",
+                                      "templateHash": "17891320268694464779"
                                     },
                                     "name": "Network Security Groups",
                                     "description": "This module deploys a Network security Group (NSG)."
@@ -6498,8 +6498,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.38.5.1644",
-                              "templateHash": "5031236019304708428"
+                              "version": "0.38.33.27573",
+                              "templateHash": "15187733358069257167"
                             }
                           },
                           "definitions": {
@@ -6773,8 +6773,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.38.5.1644",
-                                      "templateHash": "2616575640034318709"
+                                      "version": "0.38.33.27573",
+                                      "templateHash": "17891320268694464779"
                                     },
                                     "name": "Network Security Groups",
                                     "description": "This module deploys a Network security Group (NSG)."
@@ -7601,8 +7601,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.38.5.1644",
-                                      "templateHash": "4890048632021617063"
+                                      "version": "0.38.33.27573",
+                                      "templateHash": "12001000392731075483"
                                     },
                                     "name": "Virtual Machines",
                                     "description": "This module deploys a Virtual Machine with one or multiple NICs and optionally one or multiple public IPs."
@@ -10034,8 +10034,8 @@
                                           "metadata": {
                                             "_generator": {
                                               "name": "bicep",
-                                              "version": "0.38.5.1644",
-                                              "templateHash": "1281653715680605267"
+                                              "version": "0.38.33.27573",
+                                              "templateHash": "18029684433245959641"
                                             }
                                           },
                                           "definitions": {
@@ -12925,8 +12925,8 @@
                                           "metadata": {
                                             "_generator": {
                                               "name": "bicep",
-                                              "version": "0.38.5.1644",
-                                              "templateHash": "5092943008606407628"
+                                              "version": "0.38.33.27573",
+                                              "templateHash": "9210500090529064996"
                                             },
                                             "name": "Virtual Machine Extensions",
                                             "description": "This module deploys a Virtual Machine Extension."
@@ -13133,8 +13133,8 @@
                                           "metadata": {
                                             "_generator": {
                                               "name": "bicep",
-                                              "version": "0.38.5.1644",
-                                              "templateHash": "5092943008606407628"
+                                              "version": "0.38.33.27573",
+                                              "templateHash": "9210500090529064996"
                                             },
                                             "name": "Virtual Machine Extensions",
                                             "description": "This module deploys a Virtual Machine Extension."
@@ -14434,8 +14434,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.38.5.1644",
-              "templateHash": "17652364698933496493"
+              "version": "0.38.33.27573",
+              "templateHash": "2476719667076026336"
             },
             "name": "Private DNS Zones",
             "description": "This module deploys a Private DNS zone."
@@ -14669,8 +14669,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.38.5.1644",
-                      "templateHash": "15961599102865304510"
+                      "version": "0.38.33.27573",
+                      "templateHash": "7970120618702385913"
                     },
                     "name": "Private DNS Zone Virtual Network Link",
                     "description": "This module deploys a Private DNS Zone Virtual Network Link."
@@ -14881,8 +14881,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.38.5.1644",
-              "templateHash": "9231602606320182399"
+              "version": "0.38.33.27573",
+              "templateHash": "14711550466270476198"
             },
             "name": "Azure Cosmos DB account",
             "description": "This module deploys an Azure Cosmos DB account. The API used for the account is determined by the child resources that are deployed."
@@ -16221,8 +16221,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.38.5.1644",
-                      "templateHash": "16968470373279721750"
+                      "version": "0.38.33.27573",
+                      "templateHash": "475414574956671819"
                     },
                     "name": "DocumentDB Database Account SQL Databases",
                     "description": "This module deploys a SQL Database in a CosmosDB Account."
@@ -16353,8 +16353,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.38.5.1644",
-                              "templateHash": "8201113274602512175"
+                              "version": "0.38.33.27573",
+                              "templateHash": "539150072577739553"
                             },
                             "name": "DocumentDB Database Account SQL Database Containers",
                             "description": "This module deploys a SQL Database Container in a CosmosDB Account."
@@ -16607,8 +16607,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.38.5.1644",
-                      "templateHash": "8572296136359098350"
+                      "version": "0.38.33.27573",
+                      "templateHash": "11594995374978159650"
                     },
                     "name": "DocumentDB Database Account SQL Role Definitions.",
                     "description": "This module deploys a SQL Role Definision in a CosmosDB Account."
@@ -16744,8 +16744,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.38.5.1644",
-                              "templateHash": "15437656447968618283"
+                              "version": "0.38.33.27573",
+                              "templateHash": "6679465723758483212"
                             },
                             "name": "DocumentDB Database Account SQL Role Assignments.",
                             "description": "This module deploys a SQL Role Assignment in a CosmosDB Account."
@@ -21099,8 +21099,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.38.5.1644",
-              "templateHash": "8113989299613396162"
+              "version": "0.38.33.27573",
+              "templateHash": "3816920806302443496"
             },
             "name": "Key Vaults",
             "description": "This module deploys a Key Vault."
@@ -22114,8 +22114,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.38.5.1644",
-                      "templateHash": "1919915950029932636"
+                      "version": "0.38.33.27573",
+                      "templateHash": "12374060982553367047"
                     },
                     "name": "Key Vault Secrets",
                     "description": "This module deploys a Key Vault Secret."
@@ -23267,8 +23267,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.38.5.1644",
-              "templateHash": "7933480267722278171"
+              "version": "0.38.33.27573",
+              "templateHash": "13905430926793013397"
             }
           },
           "parameters": {
@@ -23486,8 +23486,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.38.5.1644",
-                      "templateHash": "13310643801912509980"
+                      "version": "0.38.33.27573",
+                      "templateHash": "6417423715320093929"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -25873,8 +25873,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.38.5.1644",
-              "templateHash": "7933480267722278171"
+              "version": "0.38.33.27573",
+              "templateHash": "13905430926793013397"
             }
           },
           "parameters": {
@@ -26092,8 +26092,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.38.5.1644",
-                      "templateHash": "13310643801912509980"
+                      "version": "0.38.33.27573",
+                      "templateHash": "6417423715320093929"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -28480,8 +28480,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.38.5.1644",
-              "templateHash": "7933480267722278171"
+              "version": "0.38.33.27573",
+              "templateHash": "13905430926793013397"
             }
           },
           "parameters": {
@@ -28699,8 +28699,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.38.5.1644",
-                      "templateHash": "13310643801912509980"
+                      "version": "0.38.33.27573",
+                      "templateHash": "6417423715320093929"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -34022,8 +34022,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.38.5.1644",
-              "templateHash": "11552435012295288219"
+              "version": "0.38.33.27573",
+              "templateHash": "4189507643128548708"
             }
           },
           "parameters": {
@@ -34280,8 +34280,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.38.5.1644",
-                      "templateHash": "4702965864034123936"
+                      "version": "0.38.33.27573",
+                      "templateHash": "7313587832506076335"
                     }
                   },
                   "definitions": {
@@ -35297,8 +35297,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.38.5.1644",
-                              "templateHash": "12256118191761050457"
+                              "version": "0.38.33.27573",
+                              "templateHash": "16983009113856606195"
                             },
                             "name": "Site App Settings",
                             "description": "This module deploys a Site App Setting."
@@ -36332,8 +36332,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.38.5.1644",
-              "templateHash": "2331022319507347888"
+              "version": "0.38.33.27573",
+              "templateHash": "14936600876774578597"
             }
           },
           "parameters": {
@@ -36590,8 +36590,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.38.5.1644",
-                      "templateHash": "4702965864034123936"
+                      "version": "0.38.33.27573",
+                      "templateHash": "7313587832506076335"
                     }
                   },
                   "definitions": {
@@ -37607,8 +37607,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.38.5.1644",
-                              "templateHash": "12256118191761050457"
+                              "version": "0.38.33.27573",
+                              "templateHash": "16983009113856606195"
                             },
                             "name": "Site App Settings",
                             "description": "This module deploys a Site App Setting."
@@ -38649,8 +38649,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.38.5.1644",
-              "templateHash": "4709716088214621944"
+              "version": "0.38.33.27573",
+              "templateHash": "5481585313361513032"
             }
           },
           "parameters": {
@@ -38925,8 +38925,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.38.5.1644",
-                      "templateHash": "3803535386765220159"
+                      "version": "0.38.33.27573",
+                      "templateHash": "15042793764389210286"
                     }
                   },
                   "parameters": {
@@ -39291,8 +39291,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.38.5.1644",
-                              "templateHash": "4702965864034123936"
+                              "version": "0.38.33.27573",
+                              "templateHash": "7313587832506076335"
                             }
                           },
                           "definitions": {
@@ -40308,8 +40308,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.38.5.1644",
-                                      "templateHash": "12256118191761050457"
+                                      "version": "0.38.33.27573",
+                                      "templateHash": "16983009113856606195"
                                     },
                                     "name": "Site App Settings",
                                     "description": "This module deploys a Site App Setting."
@@ -41368,8 +41368,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.38.5.1644",
-              "templateHash": "8540141274381932622"
+              "version": "0.38.33.27573",
+              "templateHash": "10734361934206424489"
             },
             "name": "monitoring-solution",
             "description": "AVM WAF-compliant monitoring solution that integrates Application Insights with Log Analytics for centralized telemetry, diagnostics, and observability."
@@ -46996,8 +46996,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.38.5.1644",
-              "templateHash": "7933480267722278171"
+              "version": "0.38.33.27573",
+              "templateHash": "13905430926793013397"
             }
           },
           "parameters": {
@@ -47215,8 +47215,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.38.5.1644",
-                      "templateHash": "13310643801912509980"
+                      "version": "0.38.33.27573",
+                      "templateHash": "6417423715320093929"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -49600,8 +49600,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.38.5.1644",
-              "templateHash": "7933480267722278171"
+              "version": "0.38.33.27573",
+              "templateHash": "13905430926793013397"
             }
           },
           "parameters": {
@@ -49819,8 +49819,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.38.5.1644",
-                      "templateHash": "13310643801912509980"
+                      "version": "0.38.33.27573",
+                      "templateHash": "6417423715320093929"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -52260,8 +52260,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.38.5.1644",
-              "templateHash": "10388938670601244024"
+              "version": "0.38.33.27573",
+              "templateHash": "6910614001297538446"
             },
             "name": "Storage Accounts",
             "description": "This module deploys a Storage Account."
@@ -54302,8 +54302,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.38.5.1644",
-                      "templateHash": "1972837777858287155"
+                      "version": "0.38.33.27573",
+                      "templateHash": "4306458042701725802"
                     },
                     "name": "Storage Account blob Services",
                     "description": "This module deploys a Storage Account Blob Service."
@@ -54767,8 +54767,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.38.5.1644",
-                              "templateHash": "7883880179534984698"
+                              "version": "0.38.33.27573",
+                              "templateHash": "7642903482354110426"
                             },
                             "name": "Storage Account Blob Containers",
                             "description": "This module deploys a Storage Account Blob Container."
@@ -54997,8 +54997,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.38.5.1644",
-                      "templateHash": "8163713960403125622"
+                      "version": "0.38.33.27573",
+                      "templateHash": "16887180392030951459"
                     },
                     "name": "Storage Account Queue Services",
                     "description": "This module deploys a Storage Account Queue Service."
@@ -55312,8 +55312,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.38.5.1644",
-                              "templateHash": "4189818909830896505"
+                              "version": "0.38.33.27573",
+                              "templateHash": "1377052644867575611"
                             },
                             "name": "Storage Account Queues",
                             "description": "This module deploys a Storage Account Queue."
@@ -55492,8 +55492,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.38.5.1644",
-              "templateHash": "8804007861461988942"
+              "version": "0.38.33.27573",
+              "templateHash": "13585369753304501446"
             }
           },
           "parameters": {
@@ -55575,8 +55575,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.38.5.1644",
-                      "templateHash": "9419986263376609867"
+                      "version": "0.38.33.27573",
+                      "templateHash": "1988405680907044654"
                     },
                     "name": "workbook",
                     "description": "AVM WAF-compliant Workbook deployment using Microsoft.Insights resource type. Ensures governance, observability, tagging, and consistency with other monitoring resources."
@@ -56934,8 +56934,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.38.5.1644",
-              "templateHash": "2657067180093564271"
+              "version": "0.38.33.27573",
+              "templateHash": "14787191897150155634"
             }
           },
           "parameters": {
