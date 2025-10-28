@@ -393,7 +393,6 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
       ...allTags
       TemplateName: 'CWYD'
       CreatedBy: createdBy
-      SecurityControl: 'Ignore'
     }
   }
 }
