@@ -88,8 +88,13 @@ jobs:
 
       - name: Set Deployment Region
         run: |
-          echo "Selected Region: $VALID_REGION"
-          echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
+          if [ -n "$VALID_REGION" ]; then
+            echo "Selected Region: $VALID_REGION"
+            echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
+          else
+            echo "VALID_REGION not set, using default eastus"
+            echo "AZURE_LOCATION=eastus" >> $GITHUB_ENV
+          fi
 
       - name: Generate Resource Group Name
         id: generate_rg_name
@@ -175,13 +180,13 @@ jobs:
 
                               # Try to extract URLs from deployment logs as backup
                               echo "=== Extracting URLs from deployment logs ==="
-                              grep -oE "https://[a-zA-Z0-9.-]*\.azurewebsites\.net/" deploy_output.log | head -2 | tee extracted_urls.txt || echo "No URLs found in logs"
+                              grep -oE "https://[a-zA-Z0-9.-]*\.azurewebsites\.net/" deploy_output.log | sort | uniq | head -2 | tee extracted_urls.txt || echo "No URLs found in logs"
 
                               # Check if we have admin URL in logs
-                              grep -E "Done: Deploying service adminweb" -A 2 deploy_output.log | grep -oE "https://[a-zA-Z0-9.-]*\.azurewebsites\.net/" > log_admin_url.txt || echo "" > log_admin_url.txt
+                              grep -E "Done: Deploying service adminweb" -A 2 deploy_output.log | grep -oE "https://[a-zA-Z0-9.-]*\.azurewebsites\.net/" | head -1 > log_admin_url.txt || echo "" > log_admin_url.txt
 
                               # Check if we have web URL in logs
-                              grep -E "Done: Deploying service web" -A 2 deploy_output.log | grep -oE "https://[a-zA-Z0-9.-]*\.azurewebsites\.net/" > log_web_url.txt || echo "" > log_web_url.txt
+                              grep -E "Done: Deploying service web" -A 2 deploy_output.log | grep -oE "https://[a-zA-Z0-9.-]*\.azurewebsites\.net/" | head -1 > log_web_url.txt || echo "" > log_web_url.txt
 
                               echo "URLs from logs:"
                               echo "Admin URL from logs: $(cat log_admin_url.txt)"
@@ -217,8 +222,8 @@ jobs:
         run: |
                       # Method 1: Check files created by Makefile
                       echo "=== Method 1: Files from Makefile ==="
-                      if [ -f "web_url.txt" ]; then
-                        WEB_URL=$(cat web_url.txt | tr -d '\n\r' | xargs)
+                      if [ -f "frontend_url.txt" ]; then
+                        WEB_URL=$(cat frontend_url.txt | tr -d '\n\r' | xargs)
                         echo "Web URL from makefile: '$WEB_URL'"
                       fi
 
@@ -248,7 +253,7 @@ jobs:
                       # Set outputs
                       if [ -n "$WEB_URL" ] && [ "$WEB_URL" != "null" ] && [ "$WEB_URL" != "" ]; then
                         echo "web_url=$WEB_URL" >> $GITHUB_OUTPUT
-                        echo "WEB_WEBSITE_URL=$WEB_URL" >> $GITHUB_ENV
+                        echo "FRONTEND_WEBSITE_URL=$WEB_URL" >> $GITHUB_ENV
                         echo "✅ Web URL: $WEB_URL"
                       else
                         echo "web_url=" >> $GITHUB_OUTPUT
@@ -272,17 +277,15 @@ jobs:
 
       - name: Display URLs
         run: |
-                      echo "Web URL: ${{ env.WEB_WEBSITE_URL }}"
+                      echo "Web URL: ${{ env.FRONTEND_WEBSITE_URL }}"
                       echo "Admin URL: ${{ env.ADMIN_WEBSITE_URL }}"
-                      echo "web_url=$WEB_URL" >> $GITHUB_OUTPUT
-                      echo "admin_url=$ADMIN_URL" >> $GITHUB_OUTPUT
 
       - name: Disable Authentication with Script
         run: |
                 chmod +x scripts/disable_auth.sh
                 ./scripts/disable_auth.sh
         env:
-                FRONTEND_WEBSITE_URL: ${{ env.WEB_WEBSITE_URL }}
+                FRONTEND_WEBSITE_URL: ${{ env.FRONTEND_WEBSITE_URL }}
                 ADMIN_WEBSITE_URL: ${{ env.ADMIN_WEBSITE_URL }}
                 AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
                 AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
