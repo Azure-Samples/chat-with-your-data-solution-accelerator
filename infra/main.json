@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.37.4.10188",
-      "templateHash": "5346639491059147931"
+      "version": "0.38.33.27573",
+      "templateHash": "14494384756931919044"
     }
   },
   "parameters": {
@@ -747,7 +747,7 @@
     "network": {
       "condition": "[parameters('enablePrivateNetworking')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[take(format('network-{0}-deployment', variables('solutionSuffix')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -778,8 +778,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "7925204786858091333"
+              "version": "0.38.33.27573",
+              "templateHash": "9615344617944265076"
             }
           },
           "parameters": {
@@ -838,7 +838,7 @@
           "resources": [
             {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[take(format('network-{0}-create', parameters('resourcesName')), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -1070,8 +1070,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.37.4.10188",
-                      "templateHash": "8751678411740080595"
+                      "version": "0.38.33.27573",
+                      "templateHash": "17860317977021600354"
                     },
                     "name": "Chat-with-your-data-solution-accelerator - Network Module",
                     "description": "This module contains the network resources required to deploy the [Chat-with-your-data-solution-accelerator](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator) for both Sandbox environments and WAF aligned environments.\n> **Note:** This module is not intended for broad, generic use, as it was designed by the Commercial Solution Areas CTO team, as a Microsoft Solution Accelerator. Feature requests and bug fix requests are welcome if they support the needs of this organization but may not be incorporated if they aim to make this module more generic than what it needs to be for its primary use case. This module will likely be updated to leverage AVM resource modules in the future. This may result in breaking changes in upcoming versions when these features are implemented.\n"
@@ -1376,7 +1376,7 @@
                   "resources": {
                     "virtualNetwork": {
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2022-09-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('{0}-virtualNetwork', parameters('resourcesName'))]",
                       "properties": {
                         "expressionEvaluationOptions": {
@@ -1413,8 +1413,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.37.4.10188",
-                              "templateHash": "9794971204785076207"
+                              "version": "0.38.33.27573",
+                              "templateHash": "5335887275797706508"
                             }
                           },
                           "definitions": {
@@ -1634,7 +1634,7 @@
                               },
                               "condition": "[not(empty(tryGet(parameters('subnets')[copyIndex()], 'networkSecurityGroup')))]",
                               "type": "Microsoft.Resources/deployments",
-                              "apiVersion": "2022-09-01",
+                              "apiVersion": "2025-04-01",
                               "name": "[take(format('{0}-{1}-networksecuritygroup', parameters('name'), tryGet(parameters('subnets')[copyIndex()], 'networkSecurityGroup', 'name')), 64)]",
                               "properties": {
                                 "expressionEvaluationOptions": {
@@ -1665,8 +1665,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.37.4.10188",
-                                      "templateHash": "3602894958419826603"
+                                      "version": "0.38.33.27573",
+                                      "templateHash": "17891320268694464779"
                                     },
                                     "name": "Network Security Groups",
                                     "description": "This module deploys a Network security Group (NSG)."
@@ -1972,7 +1972,7 @@
                             },
                             "virtualNetwork": {
                               "type": "Microsoft.Resources/deployments",
-                              "apiVersion": "2022-09-01",
+                              "apiVersion": "2025-04-01",
                               "name": "[take(format('{0}-virtualNetwork', parameters('name')), 64)]",
                               "properties": {
                                 "expressionEvaluationOptions": {
@@ -3689,7 +3689,7 @@
                     "bastionHost": {
                       "condition": "[not(empty(parameters('bastionConfiguration')))]",
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2022-09-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('{0}-bastionHost', parameters('resourcesName'))]",
                       "properties": {
                         "expressionEvaluationOptions": {
@@ -3729,8 +3729,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.37.4.10188",
-                              "templateHash": "6767898520357648551"
+                              "version": "0.38.33.27573",
+                              "templateHash": "804137661185436016"
                             }
                           },
                           "definitions": {
@@ -3939,7 +3939,7 @@
                             "nsg": {
                               "condition": "[not(empty(parameters('subnet')))]",
                               "type": "Microsoft.Resources/deployments",
-                              "apiVersion": "2022-09-01",
+                              "apiVersion": "2025-04-01",
                               "name": "[format('{0}-{1}', parameters('vnetName'), tryGet(parameters('subnet'), 'networkSecurityGroup', 'name'))]",
                               "properties": {
                                 "expressionEvaluationOptions": {
@@ -3970,8 +3970,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.37.4.10188",
-                                      "templateHash": "3602894958419826603"
+                                      "version": "0.38.33.27573",
+                                      "templateHash": "17891320268694464779"
                                     },
                                     "name": "Network Security Groups",
                                     "description": "This module deploys a Network security Group (NSG)."
@@ -4278,7 +4278,7 @@
                             "bastionSubnet": {
                               "condition": "[not(empty(parameters('subnet')))]",
                               "type": "Microsoft.Resources/deployments",
-                              "apiVersion": "2022-09-01",
+                              "apiVersion": "2025-04-01",
                               "name": "[take(format('bastionSubnet-{0}', parameters('vnetName')), 64)]",
                               "properties": {
                                 "expressionEvaluationOptions": {
@@ -4692,7 +4692,7 @@
                             },
                             "bastionHost": {
                               "type": "Microsoft.Resources/deployments",
-                              "apiVersion": "2022-09-01",
+                              "apiVersion": "2025-04-01",
                               "name": "[take(format('bastionHost-{0}-{1}', parameters('vnetName'), parameters('name')), 64)]",
                               "properties": {
                                 "expressionEvaluationOptions": {
@@ -6452,7 +6452,7 @@
                     "jumpbox": {
                       "condition": "[not(empty(parameters('jumpboxConfiguration')))]",
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2022-09-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('{0}-jumpbox', parameters('resourcesName'))]",
                       "properties": {
                         "expressionEvaluationOptions": {
@@ -6498,8 +6498,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.37.4.10188",
-                              "templateHash": "14641985778144133256"
+                              "version": "0.38.33.27573",
+                              "templateHash": "15187733358069257167"
                             }
                           },
                           "definitions": {
@@ -6742,7 +6742,7 @@
                             "nsg": {
                               "condition": "[not(empty(parameters('subnet')))]",
                               "type": "Microsoft.Resources/deployments",
-                              "apiVersion": "2022-09-01",
+                              "apiVersion": "2025-04-01",
                               "name": "[format('{0}-{1}', parameters('vnetName'), tryGet(parameters('subnet'), 'networkSecurityGroup', 'name'))]",
                               "properties": {
                                 "expressionEvaluationOptions": {
@@ -6773,8 +6773,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.37.4.10188",
-                                      "templateHash": "3602894958419826603"
+                                      "version": "0.38.33.27573",
+                                      "templateHash": "17891320268694464779"
                                     },
                                     "name": "Network Security Groups",
                                     "description": "This module deploys a Network security Group (NSG)."
@@ -7081,7 +7081,7 @@
                             "subnetResource": {
                               "condition": "[not(empty(parameters('subnet')))]",
                               "type": "Microsoft.Resources/deployments",
-                              "apiVersion": "2022-09-01",
+                              "apiVersion": "2025-04-01",
                               "name": "[coalesce(tryGet(parameters('subnet'), 'name'), format('{0}-jumpbox-subnet', parameters('vnetName')))]",
                               "properties": {
                                 "expressionEvaluationOptions": {
@@ -7495,7 +7495,7 @@
                             },
                             "vm": {
                               "type": "Microsoft.Resources/deployments",
-                              "apiVersion": "2022-09-01",
+                              "apiVersion": "2025-04-01",
                               "name": "[take(format('{0}-jumpbox', variables('vmName')), 64)]",
                               "properties": {
                                 "expressionEvaluationOptions": {
@@ -7601,8 +7601,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.37.4.10188",
-                                      "templateHash": "4301214457807494930"
+                                      "version": "0.38.33.27573",
+                                      "templateHash": "12001000392731075483"
                                     },
                                     "name": "Virtual Machines",
                                     "description": "This module deploys a Virtual Machine with one or multiple NICs and optionally one or multiple public IPs."
@@ -9981,7 +9981,7 @@
                                         "count": "[length(parameters('nicConfigurations'))]"
                                       },
                                       "type": "Microsoft.Resources/deployments",
-                                      "apiVersion": "2022-09-01",
+                                      "apiVersion": "2025-04-01",
                                       "name": "[format('{0}-VM-Nic-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                                       "properties": {
                                         "expressionEvaluationOptions": {
@@ -10034,8 +10034,8 @@
                                           "metadata": {
                                             "_generator": {
                                               "name": "bicep",
-                                              "version": "0.37.4.10188",
-                                              "templateHash": "4443010370815924090"
+                                              "version": "0.38.33.27573",
+                                              "templateHash": "18029684433245959641"
                                             }
                                           },
                                           "definitions": {
@@ -11062,7 +11062,7 @@
                                               },
                                               "condition": "[and(not(empty(tryGet(parameters('ipConfigurations')[copyIndex()], 'pipConfiguration'))), empty(tryGet(tryGet(parameters('ipConfigurations')[copyIndex()], 'pipConfiguration'), 'publicIPAddressResourceId')))]",
                                               "type": "Microsoft.Resources/deployments",
-                                              "apiVersion": "2022-09-01",
+                                              "apiVersion": "2025-04-01",
                                               "name": "[format('{0}-publicIP-{1}', deployment().name, copyIndex())]",
                                               "properties": {
                                                 "expressionEvaluationOptions": {
@@ -11794,7 +11794,7 @@
                                             },
                                             "networkInterface": {
                                               "type": "Microsoft.Resources/deployments",
-                                              "apiVersion": "2022-09-01",
+                                              "apiVersion": "2025-04-01",
                                               "name": "[format('{0}-NetworkInterface', deployment().name)]",
                                               "properties": {
                                                 "expressionEvaluationOptions": {
@@ -12876,7 +12876,7 @@
                                     "vm_microsoftAntiMalwareExtension": {
                                       "condition": "[parameters('extensionAntiMalwareConfig').enabled]",
                                       "type": "Microsoft.Resources/deployments",
-                                      "apiVersion": "2022-09-01",
+                                      "apiVersion": "2025-04-01",
                                       "name": "[format('{0}-VM-MicrosoftAntiMalware', uniqueString(deployment().name, parameters('location')))]",
                                       "properties": {
                                         "expressionEvaluationOptions": {
@@ -12925,8 +12925,8 @@
                                           "metadata": {
                                             "_generator": {
                                               "name": "bicep",
-                                              "version": "0.37.4.10188",
-                                              "templateHash": "6217357228885380185"
+                                              "version": "0.38.33.27573",
+                                              "templateHash": "9210500090529064996"
                                             },
                                             "name": "Virtual Machine Extensions",
                                             "description": "This module deploys a Virtual Machine Extension."
@@ -13082,7 +13082,7 @@
                                     "vm_azureGuestConfigurationExtension": {
                                       "condition": "[parameters('extensionGuestConfigurationExtension').enabled]",
                                       "type": "Microsoft.Resources/deployments",
-                                      "apiVersion": "2022-09-01",
+                                      "apiVersion": "2025-04-01",
                                       "name": "[format('{0}-VM-GuestConfiguration', uniqueString(deployment().name, parameters('location')))]",
                                       "properties": {
                                         "expressionEvaluationOptions": {
@@ -13133,8 +13133,8 @@
                                           "metadata": {
                                             "_generator": {
                                               "name": "bicep",
-                                              "version": "0.37.4.10188",
-                                              "templateHash": "6217357228885380185"
+                                              "version": "0.38.33.27573",
+                                              "templateHash": "9210500090529064996"
                                             },
                                             "name": "Virtual Machine Extensions",
                                             "description": "This module deploys a Virtual Machine Extension."
@@ -13321,7 +13321,7 @@
                             },
                             "maintenanceConfiguration": {
                               "type": "Microsoft.Resources/deployments",
-                              "apiVersion": "2022-09-01",
+                              "apiVersion": "2025-04-01",
                               "name": "[take(format('{0}-jumpbox-maintenance-config', variables('vmName')), 64)]",
                               "properties": {
                                 "expressionEvaluationOptions": {
@@ -13873,35 +13873,35 @@
               "metadata": {
                 "description": "Name of the Virtual Network resource."
               },
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('network-{0}-create', parameters('resourcesName')), 64)), '2022-09-01').outputs.vnetName.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('network-{0}-create', parameters('resourcesName')), 64)), '2025-04-01').outputs.vnetName.value]"
             },
             "vnetResourceId": {
               "type": "string",
               "metadata": {
                 "description": "Resource ID of the Virtual Network."
               },
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('network-{0}-create', parameters('resourcesName')), 64)), '2022-09-01').outputs.vnetResourceId.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('network-{0}-create', parameters('resourcesName')), 64)), '2025-04-01').outputs.vnetResourceId.value]"
             },
             "subnetWebResourceId": {
               "type": "string",
               "metadata": {
                 "description": "Resource ID of the \"web\" subnet."
               },
-              "value": "[coalesce(tryGet(first(filter(reference(resourceId('Microsoft.Resources/deployments', take(format('network-{0}-create', parameters('resourcesName')), 64)), '2022-09-01').outputs.subnets.value, lambda('s', equals(lambdaVariables('s').name, 'web')))), 'resourceId'), '')]"
+              "value": "[coalesce(tryGet(first(filter(reference(resourceId('Microsoft.Resources/deployments', take(format('network-{0}-create', parameters('resourcesName')), 64)), '2025-04-01').outputs.subnets.value, lambda('s', equals(lambdaVariables('s').name, 'web')))), 'resourceId'), '')]"
             },
             "subnetPrivateEndpointsResourceId": {
               "type": "string",
               "metadata": {
                 "description": "Resource ID of the \"peps\" subnet for Private Endpoints."
               },
-              "value": "[coalesce(tryGet(first(filter(reference(resourceId('Microsoft.Resources/deployments', take(format('network-{0}-create', parameters('resourcesName')), 64)), '2022-09-01').outputs.subnets.value, lambda('s', equals(lambdaVariables('s').name, 'peps')))), 'resourceId'), '')]"
+              "value": "[coalesce(tryGet(first(filter(reference(resourceId('Microsoft.Resources/deployments', take(format('network-{0}-create', parameters('resourcesName')), 64)), '2025-04-01').outputs.subnets.value, lambda('s', equals(lambdaVariables('s').name, 'peps')))), 'resourceId'), '')]"
             },
             "subnetDeploymentScriptsResourceId": {
               "type": "string",
               "metadata": {
                 "description": "Resource ID of the subnet for deployment scripts."
               },
-              "value": "[coalesce(tryGet(first(filter(reference(resourceId('Microsoft.Resources/deployments', take(format('network-{0}-create', parameters('resourcesName')), 64)), '2022-09-01').outputs.subnets.value, lambda('s', equals(lambdaVariables('s').name, 'deployment-scripts')))), 'resourceId'), '')]"
+              "value": "[coalesce(tryGet(first(filter(reference(resourceId('Microsoft.Resources/deployments', take(format('network-{0}-create', parameters('resourcesName')), 64)), '2025-04-01').outputs.subnets.value, lambda('s', equals(lambdaVariables('s').name, 'deployment-scripts')))), 'resourceId'), '')]"
             }
           }
         }
@@ -13912,7 +13912,7 @@
     },
     "managedIdentityModule": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[take(format('avm.res.managed-identity.user-assigned-identity.{0}', variables('userAssignedIdentityResourceName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -14401,7 +14401,7 @@
       },
       "condition": "[parameters('enablePrivateNetworking')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[format('avm.res.network.private-dns-zone.{0}', if(contains(variables('privateDnsZones')[copyIndex()], 'azurecontainerapps.io'), 'containerappenv', split(variables('privateDnsZones')[copyIndex()], '.')[1]))]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -14434,8 +14434,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "6632480610516632840"
+              "version": "0.38.33.27573",
+              "templateHash": "2476719667076026336"
             },
             "name": "Private DNS Zones",
             "description": "This module deploys a Private DNS zone."
@@ -14632,7 +14632,7 @@
                 "count": "[length(coalesce(parameters('virtualNetworkLinks'), createArray()))]"
               },
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('{0}-PrivateDnsZone-VNetLink-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -14669,8 +14669,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.37.4.10188",
-                      "templateHash": "517173107480898390"
+                      "version": "0.38.33.27573",
+                      "templateHash": "7970120618702385913"
                     },
                     "name": "Private DNS Zone Virtual Network Link",
                     "description": "This module deploys a Private DNS Zone Virtual Network Link."
@@ -14804,7 +14804,7 @@
     "cosmosDBModule": {
       "condition": "[equals(parameters('databaseType'), 'CosmosDB')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[take(format('avm.res.document-db.database-account.{0}', variables('azureCosmosDBAccountName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -14881,8 +14881,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "12621492773295817966"
+              "version": "0.38.33.27573",
+              "templateHash": "14711550466270476198"
             },
             "name": "Azure Cosmos DB account",
             "description": "This module deploys an Azure Cosmos DB account. The API used for the account is determined by the child resources that are deployed."
@@ -16190,7 +16190,7 @@
                 "count": "[length(coalesce(parameters('sqlDatabases'), createArray()))]"
               },
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('{0}-sqldb-{1}', uniqueString(deployment().name, parameters('location')), coalesce(parameters('sqlDatabases'), createArray())[copyIndex()].name)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -16221,8 +16221,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.37.4.10188",
-                      "templateHash": "7141543733238879531"
+                      "version": "0.38.33.27573",
+                      "templateHash": "475414574956671819"
                     },
                     "name": "DocumentDB Database Account SQL Databases",
                     "description": "This module deploys a SQL Database in a CosmosDB Account."
@@ -16300,7 +16300,7 @@
                         "count": "[length(coalesce(parameters('containers'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2022-09-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('{0}-sqldb-{1}', uniqueString(deployment().name, parameters('name')), coalesce(parameters('containers'), createArray())[copyIndex()].name)]",
                       "properties": {
                         "expressionEvaluationOptions": {
@@ -16353,8 +16353,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.37.4.10188",
-                              "templateHash": "1789954443166349986"
+                              "version": "0.38.33.27573",
+                              "templateHash": "539150072577739553"
                             },
                             "name": "DocumentDB Database Account SQL Database Containers",
                             "description": "This module deploys a SQL Database Container in a CosmosDB Account."
@@ -16573,7 +16573,7 @@
                 "count": "[length(coalesce(parameters('dataPlaneRoleDefinitions'), createArray()))]"
               },
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('{0}-sqlrd-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -16607,8 +16607,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.37.4.10188",
-                      "templateHash": "15286527663881247447"
+                      "version": "0.38.33.27573",
+                      "templateHash": "11594995374978159650"
                     },
                     "name": "DocumentDB Database Account SQL Role Definitions.",
                     "description": "This module deploys a SQL Role Definision in a CosmosDB Account."
@@ -16716,7 +16716,7 @@
                         "count": "[length(coalesce(parameters('sqlRoleAssignments'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2022-09-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('{0}-sqlra-{1}', uniqueString(deployment().name), copyIndex())]",
                       "properties": {
                         "expressionEvaluationOptions": {
@@ -16744,8 +16744,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.37.4.10188",
-                              "templateHash": "13930097858749015610"
+                              "version": "0.38.33.27573",
+                              "templateHash": "6679465723758483212"
                             },
                             "name": "DocumentDB Database Account SQL Role Assignments.",
                             "description": "This module deploys a SQL Role Assignment in a CosmosDB Account."
@@ -16867,7 +16867,7 @@
                 "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
               },
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('{0}-dbAccount-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
               "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
               "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -17640,7 +17640,7 @@
     "postgresDBModule": {
       "condition": "[equals(parameters('databaseType'), 'PostgreSQL')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[take(format('avm.res.db-for-postgre-sql.flexible-server.{0}', variables('azurePostgresDBAccountName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -20458,7 +20458,7 @@
     "pgSqlDelayScript": {
       "condition": "[equals(parameters('databaseType'), 'PostgreSQL')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[take(format('avm.res.deployment-script.delay.{0}', variables('postgresResourceName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -21028,7 +21028,7 @@
     },
     "keyvault": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[take(format('avm.res.key-vault.vault.{0}', variables('keyVaultName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -21099,8 +21099,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "13073656606893955183"
+              "version": "0.38.33.27573",
+              "templateHash": "3816920806302443496"
             },
             "name": "Key Vaults",
             "description": "This module deploys a Key Vault."
@@ -22068,7 +22068,7 @@
                 "count": "[length(coalesce(parameters('secrets'), createArray()))]"
               },
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('{0}-KeyVault-Secret-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -22114,8 +22114,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.37.4.10188",
-                      "templateHash": "8701309639990049090"
+                      "version": "0.38.33.27573",
+                      "templateHash": "12374060982553367047"
                     },
                     "name": "Key Vault Secrets",
                     "description": "This module deploys a Key Vault Secret."
@@ -22409,7 +22409,7 @@
                 "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
               },
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('{0}-keyVault-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
               "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
               "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -23209,7 +23209,7 @@
     },
     "openai": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[variables('azureOpenAIResourceName')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -23267,8 +23267,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "16505240488755356349"
+              "version": "0.38.33.27573",
+              "templateHash": "13905430926793013397"
             }
           },
           "parameters": {
@@ -23417,7 +23417,7 @@
           "resources": {
             "cognitiveServices": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[take(format('avm.res.cognitive-services.account.{0}', variables('cognitiveResourceName')), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -23486,8 +23486,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.37.4.10188",
-                      "templateHash": "6474769167245807917"
+                      "version": "0.38.33.27573",
+                      "templateHash": "6417423715320093929"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -24950,7 +24950,7 @@
                         "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2022-09-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('{0}-cognitiveService-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
                       "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -25826,7 +25826,7 @@
     "computerVision": {
       "condition": "[parameters('useAdvancedImageProcessing')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "computerVision",
       "properties": {
         "expressionEvaluationOptions": {
@@ -25873,8 +25873,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "16505240488755356349"
+              "version": "0.38.33.27573",
+              "templateHash": "13905430926793013397"
             }
           },
           "parameters": {
@@ -26023,7 +26023,7 @@
           "resources": {
             "cognitiveServices": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[take(format('avm.res.cognitive-services.account.{0}', variables('cognitiveResourceName')), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -26092,8 +26092,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.37.4.10188",
-                      "templateHash": "6474769167245807917"
+                      "version": "0.38.33.27573",
+                      "templateHash": "6417423715320093929"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -27556,7 +27556,7 @@
                         "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2022-09-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('{0}-cognitiveService-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
                       "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -28431,7 +28431,7 @@
     },
     "speechService": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[variables('speechServiceName')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -28480,8 +28480,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "16505240488755356349"
+              "version": "0.38.33.27573",
+              "templateHash": "13905430926793013397"
             }
           },
           "parameters": {
@@ -28630,7 +28630,7 @@
           "resources": {
             "cognitiveServices": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[take(format('avm.res.cognitive-services.account.{0}', variables('cognitiveResourceName')), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -28699,8 +28699,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.37.4.10188",
-                      "templateHash": "6474769167245807917"
+                      "version": "0.38.33.27573",
+                      "templateHash": "6417423715320093929"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -30163,7 +30163,7 @@
                         "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2022-09-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('{0}-cognitiveService-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
                       "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -31039,7 +31039,7 @@
     "search": {
       "condition": "[equals(parameters('databaseType'), 'CosmosDB')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[take(format('avm.res.search.search-service.{0}', variables('azureAISearchName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -33400,7 +33400,7 @@
     },
     "webServerFarm": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[take(format('avm.res.web.serverfarm.{0}', variables('webServerFarmResourceName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -33971,7 +33971,7 @@
     },
     "web": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[take(format('module.web.site.{0}{1}', variables('websiteName'), if(equals(parameters('hostingModel'), 'container'), '-docker', '')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -34022,8 +34022,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "1239027958599985321"
+              "version": "0.38.33.27573",
+              "templateHash": "4189507643128548708"
             }
           },
           "parameters": {
@@ -34216,7 +34216,7 @@
           "resources": {
             "web": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('{0}-app-module', parameters('name'))]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -34280,8 +34280,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.37.4.10188",
-                      "templateHash": "5281512861407487389"
+                      "version": "0.38.33.27573",
+                      "templateHash": "7313587832506076335"
                     }
                   },
                   "definitions": {
@@ -35262,7 +35262,7 @@
                         "count": "[length(coalesce(parameters('configs'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2022-09-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('{0}-Site-Config-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "properties": {
                         "expressionEvaluationOptions": {
@@ -35297,8 +35297,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.37.4.10188",
-                              "templateHash": "4653685834544796273"
+                              "version": "0.38.33.27573",
+                              "templateHash": "16983009113856606195"
                             },
                             "name": "Site App Settings",
                             "description": "This module deploys a Site App Setting."
@@ -35443,7 +35443,7 @@
                         "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2022-09-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('{0}-app-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
                       "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -36284,7 +36284,7 @@
     },
     "adminweb": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[take(format('module.web.site.{0}{1}', variables('adminWebsiteName'), if(equals(parameters('hostingModel'), 'container'), '-docker', '')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -36332,8 +36332,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "4691242466216924614"
+              "version": "0.38.33.27573",
+              "templateHash": "14936600876774578597"
             }
           },
           "parameters": {
@@ -36526,7 +36526,7 @@
           "resources": {
             "adminweb": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('{0}-app-module', parameters('name'))]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -36590,8 +36590,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.37.4.10188",
-                      "templateHash": "5281512861407487389"
+                      "version": "0.38.33.27573",
+                      "templateHash": "7313587832506076335"
                     }
                   },
                   "definitions": {
@@ -37572,7 +37572,7 @@
                         "count": "[length(coalesce(parameters('configs'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2022-09-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('{0}-Site-Config-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "properties": {
                         "expressionEvaluationOptions": {
@@ -37607,8 +37607,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.37.4.10188",
-                              "templateHash": "4653685834544796273"
+                              "version": "0.38.33.27573",
+                              "templateHash": "16983009113856606195"
                             },
                             "name": "Site App Settings",
                             "description": "This module deploys a Site App Setting."
@@ -37753,7 +37753,7 @@
                         "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2022-09-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('{0}-app-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
                       "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -38593,7 +38593,7 @@
     },
     "function": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[if(equals(parameters('hostingModel'), 'container'), format('{0}-docker', variables('functionName')), variables('functionName'))]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -38649,8 +38649,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "976775273218650526"
+              "version": "0.38.33.27573",
+              "templateHash": "5481585313361513032"
             }
           },
           "parameters": {
@@ -38849,7 +38849,7 @@
             },
             "function": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('{0}-app-module', parameters('name'))]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -38925,8 +38925,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.37.4.10188",
-                      "templateHash": "3984556239778248742"
+                      "version": "0.38.33.27573",
+                      "templateHash": "15042793764389210286"
                     }
                   },
                   "parameters": {
@@ -39207,7 +39207,7 @@
                   "resources": [
                     {
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2022-09-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('{0}-functions', parameters('name'))]",
                       "properties": {
                         "expressionEvaluationOptions": {
@@ -39291,8 +39291,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.37.4.10188",
-                              "templateHash": "5281512861407487389"
+                              "version": "0.38.33.27573",
+                              "templateHash": "7313587832506076335"
                             }
                           },
                           "definitions": {
@@ -40273,7 +40273,7 @@
                                 "count": "[length(coalesce(parameters('configs'), createArray()))]"
                               },
                               "type": "Microsoft.Resources/deployments",
-                              "apiVersion": "2022-09-01",
+                              "apiVersion": "2025-04-01",
                               "name": "[format('{0}-Site-Config-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                               "properties": {
                                 "expressionEvaluationOptions": {
@@ -40308,8 +40308,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.37.4.10188",
-                                      "templateHash": "4653685834544796273"
+                                      "version": "0.38.33.27573",
+                                      "templateHash": "16983009113856606195"
                                     },
                                     "name": "Site App Settings",
                                     "description": "This module deploys a Site App Setting."
@@ -40454,7 +40454,7 @@
                                 "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
                               },
                               "type": "Microsoft.Resources/deployments",
-                              "apiVersion": "2022-09-01",
+                              "apiVersion": "2025-04-01",
                               "name": "[format('{0}-app-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                               "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
                               "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -41272,11 +41272,11 @@
                   "outputs": {
                     "name": {
                       "type": "string",
-                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-functions', parameters('name'))), '2022-09-01').outputs.name.value]"
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-functions', parameters('name'))), '2025-04-01').outputs.name.value]"
                     },
                     "uri": {
                       "type": "string",
-                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-functions', parameters('name'))), '2022-09-01').outputs.defaultHostname.value]"
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-functions', parameters('name'))), '2025-04-01').outputs.defaultHostname.value]"
                     },
                     "azureWebJobsStorage": {
                       "type": "string",
@@ -41320,7 +41320,7 @@
     "monitoring": {
       "condition": "[parameters('enableMonitoring')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "monitoring",
       "properties": {
         "expressionEvaluationOptions": {
@@ -41368,8 +41368,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "7477772631335240925"
+              "version": "0.38.33.27573",
+              "templateHash": "10734361934206424489"
             },
             "name": "monitoring-solution",
             "description": "AVM WAF-compliant monitoring solution that integrates Application Insights with Log Analytics for centralized telemetry, diagnostics, and observability."
@@ -41506,7 +41506,7 @@
             "avmWorkspace": {
               "condition": "[empty(parameters('existingLogAnalyticsWorkspaceId'))]",
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[take(format('avm.res.operational-insights.workspace.{0}', parameters('logAnalyticsName')), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -44614,7 +44614,7 @@
             },
             "avmAppInsights": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('{0}-deploy', parameters('applicationInsightsName'))]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -45345,7 +45345,7 @@
             "applicationInsightsDashboard": {
               "condition": "[not(empty(parameters('applicationInsightsDashboardName')))]",
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('{0}-deploy', parameters('applicationInsightsDashboardName'))]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -46938,7 +46938,7 @@
     },
     "formrecognizer": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[variables('formRecognizerName')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -46996,8 +46996,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "16505240488755356349"
+              "version": "0.38.33.27573",
+              "templateHash": "13905430926793013397"
             }
           },
           "parameters": {
@@ -47146,7 +47146,7 @@
           "resources": {
             "cognitiveServices": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[take(format('avm.res.cognitive-services.account.{0}', variables('cognitiveResourceName')), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -47215,8 +47215,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.37.4.10188",
-                      "templateHash": "6474769167245807917"
+                      "version": "0.38.33.27573",
+                      "templateHash": "6417423715320093929"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -48679,7 +48679,7 @@
                         "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2022-09-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('{0}-cognitiveService-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
                       "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -49554,7 +49554,7 @@
     },
     "contentsafety": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[variables('contentSafetyName')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -49600,8 +49600,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "16505240488755356349"
+              "version": "0.38.33.27573",
+              "templateHash": "13905430926793013397"
             }
           },
           "parameters": {
@@ -49750,7 +49750,7 @@
           "resources": {
             "cognitiveServices": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[take(format('avm.res.cognitive-services.account.{0}', variables('cognitiveResourceName')), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -49819,8 +49819,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.37.4.10188",
-                      "templateHash": "6474769167245807917"
+                      "version": "0.38.33.27573",
+                      "templateHash": "6417423715320093929"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -51283,7 +51283,7 @@
                         "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2022-09-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('{0}-cognitiveService-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
                       "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -52158,7 +52158,7 @@
     },
     "storage": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[take(format('avm.res.storage.storage-account.{0}', variables('storageAccountName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -52260,8 +52260,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "15225503506140349027"
+              "version": "0.38.33.27573",
+              "templateHash": "6910614001297538446"
             },
             "name": "Storage Accounts",
             "description": "This module deploys a Storage Account."
@@ -53478,7 +53478,7 @@
                 "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
               },
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('{0}-sa-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
               "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
               "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -54232,7 +54232,7 @@
             "storageAccount_blobServices": {
               "condition": "[not(empty(parameters('blobServices')))]",
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('{0}-Storage-BlobServices', uniqueString(deployment().name, parameters('location')))]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -54302,8 +54302,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.37.4.10188",
-                      "templateHash": "65499040398434270"
+                      "version": "0.38.33.27573",
+                      "templateHash": "4306458042701725802"
                     },
                     "name": "Storage Account blob Services",
                     "description": "This module deploys a Storage Account Blob Service."
@@ -54718,7 +54718,7 @@
                         "count": "[length(coalesce(parameters('containers'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2022-09-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('{0}-Container-{1}', deployment().name, copyIndex())]",
                       "properties": {
                         "expressionEvaluationOptions": {
@@ -54767,8 +54767,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.37.4.10188",
-                              "templateHash": "17016031020562108306"
+                              "version": "0.38.33.27573",
+                              "templateHash": "7642903482354110426"
                             },
                             "name": "Storage Account Blob Containers",
                             "description": "This module deploys a Storage Account Blob Container."
@@ -54969,7 +54969,7 @@
             "storageAccount_queueServices": {
               "condition": "[not(empty(parameters('queueServices')))]",
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('{0}-Storage-QueueServices', uniqueString(deployment().name, parameters('location')))]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -54997,8 +54997,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.37.4.10188",
-                      "templateHash": "3577913007255424157"
+                      "version": "0.38.33.27573",
+                      "templateHash": "16887180392030951459"
                     },
                     "name": "Storage Account Queue Services",
                     "description": "This module deploys a Storage Account Queue Service."
@@ -55288,7 +55288,7 @@
                         "count": "[length(coalesce(parameters('queues'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2022-09-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('{0}-Queue-{1}', deployment().name, copyIndex())]",
                       "properties": {
                         "expressionEvaluationOptions": {
@@ -55312,8 +55312,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.37.4.10188",
-                              "templateHash": "17351146737758613781"
+                              "version": "0.38.33.27573",
+                              "templateHash": "1377052644867575611"
                             },
                             "name": "Storage Account Queues",
                             "description": "This module deploys a Storage Account Queue."
@@ -55436,9 +55436,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "managedIdentityModule",
         "network"
       ]
@@ -55446,7 +55446,7 @@
     "workbook": {
       "condition": "[parameters('enableMonitoring')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "workbook",
       "properties": {
         "expressionEvaluationOptions": {
@@ -55492,8 +55492,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "15145535415197431472"
+              "version": "0.38.33.27573",
+              "templateHash": "13585369753304501446"
             }
           },
           "parameters": {
@@ -55548,7 +55548,7 @@
           "resources": [
             {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[parameters('workbookDisplayName')]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -55575,8 +55575,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.37.4.10188",
-                      "templateHash": "5688259766929808767"
+                      "version": "0.38.33.27573",
+                      "templateHash": "1988405680907044654"
                     },
                     "name": "workbook",
                     "description": "AVM WAF-compliant Workbook deployment using Microsoft.Insights resource type. Ensures governance, observability, tagging, and consistency with other monitoring resources."
@@ -55675,7 +55675,7 @@
     },
     "avmEventGridSystemTopic": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[take(format('avm.res.event-grid.system-topic.{0}', variables('eventGridSystemTopicName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -56916,7 +56916,7 @@
     },
     "systemAssignedIdentityRoleAssignments": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[take('module.resource-role-assignment.system-assigned', 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -56934,8 +56934,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "12264659002679736011"
+              "version": "0.38.33.27573",
+              "templateHash": "14787191897150155634"
             }
           },
           "parameters": {
@@ -56954,7 +56954,7 @@
                 "count": "[length(parameters('roleAssignments'))]"
               },
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2022-09-01",
+              "apiVersion": "2025-04-01",
               "name": "[take(format('avm.ptn.authorization.resource-role-assignment.{0}', uniqueString(parameters('roleAssignments')[copyIndex()].principalId, parameters('roleAssignments')[copyIndex()].roleDefinitionId, parameters('roleAssignments')[copyIndex()].resourceId)), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -57217,7 +57217,7 @@
     "createIndex": {
       "condition": "[equals(parameters('databaseType'), 'PostgreSQL')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[take('avm.res.resources.deployment-script.createIndex', 64)]",
       "properties": {
         "expressionEvaluationOptions": {

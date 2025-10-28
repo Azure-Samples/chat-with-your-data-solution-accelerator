@@ -3,7 +3,7 @@ from unittest.mock import ANY, AsyncMock, MagicMock, call, patch
 import pytest
 from semantic_kernel import Kernel
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
-from semantic_kernel.connectors.ai.function_call_behavior import EnabledFunctions
+from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
 from semantic_kernel.connectors.ai.open_ai.prompt_execution_settings.azure_chat_prompt_execution_settings import (
     AzureChatPromptExecutionSettings,
 )
@@ -180,15 +180,15 @@ async def test_kernel_function_call_behavior(
         await orchestrator.orchestrate("question", [])
 
     # then
-    function_call_behavior: EnabledFunctions = (
+    function_choice_behavior: FunctionChoiceBehavior = (
         kernel_mock.add_function.call_args.kwargs[
             "prompt_execution_settings"
-        ].function_call_behavior
+        ].function_choice_behavior
     )
 
-    assert function_call_behavior.auto_invoke_kernel_functions is False
-    assert function_call_behavior.enable_kernel_functions is True
-    assert function_call_behavior.filters == {"included_plugins": ["Chat"]}
+    assert function_choice_behavior.auto_invoke_kernel_functions is False
+    assert function_choice_behavior.enable_kernel_functions is True
+    assert function_choice_behavior.filters == {"included_plugins": ["Chat"]}
 
 
 @pytest.mark.asyncio

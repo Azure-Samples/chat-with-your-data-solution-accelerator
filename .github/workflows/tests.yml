@@ -18,11 +18,11 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install Poetry
         run: pip install poetry
       - name: Setup python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           architecture: x64
@@ -32,7 +32,7 @@ jobs:
           poetry install
       - name: Get coverage artifact ID
         id: coverage-artifact
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         if: github.event_name == 'pull_request'
         with:
           script: |
@@ -58,7 +58,7 @@ jobs:
           result-encoding: string
           retries: 3
       - name: Download main coverage artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         if: github.event_name == 'pull_request' && steps.coverage-artifact.outputs.result != ''
         continue-on-error: true # There is a chance that the artifact doesn't exist, or has expired
         with:
@@ -88,7 +88,7 @@ jobs:
             coverage.xml
           if-no-files-found: error
       - name: Setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: "npm"
