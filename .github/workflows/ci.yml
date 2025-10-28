@@ -334,6 +334,8 @@ jobs:
           client_secret = os.environ["AZURE_CLIENT_SECRET"]
           pg_host = os.environ.get("PG_HOST_DESTINATION", "localhost")
 
+          print(f"🔧 Connecting to PostgreSQL host: {pg_host}")
+
           # Acquire Azure AD access token for PostgreSQL
           credential = ClientSecretCredential(tenant_id, client_id, client_secret)
           token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default").token
@@ -351,15 +353,61 @@ jobs:
           target_table = "vector_store"
 
           try:
+              # First check if CSV file exists
+              if not os.path.exists(csv_file):
+                  print(f"❌ CSV file '{csv_file}' not found!")
+                  exit(1)
+
+              print(f"📁 CSV file found: {csv_file}")
+
               with psycopg2.connect(**db_params) as conn:
                   with conn.cursor() as cur:
+                      # Check if table exists
+                      cur.execute("""
+                          SELECT EXISTS (
+                              SELECT FROM information_schema.tables
+                              WHERE table_name = %s
+                          );
+                      """, (target_table,))
+                      table_exists = cur.fetchone()[0]
+
+                      if not table_exists:
+                          print(f"❌ Table '{target_table}' does not exist!")
+                          print("Available tables:")
+                          cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';")
+                          tables = cur.fetchall()
+                          for table in tables:
+                              print(f"  - {table[0]}")
+                          exit(1)
+
+                      print(f"✅ Table '{target_table}' exists")
+
+                      # Check current row count
+                      cur.execute(f"SELECT COUNT(*) FROM {target_table};")
+                      before_count = cur.fetchone()[0]
+                      print(f"📊 Rows before import: {before_count}")
+
+                      # Import CSV data
                       with open(csv_file, "r", encoding="utf-8") as f:
                           next(f)  # Skip header
                           cur.copy_expert(f"COPY {target_table} FROM STDIN WITH CSV", f)
+
+                      # Check row count after import
+                      cur.execute(f"SELECT COUNT(*) FROM {target_table};")
+                      after_count = cur.fetchone()[0]
+                      imported_rows = after_count - before_count
+
+                      print(f"📊 Rows after import: {after_count}")
+                      print(f"✅ Successfully imported {imported_rows} rows from '{csv_file}' into table '{target_table}'.")
+
                   conn.commit()
-                  print(f"✅ Imported data from '{csv_file}' into table '{target_table}'.")
+
+          except FileNotFoundError as e:
+              print(f"❌ File error: {e}")
+          except psycopg2.Error as e:
+              print(f"❌ Database error: {e}")
           except Exception as e:
-              print(f"❌ Error during import: {e}")
+              print(f"❌ Unexpected error: {e}")
           EOF
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
