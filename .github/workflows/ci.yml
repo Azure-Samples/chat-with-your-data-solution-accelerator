@@ -324,50 +324,23 @@ jobs:
 
       - name: Populate PostgreSQL Database
         run: |
-          # First, let's get the PostgreSQL admin password from Key Vault
-          echo "🔧 Getting PostgreSQL credentials from Azure..."
-
-          # Get the admin password from environment variables set during deployment
-          POSTGRES_ADMIN_USER="postgres"
-
-          # Try to get the password from azd env values
-          if [ -f ".env.temp" ]; then
-            POSTGRES_ADMIN_PASSWORD=$(grep '^AZURE_POSTGRESQL_PASSWORD=' .env.temp | cut -d'=' -f2 | tr -d '"' | xargs)
-          fi
-
-          # If password not found, try alternative approaches
-          if [ -z "$POSTGRES_ADMIN_PASSWORD" ]; then
-            echo "🔍 PostgreSQL password not found in .env.temp, trying Key Vault..."
-
-            # Try to get password from Key Vault using the naming convention
-            KV_NAME="kv-${SOLUTION_SUFFIX}"
-            SECRET_NAME="AZURE-POSTGRESQL-PASSWORD"
-
-            POSTGRES_ADMIN_PASSWORD=$(az keyvault secret show --vault-name "$KV_NAME" --name "$SECRET_NAME" --query value -o tsv 2>/dev/null || echo "")
-          fi
-
-          if [ -z "$POSTGRES_ADMIN_PASSWORD" ]; then
-            echo "❌ Could not retrieve PostgreSQL admin password!"
-            echo "💡 Skipping database population - this might be expected if using Azure AD authentication only"
-            exit 0
-          fi
-
-          echo "✅ PostgreSQL credentials obtained"
-
           python - <<EOF
           import os
           import psycopg2
+          from azure.identity import ClientSecretCredential
 
+          tenant_id = os.environ["AZURE_TENANT_ID"]
+          client_id = os.environ["AZURE_CLIENT_ID"]
+          client_secret = os.environ["AZURE_CLIENT_SECRET"]
           pg_host = os.environ.get("PG_HOST_DESTINATION", "localhost")
-          postgres_user = os.environ.get("POSTGRES_ADMIN_USER", "postgres")
-          postgres_password = os.environ.get("POSTGRES_ADMIN_PASSWORD", "")
 
-          print(f"🔧 Connecting to PostgreSQL host: {pg_host}")
-          print(f"🔧 Using admin user: {postgres_user}")
+          # Acquire Azure AD access token for PostgreSQL
+          credential = ClientSecretCredential(tenant_id, client_id, client_secret)
+          token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default").token
 
           db_params = {
-              "user": postgres_user,
-              "password": postgres_password,
+              "user": client_id,   # Use service principal clientId
+              "password": token,   # Use AAD token instead of password
               "host": pg_host,
               "port": "5432",
               "dbname": "postgres",
@@ -378,84 +351,21 @@ jobs:
           target_table = "vector_store"
 
           try:
-              # First check if CSV file exists
-              if not os.path.exists(csv_file):
-                  print(f"❌ CSV file '{csv_file}' not found!")
-                  exit(1)
-
-              print(f"📁 CSV file found: {csv_file}")
-
               with psycopg2.connect(**db_params) as conn:
                   with conn.cursor() as cur:
-                      # Check if table exists
-                      cur.execute("""
-                          SELECT EXISTS (
-                              SELECT FROM information_schema.tables
-                              WHERE table_name = %s
-                          );
-                      """, (target_table,))
-                      table_exists = cur.fetchone()[0]
-
-                      if not table_exists:
-                          print(f"❌ Table '{target_table}' does not exist!")
-                          print("Available tables:")
-                          cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';")
-                          tables = cur.fetchall()
-                          for table in tables:
-                              print(f"  - {table[0]}")
-
-                          # Try to create the table with a basic structure
-                          print(f"🔧 Attempting to create table '{target_table}'...")
-                          cur.execute(f"""
-                              CREATE TABLE IF NOT EXISTS {target_table} (
-                                  id SERIAL PRIMARY KEY,
-                                  content TEXT,
-                                  content_vector vector(1536),
-                                  metadata JSONB,
-                                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                              );
-                          """)
-                          conn.commit()
-                          print(f"✅ Table '{target_table}' created")
-
-                      print(f"✅ Table '{target_table}' exists")
-
-                      # Check current row count
-                      cur.execute(f"SELECT COUNT(*) FROM {target_table};")
-                      before_count = cur.fetchone()[0]
-                      print(f"📊 Rows before import: {before_count}")
-
-                      # Import CSV data
                       with open(csv_file, "r", encoding="utf-8") as f:
                           next(f)  # Skip header
                           cur.copy_expert(f"COPY {target_table} FROM STDIN WITH CSV", f)
-
-                      # Check row count after import
-                      cur.execute(f"SELECT COUNT(*) FROM {target_table};")
-                      after_count = cur.fetchone()[0]
-                      imported_rows = after_count - before_count
-
-                      print(f"📊 Rows after import: {after_count}")
-                      print(f"✅ Successfully imported {imported_rows} rows from '{csv_file}' into table '{target_table}'.")
-
                   conn.commit()
-
-          except FileNotFoundError as e:
-              print(f"❌ File error: {e}")
-          except psycopg2.Error as e:
-              print(f"❌ Database error: {e}")
-              print(f"💡 This might be expected if the database is configured for Azure AD authentication only")
+                  print(f"✅ Imported data from '{csv_file}' into table '{target_table}'.")
           except Exception as e:
-              print(f"❌ Unexpected error: {e}")
+              print(f"❌ Error during import: {e}")
           EOF
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           PG_HOST_DESTINATION: ${{ env.PG_HOST_DESTINATION }}
-          SOLUTION_SUFFIX: ${{ env.SOLUTION_SUFFIX }}
-          POSTGRES_ADMIN_USER: $POSTGRES_ADMIN_USER
-          POSTGRES_ADMIN_PASSWORD: $POSTGRES_ADMIN_PASSWORD
 
       - name: Final Status Check
         id: final-status
