@@ -383,8 +383,8 @@ jobs:
                       echo "DEPLOYMENT_SUCCESS=true" >> $GITHUB_OUTPUT
 
 
-      - name: Wait for 5 minutes for propagation
-        run: sleep 300
+      - name: Wait for 15 minutes for propagation
+        run: sleep 900
 
 
   e2e-test:
