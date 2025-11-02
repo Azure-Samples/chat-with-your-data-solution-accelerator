@@ -31,7 +31,7 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
       - name: Check Broken Links in Added/Modified Files (PR)
         if: github.event_name == 'pull_request' && steps.changed-files.outputs.md_files != ''
-        uses: lycheeverse/lychee-action@v2.6.1
+        uses: lycheeverse/lychee-action@v2.7.0
         with:
           args: >
             --verbose --exclude-mail --no-progress --exclude ^https?://
@@ -42,7 +42,7 @@ jobs:
 
       - name: Check Broken Links in Entire Repo (Manual)
         if: github.event_name == 'workflow_dispatch'
-        uses: lycheeverse/lychee-action@v2.6.1
+        uses: lycheeverse/lychee-action@v2.7.0
         with:
           args: >
             --verbose --exclude-mail --no-progress --exclude ^https?://
