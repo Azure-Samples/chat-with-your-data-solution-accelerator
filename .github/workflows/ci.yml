@@ -89,13 +89,8 @@ jobs:
 
       - name: Set Deployment Region
         run: |
-          if [ -n "$VALID_REGION" ]; then
             echo "Selected Region: $VALID_REGION"
             echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
-          else
-            echo "VALID_REGION not set, using default eastus"
-            echo "AZURE_LOCATION=eastus" >> $GITHUB_ENV
-          fi
 
       - name: Generate Resource Group Name
         id: generate_rg_name
