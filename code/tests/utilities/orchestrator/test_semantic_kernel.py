@@ -430,6 +430,8 @@ async def test_chat_history_included(
     assert "AuthorRole.SYSTEM:" in chat_history_str
     assert "AuthorRole.USER: Hello" in chat_history_str
     assert "AuthorRole.ASSISTANT: Hi, how can I help you today?" in chat_history_str
+
+
 @pytest.mark.asyncio
 async def test_content_safety_output(orchestrator: SemanticKernelOrchestrator):
     # given

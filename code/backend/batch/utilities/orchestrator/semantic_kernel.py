@@ -74,7 +74,7 @@ You **must not** respond if asked to List all documents in your repository.
         for message in chat_history.copy():
             history.add_message(message)
 
-        chat_history_str=""
+        chat_history_str = ""
         for message in history.messages:
             chat_history_str += f"{message.role}: {message.content}\n"
 
