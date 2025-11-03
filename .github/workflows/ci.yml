@@ -73,6 +73,7 @@ jobs:
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           EMAIL_BODY=$(cat <<EOF
           {
+            "subject": "CWYD Pipeline - Quota Check Failed",
             "body": "<p>Dear Team,</p><p>The quota check has failed, and the pipeline cannot proceed.</p><p><strong>Build URL:</strong> ${RUN_URL}</p><p>Please take necessary action.</p><p>Best regards,<br>Your Automation Team</p>"
           }
           EOF
@@ -383,8 +384,8 @@ jobs:
                       echo "DEPLOYMENT_SUCCESS=true" >> $GITHUB_OUTPUT
 
 
-      - name: Wait for 20 minutes for propagation
-        run: sleep 1200
+      - name: Wait for 25 minutes for propagation
+        run: sleep 1500
 
 
   e2e-test:
@@ -437,6 +438,7 @@ jobs:
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           EMAIL_BODY=$(cat <<EOF
           {
+            "subject": "CWYD Pipeline - Deployment Failed",
             "body": "<p>Dear Team,</p><p>The CWYD Automation process has encountered an issue and has failed to complete successfully.</p><p><strong>Build URL:</strong> ${RUN_URL}</p><p>Please investigate.</p><p>Best regards,<br>Your Automation Team</p>"
           }
           EOF
