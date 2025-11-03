@@ -423,19 +423,13 @@ async def test_chat_history_included(
         await orchestrator.orchestrate("question", chat_history)
 
     # then
-    chat_history = kernel_mock.invoke.call_args.kwargs["chat_history"]
-    messages = chat_history.messages
+    chat_history_str = kernel_mock.invoke.call_args.kwargs["chat_history"]
 
-    assert len(messages) == 3
-    assert messages[0].role == AuthorRole.SYSTEM
-
-    assert messages[1].role == AuthorRole.USER
-    assert messages[1].content == "Hello"
-
-    assert messages[2].role == AuthorRole.ASSISTANT
-    assert messages[2].content == "Hi, how can I help you today?"
-
-
+    # The chat_history parameter is now a string, so we check its content
+    assert isinstance(chat_history_str, str)
+    assert "AuthorRole.SYSTEM:" in chat_history_str
+    assert "AuthorRole.USER: Hello" in chat_history_str
+    assert "AuthorRole.ASSISTANT: Hi, how can I help you today?" in chat_history_str
 @pytest.mark.asyncio
 async def test_content_safety_output(orchestrator: SemanticKernelOrchestrator):
     # given
