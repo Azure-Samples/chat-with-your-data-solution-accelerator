@@ -1,9 +1,69 @@
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
-[data-testid="baseButton-secondary"] svg{display: none;}
 [data-testid="stPopoverBody"] button{float: right;}
-[data-testid="stSidebar"] {z-index: 999;}
+[data-testid="stSidebar"] {
+    z-index: 999;
+    position: relative !important;
+}
+/* Ensure sidebar is always visible and accessible */
+[data-testid="stSidebar"] > div {
+    position: relative !important;
+    width: auto !important;
+    max-width: none !important;
+}
+/* Allow sidebar toggle button SVG to be visible */
+[data-testid="stSidebar"] [data-testid="baseButton-secondary"] svg {
+    display: block !important;
+}
+/* Ensure all sidebar buttons and icons are visible */
+[data-testid="stSidebar"] button svg {
+    display: block !important;
+}
+[data-testid="collapsedControl"] svg {
+    display: block !important;
+}
+/* Additional selectors for sidebar toggle button */
+.css-1d391kg svg, .css-1v0mbdj svg {
+    display: block !important;
+}
+/* General sidebar control visibility */
+[data-testid="stSidebarNav"] svg,
+[data-testid="stSidebarNavItems"] svg,
+button[kind="headerNoPadding"] svg {
+    display: block !important;
+}
+/* Ensure sidebar toggle button is always visible even at full width */
+.stApp > header [data-testid="stToolbar"] button {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+.stApp > header [data-testid="stToolbar"] button svg {
+    display: block !important;
+}
+/* Force visibility of sidebar toggle in main header */
+header[data-testid="stHeader"] button {
+    display: flex !important;
+    visibility: visible !important;
+}
+header[data-testid="stHeader"] button svg {
+    display: block !important;
+}
+/* Ensure sidebar toggle is accessible when sidebar is full width */
+[data-testid="stSidebar"].css-1d391kg,
+[data-testid="stSidebar"][style*="width: 100%"] {
+    position: relative !important;
+}
+[data-testid="stSidebar"].css-1d391kg [data-testid="baseButton-secondary"],
+[data-testid="stSidebar"][style*="width: 100%"] [data-testid="baseButton-secondary"] {
+    position: absolute !important;
+    top: 0.5rem !important;
+    right: 0.5rem !important;
+    z-index: 1000 !important;
+    display: flex !important;
+    visibility: visible !important;
+}
 [data-testid="stPopoverBody"] .stTooltipIcon [data-testid="baseButton-secondary"] p{
     font-weight: bold;
 }
@@ -32,4 +92,69 @@ header {visibility: hidden;}
     .st-emotion-cache-1kyxreq{
         max-width: 200px !important;
     }
+    /* Ensure sidebar toggle is visible on smaller screens */
+    [data-testid="stSidebar"] [data-testid="baseButton-secondary"] {
+        position: fixed !important;
+        top: 1rem !important;
+        right: 1rem !important;
+        z-index: 9999 !important;
+        background: white !important;
+        border: 1px solid #ccc !important;
+        border-radius: 4px !important;
+        padding: 4px !important;
+    }
+}
+/* Override any width restrictions on sidebar when expanded */
+.stApp .css-1d391kg {
+    min-width: auto !important;
+    max-width: 100vw !important;
+}
+/* Ensure main content doesn't push sidebar toggle out of view */
+.stApp > .css-1d391kg + section {
+    position: relative !important;
+}
+.stApp > .css-1d391kg + section::before {
+    content: '';
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 1001;
+    pointer-events: none;
+}
+
+/* Hide Deploy button, main menu, and toolbar - show ONLY the loading spinner */
+[data-testid="stToolbarActions"],
+[data-testid="stAppDeployButton"],
+[data-testid="stMainMenu"] {
+    display: none !important;
+}
+
+/* Ensure ONLY the loading spinner/gif is visible */
+img[alt="Running..."],
+img[class*="st-emotion-cache"][alt*="Running"],
+.st-emotion-cache-1j15ncu.e14hul0q5 {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 10000 !important;
+}
+
+/* Hide the toolbar section with Deploy button and menu using stable selectors */
+[data-testid="stToolbarActions"],
+[data-testid="stAppDeployButton"],
+[data-testid="stMainMenu"] {
+    display: none !important;
+}
+
+/* Ensure all loading/spinner elements remain visible */
+[data-testid="stSpinner"],
+.stSpinner,
+[class*="spinner"],
+[class*="loading"],
+[data-testid*="spinner"],
+div[role="status"],
+.st-emotion-cache-*[class*="spinner"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
