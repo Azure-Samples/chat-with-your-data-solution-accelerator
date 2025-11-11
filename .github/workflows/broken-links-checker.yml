@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -47,7 +47,7 @@ jobs:
       - name: Check Broken Links in All Markdown Files in Entire Repo (Manual Trigger)
         id: lychee-check-manual
         if: github.event_name == 'workflow_dispatch'
-        uses: lycheeverse/lychee-action@v2.4.1
+        uses: lycheeverse/lychee-action@v2.6.1
         with:
           args: >
             --verbose --exclude-mail --no-progress --exclude ^https?://
