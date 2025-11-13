@@ -95,7 +95,7 @@ def setup_caption_response(httpserver: HTTPServer, app_config: AppConfig):
 
 
 def test_config_file_is_retrieved_from_storage(
-    message: QueueMessage, httpserver: HTTPServer, app_config: AppConfig
+    message: QueueMessage, httpserver: HTTPServer
 ):
     # when
     batch_push_results.build().get_user_function()(message)
