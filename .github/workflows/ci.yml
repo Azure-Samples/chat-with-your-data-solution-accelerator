@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install AZD
         run: |
@@ -73,6 +73,7 @@ jobs:
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           EMAIL_BODY=$(cat <<EOF
           {
+            "subject": "CWYD Pipeline - Quota Check Failed",
             "body": "<p>Dear Team,</p><p>The quota check has failed, and the pipeline cannot proceed.</p><p><strong>Build URL:</strong> ${RUN_URL}</p><p>Please take necessary action.</p><p>Best regards,<br>Your Automation Team</p>"
           }
           EOF
@@ -88,8 +89,8 @@ jobs:
 
       - name: Set Deployment Region
         run: |
-          echo "Selected Region: $VALID_REGION"
-          echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
+            echo "Selected Region: $VALID_REGION"
+            echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
 
       - name: Generate Resource Group Name
         id: generate_rg_name
@@ -175,13 +176,13 @@ jobs:
 
                               # Try to extract URLs from deployment logs as backup
                               echo "=== Extracting URLs from deployment logs ==="
-                              grep -oE "https://[a-zA-Z0-9.-]*\.azurewebsites\.net/" deploy_output.log | head -2 | tee extracted_urls.txt || echo "No URLs found in logs"
+                              grep -oE "https://[a-zA-Z0-9.-]*\.azurewebsites\.net/" deploy_output.log | sort | uniq | head -2 | tee extracted_urls.txt || echo "No URLs found in logs"
 
                               # Check if we have admin URL in logs
-                              grep -E "Done: Deploying service adminweb" -A 2 deploy_output.log | grep -oE "https://[a-zA-Z0-9.-]*\.azurewebsites\.net/" > log_admin_url.txt || echo "" > log_admin_url.txt
+                              grep -E "Done: Deploying service adminweb" -A 2 deploy_output.log | grep -oE "https://[a-zA-Z0-9.-]*\.azurewebsites\.net/" | head -1 > log_admin_url.txt || echo "" > log_admin_url.txt
 
                               # Check if we have web URL in logs
-                              grep -E "Done: Deploying service web" -A 2 deploy_output.log | grep -oE "https://[a-zA-Z0-9.-]*\.azurewebsites\.net/" > log_web_url.txt || echo "" > log_web_url.txt
+                              grep -E "Done: Deploying service web" -A 2 deploy_output.log | grep -oE "https://[a-zA-Z0-9.-]*\.azurewebsites\.net/" | head -1 > log_web_url.txt || echo "" > log_web_url.txt
 
                               echo "URLs from logs:"
                               echo "Admin URL from logs: $(cat log_admin_url.txt)"
@@ -217,8 +218,8 @@ jobs:
         run: |
                       # Method 1: Check files created by Makefile
                       echo "=== Method 1: Files from Makefile ==="
-                      if [ -f "web_url.txt" ]; then
-                        WEB_URL=$(cat web_url.txt | tr -d '\n\r' | xargs)
+                      if [ -f "frontend_url.txt" ]; then
+                        WEB_URL=$(cat frontend_url.txt | tr -d '\n\r' | xargs)
                         echo "Web URL from makefile: '$WEB_URL'"
                       fi
 
@@ -248,7 +249,7 @@ jobs:
                       # Set outputs
                       if [ -n "$WEB_URL" ] && [ "$WEB_URL" != "null" ] && [ "$WEB_URL" != "" ]; then
                         echo "web_url=$WEB_URL" >> $GITHUB_OUTPUT
-                        echo "WEB_WEBSITE_URL=$WEB_URL" >> $GITHUB_ENV
+                        echo "FRONTEND_WEBSITE_URL=$WEB_URL" >> $GITHUB_ENV
                         echo "✅ Web URL: $WEB_URL"
                       else
                         echo "web_url=" >> $GITHUB_OUTPUT
@@ -272,17 +273,15 @@ jobs:
 
       - name: Display URLs
         run: |
-                      echo "Web URL: ${{ env.WEB_WEBSITE_URL }}"
+                      echo "Web URL: ${{ env.FRONTEND_WEBSITE_URL }}"
                       echo "Admin URL: ${{ env.ADMIN_WEBSITE_URL }}"
-                      echo "web_url=$WEB_URL" >> $GITHUB_OUTPUT
-                      echo "admin_url=$ADMIN_URL" >> $GITHUB_OUTPUT
 
       - name: Disable Authentication with Script
         run: |
                 chmod +x scripts/disable_auth.sh
                 ./scripts/disable_auth.sh
         env:
-                FRONTEND_WEBSITE_URL: ${{ env.WEB_WEBSITE_URL }}
+                FRONTEND_WEBSITE_URL: ${{ env.FRONTEND_WEBSITE_URL }}
                 ADMIN_WEBSITE_URL: ${{ env.ADMIN_WEBSITE_URL }}
                 AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
                 AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
@@ -311,7 +310,7 @@ jobs:
                 echo "Port: 5432 (hardcoded)"
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
                 python-version: '3.11'
 
@@ -380,8 +379,8 @@ jobs:
                       echo "DEPLOYMENT_SUCCESS=true" >> $GITHUB_OUTPUT
 
 
-      - name: Wait for 5 minutes for propagation
-        run: sleep 300
+      - name: Wait for 25 minutes for propagation
+        run: sleep 1500
 
 
   e2e-test:
@@ -410,7 +409,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Destroy resources
         uses: devcontainers/ci@v0.3
@@ -434,6 +433,7 @@ jobs:
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           EMAIL_BODY=$(cat <<EOF
           {
+            "subject": "CWYD Pipeline - Deployment Failed",
             "body": "<p>Dear Team,</p><p>The CWYD Automation process has encountered an issue and has failed to complete successfully.</p><p><strong>Build URL:</strong> ${RUN_URL}</p><p>Please investigate.</p><p>Best regards,<br>Your Automation Team</p>"
           }
           EOF
