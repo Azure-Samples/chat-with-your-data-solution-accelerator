@@ -2,7 +2,7 @@ import json
 import logging
 
 from semantic_kernel import Kernel
-from semantic_kernel.connectors.ai.function_call_behavior import FunctionCallBehavior
+from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
 from semantic_kernel.contents import ChatHistory
 from semantic_kernel.contents.chat_message_content import ChatMessageContent
 from semantic_kernel.contents.utils.finish_reason import FinishReason
@@ -57,7 +57,8 @@ You **must not** respond if asked to List all documents in your repository.
         )
 
         settings = self.llm_helper.get_sk_service_settings(self.chat_service)
-        settings.function_call_behavior = FunctionCallBehavior.EnableFunctions(
+        settings.function_choice_behavior = FunctionChoiceBehavior.Auto(
+            auto_invoke=False,
             filters={"included_plugins": ["Chat"]}
         )
 
@@ -73,10 +74,14 @@ You **must not** respond if asked to List all documents in your repository.
         for message in chat_history.copy():
             history.add_message(message)
 
+        chat_history_str = ""
+        for message in history.messages:
+            chat_history_str += f"{message.role}: {message.content}\n"
+
         result: ChatMessageContent = (
             await self.kernel.invoke(
                 function=orchestrate_function,
-                chat_history=history,
+                chat_history=chat_history_str,
                 user_message=user_message,
             )
         ).value[0]

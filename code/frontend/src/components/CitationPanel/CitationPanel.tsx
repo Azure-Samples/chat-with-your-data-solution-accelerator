@@ -68,17 +68,18 @@ export const CitationPanel: React.FC<CitationPanelProps> = (props) => {
         Tables, images, and other special formatting not shown in this preview.
         Please follow the link to review the original document.
       </div>
-      <ReactMarkdown
-        className="citation-panel"
-        children={rewriteCitationUrl(activeCitation[0])}
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw]}
-        components={{
-          a: ({ node, ...props }) => (
-            <a {...props} target="_blank" rel="noopener noreferrer" />
-          ),
-        }}
-      />
+      <div className="citation-panel">
+        <ReactMarkdown
+          children={rewriteCitationUrl(activeCitation[0])}
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw]}
+          components={{
+            a: ({ node, ...props }) => (
+              <a {...props} target="_blank" rel="noopener noreferrer" />
+            ),
+          }}
+        />
+      </div>
 
     </Stack.Item>
   );
