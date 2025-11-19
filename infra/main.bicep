@@ -151,13 +151,10 @@ param useAdvancedImageProcessing bool = false
 param advancedImageProcessingMaxImages int = 1
 
 @description('Optional. Azure OpenAI Vision Model Deployment Name.')
-param azureOpenAIVisionModel string = 'gpt-4'
+param azureOpenAIVisionModel string = 'gpt-4.1'
 
 @description('Optional. Azure OpenAI Vision Model Name.')
-param azureOpenAIVisionModelName string = 'gpt-4'
-
-@description('Optional. Azure OpenAI Vision Model Version.')
-param azureOpenAIVisionModelVersion string = 'turbo-2024-04-09'
+param azureOpenAIVisionModelName string = 'gpt-4.1'
 
 @description('Optional. Azure OpenAI Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota.')
 param azureOpenAIVisionModelCapacity int = 10
@@ -972,7 +969,6 @@ var openAiDeployments = concat(
           model: {
             format: 'OpenAI'
             name: azureOpenAIVisionModelName
-            version: azureOpenAIVisionModelVersion
           }
           sku: {
             name: 'GlobalStandard'
