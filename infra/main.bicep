@@ -151,7 +151,7 @@ param useAdvancedImageProcessing bool = false
 param advancedImageProcessingMaxImages int = 1
 
 @description('Optional. Azure OpenAI Vision Model Deployment Name.')
-param azureOpenAIVisionModel string = 'gpt-4.1-vision'
+param azureOpenAIVisionModel string = 'gpt-4.1'
 
 @description('Optional. Azure OpenAI Vision Model Name.')
 param azureOpenAIVisionModelName string = 'gpt-4.1'
@@ -963,26 +963,6 @@ var defaultOpenAiDeployments = [
   }
 ]
 
-var openAiDeployments = concat(
-  defaultOpenAiDeployments,
-  useAdvancedImageProcessing
-    ? [
-        {
-          name: azureOpenAIVisionModel
-          model: {
-            format: 'OpenAI'
-            name: azureOpenAIVisionModelName
-            version: azureOpenAIVisionModelVersion
-          }
-          sku: {
-            name: 'GlobalStandard'
-            capacity: azureOpenAIVisionModelCapacity
-          }
-        }
-      ]
-    : []
-)
-
 module openai 'modules/core/ai/cognitiveservices.bicep' = {
   name: azureOpenAIResourceName
   scope: resourceGroup()
@@ -992,7 +972,7 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
     tags: allTags
     kind: 'OpenAI'
     sku: azureOpenAISkuName
-    deployments: openAiDeployments
+    deployments: defaultOpenAiDeployments
     userAssignedResourceId: managedIdentityModule.outputs.resourceId
     restrictOutboundNetworkAccess: true
     allowedFqdnList: concat(
