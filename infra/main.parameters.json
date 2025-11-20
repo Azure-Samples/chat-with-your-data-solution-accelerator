@@ -25,7 +25,7 @@
       "value": "${HOSTING_PLAN_SKU=B3}"
     },
     "databaseType": {
-      "value": "${DATABASE_TYPE=CosmosDB}"
+      "value": "${DATABASE_TYPE=PostgreSQL}"
     },
     "azureSearchUseIntegratedVectorization": {
       "value": "${AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION=false}"
@@ -121,7 +121,7 @@
       "value": "${AZURE_OPENAI_STREAM=true}"
     },
     "useAdvancedImageProcessing": {
-      "value": "${USE_ADVANCED_IMAGE_PROCESSING=true}"
+      "value": "${USE_ADVANCED_IMAGE_PROCESSING=false}"
     },
     "advancedImageProcessingMaxImages": {
       "value": "${ADVANCED_IMAGE_PROCESSING_MAX_IMAGES=1}"
