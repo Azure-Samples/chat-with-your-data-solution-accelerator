@@ -24,5 +24,3 @@ You can safely delete:
 - The Log Analytics workspace (manual)
 - The resource group (manual), or
 - All provisioned resources via `azd down`
-
-Return to: [Deployment Guide](./DeploymentGuide.md)
