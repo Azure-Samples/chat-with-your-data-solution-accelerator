@@ -1276,6 +1276,7 @@ module web 'modules/app/web.bicep' = {
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
+        PACKAGE_LOGGING_LEVEL: 'WARNING'
         DATABASE_TYPE: databaseType
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
         SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
@@ -1374,6 +1375,7 @@ module adminweb 'modules/app/adminweb.bicep' = {
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
+        PACKAGE_LOGGING_LEVEL: 'WARNING'
         DATABASE_TYPE: databaseType
         USE_KEY_VAULT: 'true'
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.clientId
@@ -1469,6 +1471,7 @@ module function 'modules/app/function.bicep' = {
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         LOGLEVEL: logLevel
+        PACKAGE_LOGGING_LEVEL: 'WARNING'
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.clientId
