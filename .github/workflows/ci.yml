@@ -288,6 +288,52 @@ jobs:
                 AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
                 AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Verify Deployment URLs
+        run: |
+                echo "=== Verifying Deployed Applications ==="
+                echo ""
+
+                # Wait a bit for services to be ready
+                echo "⏳ Waiting 2 minutes for services to stabilize..."
+                sleep 120
+
+                # Check Frontend URL
+                if [ -n "${{ env.FRONTEND_WEBSITE_URL }}" ]; then
+                  echo "🔍 Checking Frontend URL: ${{ env.FRONTEND_WEBSITE_URL }}"
+
+                  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -L "${{ env.FRONTEND_WEBSITE_URL }}" || echo "000")
+
+                  if [ "$HTTP_CODE" = "200" ]; then
+                    echo "✅ Frontend is UP and responding (HTTP $HTTP_CODE)"
+                  else
+                    echo "❌ Frontend is DOWN or not responding properly (HTTP $HTTP_CODE)"
+                    echo "⚠️  This may indicate a deployment issue - check App Service logs"
+                  fi
+                else
+                  echo "⚠️  Frontend URL not available"
+                fi
+
+                echo ""
+
+                # Check Admin URL
+                if [ -n "${{ env.ADMIN_WEBSITE_URL }}" ]; then
+                  echo "🔍 Checking Admin URL: ${{ env.ADMIN_WEBSITE_URL }}"
+
+                  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -L "${{ env.ADMIN_WEBSITE_URL }}" || echo "000")
+
+                  if [ "$HTTP_CODE" = "200" ]; then
+                    echo "✅ Admin is UP and responding (HTTP $HTTP_CODE)"
+                  else
+                    echo "❌ Admin is DOWN or not responding properly (HTTP $HTTP_CODE)"
+                    echo "⚠️  This may indicate a deployment issue - check App Service logs"
+                  fi
+                else
+                  echo "⚠️  Admin URL not available"
+                fi
+
+                echo ""
+                echo "=== Deployment URL Verification Complete ==="
+
       - name: Export PostgreSQL Host Endpoint from Makefile
         run: |
                 # Only extract the PostgreSQL host endpoint from Makefile output
