@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "10150019308123091137"
+      "templateHash": "11248205616546713756"
     }
   },
   "parameters": {
@@ -257,7 +257,7 @@
     },
     "azureOpenAIVisionModel": {
       "type": "string",
-      "defaultValue": "gpt-4",
+      "defaultValue": "gpt-4.1",
       "metadata": {
         "description": "Optional. Azure OpenAI Vision Model Deployment Name."
       }
@@ -267,6 +267,13 @@
       "defaultValue": "gpt-4.1",
       "metadata": {
         "description": "Optional. Azure OpenAI Vision Model Name."
+      }
+    },
+    "azureOpenAIVisionModelVersion": {
+      "type": "string",
+      "defaultValue": "2025-04-14",
+      "metadata": {
+        "description": "Optional. Azure OpenAI Vision Model Version."
       }
     },
     "azureOpenAIVisionModelCapacity": {
@@ -696,7 +703,6 @@
         }
       }
     ],
-    "openAiDeployments": "[concat(variables('defaultOpenAiDeployments'), if(parameters('useAdvancedImageProcessing'), createArray(createObject('name', parameters('azureOpenAIVisionModel'), 'model', createObject('format', 'OpenAI', 'name', parameters('azureOpenAIVisionModelName')), 'sku', createObject('name', 'GlobalStandard', 'capacity', parameters('azureOpenAIVisionModelCapacity')))), createArray()))]",
     "enablePrivateNetworkingSpeech": false,
     "webServerFarmResourceName": "[variables('hostingPlanName')]",
     "postgresDBFqdn": "[format('{0}.postgres.database.azure.com', variables('postgresResourceName'))]",
@@ -22951,7 +22957,7 @@
             "value": "[parameters('azureOpenAISkuName')]"
           },
           "deployments": {
-            "value": "[variables('openAiDeployments')]"
+            "value": "[variables('defaultOpenAiDeployments')]"
           },
           "userAssignedResourceId": {
             "value": "[reference('managedIdentityModule').outputs.resourceId.value]"
@@ -22986,7 +22992,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "10460226250821772608"
+              "templateHash": "16505240488755356349"
             }
           },
           "parameters": {
@@ -23205,7 +23211,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "14152583833401091682"
+                      "templateHash": "6474769167245807917"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -23302,9 +23308,8 @@
                             },
                             "version": {
                               "type": "string",
-                              "nullable": true,
                               "metadata": {
-                                "description": "Optional. The version of Cognitive Services account deployment model."
+                                "description": "Required. The version of Cognitive Services account deployment model."
                               }
                             }
                           },
@@ -25593,7 +25598,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "10460226250821772608"
+              "templateHash": "16505240488755356349"
             }
           },
           "parameters": {
@@ -25812,7 +25817,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "14152583833401091682"
+                      "templateHash": "6474769167245807917"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -25909,9 +25914,8 @@
                             },
                             "version": {
                               "type": "string",
-                              "nullable": true,
                               "metadata": {
-                                "description": "Optional. The version of Cognitive Services account deployment model."
+                                "description": "Required. The version of Cognitive Services account deployment model."
                               }
                             }
                           },
@@ -28201,7 +28205,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "10460226250821772608"
+              "templateHash": "16505240488755356349"
             }
           },
           "parameters": {
@@ -28420,7 +28424,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "14152583833401091682"
+                      "templateHash": "6474769167245807917"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -28517,9 +28521,8 @@
                             },
                             "version": {
                               "type": "string",
-                              "nullable": true,
                               "metadata": {
-                                "description": "Optional. The version of Cognitive Services account deployment model."
+                                "description": "Required. The version of Cognitive Services account deployment model."
                               }
                             }
                           },
@@ -46718,7 +46721,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "10460226250821772608"
+              "templateHash": "16505240488755356349"
             }
           },
           "parameters": {
@@ -46937,7 +46940,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "14152583833401091682"
+                      "templateHash": "6474769167245807917"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -47034,9 +47037,8 @@
                             },
                             "version": {
                               "type": "string",
-                              "nullable": true,
                               "metadata": {
-                                "description": "Optional. The version of Cognitive Services account deployment model."
+                                "description": "Required. The version of Cognitive Services account deployment model."
                               }
                             }
                           },
@@ -49323,7 +49325,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "10460226250821772608"
+              "templateHash": "16505240488755356349"
             }
           },
           "parameters": {
@@ -49542,7 +49544,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.37.4.10188",
-                      "templateHash": "14152583833401091682"
+                      "templateHash": "6474769167245807917"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -49639,9 +49641,8 @@
                             },
                             "version": {
                               "type": "string",
-                              "nullable": true,
                               "metadata": {
-                                "description": "Optional. The version of Cognitive Services account deployment model."
+                                "description": "Required. The version of Cognitive Services account deployment model."
                               }
                             }
                           },
@@ -55159,9 +55160,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "managedIdentityModule",
         "virtualNetwork"
       ]
