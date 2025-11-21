@@ -127,10 +127,13 @@
       "value": "${ADVANCED_IMAGE_PROCESSING_MAX_IMAGES=1}"
     },
     "azureOpenAIVisionModel": {
-      "value": "${AZURE_OPENAI_VISION_MODEL=gpt-4.1-vision}"
+      "value": "${AZURE_OPENAI_VISION_MODEL=gpt-4.1}"
     },
     "azureOpenAIVisionModelName": {
       "value": "${AZURE_OPENAI_VISION_MODEL_NAME=gpt-4.1}"
+    },
+    "azureOpenAIVisionModelVersion": {
+      "value": "${AZURE_OPENAI_VISION_MODEL_VERSION=2025-04-14}"
     },
     "azureOpenAIVisionModelCapacity": {
       "value": "${AZURE_OPENAI_VISION_MODEL_CAPACITY=10}"
