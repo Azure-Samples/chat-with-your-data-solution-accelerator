@@ -393,6 +393,7 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
       ...allTags
       TemplateName: 'CWYD'
       CreatedBy: createdBy
+      SecurityControl: 'Ignore'
     }
   }
 }
@@ -1255,7 +1256,7 @@ module web 'modules/app/web.bicep' = {
     dockerFullImageName: hostingModel == 'container' ? '${registryName}.azurecr.io/rag-webapp:${appversion}' : null
     useDocker: hostingModel == 'container' ? true : false
     allowedOrigins: []
-    appCommandLine: hostingModel == 'code' ? 'gunicorn --bind=0.0.0.0 --timeout 600 app:app' : ''
+    appCommandLine: ''
     userAssignedIdentityResourceId: managedIdentityModule.outputs.resourceId
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId }] : []
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
