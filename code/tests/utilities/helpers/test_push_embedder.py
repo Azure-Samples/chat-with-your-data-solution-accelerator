@@ -192,7 +192,7 @@ def test_embed_file_advanced_image_processing_uses_vision_model_for_captioning(
 ):
     # given
     env_helper_mock = MagicMock()
-    env_helper_mock.AZURE_OPENAI_VISION_MODEL = "gpt-4"
+    env_helper_mock.AZURE_OPENAI_VISION_MODEL = "gpt-4.1"
     push_embedder = PushEmbedder(MagicMock(), env_helper_mock)
     source_url = "http://localhost:8080/some-file-name.jpg"
 
