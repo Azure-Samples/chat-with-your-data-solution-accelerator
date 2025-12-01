@@ -298,6 +298,8 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 |DOCUMENT_PROCESSING_QUEUE_NAME|doc-processing|The name of the Azure Queue to handle the Batch processing|
 |FUNCTION_KEY | | The function key for accessing the backend Azure Function|
 |LOGLEVEL | INFO | The log level for application logging (CRITICAL, ERROR, WARN, INFO, DEBUG)|
+|PACKAGE_LOGGING_LEVEL | WARNING | Enhanced: Azure SDK package logging level (CRITICAL, ERROR, WARN, INFO, DEBUG)|
+|AZURE_LOGGING_PACKAGES | (optional) | Enhanced: Comma-separated list of Azure logger packages to configure. If not provided, no Azure SDK logging is configured.|
 |MANAGED_IDENTITY_CLIENT_ID | | The client ID of the user-assigned managed identity|
 |MANAGED_IDENTITY_RESOURCE_ID | | The resource ID of the user-assigned managed identity|
 |OPEN_AI_FUNCTIONS_SYSTEM_PROMPT | | System prompt for OpenAI functions orchestration|
