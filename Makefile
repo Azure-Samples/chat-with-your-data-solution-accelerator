@@ -75,9 +75,16 @@ deploy: azd-login ## Deploy everything to Azure
 
 	# Provision and deploy
 	@azd provision --no-prompt
-	@azd deploy web --no-prompt || true
-	@azd deploy function --no-prompt || true
-	@azd deploy adminweb --no-prompt
+
+	# Deploy with proper error handling and logging
+	@echo "=== Deploying web service ==="
+	@azd deploy web --no-prompt 2>&1 | tee web_deploy.log || (echo "❌ Web deployment failed" && cat web_deploy.log && exit 1)
+
+	@echo "=== Deploying function service ==="
+	@azd deploy function --no-prompt 2>&1 | tee function_deploy.log || echo "⚠️ Function deployment failed (non-critical)"
+
+	@echo "=== Deploying adminweb service ==="
+	@azd deploy adminweb --no-prompt 2>&1 | tee admin_deploy.log || (echo "❌ Admin deployment failed" && cat admin_deploy.log && exit 1)
 	@azd env get-values > .env.temp
 	@cat .env.temp
 
