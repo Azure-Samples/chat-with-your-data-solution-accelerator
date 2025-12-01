@@ -71,6 +71,7 @@ deploy: azd-login ## Deploy everything to Azure
 
 	@azd env new ${AZURE_ENV_NAME} --location ${AZURE_LOCATION}
 	@azd env set AZURE_RESOURCE_GROUP ${AZURE_RESOURCE_GROUP}
+	@azd env set AZURE_APP_SERVICE_HOSTING_MODEL code
 
 	# Provision and deploy
 	@azd provision --no-prompt

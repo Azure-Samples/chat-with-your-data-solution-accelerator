@@ -195,6 +195,7 @@ jobs:
                               AZURE_ENV_NAME
                               AZURE_LOCATION
                               AZURE_RESOURCE_GROUP
+                              AZURE_APP_SERVICE_HOSTING_MODEL=code
                               AUTH_ENABLED=false
                               AZURE_USE_AUTHENTICATION=false
                               AZURE_ENABLE_AUTH=false
