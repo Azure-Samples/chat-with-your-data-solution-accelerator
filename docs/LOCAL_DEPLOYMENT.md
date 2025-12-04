@@ -21,6 +21,8 @@ The easiest way to run this accelerator is in a VS Code Dev Containers, which wi
     * **Important**: Beware that the resources created by this command will incur immediate costs, primarily from the AI Search resource. These resources may accrue costs even if you interrupt the command before it is fully executed. You can run `azd down` or delete the resources manually to avoid unnecessary spending.
     * You will be prompted to select a subscription, and a location. That location list is based on the [OpenAI model availability table](https://learn.microsoft.com/azure/cognitive-services/openai/concepts/models#model-summary-table-and-region-availability) and may become outdated as availability changes.
     * If you do, accidentally, chose the wrong location; you will have to ensure that you use `azd down` or delete the Resource Group as the deployment bases the location from this Resource Group.
+    > **Note:** If you deployed with `enableRedundancy=true` and Log Analytics workspace replication is enabled, you must first disable replication before running `azd down` else resource group delete will fail. Follow the steps in [Handling Log Analytics Workspace Deletion with Replication Enabled](./LogAnalyticsReplicationDisable.md), wait until replication returns `false`, then run `azd down`.
+
 1. After the application has been successfully deployed you will see a URL printed to the console.  Click that URL to interact with the application in your browser.
 
 > NOTE: It may take up to an hour for the application to be fully deployed. If you see a "Python Developer" welcome screen or an error page, then wait a bit and refresh the page.
@@ -296,6 +298,8 @@ Execute the above [shell command](#L81) to run the function locally. You may nee
 |DOCUMENT_PROCESSING_QUEUE_NAME|doc-processing|The name of the Azure Queue to handle the Batch processing|
 |FUNCTION_KEY | | The function key for accessing the backend Azure Function|
 |LOGLEVEL | INFO | The log level for application logging (CRITICAL, ERROR, WARN, INFO, DEBUG)|
+|PACKAGE_LOGGING_LEVEL | WARNING | Enhanced: Azure SDK package logging level (CRITICAL, ERROR, WARN, INFO, DEBUG)|
+|AZURE_LOGGING_PACKAGES | (optional) | Enhanced: Comma-separated list of Azure logger packages to configure. If not provided, no Azure SDK logging is configured.|
 |MANAGED_IDENTITY_CLIENT_ID | | The client ID of the user-assigned managed identity|
 |MANAGED_IDENTITY_RESOURCE_ID | | The resource ID of the user-assigned managed identity|
 |OPEN_AI_FUNCTIONS_SYSTEM_PROMPT | | System prompt for OpenAI functions orchestration|
