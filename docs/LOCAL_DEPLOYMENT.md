@@ -36,7 +36,7 @@ Ensure you have access to an [Azure subscription](https://azure.microsoft.com/fr
 3. If you can access this page, you have the required permissions
 4. Cancel without creating an app registration
 
-📖 **Detailed Setup:** Follow [Azure Account Set Up](./AzureAccountSetup.md) for complete configuration.
+📖 **Detailed Setup:** Follow [Azure Account Set Up](./azure_account_setup.md) for complete configuration.
 
 ### 1.2 Check Service Availability & Quota
 
@@ -256,7 +256,7 @@ azd up
 ```
 
 **During deployment, you'll be prompted for:**
-1. **Environment name** (e.g., "conmig") - Must be 3-16 characters long, alphanumeric only
+1. **Environment name** (e.g., "cwyd") - Must be 3-16 characters long, alphanumeric only
 2. **Azure subscription** selection
 3. **Location** - Select the region where your infrastructure resources will be deployed
 5. **Resource group** selection (create new or use existing)
@@ -431,6 +431,7 @@ Now that your deployment is complete and tested, explore these resources to enha
 - [Local Development Setup](./local_development_setup.md) - Set up your local development environment
 - [Advanced Image Processing](./advanced_image_processing.md) - Enable and configure vision capabilities
 - [Integrated Vectorization](./integrated_vectorization.md) - Understanding integrated vectorization
+- [Teams Extension](./teams_extension.md) - Integrating with Microsoft Teams
 
 ## Need Help?
 
