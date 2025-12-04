@@ -231,7 +231,7 @@ To optimize costs and integrate with your existing Azure infrastructure, you can
 
 ## Step 4: Deploy the Solution
 
-💡 **Before You Start:** If you encounter any issues during deployment, check our [Troubleshooting Guide](./TroubleShootingSteps.md) for common solutions.
+<!-- 💡 **Before You Start:** If you encounter any issues during deployment, check our [Troubleshooting Guide](./TroubleShootingSteps.md) for common solutions. -->
 
 ### 4.1 Authenticate with Azure
 
