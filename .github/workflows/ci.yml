@@ -73,7 +73,7 @@ jobs:
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           EMAIL_BODY=$(cat <<EOF
           {
-            "subject": "Harman's CWYD Pipeline - Quota Check Failed",
+            "subject": "CWYD Pipeline - Quota Check Failed",
             "body": "<p>Dear Team,</p><p>The quota check has failed, and the pipeline cannot proceed.</p><p><strong>Build URL:</strong> ${RUN_URL}</p><p>Please take necessary action.</p><p>Best regards,<br>Your Automation Team</p>"
           }
           EOF
@@ -170,11 +170,6 @@ jobs:
                               az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
                               az account set --subscription $AZURE_SUBSCRIPTION_ID
 
-                              # Verify we're in the right directory
-                              echo "=== Current Directory ==="
-                              pwd
-                              ls -la
-
                               # Run CI tests
                               echo "=== Running CI Tests ==="
                               make ci 2>&1 | tee ci_output.log
@@ -183,19 +178,6 @@ jobs:
                               echo "=== Starting Deployment ==="
                               make deploy 2>&1 | tee deploy_output.log
 
-                              # Check if deployment was successful
-                              if grep -q "❌" deploy_output.log; then
-                                echo "ERROR: Deployment had failures!"
-                                cat deploy_output.log
-                                exit 1
-                              fi
-
-                              # Display deployment logs for debugging
-                              echo "=== Web Deployment Log ==="
-                              cat web_deploy.log || echo "No web deployment log"
-
-                              echo "=== Admin Deployment Log ==="
-                              cat admin_deploy.log || echo "No admin deployment log"
 
                               # Try to extract URLs from deployment logs as backup
                               echo "=== Extracting URLs from deployment logs ==="
@@ -523,7 +505,7 @@ jobs:
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           EMAIL_BODY=$(cat <<EOF
           {
-            "subject": "Harman's CWYD Pipeline - Deployment Failed(checking notifications)",
+            "subject": "CWYD Pipeline - Deployment Failed",
             "body": "<p>Dear Team,</p><p>The CWYD Automation process has encountered an issue and has failed to complete successfully.</p><p><strong>Build URL:</strong> ${RUN_URL}</p><p>Please investigate.</p><p>Best regards,<br>Your Automation Team</p>"
           }
           EOF

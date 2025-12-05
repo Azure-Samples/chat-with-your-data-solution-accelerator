@@ -14,8 +14,6 @@ param allowedOrigins array = []
 @description('Command to run when starting the web app.')
 param appCommandLine string = ''
 
-// param appCommandLine string = 'gunicorn --bind=0.0.0.0 --timeout 600 app:app'
-
 @description('The resource ID of the app service plan to use for the web app.')
 param serverFarmResourceId string
 
