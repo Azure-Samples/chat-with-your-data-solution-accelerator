@@ -198,10 +198,9 @@ If the image is mostly text, use OCR to extract the text as it is displayed in t
         ),
     )[0]
 
-    # The URL should be a direct URL (not base64) for http/https URLs to save tokens
+    # The URL should be converted to base64 data URL
     image_url = request.get_json()["messages"][1]["content"][1]["image_url"]["url"]
-    expected_url_prefix = f"{app_config.get('AZURE_STORAGE_ACCOUNT_ENDPOINT')}{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}/{FILE_NAME}"
-    assert image_url.startswith(expected_url_prefix), f"Expected direct URL starting with {expected_url_prefix}, got {image_url[:100]}"
+    assert image_url.startswith("data:image/"), f"Expected base64 data URL, got {image_url[:100]}"
 
 
 def test_embeddings_generated_for_caption(

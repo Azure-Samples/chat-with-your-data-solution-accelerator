@@ -229,8 +229,9 @@ def test_embed_file_advanced_image_processing_uses_vision_model_for_captioning(
     assert messages[1]["content"][0]["type"] == "text"
     assert "Describe this image in detail" in messages[1]["content"][0]["text"]
     assert messages[1]["content"][1]["type"] == "image_url"
-    # Direct URL should be used (not base64) for http/https URLs to save tokens
-    assert messages[1]["content"][1]["image_url"]["url"] == source_url
+    # Image should be converted to base64 data URL
+    image_url = messages[1]["content"][1]["image_url"]["url"]
+    assert image_url.startswith("data:image/"), f"Expected base64 data URL, got {image_url[:100]}"
 
 
 def test_embed_file_advanced_image_processing_stores_embeddings_in_search_index(
