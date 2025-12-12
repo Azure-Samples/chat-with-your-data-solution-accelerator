@@ -821,3 +821,109 @@ def test_4473_bug_1744_cwyd_citations_panel_no_crappy_format_shows_table_data(lo
         logger.info("[4473] SUCCESS: Citation panel is visible")
 
         logger.info("[4473] Test completed successfully - citation panel disclaimer working correctly")
+
+
+def test_5893_cwyd_can_read_png_jpg_md_files(login_logout, request):
+    """
+    Test case: 5893 CWYD should be able to read PNG, JPG and MD files
+
+    Steps:
+    1. Go to /Explore_Data
+    2. Click on Ingest data option
+    3. Upload PNG, JPG and MD files from tests\e2e-test\testdata
+    4. Files need to be uploaded successfully
+    5. Wait for 3 minutes
+    6. Go to delete /Delete_Data and make sure all 3 files are uploaded
+    """
+    with TestContext(login_logout, request, "5893", "CWYD can read PNG, JPG and MD files") as ctx:
+        # Step 1: Navigate to admin page
+        ctx.navigate_to_admin()
+
+        # Step 2: Click on Ingest Data tab
+        logger.info("[5893] Clicking on Ingest Data tab")
+        ctx.admin_page.click_ingest_data_tab()
+        logger.info("[5893] Ingest Data tab loaded")
+
+        # Step 3: Upload PNG, JPG and MD files
+        test_files = [
+            ("architecture_pg.png", "PNG"),
+            ("jpg.jpg", "JPG"),
+            ("README.md", "MD")
+        ]
+
+        uploaded_files = []
+
+        for filename, file_type in test_files:
+            logger.info("[5893] Starting upload process for %s file: %s", file_type, filename)
+            file_path = get_test_file_path(filename)
+            verify_file_exists(file_path, "5893")
+
+            # Upload the file
+            logger.info("[5893] Uploading %s file: %s", file_type, filename)
+            ctx.admin_page.upload_file(file_path)
+            logger.info("[5893] SUCCESS: %s file '%s' uploaded", file_type, filename)
+            uploaded_files.append(filename)
+
+            # Wait a bit between uploads to avoid overloading
+            ctx.page.wait_for_timeout(2000)
+
+        logger.info("[5893] All files uploaded successfully: %s", uploaded_files)
+
+        # Step 4: Wait for processing (3 minutes as specified)
+        logger.info("[5893] Waiting 3 minutes for file processing...")
+        processing_time_minutes = 3
+        processing_time_seconds = processing_time_minutes * 60
+
+        # Break the wait into smaller chunks with progress updates
+        chunk_size = 30  # 30 second chunks
+        chunks = processing_time_seconds // chunk_size
+
+        for i in range(chunks):
+            ctx.page.wait_for_timeout(chunk_size * 1000)  # Convert to milliseconds
+            elapsed_minutes = ((i + 1) * chunk_size) / 60
+            remaining_minutes = processing_time_minutes - elapsed_minutes
+            logger.info("[5893] Processing... %.1f minutes elapsed, %.1f minutes remaining",
+                       elapsed_minutes, remaining_minutes)
+
+        logger.info("[5893] File processing wait completed")
+
+        # Step 5: Navigate to Delete Data tab to verify files are there
+        logger.info("[5893] Navigating to Delete Data tab to verify uploads")
+        ctx.admin_page.click_delete_data_tab_with_wait()
+        logger.info("[5893] Delete Data tab loaded")
+
+        # Step 6: Verify all uploaded files are visible in delete page
+        logger.info("[5893] Getting list of files in delete page")
+        visible_files = ctx.admin_page.get_all_visible_files_in_delete()
+        logger.info("[5893] Found %d total files in delete page", len(visible_files))
+
+        # Check for each uploaded file
+        files_found = []
+        files_missing = []
+
+        for filename in uploaded_files:
+            # Look for the file in the visible files list
+            # Files in delete page show as /documents/filename.ext
+            expected_path = f"/documents/{filename}"
+            file_found = any(expected_path in visible_file for visible_file in visible_files)
+
+            if file_found:
+                files_found.append(filename)
+                logger.info("[5893] ✓ Found uploaded file: %s", filename)
+            else:
+                files_missing.append(filename)
+                logger.warning("[5893] ✗ Missing uploaded file: %s", filename)
+
+        # Log all visible files for debugging
+        logger.info("[5893] All visible files in delete page:")
+        for i, file_path in enumerate(visible_files):
+            logger.info("[5893] File %d: %s", i+1, file_path)
+
+        # Assert that all files were found
+        assert len(files_missing) == 0, f"Some files were not found in delete page: {files_missing}. Found: {files_found}"
+        assert len(files_found) == 3, f"Expected 3 files to be uploaded, but only found {len(files_found)}: {files_found}"
+
+        logger.info("[5893] SUCCESS: All 3 files (PNG, JPG, MD) were uploaded and are visible in delete page")
+        logger.info("[5893] Successfully uploaded files: %s", files_found)
+
+        logger.info("[5893] Test completed successfully - CWYD can read PNG, JPG and MD files")
