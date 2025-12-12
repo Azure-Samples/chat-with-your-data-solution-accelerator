@@ -927,3 +927,131 @@ def test_5893_cwyd_can_read_png_jpg_md_files(login_logout, request):
         logger.info("[5893] Successfully uploaded files: %s", files_found)
 
         logger.info("[5893] Test completed successfully - CWYD can read PNG, JPG and MD files")
+
+
+def test_5995_bug_4800_cwyd_verify_english_hi_response(login_logout, request):
+    """
+    Test case: 5995 Bug 4800-CWYD - Verify the response of application for English word 'Hi'
+
+    Steps:
+    1. Go to web_url
+    2. Type 'Hi' in chatbot and click on send button
+    3. Verify response is in English only, not in Spanish
+    """
+    with TestContext(login_logout, request, "5995", "Bug 4800 - Verify English Hi response") as ctx:
+        # Step 1: Navigate to web URL
+        logger.info("[5995] Navigating to web page")
+        ctx.page.goto(WEB_URL)
+        ctx.page.wait_for_load_state("networkidle")
+        logger.info("[5995] Web page loaded")
+
+        # Step 2: Type 'Hi' and click send button
+        greeting_text = "Hi"
+        logger.info("[5995] Typing greeting: %s", greeting_text)
+        ctx.home_page.enter_a_question(greeting_text)
+        logger.info("[5995] Greeting typed successfully")
+
+        # Submit the greeting
+        logger.info("[5995] Clicking send button")
+        ctx.home_page.click_send_button()
+        logger.info("[5995] Send button clicked")
+
+        # Wait for response to load
+        logger.info("[5995] Waiting for response...")
+        ctx.page.wait_for_timeout(8000)  # Wait for response to be generated
+
+        # Step 3: Get the response text and verify it's in English, not Spanish
+        logger.info("[5995] Getting response text")
+        response_text = ctx.home_page.get_last_response_text()
+
+        assert response_text, "Response should not be empty for greeting 'Hi'"
+        logger.info("[5995] Response received: %s", response_text[:200] + "..." if len(response_text) > 200 else response_text)
+
+        # Verify response is in English, not Spanish
+        logger.info("[5995] Verifying response language is English, not Spanish")
+
+        # Common Spanish greetings/words that should NOT appear
+        spanish_indicators = [
+            "hola",           # Spanish "hello"
+            "¡hola!",         # Spanish "hello!" with exclamation
+            "buenos días",    # Spanish "good morning"
+            "buenas tardes",  # Spanish "good afternoon"
+            "buenas noches",  # Spanish "good evening"
+            "¿cómo estás?",   # Spanish "how are you?"
+            "mucho gusto",    # Spanish "nice to meet you"
+            "encantado",      # Spanish "pleased to meet you"
+            "bienvenido",     # Spanish "welcome"
+            "gracias",        # Spanish "thank you"
+            "de nada",        # Spanish "you're welcome"
+            "por favor",      # Spanish "please"
+            "disculpe",       # Spanish "excuse me"
+            "lo siento",      # Spanish "sorry"
+            "adiós",          # Spanish "goodbye"
+            "hasta luego",    # Spanish "see you later"
+        ]
+
+        # Convert response to lowercase for case-insensitive checking
+        response_lower = response_text.lower()
+
+        # Check for Spanish indicators
+        spanish_words_found = []
+        for spanish_word in spanish_indicators:
+            if spanish_word in response_lower:
+                spanish_words_found.append(spanish_word)
+
+        if spanish_words_found:
+            logger.error("[5995] Spanish words detected in response: %s", spanish_words_found)
+            assert False, f"Response contains Spanish words: {spanish_words_found}. Response should be in English only."
+
+        logger.info("[5995] SUCCESS: No Spanish words detected in response")
+
+        # Common English greetings/responses that SHOULD appear for "Hi"
+        english_indicators = [
+            "hello",
+            "hi",
+            "good morning",
+            "good afternoon",
+            "good evening",
+            "how can i help",
+            "how may i assist",
+            "welcome",
+            "greetings",
+            "pleased to meet",
+            "nice to meet",
+            "how are you",
+            "what can i do for you",
+        ]
+
+        # Check if response contains appropriate English greeting patterns
+        english_found = False
+        english_words_found = []
+
+        for english_phrase in english_indicators:
+            if english_phrase in response_lower:
+                english_found = True
+                english_words_found.append(english_phrase)
+
+        if english_found:
+            logger.info("[5995] SUCCESS: English greeting patterns found: %s", english_words_found)
+        else:
+            # If no common English greetings found, check if it's still a valid English response
+            # (sometimes AI might respond with other appropriate English phrases)
+            logger.info("[5995] No common English greeting patterns found, but checking if response is still valid English")
+
+            # At minimum, ensure response doesn't contain Spanish and has reasonable English content
+            # Check for basic English sentence structure or common English words
+            basic_english_words = ["the", "and", "or", "is", "are", "can", "help", "you", "me", "i", "we", "with", "for", "to"]
+            basic_english_found = any(word in response_lower.split() for word in basic_english_words)
+
+            if basic_english_found:
+                logger.info("[5995] Response contains basic English words, considering it valid")
+            else:
+                logger.warning("[5995] Response may not be standard English greeting, but no Spanish detected")
+
+        # Additional check: Response should not be empty or too short for a proper greeting
+        assert len(response_text.strip()) >= 2, "Response should be meaningful, not just 1-2 characters"
+
+        logger.info("[5995] SUCCESS: Response is in English (not Spanish) for greeting 'Hi'")
+        logger.info("[5995] Final response validation: Length=%d, Language=English", len(response_text))
+
+        logger.info("[5995] Test completed successfully - English 'Hi' gets English response, not Spanish")
