@@ -446,3 +446,108 @@ class WebUserPage(BasePage):
         except Exception as e:
             logger.error("Error verifying citation panel disclaimer: %s", str(e))
             return False
+
+    def count_references_in_response(self):
+        """Count the number of reference citations in the response text (e.g., [1], [2], [3])"""
+        try:
+            # Get the response text
+            response_text = self.get_last_response_text()
+            if not response_text:
+                logger.warning("No response text found to count references")
+                return 0
+
+            import re
+
+            # Try different citation patterns that CWYD might use
+            patterns_to_try = [
+                (r'\[(\d+)\]', 'numbered brackets like [1], [2]'),           # [1], [2], [3]
+                (r'\((\d+)\)', 'numbered parentheses like (1), (2)'),        # (1), (2), (3)
+                (r'(?:\s|^)(\d+)\.(?:\s|$)', 'numbered list like 1., 2.'),  # 1., 2., 3.
+                (r'\s(\d+)\s', 'standalone numbers like 1, 2, 3'),          # 1 , 2 , 3 (CWYD format)
+                (r'\[doc(\d+)\]', 'doc references like [doc1], [doc2]'),     # [doc1], [doc2]
+                (r'\[ref(\d+)\]', 'ref references like [ref1], [ref2]'),     # [ref1], [ref2]
+                (r'\^(\d+)', 'superscript numbers like ^1, ^2'),             # ^1, ^2, ^3
+            ]
+
+            best_count = 0
+            best_pattern_desc = ""
+            best_citations = []
+
+            for pattern, description in patterns_to_try:
+                citations = re.findall(pattern, response_text)
+                unique_citations = set(citations)
+                count = len(unique_citations)
+
+                if count > best_count:
+                    best_count = count
+                    best_pattern_desc = description
+                    best_citations = sorted(unique_citations)
+
+                logger.info("Pattern %s found %d citations: %s", description, count, sorted(unique_citations))
+
+            if best_count > 0:
+                logger.info("Best match: %s with %d unique citations: %s", best_pattern_desc, best_count, best_citations)
+            else:
+                logger.warning("No citation patterns found in response text")
+                logger.info("Response text sample for debugging: %s", response_text[:500] + "..." if len(response_text) > 500 else response_text)
+
+            return best_count
+
+        except Exception as e:
+            logger.error("Error counting references in response: %s", str(e))
+            return 0
+
+    def count_references_in_section(self):
+        """Count the number of references in the References section"""
+        try:
+            # Target the last/most recent References section (since there might be multiple from previous questions)
+            references_icons = self.page.locator(self.RESPONSE_REFERENCE_EXPAND_ICON)
+            references_count = references_icons.count()
+
+            if references_count == 0:
+                logger.warning("References section not found")
+                return 0
+
+            # Use the last (most recent) references section
+            last_references_icon = references_icons.nth(references_count - 1)
+
+            # Click to expand references if not already expanded
+            if last_references_icon.is_visible():
+                last_references_icon.click()
+                self.page.wait_for_timeout(1000)  # Wait for expansion
+            else:
+                logger.warning("Last references section not visible")
+                return 0            # Look for reference items in the expanded section
+            # The structure seems to be similar to citation containers but in the References section
+            # We need to find the actual reference list items
+
+            # Use simpler approach - just count citation containers in the last response
+            # Get all response blocks and target the last one
+            response_blocks = self.page.locator(self.ANSWER_TEXT)
+            response_count = response_blocks.count()
+
+            if response_count == 0:
+                logger.warning("No response blocks found")
+                return 0
+
+            # Get the last response block
+            last_response = response_blocks.nth(response_count - 1)
+
+            # Look for citation containers within the last response
+            citation_containers = last_response.locator(self.CITATION_BLOCK)
+            count = citation_containers.count()
+
+            if count > 0:
+                logger.info("Found %d citation containers in last response", count)
+            else:
+                # Fallback: try to find reference links
+                reference_links = last_response.locator(self.REFERENCE_LINKS_IN_RESPONSE)
+                count = reference_links.count()
+                logger.info("Fallback: Found %d reference links in last response", count)
+
+            logger.info("Total references in References section: %d", count)
+            return count
+
+        except Exception as e:
+            logger.error("Error counting references in section: %s", str(e))
+            return 0
