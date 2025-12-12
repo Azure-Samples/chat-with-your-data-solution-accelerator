@@ -1280,3 +1280,188 @@ def test_6324_bug_4803_cwyd_response_contains_relevant_answers(login_logout, req
         logger.info("[6324] SUCCESS: Response handles document repository listing request appropriately")
         logger.info("[6324] Response length: %d characters", len(response_text))
         logger.info("[6324] Test completed successfully - CWYD provides relevant response for document listing request")
+
+
+def test_8444_bug_7963_cwyd_loading_gif_behavior(login_logout, request):
+    """
+    Test case: 8444 Bug 7963-CWYD [PSL] FE: Bug, Loading gif doesn't change in landing page
+
+    Steps:
+    1. Open CWYD url
+    2. Observe the behavior of the page during loading
+    3. Expected: Page loaded properly, it should not show loading gif continuously
+    """
+    with TestContext(login_logout, request, "8444", "Bug 7963 - Loading gif doesn't change in landing page") as ctx:
+        # Step 1: Navigate to web URL and monitor loading behavior
+        logger.info("[8444] Navigating to CWYD web page")
+
+        # Record the start time to track loading duration
+        page_load_start = time.time()
+        ctx.page.goto(WEB_URL)
+
+        # Wait for the page to load completely
+        ctx.page.wait_for_load_state("networkidle")
+        page_load_end = time.time()
+        page_load_duration = page_load_end - page_load_start
+
+        logger.info("[8444] Web page loaded successfully in %.2f seconds", page_load_duration)
+
+        # Step 2: Check if there are any persistent loading indicators/gifs still visible after page load
+        logger.info("[8444] Checking for persistent loading indicators on the page")
+
+        # Common CSS selectors for loading indicators/spinners/gifs
+        loading_selectors = [
+            "[data-testid*='loading']",
+            "[class*='loading']",
+            "[class*='spinner']",
+            "[class*='loader']",
+            ".loading",
+            ".spinner",
+            ".loader",
+            "[role='progressbar']",
+            ".progress",
+            "[aria-label*='loading']",
+            "[aria-label*='Loading']",
+            "svg[class*='spin']",
+            "div[class*='spin']",
+            ".fa-spinner",
+            ".fa-spin"
+        ]
+
+        persistent_loaders = []
+        visible_loaders = []
+
+        # Wait a moment after page load to ensure any legitimate loading indicators have time to disappear
+        ctx.page.wait_for_timeout(3000)
+
+        # Check each loading selector
+        for selector in loading_selectors:
+            try:
+                elements = ctx.page.locator(selector)
+                element_count = elements.count()
+
+                if element_count > 0:
+                    # Check if any of these elements are visible
+                    for i in range(element_count):
+                        element = elements.nth(i)
+                        if element.is_visible():
+                            element_text = element.text_content() or ""
+                            element_class = element.get_attribute("class") or ""
+                            element_role = element.get_attribute("role") or ""
+
+                            loader_info = {
+                                "selector": selector,
+                                "index": i,
+                                "text": element_text.strip(),
+                                "class": element_class,
+                                "role": element_role
+                            }
+                            visible_loaders.append(loader_info)
+
+                            logger.warning("[8444] Found visible loading indicator: %s", loader_info)
+
+            except Exception as e:
+                # Some selectors might not be valid, continue checking others
+                logger.debug("[8444] Error checking selector %s: %s", selector, str(e))
+                continue
+
+        # Step 3: Verify the page is functional and not stuck in a loading state
+        logger.info("[8444] Verifying page functionality after load")
+
+        # Check if key page elements are present and visible (indicating successful load)
+        key_elements_selectors = [
+            ctx.home_page.TYPE_QUESTION_TEXT_AREA,  # Chat input field
+            ctx.home_page.SEND_BUTTON,              # Send button
+            "body",                                  # Basic page body
+            "[role='main']",                        # Main content area
+        ]
+
+        functional_elements_found = 0
+
+        for selector in key_elements_selectors:
+            try:
+                element = ctx.page.locator(selector).first
+                if element.is_visible():
+                    functional_elements_found += 1
+                    logger.info("[8444] ✓ Key element found and visible: %s", selector)
+                else:
+                    logger.info("[8444] Key element found but not visible: %s", selector)
+            except Exception as e:
+                logger.debug("[8444] Could not find element %s: %s", selector, str(e))
+
+        # Step 4: Verify page title is loaded (not showing loading state)
+        logger.info("[8444] Checking page title")
+        page_title = ctx.page.title()
+        logger.info("[8444] Page title: '%s'", page_title)
+
+        # Step 5: Test interaction with the page to ensure it's not stuck in loading
+        logger.info("[8444] Testing page interaction to verify it's not stuck in loading state")
+
+        try:
+            # Try to focus on the chat input to test interactivity
+            chat_input = ctx.page.locator(ctx.home_page.TYPE_QUESTION_TEXT_AREA)
+            if chat_input.is_visible():
+                chat_input.click()
+                logger.info("[8444] ✓ Successfully interacted with chat input - page is responsive")
+
+                # Type a test character and clear it to verify input functionality
+                chat_input.fill("test")
+                ctx.page.wait_for_timeout(500)
+                input_value = chat_input.input_value()
+                if input_value == "test":
+                    logger.info("[8444] ✓ Chat input is functional - can type and retrieve value")
+                    chat_input.clear()
+                else:
+                    logger.warning("[8444] Chat input may have issues - expected 'test', got '%s'", input_value)
+            else:
+                logger.warning("[8444] Chat input not visible - may indicate loading issues")
+
+        except Exception as e:
+            logger.error("[8444] Error testing page interaction: %s", str(e))
+
+        # Step 6: Final assessment
+        logger.info("[8444] Final assessment of loading behavior")
+
+        # Criteria for success:
+        # 1. No persistent loading indicators visible after page load
+        # 2. Key functional elements are present and visible
+        # 3. Page is interactive and responsive
+        # 4. Page loaded within reasonable time
+
+        success_criteria = {
+            "no_persistent_loaders": len(visible_loaders) == 0,
+            "functional_elements_present": functional_elements_found >= 2,  # At least 2 key elements visible
+            "reasonable_load_time": page_load_duration < 30.0,  # Page loaded within 30 seconds
+            "page_title_loaded": page_title and "loading" not in page_title.lower()
+        }
+
+        logger.info("[8444] Success criteria assessment:")
+        for criterion, passed in success_criteria.items():
+            status = "✓ PASS" if passed else "✗ FAIL"
+            logger.info("[8444] - %s: %s", criterion, status)
+
+        # Main assertion: No persistent loading indicators should be visible after page load
+        if visible_loaders:
+            logger.error("[8444] Found %d persistent loading indicators:", len(visible_loaders))
+            for loader in visible_loaders:
+                logger.error("[8444] - Persistent loader: %s", loader)
+
+            assert False, f"Page shows persistent loading indicators after load completion. Found {len(visible_loaders)} persistent loaders. This indicates the loading gif/spinner is not properly hidden after page load."
+
+        logger.info("[8444] ✓ SUCCESS: No persistent loading indicators found after page load")
+
+        # Secondary assertions for page functionality
+        assert success_criteria["functional_elements_present"], f"Expected at least 2 key functional elements to be visible, found {functional_elements_found}"
+        logger.info("[8444] ✓ SUCCESS: Key functional elements are present and visible")
+
+        assert success_criteria["reasonable_load_time"], f"Page took too long to load: {page_load_duration:.2f} seconds (expected < 30s)"
+        logger.info("[8444] ✓ SUCCESS: Page loaded in reasonable time: %.2f seconds", page_load_duration)
+
+        assert success_criteria["page_title_loaded"], f"Page title suggests loading state: '{page_title}'"
+        logger.info("[8444] ✓ SUCCESS: Page title indicates successful load: '%s'", page_title)
+
+        # Summary
+        logger.info("[8444] Test completed successfully - Landing page loads properly without persistent loading gif")
+        logger.info("[8444] Page load duration: %.2f seconds", page_load_duration)
+        logger.info("[8444] Functional elements found: %d", functional_elements_found)
+        logger.info("[8444] No persistent loading indicators detected")
