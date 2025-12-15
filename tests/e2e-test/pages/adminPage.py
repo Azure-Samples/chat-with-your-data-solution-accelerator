@@ -614,3 +614,72 @@ class AdminPage(BasePage):
         except Exception as e:
             logger.error("Error verifying file removal: %s", str(e))
             return False
+
+    def add_web_url(self, url):
+        """Add a web URL to the text area for ingestion"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.info("Adding web URL: %s", url)
+
+            # Find and fill the URL text area
+            url_textarea = self.page.locator(self.ADD_URLS_TEXT_AREA)
+            url_textarea.click()
+            url_textarea.fill(url)
+
+            logger.info("✓ URL added to text area: %s", url)
+            return True
+
+        except Exception as e:
+            logger.error("Error adding web URL: %s", str(e))
+            return False
+
+    def click_process_ingest_web_pages(self):
+        """Click the 'Process and ingest web pages' button"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.info("Clicking 'Process and ingest web pages' button")
+
+            # Click the process button
+            process_button = self.page.locator(self.PROCESS_INGEST_WEB_PAGES_BUTTON)
+            process_button.click()
+
+            # Wait for processing to start
+            self.page.wait_for_timeout(3000)
+
+            logger.info("✓ 'Process and ingest web pages' button clicked")
+            return True
+
+        except Exception as e:
+            logger.error("Error clicking process web pages button: %s", str(e))
+            return False
+
+    def wait_for_web_url_processing(self, timeout_minutes=3):
+        """Wait for web URL processing to complete"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.info("Waiting for web URL processing to complete (timeout: %d minutes)", timeout_minutes)
+
+            # Wait for processing - this can take time for web pages
+            processing_time_seconds = timeout_minutes * 60
+            chunk_size = 30  # 30 second chunks
+            chunks = processing_time_seconds // chunk_size
+
+            for i in range(chunks):
+                self.page.wait_for_timeout(chunk_size * 1000)  # Convert to milliseconds
+                elapsed_minutes = ((i + 1) * chunk_size) / 60
+                remaining_minutes = timeout_minutes - elapsed_minutes
+                logger.info("Web URL processing... %.1f minutes elapsed, %.1f minutes remaining",
+                           elapsed_minutes, remaining_minutes)
+
+            logger.info("✓ Web URL processing wait completed")
+            return True
+
+        except Exception as e:
+            logger.error("Error during web URL processing wait: %s", str(e))
+            return False
