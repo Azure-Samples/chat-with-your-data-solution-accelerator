@@ -151,13 +151,13 @@ param useAdvancedImageProcessing bool = false
 param advancedImageProcessingMaxImages int = 1
 
 @description('Optional. Azure OpenAI Vision Model Deployment Name.')
-param azureOpenAIVisionModel string = 'gpt-4'
+param azureOpenAIVisionModel string = 'gpt-4.1'
 
 @description('Optional. Azure OpenAI Vision Model Name.')
-param azureOpenAIVisionModelName string = 'gpt-4'
+param azureOpenAIVisionModelName string = 'gpt-4.1'
 
 @description('Optional. Azure OpenAI Vision Model Version.')
-param azureOpenAIVisionModelVersion string = 'turbo-2024-04-09'
+param azureOpenAIVisionModelVersion string = '2025-04-14'
 
 @description('Optional. Azure OpenAI Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota.')
 param azureOpenAIVisionModelCapacity int = 10
@@ -963,26 +963,6 @@ var defaultOpenAiDeployments = [
   }
 ]
 
-var openAiDeployments = concat(
-  defaultOpenAiDeployments,
-  useAdvancedImageProcessing
-    ? [
-        {
-          name: azureOpenAIVisionModel
-          model: {
-            format: 'OpenAI'
-            name: azureOpenAIVisionModelName
-            version: azureOpenAIVisionModelVersion
-          }
-          sku: {
-            name: 'GlobalStandard'
-            capacity: azureOpenAIVisionModelCapacity
-          }
-        }
-      ]
-    : []
-)
-
 module openai 'modules/core/ai/cognitiveservices.bicep' = {
   name: azureOpenAIResourceName
   scope: resourceGroup()
@@ -992,7 +972,7 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
     tags: allTags
     kind: 'OpenAI'
     sku: azureOpenAISkuName
-    deployments: openAiDeployments
+    deployments: defaultOpenAiDeployments
     userAssignedResourceId: managedIdentityModule.outputs.resourceId
     restrictOutboundNetworkAccess: true
     allowedFqdnList: concat(
@@ -1296,6 +1276,8 @@ module web 'modules/app/web.bicep' = {
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
+        PACKAGE_LOGGING_LEVEL: 'WARNING'
+        AZURE_LOGGING_PACKAGES: ''
         DATABASE_TYPE: databaseType
         OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
         SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
@@ -1394,6 +1376,8 @@ module adminweb 'modules/app/adminweb.bicep' = {
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         CONVERSATION_FLOW: conversationFlow
         LOGLEVEL: logLevel
+        PACKAGE_LOGGING_LEVEL: 'WARNING'
+        AZURE_LOGGING_PACKAGES: ''
         DATABASE_TYPE: databaseType
         USE_KEY_VAULT: 'true'
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.clientId
@@ -1489,6 +1473,8 @@ module function 'modules/app/function.bicep' = {
         DOCUMENT_PROCESSING_QUEUE_NAME: queueName
         ORCHESTRATION_STRATEGY: orchestrationStrategy
         LOGLEVEL: logLevel
+        PACKAGE_LOGGING_LEVEL: 'WARNING'
+        AZURE_LOGGING_PACKAGES: ''
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
         DATABASE_TYPE: databaseType
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.clientId

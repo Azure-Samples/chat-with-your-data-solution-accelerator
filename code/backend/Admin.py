@@ -11,10 +11,25 @@ from azure.monitor.opentelemetry import configure_azure_monitor
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 logging.captureWarnings(True)
-logging.basicConfig(level=os.getenv("LOGLEVEL", "INFO").upper())
-# Raising the azure log level to WARN as it is too verbose
-# https://github.com/Azure/azure-sdk-for-python/issues/9422
-logging.getLogger("azure").setLevel(os.environ.get("LOGLEVEL_AZURE", "WARN").upper())
+
+# Logging configuration from environment variables
+AZURE_BASIC_LOGGING_LEVEL = os.environ.get("LOGLEVEL", "INFO")
+PACKAGE_LOGGING_LEVEL = os.environ.get("PACKAGE_LOGGING_LEVEL", "WARNING")
+AZURE_LOGGING_PACKAGES = os.environ.get("AZURE_LOGGING_PACKAGES", "")
+AZURE_LOGGING_PACKAGES = [pkg.strip() for pkg in AZURE_LOGGING_PACKAGES if pkg.strip()]
+
+# Configure logging levels from environment variables
+logging.basicConfig(
+    level=getattr(logging, AZURE_BASIC_LOGGING_LEVEL.upper(), logging.INFO)
+)
+
+# Configure Azure package logging levels
+azure_package_log_level = getattr(
+    logging, PACKAGE_LOGGING_LEVEL.upper(), logging.WARNING
+)
+for logger_name in AZURE_LOGGING_PACKAGES:
+    logging.getLogger(logger_name).setLevel(azure_package_log_level)
+
 # We cannot use EnvHelper here as Application Insights needs to be configured first
 # for instrumentation to work correctly
 if os.getenv("APPLICATIONINSIGHTS_ENABLED", "false").lower() == "true":
