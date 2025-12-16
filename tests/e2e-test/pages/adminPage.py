@@ -668,7 +668,7 @@ class AdminPage(BasePage):
             # Wait for processing - this can take time for web pages
             processing_time_seconds = timeout_minutes * 60
             chunk_size = 30  # 30 second chunks
-            chunks = processing_time_seconds // chunk_size
+            chunks = int(processing_time_seconds // chunk_size)
 
             for i in range(chunks):
                 self.page.wait_for_timeout(chunk_size * 1000)  # Convert to milliseconds
@@ -682,4 +682,286 @@ class AdminPage(BasePage):
 
         except Exception as e:
             logger.error("Error during web URL processing wait: %s", str(e))
+            return False
+
+    def click_configuration_tab(self):
+        """Click on the Configuration tab"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.info("Clicking Configuration tab...")
+            self.page.locator(self.CONFIGURATION_TAB).click()
+            self.page.wait_for_timeout(3000)  # Wait for tab to load
+            logger.info("✓ Configuration tab loaded")
+            return True
+        except Exception as e:
+            logger.error("Error clicking Configuration tab: %s", str(e))
+            return False
+
+    def get_chat_history_toggle_state(self):
+        """Get the current state of the chat history toggle (enabled/disabled)"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            # First scroll down to make sure the toggle is visible
+            logger.info("Scrolling down to find chat history toggle...")
+            self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            self.page.wait_for_timeout(2000)
+
+            # Try multiple selectors for the chat history checkbox
+            selectors = [
+                "//input[@aria-label='Enable chat history' and @type='checkbox']",
+                "//div[@data-testid='stCheckbox']//input[contains(@aria-label, 'Enable chat history')]",
+                "//div[contains(@class, 'stCheckbox')]//input[@type='checkbox' and contains(@aria-label, 'chat history')]",
+                "//input[@type='checkbox'][following-sibling::*//text()[contains(., 'Enable chat history')]]"
+            ]
+
+            chat_history_checkbox = None
+            for selector in selectors:
+                try:
+                    checkbox = self.page.locator(selector)
+                    if checkbox.count() > 0:
+                        chat_history_checkbox = checkbox
+                        logger.info("Found chat history checkbox using selector: %s", selector)
+                        break
+                except:
+                    continue
+
+            if chat_history_checkbox and chat_history_checkbox.count() > 0:
+                # Scroll the element into view
+                chat_history_checkbox.scroll_into_view_if_needed()
+                self.page.wait_for_timeout(1000)
+
+                is_checked = chat_history_checkbox.is_checked()
+                logger.info("Chat history toggle state: %s", "enabled" if is_checked else "disabled")
+                return is_checked
+            else:
+                logger.error("Chat history toggle not found")
+                return None
+        except Exception as e:
+            logger.error("Error getting chat history toggle state: %s", str(e))
+            return None
+
+    def debug_configuration_page_structure(self):
+        """Debug method to understand what's on the Configuration page"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.info("=== DEBUGGING Configuration Page Structure ===")
+
+            # Scroll through the page to make sure we see everything
+            logger.info("Scrolling to top first...")
+            self.page.evaluate("window.scrollTo(0, 0)")
+            self.page.wait_for_timeout(1000)
+
+            # Get all checkboxes on the page
+            checkboxes = self.page.locator("//input[@type='checkbox']")
+            checkbox_count = checkboxes.count()
+            logger.info("Total checkboxes found: %d", checkbox_count)
+
+            for i in range(checkbox_count):
+                try:
+                    checkbox = checkboxes.nth(i)
+                    aria_label = checkbox.get_attribute("aria-label") or "No aria-label"
+                    is_visible = checkbox.is_visible()
+                    logger.info("Checkbox %d: aria-label='%s', visible=%s", i, aria_label, is_visible)
+                except:
+                    logger.info("Checkbox %d: Could not get attributes", i)
+
+            # Look for any text containing "chat history" or "Enable chat history"
+            logger.info("Searching for 'chat history' text...")
+            chat_text_elements = self.page.locator("//*[contains(text(), 'chat history') or contains(text(), 'Chat history') or contains(text(), 'Enable chat history')]")
+            chat_text_count = chat_text_elements.count()
+            logger.info("Elements containing 'chat history': %d", chat_text_count)
+
+            for i in range(chat_text_count):
+                try:
+                    element = chat_text_elements.nth(i)
+                    text_content = element.text_content() or "No text content"
+                    tag_name = element.evaluate("el => el.tagName")
+                    is_visible = element.is_visible()
+                    logger.info("Chat text element %d: tag='%s', text='%s', visible=%s", i, tag_name, text_content, is_visible)
+                except:
+                    logger.info("Chat text element %d: Could not get attributes", i)
+
+            # Look for all Streamlit elements that might contain the toggle
+            logger.info("Searching for Streamlit checkbox elements...")
+            st_checkboxes = self.page.locator("//div[@data-testid='stCheckbox']")
+            st_checkbox_count = st_checkboxes.count()
+            logger.info("Streamlit checkbox elements: %d", st_checkbox_count)
+
+            for i in range(st_checkbox_count):
+                try:
+                    element = st_checkboxes.nth(i)
+                    is_visible = element.is_visible()
+                    inner_text = element.text_content() or "No text content"
+                    logger.info("Streamlit checkbox %d: visible=%s, text='%s'", i, is_visible, inner_text)
+                except:
+                    logger.info("Streamlit checkbox %d: Could not get attributes", i)
+
+            # Scroll down and check again
+            logger.info("Scrolling down to bottom...")
+            self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            self.page.wait_for_timeout(2000)
+
+            # Check for expandable sections
+            logger.info("Searching for expandable sections...")
+            expander_elements = self.page.locator("//div[@data-testid='stExpanderDetails']")
+            expander_count = expander_elements.count()
+            logger.info("Expandable sections found: %d", expander_count)
+
+            for i in range(expander_count):
+                try:
+                    element = expander_elements.nth(i)
+                    is_visible = element.is_visible()
+                    inner_text = element.text_content() or "No text content"
+                    logger.info("Expandable section %d: visible=%s, text_snippet='%s'", i, is_visible, inner_text[:100])
+
+                    # Try to expand it if it's not visible
+                    if is_visible:
+                        # Look for checkboxes inside this expander
+                        inner_checkboxes = element.locator(".//input[@type='checkbox']")
+                        inner_count = inner_checkboxes.count()
+                        logger.info("  - Checkboxes inside expander %d: %d", i, inner_count)
+
+                        for j in range(inner_count):
+                            try:
+                                inner_checkbox = inner_checkboxes.nth(j)
+                                inner_aria_label = inner_checkbox.get_attribute("aria-label") or "No aria-label"
+                                logger.info("    - Inner checkbox %d: aria-label='%s'", j, inner_aria_label)
+                            except:
+                                logger.info("    - Inner checkbox %d: Could not get attributes", j)
+                except:
+                    logger.info("Expandable section %d: Could not get attributes", i)
+
+            logger.info("=== END DEBUG Configuration Page Structure ===")
+
+        except Exception as e:
+            logger.error("Error debugging configuration page structure: %s", str(e))
+
+    def set_chat_history_toggle(self, enable=True):
+        """Set the chat history toggle to enabled or disabled"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            # First scroll down to make sure the toggle is visible
+            logger.info("Scrolling down to find chat history toggle...")
+            self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            self.page.wait_for_timeout(2000)
+
+            # Try multiple selectors for the chat history checkbox
+            selectors = [
+                "//input[@aria-label='Enable chat history' and @type='checkbox']",
+                "//div[@data-testid='stCheckbox']//input[contains(@aria-label, 'Enable chat history')]",
+                "//div[contains(@class, 'stCheckbox')]//input[@type='checkbox' and contains(@aria-label, 'chat history')]"
+            ]
+
+            chat_history_checkbox = None
+            for selector in selectors:
+                try:
+                    checkbox = self.page.locator(selector)
+                    if checkbox.count() > 0:
+                        chat_history_checkbox = checkbox
+                        logger.info("Found chat history checkbox using selector: %s", selector)
+                        break
+                except:
+                    continue
+
+            if not chat_history_checkbox or chat_history_checkbox.count() == 0:
+                logger.error("Chat history toggle not found")
+                return False
+
+            # Scroll the element into view
+            chat_history_checkbox.scroll_into_view_if_needed()
+            self.page.wait_for_timeout(1000)
+
+            current_state = chat_history_checkbox.is_checked()
+            logger.info("Current chat history toggle state: %s", "enabled" if current_state else "disabled")
+
+            # Only click if we need to change the state
+            if (enable and not current_state) or (not enable and current_state):
+                # Click on the label instead of checkbox since checkbox might be disabled
+                label_selectors = [
+                    "//label[@data-baseweb='checkbox' and .//input[@aria-label='Enable chat history']]",
+                    "//div[@data-testid='stCheckbox']//label[.//input[contains(@aria-label, 'Enable chat history')]]",
+                    "//label[.//input[@type='checkbox' and contains(@aria-label, 'chat history')]]"
+                ]
+
+                clicked = False
+                for label_selector in label_selectors:
+                    try:
+                        chat_history_label = self.page.locator(label_selector)
+                        if chat_history_label.count() > 0:
+                            chat_history_label.scroll_into_view_if_needed()
+                            self.page.wait_for_timeout(500)
+                            chat_history_label.click()
+                            self.page.wait_for_timeout(1000)
+                            logger.info("✓ Chat history toggle %s", "enabled" if enable else "disabled")
+                            clicked = True
+                            break
+                    except:
+                        continue
+
+                if not clicked:
+                    logger.error("Could not click chat history label")
+                    return False
+
+                return True
+            else:
+                logger.info("Chat history toggle already in desired state: %s", "enabled" if enable else "disabled")
+                return True
+
+        except Exception as e:
+            logger.error("Error setting chat history toggle: %s", str(e))
+            return False
+
+    def click_save_configuration_button(self):
+        """Click the Save configuration button"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            # Scroll down to make sure the button is visible
+            logger.info("Scrolling down to find Save configuration button...")
+            self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            self.page.wait_for_timeout(2000)
+
+            # Try multiple selectors for the Save configuration button
+            selectors = [
+                "//button[@data-testid='stBaseButton-secondaryFormSubmit' and .//p[text()='Save configuration']]",
+                "//button[contains(@class, 'stFormSubmitButton') and .//p[contains(text(), 'Save configuration')]]",
+                "//div[@data-testid='stFormSubmitButton']//button[.//p[contains(text(), 'Save configuration')]]",
+                "//button[.//p[text()='Save configuration']]"
+            ]
+
+            save_button = None
+            for selector in selectors:
+                try:
+                    button = self.page.locator(selector)
+                    if button.count() > 0:
+                        save_button = button
+                        logger.info("Found Save configuration button using selector: %s", selector)
+                        break
+                except:
+                    continue
+
+            if save_button and save_button.count() > 0:
+                # Scroll the button into view
+                save_button.scroll_into_view_if_needed()
+                self.page.wait_for_timeout(1000)
+
+                save_button.click()
+                self.page.wait_for_timeout(3000)  # Wait for configuration to be saved
+                logger.info("✓ Save configuration button clicked")
+                return True
+            else:
+                logger.error("Save configuration button not found")
+                return False
+
+        except Exception as e:
+            logger.error("Error clicking Save configuration button: %s", str(e))
             return False

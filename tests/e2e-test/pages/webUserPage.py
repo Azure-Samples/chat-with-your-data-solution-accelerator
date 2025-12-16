@@ -79,6 +79,20 @@ class WebUserPage(BasePage):
         else:
             logger.info("Hide button not visible. Chat history might already be closed.")
 
+    def is_chat_history_button_visible(self):
+        """Check if the 'Show Chat History' button is visible"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            show_button = self.page.locator(self.SHOW_CHAT_HISTORY_BUTTON)
+            is_visible = show_button.is_visible()
+            logger.info("Chat history button visibility: %s", is_visible)
+            return is_visible
+        except Exception as e:
+            logger.error("Error checking chat history button visibility: %s", str(e))
+            return False
+
     def delete_chat_history(self):
         self.page.locator(self.SHOW_CHAT_HISTORY).click()
         self.page.wait_for_timeout(2000)
