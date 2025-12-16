@@ -3,7 +3,7 @@ import json
 import logging
 from typing import List
 from urllib.parse import urlparse
-
+import urllib.request
 from ...helpers.llm_helper import LLMHelper
 from ...helpers.env_helper import EnvHelper
 from ..azure_computer_vision_client import AzureComputerVisionClient
@@ -18,6 +18,8 @@ from ..azure_search_helper import AzureSearchHelper
 from ..document_loading_helper import DocumentLoading
 from ..document_chunking_helper import DocumentChunking
 from ...common.source_document import SourceDocument
+import base64
+from mimetypes import guess_type
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +103,27 @@ class PushEmbedder(EmbedderBase):
         else:
             logger.warning("No documents to upload.")
 
+    def __local_image_to_data_url(self, image_path):
+        """Convert a local image file or URL to a data URL."""
+        mime_type, _ = guess_type(image_path)
+        if mime_type is None:
+            mime_type = 'application/octet-stream'
+
+        # Check if the image_path is a URL or a local file path
+        parsed_url = urlparse(image_path)
+        if parsed_url.scheme in ('http', 'https'):
+            # Download the image from the URL
+            logger.info(f"Downloading image from URL: {image_path}")
+            with urllib.request.urlopen(image_path) as response:
+                image_data = response.read()
+            base64_encoded_data = base64.b64encode(image_data).decode('utf-8')
+        else:
+            # Read from local file
+            with open(image_path, "rb") as image_file:
+                base64_encoded_data = base64.b64encode(image_file.read()).decode('utf-8')
+
+        return f"data:{mime_type};base64,{base64_encoded_data}"
+
     def __generate_image_caption(self, source_url):
         logger.info(f"Generating image caption for URL: {source_url}")
         model = self.env_helper.AZURE_OPENAI_VISION_MODEL
@@ -119,7 +142,7 @@ If the image is mostly text, use OCR to extract the text as it is displayed in t
                         "text": "Describe this image in detail. Limit the response to 500 words.",
                         "type": "text",
                     },
-                    {"image_url": {"url": source_url}, "type": "image_url"},
+                    {"image_url": {"url": self.__local_image_to_data_url(source_url)}, "type": "image_url"},
                 ],
             },
         ]

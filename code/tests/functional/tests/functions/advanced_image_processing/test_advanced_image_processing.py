@@ -63,6 +63,12 @@ def setup_blob_metadata_mocking(httpserver: HTTPServer, app_config: AppConfig):
         method="PUT",
     ).respond_with_data()
 
+    # Mock GET request for image download (base64 conversion)
+    httpserver.expect_request(
+        f"/{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}/{FILE_NAME}",
+        method="GET",
+    ).respond_with_data(b"fake_image_data", content_type="image/jpeg")
+
 
 @pytest.fixture(autouse=True)
 def setup_caption_response(httpserver: HTTPServer, app_config: AppConfig):
@@ -192,11 +198,9 @@ If the image is mostly text, use OCR to extract the text as it is displayed in t
         ),
     )[0]
 
-    assert request.get_json()["messages"][1]["content"][1]["image_url"][
-        "url"
-    ].startswith(
-        f"{app_config.get('AZURE_STORAGE_ACCOUNT_ENDPOINT')}{app_config.get_from_json('AZURE_BLOB_STORAGE_INFO','containerName')}/{FILE_NAME}"
-    )
+    # The URL should be converted to base64 data URL
+    image_url = request.get_json()["messages"][1]["content"][1]["image_url"]["url"]
+    assert image_url.startswith("data:image/"), f"Expected base64 data URL, got {image_url[:100]}"
 
 
 def test_embeddings_generated_for_caption(
