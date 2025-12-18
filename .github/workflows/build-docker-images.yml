@@ -8,6 +8,7 @@ on:
       - demo
     paths:
       - 'code/**'
+      - '!code/tests/**'
       - 'docker/**'
       - 'package.json'
       - 'pyproject.toml'
