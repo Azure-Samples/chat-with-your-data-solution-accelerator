@@ -217,6 +217,105 @@ class AdminPage(BasePage):
             logger.error("Error selecting file from dropdown: %s", str(e))
             return False
 
+    def is_file_visible_in_dropdown_with_scroll(self, filename):
+        """
+        Check if a file is visible in dropdown by scrolling through all options.
+        Handles virtualized dropdowns that require scrolling to see all items.
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.info("Checking for file '%s' in dropdown with scrolling...", filename)
+
+            # First try to find the file in currently visible options
+            if self.is_file_visible_in_dropdown(filename):
+                return True
+
+            # Try different dropdown container selectors
+            container_selectors = [
+                "div[role='listbox']",
+                "div[data-baseweb='menu']",
+                "ul[role='listbox']",
+                ".st-emotion-cache-1gulkj5",  # Streamlit specific class
+                "div[data-testid='stSelectbox'] div",
+                "[data-baseweb='select'] div[style*='overflow']"
+            ]
+
+            dropdown_container = None
+            for selector in container_selectors:
+                container = self.page.locator(selector).first
+                if container.is_visible():
+                    dropdown_container = container
+                    logger.info("Found dropdown container with selector: %s", selector)
+                    break
+
+            if not dropdown_container:
+                logger.warning("Could not find dropdown container for scrolling")
+                return False
+
+            # Get the dropdown container bounding box for scrolling
+            box = dropdown_container.bounding_box()
+            if not box:
+                logger.warning("Could not get dropdown container bounding box")
+                return False
+
+            # Scroll through the dropdown by using mouse wheel
+            scroll_attempts = 0
+            max_scrolls = 10  # Reduce attempts but make them more effective
+            scroll_distance = 100  # Pixels to scroll each time
+
+            last_visible_options = []
+
+            while scroll_attempts < max_scrolls:
+                # Check current visible options
+                current_visible_options = []
+                options = self.page.locator("li[role='option'], div[role='option']").all()
+
+                for option in options:
+                    if option.is_visible():
+                        text = option.text_content() or ""
+                        current_visible_options.append(text.strip())
+
+                logger.info("Scroll attempt %d: Found %d visible options", scroll_attempts + 1, len(current_visible_options))
+
+                # Check if our target file is now visible
+                for option_text in current_visible_options:
+                    if filename in option_text or option_text.endswith(filename):
+                        logger.info("✓ Found file '%s' in option: %s", filename, option_text)
+                        return True
+
+                # If we haven't found new options, we've reached the end
+                if current_visible_options == last_visible_options and scroll_attempts > 0:
+                    logger.info("No new options appeared after scrolling, likely reached end")
+                    break
+
+                last_visible_options = current_visible_options.copy()
+
+                # Scroll down using mouse wheel in the dropdown container
+                center_x = box['x'] + box['width'] / 2
+                center_y = box['y'] + box['height'] / 2
+
+                # Use wheel event to scroll down in the dropdown
+                self.page.mouse.wheel(0, scroll_distance)
+                self.page.wait_for_timeout(800)  # Wait longer for virtual scrolling
+
+                # Alternative: try scrolling within the container
+                try:
+                    dropdown_container.evaluate("element => element.scrollTop += 200")
+                    self.page.wait_for_timeout(500)
+                except:
+                    logger.debug("Direct scroll evaluation failed, continuing with wheel scroll")
+
+                scroll_attempts += 1
+
+            logger.warning("File '%s' not found after scrolling through dropdown", filename)
+            return False
+
+        except Exception as e:
+            logger.error("Error checking file in dropdown with scroll: %s", str(e))
+            return False
+
     def click_delete_data_tab_with_wait(self):
         """Click on the Delete Data tab and wait for it to load"""
         import logging
@@ -964,4 +1063,293 @@ class AdminPage(BasePage):
 
         except Exception as e:
             logger.error("Error clicking Save configuration button: %s", str(e))
+            return False
+
+    def scroll_to_document_processing_section(self):
+        """Scroll to the Document processing configuration section"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.info("Scrolling to Document processing configuration section...")
+
+            # Look for the section heading or the data grid
+            selectors = [
+                "//div[contains(text(), 'Document processing configuration')]",
+                "[data-testid='stDataFrame']",
+                "//div[contains(@class, 'stDataFrame')]"
+            ]
+
+            for selector in selectors:
+                try:
+                    element = self.page.locator(selector).first
+                    if element.is_visible():
+                        element.scroll_into_view_if_needed()
+                        self.page.wait_for_timeout(1000)  # Wait for scrolling
+                        logger.info("✓ Scrolled to Document processing configuration section")
+                        return True
+                except Exception:
+                    continue
+
+            logger.warning("Document processing section not found, trying page down")
+            self.page.keyboard.press("PageDown")
+            self.page.wait_for_timeout(1000)
+            return True
+
+        except Exception as e:
+            logger.error("Error scrolling to document processing section: %s", str(e))
+            return False
+
+    def click_advanced_image_processing_checkbox(self, document_type, max_attempts=3):
+        """
+        Click the advanced image processing checkbox for a specific document type using direct canvas click
+
+        Args:
+            document_type (str): The document type (jpeg, jpg, png, etc.)
+            max_attempts (int): Maximum number of click attempts (default: 3, set to 1 for quick testing)
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.info("Attempting to CLICK checkbox for %s using direct canvas approach", document_type)
+
+            # First scroll to make sure the data grid is visible
+            self.scroll_to_document_processing_section()
+
+            # Get the row index for this document type based on the actual HTML structure
+            row_index = self._get_row_index_for_document_type(document_type)
+            if row_index == -1:
+                logger.error("Document type %s not found in the expected row positions", document_type)
+                return False
+
+            logger.info("Found %s at row index %d", document_type, row_index)
+
+            # Use direct canvas clicking approach (based on working coordinates from previous test)
+            try:
+                # Look for the Streamlit data frame container
+                data_frame_container = self.page.locator(".stDataFrameGlideDataEditor").first
+
+                if not data_frame_container.is_visible():
+                    logger.error("Data frame container not visible for %s", document_type)
+                    return False
+
+                container_box = data_frame_container.bounding_box()
+                logger.info("Canvas dimensions: %dx%d at (%d,%d)",
+                           int(container_box['width']), int(container_box['height']),
+                           int(container_box['x']), int(container_box['y']))
+
+                if container_box:
+                    # Calculate precise checkbox coordinates using same logic as working test
+                    # From terminal output: checkbox column is at right edge of grid
+                    checkbox_column_x = container_box['x'] + container_box['width'] - 39  # Fine-tuned offset
+
+                    # Row calculation: header + (row_index * row_height) + row_center_offset
+                    header_height = 40
+                    row_height = 36
+                    checkbox_row_y = container_box['y'] + header_height + (row_index * row_height) + (row_height / 2)
+
+                    logger.info("Calculated click position for %s: (%.0f, %.0f)", document_type, checkbox_column_x, checkbox_row_y)
+
+                    # Perform the canvas click to select the cell
+                    logger.info("Attempting canvas click for %s...", document_type)
+                    self.page.mouse.click(checkbox_column_x, checkbox_row_y)
+                    self.page.wait_for_timeout(500)
+
+                    logger.info("Canvas click completed for %s, now pressing spacebar to toggle checkbox", document_type)
+
+                    # Press spacebar to toggle the checkbox after selecting the cell
+                    logger.info("Pressing spacebar to toggle checkbox for %s", document_type)
+                    self.page.keyboard.press("Space")
+                    self.page.wait_for_timeout(800)
+
+                    logger.info("✅ SUCCESS: Canvas click + spacebar completed for %s", document_type)
+                    return True
+                else:
+                    logger.error("Could not get container bounding box for %s", document_type)
+                    return False
+
+            except Exception as e:
+                logger.error("Canvas clicking failed for %s: %s", document_type, str(e))
+
+            logger.error("Canvas approach failed for %s", document_type)
+            return False
+
+        except Exception as e:
+            logger.error("Error toggling advanced image processing checkbox for %s: %s", document_type, str(e))
+            return False
+
+    def _get_row_index_for_document_type(self, document_type):
+        """Helper method to get the row index for a document type based on the actual HTML structure"""
+        # Based on the HTML structure provided, these are the actual row indices (0-based)
+        type_to_index = {
+            'pdf': 0, 'txt': 1, 'url': 2, 'md': 3, 'html': 4, 'htm': 5,
+            'docx': 6, 'json': 7, 'jpg': 8, 'jpeg': 9, 'png': 10
+        }
+        return type_to_index.get(document_type, -1)
+
+    def verify_advanced_image_processing_checkbox_state(self, document_type, expected_state="true"):
+        """
+        Verify the state of advanced image processing checkbox for a document type
+
+        Args:
+            document_type (str): The document type
+            expected_state (str): Expected state - "true" or "false"
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.info("Verifying advanced image processing checkbox state for %s (expected: %s)", document_type, expected_state)
+
+            # Get the row index
+            row_index = self._get_row_index_for_document_type(document_type)
+            if row_index == -1:
+                logger.error("Document type %s not found in expected row positions", document_type)
+                return False
+
+            # Find the cell containing the checkbox state using Glide Data Editor selectors
+            state_selectors = [
+                f"[data-testid='glide-cell-6-{row_index}']",  # Direct testid
+                f"#glide-cell-6-{row_index}",  # ID approach
+                f"//td[@data-testid='glide-cell-6-{row_index}']",  # XPath approach
+                f"//table//tr[{row_index + 2}]//td[6]"  # Row-based approach
+            ]
+
+            for selector in state_selectors:
+                try:
+                    state_cell = self.page.locator(selector).first
+                    if state_cell.count() > 0:
+                        actual_state = state_cell.text_content().strip().lower()
+                        logger.info("Checkbox state for %s: %s (using selector: %s)", document_type, actual_state, selector)
+                        return actual_state == expected_state.lower()
+                except Exception as e:
+                    logger.debug("Selector %s failed for state verification: %s", selector, str(e))
+                    continue
+
+            logger.error("Could not verify checkbox state for %s", document_type)
+            return False
+
+        except Exception as e:
+            logger.error("Error verifying advanced image processing checkbox state for %s: %s", document_type, str(e))
+            return False
+
+    def debug_data_grid_structure(self):
+        """Debug method to understand the data grid structure"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.info("=== DEBUGGING Data Grid Structure ===")
+
+            # Check if the data grid canvas is present
+            canvas = self.page.locator("[data-testid='data-grid-canvas']")
+            logger.info("Canvas elements found: %d", canvas.count())
+
+            # Check for glide cells
+            glide_cells = self.page.locator("[data-testid*='glide-cell-6']")
+            logger.info("Glide cell column 6 elements found: %d", glide_cells.count())
+
+            # List all glide cell 6 elements
+            for i in range(min(glide_cells.count(), 15)):  # Limit to first 15
+                cell = glide_cells.nth(i)
+                cell_id = cell.get_attribute("data-testid")
+                cell_text = cell.text_content() if cell.text_content() else "empty"
+                logger.info("Glide cell %d: %s = '%s'", i, cell_id, cell_text)
+
+            # Check for table structure
+            table_rows = self.page.locator("table tbody tr")
+            logger.info("Table rows found: %d", table_rows.count())
+
+            # List first few rows with their content
+            for i in range(min(table_rows.count(), 12)):  # Limit to first 12 rows
+                row = table_rows.nth(i)
+                cells = row.locator("td")
+                if cells.count() >= 6:
+                    doc_type = cells.nth(0).text_content()
+                    checkbox_state = cells.nth(5).text_content()
+                    logger.info("Row %d: %s -> checkbox: %s", i, doc_type, checkbox_state)
+
+            logger.info("=== END DEBUG Data Grid Structure ===")
+
+        except Exception as e:
+            logger.error("Error debugging data grid structure: %s", str(e))
+
+    def verify_configuration_save_success(self):
+        """Verify that configuration was saved successfully"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.info("Verifying configuration save success...")
+
+            # Look for success message
+            success_selectors = [
+                "//div[@data-testid='stAlertContentSuccess']",
+                "//div[contains(@class, 'stAlert')]//div[contains(text(), 'Configuration saved successfully')]",
+                "//div[contains(text(), 'saved successfully')]",
+                "//div[contains(text(), 'Configuration saved')]"
+            ]
+
+            for selector in success_selectors:
+                try:
+                    success_message = self.page.locator(selector).first
+                    if success_message.is_visible():
+                        message_text = success_message.text_content()
+                        logger.info("✓ Found success message: %s", message_text)
+                        return True
+                except Exception:
+                    continue
+
+            logger.warning("No success message found after saving configuration")
+            return False
+
+        except Exception as e:
+            logger.error("Error verifying configuration save success: %s", str(e))
+            return False
+
+    def verify_page_not_refreshed_during_checkbox_selection(self, document_types):
+        """
+        Verify that the page doesn't refresh automatically while selecting checkboxes
+
+        Args:
+            document_types (list): List of document types to test
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.info("Verifying page stability during checkbox selection...")
+
+            # Get initial page state
+            initial_url = self.page.url
+            initial_title = self.page.title()
+
+            # Click checkboxes and verify page doesn't refresh
+            for doc_type in document_types:
+                logger.info("Testing checkbox stability for %s", doc_type)
+
+                # Click the checkbox
+                success = self.click_advanced_image_processing_checkbox(doc_type)
+                if not success:
+                    logger.warning("Failed to click checkbox for %s", doc_type)
+                    continue
+
+                # Verify page hasn't refreshed
+                current_url = self.page.url
+                current_title = self.page.title()
+
+                if current_url != initial_url or current_title != initial_title:
+                    logger.error("Page refreshed unexpectedly after clicking checkbox for %s", doc_type)
+                    logger.error("Initial URL: %s, Current URL: %s", initial_url, current_url)
+                    logger.error("Initial Title: %s, Current Title: %s", initial_title, current_title)
+                    return False
+
+                logger.info("✓ Page remained stable after clicking checkbox for %s", doc_type)
+
+            logger.info("✓ Page remained stable throughout all checkbox selections")
+            return True
+
+        except Exception as e:
+            logger.error("Error verifying page stability: %s", str(e))
             return False

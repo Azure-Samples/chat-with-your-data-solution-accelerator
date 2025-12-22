@@ -113,6 +113,138 @@ class WebUserPage(BasePage):
             self.page.wait_for_load_state("networkidle")
             self.page.wait_for_timeout(2000)
 
+    def clear_all_chat_history_with_confirmation(self):
+        """
+        Clear all chat history via the three-dot menu and confirm with YES.
+        Assumes chat history panel is already open.
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            # Click on three-dot menu (More options)
+            logger.info("Clicking on three-dot menu (More options)")
+            more_button = self.page.locator(self.CHAT_HISTORY_OPTIONS)
+            more_button.wait_for(state="visible", timeout=10000)
+            more_button.click()
+            self.page.wait_for_timeout(1000)
+            logger.info("✓ Three-dot menu clicked")
+
+            # Click on "Clear all chat history" option
+            logger.info("Clicking on 'Clear all chat history' option")
+            # Try different possible text variations for the menu item
+            clear_all_selectors = [
+                "//button[@role='menuitem' and contains(text(), 'Clear all')]",
+                "//button[@role='menuitem' and contains(text(), 'Clear All')]",
+                "//button[@role='menuitem' and contains(text(), 'clear all')]",
+                "//button[contains(text(), 'Clear all')]",
+                self.CHAT_HISTORY_DELETE  # Fallback to existing selector
+            ]
+
+            clear_clicked = False
+            for selector in clear_all_selectors:
+                try:
+                    clear_button = self.page.locator(selector)
+                    if clear_button.is_visible():
+                        clear_button.click()
+                        clear_clicked = True
+                        logger.info("✓ 'Clear all chat history' option clicked")
+                        break
+                except Exception as e:
+                    logger.debug("Selector %s failed: %s", selector, str(e))
+                    continue
+
+            if not clear_clicked:
+                # Try the approach from existing delete_chat_history method
+                self.page.locator(self.CHAT_HISTORY_DELETE).click()
+                clear_clicked = True
+                logger.info("✓ Used fallback selector for clear all")
+
+            # Wait for confirmation dialog
+            self.page.wait_for_timeout(2000)
+
+            # Confirm with "YES" button
+            logger.info("Looking for confirmation dialog")
+            confirmation_selectors = [
+                "//button[contains(text(), 'Yes')]",
+                "//button[contains(text(), 'YES')]",
+                "//button[contains(text(), 'Confirm')]",
+                "//button[@role='button' and contains(text(), 'Clear')]",
+                "button[name='Yes']",
+                "button[name='yes']"
+            ]
+
+            confirmed = False
+            for selector in confirmation_selectors:
+                try:
+                    confirm_button = self.page.locator(selector)
+                    if confirm_button.is_visible():
+                        confirm_button.click()
+                        confirmed = True
+                        logger.info("✓ Confirmation clicked with selector: %s", selector)
+                        break
+                except Exception as e:
+                    logger.debug("Confirmation selector %s failed: %s", selector, str(e))
+                    continue
+
+            if not confirmed:
+                # Try the approach from existing method
+                self.page.get_by_role("button", name="Clear All").click()
+                logger.info("✓ Used fallback confirmation approach")
+
+            # Wait for the action to complete
+            self.page.wait_for_timeout(3000)
+            logger.info("✓ Clear all chat history completed")
+            return True
+
+        except Exception as e:
+            logger.error("Error clearing all chat history: %s", str(e))
+            return False
+
+    def get_chat_history_entries_count(self):
+        """
+        Get the count of chat history entries in the chat history panel.
+        Returns the number of entries or 0 if none found.
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            # Wait a moment for entries to load
+            self.page.wait_for_timeout(2000)
+
+            # Count chat history items
+            history_items = self.page.locator(self.CHAT_HISTORY_ITEM)
+            count = history_items.count()
+            logger.info("Found %d chat history entries", count)
+            return count
+
+        except Exception as e:
+            logger.error("Error counting chat history entries: %s", str(e))
+            return 0
+
+    def get_chat_history_entry_text(self, index=0):
+        """
+        Get the text content of a specific chat history entry.
+        Index 0 is the first (most recent) entry.
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            history_items = self.page.locator(self.CHAT_HISTORY_ITEM)
+            if history_items.count() > index:
+                entry_text = history_items.nth(index).text_content()
+                logger.info("Chat history entry %d text: %s", index, entry_text)
+                return entry_text.strip() if entry_text else ""
+            else:
+                logger.warning("No chat history entry found at index %d", index)
+                return ""
+
+        except Exception as e:
+            logger.error("Error getting chat history entry text: %s", str(e))
+            return ""
+
     def click_reference_link_in_response(self):
         response_blocks = self.page.locator(self.ANSWER_TEXT)
         last_response = response_blocks.nth(response_blocks.count() - 1)
