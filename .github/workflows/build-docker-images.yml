@@ -6,6 +6,14 @@ on:
       - main
       - dev
       - demo
+    paths:
+      - 'code/**'
+      - '!code/tests/**'
+      - 'docker/**'
+      - 'package.json'
+      - 'pyproject.toml'
+      - '.github/workflows/build-docker-images.yml'
+      - '.github/workflows/build-docker.yml'
   pull_request:
     branches:
       - main
@@ -16,6 +24,13 @@ on:
       - ready_for_review
       - reopened
       - synchronize
+    paths:
+      - 'code/**'
+      - 'docker/**'
+      - 'package.json'
+      - 'pyproject.toml'
+      - '.github/workflows/build-docker-images.yml'
+      - '.github/workflows/build-docker.yml'
   merge_group:
   workflow_dispatch:
 
