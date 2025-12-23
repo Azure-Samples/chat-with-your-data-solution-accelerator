@@ -101,7 +101,7 @@ When you start the development container for the first time, the container will 
 
 The files for the dev container are located in `/.devcontainer/` folder.
 
-## For local debugging, refer to [Local Development Setup](./LocalDevelopmentSetup.md)
+## For local debugging, refer to the [Local Development Setup Guide](./LocalDevelopmentSetup.md).
 
 ## Environment variables
 

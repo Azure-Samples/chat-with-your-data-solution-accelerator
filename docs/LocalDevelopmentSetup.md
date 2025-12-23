@@ -9,7 +9,7 @@ This application consists of **three separate services** that run independently:
 
 1. **Frontend**
 2. **Admin web**
-3. **Batch procesing function**
+3. **Batch processing function**
 
 > **⚠️ Critical: Each service must run in its own terminal/console window**
 >
@@ -24,7 +24,7 @@ This application consists of **three separate services** that run independently:
 To customize the accelerator or run it locally, you must provision the Azure resources by running `azd provision` in a Terminal. This will generate a `.env` for you and you can use the "Run and Debug" (Ctrl + Shift + D) command to chose which part of the accelerator to run.  There is an [environment variable values table](#environment-variables) below.
 
 
-To run the accelerator in local when the solution is secured by RBAC you need to assign some roles to your principal id. You can do it either manually or programatically.
+To run the accelerator in local when the solution is secured by RBAC you need to assign some roles to your principal id. You can do it either manually or Programmatically.
 
 ### Manually assign roles
 You need to assign the following roles to your `PRINCIPALID` (you can get your 'principal id' from Microsoft Entra ID):
@@ -40,9 +40,9 @@ You need to assign the following roles to your `PRINCIPALID` (you can get your '
 | Storage Blob Data Contributor | ba92f5b4-2d11-453d-a403-e96b0029c9fe |
 | Storage Queue Data Contributor | 974c5e8b-45b9-4653-ba55-5f855dd0fb88 |
 
-### Programatically assign roles
+### Programmatically assign roles
 You can also update the `principalId` value with your own principalId in the `main.bicep` file.
-Refer this section [Assign roles using cmd](#assigning-azure-roles-using-command-line)
+Refer this section [Assign roles using cmd](#step-8-assigning-azure-roles-using-command-line)
 
 ### Authenticate using RBAC
 To authenticate using API Keys, update the value of `AZURE_AUTH_TYPE` to keys. For accessing using 'rbac', manually make changes by following the below steps:
@@ -184,7 +184,7 @@ Rename the file `local.settings.json.sample` in the `batch` folder to `local.set
 
 Copy the .env file from [previous section](#local-debugging) to the `batch` folder.
 
-Execute the above section to run the function locally. You may need to stop the deployed function on the portal so that all requests are debugged locally. To trigger the function, you can click on the corresponding URL that will be printed to the terminal.
+Execute the steps in [Running the batch processing locally](#running-the-batch-processing-locally) to run the function locally. You may need to stop the deployed function on the portal so that all requests are debugged locally. To trigger the function, you can click on the corresponding URL that will be printed to the terminal.
 
 ## Step 8: Assigning Azure Roles using command line
 
@@ -283,10 +283,10 @@ az cosmosdb sql role assignment create --account-name cosmos-$SOLUTION_PREFIX --
 |AZURE_SEARCH_DATASOURCE_NAME | | The name of the Azure AI Search datasource|
 |AZURE_SEARCH_DIMENSIONS|1536| Azure OpenAI Embeddings dimensions. 1536 for `text-embedding-ada-002`. A full list of dimensions can be found [here](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#embeddings-models). |
 |AZURE_SEARCH_ENABLE_IN_DOMAIN|True|Limits responses to only queries relating to your data.|
-|AZURE_SEARCH_FIELDS_ID|id|`AZURE_SEARCH_FIELDS_ID`: Field from your Azure AI Search index that gives a unique idenitfier of the document chunk. `id` if you don't have a specific requirement.|
+|AZURE_SEARCH_FIELDS_ID|id|`AZURE_SEARCH_FIELDS_ID`: Field from your Azure AI Search index that gives a unique identifier of the document chunk. `id` if you don't have a specific requirement.|
 |AZURE_SEARCH_FIELDS_METADATA|metadata|Field from your Azure AI Search index that contains metadata for the document. `metadata` if you don't have a specific requirement.|
 |AZURE_SEARCH_FIELDS_TAG|tag|Field from your Azure AI Search index that contains tags for the document. `tag` if you don't have a specific requirement.|
-|AZURE_SEARCH_FILENAME_COLUMN||`AZURE_SEARCH_FILENAME_COLUMN`: Field from your Azure AI Search index that gives a unique idenitfier of the source of your data to display in the UI.|
+|AZURE_SEARCH_FILENAME_COLUMN||`AZURE_SEARCH_FILENAME_COLUMN`: Field from your Azure AI Search index that gives a unique identifier of the source of your data to display in the UI.|
 |AZURE_SEARCH_FILTER||Filter to apply to search queries.|
 |AZURE_SEARCH_INDEX||The name of your Azure AI Search Index|
 |AZURE_SEARCH_INDEXER_NAME | | The name of the Azure AI Search indexer|
