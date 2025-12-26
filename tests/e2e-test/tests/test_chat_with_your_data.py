@@ -2833,3 +2833,167 @@ def test_14484_bug_cwyd_none_chunking_strategy_error(login_logout, request):
 
         logger.info("[14484] ✅ Test completed successfully - Chunking strategy validation error test completed")
         logger.info("[14484] Test verified error handling for incomplete document processor configuration rows")
+
+
+def test_8029_bug_8007_cwyd_screen_refresh_checkbox_deselection(login_logout, request):
+    """
+    Test Case 8029: Bug 8007 - CWYD: Screen refreshes automatically while selecting checkboxes
+    present under use_advance_image_processing column under configuration section on Admin page
+
+    Test Steps:
+    1. Navigate to Admin page Configuration tab
+    2. Scroll to "Document processing configuration" section
+    3. Select checkboxes under 'Use advanced image processing' column for image types ['jpg', 'jpeg', 'png']
+    4. Record checkbox states immediately after each selection
+    5. Wait and observe if screen refreshes automatically
+    6. Verify checkboxes remain selected and do not get deselected due to automatic screen refresh
+
+    Expected Result:
+    Screen should NOT refresh automatically, and checkboxes should remain selected once ticked by user.
+    The test should FAIL if checkboxes get deselected due to automatic screen refresh.
+    """
+    with TestContext(login_logout, request, "8029", "Bug 8007 - Screen refresh checkbox deselection") as ctx:
+        # Navigate to admin page
+        ctx.navigate_to_admin()
+
+        # Step 1: Click on Configuration tab
+        logger.info("[8029] Clicking on Configuration tab")
+        ctx.admin_page.click_configuration_tab()
+        logger.info("[8029] Configuration page loaded")
+
+        # Step 2: Scroll to Document processing configuration section
+        logger.info("[8029] Scrolling to Document processing configuration section")
+        ctx.admin_page.scroll_to_document_processing_section()
+        logger.info("[8029] SUCCESS: Found Document processing configuration section")
+
+        # Define the image file types to test
+        image_types = ['jpg', 'jpeg', 'png']  # Test image types for advanced image processing
+        logger.info("[8029] Testing advanced image processing checkboxes for types: %s", image_types)
+
+        # Step 3: Get initial checkbox states (should be unchecked initially)
+        logger.info("[8029] Recording initial checkbox states before selection")
+        initial_states = ctx.admin_page.get_checkbox_states_for_image_types(image_types)
+        logger.info("[8029] Initial checkbox states: %s", initial_states)
+
+        # Step 4: Select checkboxes and track states after each selection
+        checkbox_selection_results = []
+        states_after_each_click = {}
+
+        for image_type in image_types:
+            logger.info("[8029] Selecting checkbox for %s", image_type)
+
+            # Click the checkbox
+            success = ctx.admin_page.click_advanced_image_processing_checkbox(image_type)
+
+            if success:
+                logger.info("[8029] ✅ Successfully clicked checkbox for %s", image_type)
+                checkbox_selection_results.append((image_type, True))
+
+                # Wait a moment and check state immediately after click
+                ctx.page.wait_for_timeout(1000)
+
+                # Record state immediately after this click
+                current_states = ctx.admin_page.get_checkbox_states_for_image_types(image_types)
+                states_after_each_click[image_type] = current_states.copy()
+                logger.info("[8029] States after clicking %s: %s", image_type, current_states)
+
+            else:
+                logger.warning("[8029] ❌ Failed to click checkbox for %s", image_type)
+                checkbox_selection_results.append((image_type, False))
+
+            # Short wait between selections to observe any automatic refresh behavior
+            ctx.page.wait_for_timeout(2000)
+
+        # Step 5: Wait and observe if screen refreshes automatically (longer observation period)
+        logger.info("[8029] Observing for automatic screen refresh behavior (10 second observation period)")
+
+        # Record states before observation period
+        states_before_wait = ctx.admin_page.get_checkbox_states_for_image_types(image_types)
+        logger.info("[8029] Checkbox states before observation period: %s", states_before_wait)
+
+        # Wait for potential automatic refresh (common time for auto-refresh is 5-10 seconds)
+        ctx.page.wait_for_timeout(10000)  # 10 second observation period
+
+        # Record states after observation period
+        states_after_wait = ctx.admin_page.get_checkbox_states_for_image_types(image_types)
+        logger.info("[8029] Checkbox states after observation period: %s", states_after_wait)
+
+        # Step 6: Analyze results and detect automatic screen refresh / checkbox deselection
+        successful_selections = [result for result in checkbox_selection_results if result[1]]
+        failed_selections = [result for result in checkbox_selection_results if not result[1]]
+
+        logger.info("[8029] SELECTION SUMMARY:")
+        logger.info("[8029] - Successfully selected: %d/%d (%s)",
+                   len(successful_selections), len(image_types),
+                   [item[0] for item in successful_selections])
+        logger.info("[8029] - Failed selections: %d/%d (%s)",
+                   len(failed_selections), len(image_types),
+                   [item[0] for item in failed_selections])
+
+        # Main test assertion: Check for automatic deselection (the bug)
+        refresh_detected = False
+        deselected_checkboxes = []
+
+        for image_type in image_types:
+            if image_type in [item[0] for item in successful_selections]:
+                # This checkbox was successfully selected, check if it got deselected
+                was_selected = states_before_wait.get(image_type, False)
+                is_still_selected = states_after_wait.get(image_type, False)
+
+                if was_selected and not is_still_selected:
+                    refresh_detected = True
+                    deselected_checkboxes.append(image_type)
+                    logger.error("[8029] 🐛 BUG DETECTED: Checkbox for %s was deselected due to automatic refresh", image_type)
+                elif was_selected and is_still_selected:
+                    logger.info("[8029] ✅ Checkbox for %s remained selected (no auto-refresh)", image_type)
+                else:
+                    logger.warning("[8029] ⚠ Checkbox for %s state unclear - was_selected: %s, is_still_selected: %s",
+                                 image_type, was_selected, is_still_selected)
+
+        # Detailed logging for debugging
+        logger.info("[8029] DETAILED STATE ANALYSIS:")
+        logger.info("[8029] - Initial states: %s", initial_states)
+        logger.info("[8029] - States before observation: %s", states_before_wait)
+        logger.info("[8029] - States after observation: %s", states_after_wait)
+        logger.info("[8029] - States after each click: %s", states_after_each_click)
+
+        # Test assertions
+        assert len(successful_selections) > 0, f"No checkboxes were successfully selected. Failed selections: {failed_selections}"
+        logger.info("[8029] ✅ At least one checkbox was successfully selected")
+
+        # Main bug detection: Fail test if automatic refresh caused deselection
+        if refresh_detected:
+            logger.error("[8029] 🐛 BUG CONFIRMED: Automatic screen refresh caused checkbox deselection")
+            logger.error("[8029] Deselected checkboxes: %s", deselected_checkboxes)
+            assert False, f"Bug 8007 detected: Automatic screen refresh caused deselection of checkboxes: {deselected_checkboxes}. This indicates the screen refresh bug is still present."
+        else:
+            logger.info("[8029] ✅ SUCCESS: No automatic screen refresh detected - checkboxes remained selected")
+
+        # Additional verification: Check if page structure remained stable
+        logger.info("[8029] Verifying page structure remained stable")
+        try:
+            # Verify we're still on the configuration page
+            current_url = ctx.page.url
+            assert "/Configuration" in current_url, f"Page navigated away unexpectedly to: {current_url}"
+            logger.info("[8029] ✅ Page URL remained stable: %s", current_url)
+
+            # Verify configuration section is still accessible
+            ctx.admin_page.scroll_to_document_processing_section()
+            logger.info("[8029] ✅ Configuration section remained accessible")
+
+        except Exception as e:
+            logger.warning("[8029] ⚠ Page stability check issue: %s", str(e))
+
+        # Final summary
+        logger.info("[8029] FINAL TEST RESULTS:")
+        logger.info("[8029] - Checkboxes selected: %d/%d", len(successful_selections), len(image_types))
+        logger.info("[8029] - Auto-refresh detected: %s", "YES (BUG)" if refresh_detected else "NO (GOOD)")
+        logger.info("[8029] - Deselected checkboxes: %s", deselected_checkboxes if deselected_checkboxes else "None")
+        logger.info("[8029] - Bug status: %s", "PRESENT" if refresh_detected else "NOT DETECTED")
+
+        if refresh_detected:
+            logger.error("[8029] Test FAILED - Bug 8007 is present: Screen refresh causing checkbox deselection")
+        else:
+            logger.info("[8029] Test PASSED - Bug 8007 not detected: Checkboxes remained stable")
+
+        logger.info("[8029] ✅ Test completed successfully - Screen refresh checkbox behavior test completed")

@@ -1087,6 +1087,9 @@ class AdminPage(BasePage):
                         element.scroll_into_view_if_needed()
                         self.page.wait_for_timeout(1000)  # Wait for scrolling
                         logger.info("✓ Scrolled to Document processing configuration section")
+
+                        # Debug: Check what data components are available after scrolling
+                        self.debug_data_components_after_scroll()
                         return True
                 except Exception:
                     continue
@@ -1094,11 +1097,61 @@ class AdminPage(BasePage):
             logger.warning("Document processing section not found, trying page down")
             self.page.keyboard.press("PageDown")
             self.page.wait_for_timeout(1000)
+
+            # Debug: Check what data components are available after page down
+            self.debug_data_components_after_scroll()
             return True
 
         except Exception as e:
             logger.error("Error scrolling to document processing section: %s", str(e))
             return False
+
+    def debug_data_components_after_scroll(self):
+        """Debug method to see what data components are available after scrolling"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.info("=== DEBUG: Data components after scrolling ===")
+
+            # Check for various data component selectors
+            component_selectors = [
+                (".stDataFrameGlideDataEditor", "Glide Data Editor"),
+                ("[data-testid='stDataFrameGlideDataEditor']", "Data Frame Glide Data Editor"),
+                ("[data-testid='stDataFrame']", "Data Frame"),
+                ("div[class*='dataframe']", "DataFrame div"),
+                ("div[class*='table']", "Table div"),
+                ("table", "Table element"),
+                ("tr[role='row']", "Row elements"),
+                ("td[role='gridcell']", "Grid cells"),
+                ("input", "Input elements"),
+                ("button", "Button elements")
+            ]
+
+            for selector, name in component_selectors:
+                try:
+                    elements = self.page.locator(selector)
+                    count = elements.count()
+                    logger.info("  %s (%s): %d found", name, selector, count)
+
+                    if count > 0 and count < 10:  # Don't spam for too many elements
+                        for i in range(min(3, count)):  # Show first 3
+                            try:
+                                element = elements.nth(i)
+                                if element.is_visible():
+                                    text = element.text_content() or ""
+                                    if len(text) > 50:
+                                        text = text[:50] + "..."
+                                    logger.info("    [%d]: visible, text='%s'", i, text)
+                            except:
+                                pass
+                except Exception as e:
+                    logger.debug("    Error checking %s: %s", name, str(e))
+
+            logger.info("=== END DEBUG ===")
+
+        except Exception as e:
+            logger.error("Debug method failed: %s", str(e))
 
     def click_advanced_image_processing_checkbox(self, document_type, max_attempts=3):
         """
@@ -1233,6 +1286,63 @@ class AdminPage(BasePage):
         except Exception as e:
             logger.error("Error verifying advanced image processing checkbox state for %s: %s", document_type, str(e))
             return False
+
+    def get_checkbox_states_for_image_types(self, image_types):
+        """
+        Get the current checkbox states for multiple image types
+
+        Args:
+            image_types (list): List of image types to check states for
+
+        Returns:
+            dict: Dictionary mapping image_type -> checkbox state (True/False)
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        states = {}
+
+        logger.info("Getting checkbox states for image types: %s", image_types)
+
+        for image_type in image_types:
+            try:
+                # Get the row index for this document type
+                row_index = self._get_row_index_for_document_type(image_type)
+                if row_index == -1:
+                    logger.warning("Document type %s not found in expected row positions", image_type)
+                    states[image_type] = False
+                    continue
+
+                # Check checkbox state using multiple approaches
+                checkbox_checked = False
+
+                # Approach 1: Check the cell content in the use_advanced_image_processing column (usually column 6)
+                state_selectors = [
+                    f"[data-testid='glide-cell-6-{row_index}']",  # Direct testid
+                    f"//table//tr[{row_index + 2}]//td[7]"  # Row-based approach (7th column, 1-indexed)
+                ]
+
+                for selector in state_selectors:
+                    try:
+                        state_cell = self.page.locator(selector).first
+                        if state_cell.count() > 0:
+                            cell_content = state_cell.text_content().strip().lower()
+                            logger.debug("Cell content for %s checkbox: '%s'", image_type, cell_content)
+                            # Check if checkbox is checked based on cell content
+                            checkbox_checked = cell_content in ['true', '✓', 'checked', 'yes', '1']
+                            break
+                    except Exception as e:
+                        logger.debug("Selector %s failed for %s: %s", selector, image_type, str(e))
+                        continue
+
+                states[image_type] = checkbox_checked
+                logger.info("Checkbox state for %s: %s", image_type, "checked" if checkbox_checked else "unchecked")
+
+            except Exception as e:
+                logger.warning("Error getting checkbox state for %s: %s", image_type, str(e))
+                states[image_type] = False
+
+        return states
 
     def debug_data_grid_structure(self):
         """Debug method to understand the data grid structure"""
@@ -1451,12 +1561,14 @@ class AdminPage(BasePage):
         try:
             logger.info("Selecting last row and clearing first column to trigger validation error...")
 
-            # Try multiple selectors for the data editor
+            # Try multiple selectors for the data editor including the specific one from user
             data_editor_selectors = [
+                "//div[@class='dvn-scroller stDataFrameGlideDataEditor']",  # User-provided specific selector
                 ".stDataFrameGlideDataEditor",
                 "[data-testid='stDataFrameGlideDataEditor']",
                 "[data-testid='glide-data-editor']",
-                ".glide-data-editor"
+                ".glide-data-editor",
+                "//div[contains(@class, 'stDataFrameGlideDataEditor')]"
             ]
 
             data_editor = None
@@ -1520,6 +1632,67 @@ class AdminPage(BasePage):
                     last_row = None
             except Exception as e:
                 logger.debug("nth(-1) approach failed: %s", str(e))
+
+            if not last_row:
+                logger.info("Row targeting failed, trying to find row with 'None' values...")
+
+                # Look for a row that contains "None" in the first column (the empty row we need)
+                none_cell_selectors = [
+                    "//td[text()='None'][1]",  # First td with text "None"
+                    "//td[contains(text(), 'None')]",  # Any td containing "None"
+                    "//div[text()='None']",  # Div with text "None"
+                ]
+
+                target_cell = None
+                for selector in none_cell_selectors:
+                    try:
+                        cells = self.page.locator(selector).all()
+                        logger.info("Found %d cells with 'None' text using selector: %s", len(cells), selector)
+
+                        # Look for the first column cell with "None"
+                        for cell in cells:
+                            if cell.is_visible():
+                                # Check if this is in the first column by checking its position
+                                cell_text = cell.text_content().strip()
+                                if cell_text == "None":
+                                    target_cell = cell
+                                    logger.info("Found 'None' cell to target for clearing")
+                                    break
+
+                        if target_cell:
+                            break
+
+                    except Exception as e:
+                        logger.debug("Selector %s failed: %s", selector, str(e))
+
+                if target_cell and target_cell.is_visible():
+                    logger.info("Successfully found 'None' target cell")
+                    # Try to interact with this cell directly
+                    try:
+                        logger.info("Clicking on 'None' cell")
+                        target_cell.click()
+                        self.page.wait_for_timeout(1000)
+
+                        # Double-click to edit the cell
+                        target_cell.dblclick()
+                        self.page.wait_for_timeout(1000)
+
+                        # Try to clear the content
+                        self.page.keyboard.press("Control+a")  # Select all
+                        self.page.wait_for_timeout(300)
+                        self.page.keyboard.press("Delete")      # Delete content
+                        self.page.wait_for_timeout(300)
+                        self.page.keyboard.press("Escape")      # Exit edit mode
+                        self.page.wait_for_timeout(1000)
+
+                        logger.info("✓ Cleared 'None' cell content")
+                        return True
+
+                    except Exception as e:
+                        logger.error("'None' cell interaction failed: %s", str(e))
+                        # Continue to try other approaches
+
+                logger.info("'None' cell approach failed, trying direct cell approach...")
 
             # If nth(-1) doesn't work, try a different approach - target cells directly
             if not last_row:
@@ -1639,6 +1812,189 @@ class AdminPage(BasePage):
             logger.error("Error selecting/clearing last row: %s", str(e))
             return False
 
+    def clear_none_cell_to_trigger_validation_error(self):
+        """Simple method to find and clear the None cell to trigger validation error"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.info("Looking for 'None' cell to clear and trigger validation error...")
+
+            # Wait for page to be ready
+            self.page.wait_for_timeout(3000)
+
+            # First, verify the data editor is present using the exact selector
+            data_editor = self.page.locator("//div[@class='dvn-scroller stDataFrameGlideDataEditor']").first
+
+            if not data_editor.is_visible():
+                logger.error("Data editor not found with exact selector")
+                return False
+
+            logger.info("✓ Found data editor with exact selector")
+
+            # Since this is a Glide Data Editor, the cells might be deeply nested
+            # Try multiple approaches to find the "None" cell
+            none_cell_approaches = [
+                # Approach 1: Direct search for None text within the data editor
+                "//div[@class='dvn-scroller stDataFrameGlideDataEditor']//div[text()='None']",
+                "//div[@class='dvn-scroller stDataFrameGlideDataEditor']//span[text()='None']",
+                "//div[@class='dvn-scroller stDataFrameGlideDataEditor']//td[text()='None']",
+
+                # Approach 2: Search for None text anywhere within the scroller
+                "//div[@class='dvn-scroller stDataFrameGlideDataEditor']//*[normalize-space(text())='None']",
+
+                # Approach 3: Look for cells/elements containing None
+                "//div[@class='dvn-scroller stDataFrameGlideDataEditor']//*[contains(text(), 'None')]",
+
+                # Approach 4: More general search for None text
+                "//*[text()='None' and ancestor::div[@class='dvn-scroller stDataFrameGlideDataEditor']]"
+            ]
+
+            target_cell = None
+            for i, selector in enumerate(none_cell_approaches, 1):
+                try:
+                    logger.info("Trying approach %d: %s", i, selector)
+                    elements = self.page.locator(selector).all()
+                    logger.info("Found %d elements with approach %d", len(elements), i)
+
+                    for element in elements:
+                        if element.is_visible():
+                            text_content = element.text_content().strip()
+                            logger.info("Element text: '%s'", text_content)
+                            if text_content == "None":
+                                target_cell = element
+                                logger.info("✓ Found target 'None' cell with approach %d", i)
+                                break
+
+                    if target_cell:
+                        break
+
+                except Exception as e:
+                    logger.debug("Approach %d failed: %s", i, str(e))
+
+            # If direct None search fails, try to interact with the data grid to reveal cells
+            if not target_cell:
+                logger.info("Direct None search failed, trying to interact with data grid...")
+
+                # Click on the data editor to focus it
+                data_editor.click()
+                self.page.wait_for_timeout(1000)
+
+                # Try scrolling or navigating within the grid to reveal content
+                self.page.keyboard.press("End")  # Go to end
+                self.page.wait_for_timeout(1000)
+                self.page.keyboard.press("Home")  # Go to beginning
+                self.page.wait_for_timeout(1000)
+
+                # Try the searches again after interaction
+                for selector in none_cell_approaches[:3]:  # Try first 3 approaches again
+                    try:
+                        elements = self.page.locator(selector).all()
+                        for element in elements:
+                            if element.is_visible():
+                                text_content = element.text_content().strip()
+                                if text_content == "None":
+                                    target_cell = element
+                                    logger.info("✓ Found target 'None' cell after grid interaction")
+                                    break
+                        if target_cell:
+                            break
+                    except Exception:
+                        continue
+
+            # Last resort: try to navigate to the last row and clear first cell
+            if not target_cell:
+                logger.info("None cell not found, trying to navigate to last row first cell...")
+
+                # Focus the data editor
+                data_editor.click()
+                self.page.wait_for_timeout(1000)
+
+                # Navigate to the last row, first column using improved approach
+                logger.info("Using keyboard navigation: Ctrl+End then Home to reach last row first column")
+                self.page.keyboard.press("Control+End")  # Go to last cell
+                self.page.wait_for_timeout(1000)
+                self.page.keyboard.press("Home")  # Go to first column of that row
+                self.page.wait_for_timeout(1000)
+
+                # Press spacebar to modify the cell (as suggested by user)
+                logger.info("Pressing spacebar to modify cell content")
+                self.page.keyboard.press("Space")
+                self.page.wait_for_timeout(1000)
+
+                # Clear the content by deleting what we just added
+                self.page.keyboard.press("Backspace") # Remove the space
+                self.page.wait_for_timeout(500)
+                self.page.keyboard.press("Delete")    # Clear any remaining content
+                self.page.wait_for_timeout(500)
+
+                # Press Enter to confirm the change
+                self.page.keyboard.press("Enter")
+                self.page.wait_for_timeout(1000)
+
+                logger.info("✅ Modified last row first cell using spacebar method - should trigger validation error")
+                return True
+
+            # If we found a target cell, interact with it
+            if target_cell:
+                logger.info("Clicking on 'None' cell to clear it...")
+
+                # Click to focus the cell
+                target_cell.click()
+                self.page.wait_for_timeout(1000)
+
+                # Try different editing approaches
+                edit_approaches = [
+                    # Approach 1: Double-click and delete
+                    lambda: (
+                        target_cell.dblclick(),
+                        self.page.wait_for_timeout(500),
+                        self.page.keyboard.press("Control+a"),
+                        self.page.wait_for_timeout(300),
+                        self.page.keyboard.press("Delete"),
+                        self.page.wait_for_timeout(500),
+                        self.page.keyboard.press("Tab")
+                    ),
+                    # Approach 2: Just delete key
+                    lambda: (
+                        self.page.keyboard.press("Delete"),
+                        self.page.wait_for_timeout(500),
+                        self.page.keyboard.press("Tab")
+                    ),
+                    # Approach 3: F2 to edit then delete
+                    lambda: (
+                        self.page.keyboard.press("F2"),
+                        self.page.wait_for_timeout(500),
+                        self.page.keyboard.press("Control+a"),
+                        self.page.keyboard.press("Delete"),
+                        self.page.wait_for_timeout(500),
+                        self.page.keyboard.press("Enter")
+                    )
+                ]
+
+                for i, approach in enumerate(edit_approaches, 1):
+                    try:
+                        logger.info("Trying edit approach %d", i)
+                        approach()
+                        logger.info("✓ Successfully applied edit approach %d", i)
+                        break
+                    except Exception as e:
+                        logger.debug("Edit approach %d failed: %s", i, str(e))
+                        if i < len(edit_approaches):
+                            # Re-click the cell for next approach
+                            target_cell.click()
+                            self.page.wait_for_timeout(500)
+
+                logger.info("✓ Successfully cleared 'None' cell - validation error should occur on save")
+                return True
+            else:
+                logger.error("Could not find any 'None' cell to clear")
+                return False
+
+        except Exception as e:
+            logger.error("Error clearing None cell: %s", str(e))
+            return False
+
     def add_empty_row_to_trigger_validation_error(self):
         """Add a new empty row or modify existing row to trigger validation error"""
         import logging
@@ -1670,7 +2026,7 @@ class AdminPage(BasePage):
             if not data_editor:
                 logger.warning("Data editor not found with any selector, trying to proceed with existing row modification")
                 # Fall back to modifying existing rows without adding new ones
-                return self.select_last_row_and_clear_first_column()
+                return self.clear_none_cell_to_trigger_validation_error()
 
             # Click on the data editor to focus it
             data_editor.click()
@@ -1703,8 +2059,8 @@ class AdminPage(BasePage):
                     # If we have new rows or can see an empty row, consider it successful
                     if rows_after > 0:
                         logger.info("✓ Successfully triggered add row with method: %s", method_name)
-                        # Now select the last row and clear its first column to create validation error
-                        return self.select_last_row_and_clear_first_column()
+                        # Now clear the None cell to create validation error
+                        return self.clear_none_cell_to_trigger_validation_error()
 
                 except Exception as e:
                     logger.debug("Method %s failed: %s", method_name, str(e))
@@ -1713,7 +2069,7 @@ class AdminPage(BasePage):
             logger.warning("Could not add new row, trying alternative approach")
 
             # Alternative: Try to clear an existing field to create invalid data
-            return self.select_last_row_and_clear_first_column()
+            return self.clear_none_cell_to_trigger_validation_error()
 
         except Exception as e:
             logger.error("Error adding empty row: %s", str(e))
