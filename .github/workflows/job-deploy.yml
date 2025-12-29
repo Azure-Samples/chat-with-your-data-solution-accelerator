@@ -150,12 +150,6 @@ jobs:
             echo "Using provided resource group name..."
             UNIQUE_RG_NAME="${{ inputs.RESOURCE_GROUP_NAME }}"
             echo "Provided RESOURCE_GROUP_NAME: ${UNIQUE_RG_NAME}"
-          else
-            echo "Generating a unique resource group name..."
-            ACCL_NAME="cwyd"  # Account name as specified
-            SHORT_UUID=$(uuidgen | cut -d'-' -f1)
-            UNIQUE_RG_NAME="arg-${ACCL_NAME}-${SHORT_UUID}"
-            echo "Generated RESOURCE_GROUP_NAME: ${UNIQUE_RG_NAME}"
           fi
           echo "RESOURCE_GROUP_NAME=${UNIQUE_RG_NAME}" >> $GITHUB_ENV
 

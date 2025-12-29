@@ -4,7 +4,7 @@ on:
     inputs:
       resource_group_name:
         description: 'Resource Group Name'
-        required: false
+        required: true
         default: ''
         type: string
 
