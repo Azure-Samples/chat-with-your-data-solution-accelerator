@@ -1,0 +1,289 @@
+name: Deploy Job
+
+on:
+  workflow_call:
+    inputs:
+      trigger_type:
+        description: 'Trigger type (workflow_dispatch, pull_request, schedule)'
+        required: true
+        type: string
+      runner_os:
+        description: 'Runner OS (ubuntu-latest or windows-latest)'
+        required: true
+        type: string
+      resource_group_name:
+        description: 'Resource Group Name (Optional)'
+        required: false
+        default: ''
+        type: string
+      waf_enabled:
+        description: 'Enable WAF'
+        required: false
+        default: false
+        type: boolean
+      EXP:
+        description: 'Enable EXP'
+        required: false
+        default: false
+        type: boolean
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
+        description: 'Log Analytics Workspace ID (Optional)'
+        required: false
+        default: ''
+        type: string
+      cleanup_resources:
+        description: 'Cleanup Deployed Resources'
+        required: false
+        default: false
+        type: boolean
+      run_e2e_tests:
+        description: 'Run End-to-End Tests'
+        required: false
+        default: 'GoldenPath-Testing'
+        type: string
+      existing_webapp_url:
+        description: 'Existing Container WebApp URL (Skips Deployment)'
+        required: false
+        default: ''
+        type: string
+    outputs:
+      RESOURCE_GROUP_NAME:
+        description: "Resource Group Name"
+        value: ${{ jobs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
+      WEB_APPURL:
+        description: "Container Web App URL"
+        value: ${{ jobs.deploy-linux.outputs.WEB_APPURL }}
+      ENV_NAME:
+        description: "Environment Name"
+        value: ${{ jobs.azure-setup.outputs.ENV_NAME }}
+      AZURE_LOCATION:
+        description: "Azure Location"
+        value: ${{ jobs.azure-setup.outputs.AZURE_LOCATION }}
+      AZURE_ENV_OPENAI_LOCATION:
+        description: "Azure OpenAI Location"
+        value: ${{ jobs.azure-setup.outputs.AZURE_ENV_OPENAI_LOCATION }}
+      IMAGE_TAG:
+        description: "Docker Image Tag Used"
+        value: ${{ jobs.azure-setup.outputs.IMAGE_TAG }}
+      QUOTA_FAILED:
+        description: "Quota Check Failed Flag"
+        value: ${{ jobs.azure-setup.outputs.QUOTA_FAILED }}
+
+env:
+  GPT_MIN_CAPACITY: 150
+  TEXT_EMBEDDING_MIN_CAPACITY: 30
+  BRANCH_NAME: ${{ github.event.workflow_run.head_branch || github.head_ref || github.ref_name }}
+  WAF_ENABLED: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.waf_enabled || false) || false }}
+  EXP: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.EXP || false) || false }}
+  CLEANUP_RESOURCES: ${{ inputs.trigger_type != 'workflow_dispatch' || inputs.cleanup_resources }}
+  RUN_E2E_TESTS: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.run_e2e_tests || 'GoldenPath-Testing') || 'GoldenPath-Testing' }}
+
+jobs:
+  azure-setup:
+    name: Azure Setup
+    if: inputs.trigger_type != 'workflow_dispatch' || inputs.existing_webapp_url == '' || inputs.existing_webapp_url == null
+    runs-on: ubuntu-latest
+    outputs:
+      RESOURCE_GROUP_NAME: ${{ steps.check_create_rg.outputs.RESOURCE_GROUP_NAME }}
+      ENV_NAME: ${{ steps.generate_env_name.outputs.ENV_NAME }}
+      AZURE_LOCATION: ${{ steps.set_region.outputs.AZURE_LOCATION }}
+      AZURE_ENV_OPENAI_LOCATION: ${{ steps.set_region.outputs.AZURE_ENV_OPENAI_LOCATION }}
+      IMAGE_TAG: ${{ steps.determine_image_tag.outputs.IMAGE_TAG }}
+      QUOTA_FAILED: ${{ steps.quota_failure_output.outputs.QUOTA_FAILED }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Login to Azure
+        shell: bash
+        run: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Run Quota Check
+        id: quota-check
+        run: |
+          export AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
+          export AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
+          export AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
+          export AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          export GPT_MIN_CAPACITY="150"
+          export TEXT_EMBEDDING_MIN_CAPACITY="30"
+          export AZURE_REGIONS="${{ vars.AZURE_REGIONS }}"
+
+          chmod +x scripts/checkquota.sh
+          if ! scripts/checkquota.sh; then
+            if grep -q "No region with sufficient quota found" scripts/checkquota.sh; then
+              echo "QUOTA_FAILED=true" >> $GITHUB_ENV
+            fi
+            exit 1
+          fi
+
+      - name: Set Quota Failure Output
+        id: quota_failure_output
+        if: env.QUOTA_FAILED == 'true'
+        shell: bash
+        run: |
+          echo "QUOTA_FAILED=true" >> $GITHUB_OUTPUT
+          echo "Quota check failed - will notify via separate notification job"
+
+      - name: Fail Pipeline if Quota Check Fails
+        if: env.QUOTA_FAILED == 'true'
+        shell: bash
+        run: exit 1
+
+      - name: Set Deployment Region
+        id: set_region
+        shell: bash
+        run: |
+          echo "Selected Region from Quota Check: $VALID_REGION"
+          echo "AZURE_ENV_OPENAI_LOCATION=$VALID_REGION" >> $GITHUB_ENV
+          echo "AZURE_ENV_OPENAI_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
+          echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
+          echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
+
+      - name: Generate Resource Group Name
+        id: generate_rg_name
+        run: |
+          if [ -n "${{ inputs.RESOURCE_GROUP_NAME }}" ]; then
+            echo "Using provided resource group name..."
+            UNIQUE_RG_NAME="${{ inputs.RESOURCE_GROUP_NAME }}"
+            echo "Provided RESOURCE_GROUP_NAME: ${UNIQUE_RG_NAME}"
+          else
+            echo "Generating a unique resource group name..."
+            ACCL_NAME="cwyd"  # Account name as specified
+            SHORT_UUID=$(uuidgen | cut -d'-' -f1)
+            UNIQUE_RG_NAME="arg-${ACCL_NAME}-${SHORT_UUID}"
+            echo "Generated RESOURCE_GROUP_NAME: ${UNIQUE_RG_NAME}"
+          fi
+          echo "RESOURCE_GROUP_NAME=${UNIQUE_RG_NAME}" >> $GITHUB_ENV
+
+      - name: Check and Create Resource Group
+        id: check_create_rg
+        run: |
+          echo "RESOURCE_GROUP: ${{ env.RESOURCE_GROUP_NAME }}"
+          set -e
+          echo "Checking if resource group exists..."
+          rg_exists=$(az group exists --name ${{ env.RESOURCE_GROUP_NAME }})
+          if [ "$rg_exists" = "false" ]; then
+            echo "Resource group '${{ env.RESOURCE_GROUP_NAME }}' does not exist"
+            echo "Please create the resource group first or provide an existing resource group name"
+            exit 1
+          else
+            echo "✅ Resource group exists proceeding with deployment"
+          fi
+          # Set output for other jobs
+          echo "RESOURCE_GROUP_NAME=${{ env.RESOURCE_GROUP_NAME }}" >> $GITHUB_OUTPUT
+
+      - name: Clear Existing Resources in Resource Group
+        run: |
+          echo "=== Clearing all resources in resource group: ${{ env.RESOURCE_GROUP_NAME }} ==="
+          set -e
+
+          # List all resources in the resource group
+          echo "Listing resources to delete..."
+          RESOURCES=$(az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].id" -o tsv)
+
+          if [ -z "$RESOURCES" ]; then
+            echo "✅ No resources found in resource group. Ready for fresh deployment."
+          else
+            echo "Found resources to delete:"
+            az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].{Name:name, Type:type}" -o table
+
+            echo "Deleting all resources..."
+            # Delete all resources in the resource group
+            az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].id" -o tsv | while read -r resource_id; do
+              echo "Deleting: $resource_id"
+              az resource delete --ids "$resource_id" --verbose || echo "Warning: Failed to delete $resource_id"
+            done
+
+            echo "✅ All resources cleared from resource group"
+          fi
+
+          echo "Resource group is now ready for deployment"
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Unique Solution Prefix
+        id: generate_solution_prefix
+        shell: bash
+        run: |
+          set -e
+          COMMON_PART="psldg"
+          TIMESTAMP=$(date +%s)
+          UPDATED_TIMESTAMP=$(echo $TIMESTAMP | tail -c 6)
+          UNIQUE_SOLUTION_PREFIX="${COMMON_PART}${UPDATED_TIMESTAMP}"
+          echo "SOLUTION_PREFIX=${UNIQUE_SOLUTION_PREFIX}" >> $GITHUB_ENV
+          echo "Generated SOLUTION_PREFIX: ${UNIQUE_SOLUTION_PREFIX}"
+
+      - name: Determine Docker Image Tag
+        id: determine_image_tag
+        run: |
+            if [[ "$BRANCH_NAME" == "main" ]]; then
+              IMAGE_TAG="latest_waf"
+              echo "Using main branch - image tag: latest_waf"
+            else
+              IMAGE_TAG="$BRANCH_NAME"
+              echo "Using branch '$BRANCH_NAME' - image tag: $BRANCH_NAME"
+            fi
+
+      - name: Generate Unique Environment Name
+        id: generate_env_name
+        shell: bash
+        run: |
+          COMMON_PART="pslc"
+          TIMESTAMP=$(date +%s)
+          UPDATED_TIMESTAMP=$(echo $TIMESTAMP | tail -c 6)
+          UNIQUE_ENV_NAME="${COMMON_PART}${UPDATED_TIMESTAMP}"
+          echo "ENV_NAME=${UNIQUE_ENV_NAME}" >> $GITHUB_ENV
+          echo "Generated Environment Name: ${UNIQUE_ENV_NAME}"
+          echo "ENV_NAME=${UNIQUE_ENV_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Display Workflow Configuration to GitHub Summary
+        shell: bash
+        run: |
+          echo "## 📋 Workflow Configuration Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Configuration | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | \`${{ env.BRANCH_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **WAF Enabled** | ${{ env.WAF_ENABLED == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **EXP Enabled** | ${{ env.EXP == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Run E2E Tests** | \`${{ env.RUN_E2E_TESTS }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Cleanup Resources** | ${{ env.CLEANUP_RESOURCES == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
+
+          if [[ -n "${{ inputs.resource_group_name }}" ]]; then
+            echo "| **Resource Group** | \`${{ inputs.resource_group_name }}\` (Pre-specified) |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| **Resource Group** | \`${{ env.RESOURCE_GROUP_NAME }}\` (Auto-generated) |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ inputs.trigger_type }}" != "workflow_dispatch" ]]; then
+            echo "ℹ️ **Note:** Automatic Trigger - Using Non-WAF + Non-EXP configuration" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ℹ️ **Note:** Manual Trigger - Using user-specified configuration" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  deploy-linux:
+    name: Deploy on Linux
+    needs: azure-setup
+    if: inputs.runner_os == 'ubuntu-latest' && !cancelled() && needs.azure-setup.result == 'success'
+    uses: ./.github/workflows/job-deploy-linux.yml
+    with:
+      ENV_NAME: ${{ needs.azure-setup.outputs.ENV_NAME }}
+      AZURE_ENV_OPENAI_LOCATION: ${{ needs.azure-setup.outputs.AZURE_ENV_OPENAI_LOCATION }}
+      AZURE_LOCATION: ${{ needs.azure-setup.outputs.AZURE_LOCATION }}
+      RESOURCE_GROUP_NAME: ${{ needs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
+      IMAGE_TAG: ${{ needs.azure-setup.outputs.IMAGE_TAG }}
+      EXP: ${{ inputs.EXP || 'false' }}
+      WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+    secrets: inherit

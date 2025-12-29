@@ -1,0 +1,113 @@
+name: Cleanup Deployment Job
+on:
+  workflow_call:
+    inputs:
+      runner_os:
+        description: 'Runner OS (ubuntu-latest or windows-latest)'
+        required: true
+        type: string
+      trigger_type:
+        description: 'Trigger type (workflow_dispatch, pull_request, schedule)'
+        required: true
+        type: string
+      cleanup_resources:
+        description: 'Cleanup Deployed Resources'
+        required: false
+        default: false
+        type: boolean
+      existing_webapp_url:
+        description: 'Existing Container WebApp URL (Skips Deployment)'
+        required: false
+        default: ''
+        type: string
+      RESOURCE_GROUP_NAME:
+        description: 'Resource Group Name to cleanup'
+        required: true
+        type: string
+      AZURE_LOCATION:
+        description: 'Azure Location'
+        required: true
+        type: string
+      AZURE_ENV_OPENAI_LOCATION:
+        description: 'Azure OpenAI Location'
+        required: true
+        type: string
+      ENV_NAME:
+        description: 'Environment Name'
+        required: true
+        type: string
+      IMAGE_TAG:
+        description: 'Docker Image Tag'
+        required: true
+        type: string
+
+jobs:
+  cleanup-deployment:
+    runs-on: ${{ inputs.runner_os }}
+    continue-on-error: true
+    env:
+      RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+      AZURE_LOCATION: ${{ inputs.AZURE_LOCATION }}
+      ENV_NAME: ${{ inputs.ENV_NAME }}
+      IMAGE_TAG: ${{ inputs.IMAGE_TAG }}
+    steps:
+      - name: Setup Azure CLI
+        shell: bash
+        run: |
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+            curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          fi
+          az --version
+
+      - name: Login to Azure
+        shell: bash
+        run: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Delete Resource Group (Optimized Cleanup)
+        id: delete_rg
+        shell: bash
+        run: |
+          set -e
+          echo "🗑️ Starting optimized resource cleanup..."
+          echo "Deleting resource group: ${{ env.RESOURCE_GROUP_NAME }}"
+
+          az group delete \
+            --name "${{ env.RESOURCE_GROUP_NAME }}" \
+            --yes \
+            --no-wait
+
+          echo "✅ Resource group deletion initiated (running asynchronously)"
+          echo "Note: Resources will be cleaned up in the background"
+
+      - name: Logout from Azure
+        if: always()
+        shell: bash
+        run: |
+          azd auth logout || true
+          az logout || echo "Warning: Failed to logout from Azure CLI"
+          echo "Logged out from Azure."
+
+      - name: Generate Cleanup Job Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## 🧹 Cleanup Job Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Resource Group deletion Status** | ${{ steps.delete_rg.outcome == 'success' && '✅ Initiated' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Resource Group** | \`${{ env.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ steps.delete_rg.outcome }}" == "success" ]]; then
+            echo "### ✅ Cleanup Details" >> $GITHUB_STEP_SUMMARY
+            echo "- Successfully initiated deletion for Resource Group \`${{ env.RESOURCE_GROUP_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Cleanup Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- Cleanup process encountered an error" >> $GITHUB_STEP_SUMMARY
+            echo "- Manual cleanup may be required for:" >> $GITHUB_STEP_SUMMARY
+            echo "  - Resource Group: \`${{ env.RESOURCE_GROUP_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- Check the cleanup-deployment job logs for detailed error information" >> $GITHUB_STEP_SUMMARY
+          fi
