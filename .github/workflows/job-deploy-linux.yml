@@ -78,6 +78,7 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
           sudo ln -sf $HOME/.local/bin/poetry /usr/local/bin/poetry
           poetry --version
+          poetry self add poetry-plugin-export
 
       - name: Login to AZD
         id: login-azure
