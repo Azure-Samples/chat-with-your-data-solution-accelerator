@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     env:
-      accelerator_name: "DocGen"
+      accelerator_name: "CWYD"
     steps:
       - name: Determine Test Suite Display Name
         id: test_suite
@@ -114,7 +114,7 @@ jobs:
         run: |
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
-          
+
           EMAIL_BODY=$(cat <<EOF
           {
             "body": "<p>Dear Team,</p><p>We would like to inform you that the ${{ env.accelerator_name }} deployment process has encountered an issue and has failed to complete successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• WAF Enabled: ${{ env.WAF_ENABLED }}<br>• EXP Enabled: ${{ env.EXP }}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please investigate the deployment failure at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>",
@@ -122,7 +122,7 @@ jobs:
           }
           EOF
           )
-          
+
           curl -X POST "${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}" \
             -H "Content-Type: application/json" \
             -d "$EMAIL_BODY" || echo "Failed to send deployment failure notification"
@@ -136,7 +136,7 @@ jobs:
           RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
           TEST_REPORT_URL="${{ inputs.TEST_REPORT_URL }}"
           TEST_SUITE_NAME="${{ steps.test_suite.outputs.TEST_SUITE_NAME }}"
-          
+
           if [ "${{ inputs.e2e_test_result }}" = "skipped" ]; then
             EMAIL_BODY=$(cat <<EOF
           {
@@ -154,7 +154,7 @@ jobs:
           EOF
             )
           fi
-          
+
           curl -X POST "${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}" \
             -H "Content-Type: application/json" \
             -d "$EMAIL_BODY" || echo "Failed to send success notification"
@@ -168,7 +168,7 @@ jobs:
           WEBAPP_URL="${{ inputs.WEB_APPURL || inputs.existing_webapp_url }}"
           RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
           TEST_SUITE_NAME="${{ steps.test_suite.outputs.TEST_SUITE_NAME }}"
-          
+
           EMAIL_BODY=$(cat <<EOF
           {
             "body": "<p>Dear Team,</p><p>We would like to inform you that ${{ env.accelerator_name }} accelerator test automation process has encountered issues and failed to complete successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a><br>• Deployment Status: ✅ Success<br>• E2E Tests: ❌ Failed<br>• Test Suite: ${TEST_SUITE_NAME}</p><p><strong>Test Details:</strong><br>• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a></p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please investigate the matter at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>",
@@ -189,7 +189,7 @@ jobs:
           EXISTING_URL="${{ inputs.existing_webapp_url }}"
           TEST_REPORT_URL="${{ inputs.TEST_REPORT_URL }}"
           TEST_SUITE_NAME="${{ steps.test_suite.outputs.TEST_SUITE_NAME }}"
-          
+
           EMAIL_BODY=$(cat <<EOF
           {
             "body": "<p>Dear Team,</p><p>The ${{ env.accelerator_name }} pipeline executed against the <strong>specified Target URL</strong> and testing process has completed successfully.</p><p><strong>Test Results:</strong><br>• Status: ✅ Passed<br>• Test Suite: ${TEST_SUITE_NAME}<br>${TEST_REPORT_URL:+• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a>}<br>• Target URL: <a href='${EXISTING_URL}'>${EXISTING_URL}</a></p><p><strong>Deployment:</strong> Skipped</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
@@ -210,7 +210,7 @@ jobs:
           EXISTING_URL="${{ inputs.existing_webapp_url }}"
           TEST_REPORT_URL="${{ inputs.TEST_REPORT_URL }}"
           TEST_SUITE_NAME="${{ steps.test_suite.outputs.TEST_SUITE_NAME }}"
-          
+
           EMAIL_BODY=$(cat <<EOF
           {
             "body": "<p>Dear Team,</p><p>The ${{ env.accelerator_name }} pipeline executed against the <strong>specified Target URL</strong> and the test automation has encountered issues and failed to complete successfully.</p><p><strong>Failure Details:</strong><br>• Target URL: <a href='${EXISTING_URL}'>${EXISTING_URL}</a><br>${TEST_REPORT_URL:+• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a>}<br>• Test Suite: ${TEST_SUITE_NAME}<br>• Deployment: Skipped</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
