@@ -51,7 +51,7 @@ jobs:
     env:
       AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
     outputs:
-      WEB_APPURL: ${{ steps.get_output_linux.outputs.WEB_APPURL }}
+      WEB_APPURL: ${{ steps.get_output_linux.outputs.FRONTEND_WEBSITE_NAME }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

@@ -89,7 +89,7 @@ jobs:
     needs: [deploy]
     uses: ./.github/workflows/test-automation-v2.yml
     with:
-      DOCGEN_URL: ${{ needs.deploy.outputs.WEB_APPURL || inputs.existing_webapp_url }}
+      TEST_URL: ${{ needs.deploy.outputs.WEB_APPURL || inputs.existing_webapp_url }}
       TEST_SUITE: ${{ inputs.trigger_type == 'workflow_dispatch' && inputs.run_e2e_tests || 'GoldenPath-Testing' }}
     secrets: inherit
 

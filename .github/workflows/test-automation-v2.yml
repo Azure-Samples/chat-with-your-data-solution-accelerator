@@ -3,7 +3,7 @@ name: Test Automation DocGen-v2
 on:
     workflow_call:
         inputs:
-          DOCGEN_URL:
+          TEST_URL:
             required: true
             type: string
             description: "Web URL for DocGen"
@@ -21,8 +21,8 @@ on:
             value: ${{ jobs.test.outputs.TEST_REPORT_URL }}
 
 env:
-    url: ${{ inputs.DOCGEN_URL }}
-    accelerator_name: "DocGen"
+    url: ${{ inputs.TEST_URL }}
+    accelerator_name: "CWYD"
     test_suite: ${{ inputs.TEST_SUITE }}
 
 jobs:
@@ -68,7 +68,7 @@ jobs:
           echo "Waiting for application to be ready at ${{ env.url }} "
           max_attempts=10
           attempt=1
-          
+
           while [ $attempt -le $max_attempts ]; do
             echo "Attempt $attempt: Checking if application is ready..."
             if curl -f -s "${{ env.url }}" > /dev/null; then
@@ -76,12 +76,12 @@ jobs:
               break
 
             fi
-            
+
             if [ $attempt -eq $max_attempts ]; then
               echo "Application is not ready after $max_attempts attempts"
               exit 1
             fi
-            
+
             echo "Application not ready, waiting 30 seconds..."
             sleep 30
             attempt=$((attempt + 1))
@@ -137,7 +137,7 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           name: test-report
-          path: | 
+          path: |
             tests/e2e-test/report/*
             tests/e2e-test/screenshots/*
 
@@ -153,7 +153,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          
+
           # Determine overall test result
           OVERALL_SUCCESS="${{ steps.test1.outcome == 'success' || steps.test2.outcome == 'success' || steps.test3.outcome == 'success' }}"
           if [[ "$OVERALL_SUCCESS" == "true" ]]; then
@@ -161,27 +161,27 @@ jobs:
           else
             echo "| **Job Status** | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           echo "| **Target URL** | [${{ env.url }}](${{ env.url }}) |" >> $GITHUB_STEP_SUMMARY
           echo "| **Test Suite** | \`${{ env.test_suite }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Test Report** | [Download Artifact](${{ steps.upload_report.outputs.artifact-url }}) |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           echo "### 📋 Test Execution Details" >> $GITHUB_STEP_SUMMARY
           echo "| Attempt | Status | Notes |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|--------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Test Run 1** | ${{ steps.test1.outcome == 'success' && '✅ Passed' || '❌ Failed' }} | Initial test execution |" >> $GITHUB_STEP_SUMMARY
-          
+
           if [[ "${{ steps.test1.outcome }}" == "failure" ]]; then
             echo "| **Test Run 2** | ${{ steps.test2.outcome == 'success' && '✅ Passed' || steps.test2.outcome == 'failure' && '❌ Failed' || '⏸️ Skipped' }} | Retry after 30s delay |" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           if [[ "${{ steps.test2.outcome }}" == "failure" ]]; then
             echo "| **Test Run 3** | ${{ steps.test3.outcome == 'success' && '✅ Passed' || steps.test3.outcome == 'failure' && '❌ Failed' || '⏸️ Skipped' }} | Final retry after 60s delay |" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           if [[ "$OVERALL_SUCCESS" == "true" ]]; then
             echo "### ✅ Test Results" >> $GITHUB_STEP_SUMMARY
             echo "- End-to-end tests completed successfully" >> $GITHUB_STEP_SUMMARY
