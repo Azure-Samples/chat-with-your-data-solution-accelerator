@@ -148,15 +148,15 @@ jobs:
 
           azd env get-values
 
-          FRONTEND_WEBSITE_URL=$(azd env get-value FRONTEND_WEBSITE_URL)
-          echo "FRONTEND_WEBSITE_URL=$FRONTEND_WEBSITE_URL" >> $GITHUB_OUTPUT
-          ADMIN_WEBSITE_URL=$(azd env get-value ADMIN_WEBSITE_URL)
-          echo "ADMIN_WEBSITE_URL=$ADMIN_WEBSITE_URL" >> $GITHUB_OUTPUT
+          FRONTEND_WEBSITE_NAME=$(azd env get-value FRONTEND_WEBSITE_NAME)
+          echo "FRONTEND_WEBSITE_NAME=$FRONTEND_WEBSITE_NAME" >> $GITHUB_OUTPUT
+          ADMIN_WEBSITE_NAME=$(azd env get-value ADMIN_WEBSITE_NAME)
+          echo "ADMIN_WEBSITE_NAME=$ADMIN_WEBSITE_NAME" >> $GITHUB_OUTPUT
 
       - name: Disable Authentication with Script
         run: |
-          export FRONTEND_WEBSITE_URL=$(azd env get-value FRONTEND_WEBSITE_URL)
-          export ADMIN_WEBSITE_URL=$(azd env get-value ADMIN_WEBSITE_URL)
+          export FRONTEND_WEBSITE_URL=$(azd env get-value FRONTEND_WEBSITE_NAME)
+          export ADMIN_WEBSITE_URL=$(azd env get-value ADMIN_WEBSITE_NAME)
           chmod +x scripts/disable_auth.sh
           ./scripts/disable_auth.sh
         env:
@@ -165,14 +165,9 @@ jobs:
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-                python-version: '3.11'
-
       - name: Install Python dependencies
         run: |
-                pip install psycopg2-binary python-dotenv azure-identity
+          pip install psycopg2-binary python-dotenv azure-identity
 
       - name: Populate PostgreSQL Database
         run: |
@@ -237,8 +232,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ job.status }}" == "success" ]]; then
             echo "### ✅ Deployment Details" >> $GITHUB_STEP_SUMMARY
-            echo "- **Frontend App URL**: [${{ steps.get_output_linux.outputs.FRONTEND_WEBSITE_URL }}](${{ steps.get_output_linux.outputs.FRONTEND_WEBSITE_URL }})" >> $GITHUB_STEP_SUMMARY
-            echo "- **Admin App URL**: [${{ steps.get_output_linux.outputs.ADMIN_WEBSITE_URL }}](${{ steps.get_output_linux.outputs.ADMIN_WEBSITE_URL }})" >> $GITHUB_STEP_SUMMARY
+            echo "- **Frontend App URL**: [${{ steps.get_output_linux.outputs.FRONTEND_WEBSITE_NAME }}](${{ steps.get_output_linux.outputs.FRONTEND_WEBSITE_NAME }})" >> $GITHUB_STEP_SUMMARY
+            echo "- **Admin App URL**: [${{ steps.get_output_linux.outputs.ADMIN_WEBSITE_NAME }}](${{ steps.get_output_linux.outputs.ADMIN_WEBSITE_NAME }})" >> $GITHUB_STEP_SUMMARY
             echo "- Successfully deployed to Azure with all resources configured" >> $GITHUB_STEP_SUMMARY
             echo "- Authentication disabled for frontend and admin websites" >> $GITHUB_STEP_SUMMARY
             echo "- PostgreSQL database populated with vector store data" >> $GITHUB_STEP_SUMMARY
