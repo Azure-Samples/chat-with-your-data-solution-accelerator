@@ -13,7 +13,7 @@ If you are unable to run this accelerator using a DevContainer or in GitHub Code
   - [Teams Toolkit](https://marketplace.visualstudio.com/items?itemName=TeamsDevApp.ms-teams-vscode-extension) **Optional**
 - [Python 3.11](https://www.python.org/downloads/release/python-3119/)
 - [Node.js LTS](https://nodejs.org/en)
-- [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd)
+- [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd) <small>(v1.18.0+)</small>
 - [Azure Functions Core Tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local)
 
 ## Setup
@@ -51,5 +51,6 @@ The Azure Developer CLI (`azd`) is a developer-centric command-line interface (C
     ```
     azd up
     ```
+    > **Note:** This solution accelerator requires **Azure Developer CLI (azd) version 1.18.0 or higher**. Please ensure you have the latest version installed before proceeding with deployment. [Download azd here](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd).
 
     > Select your desired `subscription` and `location`. Wait a moment for the resource deployment to complete, click the website endpoint and you will see the web app page.

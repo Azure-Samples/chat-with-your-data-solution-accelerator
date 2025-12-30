@@ -166,7 +166,7 @@ class LLMHelper:
     def get_ml_client(self):
         if not hasattr(self, "_ml_client"):
             self._ml_client = MLClient(
-                get_azure_credential(),
+                get_azure_credential(self.env_helper.MANAGED_IDENTITY_CLIENT_ID),
                 self.env_helper.AZURE_SUBSCRIPTION_ID,
                 self.env_helper.AZURE_RESOURCE_GROUP,
                 self.env_helper.AZURE_ML_WORKSPACE_NAME,

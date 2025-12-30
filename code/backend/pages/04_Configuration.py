@@ -369,7 +369,7 @@ Use the Retrieved Documents to answer the question: {question}
             with st.expander("Document processing configuration", expanded=True):
                 edited_document_processors = st.data_editor(
                     data=document_processors,
-                    use_container_width=True,
+                    width='stretch',
                     num_rows="dynamic",
                     column_config={
                         "document_type": st.column_config.SelectboxColumn(
