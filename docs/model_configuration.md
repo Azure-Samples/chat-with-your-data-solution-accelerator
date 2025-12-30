@@ -27,9 +27,9 @@ This document outlines the necessary steps and configurations required for setti
 - `AZURE_OPENAI_VISION_MODEL`: The Azure OpenAI Model Deployment Name
     - example: `my-gpt-4`
 - `AZURE_OPENAI_VISION_MODEL_NAME`: The Azure OpenAI Model Name
-    - example: `gpt-4`
+    - example: `gpt-4.1`
 - `AZURE_OPENAI_VISION_MODEL_VERSION`: The Azure OpenAI Model Version
-    - example: `turbo-2024-04-09`
+    - example: `2025-04-14`
 - `AZURE_OPENAI_VISION_MODEL_CAPACITY`: The Tokens per Minute Rate Limit (thousands)
     - example: `10`
 

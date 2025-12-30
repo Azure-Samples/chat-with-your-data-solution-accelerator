@@ -1,6 +1,6 @@
 on:
   workflow_run:
-    workflows: ["CI"]
+    workflows: ["Validate Deployment"]
     types:
       - completed
 
@@ -17,11 +17,11 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
-      - uses: codfish/semantic-release-action@v3
+      - uses: codfish/semantic-release-action@v4
         id: semantic
         with:
           tag-format: 'v${version}'

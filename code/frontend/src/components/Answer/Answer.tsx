@@ -302,11 +302,12 @@ export const Answer = ({
         ref={answerContainerRef}
       >
         <Stack.Item grow>
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm, supersub]}
-            children={parsedAnswer.markdownFormatText}
-            className={styles.answerText}
-          />
+          <div className={styles.answerText}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, supersub]}
+              children={parsedAnswer.markdownFormatText}
+            />
+          </div>
         </Stack.Item>
         <Stack horizontal className={styles.answerFooter} verticalAlign="start">
           <Stack.Item className={styles.answerDisclaimerContainer}>

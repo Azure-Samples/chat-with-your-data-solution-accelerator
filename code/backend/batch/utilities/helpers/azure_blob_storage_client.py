@@ -25,7 +25,7 @@ def create_queue_client():
         return QueueClient(
             account_url=f"https://{env_helper.AZURE_BLOB_ACCOUNT_NAME}.queue.core.windows.net/",
             queue_name=env_helper.DOCUMENT_PROCESSING_QUEUE_NAME,
-            credential=get_azure_credential(),
+            credential=get_azure_credential(env_helper.MANAGED_IDENTITY_CLIENT_ID),
             message_encode_policy=BinaryBase64EncodePolicy(),
         )
 
@@ -56,7 +56,7 @@ class AzureBlobStorageClient:
         if self.auth_type == "rbac":
             self.account_key = None
             self.blob_service_client = BlobServiceClient(
-                account_url=self.endpoint, credential=get_azure_credential()
+                account_url=self.endpoint, credential=get_azure_credential(env_helper.MANAGED_IDENTITY_CLIENT_ID)
             )
             self.user_delegation_key = self.request_user_delegation_key(
                 blob_service_client=self.blob_service_client

@@ -49,7 +49,7 @@ class AzureSearchHelper:
         if self.env_helper.is_auth_type_keys():
             return AzureKeyCredential(self.env_helper.AZURE_SEARCH_KEY)
         else:
-            return get_azure_credential()
+            return get_azure_credential(self.env_helper.MANAGED_IDENTITY_CLIENT_ID)
 
     def _create_search_client(
         self, search_credential: Union[AzureKeyCredential, get_azure_credential]
@@ -285,7 +285,7 @@ class AzureSearchHelper:
         ]
 
         if self.env_helper.AZURE_AUTH_TYPE == "rbac":
-            credential = get_azure_credential()
+            credential = get_azure_credential(self.env_helper.MANAGED_IDENTITY_CLIENT_ID)
             return AzureSearch(
                 azure_search_endpoint=self.env_helper.AZURE_SEARCH_SERVICE,
                 azure_search_key=None,  # Remove API key
