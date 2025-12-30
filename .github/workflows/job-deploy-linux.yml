@@ -214,6 +214,9 @@ jobs:
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
+      - name: Wait for 20 minutes for propagation
+        run: sleep 1200
+
       - name: Generate Deploy Job Summary
         if: always()
         run: |
