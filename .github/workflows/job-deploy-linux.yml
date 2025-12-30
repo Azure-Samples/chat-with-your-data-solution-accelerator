@@ -28,6 +28,18 @@ on:
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
         required: false
         type: string
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+        required: false
+        type: string
+        default: 'false'
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH:
+        required: false
+        type: string
+        default: 'false'
+      DATABASE_TYPE:
+        required: false
+        type: string
+        default: 'PostgreSQL'
     outputs:
       WEB_APPURL:
         description: "Container Web App URL"
@@ -125,10 +137,87 @@ jobs:
             fi
           fi
 
+          # Set Azure Search and Database configuration
+          echo "Setting Azure Search and Database configuration..."
+          azd env set AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION="${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}"
+          azd env set AZURE_SEARCH_USE_SEMANTIC_SEARCH="${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}"
+          azd env set DATABASE_TYPE="${{ inputs.DATABASE_TYPE }}"
+
           # Deploy using azd up
           azd up --no-prompt
 
           azd env get-values
+
+          FRONTEND_WEBSITE_URL=$(azd env get-value FRONTEND_WEBSITE_URL)
+          echo "FRONTEND_WEBSITE_URL=$FRONTEND_WEBSITE_URL" >> $GITHUB_OUTPUT
+          ADMIN_WEBSITE_URL=$(azd env get-value ADMIN_WEBSITE_URL)
+          echo "ADMIN_WEBSITE_URL=$ADMIN_WEBSITE_URL" >> $GITHUB_OUTPUT
+
+      - name: Disable Authentication with Script
+        run: |
+          export FRONTEND_WEBSITE_URL=$(azd env get-value FRONTEND_WEBSITE_URL)
+          export ADMIN_WEBSITE_URL=$(azd env get-value ADMIN_WEBSITE_URL)
+          chmod +x scripts/disable_auth.sh
+          ./scripts/disable_auth.sh
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+                python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+                pip install psycopg2-binary python-dotenv azure-identity
+
+      - name: Populate PostgreSQL Database
+        run: |
+          export PG_HOST_DESTINATION=$(azd env get-value AZURE_POSTGRESQL_HOST_NAME)
+          python - <<EOF
+          import os
+          import psycopg2
+          from azure.identity import ClientSecretCredential
+
+          tenant_id = os.environ["AZURE_TENANT_ID"]
+          client_id = os.environ["AZURE_CLIENT_ID"]
+          client_secret = os.environ["AZURE_CLIENT_SECRET"]
+          pg_host = os.environ.get("PG_HOST_DESTINATION")
+
+          # Acquire Azure AD access token for PostgreSQL
+          credential = ClientSecretCredential(tenant_id, client_id, client_secret)
+          token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default").token
+
+          db_params = {
+              "user": client_id,   # Use service principal clientId
+              "password": token,   # Use AAD token instead of password
+              "host": pg_host,
+              "port": "5432",
+              "dbname": "postgres",
+              "sslmode": "require"
+          }
+
+          csv_file = "exported_data_vector_score.csv"
+          target_table = "vector_store"
+
+          try:
+              with psycopg2.connect(**db_params) as conn:
+                  with conn.cursor() as cur:
+                      with open(csv_file, "r", encoding="utf-8") as f:
+                          next(f)  # Skip header
+                          cur.copy_expert(f"COPY {target_table} FROM STDIN WITH CSV", f)
+                  conn.commit()
+                  print(f"✅ Imported data from '{csv_file}' into table '{target_table}'.")
+          except Exception as e:
+              print(f"❌ Error during import: {e}")
+          EOF
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
       - name: Generate Deploy Job Summary
         if: always()
@@ -140,13 +229,21 @@ jobs:
           echo "| **Job Status** | ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Resource Group** | \`${{ inputs.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Configuration Type** | \`${{ inputs.WAF_ENABLED == 'true' && inputs.EXP == 'true' && 'WAF + EXP' || inputs.WAF_ENABLED == 'true' && inputs.EXP != 'true' && 'WAF + Non-EXP' || inputs.WAF_ENABLED != 'true' && inputs.EXP == 'true' && 'Non-WAF + EXP' || 'Non-WAF + Non-EXP' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Database Type** | \`${{ inputs.DATABASE_TYPE }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Azure Region (Infrastructure)** | \`${{ inputs.AZURE_LOCATION }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Docker Image Tag** | \`${{ inputs.IMAGE_TAG }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Integrated Vectorization** | \`${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Semantic Search** | \`${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ job.status }}" == "success" ]]; then
             echo "### ✅ Deployment Details" >> $GITHUB_STEP_SUMMARY
+            echo "- **Frontend App URL**: [${{ steps.get_output_linux.outputs.FRONTEND_WEBSITE_URL }}](${{ steps.get_output_linux.outputs.FRONTEND_WEBSITE_URL }})" >> $GITHUB_STEP_SUMMARY
+            echo "- **Admin App URL**: [${{ steps.get_output_linux.outputs.ADMIN_WEBSITE_URL }}](${{ steps.get_output_linux.outputs.ADMIN_WEBSITE_URL }})" >> $GITHUB_STEP_SUMMARY
             echo "- Successfully deployed to Azure with all resources configured" >> $GITHUB_STEP_SUMMARY
+            echo "- Authentication disabled for frontend and admin websites" >> $GITHUB_STEP_SUMMARY
+            echo "- PostgreSQL database populated with vector store data" >> $GITHUB_STEP_SUMMARY
             echo "- Post-deployment scripts executed successfully" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           else
             echo "### ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
             echo "- Deployment process encountered an error" >> $GITHUB_STEP_SUMMARY

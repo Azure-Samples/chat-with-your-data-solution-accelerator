@@ -46,6 +46,21 @@ on:
         required: false
         default: ''
         type: string
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+        description: 'Enable Azure Search Integrated Vectorization'
+        required: false
+        default: 'false'
+        type: string
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH:
+        description: 'Enable Azure Search Semantic Search'
+        required: false
+        default: 'false'
+        type: string
+      DATABASE_TYPE:
+        description: 'Type of database to use'
+        required: false
+        default: 'PostgreSQL'
+        type: string
     outputs:
       RESOURCE_GROUP_NAME:
         description: "Resource Group Name"
@@ -280,4 +295,7 @@ jobs:
       EXP: ${{ inputs.EXP || 'false' }}
       WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+      DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
     secrets: inherit

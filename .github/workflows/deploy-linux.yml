@@ -45,6 +45,31 @@ on:
         default: ''
         type: string
 
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+        description: 'Enable Azure Search Integrated Vectorization'
+        required: false
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+        default: 'false'
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH:
+        description: 'Enable Azure Search Semantic Search'
+        required: false
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+        default: 'false'
+      DATABASE_TYPE:
+        description: 'Database Type'
+        required: false
+        type: choice
+        options:
+          - 'PostgreSQL'
+          - 'CosmosDB'
+        default: 'PostgreSQL'
+
   schedule:
     - cron: '0 9,21 * * *'  # Runs at 9:00 AM and 9:00 PM GMT
 
@@ -61,4 +86,7 @@ jobs:
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID || '' }}
       existing_webapp_url: ${{ github.event.inputs.existing_webapp_url || '' }}
       trigger_type: ${{ github.event_name }}
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ github.event.inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION || 'false' }}
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ github.event.inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH || 'false' }}
+      DATABASE_TYPE: ${{ github.event.inputs.DATABASE_TYPE || 'PostgreSQL' }}
     secrets: inherit
