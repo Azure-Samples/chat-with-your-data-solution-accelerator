@@ -140,8 +140,9 @@ This step is included if you cannot use the Launch configuration in VSCode. Open
 cd code
 poetry run flask run
 ```
-- You will get Flask API URL, default: `http://127.0.0.1:5050`
-- Update `vite.config.ts` to point API URL: `http://127.0.0.1:5050`
+You will get Flask API URL, default: `http://127.0.0.1:5050`
+
+Update `vite.config.ts` to point API URL: `http://127.0.0.1:5050`
 
 #### Starting the Typescript React app in dev mode (optional)
 This step is included if you cannot use the Launch configuration in VSCode. Open a new separate terminal and enter the following commands:
