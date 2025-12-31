@@ -94,7 +94,7 @@ winget install Python.Python.3.11
 winget install OpenJS.NodeJS.LTS
 
 # Install Azure Developer CLI
-winget install Microsoft.AzureCLI
+winget install Microsoft.Azd
 
 # Install Azure Functions Core Tools
 winget install Microsoft.Azure.FunctionsCoreTools
@@ -226,6 +226,7 @@ Create `.vscode/settings.json` and copy the following JSON:
 git clone https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator.git
 cd chat-with-your-data-solution-accelerator
 ```
+
 ## Step 4: Azure Authentication and Resource Provisioning
 
 Before running the application locally, you need to provision Azure resources and configure authentication.
@@ -356,7 +357,7 @@ pip install -r requirements.txt
 
 ```bash
 # Navigate to batch directory
-cd ../backend/batch
+cd batch
 
 # Install dependencies
 pip install -r requirements.txt
@@ -463,7 +464,7 @@ Ensure your virtual environment is activated and the `.env` file from `azd provi
 #### Option A: Using VS Code (Recommended)
 
 1. Press `Ctrl+Shift+D` to open the Run and Debug panel
-2. Select **"Launch Frontend (api)"** from the dropdown
+2. Select **"Launch Backend (api)"** from the dropdown
 3. Click the green play button or press `F5`
 
 This will:
@@ -584,7 +585,7 @@ The batch function needs access to the same environment variables as other servi
 # Copy .env from the azd-generated location
 cp ../../../.azure/<env-name>/.env .  # Linux/macOS
 # or
-Copy-Item ..\..\..\..azure\<env-name>\.env .  # Windows PowerShell
+Copy-Item ..\..\..\.azure\<env-name>\.env .  # Windows PowerShell
 ```
 
 > **⚠️ Important**: Replace `<env-name>` with your actual azd environment name. You can find it by running `azd env list`.
@@ -1157,107 +1158,3 @@ Once all services are running successfully, you can:
 - [web-apps.md](web-apps.md) - Deploy to Azure App Service
 - [supported_file_types.md](supported_file_types.md) - Supported document formats
 - [advanced_image_processing.md](advanced_image_processing.md) - Enable vision-based document processing
-
-## Environment Variables
-
-This section provides a comprehensive reference of all environment variables used by the Chat With Your Data Solution Accelerator. Most of these variables are automatically configured when you run `azd provision`, which generates them in the `.azure/<env-name>/.env` file.
-
-**When to use this reference:**
-- Customizing AI model behavior (temperature, tokens, prompts)
-- Understanding what each setting controls
-- Troubleshooting configuration issues
-- Manually configuring advanced features
-- Setting up custom orchestration strategies
-
-> **💡 Tip**: After running `azd provision`, you can view all generated values with `azd env get-values`
-
-### Complete Variable List
-
-| App Setting | Value | Note |
-| --- | --- | ------------- |
-|ADVANCED_IMAGE_PROCESSING_MAX_IMAGES | 1 | The maximum number of images to pass to the vision model in a single request|
-|APPLICATIONINSIGHTS_CONNECTION_STRING||The Application Insights connection string to store the application logs|
-|APP_ENV | Prod | Application Environment (Prod, Dev, etc.)|
-|AZURE_AUTH_TYPE | keys | The default is to use API keys. Change the value to 'rbac' to authenticate using Role Based Access Control. For more information refer to section [Authenticate using RBAC](#authenticate-using-rbac)|
-|AZURE_BLOB_ACCOUNT_KEY||The key of the Azure Blob Storage for storing the original documents to be processed|
-|AZURE_BLOB_ACCOUNT_NAME||The name of the Azure Blob Storage for storing the original documents to be processed|
-|AZURE_BLOB_CONTAINER_NAME||The name of the Container in the Azure Blob Storage for storing the original documents to be processed|
-|AZURE_CLIENT_ID | | Client ID for Azure authentication (required for LangChain AzureSearch vector store)|
-|AZURE_COMPUTER_VISION_ENDPOINT | | The endpoint of the Azure Computer Vision service (if useAdvancedImageProcessing=true)|
-|AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION | 2024-02-01 | The API version for Azure Computer Vision Vectorize Image|
-|AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION | 2023-04-15 | The model version for Azure Computer Vision Vectorize Image|
-|AZURE_CONTENT_SAFETY_ENDPOINT | | The endpoint of the Azure AI Content Safety service|
-|AZURE_CONTENT_SAFETY_KEY | | The key of the Azure AI Content Safety service|
-|AZURE_COSMOSDB_ACCOUNT_NAME | | The name of the Azure Cosmos DB account (when using CosmosDB)|
-|AZURE_COSMOSDB_CONVERSATIONS_CONTAINER_NAME | | The name of the Azure Cosmos DB conversations container (when using CosmosDB)|
-|AZURE_COSMOSDB_DATABASE_NAME | | The name of the Azure Cosmos DB database (when using CosmosDB)|
-|AZURE_COSMOSDB_ENABLE_FEEDBACK | true | Whether to enable feedback functionality in Cosmos DB|
-|AZURE_FORM_RECOGNIZER_ENDPOINT||The name of the Azure Form Recognizer for extracting the text from the documents|
-|AZURE_FORM_RECOGNIZER_KEY||The key of the Azure Form Recognizer for extracting the text from the documents|
-|AZURE_KEY_VAULT_ENDPOINT | | The endpoint of the Azure Key Vault for storing secrets|
-|AZURE_OPENAI_API_KEY||One of the API keys of your Azure OpenAI resource|
-|AZURE_OPENAI_API_VERSION|2024-02-01|API version when using Azure OpenAI on your data|
-|AZURE_OPENAI_EMBEDDING_MODEL|text-embedding-ada-002|The name of your Azure OpenAI embeddings model deployment|
-|AZURE_OPENAI_EMBEDDING_MODEL_NAME|text-embedding-ada-002|The name of the embeddings model (can be found in Azure AI Foundry)|
-|AZURE_OPENAI_EMBEDDING_MODEL_VERSION|2|The version of the embeddings model to use (can be found in Azure AI Foundry)|
-|AZURE_OPENAI_MAX_TOKENS|1000|The maximum number of tokens allowed for the generated answer.|
-|AZURE_OPENAI_MODEL||The name of your model deployment|
-|AZURE_OPENAI_MODEL_NAME|gpt-4.1|The name of the model|
-|AZURE_OPENAI_MODEL_VERSION|2024-05-13|The version of the model to use|
-|AZURE_OPENAI_RESOURCE||the name of your Azure OpenAI resource|
-|AZURE_OPENAI_STOP_SEQUENCE||Up to 4 sequences where the API will stop generating further tokens. Represent these as a string joined with "|", e.g. `"stop1|stop2|stop3"`|
-|AZURE_OPENAI_STREAM | true | Whether or not to stream responses from Azure OpenAI|
-|AZURE_OPENAI_SYSTEM_MESSAGE|You are an AI assistant that helps people find information.|A brief description of the role and tone the model should use|
-|AZURE_OPENAI_TEMPERATURE|0|What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. A value of 0 is recommended when using your data.|
-|AZURE_OPENAI_TOP_P|1.0|An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. We recommend setting this to 1.0 when using your data.|
-|AZURE_POSTGRESQL_DATABASE_NAME | postgres | The name of the Azure PostgreSQL database (when using PostgreSQL)|
-|AZURE_POSTGRESQL_HOST_NAME | | The hostname of the Azure PostgreSQL server (when using PostgreSQL)|
-|AZURE_POSTGRESQL_USER | | The username for Azure PostgreSQL authentication (when using PostgreSQL)|
-|AZURE_SEARCH_CHUNK_COLUMN | chunk | Field from your Azure AI Search index that contains chunk information|
-|AZURE_SEARCH_CONTENT_COLUMN||List of fields in your Azure AI Search index that contains the text content of your documents to use when formulating a bot response. Represent these as a string joined with "|", e.g. `"product_description|product_manual"`|
-|AZURE_SEARCH_CONTENT_VECTOR_COLUMN||Field from your Azure AI Search index for storing the content's Vector embeddings|
-|AZURE_SEARCH_CONVERSATIONS_LOG_INDEX | conversations | The name of the Azure AI Search conversations log index|
-|AZURE_SEARCH_DATASOURCE_NAME | | The name of the Azure AI Search datasource|
-|AZURE_SEARCH_DIMENSIONS|1536| Azure OpenAI Embeddings dimensions. 1536 for `text-embedding-ada-002`. A full list of dimensions can be found [here](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#embeddings-models). |
-|AZURE_SEARCH_ENABLE_IN_DOMAIN|True|Limits responses to only queries relating to your data.|
-|AZURE_SEARCH_FIELDS_ID|id|`AZURE_SEARCH_FIELDS_ID`: Field from your Azure AI Search index that gives a unique identifier of the document chunk. `id` if you don't have a specific requirement.|
-|AZURE_SEARCH_FIELDS_METADATA|metadata|Field from your Azure AI Search index that contains metadata for the document. `metadata` if you don't have a specific requirement.|
-|AZURE_SEARCH_FIELDS_TAG|tag|Field from your Azure AI Search index that contains tags for the document. `tag` if you don't have a specific requirement.|
-|AZURE_SEARCH_FILENAME_COLUMN||`AZURE_SEARCH_FILENAME_COLUMN`: Field from your Azure AI Search index that gives a unique identifier of the source of your data to display in the UI.|
-|AZURE_SEARCH_FILTER||Filter to apply to search queries.|
-|AZURE_SEARCH_INDEX||The name of your Azure AI Search Index|
-|AZURE_SEARCH_INDEXER_NAME | | The name of the Azure AI Search indexer|
-|AZURE_SEARCH_INDEX_IS_PRECHUNKED | false | Whether the search index is prechunked|
-|AZURE_SEARCH_KEY||An **admin key** for your Azure AI Search resource|
-|AZURE_SEARCH_LAYOUT_TEXT_COLUMN|layoutText|Field from your Azure AI Search index that contains the layout-aware text content of your documents. `layoutText` if you don't have a specific requirement.|
-|AZURE_SEARCH_OFFSET_COLUMN | offset | Field from your Azure AI Search index that contains offset information|
-|AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG|default|The name of the semantic search configuration to use if using semantic search.|
-|AZURE_SEARCH_SERVICE||The URL of your Azure AI Search resource. e.g. https://<search-service>.search.windows.net|
-|AZURE_SEARCH_SOURCE_COLUMN|source|Field from your Azure AI Search index that identifies the source of your data. `source` if you don't have a specific requirement.|
-|AZURE_SEARCH_TEXT_COLUMN|text|Field from your Azure AI Search index that contains the main text content of your documents. `text` if you don't have a specific requirement.|
-|AZURE_SEARCH_TITLE_COLUMN||Field from your Azure AI Search index that gives a relevant title or header for your data content to display in the UI.|
-|AZURE_SEARCH_TOP_K|5|The number of documents to retrieve from Azure AI Search.|
-|AZURE_SEARCH_URL_COLUMN||Field from your Azure AI Search index that contains a URL for the document, e.g. an Azure Blob Storage URI. This value is not currently used.|
-|AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION ||Whether to use [Integrated Vectorization](https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-vectorization). If the database type is PostgreSQL, set this to false.|
-|AZURE_SEARCH_USE_SEMANTIC_SEARCH|False|Whether or not to use semantic search|
-|AZURE_SPEECH_RECOGNIZER_LANGUAGES | en-US,fr-FR,de-DE,it-IT | Comma-separated list of languages to recognize from speech input|
-|AZURE_SPEECH_REGION_ENDPOINT | | The regional endpoint of the Azure Speech service|
-|AZURE_SPEECH_SERVICE_KEY | | The key of the Azure Speech service|
-|AZURE_SPEECH_SERVICE_NAME | | The name of the Azure Speech service|
-|AZURE_SPEECH_SERVICE_REGION | | The region (location) of the Azure Speech service|
-|AzureWebJobsStorage__accountName||The name of the Azure Blob Storage account for the Azure Functions Batch processing|
-|BACKEND_URL||The URL for the Backend Batch Azure Function. Use http://localhost:7071 for local execution|
-|CONVERSATION_FLOW | custom | Chat conversation type: custom or byod (Bring Your Own Data)|
-|DATABASE_TYPE | PostgreSQL | The type of database to deploy (cosmos or postgres)|
-|DOCUMENT_PROCESSING_QUEUE_NAME|doc-processing|The name of the Azure Queue to handle the Batch processing|
-|FUNCTION_KEY | | The function key for accessing the backend Azure Function|
-|LOGLEVEL | INFO | The log level for application logging (CRITICAL, ERROR, WARN, INFO, DEBUG)|
-|PACKAGE_LOGGING_LEVEL | WARNING | Enhanced: Azure SDK package logging level (CRITICAL, ERROR, WARN, INFO, DEBUG)|
-|AZURE_LOGGING_PACKAGES | (optional) | Enhanced: Comma-separated list of Azure logger packages to configure. If not provided, no Azure SDK logging is configured.|
-|MANAGED_IDENTITY_CLIENT_ID | | The client ID of the user-assigned managed identity|
-|MANAGED_IDENTITY_RESOURCE_ID | | The resource ID of the user-assigned managed identity|
-|OPEN_AI_FUNCTIONS_SYSTEM_PROMPT | | System prompt for OpenAI functions orchestration|
-|ORCHESTRATION_STRATEGY | openai_function | Orchestration strategy. Use Azure OpenAI Functions (openai_function), Semantic Kernel (semantic_kernel),  LangChain (langchain) or Prompt Flow (prompt_flow) for messages orchestration. If you are using a new model version 0613 select any strategy, if you are using a 0314 model version select "langchain". Note that both `openai_function` and `semantic_kernel` use OpenAI function calling. Prompt Flow option is still in development and does not support RBAC or integrated vectorization as of yet.|
-|SEMANTIC_KERNEL_SYSTEM_PROMPT | | System prompt used by the Semantic Kernel orchestration|
-|USE_ADVANCED_IMAGE_PROCESSING | false | Whether to enable the use of a vision LLM and Computer Vision for embedding images. If the database type is PostgreSQL, set this to false.|
-|USE_KEY_VAULT | true | Whether to use Azure Key Vault for storing secrets|
