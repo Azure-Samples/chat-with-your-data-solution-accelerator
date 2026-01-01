@@ -6,22 +6,24 @@ This guide provides comprehensive instructions for setting up the Chat With Your
 
 ### Multi-Service Architecture
 
-This application consists of **three separate services** that run independently:
+This application consists of **four separate services** that run independently:
 
-1. **Frontend** - React-based user interface
-2. **Admin Web** - Streamlit application for data management
-3. **Batch Processing Function** - Azure Function for document processing
+1. **Admin Web** - Streamlit application for data management
+2. **Backend API** - Python Flask application for REST endpoints
+3. **Frontend** - React-based user interface
+4. **Batch Processing Function** - Azure Function for document processing
 
 > **⚠️ Critical: Each service must run in its own terminal/console window**
 >
 > - **Do NOT close terminals** while services are running
-> - Open **3 separate terminal windows** for local development
+> - Open **4 separate terminal windows** for local development
 > - Each service will occupy its terminal and show live logs
 >
 > **Terminal Organization:**
-> - **Terminal 1**: Frontend - Development server on port 5174
-> - **Terminal 2**: Admin Web - Streamlit server on port 8501
-> - **Terminal 3**: Batch Processing Function - Azure Functions runtime
+> - **Terminal 1**: Admin Web - Streamlit server on port 8501
+> - **Terminal 2**: Backend API - Flask server on port 5050
+> - **Terminal 3**: Frontend - Development server on port 5174
+> - **Terminal 4** (Optional): Batch Processing Function - Azure Functions runtime
 
 ### Path Conventions
 
@@ -615,10 +617,10 @@ Before using the application, confirm all services are running correctly:
 
 | Terminal | Service | Command | Expected Output | URL |
 |----------|---------|---------|-----------------|-----|
-| **Terminal 1** | Frontend (React/Vite) | `npm run dev` | `Local: http://localhost:5174/` | http://localhost:5174 |
+| **Terminal 1** | Admin Web (Streamlit) | `streamlit run Admin.py` | `Local URL: http://localhost:8501` | http://localhost:8501 |
 | **Terminal 2** | Backend API (Flask) | `poetry run flask run` | `Running on http://127.0.0.1:5050` | http://127.0.0.1:5050 |
-| **Terminal 3** | Admin Web (Streamlit) | `streamlit run Admin.py` | `Local URL: http://localhost:8501` | http://localhost:8501 |
-| **Terminal 4** (Optional) | Batch Function | `poetry run func start` | `Functions: batch_push_results: [POST] http://localhost:7071/api/...` | http://localhost:7071 |
+| **Terminal 3** | Frontend (React/Vite) | `npm run dev` | `Local: http://localhost:5174/` | http://localhost:5174 |
+| **Terminal 4** (Optional) | Batch Processing Function | `poetry run func start` | `Functions: batch_push_results: [POST] http://localhost:7071/api/...` | http://localhost:7071 |
 
 ### Quick Verification
 
