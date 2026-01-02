@@ -48,7 +48,7 @@ urlFragment: chat-with-your-data-solution-accelerator
 ## User story
 Welcome to the *Chat with your data* Solution accelerator repository! The *Chat with your data* Solution accelerator is a powerful tool that combines the capabilities of Azure AI Search and Large Language Models (LLMs) to create a conversational search experience. This solution accelerator uses an Azure OpenAI GPT model and an Azure AI Search index generated from your data, which is integrated into a web application to provide a natural language interface, including [speech-to-text](../../../docs/speech_to_text.md) functionality, for search queries. Users can drag and drop files, point to storage, and take care of technical setup to transform documents. Everything can be deployed in your own subscription to accelerate your use of this technology.
 
-![Solution Architecture - Chat with your data](../../../docs/images/cwyd-solution-architecture.png)
+![Solution Architecture - Chat with your data](../../../docs/images/architecture_pg.png)
 
 ### About this repo
 
@@ -91,7 +91,7 @@ Here is a comparison table with a few features offered by Azure, an available Gi
 - **Single application access to your full data set**: Minimize endpoints required to access internal company knowledgebases. Reuse the same backend with the [Microsoft Teams Extension](../../../docs/teams_extension.md)
 - **Natural language interaction with your unstructured data**: Use natural language to quickly find the answers you need and ask follow-up queries to get the supplemental details, including [Speech-to-text](../../../docs/speech_to_text.md).
 - **Easy access to source documentation when querying**: Review referenced documents in the same chat window for additional context.
-- **Data upload**: Batch upload documents of [various file types](docs/supported_file_types.md)
+- **Data upload**: Batch upload documents of [various file types](../../../docs/supported_file_types.md)
 - **Accessible orchestration**: Prompt and document configuration (prompt engineering, document processing, and data retrieval)
 
 
