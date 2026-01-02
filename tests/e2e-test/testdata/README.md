@@ -46,13 +46,13 @@ urlFragment: chat-with-your-data-solution-accelerator
     - [Licensing](#licensing)
   - [Disclaimers](#disclaimers)
 ## User story
-Welcome to the *Chat with your data* Solution accelerator repository! The *Chat with your data* Solution accelerator is a powerful tool that combines the capabilities of Azure AI Search and Large Language Models (LLMs) to create a conversational search experience. This solution accelerator uses an Azure OpenAI GPT model and an Azure AI Search index generated from your data, which is integrated into a web application to provide a natural language interface, including [speech-to-text](docs/speech_to_text.md) functionality, for search queries. Users can drag and drop files, point to storage, and take care of technical setup to transform documents. Everything can be deployed in your own subscription to accelerate your use of this technology.
+Welcome to the *Chat with your data* Solution accelerator repository! The *Chat with your data* Solution accelerator is a powerful tool that combines the capabilities of Azure AI Search and Large Language Models (LLMs) to create a conversational search experience. This solution accelerator uses an Azure OpenAI GPT model and an Azure AI Search index generated from your data, which is integrated into a web application to provide a natural language interface, including [speech-to-text](../../../docs/speech_to_text.md) functionality, for search queries. Users can drag and drop files, point to storage, and take care of technical setup to transform documents. Everything can be deployed in your own subscription to accelerate your use of this technology.
 
-![Solution Architecture - Chat with your data](/docs/images/cwyd-solution-architecture.png)
+![Solution Architecture - Chat with your data](../../../docs/images/cwyd-solution-architecture.png)
 
 ### About this repo
 
-This repository provides an end-to-end solution for users who want to query their data with natural language. It includes a well designed ingestion mechanism for multiple file types, an easy deployment, and a support team for maintenance. The accelerator demonstrates both Push or Pull Ingestion; the choice of orchestration (Semantic Kernel, LangChain, OpenAI Functions or [Prompt Flow](docs/prompt_flow.md)) and should be the minimum components needed to implement a RAG pattern. It is not intended to be put into Production as-is without experimentation or evaluation of your data. It provides the following features:
+This repository provides an end-to-end solution for users who want to query their data with natural language. It includes a well designed ingestion mechanism for multiple file types, an easy deployment, and a support team for maintenance. The accelerator demonstrates both Push or Pull Ingestion; the choice of orchestration (Semantic Kernel, LangChain, OpenAI Functions or [Prompt Flow](../../../docs/prompt_flow.md)) and should be the minimum components needed to implement a RAG pattern. It is not intended to be put into Production as-is without experimentation or evaluation of your data. It provides the following features:
 
 * Chat with an Azure OpenAI model using your own data
 * Upload and process your documents
@@ -67,10 +67,10 @@ By default, this repo comes with one specific set of RAG configurations includin
 
 The accelerator presented here provides several options, for example:
 * The ability to ground a model using both data and public web pages
-* A backend with support for 'custom' and 'On Your Data' [conversation flows](./docs/conversation_flow_options.md)
+* A backend with support for 'custom' and 'On Your Data' [conversation flows](../../../docs/conversation_flow_options.md)
 * Advanced prompt engineering capabilities
 * An admin site for ingesting/inspecting/configuring your dataset on the fly
-* Push or Pull model for data ingestion:  See [integrated vectorization](./docs/integrated_vectorization.md) documentation for more details
+* Push or Pull model for data ingestion:  See [integrated vectorization](../../../docs/integrated_vectorization.md) documentation for more details
 * Running a Retrieval Augmented Generation (RAG) solution locally
 
 *Have you seen [ChatGPT + Enterprise data with Azure OpenAI and AI Search demo](https://github.com/Azure-Samples/azure-search-openai-demo)? If you would like to experiment: Play with prompts, understanding RAG pattern different implementation approaches, see how different features interact with the RAG pattern and choose the best options for your RAG deployments, take a look at that repo.
@@ -88,14 +88,14 @@ Here is a comparison table with a few features offered by Azure, an available Gi
 
 ### Key features
 - **Private LLM access on your data**: Get all the benefits of ChatGPT on your private, unstructured data.
-- **Single application access to your full data set**: Minimize endpoints required to access internal company knowledgebases. Reuse the same backend with the [Microsoft Teams Extension](docs/teams_extension.md)
-- **Natural language interaction with your unstructured data**: Use natural language to quickly find the answers you need and ask follow-up queries to get the supplemental details, including [Speech-to-text](docs/speech_to_text.md).
+- **Single application access to your full data set**: Minimize endpoints required to access internal company knowledgebases. Reuse the same backend with the [Microsoft Teams Extension](../../../docs/teams_extension.md)
+- **Natural language interaction with your unstructured data**: Use natural language to quickly find the answers you need and ask follow-up queries to get the supplemental details, including [Speech-to-text](../../../docs/speech_to_text.md).
 - **Easy access to source documentation when querying**: Review referenced documents in the same chat window for additional context.
 - **Data upload**: Batch upload documents of [various file types](docs/supported_file_types.md)
 - **Accessible orchestration**: Prompt and document configuration (prompt engineering, document processing, and data retrieval)
 
 
-**Note**: The current model allows users to ask questions about unstructured data, such as PDF, text, and docx files. See the [supported file types](docs/supported_file_types.md).
+**Note**: The current model allows users to ask questions about unstructured data, such as PDF, text, and docx files. See the [supported file types](../../../docs/supported_file_types.md).
 
 ### Target end users
 Company personnel (employees, executives) looking to research against internal unstructured company data would leverage this accelerator using natural language to find what they need quickly.
@@ -115,13 +115,13 @@ In this scenario, a financial advisor is preparing for a meeting with a potentia
 Now that the financial advisor is more informed about Woodgrove’s Emerging Markets Funds, they're better equipped to respond to questions about this fund from their client.
 
 #### Contract Review and Summarization Assistant scenario
-Additionally, we have implemented a Contract Review and Summarization Assistant scenario to demonstrate how this accelerator can be utilized in any industry. The Contract Review and Summarization Assistant helps professionals manage and interact with a large collection of documents efficiently. For more details, refer to the [Contract Review and Summarization Assistant README](docs/contract_assistance.md).
+Additionally, we have implemented a Contract Review and Summarization Assistant scenario to demonstrate how this accelerator can be utilized in any industry. The Contract Review and Summarization Assistant helps professionals manage and interact with a large collection of documents efficiently. For more details, refer to the [Contract Review and Summarization Assistant README](../../../docs/contract_assistance.md).
 
 Note: Some of the sample data included with this accelerator was generated using AI and is for illustrative purposes only.
 
 ---
 
-![One-click Deploy](/docs/images/oneClickDeploy.png)
+![One-click Deploy](../../../docs/images/oneClickDeploy.png)
 ## Deploy
 ### Pre-requisites
 - Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with owner access.
@@ -157,7 +157,7 @@ The following are links to the pricing details for some of the resources:
 
 ### Deploy instructions
 
-There are two choices; the "Deploy to Azure" offers a one click deployment where you don't have to clone the code, alternatively if you would like a developer experience, follow the [Local deployment instructions](./docs/LOCAL_DEPLOYMENT.md).
+There are two choices; the "Deploy to Azure" offers a one click deployment where you don't have to clone the code, alternatively if you would like a developer experience, follow the [Local deployment instructions](../../../docs/LOCAL_DEPLOYMENT.md).
 
 The demo, which uses containers pre-built from the main branch is available by clicking this button:
 
@@ -175,7 +175,7 @@ switch to a lower version. To find out which versions are supported in different
 
     Where `{RESOURCE_TOKEN}` is uniquely generated during deployment. This is a combination of your subscription and the name of the resource group. Then select **Ingest Data** and add your data. You can find sample data in the `/data` directory.
 
-    ![A screenshot of the admin site.](./docs/images/admin-site.png)
+    ![A screenshot of the admin site.](../../../docs/images/admin-site.png)
 
 
 2. Navigate to the web app to start chatting on top of your data. The web app can be found at:
@@ -183,11 +183,11 @@ switch to a lower version. To find out which versions are supported in different
     `https://web-{RESOURCE_TOKEN}.azurewebsites.net/`
 
 
-    ![A screenshot of the chat app.](./docs/images/web-unstructureddata.png)
+    ![A screenshot of the chat app.](../../../docs/images/web-unstructureddata.png)
 
 \
 \
-![Supporting documentation](/docs/images/supportingDocuments.png)
+![Supporting documentation](../../../docs/images/supportingDocuments.png)
 ## Supporting documentation
 
 ### Resource links
@@ -205,9 +205,9 @@ This solution accelerator deploys the following resources. It's critical to comp
 
 ### Licensing
 
-This repository is licensed under the [MIT License](LICENSE.md).
+This repository is licensed under the [MIT License](../../../LICENSE.md).
 
-The data set under the /data folder is licensed under the [CDLA-Permissive-2 License](CDLA-Permissive-2.md).
+The data set under the /data folder is licensed under the [CDLA-Permissive-2 License](../../../CDLA-Permissive-2.md).
 
 ## Disclaimers
 This Software requires the use of third-party components which are governed by separate proprietary or open-source licenses as identified below, and you must comply with the terms of each applicable license in order to use the Software. You acknowledge and agree that this license does not grant you a license or other right to use any such third-party proprietary or open-source components.
