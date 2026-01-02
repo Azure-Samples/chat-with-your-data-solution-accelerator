@@ -275,9 +275,8 @@ You can also update the `principalId` value in `infra/main.bicep` with your Prin
 
 ### 4.4. Configure Authentication Type
 
-The application supports two authentication methods:
 
-#### RBAC Authentication (Recommended)
+#### RBAC Authentication
 
 1. Ensure role assignments from Step 4.3 are created
 2. Navigate to your Search service in the Azure Portal
@@ -286,12 +285,6 @@ The application supports two authentication methods:
 5. Set `AZURE_AUTH_TYPE=rbac` in your `.env` file
 6. Set `APP_ENV=dev` in your `.env` file to use Azure CLI credentials locally
 
-#### API Key Authentication
-
-1. Set `AZURE_AUTH_TYPE=keys` in your `.env` file
-2. Ensure all necessary API keys are present in the `.env` file
-
-> **⚠️ Security Note**: RBAC authentication is more secure and recommended for production deployments. API keys should only be used for development and testing.
 
 ## Step 5: Set Up Python Virtual Environment
 
