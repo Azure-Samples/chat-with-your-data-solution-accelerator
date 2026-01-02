@@ -92,29 +92,45 @@ export function cardBodyBuilder(citations: any[], assistantAnswer: string): any 
 export function cwydResponseBuilder(citations: Citation[], assistantAnswer: string): Attachment {
     let citationActions: any[] = [];
     let docId = 1;
-    let deleteEnd = "";
-    let deleteEndSpace = "";
     let refCount = 1;
     let findPart = {};
     let reIndex = 0;
+
+    // Track the last citation to detect consecutive duplicates
+    let lastCitationKey: string | null = null;
+
     citations.map((citation: Citation) => {
-        if (!(citation.chunk_id in findPart)) {
-            reIndex = docId;
-            citationActions.push(actionBuilder(citation, reIndex));
-            findPart[citation.chunk_id] = reIndex;
-            docId++;
+        const citationKey = `${citation.chunk_id}_${citation.id}`;
+        const docMarker = `[doc${refCount}]`;
+
+        // Check if this is a consecutive duplicate
+        if (citationKey === lastCitationKey) {
+            // Remove consecutive duplicate
+            assistantAnswer = assistantAnswer.replace(docMarker, '');
         } else {
-            reIndex = findPart[citation.chunk_id];
+            // Not consecutive - process it
+            if (!(citation.chunk_id in findPart)) {
+                // New unique citation
+                reIndex = docId;
+                citationActions.push(actionBuilder(citation, reIndex));
+                findPart[citation.chunk_id] = reIndex;
+                docId++;
+            } else {
+                // Citation seen before (but not consecutive)
+                reIndex = findPart[citation.chunk_id];
+            }
+
+            // Replace with the reindexed number
+            if (reIndex) {
+                assistantAnswer = assistantAnswer.replace(docMarker, `[${reIndex}]`);
+            }
         }
 
-        deleteEnd += `[${reIndex}]`;
-        deleteEndSpace += ` [${reIndex}]`;
-        assistantAnswer = assistantAnswer.replaceAll(`[doc${refCount}]`, `[${reIndex}]`);
-
+        // Update last citation key
+        lastCitationKey = citationKey;
         refCount++;
     });
-    assistantAnswer = assistantAnswer.replaceAll(deleteEnd, "");
-    assistantAnswer = assistantAnswer.replaceAll(deleteEndSpace, "");
+
     let answerCard = CardFactory.adaptiveCard(cardBodyBuilder(citationActions, assistantAnswer));
     return answerCard;
 }

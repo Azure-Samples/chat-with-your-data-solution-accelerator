@@ -22,22 +22,56 @@ export function parseAnswer(answer: AskResponse): ParsedAnswer {
 
     filteredCitations = [] as Citation[];
     let citationReindex = 0;
+
+    // Track the last citation to detect consecutive duplicates
+    let lastCitationKey: string | null = null;
+
     citationLinks?.forEach(link => {
-        // Replacing the links/citations with number
+        // Extract citation index from [docN]
         let citationIndex = link.slice(lengthDocN, link.length - 1);
         let citation = cloneDeep(answer.citations[Number(citationIndex) - 1]) as Citation;
-        if (!isDuplicate(citation, citationIndex) && citation !== undefined) {
-          answerText = answerText.replaceAll(link, ` ^${++citationReindex}^ `);
-          citation.reindex_id = citationReindex.toString(); // reindex from 1 for display
-          filteredCitations.push(citation);
-        }else{
-            // Replacing duplicate citation with original index
-            let matchingCitation = filteredCitations.find((ct) => citation.chunk_id === ct.chunk_id && citation.id === ct.id);
-            if (matchingCitation) {
-                answerText= answerText.replaceAll(link, ` ^${matchingCitation.reindex_id}^ `)
+
+        if (citation === undefined) {
+            answerText = answerText.replace(link, '');
+            return;
+        }
+
+        // Create unique key for this citation
+        const citationKey = `${citation.chunk_id}_${citation.id}`;
+
+        // Check if this is a consecutive duplicate
+        if (citationKey === lastCitationKey) {
+            // Remove consecutive duplicate
+            answerText = answerText.replace(link, '');
+        } else {
+            // Not a duplicate or not consecutive - process it
+            if (!isDuplicate(citation, citationIndex)) {
+                // This is a new unique citation - add to list
+                citation.reindex_id = (++citationReindex).toString();
+                filteredCitations.push(citation);
+            } else {
+                // This citation was seen before (but not consecutive) - find its reindex_id
+                const existingCitation = filteredCitations.find(
+                    (c) => c.chunk_id === citation.chunk_id && c.id === citation.id
+                );
+                if (existingCitation) {
+                    citation.reindex_id = existingCitation.reindex_id;
+                } else {
+                    // Fallback: should not happen, but handle it
+                    citation.reindex_id = (++citationReindex).toString();
+                    filteredCitations.push(citation);
+                }
+            }
+
+            // Replace with the citation number (use replace to only replace first occurrence)
+            if (citation.reindex_id) {
+                answerText = answerText.replace(link, ` ^${citation.reindex_id}^ `);
             }
         }
-    })
+
+        // Update last citation key
+        lastCitationKey = citationKey;
+    });
 
 
     return {
