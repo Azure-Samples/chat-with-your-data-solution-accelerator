@@ -201,7 +201,7 @@ azd env set AZURE_ENV_VM_ADMIN_PASSWORD <your-password>
 
 You can customize various deployment settings before running `azd up`, including Azure regions, AI model configurations (deployment type, version, capacity), container registry settings, and resource names.
 
-📖 **Complete Guide:** See [Parameter Customization Guide](../docs/customizing_azd_parameters.md) for the full list of available parameters and their usage.
+📖 **Complete Guide:** See [Parameter Customization Guide](./customizing_azd_parameters.md) for the full list of available parameters and their usage.
 
 </details>
 
@@ -214,7 +214,7 @@ To optimize costs and integrate with your existing Azure infrastructure, you can
 
 - **Log Analytics Workspace:** Integrate with your existing monitoring infrastructure by reusing an established Log Analytics workspace for centralized logging and monitoring. [Configuration Guide](./re-use-log-analytics.md)
 
-- **Resource Group:** Leverage an existing resource group to organize resources within your current Azure infrastructure. Follow the [setup steps here](../docs/re-use-resource-group.md) before running `azd up`
+- **Resource Group:** Leverage an existing resource group to organize resources within your current Azure infrastructure. Follow the [setup steps here](./re-use-resource-group.md) before running `azd up`
 
 **Key Benefits:**
 - **Cost Optimization:** Eliminate duplicate resource charges
@@ -428,7 +428,7 @@ Now that your deployment is complete and tested, explore these resources to enha
 - [Model Configuration](./model_configuration.md) - Configure AI models and parameters
 - [Conversation Flow Options](./conversation_flow_options.md) - Customize conversation flow behavior
 - [Best Practices](./best_practices.md) - Best practices for deployment and usage
-- [Local Development Setup](./local_development_setup.md) - Set up your local development environment
+- [Local Development Setup](./LocalDevelopmentSetup.md) - Set up your local development environment
 - [Advanced Image Processing](./advanced_image_processing.md) - Enable and configure vision capabilities
 - [Integrated Vectorization](./integrated_vectorization.md) - Understanding integrated vectorization
 - [Teams Extension](./teams_extension.md) - Integrating with Microsoft Teams
