@@ -13,6 +13,7 @@ class WebUserPage(BasePage):
     REFERENCE_LINKS_IN_RESPONSE = "//span[@class='_citationContainer_onnz5_62']"
     RESPONSE_REFERENCE_EXPAND_ICON = "//div[@aria-label='References']"
     CLOSE_CITATIONS = "svg[role='button']"
+    # CHAT HISTORY SELECTORS
     SHOW_CHAT_HISTORY = "//span//i"
     CHAT_HISTORY_NAME = "div[aria-label='chat history list']"
     CHAT_CLOSE_ICON = "button[title='Hide']"
