@@ -129,6 +129,15 @@ export const Answer = ({
     }
   }, [isActive, synthesizer]);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (isSpeaking) {
+        resetSpeech();
+      }
+    };
+  }, []);
+
   useEffect(() => {
     setChevronIsExpanded(isRefAccordionOpen);
     // if (chevronIsExpanded && refContainer.current) {
@@ -221,7 +230,7 @@ export const Answer = ({
   const handleSpeakPauseResume = () => {
     if (isSpeaking) {
       if (isPaused) {
-        onSpeak(index, "speak");
+        onSpeak(index, "speak", resetSpeech);
         audioDestination?.resume();
         setIsPaused(false);
         setStartTime(Date.now());
@@ -238,7 +247,7 @@ export const Answer = ({
         }
       }
     } else {
-      onSpeak(index, "speak");
+      onSpeak(index, "speak", resetSpeech);
       startSpeech();
     }
   };
