@@ -431,11 +431,9 @@ const Chat = () => {
       return;
     }
 
-    // Stop audio immediately - no dependency on React render cycle
-    audioStopRef.current?.();
-
-    // Stop audio state when switching to a different conversation
+    // Stop audio only when switching to a different conversation
     if (id !== selectedConvId) {
+      audioStopRef.current?.(); // Stop audio immediately
       setActiveCardIndex(null); // Stop audio for all conversation switches
     }
 
