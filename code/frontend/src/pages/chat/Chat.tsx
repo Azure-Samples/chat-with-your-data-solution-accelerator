@@ -498,6 +498,7 @@ const Chat = () => {
     );
     setChatHistory(tempChatHistory);
     if (id === selectedConvId) {
+      audioStopRef.current?.(); // Stop audio when deleting current conversation
       lastQuestionRef.current = "";
       setActiveCitation(undefined);
       setAnswers([]);
