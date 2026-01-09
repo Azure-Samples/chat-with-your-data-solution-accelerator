@@ -36,6 +36,10 @@ azd env set USE_KEY_VAULT false
 
 Also please refer to the section on [setting up RBAC auth](#authenticate-using-rbac).
 
+
+## 🛠️ Troubleshooting
+If you encounter any issues during the deployment process, please refer to the [TroubleShootingSteps](TroubleShootingSteps.md) document for detailed steps and solutions.
+
 ## Deployment Options & Steps
 
 ### Sandbox or WAF Aligned Deployment Options
