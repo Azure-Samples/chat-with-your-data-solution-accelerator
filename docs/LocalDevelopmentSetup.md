@@ -208,6 +208,33 @@ git clone https://github.com/Azure-Samples/chat-with-your-data-solution-accelera
 cd chat-with-your-data-solution-accelerator
 ```
 
+> **📋 Note: Using Existing Azure Deployment**
+>
+> If you already have an existing deployment or resource group with the solution deployed to Azure, you can skip resource provisioning and extract environment variables directly from your deployed services:
+>
+> **Option 1: Extract from Existing Azure Deployment**
+>
+> Get environment variables from all three services using Azure CLI:
+>
+> ```powershell
+> # Get environment variables from Web App
+> az webapp config appsettings list --name <web-app-name> --resource-group <resource-group-name> | ConvertFrom-Json | ForEach-Object { "$($_.name)=`"$($_.value)`""}
+>
+> # Get environment variables from Admin App
+> az webapp config appsettings list --name <admin-app-name> --resource-group <resource-group-name> | ConvertFrom-Json | ForEach-Object { "$($_.name)=`"$($_.value)`""}
+>
+> # Get environment variables from Function App
+> az functionapp config appsettings list --name <function-app-name> --resource-group <resource-group-name> | ConvertFrom-Json | ForEach-Object { "$($_.name)=`"$($_.value)`""}
+> ```
+>
+> Then create a `.env` file at `.azure/<env-name>/.env` (create the directory structure if needed) and copy all environment variables into it.
+>
+> **Option 2: Reuse Existing Local .env File**
+>
+> If you have previously deployed the solution locally using `azd up`, you can directly use the existing `.env` file located at `.azure/<env-name>/.env`.
+>
+> **If using existing resources, you can skip Step 4.2 (Provision Azure Resources) and proceed directly to Step 4.3.**
+
 ## Step 4: Azure Authentication and Resource Provisioning
 
 Before running the application locally, you need to provision Azure resources and configure authentication.
@@ -246,7 +273,7 @@ This command will:
 
 ### 4.3. Required Azure RBAC Permissions
 
-To run the application locally using RBAC authentication (recommended), your Azure account needs the following role assignments:
+To run the application locally using RBAC authentication, your Azure account needs the following role assignments:
 
 #### Option 1: Assign Roles Manually
 
@@ -323,6 +350,7 @@ cd code/backend
 # Install dependencies using Poetry
 pip install --upgrade pip
 pip install poetry
+poetry self add poetry-plugin-export@latest
 poetry export -o requirements.txt
 pip install -r requirements.txt
 ```
@@ -782,8 +810,23 @@ az role assignment create --assignee $PRINCIPAL_ID --role "Key Vault Secrets Use
 # Cosmos DB (if using CosmosDB)
 az cosmosdb sql role assignment create --account-name cosmos-$SOLUTION_PREFIX --resource-group $RESOURCE_GROUP --scope "/" --principal-id $PRINCIPAL_ID --role-definition-id 00000000-0000-0000-0000-000000000002
 
-# PostgreSQL (if using PostgreSQL) - Add user as administrator
-# az postgres flexible-server ad-admin create --server-name <server-name> --resource-group $RESOURCE_GROUP --object-id $PRINCIPAL_ID --display-name <display-name>
+# PostgreSQL (if using PostgreSQL) - Add user as Microsoft Entra ID administrator
+# Note: The CLI command may not work with older Azure CLI versions. If you encounter issues, use the Azure Portal method below.
+
+# Option 1: Using Azure CLI (if 'ad-admin' command is not recognized, try updating Azure CLI with 'az upgrade')
+az postgres flexible-server ad-admin create --server-name <server-name> --resource-group $RESOURCE_GROUP --object-id $PRINCIPAL_ID --display-name <display-name>
+
+# Option 2: Using Azure Portal (Recommended if CLI fails)
+# Step 1: Navigate to your PostgreSQL flexible server in Azure Portal (https://portal.azure.com)
+# Step 2: Go to Settings -> Authentication
+# Step 3: Select "PostgreSQL and Microsoft Entra authentication" or "Microsoft Entra authentication only"
+# Step 4: Click "Add Microsoft Entra Admins"
+# Step 5: Search for your user account by email or display name
+# Step 6: Select your account and click "Select"
+# Step 7: Click "Save" at the top of the page
+# Step 8: Wait for the configuration to complete (1-2 minutes)
+#
+# You can get your display name from: Microsoft Entra ID -> Users -> Your User Account -> Display Name
 ```
 
 **Windows PowerShell Version:**
@@ -814,6 +857,24 @@ az role assignment create --assignee $PRINCIPAL_ID --role "Key Vault Secrets Use
 
 # Cosmos DB (if using CosmosDB)
 az cosmosdb sql role assignment create --account-name cosmos-$SOLUTION_PREFIX --resource-group $RESOURCE_GROUP --scope "/" --principal-id $PRINCIPAL_ID --role-definition-id 00000000-0000-0000-0000-000000000002
+
+# PostgreSQL (if using PostgreSQL) - Add user as Microsoft Entra ID administrator
+# Note: The CLI command may not work with older Azure CLI versions. If you encounter issues, use the Azure Portal method below.
+
+# Option 1: Using Azure CLI (if 'ad-admin' command is not recognized, try updating Azure CLI with 'az upgrade')
+az postgres flexible-server ad-admin create --server-name <server-name> --resource-group $RESOURCE_GROUP --object-id $PRINCIPAL_ID --display-name <display-name>
+
+# Option 2: Using Azure Portal (Recommended if CLI fails)
+# Step 1: Navigate to your PostgreSQL flexible server in Azure Portal (https://portal.azure.com)
+# Step 2: Go to Settings -> Authentication
+# Step 3: Select "PostgreSQL and Microsoft Entra authentication" or "Microsoft Entra authentication only"
+# Step 4: Click "Add Microsoft Entra Admins"
+# Step 5: Search for your user account by email or display name
+# Step 6: Select your account and click "Select"
+# Step 7: Click "Save" at the top of the page
+# Step 8: Wait for the configuration to complete (1-2 minutes)
+#
+# You can get your display name from: Microsoft Entra ID -> Users -> Your User Account -> Display Name
 ```
 
 > **⚠️ Important**:
