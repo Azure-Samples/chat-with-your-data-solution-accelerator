@@ -129,7 +129,6 @@ export const Answer = ({
     }
   }, [isActive, synthesizer]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (isSpeaking) {

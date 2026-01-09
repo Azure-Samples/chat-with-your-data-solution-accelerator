@@ -38,7 +38,7 @@ const [ASSISTANT, TOOL, ERROR] = ["assistant", "tool", "error"];
 const Chat = () => {
   const lastQuestionRef = useRef<string>("");
   const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
-  const audioStopRef = useRef<(() => void) | null>(null); // Ref to hold audio stop function
+  const audioStopRef = useRef<(() => void) | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);  // Add this state
   const [showLoadingMessage, setShowLoadingMessage] = useState<boolean>(false);
@@ -304,7 +304,7 @@ const Chat = () => {
   };
 
   const clearChat = () => {
-    audioStopRef.current?.(); // Stop audio immediately
+    audioStopRef.current?.();
     lastQuestionRef.current = "";
     setActiveCitation(undefined);
     setAnswers([]);
@@ -391,7 +391,6 @@ const Chat = () => {
   const handleSpeech = (index: number, status: string, stopAudioFn?: () => void) => {
     if (status != "pause") setActiveCardIndex(index);
     setIsTextToSpeachActive(status == "speak" ? true : false);
-    // Store the stop function when audio starts playing
     if (status == "speak" && stopAudioFn) {
       audioStopRef.current = stopAudioFn;
     }
@@ -431,15 +430,13 @@ const Chat = () => {
       return;
     }
 
-    // Stop audio only when switching to a different conversation
     if (id !== selectedConvId) {
-      audioStopRef.current?.(); // Stop audio immediately
-      setActiveCardIndex(null); // Stop audio for all conversation switches
+      audioStopRef.current?.();
+      setActiveCardIndex(null);
     }
 
     const messages = getMessagesByConvId(id);
     if (messages.length === 0) {
-      // For uncached: clear answers immediately to unmount components before fetch
       setAnswers([]);
       setFetchingConvMessages(true);
       const responseMessages = await historyRead(id);
@@ -447,11 +444,9 @@ const Chat = () => {
       setMessagesByConvId(id, responseMessages);
       setFetchingConvMessages(false);
     } else {
-      // For cached: just update answers
       setAnswers(messages);
     }
 
-    // Update selected conversation ID after loading messages
     if (id !== selectedConvId) {
       setSelectedConvId(id);
     }
@@ -498,7 +493,7 @@ const Chat = () => {
     );
     setChatHistory(tempChatHistory);
     if (id === selectedConvId) {
-      audioStopRef.current?.(); // Stop audio when deleting current conversation
+      audioStopRef.current?.();
       lastQuestionRef.current = "";
       setActiveCitation(undefined);
       setAnswers([]);
