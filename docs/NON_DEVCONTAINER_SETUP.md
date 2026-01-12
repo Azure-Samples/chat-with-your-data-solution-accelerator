@@ -54,3 +54,6 @@ The Azure Developer CLI (`azd`) is a developer-centric command-line interface (C
     > **Note:** This solution accelerator requires **Azure Developer CLI (azd) version 1.18.0 or higher**. Please ensure you have the latest version installed before proceeding with deployment. [Download azd here](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd).
 
     > Select your desired `subscription` and `location`. Wait a moment for the resource deployment to complete, click the website endpoint and you will see the web app page.
+
+## 🛠️ Troubleshooting
+If you encounter any issues during the deployment process, please refer to the [TroubleShootingSteps](TroubleShootingSteps.md) document for detailed steps and solutions.
