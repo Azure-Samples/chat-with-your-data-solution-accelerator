@@ -2,6 +2,7 @@ import io
 import os
 import logging
 import traceback
+import urllib.parse
 import azure.functions as func
 import requests
 from bs4 import BeautifulSoup
@@ -59,11 +60,19 @@ def process_url_contents_directly(url: str, env_helper: EnvHelper):
 
 def download_url_and_upload_to_blob(url: str):
     try:
-        response = requests.get(url)
+        # Add User-Agent header to avoid being blocked by websites (e.g., Wikipedia)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        encoded_url = urllib.parse.quote(url, safe=":/")
+        response = requests.get(encoded_url, headers=headers)
         parsed_data = BeautifulSoup(response.content, "html.parser")
         with io.BytesIO(parsed_data.get_text().encode("utf-8")) as stream:
             blob_client = AzureBlobStorageClient()
-            blob_client.upload_file(stream, url, metadata={"title": url})
+            # Encode blob name to handle non-ASCII characters (e.g., Hebrew) while preserving URL structure
+            # safe=":/" keeps protocol (https://) and path separators intact
+            encoded_blob_name = urllib.parse.quote(url, safe=":/")
+            blob_client.upload_file(stream, encoded_blob_name, metadata={"title": urllib.parse.quote(url, safe="")})
         return func.HttpResponse(f"URL {url} added to knowledge base", status_code=200)
 
     except Exception:

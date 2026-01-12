@@ -4,6 +4,7 @@ import os
 import traceback
 import sys
 import pandas as pd
+import urllib.parse
 from batch.utilities.helpers.env_helper import EnvHelper
 from batch.utilities.helpers.config.database_type import DatabaseType
 from batch.utilities.search.search import Search
@@ -54,13 +55,34 @@ try:
             "Unsupported database type. Only 'PostgreSQL' and 'CosmosDB' are allowed."
         )
 
-    filename = st.selectbox("Select your file:", unique_files)
-    st.write("Showing chunks for:", filename)
+    # Check if there are any files
+    if not unique_files:
+        st.info("No files available to explore")
+        st.stop()
 
-    results = search_handler.perform_search(filename)
-    data = search_handler.process_results(results)
-    df = pd.DataFrame(data, columns=("Chunk", "Content")).sort_values(by=["Chunk"])
-    st.table(df)
+    # Decode URL-encoded filenames for display
+    decoded_files = {urllib.parse.unquote(f) if f else f: f for f in unique_files if f}
+    decoded_filenames = list(decoded_files.keys())
+
+    if not decoded_filenames:
+        st.info("No files available to explore")
+        st.stop()
+
+    # Show decoded filename in dropdown
+    display_filename = st.selectbox("Select your file:", decoded_filenames)
+
+    # Get the original encoded filename for search
+    if display_filename and display_filename in decoded_files:
+        filename = decoded_files[display_filename]
+
+        st.write("Showing chunks for:", display_filename)
+
+        results = search_handler.perform_search(filename)
+        data = search_handler.process_results(results)
+        df = pd.DataFrame(data, columns=("Chunk", "Content")).sort_values(by=["Chunk"])
+        st.table(df)
+    else:
+        st.info("Please select a file to explore")
 
 
 except Exception:
