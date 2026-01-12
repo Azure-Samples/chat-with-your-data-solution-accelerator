@@ -90,6 +90,7 @@ def env_helper_mock():
         env_helper.AZURE_SEARCH_CONVERSATIONS_LOG_INDEX = (
             AZURE_SEARCH_CONVERSATIONS_LOG_INDEX
         )
+        env_helper.MANAGED_IDENTITY_CLIENT_ID = "mock-client-id"
 
         env_helper.USE_ADVANCED_IMAGE_PROCESSING = USE_ADVANCED_IMAGE_PROCESSING
         env_helper.is_auth_type_keys.return_value = True
@@ -142,7 +143,7 @@ def test_creates_search_clients_with_keys(
 
 @patch("backend.batch.utilities.helpers.azure_search_helper.SearchClient")
 @patch("backend.batch.utilities.helpers.azure_search_helper.SearchIndexClient")
-@patch("backend.batch.utilities.helpers.azure_search_helper.DefaultAzureCredential")
+@patch("backend.batch.utilities.helpers.azure_search_helper.get_azure_credential")
 def test_creates_search_clients_with_rabc(
     default_azure_credential_mock: MagicMock,
     search_index_client_mock: MagicMock,
@@ -156,7 +157,7 @@ def test_creates_search_clients_with_rabc(
     AzureSearchHelper()
 
     # then
-    default_azure_credential_mock.assert_called_once_with()
+    default_azure_credential_mock.assert_called_once_with("mock-client-id")
     search_client_mock.assert_called_once_with(
         endpoint=AZURE_SEARCH_SERVICE,
         index_name=AZURE_SEARCH_INDEX,

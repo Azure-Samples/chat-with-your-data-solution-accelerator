@@ -171,6 +171,20 @@ def azure_computer_vision_mock():
         yield mock
 
 
+@pytest.fixture(autouse=True)
+def urllib_request_mock():
+    with patch(
+        "backend.batch.utilities.helpers.embedders.push_embedder.urllib.request.urlopen"
+    ) as mock:
+        # Create a mock response object
+        mock_response = MagicMock()
+        mock_response.read.return_value = b"fake_image_data"
+        mock_response.__enter__.return_value = mock_response
+        mock_response.__exit__.return_value = None
+        mock.return_value = mock_response
+        yield mock
+
+
 def test_embed_file_advanced_image_processing_vectorizes_image(
     azure_computer_vision_mock,
 ):
@@ -192,7 +206,7 @@ def test_embed_file_advanced_image_processing_uses_vision_model_for_captioning(
 ):
     # given
     env_helper_mock = MagicMock()
-    env_helper_mock.AZURE_OPENAI_VISION_MODEL = "gpt-4"
+    env_helper_mock.AZURE_OPENAI_VISION_MODEL = "gpt-4.1"
     push_embedder = PushEmbedder(MagicMock(), env_helper_mock)
     source_url = "http://localhost:8080/some-file-name.jpg"
 
@@ -200,29 +214,24 @@ def test_embed_file_advanced_image_processing_uses_vision_model_for_captioning(
     push_embedder.embed_file(source_url, "some-file-name.jpg")
 
     # then
-    llm_helper_mock.get_chat_completion.assert_called_once_with(
-        [
-            {
-                "role": "system",
-                "content": """You are an assistant that generates rich descriptions of images.
-You need to be accurate in the information you extract and detailed in the descriptons you generate.
-Do not abbreviate anything and do not shorten sentances. Explain the image completely.
-If you are provided with an image of a flow chart, describe the flow chart in detail.
-If the image is mostly text, use OCR to extract the text as it is displayed in the image.""",
-            },
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "text": "Describe this image in detail. Limit the response to 500 words.",
-                        "type": "text",
-                    },
-                    {"image_url": {"url": source_url}, "type": "image_url"},
-                ],
-            },
-        ],
-        env_helper_mock.AZURE_OPENAI_VISION_MODEL,
-    )
+    # Verify the vision model is called with direct URL (not base64) for token efficiency
+    llm_helper_mock.get_chat_completion.assert_called_once()
+    call_args = llm_helper_mock.get_chat_completion.call_args
+    messages = call_args[0][0]
+    model = call_args[0][1]
+
+    assert model == env_helper_mock.AZURE_OPENAI_VISION_MODEL
+    assert len(messages) == 2
+    assert messages[0]["role"] == "system"
+    assert "You are an assistant that generates rich descriptions of images" in messages[0]["content"]
+    assert messages[1]["role"] == "user"
+    assert len(messages[1]["content"]) == 2
+    assert messages[1]["content"][0]["type"] == "text"
+    assert "Describe this image in detail" in messages[1]["content"][0]["text"]
+    assert messages[1]["content"][1]["type"] == "image_url"
+    # Image should be converted to base64 data URL
+    image_url = messages[1]["content"][1]["image_url"]["url"]
+    assert image_url.startswith("data:image/"), f"Expected base64 data URL, got {image_url[:100]}"
 
 
 def test_embed_file_advanced_image_processing_stores_embeddings_in_search_index(

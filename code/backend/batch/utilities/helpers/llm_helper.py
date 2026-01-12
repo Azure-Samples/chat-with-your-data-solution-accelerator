@@ -8,7 +8,7 @@ from semantic_kernel.connectors.ai.open_ai.prompt_execution_settings.azure_chat_
     AzureChatPromptExecutionSettings,
 )
 from azure.ai.ml import MLClient
-from azure.identity import DefaultAzureCredential
+from .azure_credential_utils import get_azure_credential
 from .env_helper import EnvHelper
 
 logger = logging.getLogger(__name__)
@@ -166,7 +166,7 @@ class LLMHelper:
     def get_ml_client(self):
         if not hasattr(self, "_ml_client"):
             self._ml_client = MLClient(
-                DefaultAzureCredential(),
+                get_azure_credential(self.env_helper.MANAGED_IDENTITY_CLIENT_ID),
                 self.env_helper.AZURE_SUBSCRIPTION_ID,
                 self.env_helper.AZURE_RESOURCE_GROUP,
                 self.env_helper.AZURE_ML_WORKSPACE_NAME,

@@ -29,16 +29,21 @@ Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.
 2. Open the file env\\.env.local
 3. Locate the environment variable _AZURE_FUNCTION_URL_.
 
-4. Replace the `<AZURE_FUNCTION_URL>` with your local Teams Backend URL (i.e., http://localhost:7071/api/GetConversationResponse)
+4. Update the environment variables in the file with your local development URLs:
+   - Replace the `<AZURE_FUNCTION_URL>` placeholder with your local Teams Backend Function URL: `http://localhost:7071/api/GetConversationResponse`
+   - Set the `AZURE_APP_API_BASE_URL` to your local API URL: `http://127.0.0.1:5050/`
+
     ```env
     AZURE_FUNCTION_URL=http://localhost:7071/api/GetConversationResponse
+    AZURE_APP_API_BASE_URL=http://127.0.0.1:5050/
     ```
     ![Env](images/teams-local-3.png)
 
 5. Save the file.
-6. Select Teams Toolkit from the navigation panel.
-7. Verify your signed into O365 and Azure with sideloading enabled.
-8. Select the "play" button next to Local.
+6. For local development, ensure that multitenant mode is enabled in the Teams extension. In `index.ts`, check that the `MicrosoftAppType` is set to "MultiTenant" instead of "SingleTenant"
+7. Select Teams Toolkit from the navigation panel.
+8. Verify your signed into O365 and Azure with sideloading enabled.
+9. Select the "play" button next to Local.
 
 ![Teams Toolkit](images/teams-local-2.png)
 

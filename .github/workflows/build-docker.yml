@@ -3,12 +3,6 @@ name: Reusable Docker build and push workflow
 on:
   workflow_call:
     inputs:
-      old_registry:
-        required: true
-        type: string
-      old_username:
-        required: true
-        type: string
       new_registry:
         required: true
         type: string
@@ -70,18 +64,6 @@ jobs:
       id: date
       run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
-    - name: Build Docker Image and optionally push (Old Registry)
-      if: ${{ github.ref_name == 'main' }}
-      uses: docker/build-push-action@v6
-      with:
-        context: .
-        file: ${{ inputs.dockerfile }}
-        push: ${{ inputs.push }}
-        cache-from: type=registry,ref=${{ inputs.old_registry }}/${{ inputs.app_name }}:${{ github.ref_name == 'main' && 'latest' || github.head_ref || github.ref_name }}
-        tags: |
-          ${{ inputs.old_registry }}/${{ inputs.app_name }}:${{ github.ref_name == 'main' && 'latest' || github.head_ref || 'default' }}
-          ${{ inputs.old_registry }}/${{ inputs.app_name }}:${{ steps.date.outputs.date }}_${{ github.run_number }}
-
     - name: Build Docker Image and optionally push (New Registry)
       if: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo'|| github.ref_name == 'dependabotchanges' }}
       uses: docker/build-push-action@v6
@@ -89,7 +71,7 @@ jobs:
         context: .
         file: ${{ inputs.dockerfile }}
         push: ${{ inputs.push }}
-        cache-from: type=registry,ref=${{ inputs.new_registry }}/${{ inputs.app_name }}:${{ github.ref_name == 'main' && 'latest' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo'|| github.ref_name == 'dependabotchanges' && 'dependabotchanges' || github.head_ref || github.ref_name }}
+        cache-from: type=registry,ref=${{ inputs.new_registry }}/${{ inputs.app_name }}:${{ github.ref_name == 'main' && 'latest_waf' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo'|| github.ref_name == 'dependabotchanges' && 'dependabotchanges' || github.head_ref || github.ref_name }}
         tags: |
-          ${{ inputs.new_registry }}/${{ inputs.app_name }}:${{ github.ref_name == 'main' && 'latest' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo'|| github.ref_name == 'dependabotchanges' && 'dependabotchanges' || github.head_ref || 'default' }}
-          ${{ inputs.new_registry }}/${{ inputs.app_name }}:${{ steps.date.outputs.date }}_${{ github.run_number }}
+          ${{ inputs.new_registry }}/${{ inputs.app_name }}:${{ github.ref_name == 'main' && 'latest_waf' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo'|| github.ref_name == 'dependabotchanges' && 'dependabotchanges' || github.head_ref || 'default' }}
+          ${{ inputs.new_registry }}/${{ inputs.app_name }}:${{ github.ref_name == 'main' && 'latest_waf' || github.ref_name == 'dev' && 'dev' || github.ref_name == 'demo' && 'demo'|| github.ref_name == 'dependabotchanges' && 'dependabotchanges' || github.head_ref || 'default' }}_${{ steps.date.outputs.date }}_${{ github.run_number }}

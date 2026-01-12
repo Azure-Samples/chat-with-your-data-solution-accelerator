@@ -3,7 +3,7 @@ from unittest.mock import ANY, AsyncMock, MagicMock, call, patch
 import pytest
 from semantic_kernel import Kernel
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
-from semantic_kernel.connectors.ai.function_call_behavior import EnabledFunctions
+from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
 from semantic_kernel.connectors.ai.open_ai.prompt_execution_settings.azure_chat_prompt_execution_settings import (
     AzureChatPromptExecutionSettings,
 )
@@ -180,15 +180,15 @@ async def test_kernel_function_call_behavior(
         await orchestrator.orchestrate("question", [])
 
     # then
-    function_call_behavior: EnabledFunctions = (
+    function_choice_behavior: FunctionChoiceBehavior = (
         kernel_mock.add_function.call_args.kwargs[
             "prompt_execution_settings"
-        ].function_call_behavior
+        ].function_choice_behavior
     )
 
-    assert function_call_behavior.auto_invoke_kernel_functions is False
-    assert function_call_behavior.enable_kernel_functions is True
-    assert function_call_behavior.filters == {"included_plugins": ["Chat"]}
+    assert function_choice_behavior.auto_invoke_kernel_functions is False
+    assert function_choice_behavior.enable_kernel_functions is True
+    assert function_choice_behavior.filters == {"included_plugins": ["Chat"]}
 
 
 @pytest.mark.asyncio
@@ -423,17 +423,13 @@ async def test_chat_history_included(
         await orchestrator.orchestrate("question", chat_history)
 
     # then
-    chat_history = kernel_mock.invoke.call_args.kwargs["chat_history"]
-    messages = chat_history.messages
+    chat_history_str = kernel_mock.invoke.call_args.kwargs["chat_history"]
 
-    assert len(messages) == 3
-    assert messages[0].role == AuthorRole.SYSTEM
-
-    assert messages[1].role == AuthorRole.USER
-    assert messages[1].content == "Hello"
-
-    assert messages[2].role == AuthorRole.ASSISTANT
-    assert messages[2].content == "Hi, how can I help you today?"
+    # The chat_history parameter is now a string, so we check its content
+    assert isinstance(chat_history_str, str)
+    assert "AuthorRole.SYSTEM:" in chat_history_str
+    assert "AuthorRole.USER: Hello" in chat_history_str
+    assert "AuthorRole.ASSISTANT: Hi, how can I help you today?" in chat_history_str
 
 
 @pytest.mark.asyncio

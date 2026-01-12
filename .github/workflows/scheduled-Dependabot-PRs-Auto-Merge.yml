@@ -96,7 +96,7 @@ jobs:
               echo "✅ PR #$pr_number is mergeable. Skipping rebase."
             fi
           done < matched_prs.txt
-          
+
       - name: Auto-Merge PRs using available strategy
         if: success()
         env:

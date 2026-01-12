@@ -46,3 +46,5 @@ azd env set ADVANCED_IMAGE_PROCESSING_MAX_IMAGES 2
 ```
 
 Advanced image processing is only used in the `custom` conversation flow and not the `byod` flow, as Azure OpenAI On Your Data only supports Ada embeddings. It is currently not possible to use advanced image processing when integrated vectorization is enabled.
+
+Advanced image processing is not supported when deploying with PostgreSQL as the database type.

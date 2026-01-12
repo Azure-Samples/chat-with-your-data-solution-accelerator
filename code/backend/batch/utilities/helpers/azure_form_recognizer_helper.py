@@ -1,7 +1,7 @@
 import logging
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.formrecognizer import DocumentAnalysisClient
-from azure.identity import DefaultAzureCredential
+from .azure_credential_utils import get_azure_credential
 import html
 import traceback
 from .env_helper import EnvHelper
@@ -19,7 +19,7 @@ class AzureFormRecognizerClient:
         if env_helper.AZURE_AUTH_TYPE == "rbac":
             self.document_analysis_client = DocumentAnalysisClient(
                 endpoint=self.AZURE_FORM_RECOGNIZER_ENDPOINT,
-                credential=DefaultAzureCredential(),
+                credential=get_azure_credential(env_helper.MANAGED_IDENTITY_CLIENT_ID),
                 headers={
                     "x-ms-useragent": "chat-with-your-data-solution-accelerator/1.0.0"
                 },

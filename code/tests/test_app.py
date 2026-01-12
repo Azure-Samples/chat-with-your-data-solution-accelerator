@@ -4,6 +4,7 @@ This module tests the entry point for the application.
 
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
+from azure.core.exceptions import ClientAuthenticationError, ResourceNotFoundError, ServiceRequestError
 from openai import RateLimitError, BadRequestError, InternalServerError
 import pytest
 from flask.testing import FlaskClient
@@ -923,3 +924,228 @@ class TestConversationAzureByod:
             data
             == '{"id": "response.id", "model": "mock-openai-model", "created": 0, "object": "response.object", "choices": [{"messages": [{"role": "assistant", "content": "mock content"}]}]}\n'
         )
+
+
+class TestGetFile:
+    """Test the get_file endpoint for downloading files from blob storage."""
+
+    @patch("create_app.AzureBlobStorageClient")
+    def test_get_file_success(self, mock_blob_client_class, client):
+        """Test successful file download with proper headers."""
+        # given
+        filename = "test_document.pdf"
+        file_content = b"Mock file content for PDF document"
+
+        mock_blob_client = MagicMock()
+        mock_blob_client_class.return_value = mock_blob_client
+        mock_blob_client.file_exists.return_value = True
+        mock_blob_client.download_file.return_value = file_content
+
+        # when
+        response = client.get(f"/api/files/{filename}")
+
+        # then
+        assert response.status_code == 200
+        assert response.data == file_content
+        assert response.headers["Content-Type"] == "application/pdf"
+        assert response.headers["Content-Disposition"] == f'inline; filename="{filename}"'
+        assert response.headers["Content-Length"] == str(len(file_content))
+        assert response.headers["Cache-Control"] == "public, max-age=3600"
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
+        assert response.headers["X-Frame-Options"] == "DENY"
+        assert response.headers["Content-Security-Policy"] == "default-src 'none'"
+
+        # Verify blob client was initialized with correct container
+        mock_blob_client_class.assert_called_once_with(container_name="documents")
+        mock_blob_client.file_exists.assert_called_once_with(filename)
+        mock_blob_client.download_file.assert_called_once_with(filename)
+
+    @patch("create_app.AzureBlobStorageClient")
+    def test_get_file_with_unknown_mime_type(self, mock_blob_client_class, client):
+        """Test file download with unknown file extension."""
+        # given
+        filename = "test_file.unknownext"
+        file_content = b"Mock file content"
+
+        mock_blob_client = MagicMock()
+        mock_blob_client_class.return_value = mock_blob_client
+        mock_blob_client.file_exists.return_value = True
+        mock_blob_client.download_file.return_value = file_content
+
+        # when
+        response = client.get(f"/api/files/{filename}")
+
+        # then
+        assert response.status_code == 200
+        assert response.headers["Content-Type"] == "application/octet-stream"
+
+    @patch("create_app.AzureBlobStorageClient")
+    def test_get_file_large_file_warning(self, mock_blob_client_class, client):
+        """Test that large files are handled properly with logging."""
+        # given
+        filename = "large_document.pdf"
+        file_content = b"x" * (11 * 1024 * 1024)  # 11MB file
+
+        mock_blob_client = MagicMock()
+        mock_blob_client_class.return_value = mock_blob_client
+        mock_blob_client.file_exists.return_value = True
+        mock_blob_client.download_file.return_value = file_content
+
+        # when
+        response = client.get(f"/api/files/{filename}")
+
+        # then
+        assert response.status_code == 200
+        assert len(response.data) == len(file_content)
+
+    def test_get_file_empty_filename(self, client):
+        """Test error response when filename is empty."""
+        # when
+        response = client.get("/api/files/")
+
+        # then
+        # This should result in a 404 as the route won't match
+        assert response.status_code == 404
+
+    def test_get_file_invalid_filename_too_long(self, client):
+        """Test error response for filenames that are too long."""
+        # given
+        filename = "a" * 256  # 256 characters, exceeds 255 limit
+
+        # when
+        response = client.get(f"/api/files/{filename}")
+
+        # then
+        assert response.status_code == 400
+        assert response.json == {"error": "Filename too long"}
+
+    @patch("create_app.AzureBlobStorageClient")
+    def test_get_file_not_exists_in_storage(self, mock_blob_client_class, client):
+        """Test error response when file doesn't exist in blob storage."""
+        # given
+        filename = "nonexistent.pdf"
+
+        mock_blob_client = MagicMock()
+        mock_blob_client_class.return_value = mock_blob_client
+        mock_blob_client.file_exists.return_value = False
+
+        # when
+        response = client.get(f"/api/files/{filename}")
+
+        # then
+        assert response.status_code == 404
+        assert response.json == {"error": "File not found"}
+        mock_blob_client.file_exists.assert_called_once_with(filename)
+        mock_blob_client.download_file.assert_not_called()
+
+    @patch("create_app.AzureBlobStorageClient")
+    def test_get_file_client_authentication_error(self, mock_blob_client_class, client):
+        """Test handling of Azure ClientAuthenticationError."""
+        # given
+        filename = "test.pdf"
+
+        mock_blob_client = MagicMock()
+        mock_blob_client_class.return_value = mock_blob_client
+        mock_blob_client.file_exists.side_effect = ClientAuthenticationError("Auth failed")
+
+        # when
+        response = client.get(f"/api/files/{filename}")
+
+        # then
+        assert response.status_code == 401
+        assert response.json == {"error": "Authentication failed"}
+
+    @patch("create_app.AzureBlobStorageClient")
+    def test_get_file_resource_not_found_error(self, mock_blob_client_class, client):
+        """Test handling of Azure ResourceNotFoundError."""
+        # given
+        filename = "test.pdf"
+
+        mock_blob_client = MagicMock()
+        mock_blob_client_class.return_value = mock_blob_client
+        mock_blob_client.file_exists.side_effect = ResourceNotFoundError("Resource not found")
+
+        # when
+        response = client.get(f"/api/files/{filename}")
+
+        # then
+        assert response.status_code == 404
+        assert response.json == {"error": "File not found"}
+
+    @patch("create_app.AzureBlobStorageClient")
+    def test_get_file_service_request_error(self, mock_blob_client_class, client):
+        """Test handling of Azure ServiceRequestError."""
+        # given
+        filename = "test.pdf"
+
+        mock_blob_client = MagicMock()
+        mock_blob_client_class.return_value = mock_blob_client
+        mock_blob_client.file_exists.side_effect = ServiceRequestError("Service unavailable")
+
+        # when
+        response = client.get(f"/api/files/{filename}")
+
+        # then
+        assert response.status_code == 503
+        assert response.json == {"error": "Storage service unavailable"}
+
+    @patch("create_app.AzureBlobStorageClient")
+    def test_get_file_unexpected_exception(self, mock_blob_client_class, client):
+        """Test handling of unexpected exceptions."""
+        # given
+        filename = "test.pdf"
+
+        mock_blob_client = MagicMock()
+        mock_blob_client_class.return_value = mock_blob_client
+        mock_blob_client.file_exists.side_effect = Exception("Unexpected error")
+
+        # when
+        response = client.get(f"/api/files/{filename}")
+
+        # then
+        assert response.status_code == 500
+        assert response.json == {"error": "Internal server error"}
+
+    @patch("create_app.AzureBlobStorageClient")
+    def test_get_file_download_exception(self, mock_blob_client_class, client):
+        """Test handling of exceptions during file download."""
+        # given
+        filename = "test.pdf"
+
+        mock_blob_client = MagicMock()
+        mock_blob_client_class.return_value = mock_blob_client
+        mock_blob_client.file_exists.return_value = True
+        mock_blob_client.download_file.side_effect = Exception("Download failed")
+
+        # when
+        response = client.get(f"/api/files/{filename}")
+
+        # then
+        assert response.status_code == 500
+        assert response.json == {"error": "Internal server error"}
+
+    def test_get_file_valid_filenames(self, client):
+        """Test that valid filenames with allowed characters pass validation."""
+        # Mock the blob client to avoid actual Azure calls
+        with patch("create_app.AzureBlobStorageClient") as mock_blob_client_class:
+            mock_blob_client = MagicMock()
+            mock_blob_client_class.return_value = mock_blob_client
+            mock_blob_client.file_exists.return_value = True
+            mock_blob_client.download_file.return_value = b"test content"
+
+            valid_filenames = [
+                "document.pdf",
+                "file_name.txt",
+                "file-name.docx",
+                "file name.xlsx",
+                "test123.json",
+                "a.b",
+                "very_long_but_valid_filename_with_underscores.pdf"
+            ]
+
+            for filename in valid_filenames:
+                # when
+                response = client.get(f"/api/files/{filename}")
+
+                # then
+                assert response.status_code == 200, f"Failed for filename: {filename}"
