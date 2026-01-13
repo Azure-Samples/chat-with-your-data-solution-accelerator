@@ -55,34 +55,24 @@ try:
             "Unsupported database type. Only 'PostgreSQL' and 'CosmosDB' are allowed."
         )
 
-    # Check if there are any files
-    if not unique_files:
+    # Filter out any empty or None filenames
+    available_files = [f for f in unique_files if f]
+    if not available_files:
         st.info("No files available to explore")
         st.stop()
-
-    # Decode URL-encoded filenames for display
-    decoded_files = {urllib.parse.unquote(f) if f else f: f for f in unique_files if f}
-    decoded_filenames = list(decoded_files.keys())
-
-    if not decoded_filenames:
-        st.info("No files available to explore")
-        st.stop()
-
-    # Show decoded filename in dropdown
-    display_filename = st.selectbox("Select your file:", decoded_filenames)
-
-    # Get the original encoded filename for search
-    if display_filename and display_filename in decoded_files:
-        filename = decoded_files[display_filename]
-
-        st.write("Showing chunks for:", display_filename)
-
+    # Show decoded filename in dropdown while keeping the original value
+    display_filename = st.selectbox(
+        "Select your file:",
+        available_files,
+        format_func=lambda f: urllib.parse.unquote(f) if f else f,
+    )
+    if display_filename:
+        filename = display_filename
+        st.write("Showing chunks for:", urllib.parse.unquote(display_filename))
         results = search_handler.perform_search(filename)
         data = search_handler.process_results(results)
         df = pd.DataFrame(data, columns=("Chunk", "Content")).sort_values(by=["Chunk"])
         st.table(df)
-    else:
-        st.info("Please select a file to explore")
 
 
 except Exception:
