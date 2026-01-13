@@ -106,7 +106,6 @@ try:
             for up in uploaded_files:
                 # To read file as bytes:
                 bytes_data = up.getvalue()
-                #title = sanitize_metadata_value(up.name)
                 if st.session_state.get("filename", "") != up.name:
                     # Upload a new file
                     st.session_state["filename"] = up.name

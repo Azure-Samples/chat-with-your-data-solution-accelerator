@@ -64,7 +64,7 @@ def download_url_and_upload_to_blob(url: str):
         headers = {
             'User-Agent': 'cwyd-admin-user'
         }
-        response = requests.get(url,headers=headers)
+        response = requests.get(url, headers=headers)
         parsed_data = BeautifulSoup(response.content, "html.parser")
         with io.BytesIO(parsed_data.get_text().encode("utf-8")) as stream:
             blob_client = AzureBlobStorageClient()
