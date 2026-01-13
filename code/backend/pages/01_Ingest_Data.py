@@ -111,7 +111,7 @@ try:
                     # Upload a new file
                     st.session_state["filename"] = up.name
                     st.session_state["file_url"] = blob_client.upload_file(
-                        bytes_data, up.name, metadata={"title": urllib.parse.quote(up.name, safe="")}
+                        bytes_data, up.name
                     )
             if len(uploaded_files) > 0:
                 st.success(

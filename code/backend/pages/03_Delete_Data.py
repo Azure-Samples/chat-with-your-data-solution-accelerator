@@ -87,11 +87,7 @@ try:
                         env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION,
                     )
                     if len(files_to_delete) > 0:
-                        # files_to_delete is a comma-separated string, split it into a list
-                        files_list = [f.strip() for f in files_to_delete.split(",")]
-                        # Decode filenames for display in success message
-                        decoded_deleted = [urllib.parse.unquote(f) if f else "(No filename)" for f in files_list]
-                        st.success("Deleted files: " + ", ".join(decoded_deleted))
+                        st.success("Deleted files: " + urllib.parse.unquote(str(files_to_delete)))
                         st.rerun()
 except Exception:
     logger.error(traceback.format_exc())
