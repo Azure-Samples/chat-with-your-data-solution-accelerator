@@ -62,8 +62,11 @@ try:
         # Create selections with decoded filenames for display
         selections = {}
         for filename in files.keys():
-            decoded_filename = urllib.parse.unquote(filename)
-            selections[filename] = st.checkbox(decoded_filename, False, key=filename)
+            if filename:  # Check if filename is not None or empty
+                decoded_filename = urllib.parse.unquote(filename)
+                selections[filename] = st.checkbox(decoded_filename, False, key=filename)
+            else:
+                selections[filename] = st.checkbox("(No filename)", False, key=str(filename))
 
         selected_files = {
             filename: ids for filename, ids in files.items() if selections[filename]
@@ -84,7 +87,11 @@ try:
                         env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION,
                     )
                     if len(files_to_delete) > 0:
-                        st.success("Deleted files: " + urllib.parse.unquote(str(files_to_delete)))
+                        # files_to_delete is a comma-separated string, split it into a list
+                        files_list = [f.strip() for f in files_to_delete.split(",")]
+                        # Decode filenames for display in success message
+                        decoded_deleted = [urllib.parse.unquote(f) if f else "(No filename)" for f in files_list]
+                        st.success("Deleted files: " + ", ".join(decoded_deleted))
                         st.rerun()
 except Exception:
     logger.error(traceback.format_exc())
