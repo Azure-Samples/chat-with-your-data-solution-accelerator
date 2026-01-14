@@ -67,8 +67,10 @@ def sanitize_metadata_value(value):
 
 
 def add_url_embeddings(urls: list[str]):
-    has_valid_url = bool(list(filter(str.strip, urls)))
-    if not has_valid_url:
+    # Filter out empty lines and whitespace before processing
+    valid_urls = [url.strip() for url in urls if url.strip()]
+
+    if not valid_urls:
         st.error("Please enter at least one valid URL.")
         return False
 
@@ -76,7 +78,7 @@ def add_url_embeddings(urls: list[str]):
     if env_helper.FUNCTION_KEY is not None:
         params["code"] = env_helper.FUNCTION_KEY
         params["clientId"] = "clientKey"
-    for url in urls:
+    for url in valid_urls:
         body = {"url": url}
         backend_url = urllib.parse.urljoin(
             env_helper.BACKEND_URL, "/api/AddURLEmbeddings"

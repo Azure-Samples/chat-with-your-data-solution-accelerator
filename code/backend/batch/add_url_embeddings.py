@@ -71,7 +71,7 @@ def download_url_and_upload_to_blob(url: str):
             # Encode blob name to handle non-ASCII characters (e.g., Hebrew)
             # Encode all special characters including :/ to avoid creating virtual directories in blob storage
             encoded_blob_name = urllib.parse.quote(url, safe="")
-            blob_client.upload_file(stream, encoded_blob_name)
+            blob_client.upload_file(stream, encoded_blob_name, metadata={"title": encoded_blob_name})
         return func.HttpResponse(f"URL {url} added to knowledge base", status_code=200)
 
     except Exception:
