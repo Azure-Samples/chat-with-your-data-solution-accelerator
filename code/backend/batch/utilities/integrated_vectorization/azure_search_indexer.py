@@ -47,10 +47,6 @@ class AzureSearchIndexer:
                     target_field_name="source",
                 ),
                 FieldMapping(
-                    source_field_name="metadata_storage_name",
-                    target_field_name="title",
-                ),
-                FieldMapping(
                     source_field_name="/document/normalized_images/*/text",
                     target_field_name="text",
                 ),

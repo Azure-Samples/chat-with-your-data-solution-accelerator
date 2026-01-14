@@ -111,8 +111,10 @@ try:
                 if st.session_state.get("filename", "") != up.name:
                     # Upload a new file
                     st.session_state["filename"] = up.name
+                    # Encode filename for consistency with URL encoding (handles non-ASCII chars)
+                    encoded_filename = urllib.parse.quote(up.name, safe="")
                     st.session_state["file_url"] = blob_client.upload_file(
-                        bytes_data, up.name
+                        bytes_data, encoded_filename, metadata={"title": encoded_filename}
                     )
             if len(uploaded_files) > 0:
                 st.success(

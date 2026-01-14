@@ -67,9 +67,8 @@ try:
         format_func=lambda f: urllib.parse.unquote(f) if f else f,
     )
     if display_filename:
-        filename = display_filename
         st.write("Showing chunks for:", urllib.parse.unquote(display_filename))
-        results = search_handler.perform_search(filename)
+        results = search_handler.perform_search(display_filename)
         data = search_handler.process_results(results)
         df = pd.DataFrame(data, columns=("Chunk", "Content")).sort_values(by=["Chunk"])
         st.table(df)
