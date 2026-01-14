@@ -16,7 +16,7 @@
         "@fluentui/react-icons": "^2.0.316",
         "@fortawesome/fontawesome-svg-core": "^7.1.0",
         "@fortawesome/free-solid-svg-icons": "^7.1.0",
-        "@fortawesome/react-fontawesome": "github:fortawesome/react-fontawesome",
+        "@fortawesome/react-fontawesome": "^3.1.1",
         "lodash": "^4.17.21",
         "lodash-es": "^4.17.22",
         "microsoft-cognitiveservices-speech-sdk": "^1.47.0",
