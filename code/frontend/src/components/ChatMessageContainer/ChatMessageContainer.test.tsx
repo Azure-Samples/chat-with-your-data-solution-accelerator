@@ -19,7 +19,7 @@ jest.mock("../../components/Answer", () => ({
         <button onClick={() => props.onCitationClicked()}>Mock Citation Loading</button>        :
         <button onClick={() => props.onCitationClicked({ title: 'Test Citation' })}>Mock Citation</button>
         }
-        
+
     </div>)
 }));
 
@@ -139,6 +139,7 @@ describe("ChatMessageContainer", () => {
       expect.objectContaining({
         answer: expect.objectContaining({
           citations: ["Citation1"],
+          answer: expect.any(String)
         }),
       }),
       expect.anything()
@@ -160,6 +161,7 @@ describe("ChatMessageContainer", () => {
       expect.objectContaining({
         answer: expect.objectContaining({
           citations: [],
+          answer: expect.any(String)
         }),
       }),
       expect.anything()

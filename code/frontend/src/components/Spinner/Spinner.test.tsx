@@ -30,7 +30,7 @@ describe('SpinnerComponent', () => {
     render(<SpinnerComponent loading={true} label={label} />);
 
     // Spinner should be in the document with the provided label
-    expect(Spinner).toHaveBeenCalledWith(
+    expect(Spinner).toHaveBeenLastCalledWith(
       expect.objectContaining({ label }),
       expect.anything()
     );
@@ -40,7 +40,7 @@ describe('SpinnerComponent', () => {
     render(<SpinnerComponent loading={true} />);
 
     // Spinner should be called without a label
-    expect(Spinner).toHaveBeenCalledWith(
+    expect(Spinner).toHaveBeenLastCalledWith(
       expect.objectContaining({ label: undefined }),
       expect.anything()
     );
@@ -50,7 +50,7 @@ describe('SpinnerComponent', () => {
     render(<SpinnerComponent loading={true} />);
 
     // Spinner should be called with custom styles
-    expect(Spinner).toHaveBeenCalledWith(
+    expect(Spinner).toHaveBeenLastCalledWith(
       expect.objectContaining({
         styles: expect.objectContaining({
           label: {
