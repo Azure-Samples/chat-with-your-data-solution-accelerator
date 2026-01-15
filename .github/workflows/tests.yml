@@ -1,6 +1,7 @@
 name: Test Workflow with Coverage
 
 on:
+  workflow_dispatch: 
   push:
     branches: [main, dev, demo]
     paths:
