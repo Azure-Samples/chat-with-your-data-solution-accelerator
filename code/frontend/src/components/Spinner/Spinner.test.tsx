@@ -9,6 +9,10 @@ jest.mock('@fluentui/react', () => ({
 }));
 
 describe('SpinnerComponent', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   test('does not render the spinner when loading is false', () => {
     render(<SpinnerComponent loading={false} />);
 

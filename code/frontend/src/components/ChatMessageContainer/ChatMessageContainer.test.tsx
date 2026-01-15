@@ -139,7 +139,7 @@ describe("ChatMessageContainer", () => {
       expect.objectContaining({
         answer: expect.objectContaining({
           citations: ["Citation1"],
-          answer: expect.any(String)
+          answer: "Assistant's response"
         }),
       }),
       expect.anything()
@@ -161,7 +161,7 @@ describe("ChatMessageContainer", () => {
       expect.objectContaining({
         answer: expect.objectContaining({
           citations: [],
-          answer: expect.any(String)
+          answer: "Assistant's response"
         }),
       }),
       expect.anything()
