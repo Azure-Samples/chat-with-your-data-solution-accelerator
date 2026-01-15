@@ -434,7 +434,7 @@ Now that your deployment is complete and tested, explore these resources to enha
 - [Teams Extension](./teams_extension.md) - Integrating with Microsoft Teams
 
 ## Need Help?
-
+- 🛠️  **Troubleshooting: ** Refer to the [TroubleShootingSteps](TroubleShootingSteps.md) document
 - 💬 **Support:** Review [Support Guidelines](../SUPPORT.md)
 - 🔧 **Development:** See [Contributing Guide](../CONTRIBUTING.md)
 
