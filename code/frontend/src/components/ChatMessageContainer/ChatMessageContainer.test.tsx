@@ -141,8 +141,12 @@ describe("ChatMessageContainer", () => {
           citations: ["Citation1"],
           answer: "Assistant's response"
         }),
+        index: 1,
+        isActive: false,
+        onCitationClicked: expect.any(Function),
+        onSpeak: expect.any(Function)
       }),
-      expect.anything()
+      undefined
     );
   });
 
@@ -163,8 +167,12 @@ describe("ChatMessageContainer", () => {
           citations: [],
           answer: "Assistant's response"
         }),
+        index: 1,
+        isActive: false,
+        onCitationClicked: expect.any(Function),
+        onSpeak: expect.any(Function)
       }),
-      expect.anything()
+      undefined
     );
   });
 

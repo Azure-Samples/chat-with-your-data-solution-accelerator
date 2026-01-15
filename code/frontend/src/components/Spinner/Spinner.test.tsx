@@ -35,8 +35,14 @@ describe('SpinnerComponent', () => {
 
     // Spinner should be in the document with the provided label
     expect(Spinner).toHaveBeenLastCalledWith(
-      expect.objectContaining({ label }),
-      expect.anything()
+      expect.objectContaining({
+        label,
+        size: 3,
+        styles: expect.objectContaining({
+          label: expect.any(Object)
+        })
+      }),
+      undefined
     );
   });
 
@@ -45,8 +51,14 @@ describe('SpinnerComponent', () => {
 
     // Spinner should be called without a label
     expect(Spinner).toHaveBeenLastCalledWith(
-      expect.objectContaining({ label: undefined }),
-      expect.anything()
+      expect.objectContaining({
+        label: undefined,
+        size: 3,
+        styles: expect.objectContaining({
+          label: expect.any(Object)
+        })
+      }),
+      undefined
     );
   });
 
@@ -56,6 +68,8 @@ describe('SpinnerComponent', () => {
     // Spinner should be called with custom styles
     expect(Spinner).toHaveBeenLastCalledWith(
       expect.objectContaining({
+        label: undefined,
+        size: 3,
         styles: expect.objectContaining({
           label: {
             fontSize: '20px',
@@ -64,7 +78,7 @@ describe('SpinnerComponent', () => {
           },
         }),
       }),
-      expect.anything()
+      undefined
     );
   });
 });
