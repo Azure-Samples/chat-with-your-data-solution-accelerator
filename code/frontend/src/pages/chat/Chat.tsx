@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Stack } from "@fluentui/react";
+import { Stack, TooltipHost } from "@fluentui/react";
 import { BroomRegular, SquareRegular } from "@fluentui/react-icons";
+import { useId, useConst } from '@fluentui/react-hooks'
 import {
   SpeechRecognizer,
   ResultReason,
@@ -522,7 +523,11 @@ const Chat = () => {
       return response;
     });
   };
-
+  const buttonId = useId('newChatButton');
+  const calloutProps = useConst({
+    gapSpace: 0,
+    target: `#${buttonId}`,
+  });
   const loadingMessageBlock = () => {
     return (
       <React.Fragment key="generating-answer">
@@ -611,6 +616,10 @@ const Chat = () => {
                   </span>
                 </Stack>
               )}
+
+             <TooltipHost content="Start new chat"
+                          calloutProps={calloutProps}
+             >
               <BroomRegular
                 className={`${styles.clearChatBroom} ${styles.mobileclearChatBroom}`}
                 style={{
@@ -627,7 +636,9 @@ const Chat = () => {
                 aria-label="Clear session"
                 role="button"
                 tabIndex={0}
+                id={buttonId}
               />
+              </TooltipHost>
               <QuestionInput
                 clearOnSend
                 placeholder="Type a new question..."
