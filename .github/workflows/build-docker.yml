@@ -31,15 +31,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v6
 
-    # Login for 'main' branch to both registries
-    - name: Docker Login to fruoccopublic (Main)
-      if: ${{ inputs.push == true && github.ref_name == 'main' }}
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ inputs.old_registry }}
-        username: ${{ inputs.old_username }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-
     - name: Docker Login to cwydcontainerreg (Main)
       if: ${{ inputs.push == true && github.ref_name == 'main' }}
       uses: docker/login-action@v3

@@ -24,12 +24,10 @@ jobs:
       - name: Get changed markdown files (PR only)
         id: changed-markdown-files
         if: github.event_name == 'pull_request'
-        run: |
-          git fetch origin ${{ github.base_ref }}
-          files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.md$' || true)
-          echo "md_files<<EOF" >> $GITHUB_OUTPUT
-          echo "$files" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+        uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46
+        with:
+          files: |
+            **/*.md
       - name: Check Broken Links in Added/Modified Files (PR)
         if: github.event_name == 'pull_request' && steps.changed-files.outputs.md_files != ''
         uses: lycheeverse/lychee-action@v2.7.0
@@ -45,7 +43,7 @@ jobs:
       - name: Check Broken Links in All Markdown Files in Entire Repo (Manual Trigger)
         id: lychee-check-manual
         if: github.event_name == 'workflow_dispatch'
-        uses: lycheeverse/lychee-action@v2.6.1
+        uses: lycheeverse/lychee-action@v2.7.0
         with:
           args: >
             --verbose --exclude-mail --no-progress --exclude ^https?://
