@@ -28,8 +28,10 @@ jobs:
         with:
           files: |
             **/*.md
-      - name: Check Broken Links in Added/Modified Files (PR)
-        if: github.event_name == 'pull_request' && steps.changed-files.outputs.md_files != ''
+      # For PR: Check broken links only in changed files
+      - name: Check Broken Links in Changed Markdown Files
+        id: lychee-check-pr
+        if: github.event_name == 'pull_request' && steps.changed-markdown-files.outputs.any_changed == 'true'
         uses: lycheeverse/lychee-action@v2.7.0
         with:
           args: >
