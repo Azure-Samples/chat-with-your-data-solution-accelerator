@@ -1,6 +1,4 @@
 """Unit tests for the combine_pages_chunknos Azure Function."""
-
-import sys
 import json
 from unittest.mock import MagicMock
 
@@ -20,16 +18,6 @@ class MockBlueprint:
         def decorator(func):
             return func
         return decorator
-
-
-# Mock azure.functions before importing the module under test
-mock_func = MagicMock()
-mock_func.HttpRequest = MagicMock
-mock_func.HttpResponse = MockHttpResponse
-mock_func.Blueprint = MockBlueprint
-mock_func.AuthLevel = MagicMock()
-mock_func.AuthLevel.ANONYMOUS = 0
-sys.modules['azure.functions'] = mock_func
 
 
 class TestCombinePagesAndChunkNos:
