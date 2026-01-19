@@ -101,7 +101,7 @@ def test_add_url_embeddings_integrated_vectorization(
     # then
     assert response.status_code == 200
     mock_blob_storage_client_instance.upload_file.assert_called_once_with(
-        ANY, url, metadata={"title": url}
+        ANY, url
     )
 
 
