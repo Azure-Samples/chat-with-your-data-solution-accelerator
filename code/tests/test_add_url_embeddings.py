@@ -1,6 +1,5 @@
 import sys
 import os
-import urllib.parse
 from unittest.mock import ANY, MagicMock, patch
 import azure.functions as func
 
@@ -10,11 +9,8 @@ sys.path.append(os.path.join(os.path.dirname(sys.path[0]), "backend", "batch"))
 from backend.batch.add_url_embeddings import add_url_embeddings  # noqa: E402
 
 
-@patch("backend.batch.add_url_embeddings.EnvHelper")
 @patch("backend.batch.add_url_embeddings.EmbedderFactory")
-def test_add_url_embeddings(
-    mock_embedder_factory: MagicMock, mock_env_helper: MagicMock
-):
+def test_add_url_embeddings(mock_embedder_factory: MagicMock):
     # given
     fake_request = func.HttpRequest(
         method="POST",
@@ -22,8 +18,6 @@ def test_add_url_embeddings(
         body=b'{"url": "https://example.com"}',
         headers={"Content-Type": "application/json"},
     )
-    mock_env_helper_instance = mock_env_helper.return_value
-    mock_env_helper_instance.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = False
     mock_embedder_instance = mock_embedder_factory.create.return_value
 
     # when
@@ -52,10 +46,9 @@ def test_add_url_embeddings_returns_400_when_url_not_set():
     assert response.status_code == 400
 
 
-@patch("backend.batch.add_url_embeddings.EnvHelper")
 @patch("backend.batch.add_url_embeddings.EmbedderFactory")
 def test_add_url_embeddings_returns_500_when_exception_occurs(
-    mock_embedder_factory: MagicMock, mock_env_helper: MagicMock
+    mock_embedder_factory: MagicMock,
 ):
     # given
     fake_request = func.HttpRequest(
@@ -64,8 +57,6 @@ def test_add_url_embeddings_returns_500_when_exception_occurs(
         body=b'{"url": "https://example.com"}',
         headers={"Content-Type": "application/json"},
     )
-    mock_env_helper_instance = mock_env_helper.return_value
-    mock_env_helper_instance.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION = False
     mock_embedder_instance = mock_embedder_factory.create.return_value
     mock_embedder_instance.embed_file.side_effect = Exception("Test exception")
 
@@ -109,9 +100,8 @@ def test_add_url_embeddings_integrated_vectorization(
 
     # then
     assert response.status_code == 200
-    encoded_url = urllib.parse.quote(url, safe="")
     mock_blob_storage_client_instance.upload_file.assert_called_once_with(
-        ANY, encoded_url, metadata={"title": encoded_url}
+        ANY, url, metadata={"title": url}
     )
 
 

@@ -3,7 +3,6 @@ import os
 import traceback
 import sys
 import logging
-import urllib.parse
 from batch.utilities.helpers.env_helper import EnvHelper
 from batch.utilities.search.search import Search
 from batch.utilities.helpers.config.database_type import DatabaseType
@@ -59,12 +58,10 @@ try:
 
     files = search_handler.output_results(results)
     with st.form("delete_form", clear_on_submit=True, border=False):
-        # Create selections with decoded filenames for display
-        selections = {}
-        for filename in files.keys():
-            decoded_filename = urllib.parse.unquote(filename)
-            selections[filename] = st.checkbox(decoded_filename, False, key=filename)
-
+        selections = {
+            filename: st.checkbox(filename, False, key=filename)
+            for filename in files.keys()
+        }
         selected_files = {
             filename: ids for filename, ids in files.items() if selections[filename]
         }
@@ -84,14 +81,7 @@ try:
                         env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION,
                     )
                     if len(files_to_delete) > 0:
-                        # Decode individual filenames from the comma-separated string
-                        files_str = str(files_to_delete)
-                        decoded_files = ", ".join(
-                            urllib.parse.unquote(part.strip())
-                            for part in files_str.split(",")
-                            if part.strip()
-                        )
-                        st.success(f"Deleted files: {decoded_files}")
+                        st.success("Deleted files: " + str(files_to_delete))
                         st.rerun()
 except Exception:
     logger.error(traceback.format_exc())

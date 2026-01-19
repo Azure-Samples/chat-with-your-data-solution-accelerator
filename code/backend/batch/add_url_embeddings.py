@@ -2,7 +2,6 @@ import io
 import os
 import logging
 import traceback
-import urllib.parse
 import azure.functions as func
 import requests
 from bs4 import BeautifulSoup
@@ -68,10 +67,7 @@ def download_url_and_upload_to_blob(url: str):
         parsed_data = BeautifulSoup(response.content, "html.parser")
         with io.BytesIO(parsed_data.get_text().encode("utf-8")) as stream:
             blob_client = AzureBlobStorageClient()
-            # Encode blob name to handle non-ASCII characters (e.g., Hebrew)
-            # Encode all special characters including :/ to avoid creating virtual directories in blob storage
-            encoded_blob_name = urllib.parse.quote(url, safe="")
-            blob_client.upload_file(stream, encoded_blob_name, metadata={"title": encoded_blob_name})
+            blob_client.upload_file(stream, url)
         return func.HttpResponse(f"URL {url} added to knowledge base", status_code=200)
 
     except Exception:
