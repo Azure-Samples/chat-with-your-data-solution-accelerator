@@ -89,7 +89,7 @@ class TestCreateQueueClient:
         call_kwargs = mock_queue_client_class.call_args[1]
         assert call_kwargs['queue_name'] == "test-queue"
         assert call_kwargs['credential'] == mock_credential
-        assert "teststorageaccount.queue.core.windows.net" in call_kwargs['account_url']
+        assert call_kwargs['account_url'] == "https://teststorageaccount.queue.core.windows.net/"
 
 
 class TestAzureBlobStorageClientInitialization:
