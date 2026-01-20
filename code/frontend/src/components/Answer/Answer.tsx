@@ -150,11 +150,14 @@ export const Answer = ({
     let citationFilename = "";
 
     if (citation.filepath && citation.chunk_id != null) {
-      if (truncate && citation.filepath.length > filePathTruncationLimit) {
-        const citationLength = citation.filepath.length;
-        citationFilename = `${citation.filepath.substring(0, 20)}...${citation.filepath.substring(citationLength - 20)} - Part ${citation.chunk_id}`;
+      // Decode the URL-encoded filepath from backend
+      const decodedFilepath = decodeURIComponent(citation.filepath);
+
+      if (truncate && decodedFilepath.length > filePathTruncationLimit) {
+        const citationLength = decodedFilepath.length;
+        citationFilename = `${decodedFilepath.substring(0, 20)}...${decodedFilepath.substring(citationLength - 20)} - Part ${citation.chunk_id}`;
       } else {
-        citationFilename = `${citation.filepath} - Part ${citation.chunk_id}`;
+        citationFilename = `${decodedFilepath} - Part ${citation.chunk_id}`;
       }
     } else {
       citationFilename = `Citation ${index}`;

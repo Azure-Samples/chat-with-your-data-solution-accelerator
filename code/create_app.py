@@ -9,7 +9,7 @@ import mimetypes
 from os import path
 import sys
 import re
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 import requests
 from openai import AzureOpenAI, Stream, APIStatusError
@@ -420,7 +420,7 @@ def create_app():
     def health():
         return "OK"
 
-    @app.route("/api/files/<filename>", methods=["GET"])
+    @app.route("/api/files/<path:filename>", methods=["GET"])
     def get_file(filename):
         """
         Download a file from the 'docs' container in Azure Blob Storage using Managed Identity.
@@ -431,9 +431,22 @@ def create_app():
         Returns:
             Flask Response: The file content with appropriate headers, or error response
         """
-        logger.info("File download request for: %s", filename)
+        logger.info("File download request (raw): %s", filename)
+        logger.info("File download request (repr): %r", filename)
 
         try:
+            # URL decode the filename (Flask's path converter doesn't decode)
+            try:
+                decoded_filename = unquote(filename)
+                logger.info("Decoded filename: %s", decoded_filename)
+                logger.info("Decoded filename (repr): %r", decoded_filename)
+            except Exception as decode_error:
+                logger.error("Failed to decode filename: %s", decode_error)
+                return jsonify({"error": "Invalid filename encoding"}), 400
+
+            # Use decoded filename for all subsequent operations
+            filename = decoded_filename
+
             # Enhanced input validation - prevent path traversal and unauthorized access
             if not filename:
                 logger.warning("Empty filename provided")
@@ -449,8 +462,9 @@ def create_app():
                 logger.warning("Filename too long: %s", filename)
                 return jsonify({"error": "Filename too long"}), 400
 
-            # Only allow safe characters (alphanumeric, dots, dashes, underscores, spaces)
-            if not re.match(r'^[a-zA-Z0-9._\-\s]+$', filename):
+            # Allow Unicode characters but block path separators and control characters
+            # This allows multilingual filenames (Japanese, Hebrew, Arabic, etc.)
+            if not re.match(r'^[^\\/\x00-\x1f\x7f]+$', filename):
                 logger.warning("Filename contains invalid characters: %s", filename)
                 return jsonify({"error": "Invalid filename characters"}), 400
 
@@ -478,12 +492,14 @@ def create_app():
                 logger.info("Large file detected: %s, size: %d bytes", filename, file_size)
 
             # Create response with comprehensive headers
+            # Use RFC 5987 encoding for Unicode filenames in Content-Disposition
+            encoded_filename = quote(filename)
             response = Response(
                 file_data,
                 status=200,
                 mimetype=content_type,
                 headers={
-                    'Content-Disposition': f'inline; filename="{filename}"',
+                    'Content-Disposition': f"inline; filename*=UTF-8''{encoded_filename}",
                     'Content-Length': str(file_size),
                     'Cache-Control': 'public, max-age=3600',
                     'X-Content-Type-Options': 'nosniff',

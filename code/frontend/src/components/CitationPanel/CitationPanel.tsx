@@ -21,11 +21,36 @@ function rewriteCitationUrl(markdownText: string) {
 
         if (parsed.hostname.includes(blobStorageHost)) {
           // Extract the filename from the path
-          const filename = parsed.pathname.split('/').pop();
-          return `[${title}](/api/files/${filename})`;
+          let filename = parsed.pathname.split('/').pop() || '';
+
+          // Decode repeatedly until fully decoded (handles double/triple encoding)
+          let previousFilename;
+          do {
+            previousFilename = filename;
+            try {
+              filename = decodeURIComponent(filename);
+            } catch {
+              break;
+            }
+          } while (filename !== previousFilename && /%[0-9A-Fa-f]{2}/.test(filename));
+
+          // Re-encode once for API
+          const encodedFilename = encodeURIComponent(filename);
+          return `[${title}](/api/files/${encodedFilename})`;
         } else {
-          // Return the full external URL
-          return `[${title}](${parsed.href})`;
+          // Decode external URL (handles double encoding)
+          let decodedHref = parsed.href;
+          let previousHref;
+          do {
+            previousHref = decodedHref;
+            try {
+              decodedHref = decodeURIComponent(decodedHref);
+            } catch {
+              break;
+            }
+          } while (decodedHref !== previousHref && /%[0-9A-Fa-f]{2}/.test(decodedHref));
+
+          return `[${title}](${decodedHref})`;
         }
       } catch {
         return match; // fallback if URL parsing fails
