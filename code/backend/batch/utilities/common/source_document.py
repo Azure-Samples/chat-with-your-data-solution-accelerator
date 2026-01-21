@@ -104,7 +104,14 @@ class SourceDocument:
         return filename
 
     def get_markdown_url(self):
-        url = quote(self.source, safe=":/")
+        # Check if source is already a full URL (already encoded by Azure SDK)
+        if self.source.startswith(("http://", "https://")):
+            # Already encoded - don't re-encode
+            url = self.source
+        else:
+            # Plain filename or path - encode it
+            url = quote(self.source, safe=":/")
+
         if "_SAS_TOKEN_PLACEHOLDER_" in url:
             blob_client = AzureBlobStorageClient()
             container_sas = blob_client.get_container_sas()

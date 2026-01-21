@@ -462,9 +462,9 @@ def create_app():
                 logger.warning("Filename too long: %s", filename)
                 return jsonify({"error": "Filename too long"}), 400
 
-            # Allow Unicode characters but block path separators and control characters
+            # Block control characters (path separators already checked above)
             # This allows multilingual filenames (Japanese, Hebrew, Arabic, etc.)
-            if not re.match(r'^[^\\/\x00-\x1f\x7f]+$', filename):
+            if not re.match(r'^[^\x00-\x1f\x7f]+$', filename):
                 logger.warning("Filename contains invalid characters: %s", filename)
                 return jsonify({"error": "Invalid filename characters"}), 400
 

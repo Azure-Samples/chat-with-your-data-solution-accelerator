@@ -150,8 +150,18 @@ export const Answer = ({
     let citationFilename = "";
 
     if (citation.filepath && citation.chunk_id != null) {
-      // Decode the URL-encoded filepath from backend
-      const decodedFilepath = decodeURIComponent(citation.filepath);
+      // Decode the URL-encoded filepath from backend, falling back to the original on failure
+      let decodedFilepath = citation.filepath;
+      try {
+        decodedFilepath = decodeURIComponent(citation.filepath);
+      } catch {
+        decodedFilepath = citation.filepath;
+      }
+
+      // Strip container prefix if present (e.g., "documents/filename.pdf" -> "filename.pdf")
+      if (decodedFilepath.includes('/')) {
+        decodedFilepath = decodedFilepath.split('/').pop() || decodedFilepath;
+      }
 
       if (truncate && decodedFilepath.length > filePathTruncationLimit) {
         const citationLength = decodedFilepath.length;
