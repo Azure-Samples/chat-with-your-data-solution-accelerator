@@ -21,11 +21,8 @@ function rewriteCitationUrl(markdownText: string) {
 
         if (parsed.hostname.includes(blobStorageHost)) {
           // Extract the filename from the path
-          let filename = parsed.pathname.split('/').pop() || '';
-          filename = decodeURIComponent(filename);
-          // Re-encode once for API
-          const encodedFilename = encodeURIComponent(filename);
-          return `[${title}](/api/files/${encodedFilename})`;
+          const filename = parsed.pathname.split('/').pop();
+          return `[${title}](/api/files/${filename})`;
         } else {
           // Return external URL as-is (already properly encoded)
           const decodedhref=decodeURIComponent(parsed.href);
