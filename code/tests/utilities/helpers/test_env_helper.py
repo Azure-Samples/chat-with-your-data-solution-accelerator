@@ -182,7 +182,7 @@ def test_database_type_if_set_as_postgresql(monkeypatch: MonkeyPatch):
 def test_use_advanced_image_processing_postgresql(monkeypatch: MonkeyPatch):
     # given
     monkeypatch.setenv("DATABASE_TYPE", "PostgreSQL")
-    monkeypatch.setenv("USE_ADVANCED_IMAGE_PROCESSING", False)
+    monkeypatch.setenv("USE_ADVANCED_IMAGE_PROCESSING", "False")
 
     # when
     actual_use_advanced_image_processing = EnvHelper().USE_ADVANCED_IMAGE_PROCESSING
@@ -194,7 +194,7 @@ def test_use_advanced_image_processing_postgresql(monkeypatch: MonkeyPatch):
 def test_use_integrated_vectorization_postgresql(monkeypatch: MonkeyPatch):
     # given
     monkeypatch.setenv("DATABASE_TYPE", "PostgreSQL")
-    monkeypatch.setenv("AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION", False)
+    monkeypatch.setenv("AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION", "False")
 
     # when
     actual_use_integrated_vectorization = (
