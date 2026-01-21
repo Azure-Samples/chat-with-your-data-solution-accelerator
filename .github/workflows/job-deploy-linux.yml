@@ -210,7 +210,8 @@ jobs:
         if: inputs.DATABASE_TYPE == 'CosmosDB'
         run: |
           export AZURE_SEARCH_SERVICE=$(azd env get-value AZURE_SEARCH_SERVICE)
-          export AZURE_SEARCH_KEY=$(azd env get-value AZURE_SEARCH_KEY)
+          # Get Azure Search admin key from Azure
+          export AZURE_SEARCH_KEY=$(az search admin-key show --service-name $AZURE_SEARCH_SERVICE --resource-group ${{ inputs.RESOURCE_GROUP_NAME }} --query primaryKey -o tsv)
           # Generate index name based on environment
           export AZURE_SEARCH_INDEX="index-${{ inputs.ENV_NAME }}"
           echo "AZURE_SEARCH_INDEX=$AZURE_SEARCH_INDEX" >> $GITHUB_ENV
@@ -251,7 +252,8 @@ jobs:
         if: inputs.DATABASE_TYPE == 'CosmosDB'
         run: |
           export AZURE_SEARCH_SERVICE=$(azd env get-value AZURE_SEARCH_SERVICE)
-          export AZURE_SEARCH_KEY=$(azd env get-value AZURE_SEARCH_KEY)
+          # Get Azure Search admin key from Azure
+          export AZURE_SEARCH_KEY=$(az search admin-key show --service-name $AZURE_SEARCH_SERVICE --resource-group ${{ inputs.RESOURCE_GROUP_NAME }} --query primaryKey -o tsv)
           # Use the index name from previous step
           export AZURE_SEARCH_INDEX="${{ env.AZURE_SEARCH_INDEX }}"
           python - <<EOF
