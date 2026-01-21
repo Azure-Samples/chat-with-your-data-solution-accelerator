@@ -66,17 +66,8 @@ jobs:
             echo "🔧 Configuring Non-WAF deployment - using default main.parameters.json..."
           fi
 
-      - name: Setup Azure CLI
-        shell: bash
-        run: |
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-
-      - name: Setup Azure Developer CLI (Linux)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          curl -fsSL https://aka.ms/install-azd.sh | sudo bash
-          azd version
+      - name: Install azd
+        uses: Azure/setup-azd@v2
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -170,6 +161,7 @@ jobs:
           pip install psycopg2-binary python-dotenv azure-identity
 
       - name: Populate PostgreSQL Database
+        if: inputs.DATABASE_TYPE == 'PostgreSQL'
         run: |
           export PG_HOST_DESTINATION=$(azd env get-value AZURE_POSTGRESQL_HOST_NAME)
           python - <<EOF
@@ -213,6 +205,90 @@ jobs:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: Create Azure Search Index (CosmosDB)
+        if: inputs.DATABASE_TYPE == 'CosmosDB'
+        run: |
+          export AZURE_SEARCH_SERVICE=$(azd env get-value AZURE_SEARCH_SERVICE)
+          export AZURE_SEARCH_KEY=$(azd env get-value AZURE_SEARCH_KEY)
+          # Generate index name based on environment
+          export AZURE_SEARCH_INDEX="index-${{ inputs.ENV_NAME }}"
+          echo "AZURE_SEARCH_INDEX=$AZURE_SEARCH_INDEX" >> $GITHUB_ENV
+          python - <<EOF
+          import requests
+          import json
+          import os
+
+          SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")
+          INDEX_NAME = os.environ.get("AZURE_SEARCH_INDEX")
+          API_KEY = os.environ.get("AZURE_SEARCH_KEY")
+
+          # Create Index API endpoint
+          ENDPOINT = f"https://{SEARCH_SERVICE}.search.windows.net/indexes/{INDEX_NAME}?api-version=2023-07-01-Preview"
+          HEADERS = {
+              "Content-Type": "application/json",
+              "api-key": API_KEY
+          }
+
+          # Load index schema from file
+          with open("data/azure_search_index_schema.json", "r", encoding="utf-8") as f:
+              index_schema = json.load(f)
+
+          # Update index name to match environment
+          index_schema["name"] = INDEX_NAME
+
+          # Create or update the index using PUT
+          response = requests.put(ENDPOINT, headers=HEADERS, json=index_schema)
+
+          if response.status_code in [200, 201]:
+              print(f"✅ Index '{INDEX_NAME}' created/updated successfully.")
+          else:
+              print(f"❌ Failed to create index: {response.status_code}, {response.text}")
+              exit(1)
+          EOF
+
+      - name: Populate Azure Search Index (CosmosDB)
+        if: inputs.DATABASE_TYPE == 'CosmosDB'
+        run: |
+          export AZURE_SEARCH_SERVICE=$(azd env get-value AZURE_SEARCH_SERVICE)
+          export AZURE_SEARCH_KEY=$(azd env get-value AZURE_SEARCH_KEY)
+          # Use the index name from previous step
+          export AZURE_SEARCH_INDEX="${{ env.AZURE_SEARCH_INDEX }}"
+          python - <<EOF
+          import requests
+          import json
+          import os
+
+          # Azure Cognitive Search details from environment
+          SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")
+          INDEX_NAME = os.environ.get("AZURE_SEARCH_INDEX")
+          API_KEY = os.environ.get("AZURE_SEARCH_KEY")
+
+          # Search API endpoint
+          ENDPOINT = f"https://{SEARCH_SERVICE}.search.windows.net/indexes/{INDEX_NAME}/docs/index?api-version=2023-07-01-Preview"
+          HEADERS = {
+              "Content-Type": "application/json",
+              "api-key": API_KEY
+          }
+
+          # Load exported data
+          with open("data/azure_search_data.json", "r", encoding="utf-8") as f:
+              documents = json.load(f)
+
+          # Format for Azure Search bulk upload
+          payload = {
+              "value": [{"@search.action": "upload", **doc} for doc in documents]
+          }
+
+          # Send data to Azure Search
+          response = requests.post(ENDPOINT, headers=HEADERS, json=payload)
+
+          if response.status_code == 200:
+              print("✅ Import successful! Data uploaded to Azure Search.")
+          else:
+              print(f"❌ Failed to import data: {response.status_code}, {response.text}")
+              exit(1)
+          EOF
 
       - name: Wait for 20 minutes for propagation
         run: sleep 1200

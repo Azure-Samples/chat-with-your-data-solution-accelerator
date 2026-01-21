@@ -51,14 +51,6 @@ jobs:
       ENV_NAME: ${{ inputs.ENV_NAME }}
       IMAGE_TAG: ${{ inputs.IMAGE_TAG }}
     steps:
-      - name: Setup Azure CLI
-        shell: bash
-        run: |
-          if [[ "${{ runner.os }}" == "Linux" ]]; then
-            curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-          fi
-          az --version
-
       - name: Login to Azure
         shell: bash
         run: |
