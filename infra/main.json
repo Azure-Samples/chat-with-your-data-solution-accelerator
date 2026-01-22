@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "4759638568294871311"
+      "templateHash": "5585595615748620322"
     }
   },
   "parameters": {
@@ -525,7 +525,7 @@
     },
     "enableMonitoring": {
       "type": "bool",
-      "defaultValue": true,
+      "defaultValue": false,
       "metadata": {
         "description": "Optional. Enable monitoring applicable resources, aligned with the Well Architected Framework recommendations. This setting enables Application Insights and Log Analytics and configures all the resources applicable resources to send logs. Defaults to false."
       }
@@ -728,7 +728,7 @@
       "apiVersion": "2025-04-01",
       "name": "default",
       "properties": {
-        "tags": "[shallowMerge(createArray(resourceGroup().tags, variables('allTags'), createObject('TemplateName', 'CWYD', 'CreatedBy', parameters('createdBy'), 'SecurityControl', 'Ignore')))]"
+        "tags": "[shallowMerge(createArray(resourceGroup().tags, variables('allTags'), createObject('TemplateName', 'CWYD', 'CreatedBy', parameters('createdBy'))))]"
       }
     },
     "avmTelemetry": {
@@ -38381,7 +38381,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "12782603898039684691"
+              "templateHash": "976775273218650526"
             }
           },
           "parameters": {
@@ -38570,7 +38570,7 @@
               "location": "[parameters('location')]",
               "properties": {
                 "azPowerShellVersion": "11.0",
-                "scriptContent": "start-sleep -Seconds 600",
+                "scriptContent": "start-sleep -Seconds 300",
                 "cleanupPreference": "Always",
                 "retentionInterval": "PT1H"
               },
@@ -55167,9 +55167,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "managedIdentityModule",
         "virtualNetwork"
       ]
