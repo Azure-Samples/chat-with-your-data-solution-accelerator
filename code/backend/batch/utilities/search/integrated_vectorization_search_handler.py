@@ -58,12 +58,11 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
         files = {}
         for result in results:
             id = result["chunk_id"]
-            filename = result.get("title", "")
-            if filename:
-                if filename in files:
-                    files[filename].append(id)
-                else:
-                    files[filename] = [id]
+            filename = result["title"]
+            if filename in files:
+                files[filename].append(id)
+            else:
+                files[filename] = [id]
         return files
 
     def search_by_blob_url(self, blob_url: str):

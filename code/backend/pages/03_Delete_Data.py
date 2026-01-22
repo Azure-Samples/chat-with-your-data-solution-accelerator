@@ -88,10 +88,7 @@ try:
                         env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION,
                     )
                     if len(files_to_delete) > 0:
-                        # Format deleted files with container path for display
-                        # Use original selected_files keys instead of parsing the returned string
-                        deleted_list = [f"/{container_name}/{fname}" for fname in selected_files.keys()]
-                        st.success("Deleted files: " + ", ".join(deleted_list))
+                        st.success("Deleted files: " + str(files_to_delete))
                         st.rerun()
 except Exception:
     logger.error(traceback.format_exc())
