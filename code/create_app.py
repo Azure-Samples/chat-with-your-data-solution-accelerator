@@ -453,7 +453,9 @@ def create_app():
                 return jsonify({"error": "Filename is required"}), 400
 
             # Prevent path traversal attacks
-            if '..' in filename or '/' in filename or '\\' in filename:
+            # Allow URLs (starting with http:// or https://) but block path separators in regular filenames
+            is_url = filename.startswith('http://') or filename.startswith('https://')
+            if '..' in filename or (not is_url and ('/' in filename or '\\' in filename)):
                 logger.warning("Invalid filename with path traversal attempt: %s", filename)
                 return jsonify({"error": "Invalid filename"}), 400
 

@@ -20,9 +20,10 @@ function rewriteCitationUrl(markdownText: string) {
         const blobStorageHost = 'blob.core.windows.net';
 
         if (parsed.hostname.includes(blobStorageHost)) {
-          // Extract the filename from the path
+          // Extract and decode the filename from the path to avoid double-encoding
           const filename = parsed.pathname.split('/').pop();
-          return `[${title}](/api/files/${filename})`;
+          const decodedFilename = decodeURIComponent(filename || '');
+          return `[${title}](/api/files/${encodeURIComponent(decodedFilename)})`;
         } else {
           // Return external URL as-is (already properly encoded)
           const decodedhref=decodeURIComponent(parsed.href);
