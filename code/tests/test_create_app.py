@@ -10,7 +10,7 @@ from openai import RateLimitError, BadRequestError, InternalServerError
 import pytest
 from flask.testing import FlaskClient
 from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
-from create_app import create_app
+from create_app import create_app, get_markdown_url, get_citations
 
 AZURE_SPEECH_KEY = "mock-speech-key"
 AZURE_SPEECH_SERVICE_REGION = "mock-speech-service-region"
@@ -1150,3 +1150,204 @@ class TestGetFile:
 
                 # then
                 assert response.status_code == 200, f"Failed for filename: {filename}"
+
+
+class TestGetMarkdownUrl:
+    """Tests for get_markdown_url utility function."""
+
+    def test_formats_basic_markdown_link(self):
+        """Test creates markdown link with title and URL."""
+        result = get_markdown_url("https://example.com/doc.pdf", "My Document", "sas123")
+
+        assert result == "[My Document](https://example.com/doc.pdf)"
+
+    def test_replaces_sas_token_placeholder(self):
+        """Test replaces SAS token placeholder with actual token."""
+        result = get_markdown_url(
+            "https://example.com/file_SAS_TOKEN_PLACEHOLDER_",
+            "Document",
+            "?sv=2021&sig=abc123"
+        )
+
+        assert result == "[Document](https://example.com/file?sv=2021&sig=abc123)"
+
+    def test_url_encodes_special_characters(self):
+        """Test URL encoding preserves colons and slashes but encodes spaces."""
+        result = get_markdown_url(
+            "https://storage.com/path with spaces/file.pdf",
+            "Title",
+            "sas"
+        )
+
+        assert "path%20with%20spaces" in result
+        assert "https://" in result
+
+    def test_handles_empty_sas_token(self):
+        """Test works with empty SAS token when no placeholder exists."""
+        result = get_markdown_url("https://example.com/file.pdf", "Doc", "")
+
+        assert result == "[Doc](https://example.com/file.pdf)"
+
+
+class TestGetCitations:
+    """Tests for get_citations utility function."""
+
+    @patch("create_app.AzureBlobStorageClient")
+    def test_processes_single_citation(self, mock_blob_client_class):
+        """Test processes citation list and formats output."""
+        mock_blob = MagicMock()
+        mock_blob.get_container_sas.return_value = "?sas=token123"
+        mock_blob_client_class.return_value = mock_blob
+
+        citation_list = {
+            "citations": [
+                {
+                    "title": "Document 1",
+                    "url": '{"source": "https://storage.com/doc1.pdf", "id": "id1", "chunk_id": "chunk_5", "chunk": "0"}',
+                    "content": "This is the content."
+                }
+            ]
+        }
+
+        result = get_citations(citation_list)
+
+        assert len(result["citations"]) == 1
+        assert result["citations"][0]["title"] == "Document 1"
+        assert result["citations"][0]["id"] == "id1"
+        assert result["citations"][0]["chunk_id"] == "5"
+        assert "This is the content." in result["citations"][0]["content"]
+
+    @patch("create_app.AzureBlobStorageClient")
+    def test_processes_multiple_citations(self, mock_blob_client_class):
+        """Test processes multiple citations in list."""
+        mock_blob = MagicMock()
+        mock_blob.get_container_sas.return_value = "?sas=123"
+        mock_blob_client_class.return_value = mock_blob
+
+        citation_list = {
+            "citations": [
+                {
+                    "title": "Doc 1",
+                    "url": '{"source": "http://a.com/1.pdf", "id": "1", "chunk": "0"}',
+                    "content": "Content 1"
+                },
+                {
+                    "title": "Doc 2",
+                    "url": '{"source": "http://b.com/2.pdf", "id": "2", "chunk": "1"}',
+                    "content": "Content 2"
+                }
+            ]
+        }
+
+        result = get_citations(citation_list)
+
+        assert len(result["citations"]) == 2
+        assert result["citations"][0]["id"] == "1"
+        assert result["citations"][1]["id"] == "2"
+
+    @patch("create_app.AzureBlobStorageClient")
+    def test_adds_sas_placeholder_when_missing(self, mock_blob_client_class):
+        """Test adds SAS token placeholder if not present in source."""
+        mock_blob = MagicMock()
+        mock_blob.get_container_sas.return_value = "?sas=abc"
+        mock_blob_client_class.return_value = mock_blob
+
+        citation_list = {
+            "citations": [
+                {
+                    "title": "Doc",
+                    "url": '{"source": "https://storage.com/file.pdf", "id": "1", "chunk": "0"}',
+                    "content": "Text"
+                }
+            ]
+        }
+
+        result = get_citations(citation_list)
+
+        # Should have added _SAS_TOKEN_PLACEHOLDER_ and then replaced it
+        assert "?sas=abc" in result["citations"][0]["url"]
+
+    @patch("create_app.AzureBlobStorageClient")
+    def test_extracts_filepath_from_title(self, mock_blob_client_class):
+        """Test extracts filename from title path."""
+        mock_blob = MagicMock()
+        mock_blob.get_container_sas.return_value = "?sas=123"
+        mock_blob_client_class.return_value = mock_blob
+
+        citation_list = {
+            "citations": [
+                {
+                    "title": "folder/subfolder/document.pdf",
+                    "url": '{"source": "http://storage.com/file.pdf", "id": "1", "chunk": "0"}',
+                    "content": "Content"
+                }
+            ]
+        }
+
+        result = get_citations(citation_list)
+
+        assert result["citations"][0]["filepath"] == "document.pdf"
+
+    @patch("create_app.AzureBlobStorageClient")
+    def test_handles_dict_url_metadata(self, mock_blob_client_class):
+        """Test handles URL metadata as dict instead of JSON string."""
+        mock_blob = MagicMock()
+        mock_blob.get_container_sas.return_value = "?sas=123"
+        mock_blob_client_class.return_value = mock_blob
+
+        citation_list = {
+            "citations": [
+                {
+                    "title": "Doc",
+                    "url": {"source": "http://storage.com/file.pdf", "id": "1", "chunk": "0"},
+                    "content": "Content"
+                }
+            ]
+        }
+
+        result = get_citations(citation_list)
+
+        assert result["citations"][0]["id"] == "1"
+
+    @patch("create_app.AzureBlobStorageClient")
+    def test_uses_chunk_when_chunk_id_is_none(self, mock_blob_client_class):
+        """Test falls back to chunk field when chunk_id is None."""
+        mock_blob = MagicMock()
+        mock_blob.get_container_sas.return_value = "?sas=123"
+        mock_blob_client_class.return_value = mock_blob
+
+        citation_list = {
+            "citations": [
+                {
+                    "title": "Doc",
+                    "url": '{"source": "http://a.com/1.pdf", "id": "1", "chunk_id": null, "chunk": "42"}',
+                    "content": "Content"
+                }
+            ]
+        }
+
+        result = get_citations(citation_list)
+
+        assert result["citations"][0]["chunk_id"] == "42"
+
+    @patch("create_app.AzureBlobStorageClient")
+    def test_extracts_chunk_number_from_chunk_id(self, mock_blob_client_class):
+        """Test extracts numeric chunk from chunk_id string."""
+        mock_blob = MagicMock()
+        mock_blob.get_container_sas.return_value = "?sas=123"
+        mock_blob_client_class.return_value = mock_blob
+
+        citation_list = {
+            "citations": [
+                {
+                    "title": "Doc",
+                    "url": '{"source": "http://a.com/1.pdf", "id": "1", "chunk_id": "chunk_42_part", "chunk": "0"}',
+                    "content": "Content"
+                }
+            ]
+        }
+
+        result = get_citations(citation_list)
+
+        # re.findall(r"\d+", "chunk_42_part")[-1] should give "42"
+        assert result["citations"][0]["chunk_id"] == "42"

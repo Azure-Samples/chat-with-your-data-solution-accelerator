@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Stack, TextField } from "@fluentui/react";
+import { Stack, TextField, TooltipHost } from "@fluentui/react";
 import { SendRegular } from "@fluentui/react-icons";
 import Send from "../../assets/Send.svg";
 import MicrophoneIcon from "../../assets/mic-outline.svg";
@@ -109,6 +109,7 @@ export const QuestionInput = ({
       />
       <div className={styles.microphoneAndSendContainer}>
         {/* Microphone Icon */}
+        <TooltipHost content={isListening || microphoneIconActive ? "Stop dictation" : "Start dictation"}>
         <button
           type="button"
           disabled={isMicrophoneDisabled ? true : false}
@@ -141,11 +142,13 @@ export const QuestionInput = ({
             />
           )}
         </button>
+        </TooltipHost>
 
         {/* Send Button */}
         {isSendButtonDisabled ? (
-          <SendRegular className={styles.SendButtonDisabled} />
+         <TooltipHost  content="Send"><SendRegular className={styles.SendButtonDisabled} /></TooltipHost>
         ) : (
+        <TooltipHost  content="Send">
           <div
             role="button"
             tabIndex={0}
@@ -166,6 +169,7 @@ export const QuestionInput = ({
               />
             )}
           </div>
+        </TooltipHost>
         )}
       </div>
     </Stack>
