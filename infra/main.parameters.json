@@ -30,6 +30,9 @@
     "azureSearchUseIntegratedVectorization": {
       "value": "${AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION=false}"
     },
+    "azureSearchDimensions": {
+      "value": "${AZURE_SEARCH_DIMENSIONS=1536}"
+    },
     "azureSearchUseSemanticSearch": {
       "value": "${AZURE_SEARCH_USE_SEMANTIC_SEARCH=false}"
     },

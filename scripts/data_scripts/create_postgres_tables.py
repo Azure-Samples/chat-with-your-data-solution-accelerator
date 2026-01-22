@@ -4,6 +4,7 @@ import psycopg2
 user = "managedIdentityName"
 host = "serverName"
 dbname = "postgres"
+vector_dimensions = "vectorDimensions"
 
 
 # Acquire the access token
@@ -59,7 +60,17 @@ conn.commit()
 cursor.execute("DROP TABLE IF EXISTS vector_store;")
 conn.commit()
 
-table_create_command = """CREATE TABLE IF NOT EXISTS vector_store(
+# Use halfvec for dimensions > 2000 (supports up to 4000 with HNSW index)
+# Use vector for dimensions <= 2000 (full precision)
+dims = int(vector_dimensions)
+if dims > 2000:
+    vector_type = "halfvec"
+    index_ops = "halfvec_cosine_ops"
+else:
+    vector_type = "vector"
+    index_ops = "vector_cosine_ops"
+
+table_create_command = f"""CREATE TABLE IF NOT EXISTS vector_store(
     id text,
     title text,
     chunk integer,
@@ -69,15 +80,14 @@ table_create_command = """CREATE TABLE IF NOT EXISTS vector_store(
     content text,
     source text,
     metadata text,
-    content_vector public.vector(1536)
+    content_vector public.{vector_type}({vector_dimensions})
 );"""
 
 cursor.execute(table_create_command)
 conn.commit()
 
-
 cursor.execute(
-    "CREATE INDEX vector_store_content_vector_idx ON vector_store USING hnsw (content_vector vector_cosine_ops);"
+    f"CREATE INDEX vector_store_content_vector_idx ON vector_store USING hnsw (content_vector {index_ops});"
 )
 conn.commit()
 
