@@ -6,6 +6,13 @@ on:
       - main
       - dev
       - demo
+    paths:
+      - 'infra/**'
+      - 'scripts/**'
+      - 'azure.yaml'
+      - 'pyproject.toml'
+      - 'Makefile'
+      - '.github/workflows/ci.yml'
   schedule:
     - cron: '0 8,20 * * *'  # Runs at 8:00 AM and 8:00 PM GMT
   workflow_dispatch:
@@ -409,7 +416,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Destroy resources
         uses: devcontainers/ci@v0.3
