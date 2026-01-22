@@ -76,15 +76,9 @@ table_create_command = f"""CREATE TABLE IF NOT EXISTS vector_store(
 cursor.execute(table_create_command)
 conn.commit()
 
-# Use IVFFlat for dimensions > 2000 (HNSW limit), otherwise use HNSW
-if int(vector_dimensions) > 2000:
-    cursor.execute(
-        "CREATE INDEX vector_store_content_vector_idx ON vector_store USING ivfflat (content_vector vector_cosine_ops) WITH (lists = 100);"
-    )
-else:
-    cursor.execute(
-        "CREATE INDEX vector_store_content_vector_idx ON vector_store USING hnsw (content_vector vector_cosine_ops);"
-    )
+cursor.execute(
+    "CREATE INDEX vector_store_content_vector_idx ON vector_store USING hnsw (content_vector vector_cosine_ops);"
+)
 conn.commit()
 
 
