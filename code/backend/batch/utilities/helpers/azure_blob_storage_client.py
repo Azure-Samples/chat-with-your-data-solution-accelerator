@@ -170,8 +170,7 @@ class AzureBlobStorageClient:
             None
         """
         for filename, ids in files.items():
-            # Strip container prefix if present (format: container/filename)
-            if "/" in filename:
+            if not integrated_vectorization:
                 filename = filename.split("/")[-1]
             self.delete_file(filename)
 
