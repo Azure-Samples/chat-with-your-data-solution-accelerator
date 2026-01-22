@@ -19,16 +19,19 @@
       "value": "${APP_ENV=Prod}"
     },
     "hostingModel": {
-      "value": "${AZURE_APP_SERVICE_HOSTING_MODEL=code}"
+      "value": "${AZURE_APP_SERVICE_HOSTING_MODEL=container}"
     },
     "hostingPlanSku": {
       "value": "${HOSTING_PLAN_SKU=B3}"
     },
     "databaseType": {
-      "value": "${DATABASE_TYPE=PostgreSQL}"
+      "value": "${DATABASE_TYPE=CosmosDB}"
     },
     "azureSearchUseIntegratedVectorization": {
       "value": "${AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION=false}"
+    },
+    "azureSearchDimensions": {
+      "value": "${AZURE_SEARCH_DIMENSIONS=3072}"
     },
     "azureSearchUseSemanticSearch": {
       "value": "${AZURE_SEARCH_USE_SEMANTIC_SEARCH=false}"
@@ -103,16 +106,16 @@
       "value": "${AZURE_OPENAI_API_VERSION=2024-02-01}"
     },
     "azureOpenAIModel": {
-      "value": "${AZURE_OPENAI_MODEL=gpt-4.1}"
+      "value": "${AZURE_OPENAI_MODEL=gpt-5-mini}"
     },
     "azureOpenAIModelName": {
-      "value": "${AZURE_OPENAI_MODEL_NAME=gpt-4.1}"
+      "value": "${AZURE_OPENAI_MODEL_NAME=gpt-5-mini}"
     },
     "azureOpenAIModelVersion": {
-      "value": "${AZURE_OPENAI_MODEL_VERSION=2025-04-14}"
+      "value": "${AZURE_OPENAI_MODEL_VERSION=2025-08-07}"
     },
     "azureOpenAIModelCapacity": {
-      "value": "${AZURE_OPENAI_MODEL_CAPACITY=150}"
+      "value": "${AZURE_OPENAI_MODEL_CAPACITY=450}"
     },
     "azureOpenAISkuName": {
       "value": "${AZURE_OPENAI_SKU_NAME=S0}"
@@ -139,16 +142,16 @@
       "value": "${AZURE_OPENAI_VISION_MODEL_CAPACITY=10}"
     },
     "azureOpenAIEmbeddingModel": {
-      "value": "${AZURE_OPENAI_EMBEDDING_MODEL=text-embedding-ada-002}"
+      "value": "${AZURE_OPENAI_EMBEDDING_MODEL=text-embedding-3-large}"
     },
     "azureOpenAIEmbeddingModelName": {
-      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_NAME=text-embedding-ada-002}"
+      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_NAME=text-embedding-3-large}"
     },
     "azureOpenAIEmbeddingModelVersion": {
-      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_VERSION=2}"
+      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_VERSION=1}"
     },
     "azureOpenAIEmbeddingModelCapacity": {
-      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY=100}"
+      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY=200}"
     },
     "azureOpenAIMaxTokens": {
       "value": "${AZURE_OPENAI_MAX_TOKENS=1000}"

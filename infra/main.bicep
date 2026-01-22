@@ -126,6 +126,9 @@ param azureSearchUrlColumn string = 'url'
 @description('Optional. Whether to use Azure Search Integrated Vectorization. If the database type is PostgreSQL, set this to false.')
 param azureSearchUseIntegratedVectorization bool = false
 
+@description('Optional. Azure Search embedding dimensions. 1536 for text-embedding-ada-002 or text-embedding-3-small, 3072 for text-embedding-3-large.')
+param azureSearchDimensions string = '1536'
+
 @description('Optional. Name of Azure OpenAI Resource.')
 var azureOpenAIResourceName string = 'oai-${solutionSuffix}'
 
@@ -319,7 +322,7 @@ param tags resourceInput<'Microsoft.Resources/resourceGroups@2025-04-01'>.tags =
 param enablePurgeProtection bool = false
 
 @description('Optional. Enable monitoring applicable resources, aligned with the Well Architected Framework recommendations. This setting enables Application Insights and Log Analytics and configures all the resources applicable resources to send logs. Defaults to false.')
-param enableMonitoring bool = false
+param enableMonitoring bool = true
 
 @description('Optional. Enable scalability for applicable resources, aligned with the Well Architected Framework recommendations. Defaults to false.')
 param enableScalability bool = false
@@ -393,6 +396,7 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
       ...allTags
       TemplateName: 'CWYD'
       CreatedBy: createdBy
+      SecurityControl: 'Ignore'
     }
   }
 }
@@ -1285,6 +1289,7 @@ module web 'modules/app/web.bicep' = {
         MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.resourceId
         AZURE_CLIENT_ID: managedIdentityModule.outputs.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
+        AZURE_SEARCH_DIMENSIONS: azureSearchDimensions
       },
       databaseType == 'CosmosDB'
         ? {
@@ -1383,6 +1388,7 @@ module adminweb 'modules/app/adminweb.bicep' = {
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.clientId
         MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.resourceId
         APP_ENV: appEnvironment
+        AZURE_SEARCH_DIMENSIONS: azureSearchDimensions
       },
       databaseType == 'CosmosDB'
         ? {
@@ -1482,6 +1488,7 @@ module function 'modules/app/function.bicep' = {
         AZURE_CLIENT_ID: managedIdentityModule.outputs.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
         BACKEND_URL: backendUrl
+        AZURE_SEARCH_DIMENSIONS: azureSearchDimensions
       },
       databaseType == 'CosmosDB'
         ? {
@@ -1862,7 +1869,7 @@ module createIndex 'br/public:avm/res/resources/deployment-script:0.5.1' = if (d
     retentionInterval: 'PT1H'
     runOnce: true
     primaryScriptUri: '${baseUrl}scripts/run_create_table_script.sh'
-    arguments: '${baseUrl} ${resourceGroup().name} ${postgresDBModule!.outputs.fqdn} ${managedIdentityModule.outputs.name}'
+    arguments: '${baseUrl} ${resourceGroup().name} ${postgresDBModule!.outputs.fqdn} ${managedIdentityModule.outputs.name} ${azureSearchDimensions}'
     storageAccountResourceId: storage.outputs.resourceId
     subnetResourceIds: enablePrivateNetworking
       ? [

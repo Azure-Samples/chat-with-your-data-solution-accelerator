@@ -4,6 +4,7 @@ import psycopg2
 user = "managedIdentityName"
 host = "serverName"
 dbname = "postgres"
+vector_dimensions = "vectorDimensions"
 
 
 # Acquire the access token
@@ -59,7 +60,7 @@ conn.commit()
 cursor.execute("DROP TABLE IF EXISTS vector_store;")
 conn.commit()
 
-table_create_command = """CREATE TABLE IF NOT EXISTS vector_store(
+table_create_command = f"""CREATE TABLE IF NOT EXISTS vector_store(
     id text,
     title text,
     chunk integer,
@@ -69,7 +70,7 @@ table_create_command = """CREATE TABLE IF NOT EXISTS vector_store(
     content text,
     source text,
     metadata text,
-    content_vector public.vector(1536)
+    content_vector public.vector({vector_dimensions})
 );"""
 
 cursor.execute(table_create_command)
