@@ -6,11 +6,16 @@ baseUrl="$1"
 requirementFile="requirements.txt"
 requirementFileUrl=${baseUrl}"scripts/data_scripts/requirements.txt"
 resourceGroup="$2"
-serverName="$3"
+serverFqdn="$3"
 managedIdentityName="$4"
-vectorDimensions="$5"
+vectorDimensions="${5:-1536}"
+
+# Extract server name from FQDN (remove .postgres.database.azure.com suffix)
+serverName=$(echo $serverFqdn | sed 's/.postgres.database.azure.com//')
 
 echo "Script Started"
+echo "Server Name: $serverName"
+echo "Vector Dimensions: $vectorDimensions"
 
 # Get the public IP address of the machine running the script
 publicIp=$(curl -s https://api.ipify.org)
@@ -29,7 +34,7 @@ echo "Download completed"
 
 # Replace placeholders in the python script with actual values
 sed -i "s/managedIdentityName/${managedIdentityName}/g" "create_postgres_tables.py"
-sed -i "s/serverName/${serverName}/g" "create_postgres_tables.py"
+sed -i "s/serverName/${serverFqdn}/g" "create_postgres_tables.py"
 sed -i "s/vectorDimensions/${vectorDimensions}/g" "create_postgres_tables.py"
 
 pip install -r requirements.txt
