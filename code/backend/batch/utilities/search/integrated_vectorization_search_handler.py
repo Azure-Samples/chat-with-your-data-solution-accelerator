@@ -58,15 +58,7 @@ class IntegratedVectorizationSearchHandler(SearchHandlerBase):
         files = {}
         for result in results:
             id = result["chunk_id"]
-            # Use title field which contains the last segment (filename or URL endpoint)
-            # Prepend with container path for display
-            title = result.get("title", "")
-            if title:
-                container_name = self.env_helper.AZURE_BLOB_CONTAINER_NAME
-                filename = f"/{container_name}/{title}"
-            else:
-                filename = ""
-
+            filename = result.get("title", "")
             if filename:
                 if filename in files:
                     files[filename].append(id)
