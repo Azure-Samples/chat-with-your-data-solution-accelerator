@@ -160,10 +160,40 @@ jobs:
         run: |
           pip install psycopg2-binary python-dotenv azure-identity
 
+      - name: Add Service Principal as PostgreSQL Admin
+        if: inputs.DATABASE_TYPE == 'PostgreSQL'
+        run: |
+          # Get PostgreSQL server name from azd env
+          PG_HOST=$(azd env get-value AZURE_POSTGRESQL_HOST_NAME)
+          PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
+
+          # Get the service principal's object ID (required for PostgreSQL admin)
+          SP_OBJECT_ID=$(az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query id -o tsv)
+
+          # Get service principal display name
+          SP_DISPLAY_NAME=$(az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query displayName -o tsv)
+
+          # Export display name for use in subsequent steps
+          echo "SP_DISPLAY_NAME=$SP_DISPLAY_NAME" >> $GITHUB_ENV
+
+          echo "Adding service principal '$SP_DISPLAY_NAME' (Object ID: $SP_OBJECT_ID) as PostgreSQL admin..."
+
+          # Add service principal as Entra ID administrator
+          az postgres flexible-server ad-admin create \
+            --server-name "$PG_SERVER_NAME" \
+            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
+            --object-id "$SP_OBJECT_ID" \
+            --display-name "$SP_DISPLAY_NAME" \
+            --type ServicePrincipal || echo "Admin may already exist, continuing..."
+
+          echo "✅ Service principal configured as PostgreSQL administrator"
+
       - name: Populate PostgreSQL Database
         if: inputs.DATABASE_TYPE == 'PostgreSQL'
         run: |
           export PG_HOST_DESTINATION=$(azd env get-value AZURE_POSTGRESQL_HOST_NAME)
+          # Get the service principal's display name (required as username for PostgreSQL Entra auth)
+          export SP_DISPLAY_NAME=$(az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query displayName -o tsv)
           python - <<EOF
           import os
           import psycopg2
@@ -173,14 +203,15 @@ jobs:
           client_id = os.environ["AZURE_CLIENT_ID"]
           client_secret = os.environ["AZURE_CLIENT_SECRET"]
           pg_host = os.environ.get("PG_HOST_DESTINATION")
+          sp_display_name = os.environ.get("SP_DISPLAY_NAME")
 
           # Acquire Azure AD access token for PostgreSQL
           credential = ClientSecretCredential(tenant_id, client_id, client_secret)
           token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default").token
 
           db_params = {
-              "user": client_id,   # Use service principal clientId
-              "password": token,   # Use AAD token instead of password
+              "user": sp_display_name,   # Use service principal display name (must match PostgreSQL admin name)
+              "password": token,          # Use AAD token
               "host": pg_host,
               "port": "5432",
               "dbname": "postgres",
@@ -205,6 +236,7 @@ jobs:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          SP_DISPLAY_NAME: ${{ env.SP_DISPLAY_NAME }}
 
       - name: Create Azure Search Index (CosmosDB)
         if: inputs.DATABASE_TYPE == 'CosmosDB'
