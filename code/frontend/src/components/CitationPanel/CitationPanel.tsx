@@ -20,13 +20,20 @@ function rewriteCitationUrl(markdownText: string) {
         const blobStorageHost = 'blob.core.windows.net';
 
         if (parsed.hostname.includes(blobStorageHost)) {
-          // Extract the filename from the path
-          const filename = parsed.pathname.split('/').pop();
-          return `[${title}](/api/files/${filename})`;
+          // Extract the path after the container name (e.g., /documents/filename or /documents/https://...)
+          const pathParts = parsed.pathname.split('/');
+          // Remove empty first element and container name, join the rest
+          const filenameOrUrl = pathParts.slice(2).join('/');
+
+          // Check if it's a URL (BYOD case where URL is stored as blob path)
+          if (filenameOrUrl.startsWith('http://') || filenameOrUrl.startsWith('https://')) {
+            console.log('BYOD URL stored in blob - returning as external link');
+            return `[${title}](${filenameOrUrl})`;
+          }
+
+          return `[${title}](/api/files/${filenameOrUrl})`;
         } else {
-          // Return external URL as-is (already properly encoded)
-          const decodedhref=decodeURIComponent(parsed.href);
-          return `[${title}](${decodedhref})`;
+          return `[${title}](${parsed.href})`;
         }
       } catch {
         return match; // fallback if URL parsing fails

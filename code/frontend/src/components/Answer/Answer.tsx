@@ -159,16 +159,18 @@ export const Answer = ({
 
     if (citation.filepath && citation.chunk_id != null) {
       // Decode the URL-encoded filepath from backend, falling back to the original on failure
-      let decodedFilepath = citation.filepath;
+      let decodedFilepath: string;
       try {
         decodedFilepath = decodeURIComponent(citation.filepath);
-      } catch {
-        decodedFilepath = citation.filepath;
+      } catch (error) {
+         console.warn("Failed to decode citation filepath:", citation.filepath, error);
+         decodedFilepath = citation.filepath;
       }
 
       // Strip container prefix if present (e.g., "documents/filename.pdf" -> "filename.pdf")
-      if (decodedFilepath.includes('/')) {
-        decodedFilepath = decodedFilepath.split('/').pop() || decodedFilepath;
+      const isLikelyUrl = /^https?:\/\//i.test(decodedFilepath);
+      if (!isLikelyUrl && decodedFilepath.includes("/")) {
+        decodedFilepath = decodedFilepath.split("/").pop() || decodedFilepath;
       }
 
       if (truncate && decodedFilepath.length > filePathTruncationLimit) {
