@@ -68,8 +68,8 @@ try:
         }
         # Map display names back to actual filenames
         selected_files = {
-            display_files[display_name]: files[display_files[display_name]]
-            for display_name in display_files.keys()
+            fname: files[fname]
+            for display_name, fname in display_files.items()
             if selections[display_name]
         }
 

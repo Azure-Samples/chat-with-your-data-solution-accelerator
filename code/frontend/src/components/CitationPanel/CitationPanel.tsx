@@ -27,13 +27,15 @@ function rewriteCitationUrl(markdownText: string) {
 
           // Check if it's a URL (BYOD case where URL is stored as blob path)
           if (filenameOrUrl.startsWith('http://') || filenameOrUrl.startsWith('https://')) {
-            console.log('BYOD URL stored in blob - returning as external link');
-            return `[${title}](${filenameOrUrl})`;
+            const decodedUrl = decodeURIComponent(filenameOrUrl);
+            return `[${title}](${decodedUrl})`;
           }
 
-          return `[${title}](/api/files/${filenameOrUrl})`;
+          const decodedFilename = decodeURIComponent(filenameOrUrl);
+          return `[${title}](/api/files/${decodedFilename})`;
         } else {
-          return `[${title}](${parsed.href})`;
+          const decodedparsedhref = decodeURIComponent(parsed.href);
+          return `[${title}](${decodedparsedhref})`;
         }
       } catch {
         return match; // fallback if URL parsing fails
