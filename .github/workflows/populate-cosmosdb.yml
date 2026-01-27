@@ -114,7 +114,8 @@ jobs:
           # Enable public network access for Azure Search
           echo "Enabling public network access..."
 
-          if [[ "$IDENTITY_TYPE" == "UserAssigned" ]] || [[ "$IDENTITY_TYPE" == "SystemAssigned,UserAssigned" ]]; then
+          # Check if identity type contains UserAssigned (handles "UserAssigned", "SystemAssigned, UserAssigned", etc.)
+          if [[ "$IDENTITY_TYPE" == *"UserAssigned"* ]]; then
             # Get the user-assigned identity IDs
             IDENTITY_IDS=$(az search service show \
               --name "$AZURE_SEARCH_SERVICE" \
