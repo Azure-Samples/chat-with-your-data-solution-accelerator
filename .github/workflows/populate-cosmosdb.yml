@@ -8,7 +8,15 @@ on:
         required: true
         type: string
       AZURE_SEARCH_SERVICE:
-        description: 'Azure Search service name'
+        description: 'Azure Search service name or URL'
+        required: true
+        type: string
+      AZURE_STORAGE_ACCOUNT:
+        description: 'Azure Storage Account name'
+        required: true
+        type: string
+      AZURE_SEARCH_INDEX:
+        description: 'Azure Search index name'
         required: true
         type: string
       WAF:
@@ -23,7 +31,15 @@ on:
         required: true
         type: string
       AZURE_SEARCH_SERVICE:
-        description: 'Azure Search service name'
+        description: 'Azure Search service name or URL'
+        required: true
+        type: string
+      AZURE_STORAGE_ACCOUNT:
+        description: 'Azure Storage Account name'
+        required: true
+        type: string
+      AZURE_SEARCH_INDEX:
+        description: 'Azure Search index name'
         required: true
         type: string
       WAF:
@@ -53,17 +69,35 @@ jobs:
       - name: Upgrade Azure CLI and install extensions
         run: |
           az upgrade --yes --all
+          az extension add --name storage-preview --upgrade --yes || true
 
-      - name: Enable Public Access for Azure Search (WAF Mode)
-        if: ${{ inputs.WAF == true }}
+      - name: Extract Service Names
+        id: extract_names
         run: |
+          # Extract Azure Search service name if full URL is provided
           AZURE_SEARCH_SERVICE_INPUT="${{ inputs.AZURE_SEARCH_SERVICE }}"
-          # Extract service name if full URL is provided
           if [[ "$AZURE_SEARCH_SERVICE_INPUT" == https://* ]]; then
             AZURE_SEARCH_SERVICE=$(echo "$AZURE_SEARCH_SERVICE_INPUT" | sed 's|https://||' | cut -d'.' -f1)
           else
             AZURE_SEARCH_SERVICE="$AZURE_SEARCH_SERVICE_INPUT"
           fi
+          echo "AZURE_SEARCH_SERVICE=$AZURE_SEARCH_SERVICE" >> $GITHUB_OUTPUT
+          echo "Using Azure Search Service: $AZURE_SEARCH_SERVICE"
+
+          # Extract Azure Storage Account name if full URL is provided
+          AZURE_STORAGE_ACCOUNT_INPUT="${{ inputs.AZURE_STORAGE_ACCOUNT }}"
+          if [[ "$AZURE_STORAGE_ACCOUNT_INPUT" == https://* ]]; then
+            AZURE_STORAGE_ACCOUNT=$(echo "$AZURE_STORAGE_ACCOUNT_INPUT" | sed 's|https://||' | cut -d'.' -f1)
+          else
+            AZURE_STORAGE_ACCOUNT="$AZURE_STORAGE_ACCOUNT_INPUT"
+          fi
+          echo "AZURE_STORAGE_ACCOUNT=$AZURE_STORAGE_ACCOUNT" >> $GITHUB_OUTPUT
+          echo "Using Azure Storage Account: $AZURE_STORAGE_ACCOUNT"
+
+      - name: Enable Public Access for Azure Search (WAF Mode)
+        if: ${{ inputs.WAF == true }}
+        run: |
+          AZURE_SEARCH_SERVICE="${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}"
 
           echo "WAF mode enabled - Configuring public access for Azure Search service: $AZURE_SEARCH_SERVICE"
 
@@ -85,71 +119,69 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          pip install requests python-dotenv
+          pip install requests azure-storage-blob azure-identity
 
-      - name: Create Azure Search Index
+      - name: Upload Document to Blob Storage to Trigger Index Creation
         run: |
-          AZURE_SEARCH_SERVICE_INPUT="${{ inputs.AZURE_SEARCH_SERVICE }}"
-          # Extract service name if full URL is provided
-          if [[ "$AZURE_SEARCH_SERVICE_INPUT" == https://* ]]; then
-            export AZURE_SEARCH_SERVICE=$(echo "$AZURE_SEARCH_SERVICE_INPUT" | sed 's|https://||' | cut -d'.' -f1)
-          else
-            export AZURE_SEARCH_SERVICE="$AZURE_SEARCH_SERVICE_INPUT"
-          fi
-          echo "Using Azure Search Service: $AZURE_SEARCH_SERVICE"
-          # Get Azure Search admin key from Azure
-          export AZURE_SEARCH_KEY=$(az search admin-key show --service-name $AZURE_SEARCH_SERVICE --resource-group ${{ inputs.RESOURCE_GROUP_NAME }} --query primaryKey -o tsv)
-          # Generate index name for testing
-          export AZURE_SEARCH_INDEX="index-test-cosmosdb"
-          echo "AZURE_SEARCH_INDEX=$AZURE_SEARCH_INDEX" >> $GITHUB_ENV
+          AZURE_STORAGE_ACCOUNT="${{ steps.extract_names.outputs.AZURE_STORAGE_ACCOUNT }}"
 
-          python - <<EOF
-          import requests
-          import json
-          import os
+          echo "Uploading sample document to blob storage to trigger index creation..."
 
-          SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")
-          INDEX_NAME = os.environ.get("AZURE_SEARCH_INDEX")
-          API_KEY = os.environ.get("AZURE_SEARCH_KEY")
+          # Upload file using Azure CLI
+          az storage blob upload \
+            --account-name "$AZURE_STORAGE_ACCOUNT" \
+            --container-name "documents" \
+            --name "PerksPlus.pdf" \
+            --file "data/PerksPlus.pdf" \
+            --auth-mode login \
+            --overwrite
 
-          # Create Index API endpoint
-          ENDPOINT = f"https://{SEARCH_SERVICE}.search.windows.net/indexes/{INDEX_NAME}?api-version=2023-07-01-Preview"
-          HEADERS = {
-              "Content-Type": "application/json",
-              "api-key": API_KEY
-          }
+          echo "✅ Document uploaded to blob storage"
 
-          # Load index schema from file
-          with open("data/azure_search_index_schema.json", "r", encoding="utf-8") as f:
-              index_schema = json.load(f)
+      - name: Wait for Index Creation
+        run: |
+          AZURE_SEARCH_SERVICE="${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}"
+          AZURE_SEARCH_INDEX="${{ inputs.AZURE_SEARCH_INDEX }}"
 
-          # Update index name to match environment
-          index_schema["name"] = INDEX_NAME
+          # Get Azure Search admin key
+          AZURE_SEARCH_KEY=$(az search admin-key show --service-name $AZURE_SEARCH_SERVICE --resource-group ${{ inputs.RESOURCE_GROUP_NAME }} --query primaryKey -o tsv)
 
-          # Create or update the index using PUT
-          response = requests.put(ENDPOINT, headers=HEADERS, json=index_schema)
+          echo "Waiting for index '$AZURE_SEARCH_INDEX' to be created by the application..."
+          echo "This may take a few minutes as the document is processed..."
 
-          if response.status_code in [200, 201]:
-              print(f"✅ Index '{INDEX_NAME}' created/updated successfully.")
-          else:
-              print(f"❌ Failed to create index: {response.status_code}, {response.text}")
-              exit(1)
-          EOF
+          # Wait up to 10 minutes for the index to be created
+          for i in {1..20}; do
+            echo "Checking for index (attempt $i/20)..."
+
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              "https://${AZURE_SEARCH_SERVICE}.search.windows.net/indexes/${AZURE_SEARCH_INDEX}?api-version=2024-07-01" \
+              -H "api-key: ${AZURE_SEARCH_KEY}")
+
+            if [ "$HTTP_STATUS" == "200" ]; then
+              echo "✅ Index '$AZURE_SEARCH_INDEX' found!"
+              break
+            fi
+
+            if [ $i -eq 20 ]; then
+              echo "⚠️ Index not found after 10 minutes, proceeding anyway..."
+            else
+              echo "Index not found yet (HTTP $HTTP_STATUS), waiting 30 seconds..."
+              sleep 30
+            fi
+          done
 
       - name: Populate Azure Search Index
         run: |
-          AZURE_SEARCH_SERVICE_INPUT="${{ inputs.AZURE_SEARCH_SERVICE }}"
-          # Extract service name if full URL is provided
-          if [[ "$AZURE_SEARCH_SERVICE_INPUT" == https://* ]]; then
-            export AZURE_SEARCH_SERVICE=$(echo "$AZURE_SEARCH_SERVICE_INPUT" | sed 's|https://||' | cut -d'.' -f1)
-          else
-            export AZURE_SEARCH_SERVICE="$AZURE_SEARCH_SERVICE_INPUT"
-          fi
-          echo "Using Azure Search Service: $AZURE_SEARCH_SERVICE"
+          AZURE_SEARCH_SERVICE="${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}"
+          AZURE_SEARCH_INDEX="${{ inputs.AZURE_SEARCH_INDEX }}"
+
+          export AZURE_SEARCH_SERVICE
+          export AZURE_SEARCH_INDEX
+
           # Get Azure Search admin key from Azure
           export AZURE_SEARCH_KEY=$(az search admin-key show --service-name $AZURE_SEARCH_SERVICE --resource-group ${{ inputs.RESOURCE_GROUP_NAME }} --query primaryKey -o tsv)
-          # Use the index name from previous step
-          export AZURE_SEARCH_INDEX="${{ env.AZURE_SEARCH_INDEX }}"
+
+          echo "Populating index: $AZURE_SEARCH_INDEX"
 
           python - <<EOF
           import requests
@@ -161,8 +193,11 @@ jobs:
           INDEX_NAME = os.environ.get("AZURE_SEARCH_INDEX")
           API_KEY = os.environ.get("AZURE_SEARCH_KEY")
 
+          # Use stable API version
+          API_VERSION = "2024-07-01"
+
           # Search API endpoint
-          ENDPOINT = f"https://{SEARCH_SERVICE}.search.windows.net/indexes/{INDEX_NAME}/docs/index?api-version=2023-07-01-Preview"
+          ENDPOINT = f"https://{SEARCH_SERVICE}.search.windows.net/indexes/{INDEX_NAME}/docs/index?api-version={API_VERSION}"
           HEADERS = {
               "Content-Type": "application/json",
               "api-key": API_KEY
@@ -177,11 +212,15 @@ jobs:
               "value": [{"@search.action": "upload", **doc} for doc in documents]
           }
 
+          print(f"Uploading {len(documents)} documents to index '{INDEX_NAME}'...")
+
           # Send data to Azure Search
           response = requests.post(ENDPOINT, headers=HEADERS, json=payload)
 
-          if response.status_code == 200:
-              print("✅ Import successful! Data uploaded to Azure Search.")
+          if response.status_code in [200, 207]:
+              result = response.json()
+              success_count = sum(1 for item in result.get('value', []) if item.get('status', False))
+              print(f"✅ Import completed! {success_count}/{len(documents)} documents uploaded successfully.")
           else:
               print(f"❌ Failed to import data: {response.status_code}, {response.text}")
               exit(1)
@@ -190,13 +229,7 @@ jobs:
       - name: Disable Public Access for Azure Search (WAF Mode Cleanup)
         if: ${{ inputs.WAF == true }}
         run: |
-          AZURE_SEARCH_SERVICE_INPUT="${{ inputs.AZURE_SEARCH_SERVICE }}"
-          # Extract service name if full URL is provided
-          if [[ "$AZURE_SEARCH_SERVICE_INPUT" == https://* ]]; then
-            AZURE_SEARCH_SERVICE=$(echo "$AZURE_SEARCH_SERVICE_INPUT" | sed 's|https://||' | cut -d'.' -f1)
-          else
-            AZURE_SEARCH_SERVICE="$AZURE_SEARCH_SERVICE_INPUT"
-          fi
+          AZURE_SEARCH_SERVICE="${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}"
 
           echo "WAF mode cleanup - Removing public access for Azure Search service: $AZURE_SEARCH_SERVICE"
 
@@ -224,14 +257,16 @@ jobs:
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Job Status** | ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Azure Search Service** | \`${{ inputs.AZURE_SEARCH_SERVICE }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Azure Search Service** | \`${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Azure Search Index** | \`${{ inputs.AZURE_SEARCH_INDEX }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Azure Storage Account** | \`${{ steps.extract_names.outputs.AZURE_STORAGE_ACCOUNT }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Resource Group** | \`${{ inputs.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **WAF Mode** | \`${{ inputs.WAF }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ job.status }}" == "success" ]]; then
             echo "### ✅ Test Results" >> $GITHUB_STEP_SUMMARY
-            echo "- Azure Search index created successfully" >> $GITHUB_STEP_SUMMARY
-            echo "- Azure Search data import completed" >> $GITHUB_STEP_SUMMARY
+            echo "- Document uploaded to blob storage to trigger index creation" >> $GITHUB_STEP_SUMMARY
+            echo "- Azure Search index populated with test data" >> $GITHUB_STEP_SUMMARY
             if [[ "${{ inputs.WAF }}" == "true" ]]; then
               echo "- WAF mode: Public access enabled and then disabled after data import" >> $GITHUB_STEP_SUMMARY
             fi

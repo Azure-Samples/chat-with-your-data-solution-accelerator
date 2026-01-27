@@ -54,6 +54,8 @@ jobs:
       WEB_APPURL: ${{ steps.get_output_linux.outputs.FRONTEND_WEBSITE_NAME }}
       AZURE_POSTGRESQL_HOST_NAME: ${{ steps.get_output_linux.outputs.AZURE_POSTGRESQL_HOST_NAME }}
       AZURE_SEARCH_SERVICE: ${{ steps.get_output_linux.outputs.AZURE_SEARCH_SERVICE }}
+      AZURE_STORAGE_ACCOUNT: ${{ steps.get_output_linux.outputs.AZURE_STORAGE_ACCOUNT }}
+      AZURE_SEARCH_INDEX: ${{ steps.get_output_linux.outputs.AZURE_SEARCH_INDEX }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -154,6 +156,14 @@ jobs:
           AZURE_SEARCH_SERVICE=$(azd env get-value AZURE_SEARCH_SERVICE 2>/dev/null || echo "")
           echo "AZURE_SEARCH_SERVICE=$AZURE_SEARCH_SERVICE" >> $GITHUB_OUTPUT
 
+          # Export Azure Storage Account name
+          AZURE_STORAGE_ACCOUNT=$(azd env get-value AZURE_STORAGE_ACCOUNT 2>/dev/null || echo "")
+          echo "AZURE_STORAGE_ACCOUNT=$AZURE_STORAGE_ACCOUNT" >> $GITHUB_OUTPUT
+
+          # Export Azure Search Index name
+          AZURE_SEARCH_INDEX=$(azd env get-value AZURE_SEARCH_INDEX 2>/dev/null || echo "")
+          echo "AZURE_SEARCH_INDEX=$AZURE_SEARCH_INDEX" >> $GITHUB_OUTPUT
+
       - name: Disable Authentication with Script
         run: |
           export FRONTEND_WEBSITE_URL=$(azd env get-value FRONTEND_WEBSITE_NAME)
@@ -219,5 +229,7 @@ jobs:
     with:
       RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
       AZURE_SEARCH_SERVICE: ${{ needs.deploy-linux.outputs.AZURE_SEARCH_SERVICE }}
+      AZURE_STORAGE_ACCOUNT: ${{ needs.deploy-linux.outputs.AZURE_STORAGE_ACCOUNT }}
+      AZURE_SEARCH_INDEX: ${{ needs.deploy-linux.outputs.AZURE_SEARCH_INDEX }}
       WAF: ${{ inputs.WAF_ENABLED == 'true' }}
     secrets: inherit
