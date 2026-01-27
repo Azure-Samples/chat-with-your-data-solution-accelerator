@@ -16,8 +16,8 @@ on:
         required: true
         type: string
       AZURE_SEARCH_INDEX:
-        description: 'Azure Search index name'
-        required: true
+        description: 'Azure Search index name (optional - will auto-detect from search service if not provided)'
+        required: false
         type: string
       WAF:
         description: 'Is this a WAF deployment? (enables public access temporarily for data import and then disables it)'
@@ -39,8 +39,8 @@ on:
         required: true
         type: string
       AZURE_SEARCH_INDEX:
-        description: 'Azure Search index name'
-        required: true
+        description: 'Azure Search index name (optional - will auto-detect from search service if not provided)'
+        required: false
         type: string
       WAF:
         description: 'Is this a WAF deployment? (enables public access temporarily for data import and then disables it)'
@@ -230,7 +230,8 @@ jobs:
 
           echo "✅ Document uploaded to blob storage"
 
-      - name: Wait for Index Creation
+      - name: Wait for Index Creation and Detect Index Name
+        id: detect_index
         run: |
           AZURE_SEARCH_SERVICE="${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}"
           AZURE_SEARCH_INDEX="${{ inputs.AZURE_SEARCH_INDEX }}"
@@ -238,34 +239,72 @@ jobs:
           # Get Azure Search admin key
           AZURE_SEARCH_KEY=$(az search admin-key show --service-name $AZURE_SEARCH_SERVICE --resource-group ${{ inputs.RESOURCE_GROUP_NAME }} --query primaryKey -o tsv)
 
-          echo "Waiting for index '$AZURE_SEARCH_INDEX' to be created by the application..."
-          echo "This may take a few minutes as the document is processed..."
+          # If index name is provided, wait for that specific index
+          if [ -n "$AZURE_SEARCH_INDEX" ]; then
+            echo "Index name provided: $AZURE_SEARCH_INDEX"
+            echo "Waiting for index '$AZURE_SEARCH_INDEX' to be created by the application..."
+            echo "This may take a few minutes as the document is processed..."
 
-          # Wait up to 10 minutes for the index to be created
-          for i in {1..20}; do
-            echo "Checking for index (attempt $i/20)..."
+            # Wait up to 10 minutes for the index to be created
+            for i in {1..20}; do
+              echo "Checking for index (attempt $i/20)..."
 
-            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-              "https://${AZURE_SEARCH_SERVICE}.search.windows.net/indexes/${AZURE_SEARCH_INDEX}?api-version=2024-07-01" \
-              -H "api-key: ${AZURE_SEARCH_KEY}")
+              HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                "https://${AZURE_SEARCH_SERVICE}.search.windows.net/indexes/${AZURE_SEARCH_INDEX}?api-version=2024-07-01" \
+                -H "api-key: ${AZURE_SEARCH_KEY}")
 
-            if [ "$HTTP_STATUS" == "200" ]; then
-              echo "✅ Index '$AZURE_SEARCH_INDEX' found!"
-              break
-            fi
+              if [ "$HTTP_STATUS" == "200" ]; then
+                echo "✅ Index '$AZURE_SEARCH_INDEX' found!"
+                break
+              fi
 
-            if [ $i -eq 20 ]; then
-              echo "⚠️ Index not found after 10 minutes, proceeding anyway..."
-            else
-              echo "Index not found yet (HTTP $HTTP_STATUS), waiting 30 seconds..."
-              sleep 30
-            fi
-          done
+              if [ $i -eq 20 ]; then
+                echo "⚠️ Index not found after 10 minutes, proceeding anyway..."
+              else
+                echo "Index not found yet (HTTP $HTTP_STATUS), waiting 30 seconds..."
+                sleep 30
+              fi
+            done
+          else
+            echo "No index name provided. Waiting for index to be auto-created and detecting it..."
+            echo "This may take a few minutes as the document is processed..."
+
+            # Wait up to 10 minutes for any index to be created
+            for i in {1..20}; do
+              echo "Checking for indexes (attempt $i/20)..."
+
+              # List all indexes in the search service
+              INDEXES_RESPONSE=$(curl -s \
+                "https://${AZURE_SEARCH_SERVICE}.search.windows.net/indexes?api-version=2024-07-01&\$select=name" \
+                -H "api-key: ${AZURE_SEARCH_KEY}")
+
+              # Extract index names using jq
+              INDEX_COUNT=$(echo "$INDEXES_RESPONSE" | jq -r '.value | length')
+
+              if [ "$INDEX_COUNT" -gt 0 ]; then
+                # Get the first index name (most recently created)
+                AZURE_SEARCH_INDEX=$(echo "$INDEXES_RESPONSE" | jq -r '.value[0].name')
+                echo "✅ Found index: '$AZURE_SEARCH_INDEX'"
+                break
+              fi
+
+              if [ $i -eq 20 ]; then
+                echo "❌ No index found after 10 minutes"
+                exit 1
+              else
+                echo "No indexes found yet, waiting 30 seconds..."
+                sleep 30
+              fi
+            done
+          fi
+
+          echo "AZURE_SEARCH_INDEX=$AZURE_SEARCH_INDEX" >> $GITHUB_OUTPUT
+          echo "Using index: $AZURE_SEARCH_INDEX"
 
       - name: Populate Azure Search Index
         run: |
           AZURE_SEARCH_SERVICE="${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}"
-          AZURE_SEARCH_INDEX="${{ inputs.AZURE_SEARCH_INDEX }}"
+          AZURE_SEARCH_INDEX="${{ steps.detect_index.outputs.AZURE_SEARCH_INDEX }}"
 
           export AZURE_SEARCH_SERVICE
           export AZURE_SEARCH_INDEX
@@ -445,7 +484,7 @@ jobs:
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Job Status** | ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Azure Search Service** | \`${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Azure Search Index** | \`${{ inputs.AZURE_SEARCH_INDEX }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Azure Search Index** | \`${{ steps.detect_index.outputs.AZURE_SEARCH_INDEX }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Azure Blob Storage Account** | \`${{ steps.extract_names.outputs.AZURE_BLOB_ACCOUNT_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Resource Group** | \`${{ inputs.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **WAF** | \`${{ inputs.WAF }}\` |" >> $GITHUB_STEP_SUMMARY
