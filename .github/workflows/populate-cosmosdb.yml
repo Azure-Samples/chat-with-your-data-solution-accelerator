@@ -57,7 +57,13 @@ jobs:
       - name: Enable Public Access for Azure Search (WAF Mode)
         if: ${{ inputs.WAF == true }}
         run: |
-          AZURE_SEARCH_SERVICE="${{ inputs.AZURE_SEARCH_SERVICE }}"
+          AZURE_SEARCH_SERVICE_INPUT="${{ inputs.AZURE_SEARCH_SERVICE }}"
+          # Extract service name if full URL is provided
+          if [[ "$AZURE_SEARCH_SERVICE_INPUT" == https://* ]]; then
+            AZURE_SEARCH_SERVICE=$(echo "$AZURE_SEARCH_SERVICE_INPUT" | sed 's|https://||' | cut -d'.' -f1)
+          else
+            AZURE_SEARCH_SERVICE="$AZURE_SEARCH_SERVICE_INPUT"
+          fi
 
           echo "WAF mode enabled - Configuring public access for Azure Search service: $AZURE_SEARCH_SERVICE"
 
@@ -83,7 +89,14 @@ jobs:
 
       - name: Create Azure Search Index
         run: |
-          export AZURE_SEARCH_SERVICE="${{ inputs.AZURE_SEARCH_SERVICE }}"
+          AZURE_SEARCH_SERVICE_INPUT="${{ inputs.AZURE_SEARCH_SERVICE }}"
+          # Extract service name if full URL is provided
+          if [[ "$AZURE_SEARCH_SERVICE_INPUT" == https://* ]]; then
+            export AZURE_SEARCH_SERVICE=$(echo "$AZURE_SEARCH_SERVICE_INPUT" | sed 's|https://||' | cut -d'.' -f1)
+          else
+            export AZURE_SEARCH_SERVICE="$AZURE_SEARCH_SERVICE_INPUT"
+          fi
+          echo "Using Azure Search Service: $AZURE_SEARCH_SERVICE"
           # Get Azure Search admin key from Azure
           export AZURE_SEARCH_KEY=$(az search admin-key show --service-name $AZURE_SEARCH_SERVICE --resource-group ${{ inputs.RESOURCE_GROUP_NAME }} --query primaryKey -o tsv)
           # Generate index name for testing
@@ -125,7 +138,14 @@ jobs:
 
       - name: Populate Azure Search Index
         run: |
-          export AZURE_SEARCH_SERVICE="${{ inputs.AZURE_SEARCH_SERVICE }}"
+          AZURE_SEARCH_SERVICE_INPUT="${{ inputs.AZURE_SEARCH_SERVICE }}"
+          # Extract service name if full URL is provided
+          if [[ "$AZURE_SEARCH_SERVICE_INPUT" == https://* ]]; then
+            export AZURE_SEARCH_SERVICE=$(echo "$AZURE_SEARCH_SERVICE_INPUT" | sed 's|https://||' | cut -d'.' -f1)
+          else
+            export AZURE_SEARCH_SERVICE="$AZURE_SEARCH_SERVICE_INPUT"
+          fi
+          echo "Using Azure Search Service: $AZURE_SEARCH_SERVICE"
           # Get Azure Search admin key from Azure
           export AZURE_SEARCH_KEY=$(az search admin-key show --service-name $AZURE_SEARCH_SERVICE --resource-group ${{ inputs.RESOURCE_GROUP_NAME }} --query primaryKey -o tsv)
           # Use the index name from previous step
@@ -170,7 +190,13 @@ jobs:
       - name: Disable Public Access for Azure Search (WAF Mode Cleanup)
         if: ${{ inputs.WAF == true }}
         run: |
-          AZURE_SEARCH_SERVICE="${{ inputs.AZURE_SEARCH_SERVICE }}"
+          AZURE_SEARCH_SERVICE_INPUT="${{ inputs.AZURE_SEARCH_SERVICE }}"
+          # Extract service name if full URL is provided
+          if [[ "$AZURE_SEARCH_SERVICE_INPUT" == https://* ]]; then
+            AZURE_SEARCH_SERVICE=$(echo "$AZURE_SEARCH_SERVICE_INPUT" | sed 's|https://||' | cut -d'.' -f1)
+          else
+            AZURE_SEARCH_SERVICE="$AZURE_SEARCH_SERVICE_INPUT"
+          fi
 
           echo "WAF mode cleanup - Removing public access for Azure Search service: $AZURE_SEARCH_SERVICE"
 
