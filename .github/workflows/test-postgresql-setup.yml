@@ -16,6 +16,21 @@ on:
         required: false
         type: boolean
         default: false
+  workflow_call:
+    inputs:
+      RESOURCE_GROUP_NAME:
+        description: 'Azure Resource Group name'
+        required: true
+        type: string
+      AZURE_POSTGRESQL_HOST_NAME:
+        description: 'PostgreSQL host name (e.g., myserver.postgres.database.azure.com)'
+        required: true
+        type: string
+      WAF:
+        description: 'Enable WAF mode (enables public access and allows all IPs for PostgreSQL)'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   test-postgresql-setup:

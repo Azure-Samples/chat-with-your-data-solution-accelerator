@@ -1,0 +1,222 @@
+name: Test CosmosDB Setup
+
+on:
+  workflow_dispatch:
+    inputs:
+      RESOURCE_GROUP_NAME:
+        description: 'Azure Resource Group name'
+        required: true
+        type: string
+      AZURE_SEARCH_SERVICE:
+        description: 'Azure Search service name'
+        required: true
+        type: string
+      WAF:
+        description: 'Enable WAF mode (enables public access and allows all IPs for Azure Search)'
+        required: false
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      RESOURCE_GROUP_NAME:
+        description: 'Azure Resource Group name'
+        required: true
+        type: string
+      AZURE_SEARCH_SERVICE:
+        description: 'Azure Search service name'
+        required: true
+        type: string
+      WAF:
+        description: 'Enable WAF mode (enables public access and allows all IPs for Azure Search)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  test-cosmosdb-setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Login to Azure
+        shell: bash
+        run: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Upgrade Azure CLI and install extensions
+        run: |
+          az upgrade --yes --all
+
+      - name: Enable Public Access for Azure Search (WAF Mode)
+        if: ${{ inputs.WAF == true }}
+        run: |
+          AZURE_SEARCH_SERVICE="${{ inputs.AZURE_SEARCH_SERVICE }}"
+
+          echo "WAF mode enabled - Configuring public access for Azure Search service: $AZURE_SEARCH_SERVICE"
+
+          # Enable public network access for Azure Search
+          echo "Enabling public network access..."
+          az search service update \
+            --name "$AZURE_SEARCH_SERVICE" \
+            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
+            --public-access enabled
+
+          # Add IP rule to allow all IP addresses
+          echo "Adding IP rule to allow all IP addresses..."
+          az search service update \
+            --name "$AZURE_SEARCH_SERVICE" \
+            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
+            --ip-rules "0.0.0.0/0"
+
+          echo "✅ Public access enabled and all IP addresses allowed for Azure Search service"
+
+      - name: Install Python dependencies
+        run: |
+          pip install requests python-dotenv
+
+      - name: Create Azure Search Index
+        run: |
+          export AZURE_SEARCH_SERVICE="${{ inputs.AZURE_SEARCH_SERVICE }}"
+          # Get Azure Search admin key from Azure
+          export AZURE_SEARCH_KEY=$(az search admin-key show --service-name $AZURE_SEARCH_SERVICE --resource-group ${{ inputs.RESOURCE_GROUP_NAME }} --query primaryKey -o tsv)
+          # Generate index name for testing
+          export AZURE_SEARCH_INDEX="index-test-cosmosdb"
+          echo "AZURE_SEARCH_INDEX=$AZURE_SEARCH_INDEX" >> $GITHUB_ENV
+
+          python - <<EOF
+          import requests
+          import json
+          import os
+
+          SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")
+          INDEX_NAME = os.environ.get("AZURE_SEARCH_INDEX")
+          API_KEY = os.environ.get("AZURE_SEARCH_KEY")
+
+          # Create Index API endpoint
+          ENDPOINT = f"https://{SEARCH_SERVICE}.search.windows.net/indexes/{INDEX_NAME}?api-version=2023-07-01-Preview"
+          HEADERS = {
+              "Content-Type": "application/json",
+              "api-key": API_KEY
+          }
+
+          # Load index schema from file
+          with open("data/azure_search_index_schema.json", "r", encoding="utf-8") as f:
+              index_schema = json.load(f)
+
+          # Update index name to match environment
+          index_schema["name"] = INDEX_NAME
+
+          # Create or update the index using PUT
+          response = requests.put(ENDPOINT, headers=HEADERS, json=index_schema)
+
+          if response.status_code in [200, 201]:
+              print(f"✅ Index '{INDEX_NAME}' created/updated successfully.")
+          else:
+              print(f"❌ Failed to create index: {response.status_code}, {response.text}")
+              exit(1)
+          EOF
+
+      - name: Populate Azure Search Index
+        run: |
+          export AZURE_SEARCH_SERVICE="${{ inputs.AZURE_SEARCH_SERVICE }}"
+          # Get Azure Search admin key from Azure
+          export AZURE_SEARCH_KEY=$(az search admin-key show --service-name $AZURE_SEARCH_SERVICE --resource-group ${{ inputs.RESOURCE_GROUP_NAME }} --query primaryKey -o tsv)
+          # Use the index name from previous step
+          export AZURE_SEARCH_INDEX="${{ env.AZURE_SEARCH_INDEX }}"
+
+          python - <<EOF
+          import requests
+          import json
+          import os
+
+          # Azure Cognitive Search details from environment
+          SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")
+          INDEX_NAME = os.environ.get("AZURE_SEARCH_INDEX")
+          API_KEY = os.environ.get("AZURE_SEARCH_KEY")
+
+          # Search API endpoint
+          ENDPOINT = f"https://{SEARCH_SERVICE}.search.windows.net/indexes/{INDEX_NAME}/docs/index?api-version=2023-07-01-Preview"
+          HEADERS = {
+              "Content-Type": "application/json",
+              "api-key": API_KEY
+          }
+
+          # Load exported data
+          with open("data/azure_search_data.json", "r", encoding="utf-8") as f:
+              documents = json.load(f)
+
+          # Format for Azure Search bulk upload
+          payload = {
+              "value": [{"@search.action": "upload", **doc} for doc in documents]
+          }
+
+          # Send data to Azure Search
+          response = requests.post(ENDPOINT, headers=HEADERS, json=payload)
+
+          if response.status_code == 200:
+              print("✅ Import successful! Data uploaded to Azure Search.")
+          else:
+              print(f"❌ Failed to import data: {response.status_code}, {response.text}")
+              exit(1)
+          EOF
+
+      - name: Disable Public Access for Azure Search (WAF Mode Cleanup)
+        if: ${{ inputs.WAF == true }}
+        run: |
+          AZURE_SEARCH_SERVICE="${{ inputs.AZURE_SEARCH_SERVICE }}"
+
+          echo "WAF mode cleanup - Removing public access for Azure Search service: $AZURE_SEARCH_SERVICE"
+
+          # Remove IP rules
+          echo "Removing IP rules..."
+          az search service update \
+            --name "$AZURE_SEARCH_SERVICE" \
+            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
+            --ip-rules ""
+
+          # Disable public network access for Azure Search
+          echo "Disabling public network access..."
+          az search service update \
+            --name "$AZURE_SEARCH_SERVICE" \
+            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
+            --public-access disabled
+
+          echo "✅ Public access disabled and IP rules removed for Azure Search service"
+
+      - name: Generate Test Job Summary
+        if: always()
+        run: |
+          echo "## 🧪 CosmosDB/Azure Search Setup Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Job Status** | ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Azure Search Service** | \`${{ inputs.AZURE_SEARCH_SERVICE }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Resource Group** | \`${{ inputs.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **WAF Mode** | \`${{ inputs.WAF }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ job.status }}" == "success" ]]; then
+            echo "### ✅ Test Results" >> $GITHUB_STEP_SUMMARY
+            echo "- Azure Search index created successfully" >> $GITHUB_STEP_SUMMARY
+            echo "- Azure Search data import completed" >> $GITHUB_STEP_SUMMARY
+            if [[ "${{ inputs.WAF }}" == "true" ]]; then
+              echo "- WAF mode: Public access enabled and then disabled after data import" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "### ❌ Test Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- Check the job logs for detailed error information" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Logout from Azure
+        if: always()
+        shell: bash
+        run: |
+          az logout || true
+          echo "Logged out from Azure."

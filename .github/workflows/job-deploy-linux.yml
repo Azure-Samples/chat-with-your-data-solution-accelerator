@@ -52,6 +52,8 @@ jobs:
       AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
     outputs:
       WEB_APPURL: ${{ steps.get_output_linux.outputs.FRONTEND_WEBSITE_NAME }}
+      AZURE_POSTGRESQL_HOST_NAME: ${{ steps.get_output_linux.outputs.AZURE_POSTGRESQL_HOST_NAME }}
+      AZURE_SEARCH_SERVICE: ${{ steps.get_output_linux.outputs.AZURE_SEARCH_SERVICE }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -144,6 +146,14 @@ jobs:
           ADMIN_WEBSITE_NAME=$(azd env get-value ADMIN_WEBSITE_NAME)
           echo "ADMIN_WEBSITE_NAME=$ADMIN_WEBSITE_NAME" >> $GITHUB_OUTPUT
 
+          # Export PostgreSQL host name (for PostgreSQL database type)
+          AZURE_POSTGRESQL_HOST_NAME=$(azd env get-value AZURE_POSTGRESQL_HOST_NAME 2>/dev/null || echo "")
+          echo "AZURE_POSTGRESQL_HOST_NAME=$AZURE_POSTGRESQL_HOST_NAME" >> $GITHUB_OUTPUT
+
+          # Export Azure Search service name (for CosmosDB database type)
+          AZURE_SEARCH_SERVICE=$(azd env get-value AZURE_SEARCH_SERVICE 2>/dev/null || echo "")
+          echo "AZURE_SEARCH_SERVICE=$AZURE_SEARCH_SERVICE" >> $GITHUB_OUTPUT
+
       - name: Disable Authentication with Script
         run: |
           export FRONTEND_WEBSITE_URL=$(azd env get-value FRONTEND_WEBSITE_NAME)
@@ -158,216 +168,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          pip install psycopg2-binary python-dotenv azure-identity
-
-      - name: Add Service Principal as PostgreSQL Admin
-        if: inputs.DATABASE_TYPE == 'PostgreSQL'
-        run: |
-          # Get PostgreSQL server name from azd env
-          PG_HOST=$(azd env get-value AZURE_POSTGRESQL_HOST_NAME)
-          PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
-
-          # Get the service principal's object ID (required for PostgreSQL admin)
-          SP_OBJECT_ID=$(az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query id -o tsv)
-
-          # Get service principal display name
-          SP_DISPLAY_NAME=$(az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query displayName -o tsv)
-
-          # Export display name for use in subsequent steps
-          echo "SP_DISPLAY_NAME=$SP_DISPLAY_NAME" >> $GITHUB_ENV
-
-          echo "PostgreSQL Host: $PG_HOST"
-          echo "PostgreSQL Server Name: $PG_SERVER_NAME"
-          echo "Service Principal Object ID: $SP_OBJECT_ID"
-          echo "Service Principal Display Name: $SP_DISPLAY_NAME"
-
-          # Check if Microsoft Entra authentication is enabled on the server
-          echo "Checking PostgreSQL server authentication configuration..."
-          AUTH_CONFIG=$(az rest --method GET \
-            --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ inputs.RESOURCE_GROUP_NAME }}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}?api-version=2022-12-01" \
-            --query "properties.authConfig" -o json) || true
-          echo "Auth config: $AUTH_CONFIG"
-
-          echo "Adding service principal '$SP_DISPLAY_NAME' (Object ID: $SP_OBJECT_ID) as PostgreSQL admin..."
-
-          # Add service principal as Entra ID administrator using REST API
-          RESULT=$(az rest --method PUT \
-            --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ inputs.RESOURCE_GROUP_NAME }}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}/administrators/${SP_OBJECT_ID}?api-version=2022-12-01" \
-            --body "{\"properties\": {\"principalType\": \"ServicePrincipal\", \"principalName\": \"${SP_DISPLAY_NAME}\", \"tenantId\": \"${{ secrets.AZURE_TENANT_ID }}\"}}" \
-            2>&1) && echo "Admin creation result: $RESULT" || echo "Admin creation response: $RESULT"
-
-          # List current admins to verify
-          echo "Listing current PostgreSQL administrators..."
-          az rest --method GET \
-            --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ inputs.RESOURCE_GROUP_NAME }}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}/administrators?api-version=2022-12-01" \
-            -o json || true
-
-          echo "✅ Service principal configured as PostgreSQL administrator"
-
-      - name: Wait for admin propagation
-        if: inputs.DATABASE_TYPE == 'PostgreSQL'
-        run: |
-          echo "Waiting 60 seconds for admin changes to propagate..."
-          sleep 60
-
-      - name: Populate PostgreSQL Database
-        if: inputs.DATABASE_TYPE == 'PostgreSQL'
-        run: |
-          export PG_HOST_DESTINATION=$(azd env get-value AZURE_POSTGRESQL_HOST_NAME)
-          # Get the service principal's display name (required as username for PostgreSQL Entra auth)
-          export SP_DISPLAY_NAME=$(az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query displayName -o tsv)
-
-          echo "Connecting to PostgreSQL at: $PG_HOST_DESTINATION"
-          echo "Using service principal: $SP_DISPLAY_NAME"
-
-          python - <<EOF
-          import os
-          import psycopg2
-          from azure.identity import ClientSecretCredential
-
-          tenant_id = os.environ["AZURE_TENANT_ID"]
-          client_id = os.environ["AZURE_CLIENT_ID"]
-          client_secret = os.environ["AZURE_CLIENT_SECRET"]
-          pg_host = os.environ.get("PG_HOST_DESTINATION")
-          sp_display_name = os.environ.get("SP_DISPLAY_NAME")
-
-          print(f"Tenant ID: {tenant_id}")
-          print(f"Client ID: {client_id}")
-          print(f"PostgreSQL Host: {pg_host}")
-          print(f"Service Principal Name: {sp_display_name}")
-
-          # Acquire Azure AD access token for PostgreSQL
-          credential = ClientSecretCredential(tenant_id, client_id, client_secret)
-          token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default").token
-          print("✅ Successfully acquired Azure AD token")
-
-          db_params = {
-              "user": sp_display_name,   # Use service principal display name (must match PostgreSQL admin name)
-              "password": token,          # Use AAD token
-              "host": pg_host,
-              "port": "5432",
-              "dbname": "postgres",
-              "sslmode": "require"
-          }
-
-          csv_file = "exported_data_vector_score.csv"
-          target_table = "vector_store"
-
-          try:
-              print(f"Connecting to PostgreSQL database...")
-              with psycopg2.connect(**db_params) as conn:
-                  print("✅ Connected to PostgreSQL")
-                  with conn.cursor() as cur:
-                      # Check if table exists
-                      cur.execute(f"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = '{target_table}');")
-                      table_exists = cur.fetchone()[0]
-                      print(f"Table '{target_table}' exists: {table_exists}")
-
-                      if not table_exists:
-                          print(f"⚠️ Table '{target_table}' does not exist. Skipping data import.")
-                      else:
-                          with open(csv_file, "r", encoding="utf-8") as f:
-                              next(f)  # Skip header
-                              cur.copy_expert(f"COPY {target_table} FROM STDIN WITH CSV", f)
-                          conn.commit()
-                          print(f"✅ Imported data from '{csv_file}' into table '{target_table}'.")
-          except FileNotFoundError:
-              print(f"⚠️ CSV file '{csv_file}' not found. Skipping data import.")
-          except Exception as e:
-              print(f"❌ Error during import: {e}")
-              raise
-          EOF
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          SP_DISPLAY_NAME: ${{ env.SP_DISPLAY_NAME }}
-
-      - name: Create Azure Search Index (CosmosDB)
-        if: inputs.DATABASE_TYPE == 'CosmosDB'
-        run: |
-          export AZURE_SEARCH_SERVICE=$(azd env get-value AZURE_SEARCH_SERVICE)
-          # Get Azure Search admin key from Azure
-          export AZURE_SEARCH_KEY=$(az search admin-key show --service-name $AZURE_SEARCH_SERVICE --resource-group ${{ inputs.RESOURCE_GROUP_NAME }} --query primaryKey -o tsv)
-          # Generate index name based on environment
-          export AZURE_SEARCH_INDEX="index-${{ inputs.ENV_NAME }}"
-          echo "AZURE_SEARCH_INDEX=$AZURE_SEARCH_INDEX" >> $GITHUB_ENV
-          python - <<EOF
-          import requests
-          import json
-          import os
-
-          SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")
-          INDEX_NAME = os.environ.get("AZURE_SEARCH_INDEX")
-          API_KEY = os.environ.get("AZURE_SEARCH_KEY")
-
-          # Create Index API endpoint
-          ENDPOINT = f"https://{SEARCH_SERVICE}.search.windows.net/indexes/{INDEX_NAME}?api-version=2023-07-01-Preview"
-          HEADERS = {
-              "Content-Type": "application/json",
-              "api-key": API_KEY
-          }
-
-          # Load index schema from file
-          with open("data/azure_search_index_schema.json", "r", encoding="utf-8") as f:
-              index_schema = json.load(f)
-
-          # Update index name to match environment
-          index_schema["name"] = INDEX_NAME
-
-          # Create or update the index using PUT
-          response = requests.put(ENDPOINT, headers=HEADERS, json=index_schema)
-
-          if response.status_code in [200, 201]:
-              print(f"✅ Index '{INDEX_NAME}' created/updated successfully.")
-          else:
-              print(f"❌ Failed to create index: {response.status_code}, {response.text}")
-              exit(1)
-          EOF
-
-      - name: Populate Azure Search Index (CosmosDB)
-        if: inputs.DATABASE_TYPE == 'CosmosDB'
-        run: |
-          export AZURE_SEARCH_SERVICE=$(azd env get-value AZURE_SEARCH_SERVICE)
-          # Get Azure Search admin key from Azure
-          export AZURE_SEARCH_KEY=$(az search admin-key show --service-name $AZURE_SEARCH_SERVICE --resource-group ${{ inputs.RESOURCE_GROUP_NAME }} --query primaryKey -o tsv)
-          # Use the index name from previous step
-          export AZURE_SEARCH_INDEX="${{ env.AZURE_SEARCH_INDEX }}"
-          python - <<EOF
-          import requests
-          import json
-          import os
-
-          # Azure Cognitive Search details from environment
-          SEARCH_SERVICE = os.environ.get("AZURE_SEARCH_SERVICE")
-          INDEX_NAME = os.environ.get("AZURE_SEARCH_INDEX")
-          API_KEY = os.environ.get("AZURE_SEARCH_KEY")
-
-          # Search API endpoint
-          ENDPOINT = f"https://{SEARCH_SERVICE}.search.windows.net/indexes/{INDEX_NAME}/docs/index?api-version=2023-07-01-Preview"
-          HEADERS = {
-              "Content-Type": "application/json",
-              "api-key": API_KEY
-          }
-
-          # Load exported data
-          with open("data/azure_search_data.json", "r", encoding="utf-8") as f:
-              documents = json.load(f)
-
-          # Format for Azure Search bulk upload
-          payload = {
-              "value": [{"@search.action": "upload", **doc} for doc in documents]
-          }
-
-          # Send data to Azure Search
-          response = requests.post(ENDPOINT, headers=HEADERS, json=payload)
-
-          if response.status_code == 200:
-              print("✅ Import successful! Data uploaded to Azure Search.")
-          else:
-              print(f"❌ Failed to import data: {response.status_code}, {response.text}")
-              exit(1)
-          EOF
+          pip install psycopg2-binary python-dotenv azure-identity requests
 
       - name: Wait for 20 minutes for propagation
         run: sleep 1200
@@ -409,3 +210,25 @@ jobs:
         run: |
           az logout || true
           echo "Logged out from Azure."
+
+  # Call PostgreSQL setup workflow when DATABASE_TYPE is PostgreSQL
+  setup-postgresql:
+    needs: deploy-linux
+    if: ${{ inputs.DATABASE_TYPE == 'PostgreSQL' }}
+    uses: ./.github/workflows/test-postgresql-setup.yml
+    with:
+      RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+      AZURE_POSTGRESQL_HOST_NAME: ${{ needs.deploy-linux.outputs.AZURE_POSTGRESQL_HOST_NAME }}
+      WAF: ${{ inputs.WAF_ENABLED == 'true' }}
+    secrets: inherit
+
+  # Call CosmosDB/Azure Search setup workflow when DATABASE_TYPE is CosmosDB
+  setup-cosmosdb:
+    needs: deploy-linux
+    if: ${{ inputs.DATABASE_TYPE == 'CosmosDB' }}
+    uses: ./.github/workflows/test-cosmosdb-setup.yml
+    with:
+      RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+      AZURE_SEARCH_SERVICE: ${{ needs.deploy-linux.outputs.AZURE_SEARCH_SERVICE }}
+      WAF: ${{ inputs.WAF_ENABLED == 'true' }}
+    secrets: inherit
