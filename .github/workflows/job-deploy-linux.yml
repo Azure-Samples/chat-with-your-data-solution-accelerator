@@ -204,7 +204,7 @@ jobs:
   setup-postgresql:
     needs: deploy-linux
     if: ${{ inputs.DATABASE_TYPE == 'PostgreSQL' }}
-    uses: ./.github/workflows/test-postgresql-setup.yml
+    uses: ./.github/workflows/populate-postgresql.yml
     with:
       RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
       AZURE_POSTGRESQL_HOST_NAME: ${{ needs.deploy-linux.outputs.AZURE_POSTGRESQL_HOST_NAME }}
@@ -215,7 +215,7 @@ jobs:
   setup-cosmosdb:
     needs: deploy-linux
     if: ${{ inputs.DATABASE_TYPE == 'CosmosDB' }}
-    uses: ./.github/workflows/test-cosmosdb-setup.yml
+    uses: ./.github/workflows/populate-cosmosdb.yml
     with:
       RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
       AZURE_SEARCH_SERVICE: ${{ needs.deploy-linux.outputs.AZURE_SEARCH_SERVICE }}
