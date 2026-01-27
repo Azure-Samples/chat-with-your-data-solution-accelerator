@@ -11,8 +11,8 @@ on:
         description: 'Azure Search service name or URL'
         required: true
         type: string
-      AZURE_STORAGE_ACCOUNT:
-        description: 'Azure Storage Account name'
+      AZURE_BLOB_ACCOUNT_NAME:
+        description: 'Azure Blob Storage Account name'
         required: true
         type: string
       AZURE_SEARCH_INDEX:
@@ -34,8 +34,8 @@ on:
         description: 'Azure Search service name or URL'
         required: true
         type: string
-      AZURE_STORAGE_ACCOUNT:
-        description: 'Azure Storage Account name'
+      AZURE_BLOB_ACCOUNT_NAME:
+        description: 'Azure Blob Storage Account name'
         required: true
         type: string
       AZURE_SEARCH_INDEX:
@@ -84,15 +84,15 @@ jobs:
           echo "AZURE_SEARCH_SERVICE=$AZURE_SEARCH_SERVICE" >> $GITHUB_OUTPUT
           echo "Using Azure Search Service: $AZURE_SEARCH_SERVICE"
 
-          # Extract Azure Storage Account name if full URL is provided
-          AZURE_STORAGE_ACCOUNT_INPUT="${{ inputs.AZURE_STORAGE_ACCOUNT }}"
-          if [[ "$AZURE_STORAGE_ACCOUNT_INPUT" == https://* ]]; then
-            AZURE_STORAGE_ACCOUNT=$(echo "$AZURE_STORAGE_ACCOUNT_INPUT" | sed 's|https://||' | cut -d'.' -f1)
+          # Extract Azure Blob Storage Account name if full URL is provided
+          AZURE_BLOB_ACCOUNT_NAME_INPUT="${{ inputs.AZURE_BLOB_ACCOUNT_NAME }}"
+          if [[ "$AZURE_BLOB_ACCOUNT_NAME_INPUT" == https://* ]]; then
+            AZURE_BLOB_ACCOUNT_NAME=$(echo "$AZURE_BLOB_ACCOUNT_NAME_INPUT" | sed 's|https://||' | cut -d'.' -f1)
           else
-            AZURE_STORAGE_ACCOUNT="$AZURE_STORAGE_ACCOUNT_INPUT"
+            AZURE_BLOB_ACCOUNT_NAME="$AZURE_BLOB_ACCOUNT_NAME_INPUT"
           fi
-          echo "AZURE_STORAGE_ACCOUNT=$AZURE_STORAGE_ACCOUNT" >> $GITHUB_OUTPUT
-          echo "Using Azure Storage Account: $AZURE_STORAGE_ACCOUNT"
+          echo "AZURE_BLOB_ACCOUNT_NAME=$AZURE_BLOB_ACCOUNT_NAME" >> $GITHUB_OUTPUT
+          echo "Using Azure Blob Storage Account: $AZURE_BLOB_ACCOUNT_NAME"
 
       - name: Enable Public Access for Azure Search (WAF Mode)
         if: ${{ inputs.WAF == true }}
@@ -123,13 +123,13 @@ jobs:
 
       - name: Upload Document to Blob Storage to Trigger Index Creation
         run: |
-          AZURE_STORAGE_ACCOUNT="${{ steps.extract_names.outputs.AZURE_STORAGE_ACCOUNT }}"
+          AZURE_BLOB_ACCOUNT_NAME="${{ steps.extract_names.outputs.AZURE_BLOB_ACCOUNT_NAME }}"
 
           echo "Uploading sample document to blob storage to trigger index creation..."
 
           # Upload file using Azure CLI
           az storage blob upload \
-            --account-name "$AZURE_STORAGE_ACCOUNT" \
+            --account-name "$AZURE_BLOB_ACCOUNT_NAME" \
             --container-name "documents" \
             --name "PerksPlus.pdf" \
             --file "data/PerksPlus.pdf" \
@@ -259,7 +259,7 @@ jobs:
           echo "| **Job Status** | ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Azure Search Service** | \`${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Azure Search Index** | \`${{ inputs.AZURE_SEARCH_INDEX }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Azure Storage Account** | \`${{ steps.extract_names.outputs.AZURE_STORAGE_ACCOUNT }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Azure Blob Storage Account** | \`${{ steps.extract_names.outputs.AZURE_BLOB_ACCOUNT_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Resource Group** | \`${{ inputs.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **WAF Mode** | \`${{ inputs.WAF }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
