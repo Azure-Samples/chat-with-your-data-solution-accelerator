@@ -96,9 +96,11 @@ jobs:
 
       - name: Enable Public Access for Azure Search (WAF Mode)
         if: ${{ inputs.WAF == true }}
+        continue-on-error: true
         run: |
           AZURE_SEARCH_SERVICE="${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}"
           RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
+          SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
 
           echo "WAF mode enabled - Configuring public access for Azure Search service: $AZURE_SEARCH_SERVICE"
 
@@ -116,20 +118,33 @@ jobs:
 
           # Check if identity type contains UserAssigned (handles "UserAssigned", "SystemAssigned, UserAssigned", etc.)
           if [[ "$IDENTITY_TYPE" == *"UserAssigned"* ]]; then
-            # Get the user-assigned identity IDs
-            IDENTITY_IDS=$(az search service show \
+            # Azure CLI doesn't support UserAssigned identity updates, use REST API instead
+            echo "Using REST API to preserve UserAssigned identity configuration..."
+
+            # Get the current service configuration to preserve identity
+            CURRENT_CONFIG=$(az search service show \
               --name "$AZURE_SEARCH_SERVICE" \
               --resource-group "$RESOURCE_GROUP" \
-              --query "identity.userAssignedIdentities | keys(@) | join(',', @)" -o tsv)
+              -o json)
 
-            echo "User-assigned identity IDs: $IDENTITY_IDS"
+            # Extract the identity block
+            IDENTITY_BLOCK=$(echo "$CURRENT_CONFIG" | jq '.identity')
+            LOCATION=$(echo "$CURRENT_CONFIG" | jq -r '.location')
 
-            az search service update \
-              --name "$AZURE_SEARCH_SERVICE" \
-              --resource-group "$RESOURCE_GROUP" \
-              --public-access enabled \
-              --identity-type "$IDENTITY_TYPE" \
-              --user-assigned-ids $IDENTITY_IDS
+            # Build the PATCH request body with only the properties we want to update
+            PATCH_BODY=$(jq -n \
+              --argjson identity "$IDENTITY_BLOCK" \
+              '{
+                "properties": {
+                  "publicNetworkAccess": "enabled"
+                },
+                "identity": $identity
+              }')
+
+            echo "Sending PATCH request to update public access..."
+            az rest --method PATCH \
+              --uri "https://management.azure.com/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Search/searchServices/${AZURE_SEARCH_SERVICE}?api-version=2024-03-01-preview" \
+              --body "$PATCH_BODY"
           else
             az search service update \
               --name "$AZURE_SEARCH_SERVICE" \
