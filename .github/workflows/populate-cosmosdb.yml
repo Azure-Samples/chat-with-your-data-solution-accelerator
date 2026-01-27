@@ -127,13 +127,16 @@ jobs:
 
           echo "Uploading sample document to blob storage to trigger index creation..."
 
-          # Upload file using Azure CLI
+          # Get storage account key for authentication
+          STORAGE_KEY=$(az storage account keys list --account-name "$AZURE_BLOB_ACCOUNT_NAME" --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" --query '[0].value' -o tsv)
+
+          # Upload file using Azure CLI with account key
           az storage blob upload \
             --account-name "$AZURE_BLOB_ACCOUNT_NAME" \
+            --account-key "$STORAGE_KEY" \
             --container-name "documents" \
             --name "PerksPlus.pdf" \
             --file "data/PerksPlus.pdf" \
-            --auth-mode login \
             --overwrite
 
           echo "✅ Document uploaded to blob storage"
