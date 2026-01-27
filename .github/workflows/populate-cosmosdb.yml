@@ -210,6 +210,12 @@ jobs:
           echo ""
           echo "✅ Public access enabled for Azure Search and Storage Account"
 
+      - name: Wait for Public Access Propagation
+        run: |
+          echo "Waiting for public access propagation..."
+          sleep 60
+          echo "✅ Wait complete."
+
       - name: Upload Document to Blob Storage to Trigger Index Creation
         run: |
           AZURE_BLOB_ACCOUNT_NAME="${{ steps.extract_names.outputs.AZURE_BLOB_ACCOUNT_NAME }}"
@@ -356,12 +362,6 @@ jobs:
               print(f"❌ Failed to import data: {response.status_code}, {response.text}")
               exit(1)
           EOF
-
-      - name: Wait for Data Propagation
-        run: |
-          echo "Waiting for data propagation..."
-          sleep 60
-          echo "✅ Wait complete."
 
       - name: Disable Public Access for Azure Search and Storage Account (WAF)
         if: ${{ inputs.WAF == true }}
