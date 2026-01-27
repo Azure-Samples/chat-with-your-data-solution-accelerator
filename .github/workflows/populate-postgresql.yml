@@ -1,4 +1,4 @@
-name: Populate Sample Data for PostgreSQL
+name: Populate Sample Data into PostgreSQL
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       WAF:
-        description: 'Enable WAF mode (enables public access and allows all IPs for PostgreSQL)'
+        description: 'Is this a WAF deployment? (enables public access temporarily for data import and then disables it)'
         required: false
         type: boolean
         default: false
@@ -27,7 +27,7 @@ on:
         required: true
         type: string
       WAF:
-        description: 'Enable WAF mode (enables public access and allows all IPs for PostgreSQL)'
+        description: 'Is this a WAF deployment? (enables public access temporarily for data import and then disables it)'
         required: false
         type: boolean
         default: false
@@ -55,13 +55,13 @@ jobs:
           az upgrade --yes --all
           az extension add --name rdbms-connect --upgrade --yes || true
 
-      - name: Enable Public Access for PostgreSQL (WAF Mode)
+      - name: Enable Public Access for PostgreSQL (WAF)
         if: ${{ inputs.WAF == true }}
         run: |
           PG_HOST="${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}"
           PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
 
-          echo "WAF mode enabled - Configuring public access for PostgreSQL server: $PG_SERVER_NAME"
+          echo "Configuring public access for PostgreSQL server: $PG_SERVER_NAME"
 
           # Enable public network access for the PostgreSQL server
           echo "Enabling public network access..."
@@ -205,13 +205,13 @@ jobs:
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           SP_DISPLAY_NAME: ${{ env.SP_DISPLAY_NAME }}
 
-      - name: Disable Public Access for PostgreSQL (WAF Mode Cleanup)
+      - name: Disable Public Access for PostgreSQL (WAF)
         if: ${{ inputs.WAF == true }}
         run: |
           PG_HOST="${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}"
           PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
 
-          echo "WAF mode cleanup - Removing public access for PostgreSQL server: $PG_SERVER_NAME"
+          echo "Removing public access for PostgreSQL server: $PG_SERVER_NAME"
 
           # Remove the firewall rule that allowed all IP addresses
           echo "Removing firewall rule 'AllowAllIPs'..."
@@ -240,12 +240,12 @@ jobs:
           echo "| **Job Status** | ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **PostgreSQL Host** | \`${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Resource Group** | \`${{ inputs.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **WAF** | \`${{ inputs.WAF }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ job.status }}" == "success" ]]; then
             echo "### ✅ Test Results" >> $GITHUB_STEP_SUMMARY
             echo "- Service principal successfully added as PostgreSQL admin" >> $GITHUB_STEP_SUMMARY
-            echo "- PostgreSQL database connection verified" >> $GITHUB_STEP_SUMMARY
-            echo "- Data import completed successfully" >> $GITHUB_STEP_SUMMARY
+            echo "- Sample Data import completed successfully" >> $GITHUB_STEP_SUMMARY
           else
             echo "### ❌ Test Failed" >> $GITHUB_STEP_SUMMARY
             echo "- Check the job logs for detailed error information" >> $GITHUB_STEP_SUMMARY

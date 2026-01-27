@@ -1,4 +1,4 @@
-name: Populate Sample Data for CosmosDB
+name: Populate Sample Data into CosmosDB
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ on:
         required: true
         type: string
       WAF:
-        description: 'Enable WAF mode (enables public access and allows all IPs for Azure Search)'
+        description: 'Is this a WAF deployment? (enables public access temporarily for data import and then disables it)'
         required: false
         type: boolean
         default: false
@@ -43,7 +43,7 @@ on:
         required: true
         type: string
       WAF:
-        description: 'Enable WAF mode (enables public access and allows all IPs for Azure Search)'
+        description: 'Is this a WAF deployment? (enables public access temporarily for data import and then disables it)'
         required: false
         type: boolean
         default: false
@@ -106,7 +106,7 @@ jobs:
           RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
           SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
 
-          echo "Enabled WAF - Configuring public access for resources"
+          echo "Configuring public access for resources"
 
           # ========== Enable Public Access for Azure Search ==========
           echo ""
@@ -208,7 +208,7 @@ jobs:
 
           echo "✅ Public access enabled for Storage Account"
           echo ""
-          echo "✅ All resources configured for public access"
+          echo "✅ Public access enabled for Azure Search and Storage Account"
 
       - name: Upload Document to Blob Storage to Trigger Index Creation
         run: |
@@ -434,7 +434,7 @@ jobs:
 
           echo "✅ Public access disabled for Storage Account"
           echo ""
-          echo "✅ All resources restored to secure state"
+          echo "✅ Public access disabled for Azure Search and Storage Account"
 
       - name: Generate Test Job Summary
         if: always()
@@ -453,9 +453,9 @@ jobs:
           if [[ "${{ job.status }}" == "success" ]]; then
             echo "### ✅ Test Results" >> $GITHUB_STEP_SUMMARY
             echo "- Document uploaded to blob storage to trigger index creation" >> $GITHUB_STEP_SUMMARY
-            echo "- Azure Search index populated with test data" >> $GITHUB_STEP_SUMMARY
+            echo "- Azure Search index populated with Sample data" >> $GITHUB_STEP_SUMMARY
             if [[ "${{ inputs.WAF }}" == "true" ]]; then
-              echo "- WAF: Public access enabled and then disabled after data import" >> $GITHUB_STEP_SUMMARY
+              echo "Public access enabled and then disabled after data import" >> $GITHUB_STEP_SUMMARY
             fi
           else
             echo "### ❌ Test Failed" >> $GITHUB_STEP_SUMMARY
