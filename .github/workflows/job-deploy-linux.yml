@@ -176,17 +176,39 @@ jobs:
           # Export display name for use in subsequent steps
           echo "SP_DISPLAY_NAME=$SP_DISPLAY_NAME" >> $GITHUB_ENV
 
+          echo "PostgreSQL Host: $PG_HOST"
+          echo "PostgreSQL Server Name: $PG_SERVER_NAME"
+          echo "Service Principal Object ID: $SP_OBJECT_ID"
+          echo "Service Principal Display Name: $SP_DISPLAY_NAME"
+
+          # Check if Microsoft Entra authentication is enabled on the server
+          echo "Checking PostgreSQL server authentication configuration..."
+          AUTH_CONFIG=$(az rest --method GET \
+            --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ inputs.RESOURCE_GROUP_NAME }}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}?api-version=2022-12-01" \
+            --query "properties.authConfig" -o json) || true
+          echo "Auth config: $AUTH_CONFIG"
+
           echo "Adding service principal '$SP_DISPLAY_NAME' (Object ID: $SP_OBJECT_ID) as PostgreSQL admin..."
 
-          # Add service principal as Entra ID administrator
-          az postgres flexible-server ad-admin create \
-            --server-name "$PG_SERVER_NAME" \
-            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
-            --object-id "$SP_OBJECT_ID" \
-            --display-name "$SP_DISPLAY_NAME" \
-            --type ServicePrincipal || echo "Admin may already exist, continuing..."
+          # Add service principal as Entra ID administrator using REST API
+          RESULT=$(az rest --method PUT \
+            --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ inputs.RESOURCE_GROUP_NAME }}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}/administrators/${SP_OBJECT_ID}?api-version=2022-12-01" \
+            --body "{\"properties\": {\"principalType\": \"ServicePrincipal\", \"principalName\": \"${SP_DISPLAY_NAME}\", \"tenantId\": \"${{ secrets.AZURE_TENANT_ID }}\"}}" \
+            2>&1) && echo "Admin creation result: $RESULT" || echo "Admin creation response: $RESULT"
+
+          # List current admins to verify
+          echo "Listing current PostgreSQL administrators..."
+          az rest --method GET \
+            --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ inputs.RESOURCE_GROUP_NAME }}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}/administrators?api-version=2022-12-01" \
+            -o json || true
 
           echo "✅ Service principal configured as PostgreSQL administrator"
+
+      - name: Wait for admin propagation
+        if: inputs.DATABASE_TYPE == 'PostgreSQL'
+        run: |
+          echo "Waiting 60 seconds for admin changes to propagate..."
+          sleep 60
 
       - name: Populate PostgreSQL Database
         if: inputs.DATABASE_TYPE == 'PostgreSQL'
@@ -194,6 +216,10 @@ jobs:
           export PG_HOST_DESTINATION=$(azd env get-value AZURE_POSTGRESQL_HOST_NAME)
           # Get the service principal's display name (required as username for PostgreSQL Entra auth)
           export SP_DISPLAY_NAME=$(az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query displayName -o tsv)
+
+          echo "Connecting to PostgreSQL at: $PG_HOST_DESTINATION"
+          echo "Using service principal: $SP_DISPLAY_NAME"
+
           python - <<EOF
           import os
           import psycopg2
@@ -205,9 +231,15 @@ jobs:
           pg_host = os.environ.get("PG_HOST_DESTINATION")
           sp_display_name = os.environ.get("SP_DISPLAY_NAME")
 
+          print(f"Tenant ID: {tenant_id}")
+          print(f"Client ID: {client_id}")
+          print(f"PostgreSQL Host: {pg_host}")
+          print(f"Service Principal Name: {sp_display_name}")
+
           # Acquire Azure AD access token for PostgreSQL
           credential = ClientSecretCredential(tenant_id, client_id, client_secret)
           token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default").token
+          print("✅ Successfully acquired Azure AD token")
 
           db_params = {
               "user": sp_display_name,   # Use service principal display name (must match PostgreSQL admin name)
@@ -222,15 +254,28 @@ jobs:
           target_table = "vector_store"
 
           try:
+              print(f"Connecting to PostgreSQL database...")
               with psycopg2.connect(**db_params) as conn:
+                  print("✅ Connected to PostgreSQL")
                   with conn.cursor() as cur:
-                      with open(csv_file, "r", encoding="utf-8") as f:
-                          next(f)  # Skip header
-                          cur.copy_expert(f"COPY {target_table} FROM STDIN WITH CSV", f)
-                  conn.commit()
-                  print(f"✅ Imported data from '{csv_file}' into table '{target_table}'.")
+                      # Check if table exists
+                      cur.execute(f"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = '{target_table}');")
+                      table_exists = cur.fetchone()[0]
+                      print(f"Table '{target_table}' exists: {table_exists}")
+
+                      if not table_exists:
+                          print(f"⚠️ Table '{target_table}' does not exist. Skipping data import.")
+                      else:
+                          with open(csv_file, "r", encoding="utf-8") as f:
+                              next(f)  # Skip header
+                              cur.copy_expert(f"COPY {target_table} FROM STDIN WITH CSV", f)
+                          conn.commit()
+                          print(f"✅ Imported data from '{csv_file}' into table '{target_table}'.")
+          except FileNotFoundError:
+              print(f"⚠️ CSV file '{csv_file}' not found. Skipping data import.")
           except Exception as e:
               print(f"❌ Error during import: {e}")
+              raise
           EOF
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
