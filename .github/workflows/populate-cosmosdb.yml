@@ -96,7 +96,6 @@ jobs:
 
       - name: Enable Public Access for Azure Search (WAF Mode)
         if: ${{ inputs.WAF == true }}
-        continue-on-error: true
         run: |
           AZURE_SEARCH_SERVICE="${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}"
           RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
@@ -160,67 +159,23 @@ jobs:
           AZURE_BLOB_ACCOUNT_NAME="${{ steps.extract_names.outputs.AZURE_BLOB_ACCOUNT_NAME }}"
           RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
 
-          echo "WAF mode enabled - Configuring public access for Storage Account: $AZURE_BLOB_ACCOUNT_NAME"
+          echo "WAF mode enabled - Enabling public access for Storage Account: $AZURE_BLOB_ACCOUNT_NAME"
 
-          # Get original Storage Account public access status
-          original_storage_public_access=$(az storage account show \
+          # Enable public network access
+          echo "Enabling public network access..."
+          az storage account update \
             --name "$AZURE_BLOB_ACCOUNT_NAME" \
             --resource-group "$RESOURCE_GROUP" \
-            --query "publicNetworkAccess" \
-            -o tsv 2>&1)
-          if [ -z "$original_storage_public_access" ] || [[ "$original_storage_public_access" == *"ERROR"* ]]; then
-            echo "✗ Failed to get Storage Account public access status"
-            exit 1
-          fi
-          echo "Original Storage Account public access: $original_storage_public_access"
+            --public-network-access Enabled \
+            --output none
 
-          # Get original Storage Account network default action
-          original_storage_default_action=$(az storage account show \
+          # Set default action to Allow
+          echo "Setting default action to Allow..."
+          az storage account update \
             --name "$AZURE_BLOB_ACCOUNT_NAME" \
             --resource-group "$RESOURCE_GROUP" \
-            --query "networkRuleSet.defaultAction" \
-            -o tsv 2>&1)
-          if [ -z "$original_storage_default_action" ] || [[ "$original_storage_default_action" == *"ERROR"* ]]; then
-            echo "✗ Failed to get Storage Account network default action"
-            exit 1
-          fi
-          echo "Original Storage Account default action: $original_storage_default_action"
-
-          # Save original values for cleanup step
-          echo "ORIGINAL_STORAGE_PUBLIC_ACCESS=$original_storage_public_access" >> $GITHUB_ENV
-          echo "ORIGINAL_STORAGE_DEFAULT_ACTION=$original_storage_default_action" >> $GITHUB_ENV
-
-          # Enable public access if not already enabled
-          if [ "$original_storage_public_access" != "Enabled" ]; then
-            echo "✓ Enabling Storage Account public access"
-            az storage account update \
-              --name "$AZURE_BLOB_ACCOUNT_NAME" \
-              --resource-group "$RESOURCE_GROUP" \
-              --public-network-access Enabled \
-              --output none
-            if [ $? -ne 0 ]; then
-              echo "✗ Failed to enable Storage Account public access"
-              exit 1
-            fi
-          else
-            echo "✓ Storage Account public access already enabled"
-          fi
-
-          # Also ensure the default network action allows access
-          if [ "$original_storage_default_action" != "Allow" ]; then
-            echo "✓ Setting Storage Account network default action to Allow"
-            az storage account update \
-              --name "$AZURE_BLOB_ACCOUNT_NAME" \
-              --resource-group "$RESOURCE_GROUP" \
-              --default-action Allow \
-              --output none
-            if [ $? -ne 0 ]; then
-              echo "✗ Failed to set Storage Account network default action"
-              exit 1
-            fi
-          else
-            echo "✓ Storage Account network default action already Allow"
-          fi
+            --default-action Allow \
+            --output none
 
           echo "✅ Public access enabled for Storage Account"
 
@@ -399,33 +354,25 @@ jobs:
         run: |
           AZURE_BLOB_ACCOUNT_NAME="${{ steps.extract_names.outputs.AZURE_BLOB_ACCOUNT_NAME }}"
 
-          echo "WAF mode cleanup - Restoring original public access settings for Storage Account: $AZURE_BLOB_ACCOUNT_NAME"
+          echo "WAF mode cleanup - Disabling public access for Storage Account: $AZURE_BLOB_ACCOUNT_NAME"
 
-          # Restore original public network access setting
-          if [[ -n "$ORIGINAL_STORAGE_PUBLIC_ACCESS" && "$ORIGINAL_STORAGE_PUBLIC_ACCESS" != "Enabled" ]]; then
-            echo "Restoring public network access to: $ORIGINAL_STORAGE_PUBLIC_ACCESS"
-            az storage account update \
-              --name "$AZURE_BLOB_ACCOUNT_NAME" \
-              --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
-              --public-network-access "$ORIGINAL_STORAGE_PUBLIC_ACCESS"
-            echo "✅ Public network access restored to $ORIGINAL_STORAGE_PUBLIC_ACCESS"
-          else
-            echo "Public network access was already Enabled, no restore needed"
-          fi
+          # Disable public network access
+          echo "Disabling public network access..."
+          az storage account update \
+            --name "$AZURE_BLOB_ACCOUNT_NAME" \
+            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
+            --public-network-access Disabled \
+            --output none
 
-          # Restore original default action setting
-          if [[ -n "$ORIGINAL_STORAGE_DEFAULT_ACTION" && "$ORIGINAL_STORAGE_DEFAULT_ACTION" != "Allow" ]]; then
-            echo "Restoring default action to: $ORIGINAL_STORAGE_DEFAULT_ACTION"
-            az storage account update \
-              --name "$AZURE_BLOB_ACCOUNT_NAME" \
-              --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
-              --default-action "$ORIGINAL_STORAGE_DEFAULT_ACTION"
-            echo "✅ Default action restored to $ORIGINAL_STORAGE_DEFAULT_ACTION"
-          else
-            echo "Default action was already Allow, no restore needed"
-          fi
+          # Set default action to Deny
+          echo "Setting default action to Deny..."
+          az storage account update \
+            --name "$AZURE_BLOB_ACCOUNT_NAME" \
+            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
+            --default-action Deny \
+            --output none
 
-          echo "✅ Storage Account public access settings restored"
+          echo "✅ Public access disabled for Storage Account"
 
       - name: Generate Test Job Summary
         if: always()
