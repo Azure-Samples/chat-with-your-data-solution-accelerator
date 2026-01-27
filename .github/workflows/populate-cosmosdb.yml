@@ -340,15 +340,57 @@ jobs:
         if: ${{ inputs.WAF == true }}
         run: |
           AZURE_SEARCH_SERVICE="${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}"
+          RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
+          SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
 
           echo "WAF mode cleanup - Removing public access for Azure Search service: $AZURE_SEARCH_SERVICE"
 
+          # Get the current identity configuration to preserve it during update
+          echo "Getting current identity configuration..."
+          IDENTITY_TYPE=$(az search service show \
+            --name "$AZURE_SEARCH_SERVICE" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query "identity.type" -o tsv 2>/dev/null || echo "None")
+
+          echo "Current identity type: $IDENTITY_TYPE"
+
           # Disable public network access for Azure Search
           echo "Disabling public network access..."
-          az search service update \
-            --name "$AZURE_SEARCH_SERVICE" \
-            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
-            --public-access disabled
+
+          # Check if identity type contains UserAssigned (handles "UserAssigned", "SystemAssigned, UserAssigned", etc.)
+          if [[ "$IDENTITY_TYPE" == *"UserAssigned"* ]]; then
+            # Azure CLI doesn't support UserAssigned identity updates, use REST API instead
+            echo "Using REST API to preserve UserAssigned identity configuration..."
+
+            # Get the current service configuration to preserve identity
+            CURRENT_CONFIG=$(az search service show \
+              --name "$AZURE_SEARCH_SERVICE" \
+              --resource-group "$RESOURCE_GROUP" \
+              -o json)
+
+            # Extract the identity block
+            IDENTITY_BLOCK=$(echo "$CURRENT_CONFIG" | jq '.identity')
+
+            # Build the PATCH request body with only the properties we want to update
+            PATCH_BODY=$(jq -n \
+              --argjson identity "$IDENTITY_BLOCK" \
+              '{
+                "properties": {
+                  "publicNetworkAccess": "disabled"
+                },
+                "identity": $identity
+              }')
+
+            echo "Sending PATCH request to update public access..."
+            az rest --method PATCH \
+              --uri "https://management.azure.com/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Search/searchServices/${AZURE_SEARCH_SERVICE}?api-version=2024-03-01-preview" \
+              --body "$PATCH_BODY"
+          else
+            az search service update \
+              --name "$AZURE_SEARCH_SERVICE" \
+              --resource-group "$RESOURCE_GROUP" \
+              --public-access disabled
+          fi
 
           echo "✅ Public access disabled for Azure Search service"
 
