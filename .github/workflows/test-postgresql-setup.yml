@@ -11,6 +11,11 @@ on:
         description: 'PostgreSQL host name (e.g., myserver.postgres.database.azure.com)'
         required: true
         type: string
+      WAF:
+        description: 'Enable WAF mode (enables public access and allows all IPs for PostgreSQL)'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   test-postgresql-setup:
@@ -34,6 +39,32 @@ jobs:
         run: |
           az upgrade --yes --all
           az extension add --name rdbms-connect --upgrade --yes || true
+
+      - name: Enable Public Access for PostgreSQL (WAF Mode)
+        if: ${{ inputs.WAF == true }}
+        run: |
+          PG_HOST="${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}"
+          PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
+
+          echo "WAF mode enabled - Configuring public access for PostgreSQL server: $PG_SERVER_NAME"
+
+          # Enable public network access for the PostgreSQL server
+          echo "Enabling public network access..."
+          az postgres flexible-server update \
+            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
+            --name "$PG_SERVER_NAME" \
+            --public-access Enabled
+
+          # Add firewall rule to allow all IP addresses (0.0.0.0 - 255.255.255.255)
+          echo "Adding firewall rule to allow all IP addresses..."
+          az postgres flexible-server firewall-rule create \
+            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
+            --name "$PG_SERVER_NAME" \
+            --rule-name "AllowAllIPs" \
+            --start-ip-address 0.0.0.0 \
+            --end-ip-address 255.255.255.255
+
+          echo "✅ Public access enabled and all IP addresses allowed for PostgreSQL server"
 
       - name: Install Python dependencies
         run: |
