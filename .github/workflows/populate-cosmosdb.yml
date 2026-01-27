@@ -98,15 +98,43 @@ jobs:
         if: ${{ inputs.WAF == true }}
         run: |
           AZURE_SEARCH_SERVICE="${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}"
+          RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
 
           echo "WAF mode enabled - Configuring public access for Azure Search service: $AZURE_SEARCH_SERVICE"
 
+          # Get the current identity configuration to preserve it during update
+          echo "Getting current identity configuration..."
+          IDENTITY_TYPE=$(az search service show \
+            --name "$AZURE_SEARCH_SERVICE" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query "identity.type" -o tsv 2>/dev/null || echo "None")
+
+          echo "Current identity type: $IDENTITY_TYPE"
+
           # Enable public network access for Azure Search
           echo "Enabling public network access..."
-          az search service update \
-            --name "$AZURE_SEARCH_SERVICE" \
-            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
-            --public-access enabled
+
+          if [[ "$IDENTITY_TYPE" == "UserAssigned" ]] || [[ "$IDENTITY_TYPE" == "SystemAssigned,UserAssigned" ]]; then
+            # Get the user-assigned identity IDs
+            IDENTITY_IDS=$(az search service show \
+              --name "$AZURE_SEARCH_SERVICE" \
+              --resource-group "$RESOURCE_GROUP" \
+              --query "identity.userAssignedIdentities | keys(@) | join(',', @)" -o tsv)
+
+            echo "User-assigned identity IDs: $IDENTITY_IDS"
+
+            az search service update \
+              --name "$AZURE_SEARCH_SERVICE" \
+              --resource-group "$RESOURCE_GROUP" \
+              --public-access enabled \
+              --identity-type "$IDENTITY_TYPE" \
+              --user-assigned-ids $IDENTITY_IDS
+          else
+            az search service update \
+              --name "$AZURE_SEARCH_SERVICE" \
+              --resource-group "$RESOURCE_GROUP" \
+              --public-access enabled
+          fi
 
           echo "✅ Public access enabled and all IP addresses allowed for Azure Search service"
 
