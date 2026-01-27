@@ -104,7 +104,7 @@ jobs:
       AZURE_LOCATION: ${{ steps.set_region.outputs.AZURE_LOCATION }}
       AZURE_ENV_OPENAI_LOCATION: ${{ steps.set_region.outputs.AZURE_ENV_OPENAI_LOCATION }}
       IMAGE_TAG: ${{ steps.determine_image_tag.outputs.IMAGE_TAG }}
-      QUOTA_FAILED: ${{ steps.quota_failure_output.outputs.QUOTA_FAILED }}
+      QUOTA_FAILED: ${{ steps.quota-check.outputs.QUOTA_FAILED }}
 
     steps:
       - name: Checkout Code
@@ -130,23 +130,11 @@ jobs:
           chmod +x scripts/checkquota.sh
           if ! scripts/checkquota.sh; then
             if grep -q "No region with sufficient quota found" scripts/checkquota.sh; then
-              echo "QUOTA_FAILED=true" >> $GITHUB_ENV
+              echo "QUOTA_FAILED=true" >> $GITHUB_OUTPUT
+              echo "Quota check failed - will notify via separate notification job"
             fi
             exit 1
           fi
-
-      - name: Set Quota Failure Output
-        id: quota_failure_output
-        if: env.QUOTA_FAILED == 'true'
-        shell: bash
-        run: |
-          echo "QUOTA_FAILED=true" >> $GITHUB_OUTPUT
-          echo "Quota check failed - will notify via separate notification job"
-
-      - name: Fail Pipeline if Quota Check Fails
-        if: env.QUOTA_FAILED == 'true'
-        shell: bash
-        run: exit 1
 
       - name: Set Deployment Region
         id: set_region
@@ -158,8 +146,7 @@ jobs:
           echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
           echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
 
-      - name: Generate Resource Group Name
-        id: generate_rg_name
+      - name: Add Resource Group Name to Environment
         run: |
           if [ -n "${{ inputs.RESOURCE_GROUP_NAME }}" ]; then
             echo "Using provided resource group name..."
@@ -168,7 +155,7 @@ jobs:
           fi
           echo "RESOURCE_GROUP_NAME=${UNIQUE_RG_NAME}" >> $GITHUB_ENV
 
-      - name: Check and Create Resource Group
+      - name: Validate Resource Group Exists
         id: check_create_rg
         run: |
           echo "RESOURCE_GROUP: ${{ env.RESOURCE_GROUP_NAME }}"
