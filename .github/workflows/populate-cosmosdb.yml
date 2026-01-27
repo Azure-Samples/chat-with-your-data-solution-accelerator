@@ -1,4 +1,4 @@
-name: Test CosmosDB Setup
+name: Populate Sample Data for CosmosDB
 
 on:
   workflow_dispatch:
@@ -60,6 +60,10 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install Python dependencies
+        run: |
+          pip install requests azure-storage-blob azure-identity
+
       - name: Login to Azure
         shell: bash
         run: |
@@ -94,14 +98,19 @@ jobs:
           echo "AZURE_BLOB_ACCOUNT_NAME=$AZURE_BLOB_ACCOUNT_NAME" >> $GITHUB_OUTPUT
           echo "Using Azure Blob Storage Account: $AZURE_BLOB_ACCOUNT_NAME"
 
-      - name: Enable Public Access for Azure Search (WAF Mode)
+      - name: Enable Public Access for Azure Search and Storage Account (WAF)
         if: ${{ inputs.WAF == true }}
         run: |
           AZURE_SEARCH_SERVICE="${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}"
+          AZURE_BLOB_ACCOUNT_NAME="${{ steps.extract_names.outputs.AZURE_BLOB_ACCOUNT_NAME }}"
           RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
           SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
 
-          echo "WAF mode enabled - Configuring public access for Azure Search service: $AZURE_SEARCH_SERVICE"
+          echo "Enabled WAF - Configuring public access for resources"
+
+          # ========== Enable Public Access for Azure Search ==========
+          echo ""
+          echo "📦 Configuring Azure Search service: $AZURE_SEARCH_SERVICE"
 
           # Get the current identity configuration to preserve it during update
           echo "Getting current identity configuration..."
@@ -117,6 +126,7 @@ jobs:
 
           MAX_RETRIES=5
           RETRY_DELAY=30
+          SEARCH_SUCCESS=false
 
           for attempt in $(seq 1 $MAX_RETRIES); do
             echo "Attempt $attempt of $MAX_RETRIES..."
@@ -149,16 +159,18 @@ jobs:
               if az rest --method PATCH \
                 --uri "https://management.azure.com/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Search/searchServices/${AZURE_SEARCH_SERVICE}?api-version=2024-03-01-preview" \
                 --body "$PATCH_BODY" 2>&1; then
-                echo "✅ Public access enabled and all IP addresses allowed for Azure Search service"
-                exit 0
+                echo "✅ Public access enabled for Azure Search service"
+                SEARCH_SUCCESS=true
+                break
               fi
             else
               if az search service update \
                 --name "$AZURE_SEARCH_SERVICE" \
                 --resource-group "$RESOURCE_GROUP" \
                 --public-access enabled 2>&1; then
-                echo "✅ Public access enabled and all IP addresses allowed for Azure Search service"
-                exit 0
+                echo "✅ Public access enabled for Azure Search service"
+                SEARCH_SUCCESS=true
+                break
               fi
             fi
 
@@ -166,19 +178,17 @@ jobs:
               echo "⚠️ Update failed, retrying in ${RETRY_DELAY} seconds..."
               sleep $RETRY_DELAY
               RETRY_DELAY=$((RETRY_DELAY * 2))
-            else
-              echo "❌ Failed to enable public access after $MAX_RETRIES attempts"
-              exit 1
             fi
           done
 
-      - name: Enable Public Access for Storage Account (WAF Mode)
-        if: ${{ inputs.WAF == true }}
-        run: |
-          AZURE_BLOB_ACCOUNT_NAME="${{ steps.extract_names.outputs.AZURE_BLOB_ACCOUNT_NAME }}"
-          RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
+          if [ "$SEARCH_SUCCESS" != "true" ]; then
+            echo "❌ Failed to enable public access for Azure Search after $MAX_RETRIES attempts"
+            exit 1
+          fi
 
-          echo "WAF mode enabled - Enabling public access for Storage Account: $AZURE_BLOB_ACCOUNT_NAME"
+          # ========== Enable Public Access for Storage Account ==========
+          echo ""
+          echo "📦 Configuring Storage Account: $AZURE_BLOB_ACCOUNT_NAME"
 
           # Enable public network access
           echo "Enabling public network access..."
@@ -197,10 +207,8 @@ jobs:
             --output none
 
           echo "✅ Public access enabled for Storage Account"
-
-      - name: Install Python dependencies
-        run: |
-          pip install requests azure-storage-blob azure-identity
+          echo ""
+          echo "✅ All resources configured for public access"
 
       - name: Upload Document to Blob Storage to Trigger Index Creation
         run: |
@@ -316,14 +324,19 @@ jobs:
           sleep 60
           echo "✅ Wait complete."
 
-      - name: Disable Public Access for Azure Search (WAF Mode Cleanup)
+      - name: Disable Public Access for Azure Search and Storage Account (WAF)
         if: ${{ inputs.WAF == true }}
         run: |
           AZURE_SEARCH_SERVICE="${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}"
+          AZURE_BLOB_ACCOUNT_NAME="${{ steps.extract_names.outputs.AZURE_BLOB_ACCOUNT_NAME }}"
           RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
           SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
 
-          echo "WAF mode cleanup - Removing public access for Azure Search service: $AZURE_SEARCH_SERVICE"
+          echo "Disabling public access for resources"
+
+          # ========== Disable Public Access for Azure Search ==========
+          echo ""
+          echo "📦 Configuring Azure Search service: $AZURE_SEARCH_SERVICE"
 
           # Get the current identity configuration to preserve it during update
           echo "Getting current identity configuration..."
@@ -339,6 +352,7 @@ jobs:
 
           MAX_RETRIES=5
           RETRY_DELAY=30
+          SEARCH_SUCCESS=false
 
           for attempt in $(seq 1 $MAX_RETRIES); do
             echo "Attempt $attempt of $MAX_RETRIES..."
@@ -372,7 +386,8 @@ jobs:
                 --uri "https://management.azure.com/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Search/searchServices/${AZURE_SEARCH_SERVICE}?api-version=2024-03-01-preview" \
                 --body "$PATCH_BODY" 2>&1; then
                 echo "✅ Public access disabled for Azure Search service"
-                exit 0
+                SEARCH_SUCCESS=true
+                break
               fi
             else
               if az search service update \
@@ -380,7 +395,8 @@ jobs:
                 --resource-group "$RESOURCE_GROUP" \
                 --public-access disabled 2>&1; then
                 echo "✅ Public access disabled for Azure Search service"
-                exit 0
+                SEARCH_SUCCESS=true
+                break
               fi
             fi
 
@@ -388,24 +404,23 @@ jobs:
               echo "⚠️ Update failed, retrying in ${RETRY_DELAY} seconds..."
               sleep $RETRY_DELAY
               RETRY_DELAY=$((RETRY_DELAY * 2))
-            else
-              echo "❌ Failed to disable public access after $MAX_RETRIES attempts"
-              exit 1
             fi
           done
 
-      - name: Disable Public Access for Storage Account (WAF Mode Cleanup)
-        if: ${{ inputs.WAF == true }}
-        run: |
-          AZURE_BLOB_ACCOUNT_NAME="${{ steps.extract_names.outputs.AZURE_BLOB_ACCOUNT_NAME }}"
+          if [ "$SEARCH_SUCCESS" != "true" ]; then
+            echo "❌ Failed to disable public access for Azure Search after $MAX_RETRIES attempts"
+            exit 1
+          fi
 
-          echo "WAF mode cleanup - Disabling public access for Storage Account: $AZURE_BLOB_ACCOUNT_NAME"
+          # ========== Disable Public Access for Storage Account ==========
+          echo ""
+          echo "📦 Configuring Storage Account: $AZURE_BLOB_ACCOUNT_NAME"
 
           # Disable public network access
           echo "Disabling public network access..."
           az storage account update \
             --name "$AZURE_BLOB_ACCOUNT_NAME" \
-            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
+            --resource-group "$RESOURCE_GROUP" \
             --public-network-access Disabled \
             --output none
 
@@ -413,11 +428,13 @@ jobs:
           echo "Setting default action to Deny..."
           az storage account update \
             --name "$AZURE_BLOB_ACCOUNT_NAME" \
-            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
+            --resource-group "$RESOURCE_GROUP" \
             --default-action Deny \
             --output none
 
           echo "✅ Public access disabled for Storage Account"
+          echo ""
+          echo "✅ All resources restored to secure state"
 
       - name: Generate Test Job Summary
         if: always()
@@ -431,14 +448,14 @@ jobs:
           echo "| **Azure Search Index** | \`${{ inputs.AZURE_SEARCH_INDEX }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Azure Blob Storage Account** | \`${{ steps.extract_names.outputs.AZURE_BLOB_ACCOUNT_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Resource Group** | \`${{ inputs.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **WAF Mode** | \`${{ inputs.WAF }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **WAF** | \`${{ inputs.WAF }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ job.status }}" == "success" ]]; then
             echo "### ✅ Test Results" >> $GITHUB_STEP_SUMMARY
             echo "- Document uploaded to blob storage to trigger index creation" >> $GITHUB_STEP_SUMMARY
             echo "- Azure Search index populated with test data" >> $GITHUB_STEP_SUMMARY
             if [[ "${{ inputs.WAF }}" == "true" ]]; then
-              echo "- WAF mode: Public access enabled and then disabled after data import" >> $GITHUB_STEP_SUMMARY
+              echo "- WAF: Public access enabled and then disabled after data import" >> $GITHUB_STEP_SUMMARY
             fi
           else
             echo "### ❌ Test Failed" >> $GITHUB_STEP_SUMMARY
