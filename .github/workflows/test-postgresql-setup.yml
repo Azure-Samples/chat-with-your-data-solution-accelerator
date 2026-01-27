@@ -59,15 +59,33 @@ jobs:
           echo "Service Principal Object ID: $SP_OBJECT_ID"
           echo "Service Principal Display Name: $SP_DISPLAY_NAME"
 
+          # Check if Microsoft Entra authentication is enabled on the server
+          echo "Checking PostgreSQL server authentication configuration..."
+          AUTH_CONFIG=$(az rest --method GET \
+            --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ inputs.RESOURCE_GROUP_NAME }}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}?api-version=2022-12-01" \
+            --query "properties.authConfig" -o json) || true
+          echo "Auth config: $AUTH_CONFIG"
+
           echo "Adding service principal '$SP_DISPLAY_NAME' (Object ID: $SP_OBJECT_ID) as PostgreSQL admin..."
 
           # Add service principal as Entra ID administrator using REST API
-          az rest --method PUT \
+          RESULT=$(az rest --method PUT \
             --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ inputs.RESOURCE_GROUP_NAME }}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}/administrators/${SP_OBJECT_ID}?api-version=2022-12-01" \
             --body "{\"properties\": {\"principalType\": \"ServicePrincipal\", \"principalName\": \"${SP_DISPLAY_NAME}\", \"tenantId\": \"${{ secrets.AZURE_TENANT_ID }}\"}}" \
-            || echo "Admin may already exist, continuing..."
+            2>&1) && echo "Admin creation result: $RESULT" || echo "Admin creation response: $RESULT"
+
+          # List current admins to verify
+          echo "Listing current PostgreSQL administrators..."
+          az rest --method GET \
+            --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ inputs.RESOURCE_GROUP_NAME }}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}/administrators?api-version=2022-12-01" \
+            -o json || true
 
           echo "✅ Service principal configured as PostgreSQL administrator"
+
+      - name: Wait for admin propagation
+        run: |
+          echo "Waiting 60 seconds for admin changes to propagate..."
+          sleep 60
 
       - name: Populate PostgreSQL Database
         run: |
