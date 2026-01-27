@@ -190,6 +190,31 @@ jobs:
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           SP_DISPLAY_NAME: ${{ env.SP_DISPLAY_NAME }}
 
+      - name: Disable Public Access for PostgreSQL (WAF Mode Cleanup)
+        if: ${{ inputs.WAF == true }}
+        run: |
+          PG_HOST="${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}"
+          PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
+
+          echo "WAF mode cleanup - Removing public access for PostgreSQL server: $PG_SERVER_NAME"
+
+          # Remove the firewall rule that allowed all IP addresses
+          echo "Removing firewall rule 'AllowAllIPs'..."
+          az postgres flexible-server firewall-rule delete \
+            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
+            --name "$PG_SERVER_NAME" \
+            --rule-name "AllowAllIPs" \
+            --yes
+
+          # Disable public network access for the PostgreSQL server
+          echo "Disabling public network access..."
+          az postgres flexible-server update \
+            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
+            --name "$PG_SERVER_NAME" \
+            --public-access Disabled
+
+          echo "✅ Public access disabled and firewall rule removed for PostgreSQL server"
+
       - name: Generate Test Job Summary
         if: always()
         run: |
