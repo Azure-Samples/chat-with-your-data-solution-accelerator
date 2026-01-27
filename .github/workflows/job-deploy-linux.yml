@@ -166,13 +166,6 @@ jobs:
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Install Python dependencies
-        run: |
-          pip install psycopg2-binary python-dotenv azure-identity requests
-
-      - name: Wait for 20 minutes for propagation
-        run: sleep 1200
-
       - name: Generate Deploy Job Summary
         if: always()
         run: |
@@ -186,8 +179,6 @@ jobs:
           echo "| **Database Type** | \`${{ inputs.DATABASE_TYPE }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Azure Region (Infrastructure)** | \`${{ inputs.AZURE_LOCATION }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Docker Image Tag** | \`${{ inputs.IMAGE_TAG }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Integrated Vectorization** | \`${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Semantic Search** | \`${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ job.status }}" == "success" ]]; then
             echo "### ✅ Deployment Details" >> $GITHUB_STEP_SUMMARY
@@ -195,8 +186,6 @@ jobs:
             echo "- **Admin App URL**: [${{ steps.get_output_linux.outputs.ADMIN_WEBSITE_NAME }}](${{ steps.get_output_linux.outputs.ADMIN_WEBSITE_NAME }})" >> $GITHUB_STEP_SUMMARY
             echo "- Successfully deployed to Azure with all resources configured" >> $GITHUB_STEP_SUMMARY
             echo "- Authentication disabled for frontend and admin websites" >> $GITHUB_STEP_SUMMARY
-            echo "- PostgreSQL database populated with vector store data" >> $GITHUB_STEP_SUMMARY
-            echo "- Post-deployment scripts executed successfully" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           else
             echo "### ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
