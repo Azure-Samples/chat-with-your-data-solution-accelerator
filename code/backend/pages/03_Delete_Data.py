@@ -57,13 +57,20 @@ try:
         st.write("Select files to delete:")
 
     files = search_handler.output_results(results)
+    # Format filenames with container path for display
+    container_name = env_helper.AZURE_BLOB_CONTAINER_NAME
+    display_files = {f"/{container_name}/{fname}": fname for fname in files.keys()}
+
     with st.form("delete_form", clear_on_submit=True, border=False):
         selections = {
-            filename: st.checkbox(filename, False, key=filename)
-            for filename in files.keys()
+            display_name: st.checkbox(display_name, False, key=display_name)
+            for display_name in display_files.keys()
         }
+        # Map display names back to actual filenames
         selected_files = {
-            filename: ids for filename, ids in files.items() if selections[filename]
+            fname: files[fname]
+            for display_name, fname in display_files.items()
+            if selections[display_name]
         }
 
         if st.form_submit_button("Delete"):
