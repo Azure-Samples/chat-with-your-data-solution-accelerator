@@ -24,14 +24,6 @@ on:
       - ready_for_review
       - reopened
       - synchronize
-    paths:
-      - 'code/**'
-      - 'docker/**'
-      - '.devcontainer/**'
-      - 'package.json'
-      - 'pyproject.toml'
-      - '.github/workflows/build-docker-images.yml'
-      - '.github/workflows/build-docker.yml'
   merge_group:
   workflow_dispatch:
 
