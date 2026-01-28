@@ -27,6 +27,7 @@ on:
     paths:
       - 'code/**'
       - 'docker/**'
+      - '.devcontainer/**'
       - 'package.json'
       - 'pyproject.toml'
       - '.github/workflows/build-docker-images.yml'

@@ -14,6 +14,7 @@ on:
     branches: [main, dev, demo]
     paths:
       - 'code/**'
+      - '.devcontainer/**'
       - 'pyproject.toml'
       - 'package.json'
       - 'pytest.ini'
