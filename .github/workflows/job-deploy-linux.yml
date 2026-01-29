@@ -148,21 +148,20 @@ jobs:
           ADMIN_WEBSITE_NAME=$(azd env get-value ADMIN_WEBSITE_NAME)
           echo "ADMIN_WEBSITE_NAME=$ADMIN_WEBSITE_NAME" >> $GITHUB_OUTPUT
 
-          # Export PostgreSQL host name (for PostgreSQL database type)
-          AZURE_POSTGRESQL_HOST_NAME=$(azd env get-value AZURE_POSTGRESQL_HOST_NAME 2>/dev/null || echo "")
-          echo "AZURE_POSTGRESQL_HOST_NAME=$AZURE_POSTGRESQL_HOST_NAME" >> $GITHUB_OUTPUT
+          # Export values based on DATABASE_TYPE
+          if [[ "${{ inputs.DATABASE_TYPE }}" == "PostgreSQL" ]]; then
+            AZURE_POSTGRESQL_HOST_NAME=$(azd env get-value AZURE_POSTGRESQL_HOST_NAME)
+            echo "AZURE_POSTGRESQL_HOST_NAME=$AZURE_POSTGRESQL_HOST_NAME" >> $GITHUB_OUTPUT
+          elif [[ "${{ inputs.DATABASE_TYPE }}" == "CosmosDB" ]]; then
+            AZURE_SEARCH_SERVICE=$(azd env get-value AZURE_SEARCH_SERVICE)
+            echo "AZURE_SEARCH_SERVICE=$AZURE_SEARCH_SERVICE" >> $GITHUB_OUTPUT
 
-          # Export Azure Search service name (for CosmosDB database type)
-          AZURE_SEARCH_SERVICE=$(azd env get-value AZURE_SEARCH_SERVICE 2>/dev/null || echo "")
-          echo "AZURE_SEARCH_SERVICE=$AZURE_SEARCH_SERVICE" >> $GITHUB_OUTPUT
+            AZURE_BLOB_ACCOUNT_NAME=$(azd env get-value AZURE_BLOB_ACCOUNT_NAME)
+            echo "AZURE_BLOB_ACCOUNT_NAME=$AZURE_BLOB_ACCOUNT_NAME" >> $GITHUB_OUTPUT
 
-          # Export Azure Storage Account name
-          AZURE_BLOB_ACCOUNT_NAME=$(azd env get-value AZURE_BLOB_ACCOUNT_NAME 2>/dev/null || echo "")
-          echo "AZURE_BLOB_ACCOUNT_NAME=$AZURE_BLOB_ACCOUNT_NAME" >> $GITHUB_OUTPUT
-
-          # Export Azure Search Index name
-          AZURE_SEARCH_INDEX=$(azd env get-value AZURE_SEARCH_INDEX 2>/dev/null || echo "")
-          echo "AZURE_SEARCH_INDEX=$AZURE_SEARCH_INDEX" >> $GITHUB_OUTPUT
+            AZURE_SEARCH_INDEX=$(azd env get-value AZURE_SEARCH_INDEX)
+            echo "AZURE_SEARCH_INDEX=$AZURE_SEARCH_INDEX" >> $GITHUB_OUTPUT
+          fi
 
       - name: Disable Authentication with Script
         run: |
