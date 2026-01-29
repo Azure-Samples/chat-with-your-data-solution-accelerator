@@ -154,6 +154,7 @@ def verify_file_exists(file_path, test_id):
 
 # === Golden Path Test Execution ===
 
+@pytest.mark.goldenpath
 @pytest.mark.parametrize("step_desc, action", golden_path_steps, ids=[desc for desc, _ in golden_path_steps])
 def test_golden_path_steps(login_logout, step_desc, action, request):
     request.node._nodeid = step_desc
@@ -186,6 +187,7 @@ def test_golden_path_steps(login_logout, step_desc, action, request):
 
 # === Each Question as a Separate Test Case ===
 
+@pytest.mark.goldenpath
 @pytest.mark.parametrize("question", questions, ids=[f"Validate response for prompt : {q}" for q in questions])
 def test_gp_question(login_logout, question, request):
     page = login_logout
