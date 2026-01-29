@@ -37,6 +37,11 @@ on:
         required: false
         default: ''
         type: string
+      existing_admin_app_url:
+        description: 'Existing Admin WebApp URL (Skips Deployment)'
+        required: false
+        default: ''
+        type: string
       trigger_type:
         description: 'Trigger type (workflow_dispatch, pull_request, schedule)'
         required: true
@@ -85,11 +90,12 @@ jobs:
     secrets: inherit
 
   e2e-test:
-    if: "!cancelled() && ((needs.deploy.result == 'success' && needs.deploy.outputs.WEB_APPURL != '') || (inputs.existing_webapp_url != '' && inputs.existing_webapp_url != null)) && (inputs.trigger_type != 'workflow_dispatch' || (inputs.run_e2e_tests != 'None' && inputs.run_e2e_tests != '' && inputs.run_e2e_tests != null))"
+    if: "!cancelled() && ((needs.deploy.result == 'success' && needs.deploy.outputs.WEB_APPURL != '' && needs.deploy.outputs.ADMIN_APPURL != '') || (inputs.existing_webapp_url != '' && inputs.existing_webapp_url != null && inputs.existing_admin_app_url != '' && inputs.existing_admin_app_url != null)) && (inputs.trigger_type != 'workflow_dispatch' || (inputs.run_e2e_tests != 'None' && inputs.run_e2e_tests != '' && inputs.run_e2e_tests != null))"
     needs: [deploy]
     uses: ./.github/workflows/test-automation-v2.yml
     with:
       TEST_URL: ${{ needs.deploy.outputs.WEB_APPURL || inputs.existing_webapp_url }}
+      ADMIN_APPURL: ${{ needs.deploy.outputs.ADMIN_APPURL || inputs.existing_admin_app_url }}
       TEST_SUITE: ${{ inputs.trigger_type == 'workflow_dispatch' && inputs.run_e2e_tests || 'GoldenPath-Testing' }}
     secrets: inherit
 

@@ -7,6 +7,11 @@ on:
             required: true
             type: string
             description: "Web URL for DocGen"
+          ADMIN_APPURL:
+            required: false
+            type: string
+            default: ""
+            description: "Admin Web App URL"
           TEST_SUITE:
             required: false
             type: string
@@ -21,7 +26,8 @@ on:
             value: ${{ jobs.test.outputs.TEST_REPORT_URL }}
 
 env:
-    url: ${{ inputs.TEST_URL }}
+    web_url: ${{ inputs.TEST_URL }}
+    admin_url: ${{ inputs.ADMIN_APPURL }}
     accelerator_name: "CWYD"
     test_suite: ${{ inputs.TEST_SUITE }}
 
@@ -55,34 +61,63 @@ jobs:
 
       - name: Validate URL
         run: |
-          if [ -z "${{ env.url }}" ]; then
-            echo "ERROR: No URL provided for testing"
+          if [ -z "${{ env.web_url }}" ]; then
+            echo "ERROR: No Web URL provided for testing"
             exit 1
           fi
-          echo "Testing URL: ${{ env.url }}"
+          if [ -z "${{ env.admin_url }}" ]; then
+            echo "ERROR: No Admin URL provided for testing"
+            exit 1
+          fi
+          echo "Testing Web URL: ${{ env.web_url }}"
+          echo "Testing Admin URL: ${{ env.admin_url }}"
           echo "Test Suite: ${{ env.test_suite }}"
 
 
-      - name: Wait for Application to be Ready
+      - name: Wait for Web Application to be Ready
         run: |
-          echo "Waiting for application to be ready at ${{ env.url }} "
+          echo "Waiting for web application to be ready at ${{ env.web_url }} "
           max_attempts=10
           attempt=1
 
           while [ $attempt -le $max_attempts ]; do
-            echo "Attempt $attempt: Checking if application is ready..."
-            if curl -f -s "${{ env.url }}" > /dev/null; then
-              echo "Application is ready!"
+            echo "Attempt $attempt: Checking if web application is ready..."
+            if curl -f -s "${{ env.web_url }}" > /dev/null; then
+              echo "Web application is ready!"
               break
 
             fi
 
             if [ $attempt -eq $max_attempts ]; then
-              echo "Application is not ready after $max_attempts attempts"
+              echo "Web application is not ready after $max_attempts attempts"
               exit 1
             fi
 
-            echo "Application not ready, waiting 30 seconds..."
+            echo "Web application not ready, waiting 30 seconds..."
+            sleep 30
+            attempt=$((attempt + 1))
+          done
+
+      - name: Wait for Admin Application to be Ready
+        run: |
+          echo "Waiting for admin application to be ready at ${{ env.admin_url }} "
+          max_attempts=10
+          attempt=1
+
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt: Checking if admin application is ready..."
+            if curl -f -s "${{ env.admin_url }}" > /dev/null; then
+              echo "Admin application is ready!"
+              break
+
+            fi
+
+            if [ $attempt -eq $max_attempts ]; then
+              echo "Admin application is not ready after $max_attempts attempts"
+              exit 1
+            fi
+
+            echo "Admin application not ready, waiting 30 seconds..."
             sleep 30
             attempt=$((attempt + 1))
           done

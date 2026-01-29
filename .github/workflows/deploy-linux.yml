@@ -45,6 +45,12 @@ on:
         default: ''
         type: string
 
+      existing_admin_app_url:
+        description: 'Existing Admin WebApp URL (Skips Deployment)'
+        required: false
+        default: ''
+        type: string
+
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
         description: 'Enable Azure Search Integrated Vectorization'
         required: false
@@ -85,6 +91,7 @@ jobs:
       run_e2e_tests: ${{ github.event.inputs.run_e2e_tests || 'GoldenPath-Testing' }}
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID || '' }}
       existing_webapp_url: ${{ github.event.inputs.existing_webapp_url || '' }}
+      existing_admin_app_url: ${{ github.event.inputs.existing_admin_app_url || '' }}
       trigger_type: ${{ github.event_name }}
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ github.event.inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION || 'false' }}
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ github.event.inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH || 'false' }}

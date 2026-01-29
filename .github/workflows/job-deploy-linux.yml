@@ -44,6 +44,9 @@ on:
       WEB_APPURL:
         description: "Container Web App URL"
         value: ${{ jobs.deploy-linux.outputs.WEB_APPURL }}
+      ADMIN_APPURL:
+        description: "Admin Web App URL"
+        value: ${{ jobs.deploy-linux.outputs.ADMIN_APPURL }}
 
 jobs:
   deploy-linux:
@@ -52,6 +55,7 @@ jobs:
       AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
     outputs:
       WEB_APPURL: ${{ steps.get_output_linux.outputs.FRONTEND_WEBSITE_NAME }}
+      ADMIN_APPURL: ${{ steps.get_output_linux.outputs.ADMIN_WEBSITE_NAME }}
       AZURE_POSTGRESQL_HOST_NAME: ${{ steps.get_output_linux.outputs.AZURE_POSTGRESQL_HOST_NAME }}
       AZURE_SEARCH_SERVICE: ${{ steps.get_output_linux.outputs.AZURE_SEARCH_SERVICE }}
       AZURE_BLOB_ACCOUNT_NAME: ${{ steps.get_output_linux.outputs.AZURE_BLOB_ACCOUNT_NAME }}

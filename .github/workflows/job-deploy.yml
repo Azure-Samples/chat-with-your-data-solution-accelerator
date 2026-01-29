@@ -68,6 +68,9 @@ on:
       WEB_APPURL:
         description: "Container Web App URL"
         value: ${{ jobs.deploy-linux.outputs.WEB_APPURL }}
+      ADMIN_APPURL:
+        description: "Admin Web App URL"
+        value: ${{ jobs.deploy-linux.outputs.ADMIN_APPURL }}
       ENV_NAME:
         description: "Environment Name"
         value: ${{ jobs.azure-setup.outputs.ENV_NAME }}
