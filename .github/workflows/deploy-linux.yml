@@ -8,6 +8,15 @@ on:
         default: ''
         type: string
 
+      DATABASE_TYPE:
+        description: 'Database Type'
+        required: false
+        type: choice
+        options:
+          - 'PostgreSQL'
+          - 'CosmosDB'
+        default: 'PostgreSQL'
+
       waf_enabled:
         description: 'Enable WAF'
         required: false
@@ -38,19 +47,6 @@ on:
         required: false
         default: ''
         type: string
-
-      existing_webapp_url:
-        description: 'Existing WebApp URL (Skips Deployment)'
-        required: false
-        default: ''
-        type: string
-
-      existing_admin_app_url:
-        description: 'Existing Admin WebApp URL (Skips Deployment)'
-        required: false
-        default: ''
-        type: string
-
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
         description: 'Enable Azure Search Integrated Vectorization'
         required: false
@@ -67,14 +63,18 @@ on:
           - 'false'
           - 'true'
         default: 'false'
-      DATABASE_TYPE:
-        description: 'Database Type'
+
+      existing_webapp_url:
+        description: 'Existing WebApp URL (Skips Deployment)'
         required: false
-        type: choice
-        options:
-          - 'PostgreSQL'
-          - 'CosmosDB'
-        default: 'PostgreSQL'
+        default: ''
+        type: string
+
+      existing_admin_app_url:
+        description: 'Existing Admin WebApp URL (Skips Deployment)'
+        required: false
+        default: ''
+        type: string
 
   schedule:
     - cron: '0 9,21 * * *'  # Runs at 9:00 AM and 9:00 PM GMT
