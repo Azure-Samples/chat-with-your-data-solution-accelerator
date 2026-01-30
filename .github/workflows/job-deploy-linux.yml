@@ -217,7 +217,7 @@ jobs:
   Upload-SampleData-postgresql:
     needs: deploy-linux
     if: ${{ inputs.DATABASE_TYPE == 'PostgreSQL' }}
-    uses: ./.github/workflows/populate-postgresql.yml
+    uses: ./.github/workflows/import-sample-data-postgresql.yml
     with:
       RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
       AZURE_POSTGRESQL_HOST_NAME: ${{ needs.deploy-linux.outputs.AZURE_POSTGRESQL_HOST_NAME }}
@@ -228,7 +228,7 @@ jobs:
   Upload-SampleData-cosmosdb:
     needs: deploy-linux
     if: ${{ inputs.DATABASE_TYPE == 'CosmosDB' }}
-    uses: ./.github/workflows/populate-cosmosdb.yml
+    uses: ./.github/workflows/import-sample-data-cosmosdb.yml
     with:
       RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
       AZURE_SEARCH_SERVICE: ${{ needs.deploy-linux.outputs.AZURE_SEARCH_SERVICE }}

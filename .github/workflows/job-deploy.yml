@@ -231,6 +231,7 @@ jobs:
               IMAGE_TAG="$BRANCH_NAME"
               echo "Using branch '$BRANCH_NAME' - image tag: $BRANCH_NAME"
             fi
+            echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
       - name: Generate Unique Environment Name
         id: generate_env_name

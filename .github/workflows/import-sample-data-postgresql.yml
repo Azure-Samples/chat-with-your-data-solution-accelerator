@@ -1,4 +1,4 @@
-name: Populate Sample Data into PostgreSQL
+name: Import Sample Data into PostgreSQL
 
 on:
   workflow_dispatch:

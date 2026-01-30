@@ -1,4 +1,4 @@
-name: Populate Sample Data into CosmosDB
+name: Import Sample Data into CosmosDB
 
 on:
   workflow_dispatch:

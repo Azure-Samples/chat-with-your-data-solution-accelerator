@@ -126,9 +126,9 @@ jobs:
         id: test1
         run: |
           if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
-            xvfb-run pytest -m goldenpath --html=report/report.html --self-contained-html
+            xvfb-run pytest -m goldenpath --lf --html=report/report.html --self-contained-html
           else
-            xvfb-run pytest --html=report/report.html --self-contained-html
+            xvfb-run pytest --lf --html=report/report.html --self-contained-html
           fi
         working-directory: tests/e2e-test
         continue-on-error: true
@@ -143,9 +143,9 @@ jobs:
         if: ${{ steps.test1.outcome == 'failure' }}
         run: |
           if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
-            xvfb-run pytest -m goldenpath --html=report/report.html --self-contained-html
+            xvfb-run pytest -m goldenpath --lf --html=report/report.html --self-contained-html
           else
-            xvfb-run pytest --html=report/report.html --self-contained-html
+            xvfb-run pytest --lf --html=report/report.html --self-contained-html
           fi
         working-directory: tests/e2e-test
         continue-on-error: true
@@ -160,9 +160,9 @@ jobs:
         if: ${{ steps.test2.outcome == 'failure' }}
         run: |
           if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
-            xvfb-run pytest -m goldenpath --html=report/report.html --self-contained-html
+            xvfb-run pytest -m goldenpath --lf --html=report/report.html --self-contained-html
           else
-            xvfb-run pytest --html=report/report.html --self-contained-html
+            xvfb-run pytest --lf --html=report/report.html --self-contained-html
           fi
         working-directory: tests/e2e-test
 
@@ -197,7 +197,8 @@ jobs:
             echo "| **Job Status** | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
           fi
 
-          echo "| **Target URL** | [${{ env.url }}](${{ env.url }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Target Web URL** | [${{ env.web_url }}](${{ env.web_url }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Target Admin URL** | [${{ env.admin_url }}](${{ env.admin_url }}) |" >> $GITHUB_STEP_SUMMARY
           echo "| **Test Suite** | \`${{ env.test_suite }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Test Report** | [Download Artifact](${{ steps.upload_report.outputs.artifact-url }}) |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
