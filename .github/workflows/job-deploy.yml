@@ -98,7 +98,6 @@ env:
 
 jobs:
   azure-setup:
-    name: Azure Setup
     if: inputs.trigger_type != 'workflow_dispatch' || inputs.existing_webapp_url == '' || inputs.existing_webapp_url == null
     runs-on: ubuntu-latest
     outputs:

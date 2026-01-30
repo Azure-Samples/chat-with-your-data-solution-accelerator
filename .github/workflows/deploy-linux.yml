@@ -48,7 +48,7 @@ on:
         default: ''
         type: string
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
-        description: 'Enable Azure Search Integrated Vectorization'
+        description: 'Azure Search Integrated Vectorization'
         required: false
         type: choice
         options:
@@ -56,7 +56,7 @@ on:
           - 'true'
         default: 'false'
       AZURE_SEARCH_USE_SEMANTIC_SEARCH:
-        description: 'Enable Azure Search Semantic Search'
+        description: 'Azure Search Semantic Search'
         required: false
         type: choice
         options:
@@ -65,13 +65,13 @@ on:
         default: 'false'
 
       existing_webapp_url:
-        description: 'Existing WebApp URL (Skips Deployment)'
+        description: 'Existing FrontEndWeb URL (Skips Deployment)'
         required: false
         default: ''
         type: string
 
       existing_admin_app_url:
-        description: 'Existing Admin WebApp URL (Skips Deployment)'
+        description: 'Existing AdminWeb URL (Skips Deployment)'
         required: false
         default: ''
         type: string

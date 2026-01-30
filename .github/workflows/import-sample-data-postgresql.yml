@@ -33,7 +33,7 @@ on:
         default: false
 
 jobs:
-  test-postgresql-setup:
+  import-sample-data-postgresql:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code

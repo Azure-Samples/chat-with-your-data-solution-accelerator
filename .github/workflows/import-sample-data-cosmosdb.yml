@@ -49,7 +49,7 @@ on:
         default: false
 
 jobs:
-  test-cosmosdb-setup:
+  import-sample-data-cosmosdb:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
