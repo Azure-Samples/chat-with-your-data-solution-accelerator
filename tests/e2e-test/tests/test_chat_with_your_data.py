@@ -765,25 +765,52 @@ def test_4399_bug_1745_cwyd_no_duplicate_reference_documents(login_logout, reque
         ctx.page.wait_for_load_state("networkidle")
         logger.info("[4399] Web page loaded")
 
-        # Step 2: Ask a question that should generate reference documents
-        test_question = "summarize role library document"
-        logger.info("[4399] Typing question: %s", test_question)
-        ctx.home_page.enter_a_question(test_question)
-        logger.info("[4399] Question typed successfully")
+        # Define primary question and fallback questions from golden_path
+        primary_question = "summarize role library document"
+        fallback_questions = [
+            "How do I enroll in health benefits a new employee?",
+            "What options are available to me in terms of health coverage?"
+        ]
 
-        # Submit the question and wait for response
-        logger.info("[4399] Submitting question")
-        ctx.home_page.click_send_button()
-        logger.info("[4399] Question submitted")
+        all_questions = [primary_question] + fallback_questions
+        has_references = False
+        test_question = None
 
-        # Wait for response to load
-        logger.info("[4399] Waiting for response...")
-        ctx.page.wait_for_timeout(15000)  # Wait for response to be generated
+        # Try each question until we get one with reference links
+        for idx, question in enumerate(all_questions):
+            test_question = question
+            logger.info("[4399] Attempt %d: Typing question: %s", idx + 1, test_question)
+
+            # Clear any previous input and enter new question
+            ctx.home_page.enter_a_question(test_question)
+            logger.info("[4399] Question typed successfully")
+
+            # Submit the question and wait for response
+            logger.info("[4399] Submitting question")
+            ctx.home_page.click_send_button()
+            logger.info("[4399] Question submitted")
+
+            # Wait for response to load
+            logger.info("[4399] Waiting for response...")
+            ctx.page.wait_for_timeout(15000)  # Wait for response to be generated
+
+            # Check if response has reference links
+            logger.info("[4399] Checking if response has reference links")
+            has_references = ctx.home_page.has_reference_link()
+
+            if has_references:
+                logger.info("[4399] SUCCESS: Found reference links with question: %s", test_question)
+                break
+            else:
+                logger.warning("[4399] No reference links found with question: %s. Trying next question...", test_question)
+                # Refresh page for next attempt if not the last question
+                if idx < len(all_questions) - 1:
+                    ctx.page.goto(WEB_URL)
+                    ctx.page.wait_for_load_state("networkidle")
+                    ctx.page.wait_for_timeout(2000)
 
         # Step 3: Verify that response has reference links
-        logger.info("[4399] Checking if response has reference links")
-        has_references = ctx.home_page.has_reference_link()
-        assert has_references, "Response should contain reference links for testing duplicate documents"
+        assert has_references, f"Response should contain reference links for testing duplicate documents. Tried questions: {all_questions}"
         logger.info("[4399] SUCCESS: Response contains reference links")
 
         # Step 4: Expand citations and check for duplicates

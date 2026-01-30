@@ -804,10 +804,27 @@ class AdminPage(BasePage):
         logger = logging.getLogger(__name__)
 
         try:
-            # First scroll down to make sure the toggle is visible
-            logger.info("Scrolling down to find chat history toggle...")
+            # Perform aggressive scrolling to ensure all elements are loaded
+            logger.info("Scrolling to find chat history toggle...")
+
+            # First scroll to top and wait for page to stabilize
+            self.page.evaluate("window.scrollTo(0, 0)")
+            self.page.wait_for_timeout(1000)
+
+            # Perform incremental scrolling to trigger lazy loading
+            for scroll_attempt in range(5):
+                scroll_position = (scroll_attempt + 1) * 500
+                self.page.evaluate(f"window.scrollTo(0, {scroll_position})")
+                self.page.wait_for_timeout(500)
+                logger.info("Scroll attempt %d: scrolled to position %d", scroll_attempt + 1, scroll_position)
+
+            # Final scroll to bottom
             self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             self.page.wait_for_timeout(2000)
+
+            # Scroll back to middle where chat history toggle typically is
+            self.page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
+            self.page.wait_for_timeout(1000)
 
             # Try multiple selectors for the chat history checkbox
             selectors = [
@@ -853,6 +870,21 @@ class AdminPage(BasePage):
 
             # Scroll through the page to make sure we see everything
             logger.info("Scrolling to top first...")
+            self.page.evaluate("window.scrollTo(0, 0)")
+            self.page.wait_for_timeout(1000)
+
+            # Perform incremental scrolling to trigger lazy loading of all elements
+            logger.info("Performing incremental scroll to load all elements...")
+            for scroll_attempt in range(5):
+                scroll_position = (scroll_attempt + 1) * 500
+                self.page.evaluate(f"window.scrollTo(0, {scroll_position})")
+                self.page.wait_for_timeout(500)
+
+            # Scroll to bottom
+            self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            self.page.wait_for_timeout(2000)
+
+            # Scroll back to top
             self.page.evaluate("window.scrollTo(0, 0)")
             self.page.wait_for_timeout(1000)
 
@@ -947,10 +979,26 @@ class AdminPage(BasePage):
         logger = logging.getLogger(__name__)
 
         try:
-            # First scroll down to make sure the toggle is visible
-            logger.info("Scrolling down to find chat history toggle...")
+            # Perform aggressive scrolling to ensure all elements are loaded
+            logger.info("Scrolling to find chat history toggle...")
+
+            # First scroll to top and wait for page to stabilize
+            self.page.evaluate("window.scrollTo(0, 0)")
+            self.page.wait_for_timeout(1000)
+
+            # Perform incremental scrolling to trigger lazy loading
+            for scroll_attempt in range(5):
+                scroll_position = (scroll_attempt + 1) * 500
+                self.page.evaluate(f"window.scrollTo(0, {scroll_position})")
+                self.page.wait_for_timeout(500)
+
+            # Final scroll to bottom
             self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             self.page.wait_for_timeout(2000)
+
+            # Scroll back to middle where chat history toggle typically is
+            self.page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
+            self.page.wait_for_timeout(1000)
 
             # Try multiple selectors for the chat history checkbox
             selectors = [
