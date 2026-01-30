@@ -126,9 +126,9 @@ jobs:
         id: test1
         run: |
           if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
-            xvfb-run pytest -m goldenpath --lf --html=report/report.html --self-contained-html
+            xvfb-run pytest -m goldenpath --html=report/report.html --self-contained-html
           else
-            xvfb-run pytest --lf --html=report/report.html --self-contained-html
+            xvfb-run pytest --html=report/report.html --self-contained-html
           fi
         working-directory: tests/e2e-test
         continue-on-error: true
@@ -143,9 +143,9 @@ jobs:
         if: ${{ steps.test1.outcome == 'failure' }}
         run: |
           if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
-            xvfb-run pytest -m goldenpath --lf --html=report/report.html --self-contained-html
+            xvfb-run pytest -m goldenpath --html=report/report.html --self-contained-html
           else
-            xvfb-run pytest --lf --html=report/report.html --self-contained-html
+            xvfb-run pytest --html=report/report.html --self-contained-html
           fi
         working-directory: tests/e2e-test
         continue-on-error: true
@@ -160,9 +160,9 @@ jobs:
         if: ${{ steps.test2.outcome == 'failure' }}
         run: |
           if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
-            xvfb-run pytest -m goldenpath --lf --html=report/report.html --self-contained-html
+            xvfb-run pytest -m goldenpath --html=report/report.html --self-contained-html
           else
-            xvfb-run pytest --lf --html=report/report.html --self-contained-html
+            xvfb-run pytest --html=report/report.html --self-contained-html
           fi
         working-directory: tests/e2e-test
 
