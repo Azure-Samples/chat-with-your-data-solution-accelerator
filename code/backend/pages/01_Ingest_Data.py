@@ -9,6 +9,7 @@ import logging
 from batch.utilities.helpers.config.config_helper import ConfigHelper
 from batch.utilities.helpers.env_helper import EnvHelper
 from batch.utilities.helpers.azure_blob_storage_client import AzureBlobStorageClient
+from batch.utilities.helpers.rai_validator import validate_file_content
 
 sys.path.append(path.join(path.dirname(__file__), ".."))
 env_helper: EnvHelper = EnvHelper()
@@ -103,19 +104,29 @@ try:
         )
         blob_client = AzureBlobStorageClient()
         if uploaded_files is not None:
+            uploaded_count = 0
             for up in uploaded_files:
                 # To read file as bytes:
                 bytes_data = up.getvalue()
                 title = sanitize_metadata_value(up.name)
+
+                # Perform RAI validation before upload
+                is_valid, error_message = validate_file_content(bytes_data, up.name)
+                if not is_valid:
+                    st.error(f"File '{up.name}' was blocked: {error_message}")
+                    continue
+
                 if st.session_state.get("filename", "") != up.name:
                     # Upload a new file
                     st.session_state["filename"] = up.name
                     st.session_state["file_url"] = blob_client.upload_file(
                         bytes_data, up.name, metadata={"title": title}
                     )
-            if len(uploaded_files) > 0:
+                    uploaded_count += 1
+
+            if uploaded_count > 0:
                 st.success(
-                    f"{len(uploaded_files)} documents uploaded. Embeddings computation in progress. \nPlease note this is an asynchronous process and may take a few minutes to complete.\nYou can check for further details in the Azure Function logs."
+                    f"{uploaded_count} documents uploaded. Embeddings computation in progress. \nPlease note this is an asynchronous process and may take a few minutes to complete.\nYou can check for further details in the Azure Function logs."
                 )
 
         col1, col2, col3 = st.columns([2, 1, 2])
