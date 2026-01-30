@@ -233,7 +233,7 @@ jobs:
       - name: Generate Test Job Summary
         if: always()
         run: |
-          echo "## 🧪 PostgreSQL Setup Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Import Sample Data (PostgreSQL) Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
@@ -243,11 +243,11 @@ jobs:
           echo "| **WAF** | \`${{ inputs.WAF }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ job.status }}" == "success" ]]; then
-            echo "### ✅ Test Results" >> $GITHUB_STEP_SUMMARY
+            echo "### ✅ Import Sample Data (PostgreSQL) Results" >> $GITHUB_STEP_SUMMARY
             echo "- Service principal successfully added as PostgreSQL admin" >> $GITHUB_STEP_SUMMARY
             echo "- Sample Data import completed successfully" >> $GITHUB_STEP_SUMMARY
           else
-            echo "### ❌ Test Failed" >> $GITHUB_STEP_SUMMARY
+            echo "### ❌ Import Sample Data (PostgreSQL) Failed" >> $GITHUB_STEP_SUMMARY
             echo "- Check the job logs for detailed error information" >> $GITHUB_STEP_SUMMARY
           fi
 
