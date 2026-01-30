@@ -1,321 +1,443 @@
-[Back to *Chat with your data* README](../README.md)
+# Local Deployment Guide
 
-# Local setup
+## Overview
 
-> **Note for macOS Developers**: If you are using macOS on Apple Silicon (ARM64) the DevContainer will **not** work. This is due to a limitation with the Azure Functions Core Tools (see [here](https://github.com/Azure/azure-functions-core-tools/issues/3112)). We recommend using the [Non DevContainer Setup](./NON_DEVCONTAINER_SETUP.md) instructions to run the accelerator locally.
+This guide walks you through deploying the Chat with your Data solution accelerator to Azure from you local environment. The deployment process takes approximately 40-50 minutes for the default Development/Testing configuration and includes both infrastructure provisioning and application setup.
 
-> **Note:** This solution accelerator requires **Azure Developer CLI (azd) version 1.18.0 or higher**. Please ensure you have the latest version installed before proceeding with deployment. [Download azd here](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd).
+<!-- 🆘 **Need Help?** If you encounter any issues during setup, check our [Troubleshooting Guide](./TroubleShootingSteps.md) for solutions to common problems. -->
 
-The easiest way to run this accelerator is in a VS Code Dev Containers, which will open the project in your local VS Code using the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers):
+## Step 1: Prerequisites & Setup
 
-1. Start Docker Desktop (install it if not already installed)
-1. Open the project:
-    [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/azure-samples/chat-with-your-data-solution-accelerator)
-1. In the VS Code window that opens, once the project files show up (this may take several minutes), open a terminal window
-1. Run `azd auth login`
-1. Run `azd env set AZURE_APP_SERVICE_HOSTING_MODEL code` - This sets your environment to deploy code rather than rely on public containers, like the "Deploy to Azure" button.
-1. To use an existing Log Analytics workspace, follow the [setup steps here](../docs/re-use-log-analytics.md) before running `azd up`.
-1. To use an existing Resource Group, follow the [setup steps here](../docs/re-use-resource-group.md) before running `azd up`.
-1. Run `azd up` - This will provision Azure resources and deploy the accelerator to those resources.
+### 1.1 Azure Account Requirements
 
-    * **Important**: Beware that the resources created by this command will incur immediate costs, primarily from the AI Search resource. These resources may accrue costs even if you interrupt the command before it is fully executed. You can run `azd down` or delete the resources manually to avoid unnecessary spending.
-    * You will be prompted to select a subscription, and a location. That location list is based on the [OpenAI model availability table](https://learn.microsoft.com/azure/cognitive-services/openai/concepts/models#model-summary-table-and-region-availability) and may become outdated as availability changes.
-    * If you do, accidentally, chose the wrong location; you will have to ensure that you use `azd down` or delete the Resource Group as the deployment bases the location from this Resource Group.
-    > **Note:** If you deployed with `enableRedundancy=true` and Log Analytics workspace replication is enabled, you must first disable replication before running `azd down` else resource group delete will fail. Follow the steps in [Handling Log Analytics Workspace Deletion with Replication Enabled](./LogAnalyticsReplicationDisable.md), wait until replication returns `false`, then run `azd down`.
+Ensure you have access to an [Azure subscription](https://azure.microsoft.com/free/) with the following permissions:
 
-1. After the application has been successfully deployed you will see a URL printed to the console.  Click that URL to interact with the application in your browser.
+| **Required Permission/Role** | **Scope** | **Purpose** |
+|------------------------------|-----------|-------------|
+| **Contributor** | Subscription level | Create and manage Azure resources |
+| **User Access Administrator** | Subscription level | Manage user access and role assignments |
+| **Role Based Access Control** | Subscription/Resource Group level | Configure RBAC permissions |
+| **App Registration Creation** | Azure Active Directory | Create and configure authentication |
 
-> NOTE: It may take up to an hour for the application to be fully deployed. If you see a "Python Developer" welcome screen or an error page, then wait a bit and refresh the page.
+**🔍 How to Check Your Permissions:**
 
-> NOTE: The default auth type uses keys that are stored in the Azure Keyvault. If you want to use RBAC-based auth (more secure), please run before deploying:
+1. Go to [Azure Portal](https://portal.azure.com/)
+2. Navigate to **Subscriptions** (search for "subscriptions" in the top search bar)
+3. Click on your target subscription
+4. In the left menu, click **Access control (IAM)**
+5. Scroll down to see the table with your assigned roles - you should see:
+   - **Contributor**
+   - **User Access Administrator**
+   - **Role Based Access Control Administrator** (or similar RBAC role)
 
-```bash
-azd env set AZURE_AUTH_TYPE rbac
-azd env set USE_KEY_VAULT false
-```
+**For App Registration permissions:**
+1. Go to **Microsoft Entra ID** → **Manage** → **App registrations**
+2. Try clicking **New registration**
+3. If you can access this page, you have the required permissions
+4. Cancel without creating an app registration
 
-Also please refer to the section on [setting up RBAC auth](#authenticate-using-rbac).
+📖 **Detailed Setup:** Follow [Azure Account Set Up](./azure_account_setup.md) for complete configuration.
 
+### 1.2 Check Service Availability & Quota
 
-## 🛠️ Troubleshooting
-If you encounter any issues during the deployment process, please refer to the [TroubleShootingSteps](TroubleShootingSteps.md) document for detailed steps and solutions.
+⚠️ **CRITICAL:** Before proceeding, ensure your chosen region has all required services available:
 
-## Deployment Options & Steps
+**Required Azure Services:**
+- [Azure OpenAI Service](https://learn.microsoft.com/en-us/azure/ai-services/openai/)
+- [Azure Document Intelligence](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence)
+- [Azure Function App](https://learn.microsoft.com/en-us/azure/azure-functions/)
+- [Azure App Service](https://learn.microsoft.com/en-us/azure/app-service/)
+- [Azure Search Service](https://learn.microsoft.com/en-us/azure/search/)
+- [Azure Blob Storage](https://learn.microsoft.com/en-us/azure/storage/blobs/)
+- [Azure PostgreSQL](https://learn.microsoft.com/en-us/azure/postgresql/)
+- [Azure Cosmos DB](https://learn.microsoft.com/en-us/azure/cosmos-db/)
+- [Azure Queue Storage](https://learn.microsoft.com/en-us/azure/storage/queues/)
+- [gpt-4.1, text-embeddings-ada-002 Model Capacity](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-models/concepts/models-sold-directly-by-azure)
+- [Azure Bot](https://learn.microsoft.com/en-us/azure/bot-service) (optional: Teams extension only)
+- [Teams](https://learn.microsoft.com/en-us/microsoftteams/teams-overview) (optional: Teams extension only)
 
-### Sandbox or WAF Aligned Deployment Options
+**Recommended Regions:** East US, East US2, Australia East, UK South, France Central
 
-The [`infra`](../infra) folder of the Chat With Your Data Solution Accelerator contains the [`main.bicep`](../infra/main.bicep) Bicep script, which defines all Azure infrastructure components for this solution.
+🔍 **Check Availability:** Use [Azure Products by Region](https://azure.microsoft.com/en-us/explore/global-infrastructure/products-by-region/) to verify service availability.
 
-By default, the `azd up` command uses the [`main.parameters.json`](../infra/main.parameters.json) file to deploy the solution. This file is pre-configured for a **sandbox environment** — ideal for development and proof-of-concept scenarios, with minimal security and cost controls for rapid iteration.
+### 1.3 Quota Check (Optional)
 
-For **production deployments**, the repository also provides [`main.waf.parameters.json`](../infra/main.waf.parameters.json), which applies a [Well-Architected Framework (WAF) aligned](https://learn.microsoft.com/en-us/azure/well-architected/) configuration. This option enables additional Azure best practices for reliability, security, cost optimization, operational excellence, and performance efficiency, such as:
+💡 **RECOMMENDED:** Check your Azure OpenAI quota availability before deployment for optimal planning.
 
-  - Enhanced network security (e.g., Network protection with private endpoints)
-  - Stricter access controls and managed identities
-  - Logging, monitoring, and diagnostics enabled by default
-  - Resource tagging and cost management recommendations
+📖 **Follow:** [Quota Check Instructions](./QuotaCheck.md) to ensure sufficient capacity.
 
-**How to choose your deployment configuration:**
+**Recommended Configuration:**
 
-* Use the default `main.parameters.json` file for a **sandbox/dev environment**
-* For a **WAF-aligned, production-ready deployment**, copy the contents of `main.waf.parameters.json` into `main.parameters.json` before running `azd up`
+| **Model** | **Minimum Capacity** | **Recommended Capacity** |
+|-----------|---------------------|--------------------------|
+| **gpt-4.1** | 150k tokens | 200k tokens (for best performance) |
+| **text-embedding-ada-002** | 100k tokens | 150k tokens (for best performance) |
+
+> **Note:** When you run `azd up`, the deployment will automatically show you regions with available quota, so this pre-check is optional but helpful for planning purposes. You can customize these settings later in [Step 3.3: Advanced Configuration](#33-advanced-configuration-optional).
+
+📖 **Adjust Quota:** Follow [Azure AI Model Quota Settings](./azure_openai_model_quota_settings.md) if needed.
+
+## Step 2: Choose Your Development Environment
+
+Select one of the following options to set up your Chat with your Data local deployment environment:
+
+### Environment Comparison
+
+| **Option** | **Best For** | **Prerequisites** | **Setup Time** |
+|------------|--------------|-------------------|----------------|
+| **VS Code Dev Containers** | Fastest setup, all tools included | Docker Desktop, VS Code | ~5-10 minutes |
+| **Local Environment** | Full control, custom setup | All tools individually | ~15-30 minutes |
+
+**💡 Recommendation:** For local development, start with **VS Code Dev Containers** - includes all tools pre-configured.
 
 ---
 
-### VM Credentials Configuration
+<details>
+<summary><b>Option A: VS Code Dev Containers (Recommended)</b></summary>
 
-By default, the solution sets the VM administrator username and password from environment variables.
+[![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/azure-samples/chat-with-your-data-solution-accelerator)
 
-To set your own VM credentials before deployment, use:
+⚠️ **Note for macOS Developers**: If you are using macOS on Apple Silicon (ARM64) the DevContainer will **not** work. This is due to a limitation with the Azure Functions Core Tools (see [here](https://github.com/Azure/azure-functions-core-tools/issues/3112)). We recommend using the [Non DevContainer Setup](./NON_DEVCONTAINER_SETUP.md) instructions to run the accelerator locally.
 
-```sh
+**Prerequisites:**
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+- [VS Code](https://code.visualstudio.com/) with [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+
+**Steps:**
+1. Start Docker Desktop
+2. Click the badge above to open in Dev Containers
+3. Wait for the container to build and start (includes all development tools)
+4. Proceed to [Step 3: Configure Azure Resources](#step-3-configure-deployment-settings)
+
+**💡 Tip:** Visual Studio Code should recognize the available development container and ask you to open the folder using it. For additional details on connecting to remote containers, please see the [Open an existing folder in a container](https://code.visualstudio.com/docs/remote/containers#_quick-start-open-an-existing-folder-in-a-container) quickstart.
+
+</details>
+
+<details>
+<summary><b>Option B: Local Environment</b></summary>
+
+**Required Tools:**
+- A code editor. We recommend [Visual Studio Code](https://code.visualstudio.com/), with the following extensions:
+  - [Azure Functions](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions)
+  - [Azure Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-node-azure-pack)
+  - [Bicep](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-bicep)
+  - [Pylance](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance)
+  - [Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
+  - [Teams Toolkit](https://marketplace.visualstudio.com/items?itemName=TeamsDevApp.ms-teams-vscode-extension) **Optional**
+- [Python 3.11](https://www.python.org/downloads/release/python-3119/)
+- [Node.js LTS](https://nodejs.org/en)
+- [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd) <small>(v1.18.0+)</small>
+- [Azure Functions Core Tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local)
+- [Git](https://git-scm.com/downloads)
+- [PowerShell 7.0+](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell)
+
+**Setup Steps:**
+1. Install all required deployment tools listed above
+2. Clone the repository:
+   ```shell
+   azd init -t chat-with-your-data-solution-accelerator
+   ```
+3. Open the project folder in your terminal
+4. Review the contents of [.devcontainer/setupEnv.sh](../.devcontainer/setupEnv.sh) and then run it:
+
+    ```bash
+    .devcontainer/setupEnv.sh
+    ```
+5. Select the Python interpreter in Visual Studio Code:
+
+    - Open the command palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
+    - Type `Python: Select Interpreter`.
+    - Select the Python 3.11 environment created by Poetry.
+6. Proceed to [Step 3: Configure Azure Resources](#step-3-configure-deployment-settings)
+
+**PowerShell Users:** If you encounter script execution issues, run:
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+
+</details>
+
+## Step 3: Configure Deployment Settings
+
+Review the configuration options below. You can customize any settings that meet your needs, or leave them as defaults to proceed with a standard deployment.
+
+### 3.1 Choose Deployment Type (Optional)
+
+| **Aspect** | **Development/Testing (Default)** | **Production** |
+|------------|-----------------------------------|----------------|
+| **Configuration File** | `main.parameters.json` (sandbox) | Copy `main.waf.parameters.json` to `main.parameters.json` |
+| **Security Controls** | Minimal (for rapid iteration) | Enhanced (production best practices) |
+| **Cost** | Lower costs | Cost optimized |
+| **Use Case** | POCs, development, testing | Production workloads |
+| **Framework** | Basic configuration | [Well-Architected Framework](https://learn.microsoft.com/en-us/azure/well-architected/) |
+| **Features** | Core functionality | Reliability, security, operational excellence |
+
+**To use production configuration:**
+
+Copy the contents from the production configuration file to your main parameters file:
+
+1. Navigate to the `infra` folder in your project
+2. Open `main.waf.parameters.json` in a text editor (like Notepad, VS Code, etc.)
+3. Select all content (Ctrl+A) and copy it (Ctrl+C)
+4. Open `main.parameters.json` in the same text editor
+5. Select all existing content (Ctrl+A) and paste the copied content (Ctrl+V)
+6. Save the file (Ctrl+S)
+
+### 3.2 Set VM Credentials (Optional - Production Deployment Only)
+
+> **Note:** This section only applies if you selected **Production** deployment type in section 3.1. VMs are not deployed in the default Development/Testing configuration.
+
+By default, random GUIDs are generated for VM credentials. To set custom credentials:
+
+```shell
 azd env set AZURE_ENV_VM_ADMIN_USERNAME <your-username>
 azd env set AZURE_ENV_VM_ADMIN_PASSWORD <your-password>
 ```
 
-> [!TIP]
-> Always review and adjust parameter values (such as region, capacity, security settings and log analytics workspace configuration) to match your organization's requirements before deploying. For production, ensure you have sufficient quota and follow the principle of least privilege for all identities and role assignments.
+### 3.3 Advanced Configuration (Optional)
 
-> [!IMPORTANT]
-> The WAF-aligned configuration is under active development. More Azure Well-Architected recommendations will be added in future updates.
+<details>
+<summary><b>Configurable Parameters</b></summary>
 
-## Detailed Development Container setup instructions
+You can customize various deployment settings before running `azd up`, including Azure regions, AI model configurations (deployment type, version, capacity), container registry settings, and resource names.
 
-The solution contains a [development container](https://code.visualstudio.com/docs/remote/containers) with all the required tooling to develop and deploy the accelerator. To deploy the Chat With Your Data accelerator using the provided development container you will also need:
+📖 **Complete Guide:** See [Parameter Customization Guide](./customizing_azd_parameters.md) for the full list of available parameters and their usage.
 
-* [Visual Studio Code](https://code.visualstudio.com)
-* [Remote containers extension for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+</details>
 
-If you are running this on Windows, we recommend you clone this repository in [WSL](https://code.visualstudio.com/docs/remote/wsl)
+<details>
+<summary><b>Reuse Existing Resources</b></summary>
 
-```cmd
-git clone https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator
-```
+To optimize costs and integrate with your existing Azure infrastructure, you can configure the solution to reuse compatible resources already deployed in your subscription.
 
-Open the cloned repository in Visual Studio Code and connect to the development container.
+**Supported Resources for Reuse:**
 
-```cmd
-code .
-```
+- **Log Analytics Workspace:** Integrate with your existing monitoring infrastructure by reusing an established Log Analytics workspace for centralized logging and monitoring. [Configuration Guide](./re-use-log-analytics.md)
 
-!!! tip
-    Visual Studio Code should recognize the available development container and ask you to open the folder using it. For additional details on connecting to remote containers, please see the [Open an existing folder in a container](https://code.visualstudio.com/docs/remote/containers#_quick-start-open-an-existing-folder-in-a-container) quickstart.
+- **Resource Group:** Leverage an existing resource group to organize resources within your current Azure infrastructure. Follow the [setup steps here](./re-use-resource-group.md) before running `azd up`
 
-When you start the development container for the first time, the container will be built. This usually takes a few minutes. **Please use the development container for all further steps.**
+**Key Benefits:**
+- **Cost Optimization:** Eliminate duplicate resource charges
+- **Operational Consistency:** Maintain unified monitoring and AI infrastructure
+- **Faster Deployment:** Skip resource creation for existing compatible services
+- **Simplified Management:** Reduce the number of resources to manage and monitor
 
-The files for the dev container are located in `/.devcontainer/` folder.
+**Important Considerations:**
+- Ensure existing resources meet the solution's requirements and are in compatible regions
+- Review access permissions and configurations before reusing resources
+- Consider the impact on existing workloads when sharing resources
 
-## Local debugging
+</details>
 
-To customize the accelerator or run it locally, you must provision the Azure resources by running `azd provision` in a Terminal. This will generate a `.env` for you and you can use the "Run and Debug" (Ctrl + Shift + D) command to chose which part of the accelerator to run.  There is an [environment variable values table](#environment-variables) below.
+## Step 4: Deploy the Solution
 
+<!-- 💡 **Before You Start:** If you encounter any issues during deployment, check our [Troubleshooting Guide](./TroubleShootingSteps.md) for common solutions. -->
 
-To run the accelerator in local when the solution is secured by RBAC you need to assign some roles to your principal id. You can do it either manually or programatically.
-
-### Manually assign roles
-You need to assign the following roles to your `PRINCIPALID` (you can get your 'principal id' from Microsoft Entra ID):
-
-| Role | GUID |
-|----|----|
-| Cognitive Services OpenAI User | 5e0bd9bd-7b93-4f28-af87-19fc36ad61bd |
-| Cognitive Services User | a97b65f3-24c7-4388-baec-2e87135dc908 |
-| Cosmos DB SQL Data Contributor | 00000000-0000-0000-0000-000000000002 ([How to assign](https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-setup-rbac#role-assignments)) |
-| Key Vault Secrets User | 4633458b-17de-408a-b874-0445c86b69e6 |
-| Search Index Data Contributor | 8ebe5a00-799e-43f5-93ac-243d3dce84a7 |
-| Search Service Contributor | 7ca78c08-252a-4471-8644-bb5ff32d4ba0 |
-| Storage Blob Data Contributor | ba92f5b4-2d11-453d-a403-e96b0029c9fe |
-| Storage Queue Data Contributor | 974c5e8b-45b9-4653-ba55-5f855dd0fb88 |
-
-### Programatically assign roles
-You can also update the `principalId` value with your own principalId in the `main.bicep` file.
-
-### Authenticate using RBAC
-To authenticate using API Keys, update the value of `AZURE_AUTH_TYPE` to keys. For accessing using 'rbac', manually make changes by following the below steps:
-1. Ensure role assignments listed on [this page](https://techcommunity.microsoft.com/t5/ai-azure-ai-services-blog/eliminate-dependency-on-key-based-authentication-in-azure/ba-p/3821880)
-have been created.
-2. Navigate to your Search service in the Azure Portal
-3. Under Settings, select `Keys`
-4. Select either `Role-based access control` or `Both`
-5. Navigate to your App service in the Azure Portal
-6. Under Settings, select `Configuration`
-7. Set the value of the `AZURE_AUTH_TYPE` setting to `rbac`
-8. Restart the application
-
-### Deploy services manually
-
-You can deploy the full solution from local with the following command `azd deploy`. You can also deploy services individually
-
-|Service  |Description  |
-|---------|---------|
-|`azd deploy web` | A python app, enabling you to chat on top of your data.         |
-|`azd deploy adminweb`     | A Streamlit app for the "admin" site where you can upload and explore your data.         |
-|`azd deploy function`     | A python function app processing requests.          |
-
-### Running All Services Locally Using Docker Compose
-
-To run all applications using Docker Compose, you first need a `.env` file containing the configuration for your
-provisioned resources. This file can be created manually at the root of the project. Alternatively, if resources were
-provisioned using `azd provision` or `azd up`, a `.env` file is automatically generated in the `.azure/<env-name>/.env`
-file. To get your `<env-name>` run `azd env list` to see which env is default.
-
-Set APP_ENV in your `.env` file to control Azure authentication. Set the environment variable to dev to use Azure CLI credentials, or to prod to use Managed Identity for production. Ensure you're logged in via az login when using dev in local. To configure your environment, ensure that APP_ENV is set to **"dev"** in your .env file.
-
-The `AzureWebJobsStorage` needs to be added to your `.env` file manually. This can be retrieved from the function
-settings via the Azure Portal.
-
-To start the services, you can use either of the following commands:
-- `make docker-compose-up`
-- `cd docker && AZD_ENV_FILE=<path-to-env-file> docker-compose up`
-
-**Note:** By default, these commands will run the latest Docker images built from the main branch. If you wish to use a
-different image, you will need to modify the `docker/docker-compose.yml` file accordingly.
-
-### Develop & run the frontend locally
-
-For faster development, you can run the frontend Typescript React UI app and the Python Flask api app in development mode. This allows the app to "hot reload" meaning your changes will automatically be reflected in the app without having to refresh or restart the local servers.
-
-They can be launched locally from vscode (Ctrl+Shift+D) and selecting "Launch Frontend (api)" and "Launch Frontend (UI). You will also be able to place breakpoints in the code should you wish. This will automatically install any dependencies for Node and Python.
-
-
-#### Starting the Flask app in dev mode from the command line (optional)
-This step is included if you cannot use the Launch configuration in VSCode. Open a terminal and enter the following commands
-```shell
-cd code
-poetry run flask run
-```
-
-#### Starting the Typescript React app in dev mode (optional)
-This step is included if you cannot use the Launch configuration in VSCode. Open a new separate terminal and enter the following commands:
-```shell
-cd code\frontend
-npm install
-npm run dev
-```
-The local vite server will return a url that you can use to access the chat interface locally, such as  `http://localhost:5174/`.
-
-### Develop & run the admin app
-
-The admin app can be launched locally from vscode (Ctrl+Shift+D) and selecting "Launch Admin site". You will also be able to place breakpoints in the Python Code should you wish.
-
-This should automatically open `http://localhost:8501/` and render the admin interface.
-
-### Develop & run the batch processing functions
-
-If you want to develop and run the batch processing functions container locally, use the following commands.
-
-#### Running the batch processing locally
-
-First, install [Azure Functions Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=windows%2Cportal%2Cv2%2Cbash&pivots=programming-language-python).
+### 4.1 Authenticate with Azure
 
 ```shell
-cd code\backend\batch
-poetry run func start
+azd auth login
 ```
 
-Or use the [Azure Functions VS Code extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions).
+**For specific tenants:**
+```shell
+azd auth login --tenant-id <tenant-id>
+```
 
-#### Debugging the batch processing functions locally
-Rename the file `local.settings.json.sample` in the `batch` folder to `local.settings.json` and update the `AzureWebJobsStorage__accountName` value with the storage account name.
+> **Finding Tenant ID:**
+   > 1. Open the [Azure Portal](https://portal.azure.com/).
+   > 2. Navigate to **Microsoft Entra ID** from the left-hand menu.
+   > 3. Under the **Overview** section, locate the **Tenant ID** field. Copy the value displayed.
 
-Copy the .env file from [previous section](#local-debugging) to the `batch` folder.
+### 4.2 Start Deployment
 
-Execute the above [shell command](#L81) to run the function locally. You may need to stop the deployed function on the portal so that all requests are debugged locally. To trigger the function, you can click on the corresponding URL that will be printed to the terminal.
+```shell
+azd up
+```
 
-## Environment variables
+**During deployment, you'll be prompted for:**
+1. **Environment name** (e.g., "cwyd") - Must be 3-16 characters long, alphanumeric only
+2. **Azure subscription** selection
+3. **Location** - Select the region where your infrastructure resources will be deployed
+5. **Resource group** selection (create new or use existing)
 
-| App Setting | Value | Note |
-| --- | --- | ------------- |
-|ADVANCED_IMAGE_PROCESSING_MAX_IMAGES | 1 | The maximum number of images to pass to the vision model in a single request|
-|APPLICATIONINSIGHTS_CONNECTION_STRING||The Application Insights connection string to store the application logs|
-|APP_ENV | Prod | Application Environment (Prod, Dev, etc.)|
-|AZURE_AUTH_TYPE | keys | The default is to use API keys. Change the value to 'rbac' to authenticate using Role Based Access Control. For more information refer to section [Authenticate using RBAC](#authenticate-using-rbac)|
-|AZURE_BLOB_ACCOUNT_KEY||The key of the Azure Blob Storage for storing the original documents to be processed|
-|AZURE_BLOB_ACCOUNT_NAME||The name of the Azure Blob Storage for storing the original documents to be processed|
-|AZURE_BLOB_CONTAINER_NAME||The name of the Container in the Azure Blob Storage for storing the original documents to be processed|
-|AZURE_CLIENT_ID | | Client ID for Azure authentication (required for LangChain AzureSearch vector store)|
-|AZURE_COMPUTER_VISION_ENDPOINT | | The endpoint of the Azure Computer Vision service (if useAdvancedImageProcessing=true)|
-|AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION | 2024-02-01 | The API version for Azure Computer Vision Vectorize Image|
-|AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION | 2023-04-15 | The model version for Azure Computer Vision Vectorize Image|
-|AZURE_CONTENT_SAFETY_ENDPOINT | | The endpoint of the Azure AI Content Safety service|
-|AZURE_CONTENT_SAFETY_KEY | | The key of the Azure AI Content Safety service|
-|AZURE_COSMOSDB_ACCOUNT_NAME | | The name of the Azure Cosmos DB account (when using CosmosDB)|
-|AZURE_COSMOSDB_CONVERSATIONS_CONTAINER_NAME | | The name of the Azure Cosmos DB conversations container (when using CosmosDB)|
-|AZURE_COSMOSDB_DATABASE_NAME | | The name of the Azure Cosmos DB database (when using CosmosDB)|
-|AZURE_COSMOSDB_ENABLE_FEEDBACK | true | Whether to enable feedback functionality in Cosmos DB|
-|AZURE_FORM_RECOGNIZER_ENDPOINT||The name of the Azure Form Recognizer for extracting the text from the documents|
-|AZURE_FORM_RECOGNIZER_KEY||The key of the Azure Form Recognizer for extracting the text from the documents|
-|AZURE_KEY_VAULT_ENDPOINT | | The endpoint of the Azure Key Vault for storing secrets|
-|AZURE_OPENAI_API_KEY||One of the API keys of your Azure OpenAI resource|
-|AZURE_OPENAI_API_VERSION|2024-02-01|API version when using Azure OpenAI on your data|
-|AZURE_OPENAI_EMBEDDING_MODEL|text-embedding-ada-002|The name of your Azure OpenAI embeddings model deployment|
-|AZURE_OPENAI_EMBEDDING_MODEL_NAME|text-embedding-ada-002|The name of the embeddings model (can be found in Azure AI Foundry)|
-|AZURE_OPENAI_EMBEDDING_MODEL_VERSION|2|The version of the embeddings model to use (can be found in Azure AI Foundry)|
-|AZURE_OPENAI_MAX_TOKENS|1000|The maximum number of tokens allowed for the generated answer.|
-|AZURE_OPENAI_MODEL||The name of your model deployment|
-|AZURE_OPENAI_MODEL_NAME|gpt-4.1|The name of the model|
-|AZURE_OPENAI_MODEL_VERSION|2024-05-13|The version of the model to use|
-|AZURE_OPENAI_RESOURCE||the name of your Azure OpenAI resource|
-|AZURE_OPENAI_STOP_SEQUENCE||Up to 4 sequences where the API will stop generating further tokens. Represent these as a string joined with "|", e.g. `"stop1|stop2|stop3"`|
-|AZURE_OPENAI_STREAM | true | Whether or not to stream responses from Azure OpenAI|
-|AZURE_OPENAI_SYSTEM_MESSAGE|You are an AI assistant that helps people find information.|A brief description of the role and tone the model should use|
-|AZURE_OPENAI_TEMPERATURE|0|What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. A value of 0 is recommended when using your data.|
-|AZURE_OPENAI_TOP_P|1.0|An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. We recommend setting this to 1.0 when using your data.|
-|AZURE_POSTGRESQL_DATABASE_NAME | postgres | The name of the Azure PostgreSQL database (when using PostgreSQL)|
-|AZURE_POSTGRESQL_HOST_NAME | | The hostname of the Azure PostgreSQL server (when using PostgreSQL)|
-|AZURE_POSTGRESQL_USER | | The username for Azure PostgreSQL authentication (when using PostgreSQL)|
-|AZURE_SEARCH_CHUNK_COLUMN | chunk | Field from your Azure AI Search index that contains chunk information|
-|AZURE_SEARCH_CONTENT_COLUMN||List of fields in your Azure AI Search index that contains the text content of your documents to use when formulating a bot response. Represent these as a string joined with "|", e.g. `"product_description|product_manual"`|
-|AZURE_SEARCH_CONTENT_VECTOR_COLUMN||Field from your Azure AI Search index for storing the content's Vector embeddings|
-|AZURE_SEARCH_CONVERSATIONS_LOG_INDEX | conversations | The name of the Azure AI Search conversations log index|
-|AZURE_SEARCH_DATASOURCE_NAME | | The name of the Azure AI Search datasource|
-|AZURE_SEARCH_DIMENSIONS|1536| Azure OpenAI Embeddings dimensions. 1536 for `text-embedding-ada-002`. A full list of dimensions can be found [here](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#embeddings-models). |
-|AZURE_SEARCH_ENABLE_IN_DOMAIN|True|Limits responses to only queries relating to your data.|
-|AZURE_SEARCH_FIELDS_ID|id|`AZURE_SEARCH_FIELDS_ID`: Field from your Azure AI Search index that gives a unique idenitfier of the document chunk. `id` if you don't have a specific requirement.|
-|AZURE_SEARCH_FIELDS_METADATA|metadata|Field from your Azure AI Search index that contains metadata for the document. `metadata` if you don't have a specific requirement.|
-|AZURE_SEARCH_FIELDS_TAG|tag|Field from your Azure AI Search index that contains tags for the document. `tag` if you don't have a specific requirement.|
-|AZURE_SEARCH_FILENAME_COLUMN||`AZURE_SEARCH_FILENAME_COLUMN`: Field from your Azure AI Search index that gives a unique idenitfier of the source of your data to display in the UI.|
-|AZURE_SEARCH_FILTER||Filter to apply to search queries.|
-|AZURE_SEARCH_INDEX||The name of your Azure AI Search Index|
-|AZURE_SEARCH_INDEXER_NAME | | The name of the Azure AI Search indexer|
-|AZURE_SEARCH_INDEX_IS_PRECHUNKED | false | Whether the search index is prechunked|
-|AZURE_SEARCH_KEY||An **admin key** for your Azure AI Search resource|
-|AZURE_SEARCH_LAYOUT_TEXT_COLUMN|layoutText|Field from your Azure AI Search index that contains the layout-aware text content of your documents. `layoutText` if you don't have a specific requirement.|
-|AZURE_SEARCH_OFFSET_COLUMN | offset | Field from your Azure AI Search index that contains offset information|
-|AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG|default|The name of the semantic search configuration to use if using semantic search.|
-|AZURE_SEARCH_SERVICE||The URL of your Azure AI Search resource. e.g. https://<search-service>.search.windows.net|
-|AZURE_SEARCH_SOURCE_COLUMN|source|Field from your Azure AI Search index that identifies the source of your data. `source` if you don't have a specific requirement.|
-|AZURE_SEARCH_TEXT_COLUMN|text|Field from your Azure AI Search index that contains the main text content of your documents. `text` if you don't have a specific requirement.|
-|AZURE_SEARCH_TITLE_COLUMN||Field from your Azure AI Search index that gives a relevant title or header for your data content to display in the UI.|
-|AZURE_SEARCH_TOP_K|5|The number of documents to retrieve from Azure AI Search.|
-|AZURE_SEARCH_URL_COLUMN||Field from your Azure AI Search index that contains a URL for the document, e.g. an Azure Blob Storage URI. This value is not currently used.|
-|AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION ||Whether to use [Integrated Vectorization](https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-vectorization). If the database type is PostgreSQL, set this to false.|
-|AZURE_SEARCH_USE_SEMANTIC_SEARCH|False|Whether or not to use semantic search|
-|AZURE_SPEECH_RECOGNIZER_LANGUAGES | en-US,fr-FR,de-DE,it-IT | Comma-separated list of languages to recognize from speech input|
-|AZURE_SPEECH_REGION_ENDPOINT | | The regional endpoint of the Azure Speech service|
-|AZURE_SPEECH_SERVICE_KEY | | The key of the Azure Speech service|
-|AZURE_SPEECH_SERVICE_NAME | | The name of the Azure Speech service|
-|AZURE_SPEECH_SERVICE_REGION | | The region (location) of the Azure Speech service|
-|AzureWebJobsStorage__accountName||The name of the Azure Blob Storage account for the Azure Functions Batch processing|
-|BACKEND_URL||The URL for the Backend Batch Azure Function. Use http://localhost:7071 for local execution|
-|CONVERSATION_FLOW | custom | Chat conversation type: custom or byod (Bring Your Own Data)|
-|DATABASE_TYPE | PostgreSQL | The type of database to deploy (cosmos or postgres)|
-|DOCUMENT_PROCESSING_QUEUE_NAME|doc-processing|The name of the Azure Queue to handle the Batch processing|
-|FUNCTION_KEY | | The function key for accessing the backend Azure Function|
-|LOGLEVEL | INFO | The log level for application logging (CRITICAL, ERROR, WARN, INFO, DEBUG)|
-|PACKAGE_LOGGING_LEVEL | WARNING | Enhanced: Azure SDK package logging level (CRITICAL, ERROR, WARN, INFO, DEBUG)|
-|AZURE_LOGGING_PACKAGES | (optional) | Enhanced: Comma-separated list of Azure logger packages to configure. If not provided, no Azure SDK logging is configured.|
-|MANAGED_IDENTITY_CLIENT_ID | | The client ID of the user-assigned managed identity|
-|MANAGED_IDENTITY_RESOURCE_ID | | The resource ID of the user-assigned managed identity|
-|OPEN_AI_FUNCTIONS_SYSTEM_PROMPT | | System prompt for OpenAI functions orchestration|
-|ORCHESTRATION_STRATEGY | openai_function | Orchestration strategy. Use Azure OpenAI Functions (openai_function), Semantic Kernel (semantic_kernel),  LangChain (langchain) or Prompt Flow (prompt_flow) for messages orchestration. If you are using a new model version 0613 select any strategy, if you are using a 0314 model version select "langchain". Note that both `openai_function` and `semantic_kernel` use OpenAI function calling. Prompt Flow option is still in development and does not support RBAC or integrated vectorization as of yet.|
-|SEMANTIC_KERNEL_SYSTEM_PROMPT | | System prompt used by the Semantic Kernel orchestration|
-|USE_ADVANCED_IMAGE_PROCESSING | false | Whether to enable the use of a vision LLM and Computer Vision for embedding images. If the database type is PostgreSQL, set this to false.|
-|USE_KEY_VAULT | true | Whether to use Azure Key Vault for storing secrets|
+**Expected Duration:** 25-30 minutes for default configuration
 
-## Bicep
+<!-- **⚠️ Deployment Issues:** If you encounter errors or timeouts, try a different region as there may be capacity constraints. For detailed error solutions, see our [Troubleshooting Guide](./TroubleShootingSteps.md). -->
 
-A [Bicep file](../infra/main.bicep) is used to generate the [ARM template](../infra/main.json). You can deploy this accelerator by the following command if you do not want to use `azd`.
+### 4.3 Get Application URL
+
+After successful deployment, locate your application URLs:
+
+1. Open the [Azure Portal](https://portal.azure.com/)
+2. Navigate to your resource group
+3. Locate the **App Services** - you'll find two deployments:
+   - **Chat Application:** App Service without "admin" suffix - Main chat interface
+   - **Admin Application:** App Service with "admin" suffix - Data management interface
+4. Click on each App Service and copy its **Default Domain** URL from the overview page
+
+**Example URLs:**
+- Chat App: `https://app-<unique-text>.azurewebsites.net`
+- Admin App: `https://app-<unique-text>-admin.azurewebsites.net`
+
+⚠️ **Important:** Complete [Post-Deployment Steps](#step-5-post-deployment-configuration) before accessing the application.
+
+## Step 5: Post-Deployment Configuration
+
+### 5.1 Configure Authentication (Required for Chat Application)
+
+**This step is mandatory for Chat Application access:**
+
+1. Follow [App Authentication Configuration](./azure_app_service_auth_setup.md)
+2. Wait up to 10 minutes for authentication changes to take effect
+
+### 5.2 Verify Deployment
+
+1. Access your application using the URL from Step 4.3
+2. Confirm the application loads successfully
+3. Verify you can sign in with your authenticated account
+
+### 5.3 Test the Application
+
+**Quick Test Steps:**
+1. Navigate to the admin site, where you can upload documents. Then select Ingest Data and add your data. You can find sample data in the [data](../data) directory.
+2. Navigate to the Chat web app to start chatting on top of your data.
+
+## Step 6: Clean Up (Optional)
+
+### Remove All Resources
+```shell
+azd down
+```
+> **Note:** If you deployed with `enableRedundancy=true` and Log Analytics workspace replication is enabled, you must first disable replication before running `azd down` else resource group delete will fail. Follow the steps in [Handling Log Analytics Workspace Deletion with Replication Enabled](./LogAnalyticsReplicationDisable.md), wait until replication returns `false`, then run `azd down`.
+
+### Manual Cleanup (if needed)
+If deployment fails or you need to clean up manually:
+- Follow [Delete Resource Group Guide](./delete_resource_group.md)
+
+## Managing Multiple Environments
+
+### Recover from Failed Deployment
+
+If your deployment failed or encountered errors, here are the steps to recover:
+
+<details>
+<summary><b>Recover from Failed Deployment</b></summary>
+
+**If your deployment failed or encountered errors:**
+
+1. **Try a different region:** Create a new environment and select a different Azure region during deployment
+2. **Clean up and retry:** Use `azd down` to remove failed resources, then `azd up` to redeploy
+3. **Fresh start:** Create a completely new environment with a different name
+
+**Example Recovery Workflow:**
+```shell
+# Remove failed deployment (optional)
+azd down
+
+# Create new environment (3-16 chars, alphanumeric only)
+azd env new cwydretry
+
+# Deploy with different settings/region
+azd up
+```
+
+</details>
+
+### Creating a New Environment
+
+If you need to deploy to a different region, test different configurations, or create additional environments:
+
+<details>
+<summary><b>Create a New Environment</b></summary>
+
+**Create Environment Explicitly:**
+```shell
+# Create a new named environment (3-16 characters, alphanumeric only)
+azd env new <new-environment-name>
+
+# Select the new environment
+azd env select <new-environment-name>
+
+# Deploy to the new environment
+azd up
+```
+
+**Example:**
+```shell
+# Create a new environment for production (valid: 3-16 chars)
+azd env new cwydprod
+
+# Switch to the new environment
+azd env select cwydprod
+
+# Deploy with fresh settings
+azd up
+```
+
+> **Environment Name Requirements:**
+> - **Length:** 3-16 characters
+> - **Characters:** Alphanumeric only (letters and numbers)
+> - **Valid examples:** `cwyd`, `test123`, `myappdev`, `prod2024`
+> - **Invalid examples:** `cd` (too short), `my-very-long-environment-name` (too long), `test_env` (underscore not allowed), `myapp-dev` (hyphen not allowed)
+
+</details>
+
+<details>
+<summary><b>Switch Between Environments</b></summary>
+
+**List Available Environments:**
+```shell
+azd env list
+```
+
+**Switch to Different Environment:**
+```shell
+azd env select <environment-name>
+```
+
+**View Current Environment Variables:**
+```shell
+azd env get-values
+```
+
+</details>
+
+### Best Practices for Multiple Environments
+
+- **Use descriptive names:** `cwyddev`, `cwydprod`, `cwydtest` (remember: 3-16 chars, alphanumeric only)
+- **Different regions:** Deploy to multiple regions for testing quota availability
+- **Separate configurations:** Each environment can have different parameter settings
+- **Clean up unused environments:** Use `azd down` to remove environments you no longer need
+
+## Deploy Using Bicep Directly
+
+If you prefer not to use `azd`, you can deploy using the Bicep file directly.
+
+A [Bicep file](../infra/main.bicep) is used to generate the [ARM template](../infra/main.json). You can deploy this accelerator with the following command:
 
 ```sh
-az deployment sub create --template-file ./infra/main.bicep --subscription {your_azure_subscription_id} --location {search_location}
- ```
+az deployment sub create --template-file ./infra/main.bicep --subscription {your_azure_subscription_id} --location {your_preferred_location}
+```
+
+## Next Steps
+
+Now that your deployment is complete and tested, explore these resources to enhance your experience:
+
+📚 **Learn More:**
+- [Model Configuration](./model_configuration.md) - Configure AI models and parameters
+- [Conversation Flow Options](./conversation_flow_options.md) - Customize conversation flow behavior
+- [Best Practices](./best_practices.md) - Best practices for deployment and usage
+- [Local Development Setup](./LocalDevelopmentSetup.md) - Set up your local development environment
+- [Advanced Image Processing](./advanced_image_processing.md) - Enable and configure vision capabilities
+- [Integrated Vectorization](./integrated_vectorization.md) - Understanding integrated vectorization
+- [Teams Extension](./teams_extension.md) - Integrating with Microsoft Teams
+
+## Need Help?
+- 🛠️  **Troubleshooting: ** Refer to the [TroubleShootingSteps](TroubleShootingSteps.md) document
+- 💬 **Support:** Review [Support Guidelines](../SUPPORT.md)
+- 🔧 **Development:** See [Contributing Guide](../CONTRIBUTING.md)
+
+---
+
+[Back to *Chat with your data* README](../README.md)
