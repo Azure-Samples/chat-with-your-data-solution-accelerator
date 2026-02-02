@@ -57,13 +57,39 @@ jobs:
           az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
           az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Delete Resource Group (Optimized Cleanup)
-        id: delete_rg
+      - name: Clean Resources within Resource Group
+        id: clean_resources
+        if: ${{ inputs.RESOURCE_GROUP_NAME == 'rg-cwyd-ci' }}
         shell: bash
         run: |
           set -e
-          echo "🗑️ Starting optimized resource cleanup..."
-          echo "Deleting resource group: ${{ env.RESOURCE_GROUP_NAME }}"
+          echo "🗑️ Cleaning resources within resource group (keeping RG): ${{ env.RESOURCE_GROUP_NAME }}"
+
+          # Get all resources in the resource group
+          RESOURCES=$(az resource list --resource-group "${{ env.RESOURCE_GROUP_NAME }}" --query "[].id" -o tsv)
+
+          if [ -z "$RESOURCES" ]; then
+            echo "No resources found in resource group"
+          else
+            echo "Deleting all resources in resource group..."
+            echo "$RESOURCES" | while read -r resource_id; do
+              if [ -n "$resource_id" ]; then
+                echo "Deleting: $resource_id"
+                az resource delete --ids "$resource_id" --no-wait || echo "Warning: Failed to delete $resource_id"
+              fi
+            done
+          fi
+
+          echo "✅ Resource cleanup initiated (running asynchronously)"
+          echo "Note: Resource group ${{ env.RESOURCE_GROUP_NAME }} is preserved"
+
+      - name: Delete Resource Group
+        id: delete_rg
+        if: ${{ inputs.RESOURCE_GROUP_NAME != 'rg-cwyd-ci' }}
+        shell: bash
+        run: |
+          set -e
+          echo "🗑️ Deleting entire resource group: ${{ env.RESOURCE_GROUP_NAME }}"
 
           az group delete \
             --name "${{ env.RESOURCE_GROUP_NAME }}" \
