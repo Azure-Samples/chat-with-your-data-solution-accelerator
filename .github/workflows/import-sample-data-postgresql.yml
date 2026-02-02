@@ -81,6 +81,13 @@ jobs:
 
           echo "✅ Public access enabled and all IP addresses allowed for PostgreSQL server"
 
+      - name: Wait for Public Access Propagation (WAF)
+        if: ${{ inputs.WAF == true }}
+        run: |
+          echo "Waiting for public access propagation..."
+          sleep 300
+          echo "✅ Wait complete."
+
       - name: Install Python dependencies
         run: |
           pip install psycopg2-binary python-dotenv azure-identity

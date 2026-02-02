@@ -214,7 +214,7 @@ jobs:
           echo "Logged out from Azure."
 
   # Call PostgreSQL setup workflow when DATABASE_TYPE is PostgreSQL
-  Upload-SampleData-postgresql:
+  import-SampleData-postgresql:
     needs: deploy-linux
     if: ${{ inputs.DATABASE_TYPE == 'PostgreSQL' }}
     uses: ./.github/workflows/import-sample-data-postgresql.yml
@@ -225,7 +225,7 @@ jobs:
     secrets: inherit
 
   # Call CosmosDB/Azure Search setup workflow when DATABASE_TYPE is CosmosDB
-  Upload-SampleData-cosmosdb:
+  import-SampleData-cosmosdb:
     needs: deploy-linux
     if: ${{ inputs.DATABASE_TYPE == 'CosmosDB' }}
     uses: ./.github/workflows/import-sample-data-cosmosdb.yml
