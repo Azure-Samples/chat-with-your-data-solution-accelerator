@@ -177,33 +177,33 @@ jobs:
           # Set output for other jobs
           echo "RESOURCE_GROUP_NAME=${{ env.RESOURCE_GROUP_NAME }}" >> $GITHUB_OUTPUT
 
-      - name: Clear Existing Resources in Resource Group
-        if: inputs.resource_group_name != 'rg-cwyd-ci'
-        run: |
-          echo "=== Clearing all resources in resource group: ${{ env.RESOURCE_GROUP_NAME }} ==="
-          set -e
+      # - name: Clear Existing Resources in Resource Group
+      #   if: inputs.resource_group_name != 'rg-cwyd-ci'
+      #   run: |
+      #     echo "=== Clearing all resources in resource group: ${{ env.RESOURCE_GROUP_NAME }} ==="
+      #     set -e
 
-          # List all resources in the resource group
-          echo "Listing resources to delete..."
-          RESOURCES=$(az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].id" -o tsv)
+      #     # List all resources in the resource group
+      #     echo "Listing resources to delete..."
+      #     RESOURCES=$(az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].id" -o tsv)
 
-          if [ -z "$RESOURCES" ]; then
-            echo "✅ No resources found in resource group. Ready for fresh deployment."
-          else
-            echo "Found resources to delete:"
-            az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].{Name:name, Type:type}" -o table
+      #     if [ -z "$RESOURCES" ]; then
+      #       echo "✅ No resources found in resource group. Ready for fresh deployment."
+      #     else
+      #       echo "Found resources to delete:"
+      #       az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].{Name:name, Type:type}" -o table
 
-            echo "Deleting all resources..."
-            # Delete all resources in the resource group
-            az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].id" -o tsv | while read -r resource_id; do
-              echo "Deleting: $resource_id"
-              az resource delete --ids "$resource_id" --verbose || echo "Warning: Failed to delete $resource_id"
-            done
+      #       echo "Deleting all resources..."
+      #       # Delete all resources in the resource group
+      #       az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].id" -o tsv | while read -r resource_id; do
+      #         echo "Deleting: $resource_id"
+      #         az resource delete --ids "$resource_id" --verbose || echo "Warning: Failed to delete $resource_id"
+      #       done
 
-            echo "✅ All resources cleared from resource group"
-          fi
+      #       echo "✅ All resources cleared from resource group"
+      #     fi
 
-          echo "Resource group is now ready for deployment"
+      #     echo "Resource group is now ready for deployment"
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
