@@ -756,6 +756,46 @@ class AdminPage(BasePage):
             logger.error("Error clicking process web pages button: %s", str(e))
             return False
 
+    def wait_for_file_to_appear_in_delete(self, filename, timeout_minutes=5, poll_interval_seconds=15):
+        """Poll Delete Data page until file appears or timeout"""
+        import logging
+        import time
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.info("Polling for file '%s' to appear in Delete Data (timeout: %d minutes)", filename, timeout_minutes)
+            
+            start_time = time.time()
+            timeout_seconds = timeout_minutes * 60
+            
+            while (time.time() - start_time) < timeout_seconds:
+                # Navigate to delete page and check for file
+                self.click_delete_data_tab_with_wait()
+                visible_files = self.get_all_visible_files_in_delete()
+                
+                # Check if file is present (partial match)
+                file_found = any(filename in file for file in visible_files)
+                
+                if file_found:
+                    elapsed = time.time() - start_time
+                    logger.info("✓ File '%s' found after %.1f seconds", filename, elapsed)
+                    return True
+                
+                elapsed_minutes = (time.time() - start_time) / 60
+                remaining_minutes = timeout_minutes - elapsed_minutes
+                logger.info("File not yet visible. Elapsed: %.1f min, Remaining: %.1f min. Retrying...",
+                           elapsed_minutes, remaining_minutes)
+                
+                # Wait before next poll
+                self.page.wait_for_timeout(poll_interval_seconds * 1000)
+            
+            logger.warning("✗ File '%s' did not appear within %d minutes", filename, timeout_minutes)
+            return False
+            
+        except Exception as e:
+            logger.error("Error polling for file: %s", str(e))
+            return False
+
     def wait_for_web_url_processing(self, timeout_minutes=3):
         """Wait for web URL processing to complete"""
         import logging

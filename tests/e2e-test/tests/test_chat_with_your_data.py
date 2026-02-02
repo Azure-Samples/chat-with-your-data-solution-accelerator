@@ -282,10 +282,11 @@ def test_4089_cwyd_data_ingestion_process(login_logout, request):
         ctx.admin_page.upload_file(file_path)
         logger.info("[4089] File uploaded successfully")
 
-        # Step 4: Wait for processing (1.5 minutes for file processing)
-        logger.info("[4089] Waiting for 1.5 minutes for file processing...")
-        ctx.admin_page.wait_for_upload_processing(1.5)  # 1.5 minutes
-        logger.info("[4089] File processing wait completed")
+        # Step 4: Wait for file to appear in Delete Data (poll with 5 minute timeout)
+        logger.info("[4089] Waiting for file to be processed and appear in Delete Data...")
+        file_appeared = ctx.admin_page.wait_for_file_to_appear_in_delete("architecture_pg.png", timeout_minutes=5)
+        assert file_appeared, "File 'architecture_pg.png' did not appear in Delete Data within 5 minutes"
+        logger.info("[4089] File processing completed and verified in Delete Data")
 
         # Step 5: Enter URL in 'Add urls to the knowledge base section'
         logger.info("[4089] Adding URL to the knowledge base section")
@@ -300,56 +301,23 @@ def test_4089_cwyd_data_ingestion_process(login_logout, request):
         assert process_clicked, "Failed to click 'Process and ingest web pages' button"
         logger.info("[4089] SUCCESS: 'Process and ingest web pages' button clicked")
 
-        # Step 7: Wait for 1.5 minutes for web page processing
-        logger.info("[4089] Waiting for 1.5 minutes for web page processing...")
-        ctx.admin_page.wait_for_web_url_processing(1.5)  # 1.5 minutes
-        logger.info("[4089] Web page processing wait completed")
-
-        # Step 8: Move to /Delete_Data to confirm web URL ingestion
-        logger.info("[4089] Navigating to Delete Data tab to confirm web URL ingestion")
-        ctx.admin_page.click_delete_data_tab_with_wait()
-        logger.info("[4089] Delete Data tab loaded")
-
-        # Step 8.1: Verify web URL content is visible in delete page
-        logger.info("[4089] Getting list of files in delete page to verify web URL ingestion")
-        visible_files = ctx.admin_page.get_all_visible_files_in_delete()
-        logger.info("[4089] Found %d total files in delete page", len(visible_files))
-
-        # Check for web URL content (web URLs typically show up as documents)
+        # Step 7: Wait for web URL content to appear (poll with 5 minute timeout)
+        logger.info("[4089] Waiting for web URL content to be processed and appear in Delete Data...")
+        # Poll for any web-related content (india, wikipedia, wiki, etc.)
+        web_content_keywords = ["india", "wikipedia", "wiki"]
         web_content_found = False
-        logger.info("[4089] Checking for web URL content in %d files:", len(visible_files))
-        for i, visible_file in enumerate(visible_files):
-            logger.info("[4089] File %d: %s", i+1, visible_file)
-            if ("india" in visible_file.lower() or
-                "wikipedia" in visible_file.lower() or
-                "web" in visible_file.lower() or
-                "/wiki/" in visible_file.lower() or
-                "wiki" in visible_file.lower()):
+        
+        for keyword in web_content_keywords:
+            web_appeared = ctx.admin_page.wait_for_file_to_appear_in_delete(keyword, timeout_minutes=5)
+            if web_appeared:
+                logger.info("[4089] ✓ Web URL content verified in Delete Data (keyword: %s)", keyword)
                 web_content_found = True
-                logger.info("[4089] ✓ Found web URL content: %s", visible_file)
                 break
-
-        if web_content_found:
-            logger.info("[4089] SUCCESS: Web URL content is visible in delete page")
-        else:
-            # Web URLs might take longer to process or might not appear immediately
-            # Log warning but continue with file verification
-            logger.warning("[4089] Web URL content not found in delete page files, but continuing with file verification")
-
-        # Step 9: Verify the uploaded file is visible in Delete_Data section
-        logger.info("[4089] Verifying uploaded file is visible in Delete_Data section")
-        filename = "architecture_pg.png"
-
-        # Check if the uploaded file is present in the delete page
-        file_found_in_delete = False
-        for visible_file in visible_files:
-            if filename in visible_file:
-                file_found_in_delete = True
-                logger.info("[4089] ✓ Found uploaded file in Delete_Data: %s", visible_file)
-                break
-
-        assert file_found_in_delete, f"Uploaded file '{filename}' is not visible in the Delete_Data section after 1.5 minutes"
-        logger.info("[4089] SUCCESS: File '%s' is visible in the Delete_Data section", filename)
+        
+        if not web_content_found:
+            logger.warning("[4089] Web URL content not found within 5 minutes - may take longer to process")
+        
+        logger.info("[4089] Test completed successfully - file upload verified")
 
 
 # === File Deletion Auto-Refresh Test Case ===
@@ -992,26 +960,20 @@ def test_5893_cwyd_can_read_png_jpg_md_files(login_logout, request):
 
         logger.info("[5893] All files uploaded successfully: %s", uploaded_files)
 
-        # Step 4: Wait for processing (3 minutes as specified)
-        logger.info("[5893] Waiting 3 minutes for file processing...")
-        processing_time_minutes = 3
-        processing_time_seconds = processing_time_minutes * 60
+        # Step 4: Wait for each file to appear in Delete Data (poll with 6 minute timeout per file)
+        logger.info("[5893] Waiting for files to be processed and appear in Delete Data...")
+        all_files_found = True
+        for filename, file_type in test_files:
+            logger.info("[5893] Checking for %s file: %s", file_type, filename)
+            file_appeared = ctx.admin_page.wait_for_file_to_appear_in_delete(filename, timeout_minutes=6)
+            if file_appeared:
+                logger.info("[5893] ✓ %s file verified in Delete Data", file_type)
+            else:
+                logger.error("[5893] ✗ %s file NOT found in Delete Data", file_type)
+                all_files_found = False
 
-        # Break the wait into smaller chunks with progress updates
-        chunk_size = 30  # 30 second chunks
-        chunks = processing_time_seconds // chunk_size
-
-        for i in range(chunks):
-            ctx.page.wait_for_timeout(chunk_size * 1000)  # Convert to milliseconds
-            elapsed_minutes = ((i + 1) * chunk_size) / 60
-            remaining_minutes = processing_time_minutes - elapsed_minutes
-            logger.info("[5893] Processing... %.1f minutes elapsed, %.1f minutes remaining",
-                       elapsed_minutes, remaining_minutes)
-
-        logger.info("[5893] File processing wait completed")
-
-        # Step 5: Navigate to Delete Data tab to verify files are there
-        logger.info("[5893] Navigating to Delete Data tab to verify uploads")
+        # Step 5: Navigate to Delete Data tab for final verification
+        logger.info("[5893] Final verification - checking all files in Delete Data")
         ctx.admin_page.click_delete_data_tab_with_wait()
         logger.info("[5893] Delete Data tab loaded")
 
@@ -1859,10 +1821,11 @@ def test_8470_bug_8443_cwyd_ingest_hebrew_pdf_and_web_urls(login_logout, request
         ctx.admin_page.upload_file(hebrew_file_path)
         logger.info("[8470] SUCCESS: Hebrew PDF file uploaded")
 
-        # Step 3: Wait for file processing
-        logger.info("[8470] Waiting for Hebrew PDF processing...")
-        ctx.admin_page.wait_for_upload_processing(1)  # 1 minute for file processing
-        logger.info("[8470] Hebrew PDF processing wait completed")
+        # Step 3: Wait for file to appear in Delete Data (poll with 6 minute timeout)
+        logger.info("[8470] Waiting for Hebrew PDF to be processed and appear in Delete Data...")
+        file_appeared = ctx.admin_page.wait_for_file_to_appear_in_delete(hebrew_filename, timeout_minutes=6)
+        assert file_appeared, f"Hebrew PDF file '{hebrew_filename}' did not appear in Delete Data within 6 minutes"
+        logger.info("[8470] Hebrew PDF processing completed and verified in Delete Data")
 
         # Step 4: Add Hebrew web URL for ingestion
         hebrew_web_url = "https://he.wikipedia.org/wiki/עברית"  # Hebrew Wikipedia page about Hebrew language
@@ -2339,9 +2302,20 @@ def test_9205_us_9005_cwyd_multilingual_filename_uploads(login_logout, request):
         assert len(uploaded_files) > 0, f"No multilingual files were uploaded successfully. Attempted: {multilingual_files}"
         logger.info("[9205] SUCCESS: %d out of %d multilingual files uploaded successfully", len(uploaded_files), len(multilingual_files))
 
-        # Step 3: Wait for upload completion and processing (1.5 minutes)
-        logger.info("[9205] Waiting 1.5 minutes for file processing to complete")
-        ctx.page.wait_for_timeout(90000)  # Wait 1.5 minutes for file processing
+        # Step 3: Wait for each uploaded file to appear in Delete Data (poll with 6 minute timeout per file)
+        logger.info("[9205] Waiting for multilingual files to be processed and appear in Delete Data...")
+        all_files_verified = True
+        for filename in uploaded_files:
+            logger.info("[9205] Checking if file is processed: %s", filename)
+            file_appeared = ctx.admin_page.wait_for_file_to_appear_in_delete(filename, timeout_minutes=6)
+            if file_appeared:
+                logger.info("[9205] ✓ File verified in Delete Data: %s", filename)
+            else:
+                logger.error("[9205] ✗ File NOT found in Delete Data: %s", filename)
+                all_files_verified = False
+
+        assert all_files_verified, f"Some multilingual files did not appear in Delete Data within 6 minutes: {uploaded_files}"
+        logger.info("[9205] SUCCESS: All multilingual files verified in Delete Data")
 
         # Step 4: Navigate to Explore Data tab to verify multilingual filenames in dropdown
         logger.info("[9205] Navigating to Explore Data tab to verify multilingual filenames")
