@@ -86,6 +86,9 @@ on:
       QUOTA_FAILED:
         description: "Quota Check Failed Flag"
         value: ${{ jobs.azure-setup.outputs.QUOTA_FAILED }}
+      RESOURCE_TOKEN:
+        description: "Resource Token"
+        value: ${{ jobs.deploy-linux.outputs.RESOURCE_TOKEN }}
 
 env:
   GPT_MIN_CAPACITY: 150
@@ -175,6 +178,7 @@ jobs:
           echo "RESOURCE_GROUP_NAME=${{ env.RESOURCE_GROUP_NAME }}" >> $GITHUB_OUTPUT
 
       - name: Clear Existing Resources in Resource Group
+        if: inputs.resource_group_name != 'rg-cwyd-ci'
         run: |
           echo "=== Clearing all resources in resource group: ${{ env.RESOURCE_GROUP_NAME }} ==="
           set -e

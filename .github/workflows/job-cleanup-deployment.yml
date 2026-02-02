@@ -40,6 +40,10 @@ on:
         description: 'Docker Image Tag'
         required: true
         type: string
+      RESOURCE_TOKEN:
+        description: 'Resource Token'
+        required: false
+        type: string
 
 jobs:
   cleanup-deployment:
@@ -50,6 +54,7 @@ jobs:
       AZURE_LOCATION: ${{ inputs.AZURE_LOCATION }}
       ENV_NAME: ${{ inputs.ENV_NAME }}
       IMAGE_TAG: ${{ inputs.IMAGE_TAG }}
+      RESOURCE_TOKEN: ${{ inputs.RESOURCE_TOKEN }}
     steps:
       - name: Login to Azure
         shell: bash
@@ -59,19 +64,19 @@ jobs:
 
       - name: Clean Resources within Resource Group
         id: clean_resources
-        if: ${{ inputs.RESOURCE_GROUP_NAME == 'rg-cwyd-ci' }}
+        if: ${{ inputs.RESOURCE_GROUP_NAME == 'rg-cwyd-ci' && inputs.RESOURCE_TOKEN != '' }}
         shell: bash
         run: |
           set -e
-          echo "🗑️ Cleaning resources within resource group (keeping RG): ${{ env.RESOURCE_GROUP_NAME }}"
+          echo "🗑️ Cleaning resources in resource group: ${{ env.RESOURCE_GROUP_NAME }}"
 
-          # Get all resources in the resource group
-          RESOURCES=$(az resource list --resource-group "${{ env.RESOURCE_GROUP_NAME }}" --query "[].id" -o tsv)
+          # Get all resources in the resource group that contain the RESOURCE_TOKEN in their name
+          RESOURCES=$(az resource list --resource-group "${{ env.RESOURCE_GROUP_NAME }}" --query "[?contains(name, '${{ env.RESOURCE_TOKEN }}')].id" -o tsv)
 
           if [ -z "$RESOURCES" ]; then
-            echo "No resources found in resource group"
+            echo "No resources found with token '${{ env.RESOURCE_TOKEN }}' in resource group"
           else
-            echo "Deleting all resources in resource group..."
+            echo "Deleting resources with token '${{ env.RESOURCE_TOKEN }}'..."
             echo "$RESOURCES" | while read -r resource_id; do
               if [ -n "$resource_id" ]; then
                 echo "Deleting: $resource_id"
@@ -82,6 +87,7 @@ jobs:
 
           echo "✅ Resource cleanup initiated (running asynchronously)"
           echo "Note: Resource group ${{ env.RESOURCE_GROUP_NAME }} is preserved"
+          echo "Note: Only resources with token '${{ env.RESOURCE_TOKEN }}' were targeted for deletion"
 
       - name: Delete Resource Group
         id: delete_rg

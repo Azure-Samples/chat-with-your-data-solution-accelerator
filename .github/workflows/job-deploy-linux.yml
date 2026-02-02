@@ -47,6 +47,9 @@ on:
       ADMIN_APPURL:
         description: "Admin Web App URL"
         value: ${{ jobs.deploy-linux.outputs.ADMIN_APPURL }}
+      RESOURCE_TOKEN:
+        description: "Resource Token"
+        value: ${{ jobs.deploy-linux.outputs.RESOURCE_TOKEN }}
 
 jobs:
   deploy-linux:
@@ -56,6 +59,7 @@ jobs:
     outputs:
       WEB_APPURL: ${{ steps.get_output_linux.outputs.FRONTEND_WEBSITE_NAME }}
       ADMIN_APPURL: ${{ steps.get_output_linux.outputs.ADMIN_WEBSITE_NAME }}
+      RESOURCE_TOKEN: ${{ steps.get_output_linux.outputs.RESOURCE_TOKEN }}
       AZURE_POSTGRESQL_HOST_NAME: ${{ steps.get_output_linux.outputs.AZURE_POSTGRESQL_HOST_NAME }}
       AZURE_SEARCH_SERVICE: ${{ steps.get_output_linux.outputs.AZURE_SEARCH_SERVICE }}
       AZURE_BLOB_ACCOUNT_NAME: ${{ steps.get_output_linux.outputs.AZURE_BLOB_ACCOUNT_NAME }}
@@ -151,6 +155,9 @@ jobs:
           echo "FRONTEND_WEBSITE_NAME=$FRONTEND_WEBSITE_NAME" >> $GITHUB_OUTPUT
           ADMIN_WEBSITE_NAME=$(azd env get-value ADMIN_WEBSITE_NAME)
           echo "ADMIN_WEBSITE_NAME=$ADMIN_WEBSITE_NAME" >> $GITHUB_OUTPUT
+
+          RESOURCE_TOKEN=$(azd env get-value RESOURCE_TOKEN)
+          echo "RESOURCE_TOKEN=$RESOURCE_TOKEN" >> $GITHUB_OUTPUT
 
           # Export values based on DATABASE_TYPE
           if [[ "${{ inputs.DATABASE_TYPE }}" == "PostgreSQL" ]]; then
