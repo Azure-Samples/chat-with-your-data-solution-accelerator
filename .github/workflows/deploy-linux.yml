@@ -5,7 +5,6 @@ on:
       resource_group_name:
         description: 'Resource Group Name'
         required: true
-        default: ''
         type: string
 
       DATABASE_TYPE:
@@ -84,10 +83,10 @@ jobs:
     uses: ./.github/workflows/deploy-orchestrator.yml
     with:
       runner_os: ubuntu-latest
-      resource_group_name: ${{ github.event.inputs.resource_group_name || '' }}
+      resource_group_name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.resource_group_name || 'rg-cwyd-ci' }}
       waf_enabled: ${{ github.event.inputs.waf_enabled == 'true' }}
       EXP: ${{ github.event.inputs.EXP == 'true' }}
-      cleanup_resources: ${{ github.event.inputs.cleanup_resources == 'true' }}
+      cleanup_resources: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.cleanup_resources == 'true' }}
       run_e2e_tests: ${{ github.event.inputs.run_e2e_tests || 'GoldenPath-Testing' }}
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID || '' }}
       existing_webapp_url: ${{ github.event.inputs.existing_webapp_url || '' }}
