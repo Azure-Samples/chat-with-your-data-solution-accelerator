@@ -2,7 +2,7 @@ name: Deploy-Test-Cleanup (v2) Linux
 on:
   push:
     branches:
-      - import-data-fixed
+      - cwyd-fix-cleanup
   workflow_dispatch:
     inputs:
       resource_group_name:
