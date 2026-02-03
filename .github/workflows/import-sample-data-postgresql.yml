@@ -39,6 +39,59 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Validate Workflow Input Parameters
+        shell: bash
+        env:
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
+          INPUT_WAF: ${{ inputs.WAF }}
+        run: |
+          echo "🔍 Validating workflow input parameters..."
+          VALIDATION_FAILED=false
+
+          # Validate RESOURCE_GROUP_NAME (required, Azure naming convention)
+          if [[ -z "$INPUT_RESOURCE_GROUP_NAME" ]]; then
+            echo "❌ ERROR: RESOURCE_GROUP_NAME is required but not provided"
+            VALIDATION_FAILED=true
+          elif [[ ! "$INPUT_RESOURCE_GROUP_NAME" =~ ^[a-zA-Z0-9._\(\)-]+$ ]] || [[ "$INPUT_RESOURCE_GROUP_NAME" =~ \.$ ]]; then
+            echo "❌ ERROR: RESOURCE_GROUP_NAME '$INPUT_RESOURCE_GROUP_NAME' is invalid. Must contain only alphanumerics, periods, underscores, hyphens, and parentheses. Cannot end with period."
+            VALIDATION_FAILED=true
+          elif [[ ${#INPUT_RESOURCE_GROUP_NAME} -gt 90 ]]; then
+            echo "❌ ERROR: RESOURCE_GROUP_NAME '$INPUT_RESOURCE_GROUP_NAME' exceeds 90 characters"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ RESOURCE_GROUP_NAME: '$INPUT_RESOURCE_GROUP_NAME' is valid"
+          fi
+
+          # Validate AZURE_POSTGRESQL_HOST_NAME (required, must be valid PostgreSQL hostname format)
+          if [[ -z "$INPUT_AZURE_POSTGRESQL_HOST_NAME" ]]; then
+            echo "❌ ERROR: AZURE_POSTGRESQL_HOST_NAME is required but not provided"
+            VALIDATION_FAILED=true
+          elif [[ ! "$INPUT_AZURE_POSTGRESQL_HOST_NAME" =~ ^[a-zA-Z0-9-]+\.postgres\.database\.azure\.com$ ]]; then
+            echo "❌ ERROR: AZURE_POSTGRESQL_HOST_NAME '$INPUT_AZURE_POSTGRESQL_HOST_NAME' is invalid. Must be in format: <servername>.postgres.database.azure.com"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ AZURE_POSTGRESQL_HOST_NAME: '$INPUT_AZURE_POSTGRESQL_HOST_NAME' is valid"
+          fi
+
+          # Validate WAF (boolean)
+          if [[ "$INPUT_WAF" != "true" && "$INPUT_WAF" != "false" ]]; then
+            echo "❌ ERROR: WAF must be 'true' or 'false', got: '$INPUT_WAF'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ WAF: '$INPUT_WAF' is valid"
+          fi
+
+          # Fail workflow if any validation failed
+          if [[ "$VALIDATION_FAILED" == "true" ]]; then
+            echo ""
+            echo "❌ Parameter validation failed. Please correct the errors above and try again."
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All input parameters validated successfully!"
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -57,8 +110,11 @@ jobs:
 
       - name: Enable Public Access for PostgreSQL (WAF)
         if: ${{ inputs.WAF == true }}
+        env:
+          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
-          PG_HOST="${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}"
+          PG_HOST="$INPUT_AZURE_POSTGRESQL_HOST_NAME"
           PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
 
           echo "Configuring public access for PostgreSQL server: $PG_SERVER_NAME"
@@ -66,14 +122,14 @@ jobs:
           # Enable public network access for the PostgreSQL server
           echo "Enabling public network access..."
           az postgres flexible-server update \
-            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
+            --resource-group "$INPUT_RESOURCE_GROUP_NAME" \
             --name "$PG_SERVER_NAME" \
             --public-access Enabled
 
           # Add firewall rule to allow all IP addresses (0.0.0.0 - 255.255.255.255)
           echo "Adding firewall rule to allow all IP addresses..."
           az postgres flexible-server firewall-rule create \
-            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
+            --resource-group "$INPUT_RESOURCE_GROUP_NAME" \
             --name "$PG_SERVER_NAME" \
             --rule-name "AllowAllIPs" \
             --start-ip-address 0.0.0.0 \
@@ -93,9 +149,12 @@ jobs:
           pip install psycopg2-binary python-dotenv azure-identity
 
       - name: Add Service Principal as PostgreSQL Admin
+        env:
+          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
           # Get PostgreSQL server name from input parameter
-          PG_HOST="${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}"
+          PG_HOST="$INPUT_AZURE_POSTGRESQL_HOST_NAME"
           PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
 
           # Get the service principal's object ID (required for PostgreSQL admin)
@@ -115,7 +174,7 @@ jobs:
           # Check if Microsoft Entra authentication is enabled on the server
           echo "Checking PostgreSQL server authentication configuration..."
           AUTH_CONFIG=$(az rest --method GET \
-            --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ inputs.RESOURCE_GROUP_NAME }}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}?api-version=2022-12-01" \
+            --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/$INPUT_RESOURCE_GROUP_NAME/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}?api-version=2022-12-01" \
             --query "properties.authConfig" -o json) || true
           echo "Auth config: $AUTH_CONFIG"
 
@@ -123,14 +182,14 @@ jobs:
 
           # Add service principal as Entra ID administrator using REST API
           RESULT=$(az rest --method PUT \
-            --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ inputs.RESOURCE_GROUP_NAME }}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}/administrators/${SP_OBJECT_ID}?api-version=2022-12-01" \
+            --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/$INPUT_RESOURCE_GROUP_NAME/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}/administrators/${SP_OBJECT_ID}?api-version=2022-12-01" \
             --body "{\"properties\": {\"principalType\": \"ServicePrincipal\", \"principalName\": \"${SP_DISPLAY_NAME}\", \"tenantId\": \"${{ secrets.AZURE_TENANT_ID }}\"}}" \
             2>&1) && echo "Admin creation result: $RESULT" || echo "Admin creation response: $RESULT"
 
           # List current admins to verify
           echo "Listing current PostgreSQL administrators..."
           az rest --method GET \
-            --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ inputs.RESOURCE_GROUP_NAME }}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}/administrators?api-version=2022-12-01" \
+            --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/$INPUT_RESOURCE_GROUP_NAME/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}/administrators?api-version=2022-12-01" \
             -o json || true
 
           echo "✅ Service principal configured as PostgreSQL administrator"
@@ -141,8 +200,14 @@ jobs:
           sleep 60
 
       - name: Populate PostgreSQL Database
+        env:
+          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          SP_DISPLAY_NAME: ${{ env.SP_DISPLAY_NAME }}
         run: |
-          export PG_HOST_DESTINATION="${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}"
+          export PG_HOST_DESTINATION="$INPUT_AZURE_POSTGRESQL_HOST_NAME"
           # Get the service principal's display name (required as username for PostgreSQL Entra auth)
           export SP_DISPLAY_NAME=$(az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query displayName -o tsv)
 
@@ -206,16 +271,14 @@ jobs:
               print(f"❌ Error during import: {e}")
               raise
           EOF
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          SP_DISPLAY_NAME: ${{ env.SP_DISPLAY_NAME }}
 
       - name: Disable Public Access for PostgreSQL (WAF)
         if: ${{ inputs.WAF == true }}
+        env:
+          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
-          PG_HOST="${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}"
+          PG_HOST="$INPUT_AZURE_POSTGRESQL_HOST_NAME"
           PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
 
           echo "Removing public access for PostgreSQL server: $PG_SERVER_NAME"
@@ -223,7 +286,7 @@ jobs:
           # Remove the firewall rule that allowed all IP addresses
           echo "Removing firewall rule 'AllowAllIPs'..."
           az postgres flexible-server firewall-rule delete \
-            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
+            --resource-group "$INPUT_RESOURCE_GROUP_NAME" \
             --name "$PG_SERVER_NAME" \
             --rule-name "AllowAllIPs" \
             --yes
@@ -231,7 +294,7 @@ jobs:
           # Disable public network access for the PostgreSQL server
           echo "Disabling public network access..."
           az postgres flexible-server update \
-            --resource-group "${{ inputs.RESOURCE_GROUP_NAME }}" \
+            --resource-group "$INPUT_RESOURCE_GROUP_NAME" \
             --name "$PG_SERVER_NAME" \
             --public-access Disabled
 

@@ -115,6 +115,146 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Validate Workflow Input Parameters
+        shell: bash
+        env:
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.resource_group_name }}
+          INPUT_WAF_ENABLED: ${{ inputs.waf_enabled }}
+          INPUT_EXP: ${{ inputs.EXP }}
+          INPUT_CLEANUP_RESOURCES: ${{ inputs.cleanup_resources }}
+          INPUT_RUN_E2E_TESTS: ${{ inputs.run_e2e_tests }}
+          INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          INPUT_EXISTING_WEBAPP_URL: ${{ inputs.existing_webapp_url }}
+          INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
+          INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+          INPUT_DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
+        run: |
+          echo "🔍 Validating workflow input parameters..."
+          VALIDATION_FAILED=false
+
+          # Validate resource_group_name (Azure naming convention)
+          if [[ -n "$INPUT_RESOURCE_GROUP_NAME" ]]; then
+            if [[ ! "$INPUT_RESOURCE_GROUP_NAME" =~ ^[a-zA-Z0-9._\(\)-]+$ ]] || [[ "$INPUT_RESOURCE_GROUP_NAME" =~ \.$ ]]; then
+              echo "❌ ERROR: resource_group_name '$INPUT_RESOURCE_GROUP_NAME' is invalid. Must contain only alphanumerics, periods, underscores, hyphens, and parentheses. Cannot end with period."
+              VALIDATION_FAILED=true
+            elif [[ ${#INPUT_RESOURCE_GROUP_NAME} -gt 90 ]]; then
+              echo "❌ ERROR: resource_group_name '$INPUT_RESOURCE_GROUP_NAME' exceeds 90 characters (length: ${#INPUT_RESOURCE_GROUP_NAME})"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ resource_group_name: '$INPUT_RESOURCE_GROUP_NAME' is valid"
+            fi
+          else
+            echo "✅ resource_group_name: Not provided (optional)"
+          fi
+
+          # Validate DATABASE_TYPE (specific allowed values)
+          if [[ -n "$INPUT_DATABASE_TYPE" ]]; then
+            if [[ "$INPUT_DATABASE_TYPE" != "PostgreSQL" && "$INPUT_DATABASE_TYPE" != "CosmosDB" ]]; then
+              echo "❌ ERROR: DATABASE_TYPE must be one of: PostgreSQL, CosmosDB, got: '$INPUT_DATABASE_TYPE'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ DATABASE_TYPE: '$INPUT_DATABASE_TYPE' is valid"
+            fi
+          else
+            echo "✅ DATABASE_TYPE: Not provided (will use default 'PostgreSQL')"
+          fi
+
+          # Validate waf_enabled (boolean)
+          if [[ "$INPUT_WAF_ENABLED" != "true" && "$INPUT_WAF_ENABLED" != "false" ]]; then
+            echo "❌ ERROR: waf_enabled must be 'true' or 'false', got: '$INPUT_WAF_ENABLED'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ waf_enabled: '$INPUT_WAF_ENABLED' is valid"
+          fi
+
+          # Validate EXP (boolean)
+          if [[ "$INPUT_EXP" != "true" && "$INPUT_EXP" != "false" ]]; then
+            echo "❌ ERROR: EXP must be 'true' or 'false', got: '$INPUT_EXP'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ EXP: '$INPUT_EXP' is valid"
+          fi
+
+          # Validate cleanup_resources (boolean)
+          if [[ "$INPUT_CLEANUP_RESOURCES" != "true" && "$INPUT_CLEANUP_RESOURCES" != "false" ]]; then
+            echo "❌ ERROR: cleanup_resources must be 'true' or 'false', got: '$INPUT_CLEANUP_RESOURCES'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ cleanup_resources: '$INPUT_CLEANUP_RESOURCES' is valid"
+          fi
+
+          # Validate run_e2e_tests (specific allowed values)
+          if [[ -n "$INPUT_RUN_E2E_TESTS" ]]; then
+            if [[ "$INPUT_RUN_E2E_TESTS" != "GoldenPath-Testing" && "$INPUT_RUN_E2E_TESTS" != "Smoke-Testing" && "$INPUT_RUN_E2E_TESTS" != "None" ]]; then
+              echo "❌ ERROR: run_e2e_tests must be one of: GoldenPath-Testing, Smoke-Testing, None, got: '$INPUT_RUN_E2E_TESTS'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ run_e2e_tests: '$INPUT_RUN_E2E_TESTS' is valid"
+            fi
+          else
+            echo "✅ run_e2e_tests: Not provided (will use default 'GoldenPath-Testing')"
+          fi
+
+          # Validate AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID (optional, Azure Resource ID format)
+          if [[ -n "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]]; then
+            if [[ ! "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/[Mm]icrosoft\.[Oo]perational[Ii]nsights/[Ww]orkspaces/[^/]+$ ]]; then
+              echo "❌ ERROR: AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID is invalid. Must be a valid Azure Resource ID format:"
+              echo "   /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.OperationalInsights/workspaces/{workspaceName}"
+              echo "   Got: '$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: Valid Resource ID format"
+            fi
+          else
+            echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: Not provided (optional)"
+          fi
+
+          # Validate AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION (boolean string)
+          if [[ -n "$INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION" ]]; then
+            if [[ "$INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION" != "true" && "$INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION" != "false" ]]; then
+              echo "❌ ERROR: AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION must be 'true' or 'false', got: '$INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: '$INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION' is valid"
+            fi
+          else
+            echo "✅ AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: Not provided (will use default 'false')"
+          fi
+
+          # Validate AZURE_SEARCH_USE_SEMANTIC_SEARCH (boolean string)
+          if [[ -n "$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH" ]]; then
+            if [[ "$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH" != "true" && "$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH" != "false" ]]; then
+              echo "❌ ERROR: AZURE_SEARCH_USE_SEMANTIC_SEARCH must be 'true' or 'false', got: '$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ AZURE_SEARCH_USE_SEMANTIC_SEARCH: '$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH' is valid"
+            fi
+          else
+            echo "✅ AZURE_SEARCH_USE_SEMANTIC_SEARCH: Not provided (will use default 'false')"
+          fi
+
+          # Validate existing_webapp_url (optional, must start with https)
+          if [[ -n "$INPUT_EXISTING_WEBAPP_URL" ]]; then
+            if [[ ! "$INPUT_EXISTING_WEBAPP_URL" =~ ^https:// ]]; then
+              echo "❌ ERROR: existing_webapp_url must start with 'https://', got: '$INPUT_EXISTING_WEBAPP_URL'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ existing_webapp_url: '$INPUT_EXISTING_WEBAPP_URL' is valid"
+            fi
+          else
+            echo "✅ existing_webapp_url: Not provided (will perform deployment)"
+          fi
+
+          # Fail workflow if any validation failed
+          if [[ "$VALIDATION_FAILED" == "true" ]]; then
+            echo ""
+            echo "❌ Parameter validation failed. Please correct the errors above and try again."
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All input parameters validated successfully!"
+
       - name: Login to Azure
         shell: bash
         run: |
@@ -152,10 +292,12 @@ jobs:
           echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
 
       - name: Add Resource Group Name to Environment
+        env:
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.resource_group_name }}
         run: |
-          if [ -n "${{ inputs.RESOURCE_GROUP_NAME }}" ]; then
+          if [ -n "$INPUT_RESOURCE_GROUP_NAME" ]; then
             echo "Using provided resource group name..."
-            UNIQUE_RG_NAME="${{ inputs.RESOURCE_GROUP_NAME }}"
+            UNIQUE_RG_NAME="$INPUT_RESOURCE_GROUP_NAME"
             echo "Provided RESOURCE_GROUP_NAME: ${UNIQUE_RG_NAME}"
           fi
           echo "RESOURCE_GROUP_NAME=${UNIQUE_RG_NAME}" >> $GITHUB_ENV
