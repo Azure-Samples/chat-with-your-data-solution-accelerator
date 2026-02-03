@@ -81,9 +81,9 @@ on:
   schedule:
     - cron: '0 9,21 * * *'  # Runs at 9:00 AM and 9:00 PM GMT
 
-concurrency:
-  group: ${{ github.event_name == 'workflow_dispatch' && format('manual-{0}', github.run_id) || 'deploy-auto-triggered' }}
-  cancel-in-progress: false
+# concurrency:
+#   group: ${{ github.event_name == 'workflow_dispatch' && format('manual-{0}', github.run_id) || 'deploy-auto-triggered' }}
+#   cancel-in-progress: false
 
 jobs:
   validate-inputs:
