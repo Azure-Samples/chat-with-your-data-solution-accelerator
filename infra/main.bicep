@@ -1769,7 +1769,7 @@ module avmEventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.3'
       : []
     eventSubscriptions: [
       {
-        name: eventGridSystemTopicName
+        name: 'evts-${solutionSuffix}'
         destination: {
           endpointType: 'StorageQueue'
           properties: {
