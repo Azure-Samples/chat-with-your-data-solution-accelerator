@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - cwyd-fix-cleanup
+      - psl-parallel-fix
   workflow_dispatch:
     inputs:
       resource_group_name:
