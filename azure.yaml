@@ -22,6 +22,8 @@ services:
     language: py
     host: appservice
     dist: ./dist
+    # Use resourceName to bypass azd-service-name tag lookup (enables parallel deployments)
+    resourceName: ${SERVICE_WEB_RESOURCE_NAME}
     hooks:
       prepackage:
         windows:
@@ -39,6 +41,8 @@ services:
     project: ./code/backend
     language: py
     host: appservice
+    # Use resourceName to bypass azd-service-name tag lookup (enables parallel deployments)
+    resourceName: ${SERVICE_ADMINWEB_RESOURCE_NAME}
     hooks:
       prepackage:
         windows:
@@ -52,6 +56,8 @@ services:
     project: ./code/backend/batch
     language: py
     host: function
+    # Use resourceName to bypass azd-service-name tag lookup (enables parallel deployments)
+    resourceName: ${SERVICE_FUNCTION_RESOURCE_NAME}
     hooks:
       prepackage:
         windows:

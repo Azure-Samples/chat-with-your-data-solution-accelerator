@@ -2030,6 +2030,15 @@ output BACKEND_URL string = backendUrl
 @description('Azure WebJobs Storage connection string for the Functions app.')
 output AzureWebJobsStorage string = function.outputs.AzureWebJobsStorage
 
+@description('Frontend web application resource name (for azd deploy).')
+output SERVICE_WEB_RESOURCE_NAME string = web.outputs.FRONTEND_API_NAME
+
+@description('Admin web application resource name (for azd deploy).')
+output SERVICE_ADMINWEB_RESOURCE_NAME string = adminweb.outputs.WEBSITE_ADMIN_NAME
+
+@description('Function app resource name (for azd deploy).')
+output SERVICE_FUNCTION_RESOURCE_NAME string = function.outputs.functionName
+
 @description('Frontend web application URI.')
 output FRONTEND_WEBSITE_NAME string = web.outputs.FRONTEND_API_URI
 
