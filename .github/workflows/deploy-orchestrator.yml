@@ -70,6 +70,7 @@ on:
 env:
   AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
 
+  
 jobs:
   deploy:
     if: "!cancelled() && (inputs.trigger_type != 'workflow_dispatch' || inputs.existing_webapp_url == '' || inputs.existing_webapp_url == null)"
