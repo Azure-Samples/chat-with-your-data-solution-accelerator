@@ -86,7 +86,7 @@ on:
 #   group: ${{ github.event_name == 'workflow_dispatch' && format('manual-{0}', github.run_id) || 'deploy-auto-triggered' }}
 #   cancel-in-progress: false
 
-# Test parallel workflow 1
+# Test parallel workflow 2
 jobs:
   validate-inputs:
     name: Validate Input Parameters
