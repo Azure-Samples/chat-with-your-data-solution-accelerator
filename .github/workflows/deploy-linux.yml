@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       resource_group_name:
-        description: 'Resource Group Name'
+        description: 'Existing Resource Group Name'
         required: true
         type: string
 
@@ -68,13 +68,13 @@ on:
         default: 'false'
 
       existing_webapp_url:
-        description: 'Existing FrontEndWeb URL (Skips Deployment)'
+        description: 'Existing Front-End Web URL (Skips Deployment)'
         required: false
         default: ''
         type: string
 
       existing_admin_app_url:
-        description: 'Existing AdminWeb URL (Skips Deployment)'
+        description: 'Existing Admin Web URL (Skips Deployment)'
         required: false
         default: ''
         type: string

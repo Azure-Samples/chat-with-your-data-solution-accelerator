@@ -121,17 +121,35 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Resource Group deletion Status** | ${{ steps.delete_rg.outcome == 'success' && '✅ Initiated' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Resource Group** | \`${{ env.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [[ "${{ steps.delete_rg.outcome }}" == "success" ]]; then
-            echo "### ✅ Cleanup Details" >> $GITHUB_STEP_SUMMARY
-            echo "- Successfully initiated deletion for Resource Group \`${{ env.RESOURCE_GROUP_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          # Check if resource cleanup was performed (rg-cwyd-ci with token)
+          if [[ "${{ env.RESOURCE_GROUP_NAME }}" == "rg-cwyd-ci" && -n "${{ env.RESOURCE_TOKEN }}" ]]; then
+            echo "| **Cleanup Mode** | Resource Cleanup within RG |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Status** | ${{ steps.clean_resources.outcome == 'success' && '✅ Initiated' || (steps.clean_resources.outcome == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
+            if [[ "${{ steps.clean_resources.outcome }}" == "success" ]]; then
+              echo "### ✅ Cleanup Details" >> $GITHUB_STEP_SUMMARY
+              echo "- Successfully initiated cleanup of resources within \`${{ env.RESOURCE_GROUP_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "### ❌ Cleanup Failed" >> $GITHUB_STEP_SUMMARY
+              echo "- Resource cleanup process encountered an error" >> $GITHUB_STEP_SUMMARY
+              echo "- Check the cleanup-deployment job logs for detailed error information" >> $GITHUB_STEP_SUMMARY
+            fi
           else
-            echo "### ❌ Cleanup Failed" >> $GITHUB_STEP_SUMMARY
-            echo "- Cleanup process encountered an error" >> $GITHUB_STEP_SUMMARY
-            echo "- Manual cleanup may be required for:" >> $GITHUB_STEP_SUMMARY
-            echo "  - Resource Group: \`${{ env.RESOURCE_GROUP_NAME }}\`" >> $GITHUB_STEP_SUMMARY
-            echo "- Check the cleanup-deployment job logs for detailed error information" >> $GITHUB_STEP_SUMMARY
+            # Resource group deletion
+            echo "| **Cleanup Mode** | Resource Group Deletion |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Status** | ${{ steps.delete_rg.outcome == 'success' && '✅ Initiated' || (steps.delete_rg.outcome == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            if [[ "${{ steps.delete_rg.outcome }}" == "success" ]]; then
+              echo "### ✅ Cleanup Details" >> $GITHUB_STEP_SUMMARY
+              echo "- Successfully initiated deletion for Resource Group \`${{ env.RESOURCE_GROUP_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+            elif [[ "${{ steps.delete_rg.outcome }}" == "skipped" ]]; then
+              echo "### ⏭️ Cleanup Skipped" >> $GITHUB_STEP_SUMMARY
+              echo "- Resource group deletion was skipped" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "### ❌ Cleanup Failed" >> $GITHUB_STEP_SUMMARY
+              echo "- Cleanup process encountered an error" >> $GITHUB_STEP_SUMMARY
+              echo "  - Resource Group: \`${{ env.RESOURCE_GROUP_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+              echo "- Check the cleanup-deployment job logs for detailed error information" >> $GITHUB_STEP_SUMMARY
+            fi
           fi
