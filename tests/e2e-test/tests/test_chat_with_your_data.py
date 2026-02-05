@@ -288,35 +288,39 @@ def test_4089_cwyd_data_ingestion_process(login_logout, request):
         assert file_appeared, "File 'architecture_pg.png' did not appear in Delete Data within 5 minutes"
         logger.info("[4089] File processing completed and verified in Delete Data")
 
-        # Step 5: Enter URL in 'Add urls to the knowledge base section'
+        # Step 5: Navigate back to Ingest Data tab before adding URL
+        logger.info("[4089] Navigating back to Ingest Data tab")
+        ctx.admin_page.click_ingest_data_tab()
+
+        # Step 6: Enter URL in 'Add urls to the knowledge base section'
         logger.info("[4089] Adding URL to the knowledge base section")
         test_url = "https://en.wikipedia.org/wiki/India"  # Wikipedia URL for India
         url_added = ctx.admin_page.add_web_url(test_url)
         assert url_added, "Failed to add URL to the knowledge base section"
         logger.info("[4089] SUCCESS: URL '%s' added to knowledge base section", test_url)
 
-        # Step 6: Click on 'Process and ingest web pages' button
+        # Step 7: Click on 'Process and ingest web pages' button
         logger.info("[4089] Clicking 'Process and ingest web pages' button")
         process_clicked = ctx.admin_page.click_process_ingest_web_pages()
         assert process_clicked, "Failed to click 'Process and ingest web pages' button"
         logger.info("[4089] SUCCESS: 'Process and ingest web pages' button clicked")
 
-        # Step 7: Wait for web URL content to appear (poll with 5 minute timeout)
+        # Step 8: Wait for web URL content to appear (poll with 5 minute timeout)
         logger.info("[4089] Waiting for web URL content to be processed and appear in Delete Data...")
         # Poll for any web-related content (india, wikipedia, wiki, etc.)
         web_content_keywords = ["india", "wikipedia", "wiki"]
         web_content_found = False
-        
+
         for keyword in web_content_keywords:
             web_appeared = ctx.admin_page.wait_for_file_to_appear_in_delete(keyword, timeout_minutes=5)
             if web_appeared:
                 logger.info("[4089] ✓ Web URL content verified in Delete Data (keyword: %s)", keyword)
                 web_content_found = True
                 break
-        
+
         if not web_content_found:
             logger.warning("[4089] Web URL content not found within 5 minutes - may take longer to process")
-        
+
         logger.info("[4089] Test completed successfully - file upload verified")
 
 
@@ -1827,7 +1831,11 @@ def test_8470_bug_8443_cwyd_ingest_hebrew_pdf_and_web_urls(login_logout, request
         assert file_appeared, f"Hebrew PDF file '{hebrew_filename}' did not appear in Delete Data within 6 minutes"
         logger.info("[8470] Hebrew PDF processing completed and verified in Delete Data")
 
-        # Step 4: Add Hebrew web URL for ingestion
+        # Step 4: Navigate back to Ingest Data tab before adding web URL
+        logger.info("[8470] Navigating back to Ingest Data tab")
+        ctx.admin_page.click_ingest_data_tab()
+
+        # Step 5: Add Hebrew web URL for ingestion
         hebrew_web_url = "https://he.wikipedia.org/wiki/עברית"  # Hebrew Wikipedia page about Hebrew language
         logger.info("[8470] Adding Hebrew web URL: %s", hebrew_web_url)
 

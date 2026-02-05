@@ -57,8 +57,13 @@ class AdminPage(BasePage):
 
     def click_ingest_data_tab(self):
         """Click on the Ingest Data tab"""
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("Clicking Ingest Data tab...")
         self.page.locator(self.INGEST_DATA_TAB).click()
-        self.page.wait_for_timeout(2000)
+        self.page.wait_for_load_state("networkidle")
+        self.page.wait_for_timeout(3000)
+        logger.info("✓ Ingest Data tab loaded")
 
     def upload_file(self, file_path):
         """Upload a file using the Browse files button"""
