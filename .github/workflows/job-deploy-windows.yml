@@ -229,10 +229,12 @@ jobs:
           python-version: '3.11'
 
       - name: Install Poetry
-        shell: bash
+        shell: pwsh
         run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$APPDATA/Python/Scripts" >> $GITHUB_PATH
+          (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+          $poetryPath = "$env:APPDATA\Python\Scripts"
+          echo "$poetryPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $env:Path = "$poetryPath;$env:Path"
           poetry --version
           poetry self add poetry-plugin-export
 
