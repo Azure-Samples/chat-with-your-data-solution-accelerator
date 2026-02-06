@@ -71,6 +71,7 @@ def test_post_makes_correct_call_to_openai_embeddings(
                     [3923, 374, 279, 7438, 315, 2324, 30]
                 ],  # Embedding of "What is the meaning of life?"
                 "model": "text-embedding-ada-002",
+                "dimensions": 1536,
                 "encoding_format": "base64",
             },
             headers={
