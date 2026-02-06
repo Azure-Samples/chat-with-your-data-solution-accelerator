@@ -2,6 +2,7 @@ from typing import List
 import logging
 import re
 import json
+from urllib.parse import unquote
 from .parser_base import ParserBase
 from ..common.source_document import SourceDocument
 
@@ -71,14 +72,14 @@ class OutputParserTool(ParserBase):
                         if doc.chunk_id is not None
                         else doc.chunk
                     ),
-                    "title": doc.title,
+                    "title": unquote(doc.title) if doc.title else doc.title,
                     "filepath": doc.get_filename(include_path=True),
                     "url": doc.get_markdown_url(),
                     "metadata": {
                         "offset": doc.offset,
                         "source": doc.source,
                         "markdown_url": doc.get_markdown_url(),
-                        "title": doc.title,
+                        "title": unquote(doc.title) if doc.title else doc.title,
                         "original_url": doc.source,  # TODO: do we need this?
                         "chunk": doc.chunk,
                         "key": doc.id,

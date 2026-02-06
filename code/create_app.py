@@ -9,7 +9,7 @@ import mimetypes
 from os import path
 import sys
 import re
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 import requests
 from openai import AzureOpenAI, Stream, APIStatusError
@@ -55,7 +55,7 @@ def get_citations(citation_list):
             if isinstance(citation["url"], str)
             else citation["url"]
         )
-        title = citation["title"]
+        title = unquote(citation["title"]) if citation.get("title") else citation["title"]
         source = metadata["source"]
         if "_SAS_TOKEN_PLACEHOLDER_" not in source:
             source += "_SAS_TOKEN_PLACEHOLDER_"
@@ -70,7 +70,7 @@ def get_citations(citation_list):
                     else metadata["chunk"]
                 ),
                 "title": title,
-                "filepath": title.split("/")[-1],
+                "filepath": unquote(title.split("/")[-1]) if title else title,
                 "url": url,
             }
         )
