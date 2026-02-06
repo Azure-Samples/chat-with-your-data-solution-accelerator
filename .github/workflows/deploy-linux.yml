@@ -7,13 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       runner_os:
-        description: 'Runner OS'
+        description: 'Deployment Environment'
         required: false
         type: choice
         options:
-          - 'ubuntu-latest'
-          - 'windows-latest'
-        default: 'ubuntu-latest'
+          - 'codespace'
+          - 'Local'
+        default: 'codespace'
 
       resource_group_name:
         description: 'Existing Resource Group Name'
@@ -136,15 +136,23 @@ jobs:
           VALIDATION_FAILED=false
           VALIDATION_ERRORS=""
 
-          # Validate runner_os (specific allowed values)
-          RUNNER_OS="${INPUT_RUNNER_OS:-ubuntu-latest}"
-          if [[ "$RUNNER_OS" != "ubuntu-latest" && "$RUNNER_OS" != "windows-latest" ]]; then
-            echo "❌ ERROR: runner_os must be one of: ubuntu-latest, windows-latest, got: '$RUNNER_OS'"
-            VALIDATION_ERRORS="${VALIDATION_ERRORS}| runner_os | \`$RUNNER_OS\` | Must be one of: ubuntu-latest, windows-latest |\n"
+          # Validate runner_os (specific allowed values) and derive actual runner
+          RUNNER_OS_INPUT="${INPUT_RUNNER_OS:-codespace}"
+          if [[ "$RUNNER_OS_INPUT" != "codespace" && "$RUNNER_OS_INPUT" != "Local" ]]; then
+            echo "❌ ERROR: runner_os must be one of: codespace, Local, got: '$RUNNER_OS_INPUT'"
+            VALIDATION_ERRORS="${VALIDATION_ERRORS}| runner_os | \`$RUNNER_OS_INPUT\` | Must be one of: codespace, Local |\n"
             VALIDATION_FAILED=true
           else
-            echo "✅ runner_os: '$RUNNER_OS' is valid"
+            echo "✅ runner_os: '$RUNNER_OS_INPUT' is valid"
           fi
+
+          # Derive actual runner from runner_os input
+          if [[ "$RUNNER_OS_INPUT" == "codespace" ]]; then
+            RUNNER_OS="ubuntu-latest"
+          else
+            RUNNER_OS="windows-latest"
+          fi
+          echo "✅ runner_os derived as: '$RUNNER_OS'"
 
           # Validate resource_group_name (Azure naming convention)
           RESOURCE_GROUP="${INPUT_RESOURCE_GROUP_NAME:-rg-cwyd-ci}"
