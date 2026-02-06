@@ -67,10 +67,10 @@ on:
         value: ${{ jobs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
       WEB_APPURL:
         description: "Container Web App URL"
-        value: ${{ jobs.deploy-linux.outputs.WEB_APPURL }}
+        value: ${{ jobs.deploy-linux.outputs.WEB_APPURL || jobs.deploy-windows.outputs.WEB_APPURL }}
       ADMIN_APPURL:
         description: "Admin Web App URL"
-        value: ${{ jobs.deploy-linux.outputs.ADMIN_APPURL }}
+        value: ${{ jobs.deploy-linux.outputs.ADMIN_APPURL || jobs.deploy-windows.outputs.ADMIN_APPURL }}
       ENV_NAME:
         description: "Environment Name"
         value: ${{ jobs.azure-setup.outputs.ENV_NAME }}
@@ -88,7 +88,7 @@ on:
         value: ${{ jobs.azure-setup.outputs.QUOTA_FAILED }}
       RESOURCE_TOKEN:
         description: "Resource Token"
-        value: ${{ jobs.deploy-linux.outputs.RESOURCE_TOKEN }}
+        value: ${{ jobs.deploy-linux.outputs.RESOURCE_TOKEN || jobs.deploy-windows.outputs.RESOURCE_TOKEN }}
 
 env:
   GPT_MIN_CAPACITY: 150
@@ -474,6 +474,25 @@ jobs:
     needs: azure-setup
     if: inputs.runner_os == 'ubuntu-latest' && !cancelled() && needs.azure-setup.result == 'success'
     uses: ./.github/workflows/job-deploy-linux.yml
+    with:
+      ENV_NAME: ${{ needs.azure-setup.outputs.ENV_NAME }}
+      AZURE_ENV_OPENAI_LOCATION: ${{ needs.azure-setup.outputs.AZURE_ENV_OPENAI_LOCATION }}
+      AZURE_LOCATION: ${{ needs.azure-setup.outputs.AZURE_LOCATION }}
+      RESOURCE_GROUP_NAME: ${{ needs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
+      IMAGE_TAG: ${{ needs.azure-setup.outputs.IMAGE_TAG }}
+      EXP: ${{ inputs.EXP || 'false' }}
+      WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+      DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
+    secrets: inherit
+
+  deploy-windows:
+    name: Deploy on Windows
+    needs: azure-setup
+    if: inputs.runner_os == 'windows-latest' && !cancelled() && needs.azure-setup.result == 'success'
+    uses: ./.github/workflows/job-deploy-windows.yml
     with:
       ENV_NAME: ${{ needs.azure-setup.outputs.ENV_NAME }}
       AZURE_ENV_OPENAI_LOCATION: ${{ needs.azure-setup.outputs.AZURE_ENV_OPENAI_LOCATION }}

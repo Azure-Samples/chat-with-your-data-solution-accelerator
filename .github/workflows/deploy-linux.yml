@@ -1,4 +1,4 @@
-name: Deploy-Test-Cleanup (v2) Linux
+name: Deploy-Test-Cleanup (v2)
 on:
   push:
     branches:
@@ -6,6 +6,15 @@ on:
       - psl-parallel-fix
   workflow_dispatch:
     inputs:
+      runner_os:
+        description: 'Runner OS'
+        required: false
+        type: choice
+        options:
+          - 'ubuntu-latest'
+          - 'windows-latest'
+        default: 'ubuntu-latest'
+
       resource_group_name:
         description: 'Existing Resource Group Name'
         required: true
@@ -92,6 +101,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       validation_passed: ${{ steps.validate.outputs.passed }}
+      runner_os: ${{ steps.validate.outputs.runner_os }}
       resource_group_name: ${{ steps.validate.outputs.resource_group_name }}
       database_type: ${{ steps.validate.outputs.database_type }}
       waf_enabled: ${{ steps.validate.outputs.waf_enabled }}
@@ -108,6 +118,7 @@ jobs:
         id: validate
         shell: bash
         env:
+          INPUT_RUNNER_OS: ${{ github.event.inputs.runner_os }}
           INPUT_RESOURCE_GROUP_NAME: ${{ github.event.inputs.resource_group_name }}
           INPUT_DATABASE_TYPE: ${{ github.event.inputs.DATABASE_TYPE }}
           INPUT_WAF_ENABLED: ${{ github.event.inputs.waf_enabled }}
@@ -124,6 +135,16 @@ jobs:
           echo "🔍 Validating workflow input parameters..."
           VALIDATION_FAILED=false
           VALIDATION_ERRORS=""
+
+          # Validate runner_os (specific allowed values)
+          RUNNER_OS="${INPUT_RUNNER_OS:-ubuntu-latest}"
+          if [[ "$RUNNER_OS" != "ubuntu-latest" && "$RUNNER_OS" != "windows-latest" ]]; then
+            echo "❌ ERROR: runner_os must be one of: ubuntu-latest, windows-latest, got: '$RUNNER_OS'"
+            VALIDATION_ERRORS="${VALIDATION_ERRORS}| runner_os | \`$RUNNER_OS\` | Must be one of: ubuntu-latest, windows-latest |\n"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ runner_os: '$RUNNER_OS' is valid"
+          fi
 
           # Validate resource_group_name (Azure naming convention)
           RESOURCE_GROUP="${INPUT_RESOURCE_GROUP_NAME:-rg-cwyd-ci}"
@@ -294,6 +315,7 @@ jobs:
 
           # Output validated values
           echo "passed=true" >> $GITHUB_OUTPUT
+          echo "runner_os=$RUNNER_OS" >> $GITHUB_OUTPUT
           echo "resource_group_name=$RESOURCE_GROUP" >> $GITHUB_OUTPUT
           echo "database_type=$DATABASE_TYPE" >> $GITHUB_OUTPUT
           echo "waf_enabled=$WAF_ENABLED" >> $GITHUB_OUTPUT
@@ -310,7 +332,7 @@ jobs:
     needs: validate-inputs
     uses: ./.github/workflows/deploy-orchestrator.yml
     with:
-      runner_os: ubuntu-latest
+      runner_os: ${{ needs.validate-inputs.outputs.runner_os || 'ubuntu-latest' }}
       resource_group_name: ${{ github.event_name == 'workflow_dispatch' && needs.validate-inputs.outputs.resource_group_name || 'rg-cwyd-ci' }}
       waf_enabled: ${{ needs.validate-inputs.outputs.waf_enabled == 'true' }}
       EXP: ${{ needs.validate-inputs.outputs.exp == 'true' }}
