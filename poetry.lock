@@ -7151,15 +7151,15 @@ jeepney = ">=0.6"
 
 [[package]]
 name = "semantic-kernel"
-version = "1.39.0"
+version = "1.39.3"
 description = "Semantic Kernel Python SDK"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 markers = "python_version <= \"3.12\""
 files = [
-    {file = "semantic_kernel-1.39.0-py3-none-any.whl", hash = "sha256:3557406805c4f87baff9e73913bf27ed22bfeeb9bb278c3fc0724a2b8156d194"},
-    {file = "semantic_kernel-1.39.0.tar.gz", hash = "sha256:734aebbea115b84e4a9bcf182c65ff84d647be4bf2b1e16a61178516277ea17c"},
+    {file = "semantic_kernel-1.39.3-py3-none-any.whl", hash = "sha256:0540547bc60b24caaf8b8ddff57d995dbabdd343448c434f939be8891fb52624"},
+    {file = "semantic_kernel-1.39.3.tar.gz", hash = "sha256:c67265817cd0e4af8f49059ac46421a911158c8bbe9629b1092a632a2bc1f404"},
 ]
 
 [package.dependencies]
@@ -7207,6 +7207,7 @@ mongo = ["motor (>=3.3.2,<3.8.0)", "pymongo (>=4.8.0,<4.15)"]
 notebooks = ["ipykernel (>=6.29,<7.0)"]
 ollama = ["ollama (>=0.4,<1.0)"]
 onnx = ["onnxruntime (==1.22.1)", "onnxruntime-genai (==0.9.0)"]
+oracledb = ["oracledb (>=3.4.1)"]
 pandas = ["pandas (>=2.2,<3.0)"]
 pinecone = ["pinecone[asyncio,grpc] (>=7.0,<8.0)"]
 postgres = ["psycopg[binary,pool] (>=3.2,<4.0)"]
@@ -8373,4 +8374,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "d7cf33a96e6aa97dbb66b5f4727c2012c9103bdb645ec2e3821ab895d7bf764c"
+content-hash = "511fd1874138d3f116a92cce537960969b43c5af57a9579318c67c43e0c4d596"
