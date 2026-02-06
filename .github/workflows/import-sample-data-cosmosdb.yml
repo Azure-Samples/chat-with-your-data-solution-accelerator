@@ -471,7 +471,7 @@ jobs:
           EOF
 
       - name: Disable Public Access for Azure Search and Storage Account (WAF)
-        if: ${{ inputs.WAF == true }}
+        if: ${{ always() && inputs.WAF == true }}
         env:
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
