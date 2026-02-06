@@ -2,8 +2,17 @@ name: Deploy-Test-Cleanup (v2)
 on:
   push:
     branches:
-      - cwyd-fix-cleanup
-      - psl-parallel-fix
+      - main
+      - dev
+      - demo
+    paths:
+      - 'infra/**'
+      - 'scripts/**'
+      - 'azure.yaml'
+      - 'pyproject.toml'
+      - 'Makefile'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/deploy-v2.yml'
   workflow_dispatch:
     inputs:
       runner_os:
