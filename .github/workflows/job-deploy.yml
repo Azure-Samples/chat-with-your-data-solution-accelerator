@@ -291,6 +291,55 @@ jobs:
           echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
           echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
 
+      - name: Check Azure Search Service Quota
+        id: search-quota-check
+        shell: bash
+        run: |
+          echo "🔍 Checking Azure Search service quota in region: ${{ env.AZURE_LOCATION }}"
+
+          # Get current usage and limits for Azure Search in the selected region using REST API
+          SEARCH_USAGE=$(az rest --method get \
+            --url "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/providers/Microsoft.Search/locations/${{ env.AZURE_LOCATION }}/usages?api-version=2024-03-01-preview" \
+            -o json 2>/dev/null || echo '{"value":[]}')
+
+          if [ "$(echo "$SEARCH_USAGE" | jq '.value | length')" -eq 0 ]; then
+            echo "⚠️ Could not retrieve Azure Search quota information. Proceeding with deployment..."
+            echo "SEARCH_QUOTA_CHECK=skipped" >> $GITHUB_OUTPUT
+          else
+            # Check Standard tier quota
+            STANDARD_USAGE=$(echo "$SEARCH_USAGE" | jq -r '.value[] | select(.name.value == "standard") | .currentValue // 0')
+            STANDARD_LIMIT=$(echo "$SEARCH_USAGE" | jq -r '.value[] | select(.name.value == "standard") | .limit // 0')
+            STANDARD_AVAILABLE=$((STANDARD_LIMIT - STANDARD_USAGE))
+
+            echo "Azure Search Standard Tier Quota for ${{ env.AZURE_LOCATION }}:"
+            echo "  Current Usage: $STANDARD_USAGE"
+            echo "  Limit: $STANDARD_LIMIT"
+            echo "  Available: $STANDARD_AVAILABLE"
+
+            if [ "$STANDARD_AVAILABLE" -lt 1 ]; then
+              echo ""
+              echo "❌ ERROR: Insufficient Azure Search Standard tier quota in region: ${{ env.AZURE_LOCATION }}"
+              echo "Please request a quota increase or select a different region."
+
+              # Add error to GitHub Summary
+              echo "## ❌ Azure Search Quota Check Failed" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "**Region:** \`${{ env.AZURE_LOCATION }}\`" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+              echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+              echo "| **Tier** | Standard |" >> $GITHUB_STEP_SUMMARY
+              echo "| **Current Usage** | $STANDARD_USAGE |" >> $GITHUB_STEP_SUMMARY
+              echo "| **Limit** | $STANDARD_LIMIT |" >> $GITHUB_STEP_SUMMARY
+              echo "| **Available** | $STANDARD_AVAILABLE |" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            fi
+
+            echo ""
+            echo "✅ Azure Search Standard tier quota check passed."
+            echo "SEARCH_QUOTA_CHECK=passed" >> $GITHUB_OUTPUT
+          fi
+
       - name: Add Resource Group Name to Environment
         env:
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.resource_group_name }}
@@ -319,7 +368,7 @@ jobs:
           # Set output for other jobs
           echo "RESOURCE_GROUP_NAME=${{ env.RESOURCE_GROUP_NAME }}" >> $GITHUB_OUTPUT
 
-      - name: Clear Existing Resources in Resource Group 
+      - name: Clear Existing Resources in Resource Group
         if: inputs.resource_group_name != 'rg-cwyd-ci'
         run: |
           echo "=== Clearing all resources in resource group: ${{ env.RESOURCE_GROUP_NAME }} ==="
