@@ -91,25 +91,37 @@ class LLMHelper:
             )
 
     def get_embedding_model(self):
+        dimensions = (
+            int(self.env_helper.AZURE_SEARCH_DIMENSIONS)
+            if self.env_helper.AZURE_SEARCH_DIMENSIONS
+            else None
+        )
         if self.auth_type_keys:
             return AzureOpenAIEmbeddings(
                 azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
                 api_key=self.env_helper.OPENAI_API_KEY,
                 azure_deployment=self.embedding_model,
+                dimensions=dimensions,
                 chunk_size=1,
             )
         else:
             return AzureOpenAIEmbeddings(
                 azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
                 azure_deployment=self.embedding_model,
+                dimensions=dimensions,
                 chunk_size=1,
                 azure_ad_token_provider=self.token_provider,
             )
 
     def generate_embeddings(self, input: Union[str, list[int]]) -> List[float]:
+        dimensions = (
+            int(self.env_helper.AZURE_SEARCH_DIMENSIONS)
+            if self.env_helper.AZURE_SEARCH_DIMENSIONS
+            else None
+        )
         return (
             self.openai_client.embeddings.create(
-                input=[input], model=self.embedding_model
+                input=[input], model=self.embedding_model, dimensions=dimensions
             )
             .data[0]
             .embedding

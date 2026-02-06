@@ -150,6 +150,9 @@
     "azureOpenAIEmbeddingModelCapacity": {
       "value": "${AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY=100}"
     },
+    "azureSearchDimensions": {
+      "value": "${AZURE_SEARCH_DIMENSIONS=1536}"
+    },
     "azureOpenAIMaxTokens": {
       "value": "${AZURE_OPENAI_MAX_TOKENS=1000}"
     },

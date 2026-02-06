@@ -150,18 +150,6 @@ param useAdvancedImageProcessing bool = false
 @description('Optional. The maximum number of images to pass to the vision model in a single request.')
 param advancedImageProcessingMaxImages int = 1
 
-@description('Optional. Azure OpenAI Vision Model Deployment Name.')
-param azureOpenAIVisionModel string = 'gpt-4.1'
-
-@description('Optional. Azure OpenAI Vision Model Name.')
-param azureOpenAIVisionModelName string = 'gpt-4.1'
-
-@description('Optional. Azure OpenAI Vision Model Version.')
-param azureOpenAIVisionModelVersion string = '2025-04-14'
-
-@description('Optional. Azure OpenAI Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota.')
-param azureOpenAIVisionModelCapacity int = 10
-
 @description('Optional. Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain. If the database type is PostgreSQL, set this to sementic_kernel.')
 @allowed([
   'openai_function'
@@ -209,6 +197,9 @@ param azureOpenAIEmbeddingModelVersion string = '2'
 
 @description('Optional. Azure OpenAI Embedding Model Capacity - See here for more info https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota .')
 param azureOpenAIEmbeddingModelCapacity int = 100
+
+@description('Optional. Azure Search vector field dimensions. Must match the embedding model dimensions. 1536 for text-embedding-ada-002, 3072 for text-embedding-3-large. See https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#embeddings-models.')
+param azureSearchDimensions string = '1536'
 
 @description('Optional. Name of Computer Vision Resource (if useAdvancedImageProcessing=true).')
 var computerVisionName string = 'cv-${solutionSuffix}'
@@ -858,7 +849,7 @@ module pgSqlDelayScript 'br/public:avm/res/resources/deployment-script:0.5.1' = 
     tags: tags
     kind: 'AzurePowerShell'
     enableTelemetry: enableTelemetry
-    scriptContent: 'start-sleep -Seconds 300'
+    scriptContent: 'start-sleep -Seconds 600'
     azPowerShellVersion: '11.0'
     timeout: 'PT15M'
     cleanupPreference: 'Always'
@@ -1285,6 +1276,7 @@ module web 'modules/app/web.bicep' = {
         MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.resourceId
         AZURE_CLIENT_ID: managedIdentityModule.outputs.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
+        AZURE_SEARCH_DIMENSIONS: azureSearchDimensions
       },
       databaseType == 'CosmosDB'
         ? {
@@ -1383,6 +1375,7 @@ module adminweb 'modules/app/adminweb.bicep' = {
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.clientId
         MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.resourceId
         APP_ENV: appEnvironment
+        AZURE_SEARCH_DIMENSIONS: azureSearchDimensions
       },
       databaseType == 'CosmosDB'
         ? {
@@ -1482,6 +1475,7 @@ module function 'modules/app/function.bicep' = {
         AZURE_CLIENT_ID: managedIdentityModule.outputs.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
         BACKEND_URL: backendUrl
+        AZURE_SEARCH_DIMENSIONS: azureSearchDimensions
       },
       databaseType == 'CosmosDB'
         ? {
