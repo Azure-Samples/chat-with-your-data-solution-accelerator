@@ -126,9 +126,6 @@
     "advancedImageProcessingMaxImages": {
       "value": "${ADVANCED_IMAGE_PROCESSING_MAX_IMAGES=1}"
     },
-    "azureOpenAIVisionModel": {
-      "value": "${AZURE_OPENAI_VISION_MODEL=gpt-4.1}"
-    },
     "azureOpenAIEmbeddingModel": {
       "value": "${AZURE_OPENAI_EMBEDDING_MODEL=text-embedding-ada-002}"
     },
