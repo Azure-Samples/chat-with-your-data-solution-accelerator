@@ -6,13 +6,6 @@ on:
       - main
       - dev
       - demo
-    paths:
-      - 'infra/**'
-      - 'scripts/**'
-      - 'azure.yaml'
-      - 'pyproject.toml'
-      - 'Makefile'
-      - '.github/workflows/ci.yml'
   schedule:
     - cron: '0 8,20 * * *'  # Runs at 8:00 AM and 8:00 PM GMT
   workflow_dispatch:
@@ -25,7 +18,67 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      infra_changed: ${{ steps.filter.outputs.infra }}
+      scripts_changed: ${{ steps.filter.outputs.scripts }}
+      config_changed: ${{ steps.filter.outputs.config }}
+      backend_changed: ${{ steps.filter.outputs.backend }}
+      frontend_changed: ${{ steps.filter.outputs.frontend }}
+      tests_changed: ${{ steps.filter.outputs.tests }}
+      docker_changed: ${{ steps.filter.outputs.docker }}
+      docs_changed: ${{ steps.filter.outputs.docs }}
+      any_code_changed: ${{ steps.filter.outputs.any_code }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Detect file changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            infra:
+              - 'infra/**'
+              - 'azure.yaml'
+              - '.github/workflows/ci.yml'
+            scripts:
+              - 'scripts/**'
+            config:
+              - 'pyproject.toml'
+              - 'Makefile'
+              - 'package.json'
+            backend:
+              - 'code/backend/**'
+              - 'code/app.py'
+              - 'code/create_app.py'
+            frontend:
+              - 'code/frontend/**'
+            tests:
+              - 'code/tests/**'
+              - 'tests/**'
+            docker:
+              - 'docker/**'
+            docs:
+              - 'docs/**'
+              - '*.md'
+            any_code:
+              - 'infra/**'
+              - 'scripts/**'
+              - 'azure.yaml'
+              - 'pyproject.toml'
+              - 'Makefile'
+              - 'code/**'
+              - 'docker/**'
+              - '.github/workflows/ci.yml'
+
   deploy:
+    needs: detect-changes
+    # Run deploy job unless only docs changed (skip if only docs changed and not scheduled/manual trigger)
+    if: needs.detect-changes.outputs.any_code_changed == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -35,6 +88,12 @@ jobs:
       PRINCIPAL_ID: ${{ secrets.PRINCIPAL_ID }}
       PRINCIPAL_NAME: ${{ secrets.PRINCIPAL_NAME }}
       PRINCIPAL_TYPE: 'ServicePrincipal'
+      INFRA_CHANGED: ${{ needs.detect-changes.outputs.infra_changed }}
+      SCRIPTS_CHANGED: ${{ needs.detect-changes.outputs.scripts_changed }}
+      CONFIG_CHANGED: ${{ needs.detect-changes.outputs.config_changed }}
+      BACKEND_CHANGED: ${{ needs.detect-changes.outputs.backend_changed }}
+      FRONTEND_CHANGED: ${{ needs.detect-changes.outputs.frontend_changed }}
+      DOCKER_CHANGED: ${{ needs.detect-changes.outputs.docker_changed }}
 
     outputs:
       imageTag: ${{ steps.set-image-tag.outputs.imageTag }}
@@ -48,7 +107,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Log detected changes
+        run: |
+          echo "=== Detected File Changes ==="
+          echo "Infrastructure changed: ${{ needs.detect-changes.outputs.infra_changed }}"
+          echo "Scripts changed: ${{ needs.detect-changes.outputs.scripts_changed }}"
+          echo "Config changed: ${{ needs.detect-changes.outputs.config_changed }}"
+          echo "Backend changed: ${{ needs.detect-changes.outputs.backend_changed }}"
+          echo "Frontend changed: ${{ needs.detect-changes.outputs.frontend_changed }}"
+          echo "Tests changed: ${{ needs.detect-changes.outputs.tests_changed }}"
+          echo "Docker changed: ${{ needs.detect-changes.outputs.docker_changed }}"
+          echo "Docs changed: ${{ needs.detect-changes.outputs.docs_changed }}"
+          echo "Any code changed: ${{ needs.detect-changes.outputs.any_code_changed }}"
+          echo "Event name: ${{ github.event_name }}"
+
       - name: Install AZD
+        # Skip if only tests or docs changed (not infra/scripts/config)
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         run: |
           set -e
           echo "Fetching deployment output..."
@@ -56,6 +136,15 @@ jobs:
           curl -fsSL https://aka.ms/install-azd.sh | bash
 
       - name: Run Quota Check
+        # Skip if only tests, docs, or frontend changed
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         id: quota-check
         run: |
           export AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
@@ -95,11 +184,29 @@ jobs:
         run: exit 1
 
       - name: Set Deployment Region
+        # Skip if only frontend or tests changed
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         run: |
             echo "Selected Region: $VALID_REGION"
             echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
 
       - name: Generate Resource Group Name
+        # Skip if only frontend or tests changed
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         id: generate_rg_name
         run: |
           echo "Generating a unique resource group name..."
@@ -110,6 +217,15 @@ jobs:
           echo "Generated RESOURCE_GROUP_NAME: ${UNIQUE_RG_NAME}"
 
       - name: Check and Create Resource Group
+        # Skip if only frontend or tests changed
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         id: check_create_rg
         run: |
           echo "RESOURCE_GROUP: ${{ env.RESOURCE_GROUP_NAME }}"
@@ -127,6 +243,15 @@ jobs:
 
 
       - name: Generate Unique Solution Prefix
+        # Skip if only frontend or tests changed
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         id: generate_solution_prefix
         run: |
           set -e
@@ -139,6 +264,16 @@ jobs:
           echo "Generated SOLUTION_SUFFIX: ${UNIQUE_SOLUTION_SUFFIX}"
 
       - name: Login to GitHub Container Registry
+        # Skip if only tests changed
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.frontend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -146,6 +281,16 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set imageTag
+        # Skip if only tests changed
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.frontend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         id: set-image-tag
         run: |
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
@@ -160,6 +305,16 @@ jobs:
           fi
 
       - name: Pre-build image and deploy
+        # Skip if only tests changed
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.frontend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         uses: devcontainers/ci@v0.3
         env:
                       AZURE_ENV_NAME: ${{ env.SOLUTION_SUFFIX }}
@@ -221,6 +376,16 @@ jobs:
                               PRINCIPAL_TYPE
 
       - name: Extract URLs from deployment
+        # Skip if only tests changed
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.frontend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         id: extract-urls
         run: |
                       # Method 1: Check files created by Makefile
@@ -279,11 +444,31 @@ jobs:
                       ls -la *.txt *.log *.json 2>/dev/null || echo "No relevant files found"
 
       - name: Display URLs
+        # Skip if only tests changed
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.frontend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         run: |
                       echo "Web URL: ${{ env.FRONTEND_WEBSITE_URL }}"
                       echo "Admin URL: ${{ env.ADMIN_WEBSITE_URL }}"
 
       - name: Disable Authentication with Script
+        # Skip if only tests changed
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.frontend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         run: |
                 chmod +x scripts/disable_auth.sh
                 ./scripts/disable_auth.sh
@@ -296,6 +481,15 @@ jobs:
                 AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Export PostgreSQL Host Endpoint from Makefile
+        # Skip if only tests or frontend changed
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         run: |
                 # Only extract the PostgreSQL host endpoint from Makefile output
                 # Other values are hardcoded in the script
@@ -317,15 +511,42 @@ jobs:
                 echo "Port: 5432 (hardcoded)"
 
       - name: Set up Python
+        # Skip if only tests or frontend changed
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         uses: actions/setup-python@v6
         with:
                 python-version: '3.11'
 
       - name: Install Python dependencies
+        # Skip if only tests or frontend changed
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         run: |
                 pip install psycopg2-binary python-dotenv azure-identity
 
       - name: Populate PostgreSQL Database
+        # Skip if only tests or frontend changed
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         run: |
           python - <<EOF
           import os
@@ -370,6 +591,16 @@ jobs:
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
       - name: Final Status Check
+        # Skip if only tests changed
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.frontend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         id: final-status
         run: |
                       echo "=== Final Deployment Status ==="
@@ -387,12 +618,24 @@ jobs:
 
 
       - name: Wait for 25 minutes for propagation
+        # Skip if only tests changed
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.frontend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         run: sleep 1500
 
 
   e2e-test:
-    needs: deploy
-    if: needs.deploy.outputs.DEPLOYMENT_SUCCESS == 'true'
+    needs: [detect-changes, deploy]
+    if: |
+      needs.deploy.outputs.DEPLOYMENT_SUCCESS == 'true' ||
+      needs.detect-changes.outputs.tests_changed == 'true'
     uses: ./.github/workflows/test-automation.yml
     with:
       web_url: ${{ needs.deploy.outputs.web_url }}
@@ -401,7 +644,7 @@ jobs:
 
   cleanup:
     if: always()
-    needs: [deploy, e2e-test]
+    needs: [detect-changes, deploy, e2e-test]
     runs-on: ubuntu-latest
 
     env:
@@ -419,6 +662,16 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Destroy resources
+        # Only run cleanup if deployment resources were created
+        if: |
+          needs.detect-changes.outputs.infra_changed == 'true' ||
+          needs.detect-changes.outputs.scripts_changed == 'true' ||
+          needs.detect-changes.outputs.config_changed == 'true' ||
+          needs.detect-changes.outputs.backend_changed == 'true' ||
+          needs.detect-changes.outputs.frontend_changed == 'true' ||
+          needs.detect-changes.outputs.docker_changed == 'true' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
         uses: devcontainers/ci@v0.3
         with:
           push: never
