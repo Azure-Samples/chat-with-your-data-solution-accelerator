@@ -42,6 +42,7 @@ By default this template will use the environment name as the prefix to prevent 
 | `AZURE_OPENAI_EMBEDDING_MODEL_NAME` | string | `text-embedding-ada-002` | Actual embedding model name |
 | `AZURE_OPENAI_EMBEDDING_MODEL_VERSION` | string | `2` | Embedding model version |
 | `AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY` | integer | `100` | Embedding model capacity (TPM in thousands) |
+| `AZURE_SEARCH_DIMENSIONS` | integer | `1536` | Azure Search vector dimensions(Update dimensions for CosmosDB) |
 | `USE_ADVANCED_IMAGE_PROCESSING` | boolean | `false` | Enable vision LLM and Computer Vision for images (must be false for PostgreSQL) |
 | `ADVANCED_IMAGE_PROCESSING_MAX_IMAGES` | integer | `1` | Maximum images per vision model request |
 | `AZURE_OPENAI_VISION_MODEL` | string | `gpt-4.1` | Vision model deployment name |
@@ -90,5 +91,6 @@ azd env set AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY 150
    - `AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION=false`
    - `USE_ADVANCED_IMAGE_PROCESSING=false`
    - `ORCHESTRATION_STRATEGY=semantic_kernel` (recommended)
+   - `AZURE_SEARCH_DIMENSIONS=1536` (recommended)
 
 2. **Region Compatibility**: Not all services are available in all regions. Verify service availability in your chosen region before deployment.

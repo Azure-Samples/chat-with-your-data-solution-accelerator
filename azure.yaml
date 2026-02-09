@@ -56,7 +56,7 @@ services:
       prepackage:
         windows:
           shell: pwsh
-          run: poetry export -o requirements.txt; pip install -r requirements.txt
+          run: poetry export -o requirements.txt --without-hashes; pip install -r requirements.txt
         posix:
           shell: sh
-          run: poetry export -o requirements.txt; pip install -r requirements.txt
+          run: poetry export -o requirements.txt --without-hashes; pip install -r requirements.txt
