@@ -273,7 +273,7 @@ jobs:
           EOF
 
       - name: Disable Public Access for PostgreSQL (WAF)
-        if: ${{ inputs.WAF == true }}
+        if: ${{ always() && inputs.WAF == true }}
         env:
           INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
