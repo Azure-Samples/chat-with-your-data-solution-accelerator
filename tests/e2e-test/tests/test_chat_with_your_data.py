@@ -966,7 +966,6 @@ def test_5893_cwyd_can_read_png_jpg_md_files(login_logout, request):
 
         # Step 4: Wait for each file to appear in Delete Data (poll with 6 minute timeout per file)
         logger.info("[5893] Waiting for files to be processed and appear in Delete Data...")
-        all_files_found = True
         for filename, file_type in test_files:
             logger.info("[5893] Checking for %s file: %s", file_type, filename)
             file_appeared = ctx.admin_page.wait_for_file_to_appear_in_delete(filename, timeout_minutes=6)
@@ -974,7 +973,6 @@ def test_5893_cwyd_can_read_png_jpg_md_files(login_logout, request):
                 logger.info("[5893] ✓ %s file verified in Delete Data", file_type)
             else:
                 logger.error("[5893] ✗ %s file NOT found in Delete Data", file_type)
-                all_files_found = False
 
         # Step 5: Navigate to Delete Data tab for final verification
         logger.info("[5893] Final verification - checking all files in Delete Data")
