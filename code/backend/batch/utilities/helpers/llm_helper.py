@@ -91,11 +91,13 @@ class LLMHelper:
             )
 
     def get_embedding_model(self):
-        dimensions = (
-            int(self.env_helper.AZURE_SEARCH_DIMENSIONS)
-            if self.env_helper.AZURE_SEARCH_DIMENSIONS
-            else None
-        )
+        # Only pass dimensions for models that support it (text-embedding-3-*)
+        # text-embedding-ada-002 does NOT support the dimensions parameter
+        supports_dimensions = "text-embedding-3" in self.embedding_model.lower()
+        dimensions = None
+        if supports_dimensions and self.env_helper.AZURE_SEARCH_DIMENSIONS:
+            dimensions = int(self.env_helper.AZURE_SEARCH_DIMENSIONS)
+
         if self.auth_type_keys:
             return AzureOpenAIEmbeddings(
                 azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
@@ -114,15 +116,19 @@ class LLMHelper:
             )
 
     def generate_embeddings(self, input: Union[str, list[int]]) -> List[float]:
-        dimensions = (
-            int(self.env_helper.AZURE_SEARCH_DIMENSIONS)
-            if self.env_helper.AZURE_SEARCH_DIMENSIONS
-            else None
-        )
+        # Only pass dimensions for models that support it (text-embedding-3-*)
+        # text-embedding-ada-002 does NOT support the dimensions parameter
+        supports_dimensions = "text-embedding-3" in self.embedding_model.lower()
+        dimensions = None
+        if supports_dimensions and self.env_helper.AZURE_SEARCH_DIMENSIONS:
+            dimensions = int(self.env_helper.AZURE_SEARCH_DIMENSIONS)
+
+        kwargs = {"input": [input], "model": self.embedding_model}
+        if dimensions is not None:
+            kwargs["dimensions"] = dimensions
+
         return (
-            self.openai_client.embeddings.create(
-                input=[input], model=self.embedding_model, dimensions=dimensions
-            )
+            self.openai_client.embeddings.create(**kwargs)
             .data[0]
             .embedding
         )
