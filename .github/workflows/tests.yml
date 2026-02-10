@@ -4,20 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [main, dev, demo]
-    paths:
-      - 'code/**'
-      - 'pyproject.toml'
-      - 'package.json'
-      - 'pytest.ini'
-      - '.github/workflows/tests.yml'
   pull_request:
     branches: [main, dev, demo]
-    paths:
-      - 'code/**'
-      - 'pyproject.toml'
-      - 'package.json'
-      - 'pytest.ini'
-      - '.github/workflows/tests.yml'
     types:
       - opened
       - ready_for_review
@@ -27,22 +15,61 @@ on:
   merge_group:
 
 jobs:
-  test_package:
-    name: Tests
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend_changed: ${{ steps.filter.outputs.backend }}
+      frontend_changed: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check for relevant changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'code/backend/**'
+              - 'code/app.py'
+              - 'code/create_app.py'
+              - 'code/tests/**'
+              - 'pyproject.toml'
+              - 'pytest.ini'
+              - '.github/workflows/tests.yml'
+            frontend:
+              - 'code/frontend/**'
+              - 'package.json'
+              - '.github/workflows/tests.yml'
+
+      - name: Log detected changes
+        run: |
+          echo "Backend changed: ${{ steps.filter.outputs.backend }}"
+          echo "Frontend changed: ${{ steps.filter.outputs.frontend }}"
+
+  python-tests:
+    name: Python Tests
+    needs: check-changes
+    if: needs.check-changes.outputs.backend_changed == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
       - name: Install Poetry
         run: pip install poetry
+
       - name: Setup python
         uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           architecture: x64
           cache: 'poetry'
+
       - name: Install dependencies through poetry
         run: |
           poetry install
+
       - name: Get coverage artifact ID
         id: coverage-artifact
         uses: actions/github-script@v8
@@ -70,28 +97,32 @@ jobs:
             return workflowRuns.data.workflow_runs[0]?.id ?? "";
           result-encoding: string
           retries: 3
+
       - name: Download main coverage artifact
         uses: actions/download-artifact@v7
         if: github.event_name == 'pull_request' && steps.coverage-artifact.outputs.result != ''
-        continue-on-error: true # There is a chance that the artifact doesn't exist, or has expired
+        continue-on-error: true
         with:
           name: coverage
           path: "${{ github.workspace }}/coverage-main"
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ steps.coverage-artifact.outputs.result }}
+
       - name: Get coverage from main
         id: coverage-value
         run: |
           MIN_COVERAGE=0
 
           if [[ -f "./coverage-main/coverage.xml" ]]; then
-            MIN_COVERAGE=$(grep -m 1 "<coverage" "./coverage-main/coverage.xml" | sed -E 's/.*line-rate="([^"]*)".*/\1/') # Extract the line rate from the XML
-            MIN_COVERAGE=$(awk "BEGIN {print int($MIN_COVERAGE * 100)}") # Turn into percentage, rounding down to avoid rounding issues
+            MIN_COVERAGE=$(grep -m 1 "<coverage" "./coverage-main/coverage.xml" | sed -E 's/.*line-rate="([^"]*)".*/\1/')
+            MIN_COVERAGE=$(awk "BEGIN {print int($MIN_COVERAGE * 100)}")
           fi
 
           echo "MIN_COVERAGE=$MIN_COVERAGE" >> "$GITHUB_OUTPUT"
+
       - name: Run Python Tests
         run: make python-test optional_args="--junitxml=coverage-junit.xml --cov=code --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=${{ steps.coverage-value.outputs.MIN_COVERAGE }} ./code/tests"
+
       - uses: actions/upload-artifact@v6
         if: ${{ !cancelled() }}
         with:
@@ -100,13 +131,24 @@ jobs:
             coverage-junit.xml
             coverage.xml
           if-no-files-found: error
+
+      - name: Lint
+        run: make lint
+
+  frontend-tests:
+    name: Frontend Tests
+    needs: check-changes
+    if: needs.check-changes.outputs.frontend_changed == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
       - name: Setup node
         uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: "npm"
           cache-dependency-path: "code/frontend/package-lock.json"
+
       - name: Run frontend unit tests
         run: make unittest-frontend
-      - name: Lint
-        run: make lint
