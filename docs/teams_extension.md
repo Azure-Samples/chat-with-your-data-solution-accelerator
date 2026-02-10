@@ -16,7 +16,7 @@ This extension enables users to experience Chat with your data within Teams, wit
 ### Pre-requisites
 - [Visual Studio Code](https://code.visualstudio.com/)
     - Extensions
-        - [Teams Toolkit](https://marketplace.visualstudio.com/items?itemName=TeamsDevApp.ms-teams-vscode-extension) (optional: Teams extension only)
+        - [Microsoft 365 Agents Toolkit](https://marketplace.visualstudio.com/items?itemName=TeamsDevApp.ms-teams-vscode-extension) (optional: Teams extension only)
 - Install [Node.js](https://nodejs.org/en)
   - Install the LTS version (Recommended for Most Users)
 - [Enable custom Teams apps and turn on custom app uploading](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/prepare-your-o365-tenant#enable-custom-teams-apps-and-turn-on-custom-app-uploading) (optional: Teams extension only)
@@ -32,19 +32,20 @@ This extension enables users to experience Chat with your data within Teams, wit
 
 ![ENV](images/teams-1.png)
 
-4. Locate the environment variable _AZURE_FUNCTION_URL_.
-5. Replace the `<RESOURCE_TOKEN>`  and `<FUNCTION_APP_CLIENT_KEY>` with the name of your Function App resource and its clientKey (created in previous section)
+4. Locate the environment variables _AZURE_FUNCTION_URL_ and _AZURE_APP_API_BASE_URL_.
+5. Replace the `<FUNCTION_APP_NAME>` and `<FUNCTION_KEY>` with your actual Function App name and function key, and replace `<APP-NAME>` with your actual App Service name
     ```env
-    AZURE_FUNCTION_URL=https://backend-<RESOURCE_TOKEN>.azurewebsites.net/api/GetConversationResponse?code=<FUNCTION_APP_CLIENT_KEY>&clientId=clientKey
-
+    AZURE_FUNCTION_URL=https://<FUNCTION_APP_NAME>.azurewebsites.net/api/GetConversationResponse?code=<FUNCTION_KEY>
+    AZURE_APP_API_BASE_URL=https://<APP-NAME>.azurewebsites.net/
     ```
     ![Env](images/teams-deploy-env.png)
 6. Save the file.
 7. Select Teams Toolkit from the navigation panel.
 
-![Teams Toolkit in VS Code](images/teams-2.png)
+![Microsoft 365 Agents Toolkit in VS Code](images/teams-2.png)
+![Microsoft 365 Agents Toolkit in VS Code](images/teams-2.png)
 
-8. Within the Teams Toolkit panel, login to the following accounts:
+8. Within the Microsoft 365 Agents Toolkit panel, login to the following accounts:
 
   **Sign in to Microsoft 365**: Use your Microsoft 365 work or school account with a valid E5 subscription for building your app. If you don't have a valid account, you can join [Microsoft 365 developer program](https://developer.microsoft.com/microsoft-365/dev-program) to get a free account before you start.
 

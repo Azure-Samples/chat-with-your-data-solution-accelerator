@@ -26,34 +26,38 @@ body = {
 
 @pytest.fixture(autouse=True)
 def setup_config_mocking(httpserver: HTTPServer):
+    config_data = {
+        "prompts": {
+            "condense_question_prompt": "",
+            "answering_system_prompt": "system prompt",
+            "answering_user_prompt": "## Retrieved Documents\n{sources}\n\n## User Question\nUse the Retrieved Documents to answer the question: {question}",
+            "use_on_your_data_format": True,
+            "post_answering_prompt": "post answering prompt\n{question}\n{answer}\n{sources}",
+            "enable_post_answering_prompt": True,
+            "enable_content_safety": True,
+        },
+        "messages": {"post_answering_filter": "post answering filter"},
+        "example": {
+            "documents": '{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}',
+            "user_question": "user question",
+            "answer": "answer",
+        },
+        "document_processors": [],
+        "logging": {"log_user_interactions": True, "log_tokens": True},
+        "orchestrator": {"strategy": "openai_function"},
+        "integrated_vectorization_config": None,
+    }
+
+    config_json_string = json.dumps(config_data)
+
     httpserver.expect_request(
         f"/{AZURE_STORAGE_CONFIG_CONTAINER_NAME}/{AZURE_STORAGE_CONFIG_FILE_NAME}",
         method="GET",
-    ).respond_with_json(
-        {
-            "prompts": {
-                "condense_question_prompt": "",
-                "answering_system_prompt": "system prompt",
-                "answering_user_prompt": "## Retrieved Documents\n{sources}\n\n## User Question\nUse the Retrieved Documents to answer the question: {question}",
-                "use_on_your_data_format": True,
-                "post_answering_prompt": "post answering prompt\n{question}\n{answer}\n{sources}",
-                "enable_post_answering_prompt": True,
-                "enable_content_safety": True,
-            },
-            "messages": {"post_answering_filter": "post answering filter"},
-            "example": {
-                "documents": '{"retrieved_documents":[{"[doc1]":{"content":"content"}}]}',
-                "user_question": "user question",
-                "answer": "answer",
-            },
-            "document_processors": [],
-            "logging": {"log_user_interactions": True, "log_tokens": True},
-            "orchestrator": {"strategy": "openai_function"},
-            "integrated_vectorization_config": None,
-        },
+    ).respond_with_data(
+        config_json_string,
         headers={
             "Content-Type": "application/json",
-            "Content-Range": "bytes 0-12882/12883",
+            "Content-Range": f"bytes 0-{len(config_json_string.encode('utf-8'))-1}/{len(config_json_string.encode('utf-8'))}",
         },
     )
 
