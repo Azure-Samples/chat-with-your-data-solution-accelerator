@@ -117,7 +117,7 @@ def test_generate_embeddings_embeds_input(azure_openai_mock):
 
     # then
     azure_openai_mock.return_value.embeddings.create.assert_called_once_with(
-        input=["some input"], model=AZURE_OPENAI_EMBEDDING_MODEL, dimensions=int(AZURE_SEARCH_DIMENSIONS)
+        input=["some input"], model=AZURE_OPENAI_EMBEDDING_MODEL
     )
 
 
