@@ -1,4 +1,7 @@
-FROM mcr.microsoft.com/devcontainers/python:3.11
+FROM mcr.microsoft.com/devcontainers/python:3.11-bookworm
+
+# Remove Yarn repository to avoid GPG key expiration issue
+RUN rm -f /etc/apt/sources.list.d/yarn.list
 
 # install git
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \

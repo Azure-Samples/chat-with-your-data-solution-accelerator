@@ -182,7 +182,14 @@ To review Cosmos DB configuration overview and steps, follow the link [here](doc
 ![Solution Architecture - Chat with your data CosmosDB](/docs/images/architecture_cdb.png)
 
 ### Deploy instructions
-The "Deploy to Azure" button offers a one-click deployment where you don’t have to clone the code. If you would like a developer experience instead, follow the [local deployment instructions](./docs/LOCAL_DEPLOYMENT.md).
+<br/>
+
+> ⚠️ **Important: Check Azure OpenAI Quota Availability**
+ <br/>To ensure sufficient quota is available in your subscription, please follow [quota check instructions guide](./docs/QuotaCheck.md) before you deploy the solution.
+
+<br/>
+
+The "Deploy to Azure" button offers a one-click deployment where you don’t have to clone the code. If you would like a developer experience instead, follow the [local deployment instructions](./docs/LOCAL_DEPLOYMENT.md)
 
 Once you deploy to Azure, you will have the option to select PostgreSQL or Cosmos DB, see screenshot below.
 
@@ -198,6 +205,23 @@ When Deployment is complete, follow steps in [Set Up Authentication in Azure App
 locations support this version. If you're deploying to a location that doesn't support version 2024-05-13, you'll need to
 switch to a lower version. To find out which versions are supported in different regions, visit the
 [GPT-4.1 Model Availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models?tabs=global-standard%2Cstandard-chat-completions#global-standard-model-availability) page.
+
+
+### Supported Azure Regions
+
+The solution has been tested and is compatible with the following Azure regions:
+- **Australia East**
+- **East US 2**
+- **Japan East**
+- **UK South**
+
+These regions are specifically configured in the deployment template to guarantee compatibility with paired regions and data redundancy. This restriction ensures reliable failover scenarios based on Azure's region availability and the requirements of services like Azure Database for PostgreSQL Flexible Server.
+
+When deploying the solution using the "Deploy to Azure" button, you'll see two fields in the Azure portal:
+- **Region**: This refers to the Azure region where the deployment metadata is stored
+- **Location**: This corresponds to the "location" parameter in the bicep template and determines where all your solution resources will be deployed
+
+**Important**: For this solution, you must select one of the supported regions listed above in the "Location" field. The "Region" field can be set to any available region since it only affects deployment metadata storage.
 
 ### Testing the deployment
 1. Navigate to the admin site, where you can upload documents. It will be located at:

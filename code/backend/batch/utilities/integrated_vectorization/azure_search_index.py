@@ -13,15 +13,16 @@ from azure.search.documents.indexes.models import (
     ExhaustiveKnnParameters,
     VectorSearchProfile,
     AzureOpenAIVectorizer,
-    AzureOpenAIParameters,
+    AzureOpenAIVectorizerParameters,
     SemanticConfiguration,
     SemanticSearch,
     SemanticPrioritizedFields,
     SemanticField,
     SearchIndex,
+    SearchIndexerDataUserAssignedIdentity,
 )
 from ..helpers.env_helper import EnvHelper
-from azure.identity import DefaultAzureCredential
+from ..helpers.azure_credential_utils import get_azure_credential
 from azure.core.credentials import AzureKeyCredential
 from ..helpers.llm_helper import LLMHelper
 
@@ -39,7 +40,7 @@ class AzureSearchIndex:
             (
                 AzureKeyCredential(self.env_helper.AZURE_SEARCH_KEY)
                 if self.env_helper.is_auth_type_keys()
-                else DefaultAzureCredential()
+                else get_azure_credential(self.env_helper.MANAGED_IDENTITY_CLIENT_ID)
             ),
         )
 
@@ -135,15 +136,22 @@ class AzureSearchIndex:
 
     def get_vector_search_config(self):
         if self.env_helper.is_auth_type_keys():
-            azure_open_ai_parameters = AzureOpenAIParameters(
-                resource_uri=self.env_helper.AZURE_OPENAI_ENDPOINT,
-                deployment_id=self.env_helper.AZURE_OPENAI_EMBEDDING_MODEL,
+            azure_open_ai_parameters = AzureOpenAIVectorizerParameters(
+                resource_url=self.env_helper.AZURE_OPENAI_ENDPOINT,
+                deployment_name=self.env_helper.AZURE_OPENAI_EMBEDDING_MODEL,
                 api_key=self.env_helper.OPENAI_API_KEY,
             )
         else:
-            azure_open_ai_parameters = AzureOpenAIParameters(
-                resource_uri=self.env_helper.AZURE_OPENAI_ENDPOINT,
-                deployment_id=self.env_helper.AZURE_OPENAI_EMBEDDING_MODEL,
+            azure_open_ai_parameters = AzureOpenAIVectorizerParameters(
+                resource_url=self.env_helper.AZURE_OPENAI_ENDPOINT,
+                deployment_name=self.env_helper.AZURE_OPENAI_EMBEDDING_MODEL,
+                auth_identity=(
+                    None
+                    if getattr(self.env_helper, "APP_ENV", "").lower() == "dev"
+                    else SearchIndexerDataUserAssignedIdentity(
+                        user_assigned_identity=self.env_helper.MANAGED_IDENTITY_RESOURCE_ID
+                    )
+                ),
             )
 
         return VectorSearch(

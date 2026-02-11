@@ -8,11 +8,17 @@
     "botAadAppClientId": {
       "value": "${{BOT_ID}}"
     },
+    "botAadAppTenantId": {
+      "value": "${{TEAMS_APP_TENANT_ID}}"
+    },
     "botAadAppClientSecret": {
       "value": "${{SECRET_BOT_PASSWORD}}"
     },
     "azureFunctionURL": {
       "value": "${{AZURE_FUNCTION_URL}}"
+    },
+    "azureAppApiBaseUrl": {
+      "value": "${{AZURE_APP_API_BASE_URL}}"
     },
     "webAppSKU": {
       "value": "B1"
