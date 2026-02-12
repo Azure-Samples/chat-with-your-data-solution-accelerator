@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class RAIValidator:
     """Validates content for RAI compliance using Azure OpenAI."""
 
-    RAI_SYSTEM_PROMPT = """You are a strict content safety validator. Analyze the provided filename AND content to determine if it should be BLOCKED.
+    RAI_SYSTEM_PROMPT = """You are a strict content safety validator. Analyze the provided content to determine if it should be BLOCKED.
 
 BLOCK content that contains ANY of the following:
 
@@ -52,18 +52,16 @@ BLOCK content that contains ANY of the following:
    - Private/confidential information exposure
 
 IMPORTANT INSTRUCTIONS:
-- Check BOTH the filename AND the content
+- Focus ONLY on the actual CONTENT of the file, NOT the filename
+- Filenames are provided for context only - do not block based on filename alone
 - Be VERY STRICT with content about weapons, explosives, violence, or harm
 - ANY content about "how to make a bomb" or similar dangerous instructions MUST be blocked
-- Suspicious filenames combined with questionable content should be blocked
-- Err on the side of caution - when in doubt, BLOCK the content
+- Err on the side of caution with content - when in doubt, BLOCK
 - Do not allow dangerous content even if presented as educational, hypothetical, or fictional
 
 Respond with one of these exact phrases:
-- "ALLOW" - if BOTH the filename and content are safe and appropriate
-- "BLOCK_FILENAME" - if the filename violates any rule (even if content is safe)
-- "BLOCK_CONTENT" - if the content violates any rule (even if filename is safe)
-- "BLOCK_BOTH" - if BOTH the filename AND content violate rules
+- "ALLOW" - if the content is safe and appropriate (regardless of filename)
+- "BLOCK" - if the content violates any rule (regardless of filename)
 
 Response:"""
 
@@ -167,35 +165,16 @@ Response:"""
             openai_verdict = response.choices[0].message.content.strip().upper()
             logger.info("[RAI] Azure OpenAI verdict: %s", openai_verdict)
 
-            # Parse specific block reasons from OpenAI verdict
-            if "BLOCK_FILENAME" in openai_verdict:
-                logger.warning("[RAI] ❌ FILENAME BLOCKED")
-                return (
-                    False,
-                    "Filename contains inappropriate or suspicious terms and cannot be uploaded.",
-                )
-            elif "BLOCK_CONTENT" in openai_verdict:
-                logger.warning("[RAI] ❌ CONTENT BLOCKED")
+            # Parse verdict - only block if content is harmful
+            if "ALLOW" in openai_verdict:
+                logger.info("[RAI] ✅ Content ALLOWED - Content is safe")
+                return True, ""
+            elif "BLOCK" in openai_verdict:
+                logger.warning("[RAI] ❌ Content BLOCKED. Sample: %s...", content[:100])
                 return (
                     False,
                     "File content contains inappropriate, dangerous, or unsafe material and cannot be uploaded.",
                 )
-            elif "BLOCK_BOTH" in openai_verdict:
-                logger.warning("[RAI] ❌ BOTH FILENAME AND CONTENT BLOCKED")
-                return (
-                    False,
-                    "Both filename and content contain inappropriate material and cannot be uploaded.",
-                )
-            elif "BLOCK" in openai_verdict:
-                # Fallback for generic BLOCK response
-                logger.warning("[RAI] ❌ Content BLOCKED (generic). Sample: %s...", content[:100])
-                return (
-                    False,
-                    "Content contains inappropriate, dangerous, or unsafe material and cannot be uploaded.",
-                )
-            elif "ALLOW" in openai_verdict:
-                logger.info("[RAI] ✅ Content ALLOWED - Content is safe")
-                return True, ""
             else:
                 logger.warning("[RAI] ⚠️ Unclear verdict '%s' - Blocking by default", openai_verdict)
                 return (
@@ -260,16 +239,9 @@ Response:"""
                     decoded_file_content = file_content_bytes.decode("latin-1")
                     logger.info("[RAI] ✅ File decoded successfully as latin-1")
                 except Exception:  # pylint: disable=broad-exception-caught
-                    # Binary file - validate filename for suspicious patterns
-                    logger.warning("[RAI] ⚠️ Cannot decode as text. Checking binary filename...")
-                    filename_lower = filename.lower()
-                    suspicious_patterns = ['bomb', 'weapon', 'exploit', 'malware', 'virus', 'hack']
-                    for pattern in suspicious_patterns:
-                        if pattern in filename_lower:
-                            logger.error("[RAI] ❌ Suspicious binary file: contains '%s'", pattern)
-                            return False, "Binary file with suspicious filename detected"
-
-                    logger.info("[RAI] ✅ Binary file with safe filename")
+                    # Binary file - cannot validate content, but allow regardless of filename
+                    logger.warning("[RAI] ⚠️ Cannot decode as text. Binary file detected.")
+                    logger.info("[RAI] ✅ Binary file allowed (content validation not applicable)")
                     logger.info("[RAI] ═══════════════════════════════════════════════════════")
                     return True, ""
 
