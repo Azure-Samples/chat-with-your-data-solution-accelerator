@@ -1,3 +1,8 @@
+/**
+ * @jest-environment jsdom
+ * @jest-environment-options {"url": "http://NonDeloyed/"}
+ */
+
 import {
   render,
   screen,
@@ -66,11 +71,8 @@ describe("Layout Component", () => {
 
   test('test the auth branching auth is true case', async () => {
     const mocklist: any[] = [];
-    Object.defineProperty(window, "location", {
-      value: {
-          hostname: "NonDeloyed"
-      },
-  });
+
+    // Test with jsdom environment configured for NonDeloyed hostname
     ;(getUserInfo as jest.Mock).mockResolvedValue(mocklist)
     ;(checkAuthEnforced as jest.Mock).mockResolvedValue(true)
     await act(async () => {
