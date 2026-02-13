@@ -38,7 +38,7 @@ jobs:
         uses: lycheeverse/lychee-action@v2.7.0
         with:
           args: >
-            --verbose --no-progress --exclude ^https?://
+            --verbose --exclude-mail --no-progress --exclude ^https?://
             ${{ steps.changed-markdown-files.outputs.all_changed_files }}
           failIfEmpty: false
         env:
@@ -51,7 +51,7 @@ jobs:
         uses: lycheeverse/lychee-action@v2.7.0
         with:
           args: >
-            --verbose --no-progress --exclude ^https?://
+            --verbose --exclude-mail --no-progress --exclude ^https?://
             '**/*.md'
           failIfEmpty: false
         env:
