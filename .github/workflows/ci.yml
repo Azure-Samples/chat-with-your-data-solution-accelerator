@@ -6,13 +6,16 @@ on:
       - main
       - dev
       - demo
-    paths:
-      - 'infra/**'
-      - 'scripts/**'
-      - 'azure.yaml'
-      - 'pyproject.toml'
-      - 'Makefile'
-      - '.github/workflows/ci.yml'
+  pull_request:
+    branches:
+      - main
+      - dev
+      - demo
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
   schedule:
     - cron: '0 8,20 * * *'  # Runs at 8:00 AM and 8:00 PM GMT
   workflow_dispatch:
@@ -25,7 +28,36 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.filter.outputs.deploy_related }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check for relevant changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            deploy_related:
+              - 'infra/**'
+              - 'scripts/**'
+              - 'azure.yaml'
+              - 'pyproject.toml'
+              - 'Makefile'
+              - '.github/workflows/ci.yml'
+
+      - name: Skip - No Relevant Changes
+        if: steps.filter.outputs.deploy_related != 'true' && github.event_name != 'workflow_dispatch' && github.event_name != 'schedule'
+        run: echo "No relevant changes detected. Skipping deployment validation."
+
   deploy:
+    needs: check-changes
+    if: needs.check-changes.outputs.should_deploy == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     env:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -391,8 +423,8 @@ jobs:
 
 
   e2e-test:
-    needs: deploy
-    if: needs.deploy.outputs.DEPLOYMENT_SUCCESS == 'true'
+    needs: [check-changes, deploy]
+    if: always() && needs.deploy.result == 'success' && needs.deploy.outputs.DEPLOYMENT_SUCCESS == 'true'
     uses: ./.github/workflows/test-automation.yml
     with:
       web_url: ${{ needs.deploy.outputs.web_url }}
@@ -400,8 +432,8 @@ jobs:
 
 
   cleanup:
-    if: always()
-    needs: [deploy, e2e-test]
+    if: always() && needs.deploy.result != 'skipped'
+    needs: [check-changes, deploy, e2e-test]
     runs-on: ubuntu-latest
 
     env:
