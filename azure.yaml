@@ -66,5 +66,3 @@ services:
         posix:
           shell: sh
           run: poetry export -o requirements.txt --without-hashes; pip install -r requirements.txt
-
- 
