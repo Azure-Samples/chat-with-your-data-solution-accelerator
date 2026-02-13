@@ -41,6 +41,7 @@ urlFragment: chat-with-your-data-solution-accelerator
     - [Pricing Considerations](#pricing-considerations)
     - [Deploy instructions](#deploy-instructions)
     - [Testing the deployment](#testing-the-deployment)
+  - [CI/CD Pipeline](#cicd-pipeline)
   - [Supporting documentation](#supporting-documentation)
     - [Resource links](#resource-links)
     - [Licensing](#licensing)
@@ -241,6 +242,18 @@ When deploying the solution using the "Deploy to Azure" button, you'll see two f
     ![A screenshot of the chat app.](./docs/images/web-unstructureddata.png)
 
 
+## CI/CD Pipeline
+
+The repository uses conditional pipeline execution to optimize CI/CD workflows. Jobs and steps are automatically skipped based on which files have changed:
+
+| Workflow | Skipped When |
+|----------|--------------|
+| **ci.yml** (Deployment) | No changes in `infra/`, `scripts/`, `azure.yaml`, `pyproject.toml`, `Makefile` |
+| **tests.yml** | Backend tests skip if no `code/backend/` changes; Frontend tests skip if no `code/frontend/` changes |
+| **build-docker-images.yml** | No changes in `code/`, `docker/`, `package.json`, `pyproject.toml` |
+| **broken-links-checker.yml** | No markdown files changed |
+
+This approach saves compute resources while maintaining full visibility in the GitHub Actions UI.
 
 
 ![Supporting documentation](/docs/images/supportingDocuments.png)
