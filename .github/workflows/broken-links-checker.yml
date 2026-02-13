@@ -27,7 +27,7 @@ jobs:
           files: |
             **/*.md
 
-      - name: Skip - No Markdown Files Changed
+      - name: Skip - No Markdown Files Changedd
         if: github.event_name == 'pull_request' && steps.changed-markdown-files.outputs.any_changed != 'true'
         run: echo "No markdown files changed. Skipping broken link check."
 

@@ -8,7 +8,6 @@ import "./index.css";
 import NoPage from "./pages/NoPage";
 import Chat from "./pages/chat/Chat";
 
-// Initialize Fluent UI icons for the application
 initializeIcons();
 
 export default function App() {

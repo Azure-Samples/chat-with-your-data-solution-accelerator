@@ -117,7 +117,7 @@ export const Answer = ({
         const data = await response.json();
         setSynthesizerData({ token: data.token, region: data.region });
       } catch (e) {
-        console.error("Failed to fetch speech synthesizer data:", e);
+        console.log(e);
       }
     };
     fetchSythesizerData();
