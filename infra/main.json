@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.39.26.7824",
-      "templateHash": "17963400440273294880"
+      "version": "0.37.4.10188",
+      "templateHash": "14702548500585984827"
     }
   },
   "parameters": {
@@ -255,34 +255,6 @@
         "description": "Optional. The maximum number of images to pass to the vision model in a single request."
       }
     },
-    "azureOpenAIVisionModel": {
-      "type": "string",
-      "defaultValue": "gpt-4.1",
-      "metadata": {
-        "description": "Optional. Azure OpenAI Vision Model Deployment Name."
-      }
-    },
-    "azureOpenAIVisionModelName": {
-      "type": "string",
-      "defaultValue": "gpt-4.1",
-      "metadata": {
-        "description": "Optional. Azure OpenAI Vision Model Name."
-      }
-    },
-    "azureOpenAIVisionModelVersion": {
-      "type": "string",
-      "defaultValue": "2025-04-14",
-      "metadata": {
-        "description": "Optional. Azure OpenAI Vision Model Version."
-      }
-    },
-    "azureOpenAIVisionModelCapacity": {
-      "type": "int",
-      "defaultValue": 10,
-      "metadata": {
-        "description": "Optional. Azure OpenAI Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota."
-      }
-    },
     "orchestrationStrategy": {
       "type": "string",
       "defaultValue": "semantic_kernel",
@@ -381,6 +353,13 @@
       "defaultValue": 100,
       "metadata": {
         "description": "Optional. Azure OpenAI Embedding Model Capacity - See here for more info https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota ."
+      }
+    },
+    "azureSearchDimensions": {
+      "type": "string",
+      "defaultValue": "1536",
+      "metadata": {
+        "description": "Optional. Azure Search vector field dimensions. Must match the embedding model dimensions. 1536 for text-embedding-ada-002, 3072 for text-embedding-3-large. See https://learn.microsoft.com/en-us/azure/search/cognitive-search-skill-azure-openai-embedding#supported-dimensions-by-modelname.(Only for databaseType=CosmosDB)"
       }
     },
     "computerVisionSkuName": {
@@ -747,7 +726,7 @@
     "virtualNetwork": {
       "condition": "[parameters('enablePrivateNetworking')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[take(format('module.virtualNetwork.{0}', variables('solutionSuffix')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -784,8 +763,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "16389998095350100208"
+              "version": "0.37.4.10188",
+              "templateHash": "2200229774141364469"
             }
           },
           "definitions": {
@@ -1192,7 +1171,7 @@
               },
               "condition": "[not(empty(tryGet(parameters('subnets')[copyIndex()], 'networkSecurityGroup')))]",
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[take(format('avm.res.network.network-security-group.{0}.{1}', tryGet(parameters('subnets')[copyIndex()], 'networkSecurityGroup', 'name'), parameters('resourceSuffix')), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -1844,7 +1823,7 @@
             },
             "virtualNetwork": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[take(format('avm.res.network.virtual-network.{0}', parameters('name')), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -3575,7 +3554,7 @@
     "bastionHost": {
       "condition": "[parameters('enablePrivateNetworking')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[take(format('avm.res.network.bastion-host.{0}', variables('bastionHostName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -4894,7 +4873,7 @@
     "jumpboxVM": {
       "condition": "[parameters('enablePrivateNetworking')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[take(format('avm.res.compute.virtual-machine.{0}', variables('jumpboxVmName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -13233,7 +13212,7 @@
     },
     "maintenanceConfiguration": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[take(format('avm.res.maintenance.maintenance-configuration.{0}', variables('jumpboxVmName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -13636,7 +13615,7 @@
     },
     "managedIdentityModule": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[take(format('avm.res.managed-identity.user-assigned-identity.{0}', variables('userAssignedIdentityResourceName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -14125,7 +14104,7 @@
       },
       "condition": "[parameters('enablePrivateNetworking')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[format('avm.res.network.private-dns-zone.{0}', if(contains(variables('privateDnsZones')[copyIndex()], 'azurecontainerapps.io'), 'containerappenv', split(variables('privateDnsZones')[copyIndex()], '.')[1]))]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -14158,8 +14137,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "4195530859454785600"
+              "version": "0.37.4.10188",
+              "templateHash": "6632480610516632840"
             },
             "name": "Private DNS Zones",
             "description": "This module deploys a Private DNS zone."
@@ -14356,7 +14335,7 @@
                 "count": "[length(coalesce(parameters('virtualNetworkLinks'), createArray()))]"
               },
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[format('{0}-PrivateDnsZone-VNetLink-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -14393,8 +14372,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "162991390725016416"
+                      "version": "0.37.4.10188",
+                      "templateHash": "517173107480898390"
                     },
                     "name": "Private DNS Zone Virtual Network Link",
                     "description": "This module deploys a Private DNS Zone Virtual Network Link."
@@ -14528,7 +14507,7 @@
     "cosmosDBModule": {
       "condition": "[equals(parameters('databaseType'), 'CosmosDB')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[take(format('avm.res.document-db.database-account.{0}', variables('azureCosmosDBAccountName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -14605,8 +14584,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "5952316286725027748"
+              "version": "0.37.4.10188",
+              "templateHash": "12621492773295817966"
             },
             "name": "Azure Cosmos DB account",
             "description": "This module deploys an Azure Cosmos DB account. The API used for the account is determined by the child resources that are deployed."
@@ -15914,7 +15893,7 @@
                 "count": "[length(coalesce(parameters('sqlDatabases'), createArray()))]"
               },
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[format('{0}-sqldb-{1}', uniqueString(deployment().name, parameters('location')), coalesce(parameters('sqlDatabases'), createArray())[copyIndex()].name)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -15945,8 +15924,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "17961189621407340108"
+                      "version": "0.37.4.10188",
+                      "templateHash": "7141543733238879531"
                     },
                     "name": "DocumentDB Database Account SQL Databases",
                     "description": "This module deploys a SQL Database in a CosmosDB Account."
@@ -16024,7 +16003,7 @@
                         "count": "[length(coalesce(parameters('containers'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2025-04-01",
+                      "apiVersion": "2022-09-01",
                       "name": "[format('{0}-sqldb-{1}', uniqueString(deployment().name, parameters('name')), coalesce(parameters('containers'), createArray())[copyIndex()].name)]",
                       "properties": {
                         "expressionEvaluationOptions": {
@@ -16077,8 +16056,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.39.26.7824",
-                              "templateHash": "249108184354607538"
+                              "version": "0.37.4.10188",
+                              "templateHash": "1789954443166349986"
                             },
                             "name": "DocumentDB Database Account SQL Database Containers",
                             "description": "This module deploys a SQL Database Container in a CosmosDB Account."
@@ -16297,7 +16276,7 @@
                 "count": "[length(coalesce(parameters('dataPlaneRoleDefinitions'), createArray()))]"
               },
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[format('{0}-sqlrd-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -16331,8 +16310,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "6361709294391707996"
+                      "version": "0.37.4.10188",
+                      "templateHash": "15286527663881247447"
                     },
                     "name": "DocumentDB Database Account SQL Role Definitions.",
                     "description": "This module deploys a SQL Role Definision in a CosmosDB Account."
@@ -16440,7 +16419,7 @@
                         "count": "[length(coalesce(parameters('sqlRoleAssignments'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2025-04-01",
+                      "apiVersion": "2022-09-01",
                       "name": "[format('{0}-sqlra-{1}', uniqueString(deployment().name), copyIndex())]",
                       "properties": {
                         "expressionEvaluationOptions": {
@@ -16468,8 +16447,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.39.26.7824",
-                              "templateHash": "11308421294472813926"
+                              "version": "0.37.4.10188",
+                              "templateHash": "13930097858749015610"
                             },
                             "name": "DocumentDB Database Account SQL Role Assignments.",
                             "description": "This module deploys a SQL Role Assignment in a CosmosDB Account."
@@ -16591,7 +16570,7 @@
                 "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
               },
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[format('{0}-dbAccount-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
               "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
               "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -17364,7 +17343,7 @@
     "postgresDBModule": {
       "condition": "[equals(parameters('databaseType'), 'PostgreSQL')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[take(format('avm.res.db-for-postgre-sql.flexible-server.{0}', variables('azurePostgresDBAccountName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -20182,7 +20161,7 @@
     "pgSqlDelayScript": {
       "condition": "[equals(parameters('databaseType'), 'PostgreSQL')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[take(format('avm.res.deployment-script.delay.{0}', variables('postgresResourceName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -20206,7 +20185,7 @@
             "value": "[parameters('enableTelemetry')]"
           },
           "scriptContent": {
-            "value": "start-sleep -Seconds 300"
+            "value": "start-sleep -Seconds 600"
           },
           "azPowerShellVersion": {
             "value": "11.0"
@@ -20752,7 +20731,7 @@
     },
     "keyvault": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[take(format('avm.res.key-vault.vault.{0}', variables('keyVaultName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -20823,8 +20802,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "5436255191760096437"
+              "version": "0.37.4.10188",
+              "templateHash": "13073656606893955183"
             },
             "name": "Key Vaults",
             "description": "This module deploys a Key Vault."
@@ -21792,7 +21771,7 @@
                 "count": "[length(coalesce(parameters('secrets'), createArray()))]"
               },
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[format('{0}-KeyVault-Secret-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -21838,8 +21817,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "13601768680795987047"
+                      "version": "0.37.4.10188",
+                      "templateHash": "8701309639990049090"
                     },
                     "name": "Key Vault Secrets",
                     "description": "This module deploys a Key Vault Secret."
@@ -22133,7 +22112,7 @@
                 "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
               },
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[format('{0}-keyVault-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
               "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
               "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -22933,7 +22912,7 @@
     },
     "openai": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[variables('azureOpenAIResourceName')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -22991,8 +22970,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "8044963307270176525"
+              "version": "0.37.4.10188",
+              "templateHash": "16505240488755356349"
             }
           },
           "parameters": {
@@ -23141,7 +23120,7 @@
           "resources": {
             "cognitiveServices": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[take(format('avm.res.cognitive-services.account.{0}', variables('cognitiveResourceName')), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -23210,8 +23189,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "14376261070114657221"
+                      "version": "0.37.4.10188",
+                      "templateHash": "6474769167245807917"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -24674,7 +24653,7 @@
                         "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2025-04-01",
+                      "apiVersion": "2022-09-01",
                       "name": "[format('{0}-cognitiveService-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
                       "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -25550,7 +25529,7 @@
     "computerVision": {
       "condition": "[parameters('useAdvancedImageProcessing')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "computerVision",
       "properties": {
         "expressionEvaluationOptions": {
@@ -25597,8 +25576,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "8044963307270176525"
+              "version": "0.37.4.10188",
+              "templateHash": "16505240488755356349"
             }
           },
           "parameters": {
@@ -25747,7 +25726,7 @@
           "resources": {
             "cognitiveServices": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[take(format('avm.res.cognitive-services.account.{0}', variables('cognitiveResourceName')), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -25816,8 +25795,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "14376261070114657221"
+                      "version": "0.37.4.10188",
+                      "templateHash": "6474769167245807917"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -27280,7 +27259,7 @@
                         "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2025-04-01",
+                      "apiVersion": "2022-09-01",
                       "name": "[format('{0}-cognitiveService-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
                       "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -28155,7 +28134,7 @@
     },
     "speechService": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[variables('speechServiceName')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -28204,8 +28183,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "8044963307270176525"
+              "version": "0.37.4.10188",
+              "templateHash": "16505240488755356349"
             }
           },
           "parameters": {
@@ -28354,7 +28333,7 @@
           "resources": {
             "cognitiveServices": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[take(format('avm.res.cognitive-services.account.{0}', variables('cognitiveResourceName')), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -28423,8 +28402,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "14376261070114657221"
+                      "version": "0.37.4.10188",
+                      "templateHash": "6474769167245807917"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -29887,7 +29866,7 @@
                         "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2025-04-01",
+                      "apiVersion": "2022-09-01",
                       "name": "[format('{0}-cognitiveService-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
                       "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -30763,7 +30742,7 @@
     "search": {
       "condition": "[equals(parameters('databaseType'), 'CosmosDB')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[take(format('avm.res.search.search-service.{0}', variables('azureAISearchName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -33124,7 +33103,7 @@
     },
     "webServerFarm": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[take(format('avm.res.web.serverfarm.{0}', variables('webServerFarmResourceName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -33695,7 +33674,7 @@
     },
     "web": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[take(format('module.web.site.{0}{1}', variables('websiteName'), if(equals(parameters('hostingModel'), 'container'), '-docker', '')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -33736,7 +33715,7 @@
           },
           "applicationInsightsName": "[if(parameters('enableMonitoring'), createObject('value', reference('monitoring').outputs.applicationInsightsName.value), createObject('value', ''))]",
           "appSettings": {
-            "value": "[union(createObject('AZURE_BLOB_ACCOUNT_NAME', variables('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference('formrecognizer').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference('contentsafety').outputs.endpoint.value, 'AZURE_KEY_VAULT_ENDPOINT', reference('keyvault').outputs.uri.value, 'AZURE_OPENAI_RESOURCE', variables('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'AZURE_SPEECH_SERVICE_NAME', variables('speechServiceName'), 'AZURE_SPEECH_SERVICE_REGION', parameters('location'), 'AZURE_SPEECH_RECOGNIZER_LANGUAGES', parameters('recognizedLanguages'), 'AZURE_SPEECH_REGION_ENDPOINT', reference('speechService').outputs.endpoint.value, 'USE_ADVANCED_IMAGE_PROCESSING', if(parameters('useAdvancedImageProcessing'), 'true', 'false'), 'ADVANCED_IMAGE_PROCESSING_MAX_IMAGES', string(parameters('advancedImageProcessingMaxImages')), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'PACKAGE_LOGGING_LEVEL', 'WARNING', 'AZURE_LOGGING_PACKAGES', '', 'DATABASE_TYPE', parameters('databaseType'), 'OPEN_AI_FUNCTIONS_SYSTEM_PROMPT', variables('openAIFunctionsSystemPrompt'), 'SEMANTIC_KERNEL_SYSTEM_PROMPT', variables('semanticKernelSystemPrompt'), 'MANAGED_IDENTITY_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'MANAGED_IDENTITY_RESOURCE_ID', reference('managedIdentityModule').outputs.resourceId.value, 'AZURE_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'APP_ENV', parameters('appEnvironment')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_COSMOSDB_ACCOUNT_NAME', variables('azureCosmosDBAccountName'), 'AZURE_COSMOSDB_DATABASE_NAME', variables('cosmosDbName'), 'AZURE_COSMOSDB_CONVERSATIONS_CONTAINER_NAME', variables('cosmosDbContainerName'), 'AZURE_COSMOSDB_ENABLE_FEEDBACK', 'true', 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', if(parameters('azureSearchUseSemanticSearch'), 'true', 'false'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', variables('azureAISearchName')), 'AZURE_SEARCH_INDEX', variables('azureSearchIndex'), 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', parameters('azureSearchConversationLogIndex'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', if(parameters('azureSearchUseIntegratedVectorization'), 'true', 'false')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', variables('postgresDBFqdn'), 'AZURE_POSTGRESQL_DATABASE_NAME', variables('postgresDBName'), 'AZURE_POSTGRESQL_USER', reference('managedIdentityModule').outputs.name.value), createObject())))]"
+            "value": "[union(createObject('AZURE_BLOB_ACCOUNT_NAME', variables('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference('formrecognizer').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference('contentsafety').outputs.endpoint.value, 'AZURE_KEY_VAULT_ENDPOINT', reference('keyvault').outputs.uri.value, 'AZURE_OPENAI_RESOURCE', variables('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'AZURE_SPEECH_SERVICE_NAME', variables('speechServiceName'), 'AZURE_SPEECH_SERVICE_REGION', parameters('location'), 'AZURE_SPEECH_RECOGNIZER_LANGUAGES', parameters('recognizedLanguages'), 'AZURE_SPEECH_REGION_ENDPOINT', reference('speechService').outputs.endpoint.value, 'USE_ADVANCED_IMAGE_PROCESSING', if(parameters('useAdvancedImageProcessing'), 'true', 'false'), 'ADVANCED_IMAGE_PROCESSING_MAX_IMAGES', string(parameters('advancedImageProcessingMaxImages')), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'PACKAGE_LOGGING_LEVEL', 'WARNING', 'AZURE_LOGGING_PACKAGES', '', 'DATABASE_TYPE', parameters('databaseType'), 'OPEN_AI_FUNCTIONS_SYSTEM_PROMPT', variables('openAIFunctionsSystemPrompt'), 'SEMANTIC_KERNEL_SYSTEM_PROMPT', variables('semanticKernelSystemPrompt'), 'MANAGED_IDENTITY_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'MANAGED_IDENTITY_RESOURCE_ID', reference('managedIdentityModule').outputs.resourceId.value, 'AZURE_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'APP_ENV', parameters('appEnvironment'), 'AZURE_SEARCH_DIMENSIONS', parameters('azureSearchDimensions')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_COSMOSDB_ACCOUNT_NAME', variables('azureCosmosDBAccountName'), 'AZURE_COSMOSDB_DATABASE_NAME', variables('cosmosDbName'), 'AZURE_COSMOSDB_CONVERSATIONS_CONTAINER_NAME', variables('cosmosDbContainerName'), 'AZURE_COSMOSDB_ENABLE_FEEDBACK', 'true', 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', if(parameters('azureSearchUseSemanticSearch'), 'true', 'false'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', variables('azureAISearchName')), 'AZURE_SEARCH_INDEX', variables('azureSearchIndex'), 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', parameters('azureSearchConversationLogIndex'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', if(parameters('azureSearchUseIntegratedVectorization'), 'true', 'false')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', variables('postgresDBFqdn'), 'AZURE_POSTGRESQL_DATABASE_NAME', variables('postgresDBName'), 'AZURE_POSTGRESQL_USER', reference('managedIdentityModule').outputs.name.value), createObject())))]"
           }
         },
         "template": {
@@ -33746,8 +33725,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "5792200250308580841"
+              "version": "0.37.4.10188",
+              "templateHash": "1239027958599985321"
             }
           },
           "parameters": {
@@ -33940,7 +33919,7 @@
           "resources": {
             "web": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[format('{0}-app-module', parameters('name'))]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -34004,8 +33983,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "1347511588046818300"
+                      "version": "0.37.4.10188",
+                      "templateHash": "5281512861407487389"
                     }
                   },
                   "definitions": {
@@ -34986,7 +34965,7 @@
                         "count": "[length(coalesce(parameters('configs'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2025-04-01",
+                      "apiVersion": "2022-09-01",
                       "name": "[format('{0}-Site-Config-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "properties": {
                         "expressionEvaluationOptions": {
@@ -35021,8 +35000,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.39.26.7824",
-                              "templateHash": "11666262061409473778"
+                              "version": "0.37.4.10188",
+                              "templateHash": "4653685834544796273"
                             },
                             "name": "Site App Settings",
                             "description": "This module deploys a Site App Setting."
@@ -35167,7 +35146,7 @@
                         "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2025-04-01",
+                      "apiVersion": "2022-09-01",
                       "name": "[format('{0}-app-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
                       "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -36008,7 +35987,7 @@
     },
     "adminweb": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[take(format('module.web.site.{0}{1}', variables('adminWebsiteName'), if(equals(parameters('hostingModel'), 'container'), '-docker', '')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -36038,7 +36017,7 @@
             "value": "[reference('managedIdentityModule').outputs.resourceId.value]"
           },
           "appSettings": {
-            "value": "[union(createObject('AZURE_BLOB_ACCOUNT_NAME', variables('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference('formrecognizer').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference('contentsafety').outputs.endpoint.value, 'AZURE_KEY_VAULT_ENDPOINT', reference('keyvault').outputs.uri.value, 'AZURE_OPENAI_RESOURCE', variables('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'USE_ADVANCED_IMAGE_PROCESSING', if(parameters('useAdvancedImageProcessing'), 'true', 'false'), 'BACKEND_URL', format('https://{0}.azurewebsites.net', if(equals(parameters('hostingModel'), 'container'), format('{0}-docker', variables('functionName')), variables('functionName'))), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'FUNCTION_KEY', 'FUNCTION-KEY', 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'PACKAGE_LOGGING_LEVEL', 'WARNING', 'AZURE_LOGGING_PACKAGES', '', 'DATABASE_TYPE', parameters('databaseType'), 'USE_KEY_VAULT', 'true', 'MANAGED_IDENTITY_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'MANAGED_IDENTITY_RESOURCE_ID', reference('managedIdentityModule').outputs.resourceId.value, 'APP_ENV', parameters('appEnvironment')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', variables('azureAISearchName')), 'AZURE_SEARCH_INDEX', variables('azureSearchIndex'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', if(parameters('azureSearchUseSemanticSearch'), 'true', 'false'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_DATASOURCE_NAME', variables('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', variables('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', if(parameters('azureSearchUseIntegratedVectorization'), 'true', 'false')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', variables('postgresDBFqdn'), 'AZURE_POSTGRESQL_DATABASE_NAME', variables('postgresDBName'), 'AZURE_POSTGRESQL_USER', reference('managedIdentityModule').outputs.name.value), createObject())))]"
+            "value": "[union(createObject('AZURE_BLOB_ACCOUNT_NAME', variables('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference('formrecognizer').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference('contentsafety').outputs.endpoint.value, 'AZURE_KEY_VAULT_ENDPOINT', reference('keyvault').outputs.uri.value, 'AZURE_OPENAI_RESOURCE', variables('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'USE_ADVANCED_IMAGE_PROCESSING', if(parameters('useAdvancedImageProcessing'), 'true', 'false'), 'BACKEND_URL', format('https://{0}.azurewebsites.net', if(equals(parameters('hostingModel'), 'container'), format('{0}-docker', variables('functionName')), variables('functionName'))), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'FUNCTION_KEY', 'FUNCTION-KEY', 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'PACKAGE_LOGGING_LEVEL', 'WARNING', 'AZURE_LOGGING_PACKAGES', '', 'DATABASE_TYPE', parameters('databaseType'), 'USE_KEY_VAULT', 'true', 'MANAGED_IDENTITY_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'MANAGED_IDENTITY_RESOURCE_ID', reference('managedIdentityModule').outputs.resourceId.value, 'APP_ENV', parameters('appEnvironment'), 'AZURE_SEARCH_DIMENSIONS', parameters('azureSearchDimensions')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', variables('azureAISearchName')), 'AZURE_SEARCH_INDEX', variables('azureSearchIndex'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', if(parameters('azureSearchUseSemanticSearch'), 'true', 'false'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_DATASOURCE_NAME', variables('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', variables('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', if(parameters('azureSearchUseIntegratedVectorization'), 'true', 'false')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', variables('postgresDBFqdn'), 'AZURE_POSTGRESQL_DATABASE_NAME', variables('postgresDBName'), 'AZURE_POSTGRESQL_USER', reference('managedIdentityModule').outputs.name.value), createObject())))]"
           },
           "applicationInsightsName": "[if(parameters('enableMonitoring'), createObject('value', reference('monitoring').outputs.applicationInsightsName.value), createObject('value', ''))]",
           "diagnosticSettings": "[if(parameters('enableMonitoring'), createObject('value', createArray(createObject('workspaceResourceId', reference('monitoring').outputs.logAnalyticsWorkspaceId.value))), createObject('value', createArray()))]",
@@ -36056,8 +36035,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "16879216494119194959"
+              "version": "0.37.4.10188",
+              "templateHash": "4691242466216924614"
             }
           },
           "parameters": {
@@ -36250,7 +36229,7 @@
           "resources": {
             "adminweb": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[format('{0}-app-module', parameters('name'))]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -36314,8 +36293,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "1347511588046818300"
+                      "version": "0.37.4.10188",
+                      "templateHash": "5281512861407487389"
                     }
                   },
                   "definitions": {
@@ -37296,7 +37275,7 @@
                         "count": "[length(coalesce(parameters('configs'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2025-04-01",
+                      "apiVersion": "2022-09-01",
                       "name": "[format('{0}-Site-Config-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "properties": {
                         "expressionEvaluationOptions": {
@@ -37331,8 +37310,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.39.26.7824",
-                              "templateHash": "11666262061409473778"
+                              "version": "0.37.4.10188",
+                              "templateHash": "4653685834544796273"
                             },
                             "name": "Site App Settings",
                             "description": "This module deploys a Site App Setting."
@@ -37477,7 +37456,7 @@
                         "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2025-04-01",
+                      "apiVersion": "2022-09-01",
                       "name": "[format('{0}-app-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
                       "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -38317,7 +38296,7 @@
     },
     "function": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[if(equals(parameters('hostingModel'), 'container'), format('{0}-docker', variables('functionName')), variables('functionName'))]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -38363,7 +38342,7 @@
             "value": "Enabled"
           },
           "appSettings": {
-            "value": "[union(createObject('AZURE_BLOB_ACCOUNT_NAME', variables('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference('formrecognizer').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference('contentsafety').outputs.endpoint.value, 'AZURE_KEY_VAULT_ENDPOINT', reference('keyvault').outputs.uri.value, 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'AZURE_OPENAI_RESOURCE', variables('azureOpenAIResourceName'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'USE_ADVANCED_IMAGE_PROCESSING', if(parameters('useAdvancedImageProcessing'), 'true', 'false'), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'LOGLEVEL', parameters('logLevel'), 'PACKAGE_LOGGING_LEVEL', 'WARNING', 'AZURE_LOGGING_PACKAGES', '', 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'DATABASE_TYPE', parameters('databaseType'), 'MANAGED_IDENTITY_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'MANAGED_IDENTITY_RESOURCE_ID', reference('managedIdentityModule').outputs.resourceId.value, 'AZURE_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'APP_ENV', parameters('appEnvironment'), 'BACKEND_URL', variables('backendUrl')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_SEARCH_INDEX', variables('azureSearchIndex'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', variables('azureAISearchName')), 'AZURE_SEARCH_DATASOURCE_NAME', variables('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', variables('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', if(parameters('azureSearchUseIntegratedVectorization'), 'true', 'false'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', variables('postgresDBFqdn'), 'AZURE_POSTGRESQL_DATABASE_NAME', variables('postgresDBName'), 'AZURE_POSTGRESQL_USER', reference('managedIdentityModule').outputs.name.value), createObject())))]"
+            "value": "[union(createObject('AZURE_BLOB_ACCOUNT_NAME', variables('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference('formrecognizer').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference('contentsafety').outputs.endpoint.value, 'AZURE_KEY_VAULT_ENDPOINT', reference('keyvault').outputs.uri.value, 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'AZURE_OPENAI_RESOURCE', variables('azureOpenAIResourceName'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'USE_ADVANCED_IMAGE_PROCESSING', if(parameters('useAdvancedImageProcessing'), 'true', 'false'), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'LOGLEVEL', parameters('logLevel'), 'PACKAGE_LOGGING_LEVEL', 'WARNING', 'AZURE_LOGGING_PACKAGES', '', 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'DATABASE_TYPE', parameters('databaseType'), 'MANAGED_IDENTITY_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'MANAGED_IDENTITY_RESOURCE_ID', reference('managedIdentityModule').outputs.resourceId.value, 'AZURE_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'APP_ENV', parameters('appEnvironment'), 'BACKEND_URL', variables('backendUrl'), 'AZURE_SEARCH_DIMENSIONS', parameters('azureSearchDimensions')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_SEARCH_INDEX', variables('azureSearchIndex'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', variables('azureAISearchName')), 'AZURE_SEARCH_DATASOURCE_NAME', variables('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', variables('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', if(parameters('azureSearchUseIntegratedVectorization'), 'true', 'false'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', variables('postgresDBFqdn'), 'AZURE_POSTGRESQL_DATABASE_NAME', variables('postgresDBName'), 'AZURE_POSTGRESQL_USER', reference('managedIdentityModule').outputs.name.value), createObject())))]"
           }
         },
         "template": {
@@ -38373,8 +38352,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "10996245640052014127"
+              "version": "0.37.4.10188",
+              "templateHash": "12782603898039684691"
             }
           },
           "parameters": {
@@ -38563,7 +38542,7 @@
               "location": "[parameters('location')]",
               "properties": {
                 "azPowerShellVersion": "11.0",
-                "scriptContent": "start-sleep -Seconds 300",
+                "scriptContent": "start-sleep -Seconds 600",
                 "cleanupPreference": "Always",
                 "retentionInterval": "PT1H"
               },
@@ -38573,7 +38552,7 @@
             },
             "function": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[format('{0}-app-module', parameters('name'))]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -38649,8 +38628,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "17508426375842638682"
+                      "version": "0.37.4.10188",
+                      "templateHash": "3984556239778248742"
                     }
                   },
                   "parameters": {
@@ -38931,7 +38910,7 @@
                   "resources": [
                     {
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2025-04-01",
+                      "apiVersion": "2022-09-01",
                       "name": "[format('{0}-functions', parameters('name'))]",
                       "properties": {
                         "expressionEvaluationOptions": {
@@ -39015,8 +38994,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.39.26.7824",
-                              "templateHash": "1347511588046818300"
+                              "version": "0.37.4.10188",
+                              "templateHash": "5281512861407487389"
                             }
                           },
                           "definitions": {
@@ -39997,7 +39976,7 @@
                                 "count": "[length(coalesce(parameters('configs'), createArray()))]"
                               },
                               "type": "Microsoft.Resources/deployments",
-                              "apiVersion": "2025-04-01",
+                              "apiVersion": "2022-09-01",
                               "name": "[format('{0}-Site-Config-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                               "properties": {
                                 "expressionEvaluationOptions": {
@@ -40032,8 +40011,8 @@
                                   "metadata": {
                                     "_generator": {
                                       "name": "bicep",
-                                      "version": "0.39.26.7824",
-                                      "templateHash": "11666262061409473778"
+                                      "version": "0.37.4.10188",
+                                      "templateHash": "4653685834544796273"
                                     },
                                     "name": "Site App Settings",
                                     "description": "This module deploys a Site App Setting."
@@ -40178,7 +40157,7 @@
                                 "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
                               },
                               "type": "Microsoft.Resources/deployments",
-                              "apiVersion": "2025-04-01",
+                              "apiVersion": "2022-09-01",
                               "name": "[format('{0}-app-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                               "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
                               "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -40996,11 +40975,11 @@
                   "outputs": {
                     "name": {
                       "type": "string",
-                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-functions', parameters('name'))), '2025-04-01').outputs.name.value]"
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-functions', parameters('name'))), '2022-09-01').outputs.name.value]"
                     },
                     "uri": {
                       "type": "string",
-                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-functions', parameters('name'))), '2025-04-01').outputs.defaultHostname.value]"
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-functions', parameters('name'))), '2022-09-01').outputs.defaultHostname.value]"
                     },
                     "azureWebJobsStorage": {
                       "type": "string",
@@ -41044,7 +41023,7 @@
     "monitoring": {
       "condition": "[parameters('enableMonitoring')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "monitoring",
       "properties": {
         "expressionEvaluationOptions": {
@@ -41092,8 +41071,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "13305618921652639897"
+              "version": "0.37.4.10188",
+              "templateHash": "7477772631335240925"
             },
             "name": "monitoring-solution",
             "description": "AVM WAF-compliant monitoring solution that integrates Application Insights with Log Analytics for centralized telemetry, diagnostics, and observability."
@@ -41230,7 +41209,7 @@
             "avmWorkspace": {
               "condition": "[empty(parameters('existingLogAnalyticsWorkspaceId'))]",
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[take(format('avm.res.operational-insights.workspace.{0}', parameters('logAnalyticsName')), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -44338,7 +44317,7 @@
             },
             "avmAppInsights": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[format('{0}-deploy', parameters('applicationInsightsName'))]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -45069,7 +45048,7 @@
             "applicationInsightsDashboard": {
               "condition": "[not(empty(parameters('applicationInsightsDashboardName')))]",
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[format('{0}-deploy', parameters('applicationInsightsDashboardName'))]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -46662,7 +46641,7 @@
     },
     "formrecognizer": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[variables('formRecognizerName')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -46720,8 +46699,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "8044963307270176525"
+              "version": "0.37.4.10188",
+              "templateHash": "16505240488755356349"
             }
           },
           "parameters": {
@@ -46870,7 +46849,7 @@
           "resources": {
             "cognitiveServices": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[take(format('avm.res.cognitive-services.account.{0}', variables('cognitiveResourceName')), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -46939,8 +46918,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "14376261070114657221"
+                      "version": "0.37.4.10188",
+                      "templateHash": "6474769167245807917"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -48403,7 +48382,7 @@
                         "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2025-04-01",
+                      "apiVersion": "2022-09-01",
                       "name": "[format('{0}-cognitiveService-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
                       "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -49278,7 +49257,7 @@
     },
     "contentsafety": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[variables('contentSafetyName')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -49324,8 +49303,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "8044963307270176525"
+              "version": "0.37.4.10188",
+              "templateHash": "16505240488755356349"
             }
           },
           "parameters": {
@@ -49474,7 +49453,7 @@
           "resources": {
             "cognitiveServices": {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[take(format('avm.res.cognitive-services.account.{0}', variables('cognitiveResourceName')), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -49543,8 +49522,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "14376261070114657221"
+                      "version": "0.37.4.10188",
+                      "templateHash": "6474769167245807917"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -51007,7 +50986,7 @@
                         "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2025-04-01",
+                      "apiVersion": "2022-09-01",
                       "name": "[format('{0}-cognitiveService-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
                       "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
                       "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -51882,7 +51861,7 @@
     },
     "storage": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[take(format('avm.res.storage.storage-account.{0}', variables('storageAccountName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -51984,8 +51963,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "883693756681856266"
+              "version": "0.37.4.10188",
+              "templateHash": "15225503506140349027"
             },
             "name": "Storage Accounts",
             "description": "This module deploys a Storage Account."
@@ -53202,7 +53181,7 @@
                 "count": "[length(coalesce(parameters('privateEndpoints'), createArray()))]"
               },
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[format('{0}-sa-PrivateEndpoint-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
               "subscriptionId": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[2]]",
               "resourceGroup": "[split(coalesce(tryGet(coalesce(parameters('privateEndpoints'), createArray())[copyIndex()], 'resourceGroupResourceId'), resourceGroup().id), '/')[4]]",
@@ -53956,7 +53935,7 @@
             "storageAccount_blobServices": {
               "condition": "[not(empty(parameters('blobServices')))]",
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[format('{0}-Storage-BlobServices', uniqueString(deployment().name, parameters('location')))]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -54026,8 +54005,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "7481967067901562837"
+                      "version": "0.37.4.10188",
+                      "templateHash": "65499040398434270"
                     },
                     "name": "Storage Account blob Services",
                     "description": "This module deploys a Storage Account Blob Service."
@@ -54442,7 +54421,7 @@
                         "count": "[length(coalesce(parameters('containers'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2025-04-01",
+                      "apiVersion": "2022-09-01",
                       "name": "[format('{0}-Container-{1}', deployment().name, copyIndex())]",
                       "properties": {
                         "expressionEvaluationOptions": {
@@ -54491,8 +54470,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.39.26.7824",
-                              "templateHash": "12374539759649682270"
+                              "version": "0.37.4.10188",
+                              "templateHash": "17016031020562108306"
                             },
                             "name": "Storage Account Blob Containers",
                             "description": "This module deploys a Storage Account Blob Container."
@@ -54693,7 +54672,7 @@
             "storageAccount_queueServices": {
               "condition": "[not(empty(parameters('queueServices')))]",
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[format('{0}-Storage-QueueServices', uniqueString(deployment().name, parameters('location')))]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -54721,8 +54700,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "16734288001921596993"
+                      "version": "0.37.4.10188",
+                      "templateHash": "3577913007255424157"
                     },
                     "name": "Storage Account Queue Services",
                     "description": "This module deploys a Storage Account Queue Service."
@@ -55012,7 +54991,7 @@
                         "count": "[length(coalesce(parameters('queues'), createArray()))]"
                       },
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2025-04-01",
+                      "apiVersion": "2022-09-01",
                       "name": "[format('{0}-Queue-{1}', deployment().name, copyIndex())]",
                       "properties": {
                         "expressionEvaluationOptions": {
@@ -55036,8 +55015,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.39.26.7824",
-                              "templateHash": "13997648009268095904"
+                              "version": "0.37.4.10188",
+                              "templateHash": "17351146737758613781"
                             },
                             "name": "Storage Account Queues",
                             "description": "This module deploys a Storage Account Queue."
@@ -55160,9 +55139,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "managedIdentityModule",
         "virtualNetwork"
       ]
@@ -55170,7 +55149,7 @@
     "workbook": {
       "condition": "[parameters('enableMonitoring')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "workbook",
       "properties": {
         "expressionEvaluationOptions": {
@@ -55216,8 +55195,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "5984624121413164254"
+              "version": "0.37.4.10188",
+              "templateHash": "15145535415197431472"
             }
           },
           "parameters": {
@@ -55272,7 +55251,7 @@
           "resources": [
             {
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[parameters('workbookDisplayName')]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -55299,8 +55278,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "3478302565653564157"
+                      "version": "0.37.4.10188",
+                      "templateHash": "5688259766929808767"
                     },
                     "name": "workbook",
                     "description": "AVM WAF-compliant Workbook deployment using Microsoft.Insights resource type. Ensures governance, observability, tagging, and consistency with other monitoring resources."
@@ -55399,7 +55378,7 @@
     },
     "avmEventGridSystemTopic": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[take(format('avm.res.event-grid.system-topic.{0}', variables('eventGridSystemTopicName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -56640,7 +56619,7 @@
     },
     "systemAssignedIdentityRoleAssignments": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[take('module.resource-role-assignment.system-assigned', 64)]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -56658,8 +56637,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "4941871820444850127"
+              "version": "0.37.4.10188",
+              "templateHash": "12264659002679736011"
             }
           },
           "parameters": {
@@ -56678,7 +56657,7 @@
                 "count": "[length(parameters('roleAssignments'))]"
               },
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
+              "apiVersion": "2022-09-01",
               "name": "[take(format('avm.ptn.authorization.resource-role-assignment.{0}', uniqueString(parameters('roleAssignments')[copyIndex()].principalId, parameters('roleAssignments')[copyIndex()].roleDefinitionId, parameters('roleAssignments')[copyIndex()].resourceId)), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
@@ -56941,7 +56920,7 @@
     "createIndex": {
       "condition": "[equals(parameters('databaseType'), 'PostgreSQL')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[take('avm.res.resources.deployment-script.createIndex', 64)]",
       "properties": {
         "expressionEvaluationOptions": {

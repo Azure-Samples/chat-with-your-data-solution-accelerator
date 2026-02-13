@@ -12,12 +12,6 @@ on:
       - '.github/workflows/tests.yml'
   pull_request:
     branches: [main, dev, demo]
-    paths:
-      - 'code/**'
-      - 'pyproject.toml'
-      - 'package.json'
-      - 'pytest.ini'
-      - '.github/workflows/tests.yml'
     types:
       - opened
       - ready_for_review
