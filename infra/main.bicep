@@ -5,7 +5,7 @@ targetScope = 'resourceGroup'
 @maxLength(16)
 param solutionName string = 'cwyd'
 
-@maxLength(5)
+@maxLength(5) 
 @description('Optional. A unique text value for the solution. This is used to ensure resource names are unique for global resources. Defaults to a 5-character substring of the unique string generated from the subscription ID, resource group name, and solution name.')
 param solutionUniqueText string = take(uniqueString(subscription().id, resourceGroup().name, solutionName), 5)
 
