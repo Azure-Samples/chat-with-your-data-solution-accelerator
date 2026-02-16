@@ -130,6 +130,14 @@ export const Answer = ({
   }, [isActive, synthesizer]);
 
   useEffect(() => {
+    return () => {
+      if (isSpeaking) {
+        resetSpeech();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     setChevronIsExpanded(isRefAccordionOpen);
     // if (chevronIsExpanded && refContainer.current) {
     //   refContainer.current.scrollIntoView({ behavior: 'smooth' });
@@ -221,7 +229,7 @@ export const Answer = ({
   const handleSpeakPauseResume = () => {
     if (isSpeaking) {
       if (isPaused) {
-        onSpeak(index, "speak");
+        onSpeak(index, "speak", resetSpeech);
         audioDestination?.resume();
         setIsPaused(false);
         setStartTime(Date.now());
@@ -238,7 +246,7 @@ export const Answer = ({
         }
       }
     } else {
-      onSpeak(index, "speak");
+      onSpeak(index, "speak", resetSpeech);
       startSpeech();
     }
   };
@@ -302,11 +310,12 @@ export const Answer = ({
         ref={answerContainerRef}
       >
         <Stack.Item grow>
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm, supersub]}
-            children={parsedAnswer.markdownFormatText}
-            className={styles.answerText}
-          />
+          <div className={styles.answerText}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, supersub]}
+              children={parsedAnswer.markdownFormatText}
+            />
+          </div>
         </Stack.Item>
         <Stack horizontal className={styles.answerFooter} verticalAlign="start">
           <Stack.Item className={styles.answerDisclaimerContainer}>

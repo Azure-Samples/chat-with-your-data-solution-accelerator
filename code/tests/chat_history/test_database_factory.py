@@ -8,7 +8,7 @@ from backend.batch.utilities.chat_history.postgresdbservice import (
 )
 
 
-@patch("backend.batch.utilities.chat_history.database_factory.DefaultAzureCredential")
+@patch("backend.batch.utilities.chat_history.database_factory.get_azure_credential")
 @patch("backend.batch.utilities.chat_history.database_factory.EnvHelper")
 @patch(
     "backend.batch.utilities.chat_history.database_factory.CosmosConversationClient",
@@ -50,7 +50,7 @@ def test_get_conversation_client_cosmos(
     assert client == mock_cosmos_instance
 
 
-@patch("backend.batch.utilities.chat_history.database_factory.DefaultAzureCredential")
+@patch("backend.batch.utilities.chat_history.database_factory.get_azure_credential")
 @patch("backend.batch.utilities.chat_history.database_factory.EnvHelper")
 @patch(
     "backend.batch.utilities.chat_history.database_factory.PostgresConversationClient",

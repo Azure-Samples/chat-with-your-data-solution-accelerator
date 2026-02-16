@@ -2,7 +2,11 @@
 
 name: chat-with-your-data-solution-accelerator
 metadata:
-  template: chat-with-your-data-solution-accelerator@1.7.0
+   template: chat-with-your-data-solution-accelerator@1.7.0
+
+requiredVersions:
+  azd: '>= 1.18.0'
+
 hooks:
   postprovision:
     # run: ./infra/prompt-flow/create-prompt-flow.sh
@@ -52,7 +56,7 @@ services:
       prepackage:
         windows:
           shell: pwsh
-          run: poetry export -o requirements.txt; pip install -r requirements.txt
+          run: poetry export -o requirements.txt --without-hashes; pip install -r requirements.txt
         posix:
           shell: sh
-          run: poetry export -o requirements.txt; pip install -r requirements.txt
+          run: poetry export -o requirements.txt --without-hashes; pip install -r requirements.txt

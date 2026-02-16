@@ -11,6 +11,29 @@ type CitationPanelProps = {
   setIsCitationPanelOpen: (flag: boolean) => void;
 };
 
+function rewriteCitationUrl(markdownText: string) {
+  return markdownText.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/,
+    (match, title, url) => {
+      try {
+        const parsed = new URL(url);
+        const blobStorageHost = 'blob.core.windows.net';
+
+        if (parsed.hostname.includes(blobStorageHost)) {
+          // Extract the filename from the path
+          const filename = parsed.pathname.split('/').pop();
+          return `[${title}](/api/files/${filename})`;
+        } else {
+          // Return the full external URL
+          return `[${title}](${parsed.href})`;
+        }
+      } catch {
+        return match; // fallback if URL parsing fails
+      }
+    }
+  );
+}
+
 export const CitationPanel: React.FC<CitationPanelProps> = (props) => {
   const { activeCitation, setIsCitationPanelOpen } = props;
   return (
@@ -45,12 +68,19 @@ export const CitationPanel: React.FC<CitationPanelProps> = (props) => {
         Tables, images, and other special formatting not shown in this preview.
         Please follow the link to review the original document.
       </div>
-      <ReactMarkdown
-        className={`${styles.citationPanelContent} ${styles.mobileCitationPanelContent}`}
-        children={activeCitation[0]}
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw]}
-      />
+      <div className="citation-panel">
+        <ReactMarkdown
+          children={rewriteCitationUrl(activeCitation[0])}
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw]}
+          components={{
+            a: ({ node, ...props }) => (
+              <a {...props} target="_blank" rel="noopener noreferrer" />
+            ),
+          }}
+        />
+      </div>
+
     </Stack.Item>
   );
 };
