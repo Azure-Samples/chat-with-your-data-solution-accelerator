@@ -2,7 +2,7 @@ import logging
 from typing import Union
 from langchain_community.vectorstores import AzureSearch
 from azure.core.credentials import AzureKeyCredential
-from azure.identity import DefaultAzureCredential
+from .azure_credential_utils import get_azure_credential
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.indexes.models import (
@@ -49,10 +49,10 @@ class AzureSearchHelper:
         if self.env_helper.is_auth_type_keys():
             return AzureKeyCredential(self.env_helper.AZURE_SEARCH_KEY)
         else:
-            return DefaultAzureCredential()
+            return get_azure_credential(self.env_helper.MANAGED_IDENTITY_CLIENT_ID)
 
     def _create_search_client(
-        self, search_credential: Union[AzureKeyCredential, DefaultAzureCredential]
+        self, search_credential: Union[AzureKeyCredential, get_azure_credential]
     ) -> SearchClient:
         return SearchClient(
             endpoint=self.env_helper.AZURE_SEARCH_SERVICE,
@@ -61,7 +61,7 @@ class AzureSearchHelper:
         )
 
     def _create_search_index_client(
-        self, search_credential: Union[AzureKeyCredential, DefaultAzureCredential]
+        self, search_credential: Union[AzureKeyCredential, get_azure_credential]
     ):
         return SearchIndexClient(
             endpoint=self.env_helper.AZURE_SEARCH_SERVICE, credential=search_credential
@@ -285,7 +285,7 @@ class AzureSearchHelper:
         ]
 
         if self.env_helper.AZURE_AUTH_TYPE == "rbac":
-            credential = DefaultAzureCredential()
+            credential = get_azure_credential(self.env_helper.MANAGED_IDENTITY_CLIENT_ID)
             return AzureSearch(
                 azure_search_endpoint=self.env_helper.AZURE_SEARCH_SERVICE,
                 azure_search_key=None,  # Remove API key

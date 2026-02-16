@@ -1,11 +1,12 @@
 import { Attachment, CardFactory } from "botbuilder";
 import { Citation, CardType } from "../model";
+import config from "../config";
 
 export function actionBuilder(citation: Citation, docId: number): any {
 
-    const urlParts = citation.url.split("]");
-    let url = urlParts[urlParts.length - 1].replaceAll("(", "").replaceAll(")", "");
     let title = citation.title.replaceAll("/documents/", "");
+    const filename = title;
+    let fileApiUrl = `${config.getFileEndpoint}/${filename}`;
     let content = citation.content.replaceAll(citation.title, "").replaceAll("url", "");
     content = content.replaceAll(/(<([^>]+)>)/ig, "\n").replaceAll("<>", "");
     let citationCardAction = {
@@ -37,7 +38,7 @@ export function actionBuilder(citation: Citation, docId: number): any {
                 {
                     type: CardType.OpenUrl,
                     title: "Go to the source",
-                    url: decodeURI(url),
+                    url: decodeURI(fileApiUrl),
                 }
             ]
         }

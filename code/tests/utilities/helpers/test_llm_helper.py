@@ -20,6 +20,9 @@ PROMPT_FLOW_ENDPOINT_NAME = "mock-endpoint-name"
 PROMPT_FLOW_DEPLOYMENT_NAME = "mock-deployment-name"
 
 
+AZURE_SEARCH_DIMENSIONS = "1536"
+
+
 @pytest.fixture(autouse=True)
 def env_helper_mock():
     with patch("backend.batch.utilities.helpers.llm_helper.EnvHelper") as mock:
@@ -36,6 +39,7 @@ def env_helper_mock():
         env_helper.AZURE_ML_WORKSPACE_NAME = AZURE_ML_WORKSPACE_NAME
         env_helper.PROMPT_FLOW_ENDPOINT_NAME = PROMPT_FLOW_ENDPOINT_NAME
         env_helper.PROMPT_FLOW_DEPLOYMENT_NAME = PROMPT_FLOW_DEPLOYMENT_NAME
+        env_helper.AZURE_SEARCH_DIMENSIONS = AZURE_SEARCH_DIMENSIONS
 
         yield env_helper
 
@@ -139,7 +143,7 @@ def test_generate_embeddings_returns_embeddings(azure_openai_mock):
     assert actual_embeddings == expected_embeddings
 
 
-@patch("backend.batch.utilities.helpers.llm_helper.DefaultAzureCredential")
+@patch("backend.batch.utilities.helpers.llm_helper.get_azure_credential")
 @patch("backend.batch.utilities.helpers.llm_helper.MLClient")
 def test_get_ml_client_initializes_with_expected_parameters(
     mock_ml_client, mock_default_credential, env_helper_mock
