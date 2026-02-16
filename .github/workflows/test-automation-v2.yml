@@ -1,0 +1,229 @@
+name: Test Automation DocGen-v2
+
+on:
+    workflow_call:
+        inputs:
+          TEST_URL:
+            required: true
+            type: string
+            description: "Web URL for DocGen"
+          ADMIN_APPURL:
+            required: false
+            type: string
+            default: ""
+            description: "Admin Web App URL"
+          TEST_SUITE:
+            required: false
+            type: string
+            default: "GoldenPath-Testing"
+            description: "Test suite to run: 'Smoke-Testing', 'GoldenPath-Testing' "
+        outputs:
+          TEST_SUCCESS:
+            description: "Whether tests passed"
+            value: ${{ jobs.test.outputs.TEST_SUCCESS }}
+          TEST_REPORT_URL:
+            description: "URL to test report artifact"
+            value: ${{ jobs.test.outputs.TEST_REPORT_URL }}
+
+env:
+    web_url: ${{ inputs.TEST_URL }}
+    admin_url: ${{ inputs.ADMIN_APPURL }}
+    accelerator_name: "CWYD"
+    test_suite: ${{ inputs.TEST_SUITE }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    outputs:
+      TEST_SUCCESS: ${{ steps.test1.outcome == 'success' || steps.test2.outcome == 'success' || steps.test3.outcome == 'success' }}
+      TEST_REPORT_URL: ${{ steps.upload_report.outputs.artifact-url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Login to Azure
+        run: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tests/e2e-test/requirements.txt
+
+      - name: Ensure browsers are installed
+        run: python -m playwright install --with-deps chromium
+
+      - name: Validate URL
+        run: |
+          if [ -z "${{ env.web_url }}" ]; then
+            echo "ERROR: No Web URL provided for testing"
+            exit 1
+          fi
+          if [ -z "${{ env.admin_url }}" ]; then
+            echo "ERROR: No Admin URL provided for testing"
+            exit 1
+          fi
+          echo "Testing Web URL: ${{ env.web_url }}"
+          echo "Testing Admin URL: ${{ env.admin_url }}"
+          echo "Test Suite: ${{ env.test_suite }}"
+
+
+      - name: Wait for Web Application to be Ready
+        run: |
+          echo "Waiting for web application to be ready at ${{ env.web_url }} "
+          max_attempts=10
+          attempt=1
+
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt: Checking if web application is ready..."
+            if curl -f -s "${{ env.web_url }}" > /dev/null; then
+              echo "Web application is ready!"
+              break
+
+            fi
+
+            if [ $attempt -eq $max_attempts ]; then
+              echo "Web application is not ready after $max_attempts attempts"
+              exit 1
+            fi
+
+            echo "Web application not ready, waiting 30 seconds..."
+            sleep 30
+            attempt=$((attempt + 1))
+          done
+
+      - name: Wait for Admin Application to be Ready
+        run: |
+          echo "Waiting for admin application to be ready at ${{ env.admin_url }} "
+          max_attempts=10
+          attempt=1
+
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt: Checking if admin application is ready..."
+            if curl -f -s "${{ env.admin_url }}" > /dev/null; then
+              echo "Admin application is ready!"
+              break
+
+            fi
+
+            if [ $attempt -eq $max_attempts ]; then
+              echo "Admin application is not ready after $max_attempts attempts"
+              exit 1
+            fi
+
+            echo "Admin application not ready, waiting 30 seconds..."
+            sleep 30
+            attempt=$((attempt + 1))
+          done
+
+      - name: Run tests(1)
+        id: test1
+        run: |
+          if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
+            xvfb-run pytest -m goldenpath --html=report/report.html --self-contained-html
+          else
+            xvfb-run pytest --html=report/report.html --self-contained-html
+          fi
+        working-directory: tests/e2e-test
+        continue-on-error: true
+
+      - name: Sleep for 30 seconds
+        if: ${{ steps.test1.outcome == 'failure' }}
+        run: sleep 30s
+        shell: bash
+
+      - name: Run tests(2)
+        id: test2
+        if: ${{ steps.test1.outcome == 'failure' }}
+        run: |
+          if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
+            xvfb-run pytest -m goldenpath --html=report/report.html --self-contained-html
+          else
+            xvfb-run pytest --html=report/report.html --self-contained-html
+          fi
+        working-directory: tests/e2e-test
+        continue-on-error: true
+
+      - name: Sleep for 60 seconds
+        if: ${{ steps.test2.outcome == 'failure' }}
+        run: sleep 60s
+        shell: bash
+
+      - name: Run tests(3)
+        id: test3
+        if: ${{ steps.test2.outcome == 'failure' }}
+        run: |
+          if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
+            xvfb-run pytest -m goldenpath --html=report/report.html --self-contained-html
+          else
+            xvfb-run pytest --html=report/report.html --self-contained-html
+          fi
+        working-directory: tests/e2e-test
+
+      - name: Upload test report
+        id: upload_report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: test-report
+          path: |
+            tests/e2e-test/report/*
+            tests/e2e-test/screenshots/*
+
+      - name: Generate E2E Test Summary
+        if: always()
+        run: |
+          # Determine test suite type for title
+          if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
+            echo "## 🧪 E2E Test Job Summary : Golden Path Testing" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## 🧪 E2E Test Job Summary : Smoke Testing" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          # Determine overall test result
+          OVERALL_SUCCESS="${{ steps.test1.outcome == 'success' || steps.test2.outcome == 'success' || steps.test3.outcome == 'success' }}"
+          if [[ "$OVERALL_SUCCESS" == "true" ]]; then
+            echo "| **Job Status** | ✅ Success |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| **Job Status** | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "| **Target Web URL** | [${{ env.web_url }}](${{ env.web_url }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Target Admin URL** | [${{ env.admin_url }}](${{ env.admin_url }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Test Suite** | \`${{ env.test_suite }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Test Report** | [Download Artifact](${{ steps.upload_report.outputs.artifact-url }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### 📋 Test Execution Details" >> $GITHUB_STEP_SUMMARY
+          echo "| Attempt | Status | Notes |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Test Run 1** | ${{ steps.test1.outcome == 'success' && '✅ Passed' || '❌ Failed' }} | Initial test execution |" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ steps.test1.outcome }}" == "failure" ]]; then
+            echo "| **Test Run 2** | ${{ steps.test2.outcome == 'success' && '✅ Passed' || steps.test2.outcome == 'failure' && '❌ Failed' || '⏸️ Skipped' }} | Retry after 30s delay |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [[ "${{ steps.test2.outcome }}" == "failure" ]]; then
+            echo "| **Test Run 3** | ${{ steps.test3.outcome == 'success' && '✅ Passed' || steps.test3.outcome == 'failure' && '❌ Failed' || '⏸️ Skipped' }} | Final retry after 60s delay |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "$OVERALL_SUCCESS" == "true" ]]; then
+            echo "### ✅ Test Results" >> $GITHUB_STEP_SUMMARY
+            echo "- End-to-end tests completed successfully" >> $GITHUB_STEP_SUMMARY
+            echo "- Application is functioning as expected" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Test Results" >> $GITHUB_STEP_SUMMARY
+            echo "- All test attempts failed" >> $GITHUB_STEP_SUMMARY
+            echo "- Check the e2e-test/test job for detailed error information" >> $GITHUB_STEP_SUMMARY
+          fi

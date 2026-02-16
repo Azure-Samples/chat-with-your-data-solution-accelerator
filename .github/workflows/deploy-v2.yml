@@ -1,0 +1,365 @@
+name: Deploy-Test-Cleanup (v2)
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - demo
+    paths:
+      - 'infra/**'
+      - 'scripts/**'
+      - 'azure.yaml'
+      - 'pyproject.toml'
+      - 'Makefile'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/deploy-v2.yml'
+  workflow_dispatch:
+    inputs:
+      runner_os:
+        description: 'Deployment Environment'
+        required: false
+        type: choice
+        options:
+          - 'codespace'
+          - 'Local'
+        default: 'codespace'
+
+      resource_group_name:
+        description: 'Existing Resource Group Name'
+        required: true
+        type: string
+
+      DATABASE_TYPE:
+        description: 'Database Type'
+        required: false
+        type: choice
+        options:
+          - 'PostgreSQL'
+          - 'CosmosDB'
+        default: 'PostgreSQL'
+
+      waf_enabled:
+        description: 'Enable WAF'
+        required: false
+        default: false
+        type: boolean
+      EXP:
+        description: 'Enable EXP'
+        required: false
+        default: false
+        type: boolean
+
+      cleanup_resources:
+        description: 'Cleanup Deployed Resources'
+        required: false
+        default: false
+        type: boolean
+      run_e2e_tests:
+        description: 'Run End-to-End Tests'
+        required: false
+        default: 'GoldenPath-Testing'
+        type: choice
+        options:
+          - 'GoldenPath-Testing'
+          - 'Smoke-Testing'
+          - 'None'
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
+        description: 'Log Analytics Workspace ID (Optional)'
+        required: false
+        default: ''
+        type: string
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+        description: 'Azure Search Integrated Vectorization'
+        required: false
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+        default: 'false'
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH:
+        description: 'Azure Search Semantic Search'
+        required: false
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+        default: 'false'
+
+      existing_webapp_url:
+        description: 'Existing Front-End Web URL (Skips Deployment)'
+        required: false
+        default: ''
+        type: string
+
+      existing_admin_app_url:
+        description: 'Existing Admin Web URL (Skips Deployment)'
+        required: false
+        default: ''
+        type: string
+
+  schedule:
+    - cron: '0 9,21 * * *'  # Runs at 9:00 AM and 9:00 PM GMT
+
+# concurrency:
+#   group: ${{ github.event_name == 'workflow_dispatch' && format('manual-{0}', github.run_id) || 'deploy-auto-triggered' }}
+#   cancel-in-progress: false
+
+jobs:
+  validate-inputs:
+    name: Validate Input Parameters
+    runs-on: ubuntu-latest
+    outputs:
+      validation_passed: ${{ steps.validate.outputs.passed }}
+      runner_os: ${{ steps.validate.outputs.runner_os }}
+      resource_group_name: ${{ steps.validate.outputs.resource_group_name }}
+      database_type: ${{ steps.validate.outputs.database_type }}
+      waf_enabled: ${{ steps.validate.outputs.waf_enabled }}
+      exp: ${{ steps.validate.outputs.exp }}
+      cleanup_resources: ${{ steps.validate.outputs.cleanup_resources }}
+      run_e2e_tests: ${{ steps.validate.outputs.run_e2e_tests }}
+      azure_env_log_analytics_workspace_id: ${{ steps.validate.outputs.azure_env_log_analytics_workspace_id }}
+      azure_search_use_integrated_vectorization: ${{ steps.validate.outputs.azure_search_use_integrated_vectorization }}
+      azure_search_use_semantic_search: ${{ steps.validate.outputs.azure_search_use_semantic_search }}
+      existing_webapp_url: ${{ steps.validate.outputs.existing_webapp_url }}
+      existing_admin_app_url: ${{ steps.validate.outputs.existing_admin_app_url }}
+    steps:
+      - name: Validate Workflow Input Parameters
+        id: validate
+        shell: bash
+        env:
+          INPUT_RUNNER_OS: ${{ github.event.inputs.runner_os }}
+          INPUT_RESOURCE_GROUP_NAME: ${{ github.event.inputs.resource_group_name }}
+          INPUT_DATABASE_TYPE: ${{ github.event.inputs.DATABASE_TYPE }}
+          INPUT_WAF_ENABLED: ${{ github.event.inputs.waf_enabled }}
+          INPUT_EXP: ${{ github.event.inputs.EXP }}
+          INPUT_CLEANUP_RESOURCES: ${{ github.event.inputs.cleanup_resources }}
+          INPUT_RUN_E2E_TESTS: ${{ github.event.inputs.run_e2e_tests }}
+          INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ github.event.inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
+          INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ github.event.inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+          INPUT_EXISTING_WEBAPP_URL: ${{ github.event.inputs.existing_webapp_url }}
+          INPUT_EXISTING_ADMIN_APP_URL: ${{ github.event.inputs.existing_admin_app_url }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          echo "🔍 Validating workflow input parameters..."
+          VALIDATION_FAILED=false
+          VALIDATION_ERRORS=""
+
+          # Validate runner_os (specific allowed values) and derive actual runner
+          RUNNER_OS_INPUT="${INPUT_RUNNER_OS:-codespace}"
+          if [[ "$RUNNER_OS_INPUT" != "codespace" && "$RUNNER_OS_INPUT" != "Local" ]]; then
+            echo "❌ ERROR: runner_os must be one of: codespace, Local, got: '$RUNNER_OS_INPUT'"
+            VALIDATION_ERRORS="${VALIDATION_ERRORS}| runner_os | \`$RUNNER_OS_INPUT\` | Must be one of: codespace, Local |\n"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ runner_os: '$RUNNER_OS_INPUT' is valid"
+          fi
+
+          # Derive actual runner from runner_os input
+          if [[ "$RUNNER_OS_INPUT" == "codespace" ]]; then
+            RUNNER_OS="ubuntu-latest"
+          else
+            RUNNER_OS="windows-latest"
+          fi
+          echo "✅ runner_os derived as: '$RUNNER_OS'"
+
+          # Validate resource_group_name (Azure naming convention)
+          RESOURCE_GROUP="${INPUT_RESOURCE_GROUP_NAME:-rg-cwyd-ci}"
+          if [[ -n "$RESOURCE_GROUP" ]]; then
+            if [[ ! "$RESOURCE_GROUP" =~ ^[a-zA-Z0-9._\(\)-]+$ ]] || [[ "$RESOURCE_GROUP" =~ \.$ ]]; then
+              echo "❌ ERROR: resource_group_name '$RESOURCE_GROUP' is invalid. Must contain only alphanumerics, periods, underscores, hyphens, and parentheses. Cannot end with period."
+              VALIDATION_ERRORS="${VALIDATION_ERRORS}| resource_group_name | \`$RESOURCE_GROUP\` | Must contain only alphanumerics, periods, underscores, hyphens, and parentheses. Cannot end with period. |\n"
+              VALIDATION_FAILED=true
+            elif [[ ${#RESOURCE_GROUP} -gt 90 ]]; then
+              echo "❌ ERROR: resource_group_name '$RESOURCE_GROUP' exceeds 90 characters (length: ${#RESOURCE_GROUP})"
+              VALIDATION_ERRORS="${VALIDATION_ERRORS}| resource_group_name | \`$RESOURCE_GROUP\` | Exceeds 90 characters (length: ${#RESOURCE_GROUP}) |\n"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ resource_group_name: '$RESOURCE_GROUP' is valid"
+            fi
+          else
+            echo "✅ resource_group_name: Not provided (will use default 'rg-cwyd-ci')"
+          fi
+
+          # Validate DATABASE_TYPE (specific allowed values)
+          DATABASE_TYPE="${INPUT_DATABASE_TYPE:-PostgreSQL}"
+          if [[ "$DATABASE_TYPE" != "PostgreSQL" && "$DATABASE_TYPE" != "CosmosDB" ]]; then
+            echo "❌ ERROR: DATABASE_TYPE must be one of: PostgreSQL, CosmosDB, got: '$DATABASE_TYPE'"
+            VALIDATION_ERRORS="${VALIDATION_ERRORS}| DATABASE_TYPE | \`$DATABASE_TYPE\` | Must be one of: PostgreSQL, CosmosDB |\n"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ DATABASE_TYPE: '$DATABASE_TYPE' is valid"
+          fi
+
+          # Validate waf_enabled (boolean)
+          WAF_ENABLED="${INPUT_WAF_ENABLED:-false}"
+          if [[ "$WAF_ENABLED" != "true" && "$WAF_ENABLED" != "false" ]]; then
+            echo "❌ ERROR: waf_enabled must be 'true' or 'false', got: '$WAF_ENABLED'"
+            VALIDATION_ERRORS="${VALIDATION_ERRORS}| waf_enabled | \`$WAF_ENABLED\` | Must be 'true' or 'false' |\n"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ waf_enabled: '$WAF_ENABLED' is valid"
+          fi
+
+          # Validate EXP (boolean)
+          EXP_ENABLED="${INPUT_EXP:-false}"
+          if [[ "$EXP_ENABLED" != "true" && "$EXP_ENABLED" != "false" ]]; then
+            echo "❌ ERROR: EXP must be 'true' or 'false', got: '$EXP_ENABLED'"
+            VALIDATION_ERRORS="${VALIDATION_ERRORS}| EXP | \`$EXP_ENABLED\` | Must be 'true' or 'false' |\n"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ EXP: '$EXP_ENABLED' is valid"
+          fi
+
+          # Validate cleanup_resources (boolean)
+          CLEANUP_RESOURCES="${INPUT_CLEANUP_RESOURCES:-false}"
+          if [[ "$CLEANUP_RESOURCES" != "true" && "$CLEANUP_RESOURCES" != "false" ]]; then
+            echo "❌ ERROR: cleanup_resources must be 'true' or 'false', got: '$CLEANUP_RESOURCES'"
+            VALIDATION_ERRORS="${VALIDATION_ERRORS}| cleanup_resources | \`$CLEANUP_RESOURCES\` | Must be 'true' or 'false' |\n"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ cleanup_resources: '$CLEANUP_RESOURCES' is valid"
+          fi
+
+          # Validate run_e2e_tests (specific allowed values)
+          TEST_OPTION="${INPUT_RUN_E2E_TESTS:-GoldenPath-Testing}"
+          if [[ "$TEST_OPTION" != "GoldenPath-Testing" && "$TEST_OPTION" != "Smoke-Testing" && "$TEST_OPTION" != "None" ]]; then
+            echo "❌ ERROR: run_e2e_tests must be one of: GoldenPath-Testing, Smoke-Testing, None, got: '$TEST_OPTION'"
+            VALIDATION_ERRORS="${VALIDATION_ERRORS}| run_e2e_tests | \`$TEST_OPTION\` | Must be one of: GoldenPath-Testing, Smoke-Testing, None |\n"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ run_e2e_tests: '$TEST_OPTION' is valid"
+          fi
+
+          # Validate AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID (optional, Azure Resource ID format)
+          if [[ -n "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]]; then
+            if [[ ! "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/[Mm]icrosoft\.[Oo]perational[Ii]nsights/[Ww]orkspaces/[^/]+$ ]]; then
+              echo "❌ ERROR: AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID is invalid. Must be a valid Azure Resource ID format:"
+              echo "   /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.OperationalInsights/workspaces/{workspaceName}"
+              echo "   Got: '$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID'"
+              VALIDATION_ERRORS="${VALIDATION_ERRORS}| AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID | (invalid value) | Must be a valid Azure Resource ID format |\n"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: Valid Resource ID format"
+            fi
+          else
+            echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: Not provided (optional)"
+          fi
+
+          # Validate AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION (boolean string)
+          INTEGRATED_VECTORIZATION="${INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:-false}"
+          if [[ "$INTEGRATED_VECTORIZATION" != "true" && "$INTEGRATED_VECTORIZATION" != "false" ]]; then
+            echo "❌ ERROR: AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION must be 'true' or 'false', got: '$INTEGRATED_VECTORIZATION'"
+            VALIDATION_ERRORS="${VALIDATION_ERRORS}| AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION | \`$INTEGRATED_VECTORIZATION\` | Must be 'true' or 'false' |\n"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: '$INTEGRATED_VECTORIZATION' is valid"
+          fi
+
+          # Validate AZURE_SEARCH_USE_SEMANTIC_SEARCH (boolean string)
+          SEMANTIC_SEARCH="${INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH:-false}"
+          if [[ "$SEMANTIC_SEARCH" != "true" && "$SEMANTIC_SEARCH" != "false" ]]; then
+            echo "❌ ERROR: AZURE_SEARCH_USE_SEMANTIC_SEARCH must be 'true' or 'false', got: '$SEMANTIC_SEARCH'"
+            VALIDATION_ERRORS="${VALIDATION_ERRORS}| AZURE_SEARCH_USE_SEMANTIC_SEARCH | \`$SEMANTIC_SEARCH\` | Must be 'true' or 'false' |\n"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ AZURE_SEARCH_USE_SEMANTIC_SEARCH: '$SEMANTIC_SEARCH' is valid"
+          fi
+
+          # Validate existing_webapp_url (optional, must start with https)
+          if [[ -n "$INPUT_EXISTING_WEBAPP_URL" ]]; then
+            if [[ ! "$INPUT_EXISTING_WEBAPP_URL" =~ ^https:// ]]; then
+              echo "❌ ERROR: existing_webapp_url must start with 'https://', got: '$INPUT_EXISTING_WEBAPP_URL'"
+              VALIDATION_ERRORS="${VALIDATION_ERRORS}| existing_webapp_url | \`$INPUT_EXISTING_WEBAPP_URL\` | Must start with 'https://' |\n"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ existing_webapp_url: '$INPUT_EXISTING_WEBAPP_URL' is valid"
+            fi
+          else
+            echo "✅ existing_webapp_url: Not provided (will perform deployment)"
+          fi
+
+          # Validate existing_admin_app_url (optional, must start with https)
+          if [[ -n "$INPUT_EXISTING_ADMIN_APP_URL" ]]; then
+            if [[ ! "$INPUT_EXISTING_ADMIN_APP_URL" =~ ^https:// ]]; then
+              echo "❌ ERROR: existing_admin_app_url must start with 'https://', got: '$INPUT_EXISTING_ADMIN_APP_URL'"
+              VALIDATION_ERRORS="${VALIDATION_ERRORS}| existing_admin_app_url | \`$INPUT_EXISTING_ADMIN_APP_URL\` | Must start with 'https://' |\n"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ existing_admin_app_url: '$INPUT_EXISTING_ADMIN_APP_URL' is valid"
+            fi
+          else
+            echo "✅ existing_admin_app_url: Not provided (will perform deployment)"
+          fi
+
+          # Generate GitHub Summary
+          echo "## 📋 Input Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "$VALIDATION_FAILED" == "true" ]]; then
+            echo "### ❌ Validation Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The following input parameters failed validation:" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Parameter | Value | Error |" >> $GITHUB_STEP_SUMMARY
+            echo "|-----------|-------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo -e "$VALIDATION_ERRORS" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please correct the errors above and re-run the workflow." >> $GITHUB_STEP_SUMMARY
+            echo ""
+            echo "❌ Parameter validation failed. Please correct the errors above and try again."
+            exit 1
+          else
+            echo "✅ All workflow input parameters have been validated successfully." >> $GITHUB_STEP_SUMMARY
+            echo ""
+            echo "✅ All input parameters validated successfully!"
+          fi
+
+          # Display existing URLs in summary if provided
+          if [[ -n "$INPUT_EXISTING_WEBAPP_URL" || -n "$INPUT_EXISTING_ADMIN_APP_URL" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 🔗 Existing URLs Provided (Deployment Skipped)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Resource | URL |" >> $GITHUB_STEP_SUMMARY
+            echo "|----------|-----|" >> $GITHUB_STEP_SUMMARY
+            if [[ -n "$INPUT_EXISTING_WEBAPP_URL" ]]; then
+              echo "| Front-End Web App | $INPUT_EXISTING_WEBAPP_URL |" >> $GITHUB_STEP_SUMMARY
+            fi
+            if [[ -n "$INPUT_EXISTING_ADMIN_APP_URL" ]]; then
+              echo "| Admin Web App | $INPUT_EXISTING_ADMIN_APP_URL |" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Output validated values
+          echo "passed=true" >> $GITHUB_OUTPUT
+          echo "runner_os=$RUNNER_OS" >> $GITHUB_OUTPUT
+          echo "resource_group_name=$RESOURCE_GROUP" >> $GITHUB_OUTPUT
+          echo "database_type=$DATABASE_TYPE" >> $GITHUB_OUTPUT
+          echo "waf_enabled=$WAF_ENABLED" >> $GITHUB_OUTPUT
+          echo "exp=$EXP_ENABLED" >> $GITHUB_OUTPUT
+          echo "cleanup_resources=$CLEANUP_RESOURCES" >> $GITHUB_OUTPUT
+          echo "run_e2e_tests=$TEST_OPTION" >> $GITHUB_OUTPUT
+          echo "azure_env_log_analytics_workspace_id=$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" >> $GITHUB_OUTPUT
+          echo "azure_search_use_integrated_vectorization=$INTEGRATED_VECTORIZATION" >> $GITHUB_OUTPUT
+          echo "azure_search_use_semantic_search=$SEMANTIC_SEARCH" >> $GITHUB_OUTPUT
+          echo "existing_webapp_url=$INPUT_EXISTING_WEBAPP_URL" >> $GITHUB_OUTPUT
+          echo "existing_admin_app_url=$INPUT_EXISTING_ADMIN_APP_URL" >> $GITHUB_OUTPUT
+
+  Run:
+    needs: validate-inputs
+    uses: ./.github/workflows/deploy-orchestrator.yml
+    with:
+      runner_os: ${{ needs.validate-inputs.outputs.runner_os || 'ubuntu-latest' }}
+      resource_group_name: ${{ github.event_name == 'workflow_dispatch' && needs.validate-inputs.outputs.resource_group_name || 'rg-cwyd-ci' }}
+      waf_enabled: ${{ needs.validate-inputs.outputs.waf_enabled == 'true' }}
+      EXP: ${{ needs.validate-inputs.outputs.exp == 'true' }}
+      cleanup_resources: ${{ github.event_name != 'workflow_dispatch' || needs.validate-inputs.outputs.cleanup_resources == 'true' }}
+      run_e2e_tests: ${{ needs.validate-inputs.outputs.run_e2e_tests || 'GoldenPath-Testing' }}
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ needs.validate-inputs.outputs.azure_env_log_analytics_workspace_id || '' }}
+      existing_webapp_url: ${{ needs.validate-inputs.outputs.existing_webapp_url || '' }}
+      existing_admin_app_url: ${{ needs.validate-inputs.outputs.existing_admin_app_url || '' }}
+      trigger_type: ${{ github.event_name }}
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ needs.validate-inputs.outputs.azure_search_use_integrated_vectorization || 'false' }}
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ needs.validate-inputs.outputs.azure_search_use_semantic_search || 'false' }}
+      DATABASE_TYPE: ${{ needs.validate-inputs.outputs.database_type || 'PostgreSQL' }}
+    secrets: inherit

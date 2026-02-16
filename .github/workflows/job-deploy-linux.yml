@@ -1,0 +1,386 @@
+name: Deploy Steps - Linux
+
+on:
+  workflow_call:
+    inputs:
+      ENV_NAME:
+        required: true
+        type: string
+      AZURE_ENV_OPENAI_LOCATION:
+        required: true
+        type: string
+      AZURE_LOCATION:
+        required: true
+        type: string
+      RESOURCE_GROUP_NAME:
+        required: true
+        type: string
+      IMAGE_TAG:
+        required: true
+        type: string
+      EXP:
+        required: true
+        type: string
+      WAF_ENABLED:
+        required: false
+        type: string
+        default: 'false'
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
+        required: false
+        type: string
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+        required: false
+        type: string
+        default: 'false'
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH:
+        required: false
+        type: string
+        default: 'false'
+      DATABASE_TYPE:
+        required: false
+        type: string
+        default: 'PostgreSQL'
+    outputs:
+      WEB_APPURL:
+        description: "Container Web App URL"
+        value: ${{ jobs.deploy-linux.outputs.WEB_APPURL }}
+      ADMIN_APPURL:
+        description: "Admin Web App URL"
+        value: ${{ jobs.deploy-linux.outputs.ADMIN_APPURL }}
+      RESOURCE_TOKEN:
+        description: "Resource Token"
+        value: ${{ jobs.deploy-linux.outputs.RESOURCE_TOKEN }}
+      AZURE_POSTGRESQL_HOST_NAME:
+        description: "Azure PostgreSQL Host Name"
+        value: ${{ jobs.deploy-linux.outputs.AZURE_POSTGRESQL_HOST_NAME }}
+      AZURE_SEARCH_SERVICE:
+        description: "Azure Search Service"
+        value: ${{ jobs.deploy-linux.outputs.AZURE_SEARCH_SERVICE }}
+      AZURE_BLOB_ACCOUNT_NAME:
+        description: "Azure Blob Account Name"
+        value: ${{ jobs.deploy-linux.outputs.AZURE_BLOB_ACCOUNT_NAME }}
+      AZURE_SEARCH_INDEX:
+        description: "Azure Search Index"
+        value: ${{ jobs.deploy-linux.outputs.AZURE_SEARCH_INDEX }}
+
+jobs:
+  deploy-linux:
+    runs-on: ubuntu-latest
+    env:
+      AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
+    outputs:
+      WEB_APPURL: ${{ steps.get_output_linux.outputs.FRONTEND_WEBSITE_NAME }}
+      ADMIN_APPURL: ${{ steps.get_output_linux.outputs.ADMIN_WEBSITE_NAME }}
+      RESOURCE_TOKEN: ${{ steps.get_output_linux.outputs.RESOURCE_TOKEN }}
+      AZURE_POSTGRESQL_HOST_NAME: ${{ steps.get_output_linux.outputs.AZURE_POSTGRESQL_HOST_NAME }}
+      AZURE_SEARCH_SERVICE: ${{ steps.get_output_linux.outputs.AZURE_SEARCH_SERVICE }}
+      AZURE_BLOB_ACCOUNT_NAME: ${{ steps.get_output_linux.outputs.AZURE_BLOB_ACCOUNT_NAME }}
+      AZURE_SEARCH_INDEX: ${{ steps.get_output_linux.outputs.AZURE_SEARCH_INDEX }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate Workflow Input Parameters
+        shell: bash
+        env:
+          INPUT_ENV_NAME: ${{ inputs.ENV_NAME }}
+          INPUT_AZURE_ENV_OPENAI_LOCATION: ${{ inputs.AZURE_ENV_OPENAI_LOCATION }}
+          INPUT_AZURE_LOCATION: ${{ inputs.AZURE_LOCATION }}
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+          INPUT_IMAGE_TAG: ${{ inputs.IMAGE_TAG }}
+          INPUT_EXP: ${{ inputs.EXP }}
+          INPUT_WAF_ENABLED: ${{ inputs.WAF_ENABLED }}
+          INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
+          INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+          INPUT_DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
+        run: |
+          echo "🔍 Validating workflow input parameters..."
+          VALIDATION_FAILED=false
+
+          # Validate ENV_NAME (required, alphanumeric)
+          if [[ -z "$INPUT_ENV_NAME" ]]; then
+            echo "❌ ERROR: ENV_NAME is required but not provided"
+            VALIDATION_FAILED=true
+          elif [[ ! "$INPUT_ENV_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            echo "❌ ERROR: ENV_NAME '$INPUT_ENV_NAME' is invalid. Must contain only alphanumerics, underscores, and hyphens"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ ENV_NAME: '$INPUT_ENV_NAME' is valid"
+          fi
+
+          # Validate AZURE_ENV_OPENAI_LOCATION (required, Azure region format)
+          if [[ -z "$INPUT_AZURE_ENV_OPENAI_LOCATION" ]]; then
+            echo "❌ ERROR: AZURE_ENV_OPENAI_LOCATION is required but not provided"
+            VALIDATION_FAILED=true
+          elif [[ ! "$INPUT_AZURE_ENV_OPENAI_LOCATION" =~ ^[a-z0-9]+$ ]]; then
+            echo "❌ ERROR: AZURE_ENV_OPENAI_LOCATION '$INPUT_AZURE_ENV_OPENAI_LOCATION' is invalid. Must contain only lowercase letters and numbers"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ AZURE_ENV_OPENAI_LOCATION: '$INPUT_AZURE_ENV_OPENAI_LOCATION' is valid"
+          fi
+
+          # Validate AZURE_LOCATION (required, Azure region format)
+          if [[ -z "$INPUT_AZURE_LOCATION" ]]; then
+            echo "❌ ERROR: AZURE_LOCATION is required but not provided"
+            VALIDATION_FAILED=true
+          elif [[ ! "$INPUT_AZURE_LOCATION" =~ ^[a-z0-9]+$ ]]; then
+            echo "❌ ERROR: AZURE_LOCATION '$INPUT_AZURE_LOCATION' is invalid. Must contain only lowercase letters and numbers"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ AZURE_LOCATION: '$INPUT_AZURE_LOCATION' is valid"
+          fi
+
+          # Validate RESOURCE_GROUP_NAME (required, Azure naming convention)
+          if [[ -z "$INPUT_RESOURCE_GROUP_NAME" ]]; then
+            echo "❌ ERROR: RESOURCE_GROUP_NAME is required but not provided"
+            VALIDATION_FAILED=true
+          elif [[ ! "$INPUT_RESOURCE_GROUP_NAME" =~ ^[a-zA-Z0-9._\(\)-]+$ ]] || [[ "$INPUT_RESOURCE_GROUP_NAME" =~ \.$ ]]; then
+            echo "❌ ERROR: RESOURCE_GROUP_NAME '$INPUT_RESOURCE_GROUP_NAME' is invalid. Must contain only alphanumerics, periods, underscores, hyphens, and parentheses. Cannot end with period."
+            VALIDATION_FAILED=true
+          elif [[ ${#INPUT_RESOURCE_GROUP_NAME} -gt 90 ]]; then
+            echo "❌ ERROR: RESOURCE_GROUP_NAME '$INPUT_RESOURCE_GROUP_NAME' exceeds 90 characters"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ RESOURCE_GROUP_NAME: '$INPUT_RESOURCE_GROUP_NAME' is valid"
+          fi
+
+          # Validate IMAGE_TAG (required, Docker tag pattern)
+          if [[ -z "$INPUT_IMAGE_TAG" ]]; then
+            echo "❌ ERROR: IMAGE_TAG is required but not provided"
+            VALIDATION_FAILED=true
+          elif [[ ! "$INPUT_IMAGE_TAG" =~ ^[a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}$ ]]; then
+            echo "❌ ERROR: IMAGE_TAG '$INPUT_IMAGE_TAG' is invalid. Must start with alphanumeric or underscore, contain only alphanumerics, underscores, periods, hyphens, max 128 characters"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ IMAGE_TAG: '$INPUT_IMAGE_TAG' is valid"
+          fi
+
+          # Validate EXP (required, boolean string)
+          if [[ "$INPUT_EXP" != "true" && "$INPUT_EXP" != "false" ]]; then
+            echo "❌ ERROR: EXP must be 'true' or 'false', got: '$INPUT_EXP'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ EXP: '$INPUT_EXP' is valid"
+          fi
+
+          # Validate WAF_ENABLED (boolean string)
+          if [[ "$INPUT_WAF_ENABLED" != "true" && "$INPUT_WAF_ENABLED" != "false" ]]; then
+            echo "❌ ERROR: WAF_ENABLED must be 'true' or 'false', got: '$INPUT_WAF_ENABLED'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ WAF_ENABLED: '$INPUT_WAF_ENABLED' is valid"
+          fi
+
+          # Validate AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID (optional, Azure Resource ID format)
+          if [[ -n "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]]; then
+            if [[ ! "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/[Mm]icrosoft\.[Oo]perational[Ii]nsights/[Ww]orkspaces/[^/]+$ ]]; then
+              echo "❌ ERROR: AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID is invalid. Must be a valid Azure Resource ID format:"
+              echo "   /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.OperationalInsights/workspaces/{workspaceName}"
+              echo "   Got: '$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: Valid Resource ID format"
+            fi
+          else
+            echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: Not provided (optional)"
+          fi
+
+          # Validate AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION (boolean string)
+          if [[ "$INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION" != "true" && "$INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION" != "false" ]]; then
+            echo "❌ ERROR: AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION must be 'true' or 'false', got: '$INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: '$INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION' is valid"
+          fi
+
+          # Validate AZURE_SEARCH_USE_SEMANTIC_SEARCH (boolean string)
+          if [[ "$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH" != "true" && "$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH" != "false" ]]; then
+            echo "❌ ERROR: AZURE_SEARCH_USE_SEMANTIC_SEARCH must be 'true' or 'false', got: '$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ AZURE_SEARCH_USE_SEMANTIC_SEARCH: '$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH' is valid"
+          fi
+
+          # Validate DATABASE_TYPE (specific allowed values)
+          if [[ "$INPUT_DATABASE_TYPE" != "PostgreSQL" && "$INPUT_DATABASE_TYPE" != "CosmosDB" ]]; then
+            echo "❌ ERROR: DATABASE_TYPE must be one of: PostgreSQL, CosmosDB, got: '$INPUT_DATABASE_TYPE'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ DATABASE_TYPE: '$INPUT_DATABASE_TYPE' is valid"
+          fi
+
+          # Fail workflow if any validation failed
+          if [[ "$VALIDATION_FAILED" == "true" ]]; then
+            echo ""
+            echo "❌ Parameter validation failed. Please correct the errors above and try again."
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All input parameters validated successfully!"
+
+      - name: Configure Parameters Based on WAF Setting
+        shell: bash
+        env:
+          INPUT_WAF_ENABLED: ${{ inputs.WAF_ENABLED }}
+        run: |
+          if [[ "$INPUT_WAF_ENABLED" == "true" ]]; then
+            cp infra/main.waf.parameters.json infra/main.parameters.json
+            echo "✅ Successfully copied WAF parameters to main parameters file"
+          else
+            echo "🔧 Configuring Non-WAF deployment - using default main.parameters.json..."
+          fi
+
+      - name: Install azd
+        uses: Azure/setup-azd@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        shell: bash
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          sudo ln -sf $HOME/.local/bin/poetry /usr/local/bin/poetry
+          poetry --version
+          poetry self add poetry-plugin-export
+
+      - name: Login to AZD
+        id: login-azure
+        shell: bash
+        run: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: Deploy using azd up and extract values (Linux)
+        id: get_output_linux
+        shell: bash
+        env:
+          INPUT_ENV_NAME: ${{ inputs.ENV_NAME }}
+          INPUT_AZURE_ENV_OPENAI_LOCATION: ${{ inputs.AZURE_ENV_OPENAI_LOCATION }}
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+          INPUT_EXP: ${{ inputs.EXP }}
+          INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
+          INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+          INPUT_DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
+          EVENT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          SECRET_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ secrets.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+        run: |
+          set -e
+
+          echo "Creating environment..."
+          azd env new "$INPUT_ENV_NAME" --no-prompt
+          echo "Environment created: $INPUT_ENV_NAME"
+
+          echo "Setting default subscription..."
+          azd config set defaults.subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+          # Set additional parameters
+          azd env set AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          azd env set AZURE_LOCATION="$INPUT_AZURE_ENV_OPENAI_LOCATION"
+          azd env set AZURE_RESOURCE_GROUP="$INPUT_RESOURCE_GROUP_NAME"
+
+          if [[ "$INPUT_EXP" == "true" ]]; then
+            echo "✅ EXP ENABLED - Setting EXP parameters..."
+
+            # Set EXP variables dynamically
+            if [[ -n "$EVENT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]]; then
+              EXP_LOG_ANALYTICS_ID="$EVENT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID"
+            else
+              EXP_LOG_ANALYTICS_ID="$SECRET_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID"
+            fi
+
+            echo "AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: $EXP_LOG_ANALYTICS_ID"
+            azd env set AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID="$EXP_LOG_ANALYTICS_ID"
+          else
+            echo "❌ EXP DISABLED - Skipping EXP parameters"
+            if [[ -n "$EVENT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]]; then
+              echo "⚠️  Warning: EXP parameter values provided but EXP is disabled. These values will be ignored."
+            fi
+          fi
+
+          # Set Azure Search and Database configuration
+          echo "Setting Azure Search and Database configuration..."
+          azd env set AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION="$INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION"
+          azd env set AZURE_SEARCH_USE_SEMANTIC_SEARCH="$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH"
+          azd env set DATABASE_TYPE="$INPUT_DATABASE_TYPE"
+
+          # Deploy using azd up
+          azd up --no-prompt
+
+          azd env get-values
+
+          FRONTEND_WEBSITE_NAME=$(azd env get-value FRONTEND_WEBSITE_NAME)
+          echo "FRONTEND_WEBSITE_NAME=$FRONTEND_WEBSITE_NAME" >> $GITHUB_OUTPUT
+          ADMIN_WEBSITE_NAME=$(azd env get-value ADMIN_WEBSITE_NAME)
+          echo "ADMIN_WEBSITE_NAME=$ADMIN_WEBSITE_NAME" >> $GITHUB_OUTPUT
+
+          RESOURCE_TOKEN=$(azd env get-value RESOURCE_TOKEN)
+          echo "RESOURCE_TOKEN=$RESOURCE_TOKEN" >> $GITHUB_OUTPUT
+
+          # Export values based on DATABASE_TYPE
+          if [[ "$INPUT_DATABASE_TYPE" == "PostgreSQL" ]]; then
+            AZURE_POSTGRESQL_HOST_NAME=$(azd env get-value AZURE_POSTGRESQL_HOST_NAME)
+            echo "AZURE_POSTGRESQL_HOST_NAME=$AZURE_POSTGRESQL_HOST_NAME" >> $GITHUB_OUTPUT
+          elif [[ "$INPUT_DATABASE_TYPE" == "CosmosDB" ]]; then
+            AZURE_SEARCH_SERVICE=$(azd env get-value AZURE_SEARCH_SERVICE)
+            echo "AZURE_SEARCH_SERVICE=$AZURE_SEARCH_SERVICE" >> $GITHUB_OUTPUT
+
+            AZURE_BLOB_ACCOUNT_NAME=$(azd env get-value AZURE_BLOB_ACCOUNT_NAME)
+            echo "AZURE_BLOB_ACCOUNT_NAME=$AZURE_BLOB_ACCOUNT_NAME" >> $GITHUB_OUTPUT
+
+            AZURE_SEARCH_INDEX=$(azd env get-value AZURE_SEARCH_INDEX)
+            echo "AZURE_SEARCH_INDEX=$AZURE_SEARCH_INDEX" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Disable Authentication with Script
+        run: |
+          export FRONTEND_WEBSITE_URL=$(azd env get-value FRONTEND_WEBSITE_NAME)
+          export ADMIN_WEBSITE_URL=$(azd env get-value ADMIN_WEBSITE_NAME)
+          chmod +x scripts/disable_auth.sh
+          ./scripts/disable_auth.sh
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Generate Deploy Job Summary
+        if: always()
+        run: |
+          echo "## 🚀 Deploy Job Summary (Linux)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Job Status** | ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Resource Group** | \`${{ inputs.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Configuration Type** | \`${{ inputs.WAF_ENABLED == 'true' && inputs.EXP == 'true' && 'WAF + EXP' || inputs.WAF_ENABLED == 'true' && inputs.EXP != 'true' && 'WAF + Non-EXP' || inputs.WAF_ENABLED != 'true' && inputs.EXP == 'true' && 'Non-WAF + EXP' || 'Non-WAF + Non-EXP' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Database Type** | \`${{ inputs.DATABASE_TYPE }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Azure Region (Infrastructure)** | \`${{ inputs.AZURE_LOCATION }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Docker Image Tag** | \`${{ inputs.IMAGE_TAG }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ job.status }}" == "success" ]]; then
+            echo "### ✅ Deployment Details" >> $GITHUB_STEP_SUMMARY
+            echo "- **Frontend App URL**: [${{ steps.get_output_linux.outputs.FRONTEND_WEBSITE_NAME }}](${{ steps.get_output_linux.outputs.FRONTEND_WEBSITE_NAME }})" >> $GITHUB_STEP_SUMMARY
+            echo "- **Admin App URL**: [${{ steps.get_output_linux.outputs.ADMIN_WEBSITE_NAME }}](${{ steps.get_output_linux.outputs.ADMIN_WEBSITE_NAME }})" >> $GITHUB_STEP_SUMMARY
+            echo "- Successfully deployed to Azure with all resources configured" >> $GITHUB_STEP_SUMMARY
+            echo "- Authentication disabled for frontend and admin websites" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- Deployment process encountered an error" >> $GITHUB_STEP_SUMMARY
+            echo "- Check the deploy job for detailed error information" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Logout from Azure
+        if: always()
+        shell: bash
+        run: |
+          az logout || true
+          echo "Logged out from Azure."

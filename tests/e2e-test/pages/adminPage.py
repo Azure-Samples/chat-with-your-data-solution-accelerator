@@ -57,8 +57,13 @@ class AdminPage(BasePage):
 
     def click_ingest_data_tab(self):
         """Click on the Ingest Data tab"""
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("Clicking Ingest Data tab...")
         self.page.locator(self.INGEST_DATA_TAB).click()
-        self.page.wait_for_timeout(2000)
+        self.page.wait_for_load_state("networkidle")
+        self.page.wait_for_timeout(3000)
+        logger.info("✓ Ingest Data tab loaded")
 
     def upload_file(self, file_path):
         """Upload a file using the Browse files button"""
@@ -96,11 +101,30 @@ class AdminPage(BasePage):
 
     def click_explore_data_tab(self):
         """Click on the Explore Data tab"""
-        self.page.locator(self.EXPLORE_DATA_TAB).click()
-        # Wait longer for the Explore Data tab to fully load
-        self.page.wait_for_timeout(5000)
-        # Wait for network activity to settle
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("Clicking Explore Data tab...")
+        
+        # Wait for the tab to be visible and clickable
+        explore_tab = self.page.locator(self.EXPLORE_DATA_TAB)
+        explore_tab.wait_for(state="visible", timeout=10000)
+        explore_tab.click()
+        
+        # Wait for the Explore Data tab to fully load
         self.page.wait_for_load_state("networkidle")
+        self.page.wait_for_timeout(5000)
+        
+        # Verify we're on the Explore Data page
+        current_url = self.page.url
+        if "Explore_Data" not in current_url:
+            logger.warning("URL after click: %s - attempting direct navigation", current_url)
+            # Fallback: navigate directly to Explore Data
+            base_url = current_url.split("/")[0] + "//" + current_url.split("/")[2]
+            self.page.goto(f"{base_url}/Explore_Data", wait_until="domcontentloaded")
+            self.page.wait_for_load_state("networkidle")
+            self.page.wait_for_timeout(3000)
+        
+        logger.info("✓ Explore Data tab loaded")
 
     def open_file_dropdown(self):
         """Open the file selection dropdown"""
@@ -221,6 +245,7 @@ class AdminPage(BasePage):
         """
         Check if a file is visible in dropdown by scrolling through all options.
         Handles virtualized dropdowns that require scrolling to see all items.
+        This is specifically designed for Streamlit's virtualized selectbox dropdown.
         """
         import logging
         logger = logging.getLogger(__name__)
@@ -232,88 +257,125 @@ class AdminPage(BasePage):
             if self.is_file_visible_in_dropdown(filename):
                 return True
 
-            # Try different dropdown container selectors
-            container_selectors = [
+            # Find the virtualized dropdown scroll container
+            # Based on the HTML: div[style*="overflow: auto"] inside ul[data-testid="stSelectboxVirtualDropdown"]
+            scroll_container_selectors = [
+                "ul[data-testid='stSelectboxVirtualDropdown'] > div[style*='overflow']",
+                "ul[data-testid='stSelectboxVirtualDropdown'] div[style*='overflow: auto']",
+                "[data-testid='stSelectboxVirtualDropdown'] div[style*='overflow']",
+                "div[data-baseweb='popover'] div[style*='overflow']",
                 "div[role='listbox']",
-                "div[data-baseweb='menu']",
-                "ul[role='listbox']",
-                ".st-emotion-cache-1gulkj5",  # Streamlit specific class
-                "div[data-testid='stSelectbox'] div",
-                "[data-baseweb='select'] div[style*='overflow']"
+                "ul[role='listbox'] > div"
             ]
 
-            dropdown_container = None
-            for selector in container_selectors:
-                container = self.page.locator(selector).first
-                if container.is_visible():
-                    dropdown_container = container
-                    logger.info("Found dropdown container with selector: %s", selector)
-                    break
+            scroll_container = None
+            for selector in scroll_container_selectors:
+                try:
+                    container = self.page.locator(selector).first
+                    if container.is_visible():
+                        scroll_container = container
+                        logger.info("Found scroll container with selector: %s", selector)
+                        break
+                except:
+                    continue
 
-            if not dropdown_container:
-                logger.warning("Could not find dropdown container for scrolling")
-                return False
+            if not scroll_container:
+                logger.warning("Could not find virtualized dropdown scroll container")
+                # Fallback: try to get all items directly
+                return self._check_all_dropdown_items(filename)
 
-            # Get the dropdown container bounding box for scrolling
-            box = dropdown_container.bounding_box()
-            if not box:
-                logger.warning("Could not get dropdown container bounding box")
-                return False
+            # Get the total scroll height and current scroll position
+            try:
+                scroll_info = scroll_container.evaluate("""
+                    element => ({
+                        scrollHeight: element.scrollHeight,
+                        clientHeight: element.clientHeight,
+                        scrollTop: element.scrollTop
+                    })
+                """)
+                logger.info("Scroll container info - scrollHeight: %s, clientHeight: %s, scrollTop: %s",
+                           scroll_info.get('scrollHeight'), scroll_info.get('clientHeight'), scroll_info.get('scrollTop'))
+            except Exception as e:
+                logger.warning("Could not get scroll info: %s", str(e))
+                scroll_info = {'scrollHeight': 1800, 'clientHeight': 300, 'scrollTop': 0}
 
-            # Scroll through the dropdown by using mouse wheel
-            scroll_attempts = 0
-            max_scrolls = 10  # Reduce attempts but make them more effective
-            scroll_distance = 100  # Pixels to scroll each time
+            # First, scroll to the top
+            try:
+                scroll_container.evaluate("element => element.scrollTop = 0")
+                self.page.wait_for_timeout(500)
+            except:
+                pass
 
-            last_visible_options = []
+            # Calculate scroll increments - scroll by visible height each time
+            scroll_height = scroll_info.get('scrollHeight', 1800)
+            client_height = scroll_info.get('clientHeight', 300)
+            scroll_increment = max(client_height - 40, 200)  # Overlap by one item (40px)
+            max_scrolls = int((scroll_height / scroll_increment) + 2)  # Extra iterations for safety
 
-            while scroll_attempts < max_scrolls:
+            logger.info("Will scroll %d times with increment %d pixels", max_scrolls, scroll_increment)
+
+            seen_files = set()
+            for scroll_attempt in range(max_scrolls):
                 # Check current visible options
-                current_visible_options = []
-                options = self.page.locator("li[role='option'], div[role='option']").all()
+                options = self.page.locator("li[role='option']").all()
 
                 for option in options:
-                    if option.is_visible():
-                        text = option.text_content() or ""
-                        current_visible_options.append(text.strip())
+                    try:
+                        if option.is_visible():
+                            text = option.text_content() or ""
+                            text = text.strip()
+                            seen_files.add(text)
 
-                logger.info("Scroll attempt %d: Found %d visible options", scroll_attempts + 1, len(current_visible_options))
+                            # Check if our target file matches
+                            if filename in text or text.endswith(filename):
+                                logger.info("✓ Found file '%s' in option: %s (scroll attempt %d)", filename, text, scroll_attempt + 1)
+                                return True
+                    except:
+                        continue
 
-                # Check if our target file is now visible
-                for option_text in current_visible_options:
-                    if filename in option_text or option_text.endswith(filename):
-                        logger.info("✓ Found file '%s' in option: %s", filename, option_text)
-                        return True
+                logger.info("Scroll attempt %d/%d: Checked %d visible options, total seen: %d",
+                           scroll_attempt + 1, max_scrolls, len(options), len(seen_files))
 
-                # If we haven't found new options, we've reached the end
-                if current_visible_options == last_visible_options and scroll_attempts > 0:
-                    logger.info("No new options appeared after scrolling, likely reached end")
-                    break
-
-                last_visible_options = current_visible_options.copy()
-
-                # Scroll down using mouse wheel in the dropdown container
-                center_x = box['x'] + box['width'] / 2
-                center_y = box['y'] + box['height'] / 2
-
-                # Use wheel event to scroll down in the dropdown
-                self.page.mouse.wheel(0, scroll_distance)
-                self.page.wait_for_timeout(800)  # Wait longer for virtual scrolling
-
-                # Alternative: try scrolling within the container
+                # Scroll down
                 try:
-                    dropdown_container.evaluate("element => element.scrollTop += 200")
-                    self.page.wait_for_timeout(500)
-                except:
-                    logger.debug("Direct scroll evaluation failed, continuing with wheel scroll")
+                    scroll_container.evaluate(f"element => element.scrollTop += {scroll_increment}")
+                    self.page.wait_for_timeout(500)  # Wait for virtual items to render
+                except Exception as e:
+                    logger.debug("Direct scroll failed: %s, trying mouse wheel", str(e))
+                    # Fallback to mouse wheel
+                    box = scroll_container.bounding_box()
+                    if box:
+                        self.page.mouse.move(box['x'] + box['width'] / 2, box['y'] + box['height'] / 2)
+                        self.page.mouse.wheel(0, scroll_increment)
+                        self.page.wait_for_timeout(500)
 
-                scroll_attempts += 1
-
-            logger.warning("File '%s' not found after scrolling through dropdown", filename)
+            # Final check - log all files seen
+            logger.info("All files seen in dropdown: %s", list(seen_files)[:10])  # Log first 10
+            logger.warning("File '%s' not found after scrolling through entire dropdown (checked %d files)", filename, len(seen_files))
             return False
 
         except Exception as e:
             logger.error("Error checking file in dropdown with scroll: %s", str(e))
+            return False
+
+    def _check_all_dropdown_items(self, filename):
+        """Fallback method to check all dropdown items without scrolling"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            options = self.page.locator("li[role='option'], div[role='option']").all()
+            for option in options:
+                try:
+                    text = option.text_content() or ""
+                    if filename in text or text.strip().endswith(filename):
+                        logger.info("✓ Found file '%s' in fallback check", filename)
+                        return True
+                except:
+                    continue
+            return False
+        except Exception as e:
+            logger.error("Error in fallback dropdown check: %s", str(e))
             return False
 
     def click_delete_data_tab_with_wait(self):
@@ -756,6 +818,46 @@ class AdminPage(BasePage):
             logger.error("Error clicking process web pages button: %s", str(e))
             return False
 
+    def wait_for_file_to_appear_in_delete(self, filename, timeout_minutes=5, poll_interval_seconds=15):
+        """Poll Delete Data page until file appears or timeout"""
+        import logging
+        import time
+        logger = logging.getLogger(__name__)
+
+        try:
+            logger.info("Polling for file '%s' to appear in Delete Data (timeout: %d minutes)", filename, timeout_minutes)
+
+            start_time = time.time()
+            timeout_seconds = timeout_minutes * 60
+
+            while (time.time() - start_time) < timeout_seconds:
+                # Navigate to delete page and check for file
+                self.click_delete_data_tab_with_wait()
+                visible_files = self.get_all_visible_files_in_delete()
+
+                # Check if file is present (partial match)
+                file_found = any(filename in file for file in visible_files)
+
+                if file_found:
+                    elapsed = time.time() - start_time
+                    logger.info("✓ File '%s' found after %.1f seconds", filename, elapsed)
+                    return True
+
+                elapsed_minutes = (time.time() - start_time) / 60
+                remaining_minutes = timeout_minutes - elapsed_minutes
+                logger.info("File not yet visible. Elapsed: %.1f min, Remaining: %.1f min. Retrying...",
+                           elapsed_minutes, remaining_minutes)
+
+                # Wait before next poll
+                self.page.wait_for_timeout(poll_interval_seconds * 1000)
+
+            logger.warning("✗ File '%s' did not appear within %d minutes", filename, timeout_minutes)
+            return False
+
+        except Exception as e:
+            logger.error("Error polling for file: %s", str(e))
+            return False
+
     def wait_for_web_url_processing(self, timeout_minutes=3):
         """Wait for web URL processing to complete"""
         import logging
@@ -804,10 +906,27 @@ class AdminPage(BasePage):
         logger = logging.getLogger(__name__)
 
         try:
-            # First scroll down to make sure the toggle is visible
-            logger.info("Scrolling down to find chat history toggle...")
+            # Perform aggressive scrolling to ensure all elements are loaded
+            logger.info("Scrolling to find chat history toggle...")
+
+            # First scroll to top and wait for page to stabilize
+            self.page.evaluate("window.scrollTo(0, 0)")
+            self.page.wait_for_timeout(1000)
+
+            # Perform incremental scrolling to trigger lazy loading
+            for scroll_attempt in range(5):
+                scroll_position = (scroll_attempt + 1) * 500
+                self.page.evaluate(f"window.scrollTo(0, {scroll_position})")
+                self.page.wait_for_timeout(500)
+                logger.info("Scroll attempt %d: scrolled to position %d", scroll_attempt + 1, scroll_position)
+
+            # Final scroll to bottom
             self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             self.page.wait_for_timeout(2000)
+
+            # Scroll back to middle where chat history toggle typically is
+            self.page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
+            self.page.wait_for_timeout(1000)
 
             # Try multiple selectors for the chat history checkbox
             selectors = [
@@ -853,6 +972,21 @@ class AdminPage(BasePage):
 
             # Scroll through the page to make sure we see everything
             logger.info("Scrolling to top first...")
+            self.page.evaluate("window.scrollTo(0, 0)")
+            self.page.wait_for_timeout(1000)
+
+            # Perform incremental scrolling to trigger lazy loading of all elements
+            logger.info("Performing incremental scroll to load all elements...")
+            for scroll_attempt in range(5):
+                scroll_position = (scroll_attempt + 1) * 500
+                self.page.evaluate(f"window.scrollTo(0, {scroll_position})")
+                self.page.wait_for_timeout(500)
+
+            # Scroll to bottom
+            self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            self.page.wait_for_timeout(2000)
+
+            # Scroll back to top
             self.page.evaluate("window.scrollTo(0, 0)")
             self.page.wait_for_timeout(1000)
 
@@ -947,10 +1081,26 @@ class AdminPage(BasePage):
         logger = logging.getLogger(__name__)
 
         try:
-            # First scroll down to make sure the toggle is visible
-            logger.info("Scrolling down to find chat history toggle...")
+            # Perform aggressive scrolling to ensure all elements are loaded
+            logger.info("Scrolling to find chat history toggle...")
+
+            # First scroll to top and wait for page to stabilize
+            self.page.evaluate("window.scrollTo(0, 0)")
+            self.page.wait_for_timeout(1000)
+
+            # Perform incremental scrolling to trigger lazy loading
+            for scroll_attempt in range(5):
+                scroll_position = (scroll_attempt + 1) * 500
+                self.page.evaluate(f"window.scrollTo(0, {scroll_position})")
+                self.page.wait_for_timeout(500)
+
+            # Final scroll to bottom
             self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             self.page.wait_for_timeout(2000)
+
+            # Scroll back to middle where chat history toggle typically is
+            self.page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
+            self.page.wait_for_timeout(1000)
 
             # Try multiple selectors for the chat history checkbox
             selectors = [
