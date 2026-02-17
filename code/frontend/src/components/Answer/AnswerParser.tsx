@@ -39,6 +39,7 @@ export function parseAnswer(answer: AskResponse): ParsedAnswer {
         }
     })
 
+    answerText = answerText.replace(/(\s*\^(\d+)\^\s*)(?:\s*\^\2\^\s*)+/g, " ^$2^ ");
 
     return {
         citations: filteredCitations,
