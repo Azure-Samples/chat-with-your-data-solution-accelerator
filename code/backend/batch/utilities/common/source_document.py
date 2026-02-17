@@ -1,7 +1,7 @@
 from typing import Optional, Type
 import hashlib
 import json
-from urllib.parse import urlparse, quote
+from urllib.parse import urlparse, quote, unquote
 from ..helpers.azure_blob_storage_client import AzureBlobStorageClient
 
 
@@ -101,7 +101,7 @@ class SourceDocument:
             filename = filename.split("/")[-1]
         else:
             filename = filename.split("/")[-1].split(".")[0]
-        return filename
+        return unquote(filename)
 
     def get_markdown_url(self):
         url = quote(self.source, safe=":/")

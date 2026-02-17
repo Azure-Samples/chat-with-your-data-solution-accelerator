@@ -27,6 +27,27 @@ def test_get_filename():
     assert filename == "file"
 
 
+def test_get_filename_decodes_url_encoded_characters():
+    # Given
+    source_document = SourceDocument(
+        id="1",
+        content="Some content",
+        title="A title",
+        source="http://example.com/path/to/Woodgrove%20-%20Cyber%20Risk%20Insurance%20Policy_Commercial%20Insurance.pdf_SAS_TOKEN_PLACEHOLDER_",
+        chunk="A chunk",
+        offset="An offset",
+        page_number="1",
+    )
+
+    # When
+    filename = source_document.get_filename()
+    filename_with_path = source_document.get_filename(include_path=True)
+
+    # Then
+    assert filename == "Woodgrove - Cyber Risk Insurance Policy_Commercial Insurance"
+    assert filename_with_path == "Woodgrove - Cyber Risk Insurance Policy_Commercial Insurance.pdf"
+
+
 @patch("backend.batch.utilities.common.source_document.AzureBlobStorageClient")
 def test_get_markdown_url(azure_blob_service_mock):
     # Given
