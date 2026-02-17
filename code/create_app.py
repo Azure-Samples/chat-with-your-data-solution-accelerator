@@ -21,6 +21,7 @@ from backend.batch.utilities.helpers.azure_search_helper import AzureSearchHelpe
 from backend.batch.utilities.helpers.orchestrator_helper import Orchestrator
 from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
+from backend.batch.utilities.helpers.prompt_utils import get_current_date_suffix
 from backend.api.chat_history import bp_chat_history_response
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
 from azure.core.exceptions import ClientAuthenticationError, ResourceNotFoundError, ServiceRequestError
@@ -165,9 +166,10 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
     request_messages = conversation.json["messages"]
     messages = []
     config = ConfigHelper.get_active_config_or_default()
+    date_suffix = get_current_date_suffix()
     if config.prompts.use_on_your_data_format:
         messages.append(
-            {"role": "system", "content": config.prompts.answering_system_prompt}
+            {"role": "system", "content": config.prompts.answering_system_prompt + date_suffix}
         )
 
     for message in request_messages:
@@ -239,7 +241,7 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
                             and env_helper.AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
                             else ""
                         ),
-                        "role_information": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE,
+                        "role_information": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE + get_current_date_suffix(),
                     },
                 }
             ]
@@ -332,7 +334,7 @@ def conversation_without_data(conversation: Request, env_helper: EnvHelper):
         )
 
     request_messages = conversation.json["messages"]
-    messages = [{"role": "system", "content": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE}]
+    messages = [{"role": "system", "content": env_helper.AZURE_OPENAI_SYSTEM_MESSAGE + get_current_date_suffix()}]
 
     for message in request_messages:
         messages.append({"role": message["role"], "content": message["content"]})
