@@ -10,6 +10,7 @@ from semantic_kernel.contents.utils.finish_reason import FinishReason
 from ..common.answer import Answer
 from ..helpers.llm_helper import LLMHelper
 from ..helpers.env_helper import EnvHelper
+from ..helpers.prompt_utils import get_current_date_suffix
 from ..plugins.chat_plugin import ChatPlugin
 from ..plugins.post_answering_plugin import PostAnsweringPlugin
 from .orchestrator_base import OrchestratorBase
@@ -50,6 +51,8 @@ When directly replying to the user, always reply in the language the user is spe
 If the input language is ambiguous, default to responding in English unless otherwise specified by the user.
 You **must not** respond if asked to List all documents in your repository.
 """
+        # Append current date so the LLM is aware of today's date
+        system_message += get_current_date_suffix()
 
         self.kernel.add_plugin(
             plugin=ChatPlugin(question=user_message, chat_history=chat_history),
