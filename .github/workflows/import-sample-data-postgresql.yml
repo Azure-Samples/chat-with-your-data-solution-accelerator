@@ -1,0 +1,329 @@
+name: Import Sample Data into PostgreSQL
+
+on:
+  workflow_dispatch:
+    inputs:
+      RESOURCE_GROUP_NAME:
+        description: 'Azure Resource Group name'
+        required: true
+        type: string
+      AZURE_POSTGRESQL_HOST_NAME:
+        description: 'PostgreSQL host name (e.g., myserver.postgres.database.azure.com)'
+        required: true
+        type: string
+      WAF:
+        description: 'Is this a WAF deployment? (enables public access temporarily for data import and then disables it)'
+        required: false
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      RESOURCE_GROUP_NAME:
+        description: 'Azure Resource Group name'
+        required: true
+        type: string
+      AZURE_POSTGRESQL_HOST_NAME:
+        description: 'PostgreSQL host name (e.g., myserver.postgres.database.azure.com)'
+        required: true
+        type: string
+      WAF:
+        description: 'Is this a WAF deployment? (enables public access temporarily for data import and then disables it)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  import-sample-data-postgresql:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate Workflow Input Parameters
+        shell: bash
+        env:
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
+          INPUT_WAF: ${{ inputs.WAF }}
+        run: |
+          echo "🔍 Validating workflow input parameters..."
+          VALIDATION_FAILED=false
+
+          # Validate RESOURCE_GROUP_NAME (required, Azure naming convention)
+          if [[ -z "$INPUT_RESOURCE_GROUP_NAME" ]]; then
+            echo "❌ ERROR: RESOURCE_GROUP_NAME is required but not provided"
+            VALIDATION_FAILED=true
+          elif [[ ! "$INPUT_RESOURCE_GROUP_NAME" =~ ^[a-zA-Z0-9._\(\)-]+$ ]] || [[ "$INPUT_RESOURCE_GROUP_NAME" =~ \.$ ]]; then
+            echo "❌ ERROR: RESOURCE_GROUP_NAME '$INPUT_RESOURCE_GROUP_NAME' is invalid. Must contain only alphanumerics, periods, underscores, hyphens, and parentheses. Cannot end with period."
+            VALIDATION_FAILED=true
+          elif [[ ${#INPUT_RESOURCE_GROUP_NAME} -gt 90 ]]; then
+            echo "❌ ERROR: RESOURCE_GROUP_NAME '$INPUT_RESOURCE_GROUP_NAME' exceeds 90 characters"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ RESOURCE_GROUP_NAME: '$INPUT_RESOURCE_GROUP_NAME' is valid"
+          fi
+
+          # Validate AZURE_POSTGRESQL_HOST_NAME (required, must be valid PostgreSQL hostname format)
+          if [[ -z "$INPUT_AZURE_POSTGRESQL_HOST_NAME" ]]; then
+            echo "❌ ERROR: AZURE_POSTGRESQL_HOST_NAME is required but not provided"
+            VALIDATION_FAILED=true
+          elif [[ ! "$INPUT_AZURE_POSTGRESQL_HOST_NAME" =~ ^[a-zA-Z0-9-]+\.postgres\.database\.azure\.com$ ]]; then
+            echo "❌ ERROR: AZURE_POSTGRESQL_HOST_NAME '$INPUT_AZURE_POSTGRESQL_HOST_NAME' is invalid. Must be in format: <servername>.postgres.database.azure.com"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ AZURE_POSTGRESQL_HOST_NAME: '$INPUT_AZURE_POSTGRESQL_HOST_NAME' is valid"
+          fi
+
+          # Validate WAF (boolean)
+          if [[ "$INPUT_WAF" != "true" && "$INPUT_WAF" != "false" ]]; then
+            echo "❌ ERROR: WAF must be 'true' or 'false', got: '$INPUT_WAF'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ WAF: '$INPUT_WAF' is valid"
+          fi
+
+          # Fail workflow if any validation failed
+          if [[ "$VALIDATION_FAILED" == "true" ]]; then
+            echo ""
+            echo "❌ Parameter validation failed. Please correct the errors above and try again."
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All input parameters validated successfully!"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Login to Azure
+        shell: bash
+        run: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Upgrade Azure CLI and install extensions
+        run: |
+          az upgrade --yes --all
+          az extension add --name rdbms-connect --upgrade --yes || true
+
+      - name: Enable Public Access for PostgreSQL (WAF)
+        if: ${{ inputs.WAF == true }}
+        env:
+          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+        run: |
+          PG_HOST="$INPUT_AZURE_POSTGRESQL_HOST_NAME"
+          PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
+
+          echo "Configuring public access for PostgreSQL server: $PG_SERVER_NAME"
+
+          # Enable public network access for the PostgreSQL server
+          echo "Enabling public network access..."
+          az postgres flexible-server update \
+            --resource-group "$INPUT_RESOURCE_GROUP_NAME" \
+            --name "$PG_SERVER_NAME" \
+            --public-access Enabled
+
+          # Add firewall rule to allow all IP addresses (0.0.0.0 - 255.255.255.255)
+          echo "Adding firewall rule to allow all IP addresses..."
+          az postgres flexible-server firewall-rule create \
+            --resource-group "$INPUT_RESOURCE_GROUP_NAME" \
+            --name "$PG_SERVER_NAME" \
+            --rule-name "AllowAllIPs" \
+            --start-ip-address 0.0.0.0 \
+            --end-ip-address 255.255.255.255
+
+          echo "✅ Public access enabled and all IP addresses allowed for PostgreSQL server"
+
+      - name: Wait for Public Access Propagation (WAF)
+        if: ${{ inputs.WAF == true }}
+        run: |
+          echo "Waiting for public access propagation..."
+          sleep 300
+          echo "✅ Wait complete."
+
+      - name: Install Python dependencies
+        run: |
+          pip install psycopg2-binary python-dotenv azure-identity
+
+      - name: Add Service Principal as PostgreSQL Admin
+        env:
+          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+        run: |
+          # Get PostgreSQL server name from input parameter
+          PG_HOST="$INPUT_AZURE_POSTGRESQL_HOST_NAME"
+          PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
+
+          # Get the service principal's object ID (required for PostgreSQL admin)
+          SP_OBJECT_ID=$(az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query id -o tsv)
+
+          # Get service principal display name
+          SP_DISPLAY_NAME=$(az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query displayName -o tsv)
+
+          # Export display name for use in subsequent steps
+          echo "SP_DISPLAY_NAME=$SP_DISPLAY_NAME" >> $GITHUB_ENV
+
+          echo "PostgreSQL Host: $PG_HOST"
+          echo "PostgreSQL Server Name: $PG_SERVER_NAME"
+          echo "Service Principal Object ID: $SP_OBJECT_ID"
+          echo "Service Principal Display Name: $SP_DISPLAY_NAME"
+
+          # Check if Microsoft Entra authentication is enabled on the server
+          echo "Checking PostgreSQL server authentication configuration..."
+          AUTH_CONFIG=$(az rest --method GET \
+            --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/$INPUT_RESOURCE_GROUP_NAME/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}?api-version=2022-12-01" \
+            --query "properties.authConfig" -o json) || true
+          echo "Auth config: $AUTH_CONFIG"
+
+          echo "Adding service principal '$SP_DISPLAY_NAME' (Object ID: $SP_OBJECT_ID) as PostgreSQL admin..."
+
+          # Add service principal as Entra ID administrator using REST API
+          RESULT=$(az rest --method PUT \
+            --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/$INPUT_RESOURCE_GROUP_NAME/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}/administrators/${SP_OBJECT_ID}?api-version=2022-12-01" \
+            --body "{\"properties\": {\"principalType\": \"ServicePrincipal\", \"principalName\": \"${SP_DISPLAY_NAME}\", \"tenantId\": \"${{ secrets.AZURE_TENANT_ID }}\"}}" \
+            2>&1) && echo "Admin creation result: $RESULT" || echo "Admin creation response: $RESULT"
+
+          # List current admins to verify
+          echo "Listing current PostgreSQL administrators..."
+          az rest --method GET \
+            --uri "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/$INPUT_RESOURCE_GROUP_NAME/providers/Microsoft.DBforPostgreSQL/flexibleServers/${PG_SERVER_NAME}/administrators?api-version=2022-12-01" \
+            -o json || true
+
+          echo "✅ Service principal configured as PostgreSQL administrator"
+
+      - name: Wait for admin propagation
+        run: |
+          echo "Waiting 60 seconds for admin changes to propagate..."
+          sleep 60
+
+      - name: Populate PostgreSQL Database
+        env:
+          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          SP_DISPLAY_NAME: ${{ env.SP_DISPLAY_NAME }}
+        run: |
+          export PG_HOST_DESTINATION="$INPUT_AZURE_POSTGRESQL_HOST_NAME"
+          # Get the service principal's display name (required as username for PostgreSQL Entra auth)
+          export SP_DISPLAY_NAME=$(az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query displayName -o tsv)
+
+          echo "Connecting to PostgreSQL at: $PG_HOST_DESTINATION"
+          echo "Using service principal: $SP_DISPLAY_NAME"
+
+          python - <<EOF
+          import os
+          import psycopg2
+          from azure.identity import ClientSecretCredential
+
+          tenant_id = os.environ["AZURE_TENANT_ID"]
+          client_id = os.environ["AZURE_CLIENT_ID"]
+          client_secret = os.environ["AZURE_CLIENT_SECRET"]
+          pg_host = os.environ.get("PG_HOST_DESTINATION")
+          sp_display_name = os.environ.get("SP_DISPLAY_NAME")
+
+          print(f"Tenant ID: {tenant_id}")
+          print(f"Client ID: {client_id}")
+          print(f"PostgreSQL Host: {pg_host}")
+          print(f"Service Principal Name: {sp_display_name}")
+
+          # Acquire Azure AD access token for PostgreSQL
+          credential = ClientSecretCredential(tenant_id, client_id, client_secret)
+          token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default").token
+          print("✅ Successfully acquired Azure AD token")
+
+          db_params = {
+              "user": sp_display_name,   # Use service principal display name (must match PostgreSQL admin name)
+              "password": token,          # Use AAD token
+              "host": pg_host,
+              "port": "5432",
+              "dbname": "postgres",
+              "sslmode": "require"
+          }
+
+          csv_file = "exported_data_vector_score.csv"
+          target_table = "vector_store"
+
+          try:
+              print(f"Connecting to PostgreSQL database...")
+              with psycopg2.connect(**db_params) as conn:
+                  print("✅ Connected to PostgreSQL")
+                  with conn.cursor() as cur:
+                      # Check if table exists
+                      cur.execute(f"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = '{target_table}');")
+                      table_exists = cur.fetchone()[0]
+                      print(f"Table '{target_table}' exists: {table_exists}")
+
+                      if not table_exists:
+                          print(f"⚠️ Table '{target_table}' does not exist. Skipping data import.")
+                      else:
+                          with open(csv_file, "r", encoding="utf-8") as f:
+                              next(f)  # Skip header
+                              cur.copy_expert(f"COPY {target_table} FROM STDIN WITH CSV", f)
+                          conn.commit()
+                          print(f"✅ Imported data from '{csv_file}' into table '{target_table}'.")
+          except FileNotFoundError:
+              print(f"⚠️ CSV file '{csv_file}' not found. Skipping data import.")
+          except Exception as e:
+              print(f"❌ Error during import: {e}")
+              raise
+          EOF
+
+      - name: Disable Public Access for PostgreSQL (WAF)
+        if: ${{ always() && inputs.WAF == true }}
+        env:
+          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+        run: |
+          PG_HOST="$INPUT_AZURE_POSTGRESQL_HOST_NAME"
+          PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
+
+          echo "Removing public access for PostgreSQL server: $PG_SERVER_NAME"
+
+          # Remove the firewall rule that allowed all IP addresses
+          echo "Removing firewall rule 'AllowAllIPs'..."
+          az postgres flexible-server firewall-rule delete \
+            --resource-group "$INPUT_RESOURCE_GROUP_NAME" \
+            --name "$PG_SERVER_NAME" \
+            --rule-name "AllowAllIPs" \
+            --yes
+
+          # Disable public network access for the PostgreSQL server
+          echo "Disabling public network access..."
+          az postgres flexible-server update \
+            --resource-group "$INPUT_RESOURCE_GROUP_NAME" \
+            --name "$PG_SERVER_NAME" \
+            --public-access Disabled
+
+          echo "✅ Public access disabled and firewall rule removed for PostgreSQL server"
+
+      - name: Generate Test Job Summary
+        if: always()
+        run: |
+          echo "## 📊 Import Sample Data (PostgreSQL) Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Job Status** | ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **PostgreSQL Host** | \`${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Resource Group** | \`${{ inputs.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **WAF** | \`${{ inputs.WAF }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ job.status }}" == "success" ]]; then
+            echo "### ✅ Import Sample Data (PostgreSQL) Results" >> $GITHUB_STEP_SUMMARY
+            echo "- Service principal successfully added as PostgreSQL admin" >> $GITHUB_STEP_SUMMARY
+            echo "- Sample Data import completed successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Import Sample Data (PostgreSQL) Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- Check the job logs for detailed error information" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Logout from Azure
+        if: always()
+        shell: bash
+        run: |
+          az logout || true
+          echo "Logged out from Azure."

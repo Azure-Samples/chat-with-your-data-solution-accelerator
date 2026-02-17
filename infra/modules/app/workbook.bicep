@@ -50,7 +50,7 @@ var wookbookContentsStorageAccountReplaced = replace(
 module cwydsa_workbook '../core/monitor/workbook.bicep' = {
   name: workbookDisplayName
   params: {
-    workbookId: 'd9bd03af-7ef0-4bac-b91b-b14ee4c7002b'
+    workbookId: guid(resourceGroup().id, workbookDisplayName)
     workbookDisplayName: workbookDisplayName
     location: location
     workbookContents: wookbookContentsStorageAccountReplaced

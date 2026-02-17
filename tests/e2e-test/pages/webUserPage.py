@@ -36,10 +36,11 @@ class WebUserPage(BasePage):
         self.page.locator(self.TYPE_QUESTION_TEXT_AREA).fill(text)
         self.page.wait_for_timeout(2000)
 
-    def click_send_button(self):
+    def click_send_button(self, timeout_ms=180000):
         # Click on send button in question area
+        # timeout_ms: timeout in milliseconds to wait for response (default 3 minutes)
         self.page.locator(self.SEND_BUTTON).click()
-        self.page.locator(self.STOP_GENERATING_LABEL).wait_for(state="hidden")
+        self.page.locator(self.STOP_GENERATING_LABEL).wait_for(state="hidden", timeout=timeout_ms)
 
     def soft_assert(self, condition, message):
         if not condition:
