@@ -1,0 +1,224 @@
+name: Send Notification Job
+
+on:
+  workflow_call:
+    inputs:
+      trigger_type:
+        description: 'Trigger type (workflow_dispatch, pull_request, schedule)'
+        required: true
+        type: string
+      waf_enabled:
+        description: 'Enable WAF'
+        required: false
+        default: false
+        type: boolean
+      EXP:
+        description: 'Enable EXP'
+        required: false
+        default: false
+        type: boolean
+      run_e2e_tests:
+        description: 'Run End-to-End Tests'
+        required: false
+        default: 'GoldenPath-Testing'
+        type: string
+      existing_webapp_url:
+        description: 'Existing Container WebApp URL (Skips Deployment)'
+        required: false
+        default: ''
+        type: string
+      deploy_result:
+        description: 'Deploy job result (success, failure, skipped)'
+        required: true
+        type: string
+      e2e_test_result:
+        description: 'E2E test job result (success, failure, skipped)'
+        required: true
+        type: string
+      WEB_APPURL:
+        description: 'Container Web App URL'
+        required: false
+        default: ''
+        type: string
+      RESOURCE_GROUP_NAME:
+        description: 'Resource Group Name'
+        required: false
+        default: ''
+        type: string
+      QUOTA_FAILED:
+        description: 'Quota Check Failed Flag'
+        required: false
+        default: 'false'
+        type: string
+      TEST_SUCCESS:
+        description: 'Test Success Flag'
+        required: false
+        default: ''
+        type: string
+      TEST_REPORT_URL:
+        description: 'Test Report URL'
+        required: false
+        default: ''
+        type: string
+
+env:
+  GPT_MIN_CAPACITY: 100
+  BRANCH_NAME: ${{ github.event.workflow_run.head_branch || github.head_ref || github.ref_name }}
+  WAF_ENABLED: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.waf_enabled || false) || false }}
+  EXP: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.EXP || false) || false }}
+  RUN_E2E_TESTS: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.run_e2e_tests || 'GoldenPath-Testing') || 'GoldenPath-Testing' }}
+
+jobs:
+  send-notification:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      accelerator_name: "CWYD"
+    steps:
+      - name: Determine Test Suite Display Name
+        id: test_suite
+        shell: bash
+        run: |
+          if [ "${{ env.RUN_E2E_TESTS }}" = "GoldenPath-Testing" ]; then
+            TEST_SUITE_NAME="Golden Path Testing"
+          elif [ "${{ env.RUN_E2E_TESTS }}" = "Smoke-Testing" ]; then
+            TEST_SUITE_NAME="Smoke Testing"
+          elif [ "${{ env.RUN_E2E_TESTS }}" = "None" ]; then
+            TEST_SUITE_NAME="None"
+          else
+            TEST_SUITE_NAME="${{ env.RUN_E2E_TESTS }}"
+          fi
+          echo "TEST_SUITE_NAME=$TEST_SUITE_NAME" >> $GITHUB_OUTPUT
+          echo "Test Suite: $TEST_SUITE_NAME"
+
+      - name: Send Quota Failure Notification
+        if: inputs.deploy_result == 'failure' && inputs.QUOTA_FAILED == 'true'
+        shell: bash
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${{ env.accelerator_name }} deployment has failed due to insufficient quota in the requested regions.</p><p><strong>Issue Details:</strong><br>• Quota check failed for GPT model<br>• Required GPT Capacity: ${{ env.GPT_MIN_CAPACITY }}<br>• Checked Regions: ${{ vars.AZURE_REGIONS }}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please resolve the quota issue and retry the deployment.</p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${{ env.accelerator_name }} Pipeline - Failed (Insufficient Quota)"
+          }
+          EOF
+          )
+
+          curl -X POST "${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send quota failure notification"
+
+      - name: Send Deployment Failure Notification
+        if: inputs.deploy_result == 'failure' && inputs.QUOTA_FAILED != 'true'
+        shell: bash
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
+
+          EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${{ env.accelerator_name }} deployment process has encountered an issue and has failed to complete successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• WAF Enabled: ${{ env.WAF_ENABLED }}<br>• EXP Enabled: ${{ env.EXP }}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please investigate the deployment failure at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${{ env.accelerator_name }} Pipeline - Failed"
+          }
+          EOF
+          )
+
+          curl -X POST "${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send deployment failure notification"
+
+      - name: Send Success Notification
+        if: inputs.deploy_result == 'success' && (inputs.e2e_test_result == 'skipped' || inputs.TEST_SUCCESS == 'true')
+        shell: bash
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          WEBAPP_URL="${{ inputs.WEB_APPURL || inputs.existing_webapp_url }}"
+          RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
+          TEST_REPORT_URL="${{ inputs.TEST_REPORT_URL }}"
+          TEST_SUITE_NAME="${{ steps.test_suite.outputs.TEST_SUITE_NAME }}"
+
+          if [ "${{ inputs.e2e_test_result }}" = "skipped" ]; then
+            EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${{ env.accelerator_name }} deployment has completed successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a><br>• E2E Tests: Skipped (as configured)</p><p><strong>Configuration:</strong><br>• WAF Enabled: ${{ env.WAF_ENABLED }}<br>• EXP Enabled: ${{ env.EXP }}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${{ env.accelerator_name }} Pipeline - Deployment Success"
+          }
+          EOF
+            )
+          else
+            EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${{ env.accelerator_name }} deployment and testing process has completed successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a><br>• E2E Tests: Passed ✅<br>• Test Suite: ${TEST_SUITE_NAME}<br>• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a></p><p><strong>Configuration:</strong><br>• WAF Enabled: ${{ env.WAF_ENABLED }}<br>• EXP Enabled: ${{ env.EXP }}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${{ env.accelerator_name }} Pipeline - Test Automation - Success"
+          }
+          EOF
+            )
+          fi
+
+          curl -X POST "${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send success notification"
+
+      - name: Send Test Failure Notification
+        if: inputs.deploy_result == 'success' && inputs.e2e_test_result != 'skipped' && inputs.TEST_SUCCESS != 'true'
+        shell: bash
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          TEST_REPORT_URL="${{ inputs.TEST_REPORT_URL }}"
+          WEBAPP_URL="${{ inputs.WEB_APPURL || inputs.existing_webapp_url }}"
+          RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
+          TEST_SUITE_NAME="${{ steps.test_suite.outputs.TEST_SUITE_NAME }}"
+
+          EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>We would like to inform you that ${{ env.accelerator_name }} accelerator test automation process has encountered issues and failed to complete successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a><br>• Deployment Status: ✅ Success<br>• E2E Tests: ❌ Failed<br>• Test Suite: ${TEST_SUITE_NAME}</p><p><strong>Test Details:</strong><br>• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a></p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please investigate the matter at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${{ env.accelerator_name }} Pipeline - Test Automation - Failed"
+          }
+          EOF
+          )
+
+          curl -X POST "${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send test failure notification"
+
+      - name: Send Existing URL Success Notification
+        if: inputs.deploy_result == 'skipped' && inputs.existing_webapp_url != '' && inputs.e2e_test_result == 'success' && (inputs.TEST_SUCCESS == 'true' || inputs.TEST_SUCCESS == '')
+        shell: bash
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          EXISTING_URL="${{ inputs.existing_webapp_url }}"
+          TEST_REPORT_URL="${{ inputs.TEST_REPORT_URL }}"
+          TEST_SUITE_NAME="${{ steps.test_suite.outputs.TEST_SUITE_NAME }}"
+
+          EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>The ${{ env.accelerator_name }} pipeline executed against the <strong>specified Target URL</strong> and testing process has completed successfully.</p><p><strong>Test Results:</strong><br>• Status: ✅ Passed<br>• Test Suite: ${TEST_SUITE_NAME}<br>${TEST_REPORT_URL:+• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a>}<br>• Target URL: <a href='${EXISTING_URL}'>${EXISTING_URL}</a></p><p><strong>Deployment:</strong> Skipped</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${{ env.accelerator_name }} Pipeline - Test Automation Passed"
+          }
+          EOF
+          )
+
+          curl -X POST "${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send existing URL success notification"
+
+      - name: Send Existing URL Test Failure Notification
+        if: inputs.deploy_result == 'skipped' && inputs.existing_webapp_url != '' && inputs.e2e_test_result == 'failure'
+        shell: bash
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          EXISTING_URL="${{ inputs.existing_webapp_url }}"
+          TEST_REPORT_URL="${{ inputs.TEST_REPORT_URL }}"
+          TEST_SUITE_NAME="${{ steps.test_suite.outputs.TEST_SUITE_NAME }}"
+
+          EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>The ${{ env.accelerator_name }} pipeline executed against the <strong>specified Target URL</strong> and the test automation has encountered issues and failed to complete successfully.</p><p><strong>Failure Details:</strong><br>• Target URL: <a href='${EXISTING_URL}'>${EXISTING_URL}</a><br>${TEST_REPORT_URL:+• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a>}<br>• Test Suite: ${TEST_SUITE_NAME}<br>• Deployment: Skipped</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${{ env.accelerator_name }} Pipeline - Test Automation Failed"
+          }
+          EOF
+          )
+
+          curl -X POST "${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send existing URL test failure notification"
