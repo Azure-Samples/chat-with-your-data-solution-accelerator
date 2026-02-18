@@ -62,9 +62,11 @@ try:
 
     # For CosmosDB with Integrated Vectorization and Semantic Search, display /{container}/filename
     # For other configurations, display only filename
-    if (env_helper.DATABASE_TYPE == DatabaseType.COSMOSDB.value and
-        env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION and
-        env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH):
+    if (
+        env_helper.DATABASE_TYPE == DatabaseType.COSMOSDB.value
+        and env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION
+        and env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH
+    ):
         display_files = {f"/{container_name}/{fname}": fname for fname in files.keys()}
     else:
         display_files = {fname: fname for fname in files.keys()}
