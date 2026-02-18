@@ -482,6 +482,7 @@ jobs:
           echo "| **Database Type** | \`${{ inputs.DATABASE_TYPE }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Integrated Vectorization** | \`${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Semantic Search** | \`${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Advanced Image Processing** | \`${{ inputs.USE_ADVANCED_IMAGE_PROCESSING }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Run E2E Tests** | \`${{ env.RUN_E2E_TESTS }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Cleanup Resources** | ${{ env.CLEANUP_RESOURCES == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
 
