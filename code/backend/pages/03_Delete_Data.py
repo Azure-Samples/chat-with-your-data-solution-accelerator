@@ -57,9 +57,17 @@ try:
         st.write("Select files to delete:")
 
     files = search_handler.output_results(results)
-    # Format filenames with container path for display
+    # Format filenames for display based on configuration
     container_name = env_helper.AZURE_BLOB_CONTAINER_NAME
-    display_files = {f"/{container_name}/{fname}": fname for fname in files.keys()}
+
+    # For CosmosDB with Integrated Vectorization and Semantic Search, display /{container}/filename
+    # For other configurations, display only filename
+    if (env_helper.DATABASE_TYPE == DatabaseType.COSMOSDB.value and
+        env_helper.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION and
+        env_helper.AZURE_SEARCH_USE_SEMANTIC_SEARCH):
+        display_files = {f"/{container_name}/{fname}": fname for fname in files.keys()}
+    else:
+        display_files = {fname: fname for fname in files.keys()}
 
     with st.form("delete_form", clear_on_submit=True, border=False):
         selections = {
