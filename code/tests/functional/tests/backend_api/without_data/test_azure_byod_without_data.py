@@ -5,6 +5,7 @@ import requests
 from string import Template
 from unittest.mock import patch, MagicMock
 
+from backend.batch.utilities.helpers.prompt_utils import get_current_date_suffix
 from tests.request_matching import (
     RequestMatcher,
     verify_request_made,
@@ -126,7 +127,7 @@ def test_post_makes_correct_call_to_azure_openai(
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are an AI assistant that helps people find information.",
+                        "content": "You are an AI assistant that helps people find information." + get_current_date_suffix(),
                     },
                 ]
                 + body["messages"],

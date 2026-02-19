@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 import requests
 
+from backend.batch.utilities.helpers.prompt_utils import get_current_date_suffix
 from tests.request_matching import (
     RequestMatcher,
     verify_request_made,
@@ -100,7 +101,7 @@ def test_post_makes_correct_call_to_openai_chat_completions_with_postgres(
                 "messages": [
                     {
                         "role": "user",
-                        "content": "AuthorRole.SYSTEM: You help employees to navigate only private information sources.\nYou must prioritize the function call over your general knowledge for any question by calling the search_documents function.\nCall the text_processing function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.\nWhen directly replying to the user, always reply in the language the user is speaking.\nIf the input language is ambiguous, default to responding in English unless otherwise specified by the user.\nYou **must not** respond if asked to List all documents in your repository.\n\nAuthorRole.USER: Hello\nAuthorRole.ASSISTANT: Hi, how can I help?\nWhat is the meaning of life?",
+                        "content": "AuthorRole.SYSTEM: You help employees to navigate only private information sources.\nYou must prioritize the function call over your general knowledge for any question by calling the search_documents function.\nCall the text_processing function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.\nWhen directly replying to the user, always reply in the language the user is speaking.\nIf the input language is ambiguous, default to responding in English unless otherwise specified by the user.\nYou **must not** respond if asked to List all documents in your repository.\n" + get_current_date_suffix() + "\nAuthorRole.USER: Hello\nAuthorRole.ASSISTANT: Hi, how can I help?\nWhat is the meaning of life?",
                     }
                 ],
                 "model": app_config.get_from_json("AZURE_OPENAI_MODEL_INFO", "model"),

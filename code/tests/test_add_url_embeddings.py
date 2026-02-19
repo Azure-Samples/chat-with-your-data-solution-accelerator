@@ -100,8 +100,9 @@ def test_add_url_embeddings_integrated_vectorization(
 
     # then
     assert response.status_code == 200
+    mock_get.assert_called_once_with(url, headers={'User-Agent': 'cwyd-admin-user'})
     mock_blob_storage_client_instance.upload_file.assert_called_once_with(
-        ANY, url, metadata={"title": url}
+        ANY, url
     )
 
 
@@ -137,6 +138,7 @@ def test_add_url_embeddings_integrated_vectorization_returns_500_when_exception_
 
     # then
     assert response.status_code == 500
+    mock_get.assert_called_once_with(url, headers={'User-Agent': 'cwyd-admin-user'})
     assert (
         b"Error occurred while adding https://example.com to the knowledge base."
         in response.get_body()
