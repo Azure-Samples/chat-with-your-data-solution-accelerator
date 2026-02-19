@@ -9,7 +9,7 @@ import mimetypes
 from os import path
 import sys
 import re
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 import requests
 from openai import AzureOpenAI, Stream, APIStatusError
@@ -422,7 +422,7 @@ def create_app():
     def health():
         return "OK"
 
-    @app.route("/api/files/<filename>", methods=["GET"])
+    @app.route("/api/files/<path:filename>", methods=["GET"])
     def get_file(filename):
         """
         Download a file from the 'docs' container in Azure Blob Storage using Managed Identity.
@@ -433,28 +433,69 @@ def create_app():
         Returns:
             Flask Response: The file content with appropriate headers, or error response
         """
-        logger.info("File download request for: %s", filename)
+        logger.info("File download request (raw): %s", filename)
+        logger.info("File download request (repr): %r", filename)
 
         try:
+            # URL decode the filename (Flask's path converter doesn't decode)
+            try:
+                decoded_filename = unquote(filename)
+                logger.info("Decoded filename: %s", decoded_filename)
+                logger.info("Decoded filename (repr): %r", decoded_filename)
+
+                # Detect double-encoding attack
+                # If decoding again changes the value, it was double-encoded
+                double_decoded = unquote(decoded_filename)
+                if double_decoded != decoded_filename:
+                    logger.warning("Double-encoded filename detected: %s", filename)
+                    return jsonify({"error": "Invalid filename encoding"}), 400
+
+            except Exception as decode_error:
+                logger.error("Failed to decode filename: %s", decode_error)
+                return jsonify({"error": "Invalid filename encoding"}), 400
+
+            # Use decoded filename for all subsequent operations
+            filename = decoded_filename
+
             # Enhanced input validation - prevent path traversal and unauthorized access
             if not filename:
                 logger.warning("Empty filename provided")
                 return jsonify({"error": "Filename is required"}), 400
 
-            # Prevent path traversal attacks
-            if '..' in filename or '/' in filename or '\\' in filename:
-                logger.warning("Invalid filename with path traversal attempt: %s", filename)
-                return jsonify({"error": "Invalid filename"}), 400
+            # Detect if it's a URL vs regular filename
+            is_url = filename.startswith(('http://', 'https://'))
 
-            # Validate filename length and characters
-            if len(filename) > 255:
+            # Check for path traversal attacks
+            if is_url:
+                # For URLs, block directory traversal patterns
+                if '/../' in filename or '\\..\\' in filename or filename.endswith('/..') or filename.endswith('\\..'):
+                    logger.warning("Path traversal attempt in URL: %s", filename)
+                    return jsonify({"error": "Invalid filename"}), 400
+            else:
+                # For regular files, block path separators first
+                if '/' in filename or '\\' in filename:
+                    logger.warning("Path separators in regular filename: %s", filename)
+                    return jsonify({"error": "Invalid filename"}), 400
+                # Note: .. without path separators is safe (e.g., version..2.pdf)
+
+            # Validate filename length (URLs can be longer)
+            max_length = 2048 if is_url else 255
+            if len(filename) > max_length:
                 logger.warning("Filename too long: %s", filename)
                 return jsonify({"error": "Filename too long"}), 400
 
-            # Only allow safe characters (alphanumeric, dots, dashes, underscores, spaces)
-            if not re.match(r'^[a-zA-Z0-9._\-\s]+$', filename):
-                logger.warning("Filename contains invalid characters: %s", filename)
+            # Block control characters - allows multilingual filenames (Japanese, Hebrew, Arabic, etc.)
+            # This regex allows all Unicode characters except control characters
+            if not re.match(r'^[^\x00-\x1f\x7f]+$', filename):
+                logger.warning("Filename contains invalid control characters: %s", filename)
                 return jsonify({"error": "Invalid filename characters"}), 400
+
+            # For URLs, additional URL-specific validation
+            if is_url:
+                # Validate URL format: must start with http:// or https:// and not contain whitespace or control chars
+                if not re.match(r'^https?://[^\s\x00-\x1f\x7f]+$', filename):
+                    logger.warning("Invalid URL format: %s", filename)
+                    return jsonify({"error": "Invalid URL format"}), 400
 
             # Initialize blob storage client with 'documents' container
             blob_client = AzureBlobStorageClient(container_name="documents")
@@ -480,12 +521,14 @@ def create_app():
                 logger.info("Large file detected: %s, size: %d bytes", filename, file_size)
 
             # Create response with comprehensive headers
+            # Use RFC 5987 encoding for Unicode filenames in Content-Disposition
+            encoded_filename = quote(filename)
             response = Response(
                 file_data,
                 status=200,
                 mimetype=content_type,
                 headers={
-                    'Content-Disposition': f'inline; filename="{filename}"',
+                    'Content-Disposition': f"inline; filename*=UTF-8''{encoded_filename}",
                     'Content-Length': str(file_size),
                     'Cache-Control': 'public, max-age=3600',
                     'X-Content-Type-Options': 'nosniff',

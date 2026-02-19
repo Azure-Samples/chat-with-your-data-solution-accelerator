@@ -3,6 +3,7 @@ This module tests the entry point for the application.
 """
 
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from urllib.parse import quote
 
 from azure.core.exceptions import ClientAuthenticationError, ResourceNotFoundError, ServiceRequestError
 from openai import RateLimitError, BadRequestError, InternalServerError
@@ -949,7 +950,7 @@ class TestGetFile:
         assert response.status_code == 200
         assert response.data == file_content
         assert response.headers["Content-Type"] == "application/pdf"
-        assert response.headers["Content-Disposition"] == f'inline; filename="{filename}"'
+        assert response.headers["Content-Disposition"] == f"inline; filename*=UTF-8''{quote(filename)}"
         assert response.headers["Content-Length"] == str(len(file_content))
         assert response.headers["Cache-Control"] == "public, max-age=3600"
         assert response.headers["X-Content-Type-Options"] == "nosniff"
