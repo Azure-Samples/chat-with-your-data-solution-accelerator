@@ -1145,6 +1145,93 @@ module search 'br/public:avm/res/search/search-service:0.11.1' = if (databaseTyp
         ]
       : []
 
+    roleAssignments: concat(
+      [
+        {
+          roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7' // Search Index Data Contributor
+          principalId: managedIdentityModule.outputs.principalId
+          principalType: 'ServicePrincipal'
+        }
+        {
+          roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0' // Search Service Contributor
+          principalId: managedIdentityModule.outputs.principalId
+          principalType: 'ServicePrincipal'
+        }
+        {
+          roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f' // Search Index Data Reader
+          principalId: managedIdentityModule.outputs.principalId
+          principalType: 'ServicePrincipal'
+        }
+      ],
+      !empty(principal.id)
+        ? [
+            {
+              roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7' // Search Index Data Contributor
+              principalId: principal.id
+            }
+            {
+              roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0' // Search Service Contributor
+              principalId: principal.id
+            }
+            {
+              roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f' // Search Index Data Reader
+              principalId: principal.id
+            }
+          ]
+        : []
+    )
+  }
+}
+
+// Separate module for Search Service to enable managed identity, as this reduces deployment time for the search service
+module searchEnableIdentity 'br/public:avm/res/search/search-service:0.11.1' = if (databaseType == 'CosmosDB') {
+  name: take('avm.res.search.enable-identity.${azureAISearchName}', 64)
+  params: {
+    // Required parameters
+    name: azureAISearchName
+    location: location
+    tags: allTags
+    enableTelemetry: enableTelemetry
+    sku: azureSearchSku
+    authOptions: {
+      aadOrApiKey: {
+        aadAuthFailureMode: 'http401WithBearerChallenge'
+      }
+    }
+    disableLocalAuth: false
+    hostingMode: 'default'
+    networkRuleSet: {
+      bypass: 'AzureServices'
+      ipRules: []
+    }
+    partitionCount: 1
+    replicaCount: 1
+    semanticSearch: azureSearchUseSemanticSearch ? 'free' : 'disabled'
+
+    // WAF aligned configuration for Monitoring
+    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId }] : []
+
+    // WAF aligned configuration for Private Networking
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+
+    privateEndpoints: enablePrivateNetworking
+      ? [
+          {
+            name: 'pep-search-${solutionSuffix}'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'search-dns-zone-group-blob'
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.searchService]!.outputs.resourceId
+                }
+              ]
+            }
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
+            service: 'searchService'
+          }
+        ]
+      : []
+
     // Configure managed identity: user-assigned for production, system-assigned allowed for local development with integrated vectorization
     managedIdentities: { systemAssigned: true, userAssignedResourceIds: [managedIdentityModule.outputs.resourceId] }
     roleAssignments: concat(
@@ -1183,6 +1270,9 @@ module search 'br/public:avm/res/search/search-service:0.11.1' = if (databaseTyp
         : []
     )
   }
+  dependsOn: [
+    search
+  ]
 }
 
 // AVM WAF - Server Farm + Web Site conversions
@@ -1797,21 +1887,21 @@ var systemAssignedRoleAssignments = union(
   databaseType == 'CosmosDB'
     ? [
         {
-          principalId: search.outputs.systemAssignedMIPrincipalId
+          principalId: searchEnableIdentity.?outputs.systemAssignedMIPrincipalId
           resourceId: storage.outputs.resourceId
           roleName: 'Storage Blob Data Contributor'
           roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
           principalType: 'ServicePrincipal'
         }
         {
-          principalId: search.outputs.systemAssignedMIPrincipalId
+          principalId: searchEnableIdentity.?outputs.systemAssignedMIPrincipalId
           resourceId: openai.outputs.resourceId
           roleName: 'Cognitive Services User'
           roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
           principalType: 'ServicePrincipal'
         }
         {
-          principalId: search.outputs.systemAssignedMIPrincipalId
+          principalId: searchEnableIdentity.?outputs.systemAssignedMIPrincipalId
           resourceId: openai.outputs.resourceId
           roleName: 'Cognitive Services OpenAI User'
           roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
