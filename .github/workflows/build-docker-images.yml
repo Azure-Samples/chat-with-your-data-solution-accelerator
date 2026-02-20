@@ -6,14 +6,6 @@ on:
       - main
       - dev
       - demo
-    paths:
-      - 'code/**'
-      - '!code/tests/**'
-      - 'docker/**'
-      - 'package.json'
-      - 'pyproject.toml'
-      - '.github/workflows/build-docker-images.yml'
-      - '.github/workflows/build-docker.yml'
   pull_request:
     branches:
       - main
@@ -28,7 +20,37 @@ on:
   workflow_dispatch:
 
 jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.filter.outputs.docker_related }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check for relevant changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            docker_related:
+              - 'code/**'
+              - '!code/tests/**'
+              - 'docker/**'
+              - 'package.json'
+              - 'pyproject.toml'
+              - '.github/workflows/build-docker-images.yml'
+              - '.github/workflows/build-docker.yml'
+
+      - name: Skip - No Relevant Changes
+        if: steps.filter.outputs.docker_related != 'true' && github.event_name != 'workflow_dispatch'
+        run: echo "No relevant changes detected. Skipping docker build."
+
   docker-build:
+    needs: check-changes
+    if: needs.check-changes.outputs.should_build == 'true' || github.event_name == 'workflow_dispatch'
     strategy:
       matrix:
         include:

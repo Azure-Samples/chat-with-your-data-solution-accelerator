@@ -2,8 +2,6 @@ name: Broken Link Checker
 
 on:
   pull_request:
-    paths:
-      - '**/*.md'
   workflow_dispatch:
 
 permissions:
@@ -28,6 +26,11 @@ jobs:
         with:
           files: |
             **/*.md
+
+      - name: Skip - No Markdown Files Changed
+        if: github.event_name == 'pull_request' && steps.changed-markdown-files.outputs.any_changed != 'true'
+        run: echo "No markdown files changed. Skipping broken link check."
+
       # For PR: Check broken links only in changed files
       - name: Check Broken Links in Changed Markdown Files
         id: lychee-check-pr
@@ -35,7 +38,7 @@ jobs:
         uses: lycheeverse/lychee-action@v2.7.0
         with:
           args: >
-            --verbose --no-progress --exclude ^https?://
+            --verbose --exclude-mail --no-progress --exclude ^https?://
             ${{ steps.changed-markdown-files.outputs.all_changed_files }}
           failIfEmpty: false
         env:
@@ -48,7 +51,7 @@ jobs:
         uses: lycheeverse/lychee-action@v2.7.0
         with:
           args: >
-            --verbose --no-progress --exclude ^https?://
+            --verbose --exclude-mail --no-progress --exclude ^https?://
             '**/*.md'
           failIfEmpty: false
         env:
