@@ -1,5 +1,6 @@
 from typing import List
 from ..helpers.llm_helper import LLMHelper
+from ..helpers.prompt_utils import get_current_date_suffix
 from .answering_tool_base import AnsweringToolBase
 from ..common.answer import Answer
 
@@ -18,7 +19,7 @@ class TextProcessingTool(AnsweringToolBase):
             else question
         )
 
-        system_message = """You are an AI assistant for the user."""
+        system_message = """You are an AI assistant for the user.""" + get_current_date_suffix()
 
         result = llm_helper.get_chat_completion(
             [

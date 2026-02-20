@@ -2,6 +2,7 @@ import pytest
 from pytest_httpserver import HTTPServer
 import requests
 
+from backend.batch.utilities.helpers.prompt_utils import get_current_date_suffix
 from tests.request_matching import (
     RequestMatcher,
     verify_request_made,
@@ -237,7 +238,7 @@ def test_post_makes_correct_call_to_openai_chat_completions_in_question_answer_t
                         "role": "system",
                     },
                     {
-                        "content": "You are an AI assistant that helps people find information.",
+                        "content": "You are an AI assistant that helps people find information." + get_current_date_suffix(),
                         "role": "system",
                     },
                     {"content": "Hello", "role": "user"},

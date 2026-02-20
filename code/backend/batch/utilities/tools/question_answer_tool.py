@@ -8,6 +8,7 @@ from ..helpers.azure_blob_storage_client import AzureBlobStorageClient
 from ..helpers.config.config_helper import ConfigHelper
 from ..helpers.env_helper import EnvHelper
 from ..helpers.llm_helper import LLMHelper
+from ..helpers.prompt_utils import get_current_date_suffix
 from ..search.search import Search
 from .answering_tool_base import AnsweringToolBase
 from openai.types.chat import ChatCompletion
@@ -119,15 +120,16 @@ class QuestionAnswerTool(AnsweringToolBase):
             separators=(",", ":"),
         )
 
+        date_suffix = get_current_date_suffix()
         return [
             {
                 "role": "system",
-                "content": self.config.prompts.answering_system_prompt,
+                "content": self.config.prompts.answering_system_prompt + date_suffix,
             },
             *examples,
             {
                 "role": "system",
-                "content": self.env_helper.AZURE_OPENAI_SYSTEM_MESSAGE,
+                "content": self.env_helper.AZURE_OPENAI_SYSTEM_MESSAGE + date_suffix,
             },
             *QuestionAnswerTool.clean_chat_history(chat_history),
             {

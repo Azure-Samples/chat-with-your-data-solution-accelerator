@@ -338,7 +338,7 @@ param enableTelemetry bool = true
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
-var eventGridSystemTopicName = 'doc-processing'
+var eventGridSystemTopicName = 'evgt-${solutionSuffix}'
 var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
 
 @description('Optional. Image version tag to use.')
@@ -371,6 +371,8 @@ var allTags = union(
   tags
 )
 
+var existingTags = resourceGroup().tags ?? {}
+
 @description('Optional. Created by user name.')
 param createdBy string = contains(deployer(), 'userPrincipalName')
   ? split(deployer().userPrincipalName, '@')[0]
@@ -379,13 +381,14 @@ param createdBy string = contains(deployer(), 'userPrincipalName')
 resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
   name: 'default'
   properties: {
-    tags: {
-      ...resourceGroup().tags
-      ...allTags
-      TemplateName: 'CWYD'
-      CreatedBy: createdBy
-      SecurityControl: 'Ignore'
-    }
+    tags: union(
+      existingTags,
+      allTags,
+      {
+        TemplateName: 'CWYD'
+        CreatedBy: createdBy
+      }
+    )
   }
 }
 
@@ -566,10 +569,10 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
 // using AVM Virtual Machine module
 // https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/compute/virtual-machine
 
-module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-configuration:0.3.1' = {
-  name: take('avm.res.maintenance.maintenance-configuration.${jumpboxVmName}', 64)
+module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-configuration:0.3.1' = if (enablePrivateNetworking) {
+  name: take('avm.res.maintenance.maintenance-configuration.${solutionSuffix}', 64)
   params: {
-    name: 'mc-${jumpboxVmName}'
+    name: 'mc-${solutionSuffix}'
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
@@ -1764,7 +1767,7 @@ module avmEventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.3'
       : []
     eventSubscriptions: [
       {
-        name: eventGridSystemTopicName
+        name: 'evts-${solutionSuffix}'
         destination: {
           endpointType: 'StorageQueue'
           properties: {
@@ -2024,6 +2027,15 @@ output BACKEND_URL string = backendUrl
 
 @description('Azure WebJobs Storage connection string for the Functions app.')
 output AzureWebJobsStorage string = function.outputs.AzureWebJobsStorage
+
+@description('Frontend web application resource name (for azd deploy).')
+output SERVICE_WEB_RESOURCE_NAME string = web.outputs.FRONTEND_API_NAME
+
+@description('Admin web application resource name (for azd deploy).')
+output SERVICE_ADMINWEB_RESOURCE_NAME string = adminweb.outputs.WEBSITE_ADMIN_NAME
+
+@description('Function app resource name (for azd deploy).')
+output SERVICE_FUNCTION_RESOURCE_NAME string = function.outputs.functionName
 
 @description('Frontend web application URI.')
 output FRONTEND_WEBSITE_NAME string = web.outputs.FRONTEND_API_URI

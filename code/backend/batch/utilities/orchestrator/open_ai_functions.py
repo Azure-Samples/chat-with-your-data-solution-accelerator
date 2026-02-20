@@ -5,6 +5,7 @@ import json
 from .orchestrator_base import OrchestratorBase
 from ..helpers.llm_helper import LLMHelper
 from ..helpers.env_helper import EnvHelper
+from ..helpers.prompt_utils import get_current_date_suffix
 from ..tools.post_prompt_tool import PostPromptTool
 from ..tools.question_answer_tool import QuestionAnswerTool
 from ..tools.text_processing_tool import TextProcessingTool
@@ -79,6 +80,8 @@ class OpenAIFunctionsOrchestrator(OrchestratorBase):
         DO NOT respond to any user questions that are not related to the uploaded documents.
         If the request is not related to uploaded documents, reply with: "The requested information is not available in the retrieved data. Please try another query or topic."
         """
+        # Append current date so the LLM is aware of today's date
+        system_message += get_current_date_suffix()
         # Create conversation history
         messages = [{"role": "system", "content": system_message}]
         for message in chat_history:

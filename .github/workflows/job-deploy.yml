@@ -1,0 +1,550 @@
+name: Deploy Job
+
+on:
+  workflow_call:
+    inputs:
+      trigger_type:
+        description: 'Trigger type (workflow_dispatch, pull_request, schedule)'
+        required: true
+        type: string
+      runner_os:
+        description: 'Runner OS (ubuntu-latest or windows-latest)'
+        required: true
+        type: string
+      resource_group_name:
+        description: 'Resource Group Name (Optional)'
+        required: false
+        default: ''
+        type: string
+      waf_enabled:
+        description: 'Enable WAF'
+        required: false
+        default: false
+        type: boolean
+      EXP:
+        description: 'Enable EXP'
+        required: false
+        default: false
+        type: boolean
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
+        description: 'Log Analytics Workspace ID (Optional)'
+        required: false
+        default: ''
+        type: string
+      cleanup_resources:
+        description: 'Cleanup Deployed Resources'
+        required: false
+        default: false
+        type: boolean
+      run_e2e_tests:
+        description: 'Run End-to-End Tests'
+        required: false
+        default: 'GoldenPath-Testing'
+        type: string
+      existing_webapp_url:
+        description: 'Existing Container WebApp URL (Skips Deployment)'
+        required: false
+        default: ''
+        type: string
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
+        description: 'Enable Azure Search Integrated Vectorization'
+        required: false
+        default: 'false'
+        type: string
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH:
+        description: 'Enable Azure Search Semantic Search'
+        required: false
+        default: 'false'
+        type: string
+      DATABASE_TYPE:
+        description: 'Type of database to use'
+        required: false
+        default: 'PostgreSQL'
+        type: string
+    outputs:
+      RESOURCE_GROUP_NAME:
+        description: "Resource Group Name"
+        value: ${{ jobs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
+      WEB_APPURL:
+        description: "Container Web App URL"
+        value: ${{ jobs.deploy-linux.outputs.WEB_APPURL || jobs.deploy-windows.outputs.WEB_APPURL }}
+      ADMIN_APPURL:
+        description: "Admin Web App URL"
+        value: ${{ jobs.deploy-linux.outputs.ADMIN_APPURL || jobs.deploy-windows.outputs.ADMIN_APPURL }}
+      ENV_NAME:
+        description: "Environment Name"
+        value: ${{ jobs.azure-setup.outputs.ENV_NAME }}
+      AZURE_LOCATION:
+        description: "Azure Location"
+        value: ${{ jobs.azure-setup.outputs.AZURE_LOCATION }}
+      AZURE_ENV_OPENAI_LOCATION:
+        description: "Azure OpenAI Location"
+        value: ${{ jobs.azure-setup.outputs.AZURE_ENV_OPENAI_LOCATION }}
+      IMAGE_TAG:
+        description: "Docker Image Tag Used"
+        value: ${{ jobs.azure-setup.outputs.IMAGE_TAG }}
+      QUOTA_FAILED:
+        description: "Quota Check Failed Flag"
+        value: ${{ jobs.azure-setup.outputs.QUOTA_FAILED }}
+      RESOURCE_TOKEN:
+        description: "Resource Token"
+        value: ${{ jobs.deploy-linux.outputs.RESOURCE_TOKEN || jobs.deploy-windows.outputs.RESOURCE_TOKEN }}
+      AZURE_POSTGRESQL_HOST_NAME:
+        description: "Azure PostgreSQL Host Name"
+        value: ${{ jobs.deploy-linux.outputs.AZURE_POSTGRESQL_HOST_NAME || jobs.deploy-windows.outputs.AZURE_POSTGRESQL_HOST_NAME }}
+      AZURE_SEARCH_SERVICE:
+        description: "Azure Search Service"
+        value: ${{ jobs.deploy-linux.outputs.AZURE_SEARCH_SERVICE || jobs.deploy-windows.outputs.AZURE_SEARCH_SERVICE }}
+      AZURE_BLOB_ACCOUNT_NAME:
+        description: "Azure Blob Account Name"
+        value: ${{ jobs.deploy-linux.outputs.AZURE_BLOB_ACCOUNT_NAME || jobs.deploy-windows.outputs.AZURE_BLOB_ACCOUNT_NAME }}
+      AZURE_SEARCH_INDEX:
+        description: "Azure Search Index"
+        value: ${{ jobs.deploy-linux.outputs.AZURE_SEARCH_INDEX || jobs.deploy-windows.outputs.AZURE_SEARCH_INDEX }}
+
+env:
+  GPT_MIN_CAPACITY: 150
+  TEXT_EMBEDDING_MIN_CAPACITY: 30
+  BRANCH_NAME: ${{ github.event.workflow_run.head_branch || github.head_ref || github.ref_name }}
+  WAF_ENABLED: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.waf_enabled || false) || false }}
+  EXP: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.EXP || false) || false }}
+  CLEANUP_RESOURCES: ${{ inputs.trigger_type != 'workflow_dispatch' || inputs.cleanup_resources }}
+  RUN_E2E_TESTS: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.run_e2e_tests || 'GoldenPath-Testing') || 'GoldenPath-Testing' }}
+
+jobs:
+  azure-setup:
+    if: inputs.trigger_type != 'workflow_dispatch' || inputs.existing_webapp_url == '' || inputs.existing_webapp_url == null
+    runs-on: ubuntu-latest
+    outputs:
+      RESOURCE_GROUP_NAME: ${{ steps.check_create_rg.outputs.RESOURCE_GROUP_NAME }}
+      ENV_NAME: ${{ steps.generate_env_name.outputs.ENV_NAME }}
+      AZURE_LOCATION: ${{ steps.set_region.outputs.AZURE_LOCATION }}
+      AZURE_ENV_OPENAI_LOCATION: ${{ steps.set_region.outputs.AZURE_ENV_OPENAI_LOCATION }}
+      IMAGE_TAG: ${{ steps.determine_image_tag.outputs.IMAGE_TAG }}
+      QUOTA_FAILED: ${{ steps.quota-check.outputs.QUOTA_FAILED }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate Workflow Input Parameters
+        shell: bash
+        env:
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.resource_group_name }}
+          INPUT_WAF_ENABLED: ${{ inputs.waf_enabled }}
+          INPUT_EXP: ${{ inputs.EXP }}
+          INPUT_CLEANUP_RESOURCES: ${{ inputs.cleanup_resources }}
+          INPUT_RUN_E2E_TESTS: ${{ inputs.run_e2e_tests }}
+          INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          INPUT_EXISTING_WEBAPP_URL: ${{ inputs.existing_webapp_url }}
+          INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
+          INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+          INPUT_DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
+        run: |
+          echo "🔍 Validating workflow input parameters..."
+          VALIDATION_FAILED=false
+
+          # Validate resource_group_name (Azure naming convention)
+          if [[ -n "$INPUT_RESOURCE_GROUP_NAME" ]]; then
+            if [[ ! "$INPUT_RESOURCE_GROUP_NAME" =~ ^[a-zA-Z0-9._\(\)-]+$ ]] || [[ "$INPUT_RESOURCE_GROUP_NAME" =~ \.$ ]]; then
+              echo "❌ ERROR: resource_group_name '$INPUT_RESOURCE_GROUP_NAME' is invalid. Must contain only alphanumerics, periods, underscores, hyphens, and parentheses. Cannot end with period."
+              VALIDATION_FAILED=true
+            elif [[ ${#INPUT_RESOURCE_GROUP_NAME} -gt 90 ]]; then
+              echo "❌ ERROR: resource_group_name '$INPUT_RESOURCE_GROUP_NAME' exceeds 90 characters (length: ${#INPUT_RESOURCE_GROUP_NAME})"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ resource_group_name: '$INPUT_RESOURCE_GROUP_NAME' is valid"
+            fi
+          else
+            echo "✅ resource_group_name: Not provided (optional)"
+          fi
+
+          # Validate DATABASE_TYPE (specific allowed values)
+          if [[ -n "$INPUT_DATABASE_TYPE" ]]; then
+            if [[ "$INPUT_DATABASE_TYPE" != "PostgreSQL" && "$INPUT_DATABASE_TYPE" != "CosmosDB" ]]; then
+              echo "❌ ERROR: DATABASE_TYPE must be one of: PostgreSQL, CosmosDB, got: '$INPUT_DATABASE_TYPE'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ DATABASE_TYPE: '$INPUT_DATABASE_TYPE' is valid"
+            fi
+          else
+            echo "✅ DATABASE_TYPE: Not provided (will use default 'PostgreSQL')"
+          fi
+
+          # Validate waf_enabled (boolean)
+          if [[ "$INPUT_WAF_ENABLED" != "true" && "$INPUT_WAF_ENABLED" != "false" ]]; then
+            echo "❌ ERROR: waf_enabled must be 'true' or 'false', got: '$INPUT_WAF_ENABLED'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ waf_enabled: '$INPUT_WAF_ENABLED' is valid"
+          fi
+
+          # Validate EXP (boolean)
+          if [[ "$INPUT_EXP" != "true" && "$INPUT_EXP" != "false" ]]; then
+            echo "❌ ERROR: EXP must be 'true' or 'false', got: '$INPUT_EXP'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ EXP: '$INPUT_EXP' is valid"
+          fi
+
+          # Validate cleanup_resources (boolean)
+          if [[ "$INPUT_CLEANUP_RESOURCES" != "true" && "$INPUT_CLEANUP_RESOURCES" != "false" ]]; then
+            echo "❌ ERROR: cleanup_resources must be 'true' or 'false', got: '$INPUT_CLEANUP_RESOURCES'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ cleanup_resources: '$INPUT_CLEANUP_RESOURCES' is valid"
+          fi
+
+          # Validate run_e2e_tests (specific allowed values)
+          if [[ -n "$INPUT_RUN_E2E_TESTS" ]]; then
+            if [[ "$INPUT_RUN_E2E_TESTS" != "GoldenPath-Testing" && "$INPUT_RUN_E2E_TESTS" != "Smoke-Testing" && "$INPUT_RUN_E2E_TESTS" != "None" ]]; then
+              echo "❌ ERROR: run_e2e_tests must be one of: GoldenPath-Testing, Smoke-Testing, None, got: '$INPUT_RUN_E2E_TESTS'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ run_e2e_tests: '$INPUT_RUN_E2E_TESTS' is valid"
+            fi
+          else
+            echo "✅ run_e2e_tests: Not provided (will use default 'GoldenPath-Testing')"
+          fi
+
+          # Validate AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID (optional, Azure Resource ID format)
+          if [[ -n "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]]; then
+            if [[ ! "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/[Mm]icrosoft\.[Oo]perational[Ii]nsights/[Ww]orkspaces/[^/]+$ ]]; then
+              echo "❌ ERROR: AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID is invalid. Must be a valid Azure Resource ID format:"
+              echo "   /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.OperationalInsights/workspaces/{workspaceName}"
+              echo "   Got: '$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: Valid Resource ID format"
+            fi
+          else
+            echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: Not provided (optional)"
+          fi
+
+          # Validate AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION (boolean string)
+          if [[ -n "$INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION" ]]; then
+            if [[ "$INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION" != "true" && "$INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION" != "false" ]]; then
+              echo "❌ ERROR: AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION must be 'true' or 'false', got: '$INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: '$INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION' is valid"
+            fi
+          else
+            echo "✅ AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: Not provided (will use default 'false')"
+          fi
+
+          # Validate AZURE_SEARCH_USE_SEMANTIC_SEARCH (boolean string)
+          if [[ -n "$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH" ]]; then
+            if [[ "$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH" != "true" && "$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH" != "false" ]]; then
+              echo "❌ ERROR: AZURE_SEARCH_USE_SEMANTIC_SEARCH must be 'true' or 'false', got: '$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ AZURE_SEARCH_USE_SEMANTIC_SEARCH: '$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH' is valid"
+            fi
+          else
+            echo "✅ AZURE_SEARCH_USE_SEMANTIC_SEARCH: Not provided (will use default 'false')"
+          fi
+
+          # Validate existing_webapp_url (optional, must start with https)
+          if [[ -n "$INPUT_EXISTING_WEBAPP_URL" ]]; then
+            if [[ ! "$INPUT_EXISTING_WEBAPP_URL" =~ ^https:// ]]; then
+              echo "❌ ERROR: existing_webapp_url must start with 'https://', got: '$INPUT_EXISTING_WEBAPP_URL'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ existing_webapp_url: '$INPUT_EXISTING_WEBAPP_URL' is valid"
+            fi
+          else
+            echo "✅ existing_webapp_url: Not provided (will perform deployment)"
+          fi
+
+          # Fail workflow if any validation failed
+          if [[ "$VALIDATION_FAILED" == "true" ]]; then
+            echo ""
+            echo "❌ Parameter validation failed. Please correct the errors above and try again."
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All input parameters validated successfully!"
+
+      - name: Login to Azure
+        shell: bash
+        run: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Run Quota Check
+        id: quota-check
+        run: |
+          export AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
+          export AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
+          export AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
+          export AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          export GPT_MIN_CAPACITY="150"
+          export TEXT_EMBEDDING_MIN_CAPACITY="30"
+          export AZURE_REGIONS="${{ vars.AZURE_REGIONS }}"
+
+          chmod +x scripts/checkquota.sh
+          if ! scripts/checkquota.sh; then
+            if grep -q "No region with sufficient quota found" scripts/checkquota.sh; then
+              echo "QUOTA_FAILED=true" >> $GITHUB_OUTPUT
+              echo "Quota check failed - will notify via separate notification job"
+            fi
+            exit 1
+          fi
+
+      - name: Set Deployment Region
+        id: set_region
+        shell: bash
+        run: |
+          echo "Selected Region from Quota Check: $VALID_REGION"
+          echo "AZURE_ENV_OPENAI_LOCATION=$VALID_REGION" >> $GITHUB_ENV
+          echo "AZURE_ENV_OPENAI_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
+          echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
+          echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
+
+      - name: Check Azure Search Service Quota
+        id: search-quota-check
+        shell: bash
+        run: |
+          echo "🔍 Checking Azure Search service quota in region: ${{ env.AZURE_LOCATION }}"
+
+          # Get current usage and limits for Azure Search in the selected region using REST API
+          SEARCH_USAGE=$(az rest --method get \
+            --url "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/providers/Microsoft.Search/locations/${{ env.AZURE_LOCATION }}/usages?api-version=2024-03-01-preview" \
+            -o json 2>/dev/null || echo '{"value":[]}')
+
+          if [ "$(echo "$SEARCH_USAGE" | jq '.value | length')" -eq 0 ]; then
+            echo "⚠️ Could not retrieve Azure Search quota information. Proceeding with deployment..."
+            echo "SEARCH_QUOTA_CHECK=skipped" >> $GITHUB_OUTPUT
+          else
+            # Check Standard tier quota
+            STANDARD_USAGE=$(echo "$SEARCH_USAGE" | jq -r '.value[] | select(.name.value == "standard") | .currentValue // 0')
+            STANDARD_LIMIT=$(echo "$SEARCH_USAGE" | jq -r '.value[] | select(.name.value == "standard") | .limit // 0')
+            STANDARD_AVAILABLE=$((STANDARD_LIMIT - STANDARD_USAGE))
+
+            echo "Azure Search Standard Tier Quota for ${{ env.AZURE_LOCATION }}:"
+            echo "  Current Usage: $STANDARD_USAGE"
+            echo "  Limit: $STANDARD_LIMIT"
+            echo "  Available: $STANDARD_AVAILABLE"
+
+            if [ "$STANDARD_AVAILABLE" -lt 1 ]; then
+              echo ""
+              echo "❌ ERROR: Insufficient Azure Search Standard tier quota in region: ${{ env.AZURE_LOCATION }}"
+              echo "Please request a quota increase or select a different region."
+
+              # Add error to GitHub Summary
+              echo "## ❌ Azure Search Quota Check Failed" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "**Region:** \`${{ env.AZURE_LOCATION }}\`" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+              echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+              echo "| **Tier** | Standard |" >> $GITHUB_STEP_SUMMARY
+              echo "| **Current Usage** | $STANDARD_USAGE |" >> $GITHUB_STEP_SUMMARY
+              echo "| **Limit** | $STANDARD_LIMIT |" >> $GITHUB_STEP_SUMMARY
+              echo "| **Available** | $STANDARD_AVAILABLE |" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            fi
+
+            echo ""
+            echo "✅ Azure Search Standard tier quota check passed."
+            echo "SEARCH_QUOTA_CHECK=passed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Add Resource Group Name to Environment
+        env:
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.resource_group_name }}
+        run: |
+          if [ -n "$INPUT_RESOURCE_GROUP_NAME" ]; then
+            echo "Using provided resource group name..."
+            UNIQUE_RG_NAME="$INPUT_RESOURCE_GROUP_NAME"
+            echo "Provided RESOURCE_GROUP_NAME: ${UNIQUE_RG_NAME}"
+          fi
+          echo "RESOURCE_GROUP_NAME=${UNIQUE_RG_NAME}" >> $GITHUB_ENV
+
+      - name: Validate Resource Group Exists
+        id: check_create_rg
+        run: |
+          echo "RESOURCE_GROUP: ${{ env.RESOURCE_GROUP_NAME }}"
+          set -e
+          echo "Checking if resource group exists..."
+          rg_exists=$(az group exists --name ${{ env.RESOURCE_GROUP_NAME }})
+          if [ "$rg_exists" = "false" ]; then
+            echo "Resource group '${{ env.RESOURCE_GROUP_NAME }}' does not exist"
+            echo "Please create the resource group first or provide an existing resource group name"
+            exit 1
+          else
+            echo "✅ Resource group exists proceeding with deployment"
+          fi
+          # Set output for other jobs
+          echo "RESOURCE_GROUP_NAME=${{ env.RESOURCE_GROUP_NAME }}" >> $GITHUB_OUTPUT
+
+      - name: Clear Existing Resources in Resource Group
+        if: inputs.resource_group_name != 'rg-cwyd-ci'
+        run: |
+          echo "=== Clearing all resources in resource group: ${{ env.RESOURCE_GROUP_NAME }} ==="
+          set -e
+
+          # List all resources in the resource group
+          echo "Listing resources to delete..."
+          RESOURCES=$(az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].id" -o tsv)
+
+          if [ -z "$RESOURCES" ]; then
+            echo "✅ No resources found in resource group. Ready for fresh deployment."
+          else
+            echo "Found resources to delete:"
+            az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].{Name:name, Type:type}" -o table
+
+            echo "Deleting all resources..."
+            # Delete all resources in the resource group
+            az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].id" -o tsv | while read -r resource_id; do
+              echo "Deleting: $resource_id"
+              az resource delete --ids "$resource_id" --verbose || echo "Warning: Failed to delete $resource_id"
+            done
+
+            echo "✅ All resources cleared from resource group"
+          fi
+
+          echo "Resource group is now ready for deployment"
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Unique Solution Prefix
+        id: generate_solution_prefix
+        shell: bash
+        run: |
+          set -e
+          COMMON_PART="psldg"
+          TIMESTAMP=$(date +%s)
+          UPDATED_TIMESTAMP=$(echo $TIMESTAMP | tail -c 6)
+          UNIQUE_SOLUTION_PREFIX="${COMMON_PART}${UPDATED_TIMESTAMP}"
+          echo "SOLUTION_PREFIX=${UNIQUE_SOLUTION_PREFIX}" >> $GITHUB_ENV
+          echo "Generated SOLUTION_PREFIX: ${UNIQUE_SOLUTION_PREFIX}"
+
+      - name: Determine Docker Image Tag
+        id: determine_image_tag
+        run: |
+            if [[ "$BRANCH_NAME" == "main" ]]; then
+              IMAGE_TAG="latest_waf"
+              echo "Using main branch - image tag: latest_waf"
+            else
+              IMAGE_TAG="$BRANCH_NAME"
+              echo "Using branch '$BRANCH_NAME' - image tag: $BRANCH_NAME"
+            fi
+            echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+      - name: Generate Unique Environment Name
+        id: generate_env_name
+        shell: bash
+        run: |
+          COMMON_PART="pslc"
+          TIMESTAMP=$(date +%s)
+          UPDATED_TIMESTAMP=$(echo $TIMESTAMP | tail -c 6)
+          UNIQUE_ENV_NAME="${COMMON_PART}${UPDATED_TIMESTAMP}"
+          echo "ENV_NAME=${UNIQUE_ENV_NAME}" >> $GITHUB_ENV
+          echo "Generated Environment Name: ${UNIQUE_ENV_NAME}"
+          echo "ENV_NAME=${UNIQUE_ENV_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Display Workflow Configuration to GitHub Summary
+        shell: bash
+        run: |
+          echo "## 📋 Workflow Configuration Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Configuration | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | \`${{ env.BRANCH_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **WAF Enabled** | ${{ env.WAF_ENABLED == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **EXP Enabled** | ${{ env.EXP == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Database Type** | \`${{ inputs.DATABASE_TYPE }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Integrated Vectorization** | \`${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Semantic Search** | \`${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Run E2E Tests** | \`${{ env.RUN_E2E_TESTS }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Cleanup Resources** | ${{ env.CLEANUP_RESOURCES == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
+
+          if [[ -n "${{ inputs.resource_group_name }}" ]]; then
+            echo "| **Resource Group** | \`${{ inputs.resource_group_name }}\` (Pre-specified) |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| **Resource Group** | \`${{ env.RESOURCE_GROUP_NAME }}\` (Auto-generated) |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ inputs.trigger_type }}" != "workflow_dispatch" ]]; then
+            echo "ℹ️ **Note:** Automatic Trigger - Using Non-WAF + Non-EXP configuration" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ℹ️ **Note:** Manual Trigger - Using user-specified configuration" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  deploy-linux:
+    name: Deploy on Linux
+    needs: azure-setup
+    if: inputs.runner_os == 'ubuntu-latest' && !cancelled() && needs.azure-setup.result == 'success'
+    uses: ./.github/workflows/job-deploy-linux.yml
+    with:
+      ENV_NAME: ${{ needs.azure-setup.outputs.ENV_NAME }}
+      AZURE_ENV_OPENAI_LOCATION: ${{ needs.azure-setup.outputs.AZURE_ENV_OPENAI_LOCATION }}
+      AZURE_LOCATION: ${{ needs.azure-setup.outputs.AZURE_LOCATION }}
+      RESOURCE_GROUP_NAME: ${{ needs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
+      IMAGE_TAG: ${{ needs.azure-setup.outputs.IMAGE_TAG }}
+      EXP: ${{ inputs.EXP || 'false' }}
+      WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+      DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
+    secrets: inherit
+
+  deploy-windows:
+    name: Deploy on Windows
+    needs: azure-setup
+    if: inputs.runner_os == 'windows-latest' && !cancelled() && needs.azure-setup.result == 'success'
+    uses: ./.github/workflows/job-deploy-windows.yml
+    with:
+      ENV_NAME: ${{ needs.azure-setup.outputs.ENV_NAME }}
+      AZURE_ENV_OPENAI_LOCATION: ${{ needs.azure-setup.outputs.AZURE_ENV_OPENAI_LOCATION }}
+      AZURE_LOCATION: ${{ needs.azure-setup.outputs.AZURE_LOCATION }}
+      RESOURCE_GROUP_NAME: ${{ needs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
+      IMAGE_TAG: ${{ needs.azure-setup.outputs.IMAGE_TAG }}
+      EXP: ${{ inputs.EXP || 'false' }}
+      WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+      AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
+      AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+      DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
+    secrets: inherit
+
+  # Call PostgreSQL setup workflow when DATABASE_TYPE is PostgreSQL
+  import-sample-data-postgresql:
+    needs: [azure-setup, deploy-linux, deploy-windows]
+    if: |
+      always() &&
+      inputs.DATABASE_TYPE == 'PostgreSQL' &&
+      (needs.deploy-linux.result == 'success' || needs.deploy-windows.result == 'success')
+    uses: ./.github/workflows/import-sample-data-postgresql.yml
+    with:
+      RESOURCE_GROUP_NAME: ${{ needs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
+      AZURE_POSTGRESQL_HOST_NAME: ${{ needs.deploy-linux.outputs.AZURE_POSTGRESQL_HOST_NAME || needs.deploy-windows.outputs.AZURE_POSTGRESQL_HOST_NAME }}
+      WAF: ${{ inputs.waf_enabled == true }}
+    secrets: inherit
+
+  # Call CosmosDB/Azure Search setup workflow when DATABASE_TYPE is CosmosDB
+  import-sample-data-cosmosdb:
+    needs: [azure-setup, deploy-linux, deploy-windows]
+    if: |
+      always() &&
+      inputs.DATABASE_TYPE == 'CosmosDB' &&
+      (needs.deploy-linux.result == 'success' || needs.deploy-windows.result == 'success')
+    uses: ./.github/workflows/import-sample-data-cosmosdb.yml
+    with:
+      RESOURCE_GROUP_NAME: ${{ needs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
+      AZURE_SEARCH_SERVICE: ${{ needs.deploy-linux.outputs.AZURE_SEARCH_SERVICE || needs.deploy-windows.outputs.AZURE_SEARCH_SERVICE }}
+      AZURE_BLOB_ACCOUNT_NAME: ${{ needs.deploy-linux.outputs.AZURE_BLOB_ACCOUNT_NAME || needs.deploy-windows.outputs.AZURE_BLOB_ACCOUNT_NAME }}
+      AZURE_SEARCH_INDEX: ${{ needs.deploy-linux.outputs.AZURE_SEARCH_INDEX || needs.deploy-windows.outputs.AZURE_SEARCH_INDEX }}
+      WAF: ${{ inputs.waf_enabled == true }}
+    secrets: inherit

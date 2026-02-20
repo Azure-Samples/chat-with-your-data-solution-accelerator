@@ -48,12 +48,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Install AZD
-        run: |
-          set -e
-          echo "Fetching deployment output..."
-          # Install azd (Azure Developer CLI) - required by process_sample_data.sh
-          curl -fsSL https://aka.ms/install-azd.sh | bash
+      - name: Install azd
+        uses: Azure/setup-azd@v2
 
       - name: Run Quota Check
         id: quota-check
