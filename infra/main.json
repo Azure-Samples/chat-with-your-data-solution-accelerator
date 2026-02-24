@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "1885503893633635123"
+      "templateHash": "18393040601938992677"
     }
   },
   "parameters": {
@@ -722,6 +722,15 @@
             }
           }
         }
+      }
+    },
+    "search": {
+      "type": "Microsoft.Search/searchServices",
+      "apiVersion": "2024-06-01-preview",
+      "name": "[variables('azureAISearchName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('azureSearchSku')]"
       }
     },
     "virtualNetwork": {
@@ -30741,11 +30750,11 @@
         "virtualNetwork"
       ]
     },
-    "search": {
+    "searchUpdate": {
       "condition": "[equals(parameters('databaseType'), 'CosmosDB')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "[take(format('avm.res.search.search-service.{0}', variables('azureAISearchName')), 64)]",
+      "name": "[take(format('avm.res.search.update.{0}', variables('azureAISearchName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -33100,6 +33109,7 @@
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').searchService)]",
         "managedIdentityModule",
         "monitoring",
+        "search",
         "virtualNetwork"
       ]
     },
@@ -55141,9 +55151,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "managedIdentityModule",
         "virtualNetwork"
       ]
@@ -55186,7 +55196,7 @@
           "azureOpenAIResourceName": {
             "value": "[reference('openai').outputs.name.value]"
           },
-          "azureAISearchName": "[if(equals(parameters('databaseType'), 'CosmosDB'), createObject('value', reference('search').outputs.name.value), createObject('value', ''))]",
+          "azureAISearchName": "[if(equals(parameters('databaseType'), 'CosmosDB'), createObject('value', variables('azureAISearchName')), createObject('value', ''))]",
           "storageAccountName": {
             "value": "[reference('storage').outputs.name.value]"
           }
@@ -56630,7 +56640,7 @@
         "mode": "Incremental",
         "parameters": {
           "roleAssignments": {
-            "value": "[union(if(equals(parameters('databaseType'), 'CosmosDB'), createArray(createObject('principalId', reference('search').outputs.systemAssignedMIPrincipalId.value, 'resourceId', reference('storage').outputs.resourceId.value, 'roleName', 'Storage Blob Data Contributor', 'roleDefinitionId', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe', 'principalType', 'ServicePrincipal'), createObject('principalId', reference('search').outputs.systemAssignedMIPrincipalId.value, 'resourceId', reference('openai').outputs.resourceId.value, 'roleName', 'Cognitive Services User', 'roleDefinitionId', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalType', 'ServicePrincipal'), createObject('principalId', reference('search').outputs.systemAssignedMIPrincipalId.value, 'resourceId', reference('openai').outputs.resourceId.value, 'roleName', 'Cognitive Services OpenAI User', 'roleDefinitionId', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd', 'principalType', 'ServicePrincipal')), createArray()), createArray(createObject('principalId', reference('formrecognizer').outputs.systemAssignedMIPrincipalId.value, 'resourceId', reference('storage').outputs.resourceId.value, 'roleName', 'Storage Blob Data Contributor', 'roleDefinitionId', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe', 'principalType', 'ServicePrincipal')))]"
+            "value": "[union(if(equals(parameters('databaseType'), 'CosmosDB'), createArray(createObject('principalId', tryGet(if(equals(parameters('databaseType'), 'CosmosDB'), reference('searchUpdate'), null()), 'outputs', 'systemAssignedMIPrincipalId', 'value'), 'resourceId', reference('storage').outputs.resourceId.value, 'roleName', 'Storage Blob Data Contributor', 'roleDefinitionId', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe', 'principalType', 'ServicePrincipal'), createObject('principalId', tryGet(if(equals(parameters('databaseType'), 'CosmosDB'), reference('searchUpdate'), null()), 'outputs', 'systemAssignedMIPrincipalId', 'value'), 'resourceId', reference('openai').outputs.resourceId.value, 'roleName', 'Cognitive Services User', 'roleDefinitionId', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalType', 'ServicePrincipal'), createObject('principalId', tryGet(if(equals(parameters('databaseType'), 'CosmosDB'), reference('searchUpdate'), null()), 'outputs', 'systemAssignedMIPrincipalId', 'value'), 'resourceId', reference('openai').outputs.resourceId.value, 'roleName', 'Cognitive Services OpenAI User', 'roleDefinitionId', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd', 'principalType', 'ServicePrincipal')), createArray()), createArray(createObject('principalId', reference('formrecognizer').outputs.systemAssignedMIPrincipalId.value, 'resourceId', reference('storage').outputs.resourceId.value, 'roleName', 'Storage Blob Data Contributor', 'roleDefinitionId', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe', 'principalType', 'ServicePrincipal')))]"
           }
         },
         "template": {
@@ -56912,7 +56922,7 @@
       "dependsOn": [
         "formrecognizer",
         "openai",
-        "search",
+        "searchUpdate",
         "storage"
       ],
       "metadata": {
@@ -57609,7 +57619,7 @@
       "metadata": {
         "description": "Azure Cognitive Search service information (if deployed)."
       },
-      "value": "[if(equals(parameters('databaseType'), 'CosmosDB'), string(createObject('service_name', variables('azureAISearchName'), 'service', reference('search').outputs.endpoint.value, 'use_semantic_search', parameters('azureSearchUseSemanticSearch'), 'semantic_search_config', parameters('azureSearchSemanticSearchConfig'), 'index_is_prechunked', parameters('azureSearchIndexIsPrechunked'), 'top_k', parameters('azureSearchTopK'), 'enable_in_domain', parameters('azureSearchEnableInDomain'), 'content_column', parameters('azureSearchContentColumn'), 'content_vector_column', parameters('azureSearchVectorColumn'), 'filename_column', parameters('azureSearchFilenameColumn'), 'filter', parameters('azureSearchFilter'), 'title_column', parameters('azureSearchTitleColumn'), 'fields_metadata', parameters('azureSearchFieldsMetadata'), 'source_column', parameters('azureSearchSourceColumn'), 'text_column', parameters('azureSearchTextColumn'), 'layout_column', parameters('azureSearchLayoutTextColumn'), 'url_column', parameters('azureSearchUrlColumn'), 'use_integrated_vectorization', parameters('azureSearchUseIntegratedVectorization'), 'index', variables('azureSearchIndex'), 'indexer_name', variables('azureSearchIndexer'), 'datasource_name', variables('azureSearchDatasource'))), '')]"
+      "value": "[if(equals(parameters('databaseType'), 'CosmosDB'), string(createObject('service_name', variables('azureAISearchName'), 'service', reference('searchUpdate').outputs.endpoint.value, 'use_semantic_search', parameters('azureSearchUseSemanticSearch'), 'semantic_search_config', parameters('azureSearchSemanticSearchConfig'), 'index_is_prechunked', parameters('azureSearchIndexIsPrechunked'), 'top_k', parameters('azureSearchTopK'), 'enable_in_domain', parameters('azureSearchEnableInDomain'), 'content_column', parameters('azureSearchContentColumn'), 'content_vector_column', parameters('azureSearchVectorColumn'), 'filename_column', parameters('azureSearchFilenameColumn'), 'filter', parameters('azureSearchFilter'), 'title_column', parameters('azureSearchTitleColumn'), 'fields_metadata', parameters('azureSearchFieldsMetadata'), 'source_column', parameters('azureSearchSourceColumn'), 'text_column', parameters('azureSearchTextColumn'), 'layout_column', parameters('azureSearchLayoutTextColumn'), 'url_column', parameters('azureSearchUrlColumn'), 'use_integrated_vectorization', parameters('azureSearchUseIntegratedVectorization'), 'index', variables('azureSearchIndex'), 'indexer_name', variables('azureSearchIndexer'), 'datasource_name', variables('azureSearchDatasource'))), '')]"
     },
     "AZURE_SPEECH_SERVICE_INFO": {
       "type": "string",

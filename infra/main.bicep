@@ -1101,8 +1101,17 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
 
-module search 'br/public:avm/res/search/search-service:0.11.1' = if (databaseType == 'CosmosDB') {
-  name: take('avm.res.search.search-service.${azureAISearchName}', 64)
+resource search 'Microsoft.Search/searchServices@2024-06-01-preview' = {
+  name: azureAISearchName
+  location: location
+  sku: {
+    name: azureSearchSku
+  }
+}
+
+// Separate module for Search Service to enable managed identity and update other properties, as this reduces deployment time for the search service
+module searchUpdate 'br/public:avm/res/search/search-service:0.11.1' = if (databaseType == 'CosmosDB') {
+  name: take('avm.res.search.update.${azureAISearchName}', 64)
   params: {
     // Required parameters
     name: azureAISearchName
@@ -1187,6 +1196,9 @@ module search 'br/public:avm/res/search/search-service:0.11.1' = if (databaseTyp
         : []
     )
   }
+  dependsOn: [
+    search
+  ]
 }
 
 // AVM WAF - Server Farm + Web Site conversions
@@ -1739,7 +1751,7 @@ module workbook 'modules/app/workbook.bicep' = if (enableMonitoring) {
     eventGridSystemTopicName: avmEventGridSystemTopic!.outputs.name
     logAnalyticsResourceId: monitoring!.outputs.logAnalyticsWorkspaceId
     azureOpenAIResourceName: openai.outputs.name
-    azureAISearchName: databaseType == 'CosmosDB' ? search!.outputs.name : ''
+    azureAISearchName: databaseType == 'CosmosDB' ? search.name : ''
     storageAccountName: storage.outputs.name
   }
 }
@@ -1801,21 +1813,21 @@ var systemAssignedRoleAssignments = union(
   databaseType == 'CosmosDB'
     ? [
         {
-          principalId: search.outputs.systemAssignedMIPrincipalId
+          principalId: searchUpdate.?outputs.systemAssignedMIPrincipalId
           resourceId: storage.outputs.resourceId
           roleName: 'Storage Blob Data Contributor'
           roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
           principalType: 'ServicePrincipal'
         }
         {
-          principalId: search.outputs.systemAssignedMIPrincipalId
+          principalId: searchUpdate.?outputs.systemAssignedMIPrincipalId
           resourceId: openai.outputs.resourceId
           roleName: 'Cognitive Services User'
           roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
           principalType: 'ServicePrincipal'
         }
         {
-          principalId: search.outputs.systemAssignedMIPrincipalId
+          principalId: searchUpdate.?outputs.systemAssignedMIPrincipalId
           resourceId: openai.outputs.resourceId
           roleName: 'Cognitive Services OpenAI User'
           roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
@@ -1915,7 +1927,7 @@ var azureSpeechServiceInfo = string({
 var azureSearchServiceInfo = databaseType == 'CosmosDB'
   ? string({
       service_name: azureAISearchName
-      service: search!.outputs.endpoint
+      service: searchUpdate!.outputs.endpoint
       use_semantic_search: azureSearchUseSemanticSearch
       semantic_search_config: azureSearchSemanticSearchConfig
       index_is_prechunked: azureSearchIndexIsPrechunked
