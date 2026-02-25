@@ -25,7 +25,7 @@ on:
         default: 'codespace'
 
       resource_group_name:
-        description: 'Existing Resource Group Name.'
+        description: 'Existing Resource Group Name'
         required: true
         type: string
 
