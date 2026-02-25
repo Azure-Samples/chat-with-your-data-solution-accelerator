@@ -1,5 +1,5 @@
 ---
-name: Chat with your data - Solution Accelerator (Python)
+name: Chat with your data - Solution accelerator (Python)
 description: Chat with your data using OpenAI and AI Search with Python.
 languages:
 - python
