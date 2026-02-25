@@ -62,13 +62,23 @@ def add_urls():
 
 
 def sanitize_metadata_value(value):
-    # Remove invalid characters
-    return re.sub(r"[^a-zA-Z0-9-_ .]", "?", value)
+    if not value:
+        return value
+    sanitized = value
+    # Remove characters that are problematic in HTTP headers/URLs
+    # Specifically remove: < > : " | ? * \ (common filesystem/URL issues)
+    sanitized = re.sub(r'[<>:"|?*\\]', '', sanitized)
+    # Remove empty spaces
+    sanitized = sanitized.replace(' ', '')
+
+    return sanitized
 
 
 def add_url_embeddings(urls: list[str]):
-    has_valid_url = bool(list(filter(str.strip, urls)))
-    if not has_valid_url:
+    # Filter out empty lines and whitespace before processing
+    valid_urls = [url.strip() for url in urls if url.strip()]
+
+    if not valid_urls:
         st.error("Please enter at least one valid URL.")
         return False
 
@@ -76,7 +86,7 @@ def add_url_embeddings(urls: list[str]):
     if env_helper.FUNCTION_KEY is not None:
         params["code"] = env_helper.FUNCTION_KEY
         params["clientId"] = "clientKey"
-    for url in urls:
+    for url in valid_urls:
         body = {"url": url}
         backend_url = urllib.parse.urljoin(
             env_helper.BACKEND_URL, "/api/AddURLEmbeddings"
@@ -106,12 +116,12 @@ try:
             for up in uploaded_files:
                 # To read file as bytes:
                 bytes_data = up.getvalue()
-                title = sanitize_metadata_value(up.name)
                 if st.session_state.get("filename", "") != up.name:
+                    title = sanitize_metadata_value(up.name)
                     # Upload a new file
                     st.session_state["filename"] = up.name
                     st.session_state["file_url"] = blob_client.upload_file(
-                        bytes_data, up.name, metadata={"title": title}
+                        bytes_data, title
                     )
             if len(uploaded_files) > 0:
                 st.success(
