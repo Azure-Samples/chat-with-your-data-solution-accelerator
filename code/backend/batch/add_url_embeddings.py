@@ -59,11 +59,15 @@ def process_url_contents_directly(url: str, env_helper: EnvHelper):
 
 def download_url_and_upload_to_blob(url: str):
     try:
-        response = requests.get(url)
+        # Add User-Agent header to avoid being blocked by websites (e.g., Wikipedia)
+        headers = {
+            'User-Agent': 'cwyd-admin-user'
+        }
+        response = requests.get(url, headers=headers)
         parsed_data = BeautifulSoup(response.content, "html.parser")
         with io.BytesIO(parsed_data.get_text().encode("utf-8")) as stream:
             blob_client = AzureBlobStorageClient()
-            blob_client.upload_file(stream, url, metadata={"title": url})
+            blob_client.upload_file(stream, url)
         return func.HttpResponse(f"URL {url} added to knowledge base", status_code=200)
 
     except Exception:
