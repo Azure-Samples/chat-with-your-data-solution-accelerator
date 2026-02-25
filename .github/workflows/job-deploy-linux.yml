@@ -36,6 +36,10 @@ on:
         required: false
         type: string
         default: 'false'
+      USE_ADVANCED_IMAGE_PROCESSING:
+        required: false
+        type: string
+        default: 'false'
       DATABASE_TYPE:
         required: false
         type: string
@@ -93,6 +97,7 @@ jobs:
           INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
           INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
           INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+          INPUT_USE_ADVANCED_IMAGE_PROCESSING: ${{ inputs.USE_ADVANCED_IMAGE_PROCESSING }}
           INPUT_DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
         run: |
           echo "🔍 Validating workflow input parameters..."
@@ -202,6 +207,14 @@ jobs:
             echo "✅ AZURE_SEARCH_USE_SEMANTIC_SEARCH: '$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH' is valid"
           fi
 
+          # Validate USE_ADVANCED_IMAGE_PROCESSING (boolean string)
+          if [[ "$INPUT_USE_ADVANCED_IMAGE_PROCESSING" != "true" && "$INPUT_USE_ADVANCED_IMAGE_PROCESSING" != "false" ]]; then
+            echo "❌ ERROR: USE_ADVANCED_IMAGE_PROCESSING must be 'true' or 'false', got: '$INPUT_USE_ADVANCED_IMAGE_PROCESSING'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ USE_ADVANCED_IMAGE_PROCESSING: '$INPUT_USE_ADVANCED_IMAGE_PROCESSING' is valid"
+          fi
+
           # Validate DATABASE_TYPE (specific allowed values)
           if [[ "$INPUT_DATABASE_TYPE" != "PostgreSQL" && "$INPUT_DATABASE_TYPE" != "CosmosDB" ]]; then
             echo "❌ ERROR: DATABASE_TYPE must be one of: PostgreSQL, CosmosDB, got: '$INPUT_DATABASE_TYPE'"
@@ -268,6 +281,7 @@ jobs:
           INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
           INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
           INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+          INPUT_USE_ADVANCED_IMAGE_PROCESSING: ${{ inputs.USE_ADVANCED_IMAGE_PROCESSING }}
           INPUT_DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
           EVENT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
           SECRET_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ secrets.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
@@ -309,6 +323,7 @@ jobs:
           echo "Setting Azure Search and Database configuration..."
           azd env set AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION="$INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION"
           azd env set AZURE_SEARCH_USE_SEMANTIC_SEARCH="$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH"
+          azd env set USE_ADVANCED_IMAGE_PROCESSING="$INPUT_USE_ADVANCED_IMAGE_PROCESSING"
           azd env set DATABASE_TYPE="$INPUT_DATABASE_TYPE"
 
           # Deploy using azd up

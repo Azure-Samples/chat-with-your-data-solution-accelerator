@@ -61,6 +61,11 @@ on:
         required: false
         default: 'false'
         type: string
+      USE_ADVANCED_IMAGE_PROCESSING:
+        description: 'Use Advanced Image Processing'
+        required: false
+        default: 'false'
+        type: string
       DATABASE_TYPE:
         description: 'Type of database to use'
         required: false
@@ -86,11 +91,12 @@ jobs:
       cleanup_resources: ${{ inputs.cleanup_resources }}
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+      USE_ADVANCED_IMAGE_PROCESSING: ${{ inputs.USE_ADVANCED_IMAGE_PROCESSING }}
       DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
     secrets: inherit
 
 
-    
+
   e2e-test:
     if: "!cancelled() && ((needs.deploy.result == 'success' && needs.deploy.outputs.WEB_APPURL != '' && needs.deploy.outputs.ADMIN_APPURL != '') || (inputs.existing_webapp_url != '' && inputs.existing_webapp_url != null && inputs.existing_admin_app_url != '' && inputs.existing_admin_app_url != null)) && (inputs.trigger_type != 'workflow_dispatch' || (inputs.run_e2e_tests != 'None' && inputs.run_e2e_tests != '' && inputs.run_e2e_tests != null))"
     needs: [deploy]

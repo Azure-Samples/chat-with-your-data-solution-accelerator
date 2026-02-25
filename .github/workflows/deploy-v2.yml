@@ -84,6 +84,14 @@ on:
           - 'false'
           - 'true'
         default: 'false'
+      USE_ADVANCED_IMAGE_PROCESSING:
+        description: 'Use Advanced Image Processing'
+        required: false
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+        default: 'false'
 
       existing_webapp_url:
         description: 'Existing Front-End Web URL (Skips Deployment)'
@@ -120,6 +128,7 @@ jobs:
       azure_env_log_analytics_workspace_id: ${{ steps.validate.outputs.azure_env_log_analytics_workspace_id }}
       azure_search_use_integrated_vectorization: ${{ steps.validate.outputs.azure_search_use_integrated_vectorization }}
       azure_search_use_semantic_search: ${{ steps.validate.outputs.azure_search_use_semantic_search }}
+      use_advanced_image_processing: ${{ steps.validate.outputs.use_advanced_image_processing }}
       existing_webapp_url: ${{ steps.validate.outputs.existing_webapp_url }}
       existing_admin_app_url: ${{ steps.validate.outputs.existing_admin_app_url }}
     steps:
@@ -137,6 +146,7 @@ jobs:
           INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
           INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ github.event.inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
           INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ github.event.inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+          INPUT_USE_ADVANCED_IMAGE_PROCESSING: ${{ github.event.inputs.USE_ADVANCED_IMAGE_PROCESSING }}
           INPUT_EXISTING_WEBAPP_URL: ${{ github.event.inputs.existing_webapp_url }}
           INPUT_EXISTING_ADMIN_APP_URL: ${{ github.event.inputs.existing_admin_app_url }}
           EVENT_NAME: ${{ github.event_name }}
@@ -266,6 +276,16 @@ jobs:
             echo "✅ AZURE_SEARCH_USE_SEMANTIC_SEARCH: '$SEMANTIC_SEARCH' is valid"
           fi
 
+          # Validate USE_ADVANCED_IMAGE_PROCESSING (boolean string)
+          ADVANCED_IMAGE_PROCESSING="${INPUT_USE_ADVANCED_IMAGE_PROCESSING:-false}"
+          if [[ "$ADVANCED_IMAGE_PROCESSING" != "true" && "$ADVANCED_IMAGE_PROCESSING" != "false" ]]; then
+            echo "❌ ERROR: USE_ADVANCED_IMAGE_PROCESSING must be 'true' or 'false', got: '$ADVANCED_IMAGE_PROCESSING'"
+            VALIDATION_ERRORS="${VALIDATION_ERRORS}| USE_ADVANCED_IMAGE_PROCESSING | \`$ADVANCED_IMAGE_PROCESSING\` | Must be 'true' or 'false' |\n"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ USE_ADVANCED_IMAGE_PROCESSING: '$ADVANCED_IMAGE_PROCESSING' is valid"
+          fi
+
           # Validate existing_webapp_url (optional, must start with https)
           if [[ -n "$INPUT_EXISTING_WEBAPP_URL" ]]; then
             if [[ ! "$INPUT_EXISTING_WEBAPP_URL" =~ ^https:// ]]; then
@@ -342,6 +362,7 @@ jobs:
           echo "azure_env_log_analytics_workspace_id=$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" >> $GITHUB_OUTPUT
           echo "azure_search_use_integrated_vectorization=$INTEGRATED_VECTORIZATION" >> $GITHUB_OUTPUT
           echo "azure_search_use_semantic_search=$SEMANTIC_SEARCH" >> $GITHUB_OUTPUT
+          echo "use_advanced_image_processing=$ADVANCED_IMAGE_PROCESSING" >> $GITHUB_OUTPUT
           echo "existing_webapp_url=$INPUT_EXISTING_WEBAPP_URL" >> $GITHUB_OUTPUT
           echo "existing_admin_app_url=$INPUT_EXISTING_ADMIN_APP_URL" >> $GITHUB_OUTPUT
 
@@ -361,5 +382,6 @@ jobs:
       trigger_type: ${{ github.event_name }}
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ needs.validate-inputs.outputs.azure_search_use_integrated_vectorization || 'false' }}
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ needs.validate-inputs.outputs.azure_search_use_semantic_search || 'false' }}
+      USE_ADVANCED_IMAGE_PROCESSING: ${{ needs.validate-inputs.outputs.use_advanced_image_processing || 'false' }}
       DATABASE_TYPE: ${{ needs.validate-inputs.outputs.database_type || 'PostgreSQL' }}
     secrets: inherit
