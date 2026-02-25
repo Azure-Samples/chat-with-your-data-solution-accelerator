@@ -8,7 +8,12 @@ set -euo pipefail
 # vector_store table. Uses the currently logged-in Azure user identity.
 #
 # Usage:
-#   ./scripts/import_sample_data_postgresql.sh <RESOURCE_GROUP_NAME>
+#   ./scripts/import_sample_data_postgresql.sh <RESOURCE_GROUP_NAME> [--waf]
+#
+# Options:
+#   --waf   Enables public access temporarily for data import, then disables
+#           it afterwards. Use for WAF deployments. If not specified, WAF mode
+#           is auto-detected based on public network access configuration.
 #
 # Prerequisites:
 #   - Azure CLI installed and logged in (`az login`)
@@ -20,12 +25,30 @@ set -euo pipefail
 # Parse arguments
 # ──────────────────────────────────────────────────────────────────────────────
 if [[ $# -lt 1 ]]; then
-    echo "❌ Usage: $0 <RESOURCE_GROUP_NAME>"
+    echo "❌ Usage: $0 <RESOURCE_GROUP_NAME> [--waf]"
     echo "   Example: $0 my-resource-group"
+    echo "   Example: $0 my-resource-group --waf"
     exit 1
 fi
 
 RESOURCE_GROUP_NAME="$1"
+IS_WAF_FLAG=false
+
+# Check for --waf flag
+shift
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --waf)
+            IS_WAF_FLAG=true
+            shift
+            ;;
+        *)
+            echo "❌ Unknown option: $1"
+            echo "   Usage: $0 <RESOURCE_GROUP_NAME> [--waf]"
+            exit 1
+            ;;
+    esac
+done
 
 # Resolve the repo root relative to this script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -155,11 +178,14 @@ pa = network.get('publicNetworkAccess', 'Unknown')
 print(pa)
 ")
 
-IS_WAF=false
-if [[ "$PUBLIC_ACCESS" == "Disabled" ]]; then
+if [[ "$IS_WAF_FLAG" == "true" ]]; then
     IS_WAF=true
-    echo "🔒 Public network access is DISABLED — detected as WAF deployment."
+    echo "🔒 WAF mode enabled via --waf flag."
+elif [[ "$PUBLIC_ACCESS" == "Disabled" ]]; then
+    IS_WAF=true
+    echo "🔒 Public network access is DISABLED — auto-detected as WAF deployment."
 else
+    IS_WAF=false
     echo "🌐 Public network access is ENABLED — detected as Non-WAF deployment."
 fi
 

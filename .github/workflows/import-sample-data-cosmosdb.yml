@@ -448,7 +448,7 @@ jobs:
           }
 
           # Load exported data
-          with open("data/azure_search_data.json", "r", encoding="utf-8") as f:
+          with open("azure_search_data.json", "r", encoding="utf-8") as f:
               documents = json.load(f)
 
           # Format for Azure Search bulk upload
