@@ -6,9 +6,6 @@ on:
       new_registry:
         required: true
         type: string
-      new_username:
-        required: true
-        type: string
       app_name:
         required: true
         type: string
@@ -18,35 +15,26 @@ on:
       push:
         required: true
         type: boolean
-    secrets:
-      DOCKER_PASSWORD:
-        required: false
-      DEV_DOCKER_PASSWORD:
-        required: false
 
 jobs:
   docker-build:
     runs-on: ubuntu-latest
+    environment: production
     steps:
     - name: Checkout
       uses: actions/checkout@v6
 
-    - name: Docker Login to cwydcontainerreg (Main)
-      if: ${{ inputs.push == true && github.ref_name == 'main' }}
-      uses: docker/login-action@v3
+    - name: Azure Login (OIDC)
+      if: ${{ inputs.push == true }}
+      uses: azure/login@v2
       with:
-        registry: ${{ inputs.new_registry }}
-        username: ${{ inputs.new_username }}
-        password: ${{ secrets.DEV_DOCKER_PASSWORD }}
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-    # Login for 'dev' and 'demo' branches to cwydcontainerreg only
-    - name: Docker Login to cwydcontainerreg (Dev/Demo)
-      if: ${{ inputs.push == true && (github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'dependabotchanges') }}
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ inputs.new_registry }}
-        username: ${{ inputs.new_username }}
-        password: ${{ secrets.DEV_DOCKER_PASSWORD }}
+    - name: Login to Azure Container Registry
+      if: ${{ inputs.push == true }}
+      run: az acr login --name ${{ inputs.new_registry }}
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3

@@ -48,6 +48,7 @@ on:
 jobs:
   cleanup-deployment:
     runs-on: ${{ inputs.runner_os }}
+    environment: production
     continue-on-error: true
     env:
       RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
@@ -56,11 +57,12 @@ jobs:
       IMAGE_TAG: ${{ inputs.IMAGE_TAG }}
       RESOURCE_TOKEN: ${{ inputs.RESOURCE_TOKEN }}
     steps:
-      - name: Login to Azure
-        shell: bash
-        run: |
-          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Clean Resources within Resource Group
         id: clean_resources
