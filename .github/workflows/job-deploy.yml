@@ -550,7 +550,6 @@ jobs:
     uses: ./.github/workflows/import-sample-data-postgresql.yml
     with:
       RESOURCE_GROUP_NAME: ${{ needs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
-      AZURE_POSTGRESQL_HOST_NAME: ${{ needs.deploy-linux.outputs.AZURE_POSTGRESQL_HOST_NAME || needs.deploy-windows.outputs.AZURE_POSTGRESQL_HOST_NAME }}
       WAF: ${{ inputs.waf_enabled == true }}
     secrets: inherit
 
@@ -564,8 +563,5 @@ jobs:
     uses: ./.github/workflows/import-sample-data-cosmosdb.yml
     with:
       RESOURCE_GROUP_NAME: ${{ needs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
-      AZURE_SEARCH_SERVICE: ${{ needs.deploy-linux.outputs.AZURE_SEARCH_SERVICE || needs.deploy-windows.outputs.AZURE_SEARCH_SERVICE }}
-      AZURE_BLOB_ACCOUNT_NAME: ${{ needs.deploy-linux.outputs.AZURE_BLOB_ACCOUNT_NAME || needs.deploy-windows.outputs.AZURE_BLOB_ACCOUNT_NAME }}
-      AZURE_SEARCH_INDEX: ${{ needs.deploy-linux.outputs.AZURE_SEARCH_INDEX || needs.deploy-windows.outputs.AZURE_SEARCH_INDEX }}
       WAF: ${{ inputs.waf_enabled == true }}
     secrets: inherit

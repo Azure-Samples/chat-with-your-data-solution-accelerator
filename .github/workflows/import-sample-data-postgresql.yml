@@ -7,10 +7,6 @@ on:
         description: 'Azure Resource Group name'
         required: true
         type: string
-      AZURE_POSTGRESQL_HOST_NAME:
-        description: 'PostgreSQL host name (e.g., myserver.postgres.database.azure.com)'
-        required: true
-        type: string
       WAF:
         description: 'Is this a WAF deployment? (enables public access temporarily for data import and then disables it)'
         required: false
@@ -20,10 +16,6 @@ on:
     inputs:
       RESOURCE_GROUP_NAME:
         description: 'Azure Resource Group name'
-        required: true
-        type: string
-      AZURE_POSTGRESQL_HOST_NAME:
-        description: 'PostgreSQL host name (e.g., myserver.postgres.database.azure.com)'
         required: true
         type: string
       WAF:
@@ -43,7 +35,6 @@ jobs:
         shell: bash
         env:
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
-          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
           INPUT_WAF: ${{ inputs.WAF }}
         run: |
           echo "🔍 Validating workflow input parameters..."
@@ -61,17 +52,6 @@ jobs:
             VALIDATION_FAILED=true
           else
             echo "✅ RESOURCE_GROUP_NAME: '$INPUT_RESOURCE_GROUP_NAME' is valid"
-          fi
-
-          # Validate AZURE_POSTGRESQL_HOST_NAME (required, must be valid PostgreSQL hostname format)
-          if [[ -z "$INPUT_AZURE_POSTGRESQL_HOST_NAME" ]]; then
-            echo "❌ ERROR: AZURE_POSTGRESQL_HOST_NAME is required but not provided"
-            VALIDATION_FAILED=true
-          elif [[ ! "$INPUT_AZURE_POSTGRESQL_HOST_NAME" =~ ^[a-zA-Z0-9-]+\.postgres\.database\.azure\.com$ ]]; then
-            echo "❌ ERROR: AZURE_POSTGRESQL_HOST_NAME '$INPUT_AZURE_POSTGRESQL_HOST_NAME' is invalid. Must be in format: <servername>.postgres.database.azure.com"
-            VALIDATION_FAILED=true
-          else
-            echo "✅ AZURE_POSTGRESQL_HOST_NAME: '$INPUT_AZURE_POSTGRESQL_HOST_NAME' is valid"
           fi
 
           # Validate WAF (boolean)
@@ -108,15 +88,36 @@ jobs:
           az upgrade --yes --all
           az extension add --name rdbms-connect --upgrade --yes || true
 
+      - name: Discover PostgreSQL Server from Resource Group
+        env:
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+        run: |
+          echo "🔍 Discovering PostgreSQL Flexible Server in resource group '$INPUT_RESOURCE_GROUP_NAME'..."
+
+          # List all PostgreSQL Flexible Servers in the resource group
+          PG_SERVER_NAME=$(az postgres flexible-server list \
+            --resource-group "$INPUT_RESOURCE_GROUP_NAME" \
+            --query "[0].name" -o tsv)
+
+          if [[ -z "$PG_SERVER_NAME" || "$PG_SERVER_NAME" == "None" ]]; then
+            echo "❌ ERROR: No PostgreSQL Flexible Server found in resource group '$INPUT_RESOURCE_GROUP_NAME'"
+            exit 1
+          fi
+
+          PG_HOST="${PG_SERVER_NAME}.postgres.database.azure.com"
+          echo "✅ Found PostgreSQL server: $PG_SERVER_NAME"
+          echo "✅ PostgreSQL host: $PG_HOST"
+
+          # Export for subsequent steps
+          echo "AZURE_POSTGRESQL_HOST_NAME=$PG_HOST" >> $GITHUB_ENV
+          echo "PG_SERVER_NAME=$PG_SERVER_NAME" >> $GITHUB_ENV
+
       - name: Enable Public Access for PostgreSQL (WAF)
         if: ${{ inputs.WAF == true }}
         env:
-          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
+          PG_SERVER_NAME: ${{ env.PG_SERVER_NAME }}
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
-          PG_HOST="$INPUT_AZURE_POSTGRESQL_HOST_NAME"
-          PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
-
           echo "Configuring public access for PostgreSQL server: $PG_SERVER_NAME"
 
           # Enable public network access for the PostgreSQL server
@@ -150,12 +151,11 @@ jobs:
 
       - name: Add Service Principal as PostgreSQL Admin
         env:
-          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
+          PG_SERVER_NAME: ${{ env.PG_SERVER_NAME }}
+          PG_HOST: ${{ env.AZURE_POSTGRESQL_HOST_NAME }}
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
-          # Get PostgreSQL server name from input parameter
-          PG_HOST="$INPUT_AZURE_POSTGRESQL_HOST_NAME"
-          PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
+          # PostgreSQL server name and host discovered from resource group
 
           # Get the service principal's object ID (required for PostgreSQL admin)
           SP_OBJECT_ID=$(az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query id -o tsv)
@@ -201,13 +201,13 @@ jobs:
 
       - name: Populate PostgreSQL Database
         env:
-          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
+          AZURE_POSTGRESQL_HOST_NAME: ${{ env.AZURE_POSTGRESQL_HOST_NAME }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           SP_DISPLAY_NAME: ${{ env.SP_DISPLAY_NAME }}
         run: |
-          export PG_HOST_DESTINATION="$INPUT_AZURE_POSTGRESQL_HOST_NAME"
+          export PG_HOST_DESTINATION="$AZURE_POSTGRESQL_HOST_NAME"
           # Get the service principal's display name (required as username for PostgreSQL Entra auth)
           export SP_DISPLAY_NAME=$(az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query displayName -o tsv)
 
@@ -275,12 +275,9 @@ jobs:
       - name: Disable Public Access for PostgreSQL (WAF)
         if: ${{ always() && inputs.WAF == true }}
         env:
-          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
+          PG_SERVER_NAME: ${{ env.PG_SERVER_NAME }}
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
-          PG_HOST="$INPUT_AZURE_POSTGRESQL_HOST_NAME"
-          PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
-
           echo "Removing public access for PostgreSQL server: $PG_SERVER_NAME"
 
           # Remove the firewall rule that allowed all IP addresses
@@ -308,7 +305,7 @@ jobs:
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Job Status** | ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **PostgreSQL Host** | \`${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **PostgreSQL Host** | \`${{ env.AZURE_POSTGRESQL_HOST_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Resource Group** | \`${{ inputs.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **WAF** | \`${{ inputs.WAF }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
