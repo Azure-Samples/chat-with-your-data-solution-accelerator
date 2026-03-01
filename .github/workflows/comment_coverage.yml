@@ -18,7 +18,7 @@ jobs:
       github.event.workflow_run.conclusion != 'cancelled'
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: coverage
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -39,7 +39,7 @@ jobs:
             return response.data[0]?.number ?? "";
           retries: 3
       - name: Comment coverage
-        uses: MishaKav/pytest-coverage-comment@ae0e8a539a3f310aefb3bfb6a2209778a21fa42b
+        uses: MishaKav/pytest-coverage-comment@25a4660954f81456fdfca755d569ed6e18f9423c
         with:
           pytest-xml-coverage-path: coverage.xml
           junitxml-path: coverage-junit.xml

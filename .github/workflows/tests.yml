@@ -65,7 +65,7 @@ jobs:
           result-encoding: string
           retries: 3
       - name: Download main coverage artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         if: github.event_name == 'pull_request' && steps.coverage-artifact.outputs.result != ''
         continue-on-error: true # There is a chance that the artifact doesn't exist, or has expired
         with:
@@ -86,7 +86,7 @@ jobs:
           echo "MIN_COVERAGE=$MIN_COVERAGE" >> "$GITHUB_OUTPUT"
       - name: Run Python Tests
         run: make python-test optional_args="--junitxml=coverage-junit.xml --cov=code --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=${{ steps.coverage-value.outputs.MIN_COVERAGE }} ./code/tests"
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: coverage

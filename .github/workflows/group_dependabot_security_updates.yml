@@ -57,7 +57,7 @@ jobs:
       GROUP_CONFIG_YARN: ${{ github.event.inputs.group_config_yarn || 'frontend' }}
     steps:
       - name: Checkout default branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Git
         run: |

@@ -24,7 +24,7 @@ jobs:
       - name: Get changed markdown files (PR only)
         id: changed-markdown-files
         if: github.event_name == 'pull_request'
-        uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46
+        uses: tj-actions/changed-files@7dee1b0c1557f278e5c7dc244927139d78c0e22a # v47.0.4
         with:
           files: |
             **/*.md
@@ -32,7 +32,7 @@ jobs:
       - name: Check Broken Links in Changed Markdown Files
         id: lychee-check-pr
         if: github.event_name == 'pull_request' && steps.changed-markdown-files.outputs.any_changed == 'true'
-        uses: lycheeverse/lychee-action@v2.7.0
+        uses: lycheeverse/lychee-action@v2.8.0
         with:
           args: >
             --verbose --no-progress --exclude ^https?://
@@ -45,7 +45,7 @@ jobs:
       - name: Check Broken Links in All Markdown Files in Entire Repo (Manual Trigger)
         id: lychee-check-manual
         if: github.event_name == 'workflow_dispatch'
-        uses: lycheeverse/lychee-action@v2.7.0
+        uses: lycheeverse/lychee-action@v2.8.0
         with:
           args: >
             --verbose --no-progress --exclude ^https?://
