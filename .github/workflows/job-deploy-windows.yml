@@ -78,7 +78,7 @@ jobs:
       AZURE_SEARCH_INDEX: ${{ steps.get_output_windows.outputs.AZURE_SEARCH_INDEX }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Validate Workflow Input Parameters
         shell: bash
@@ -236,7 +236,7 @@ jobs:
         uses: Azure/setup-azd@v2
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 

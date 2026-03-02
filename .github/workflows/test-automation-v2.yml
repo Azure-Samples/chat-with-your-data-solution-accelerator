@@ -39,7 +39,7 @@ jobs:
       TEST_REPORT_URL: ${{ steps.upload_report.outputs.artifact-url }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -168,7 +168,7 @@ jobs:
 
       - name: Upload test report
         id: upload_report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: test-report
