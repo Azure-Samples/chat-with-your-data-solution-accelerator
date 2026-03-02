@@ -53,9 +53,9 @@ uitest: ## 🧪 Run the ui tests in headless mode
 docker-compose-up: ## 🐳 Run the docker-compose file
 	@cd docker && AZD_ENV_FILE=$(AZURE_ENV_FILE) docker-compose up
 
-azd-login: ## 🔑 Login to Azure with azd and a SPN
+azd-login: ## 🔑 Login to Azure with azd using OIDC
 	@echo -e "\e[34m$@\e[0m" || true
-	@azd auth login --client-id ${AZURE_CLIENT_ID} --client-secret ${AZURE_CLIENT_SECRET} --tenant-id ${AZURE_TENANT_ID}
+	@azd auth login --client-id ${AZURE_CLIENT_ID} --federated-credential-provider github --tenant-id ${AZURE_TENANT_ID}
 
 # Fixed Makefile section for deploy target
 deploy: azd-login ## Deploy everything to Azure

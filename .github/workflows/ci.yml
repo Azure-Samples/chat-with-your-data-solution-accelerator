@@ -11,6 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  id-token: write
   contents: read
   packages: write
 
@@ -49,11 +50,11 @@ jobs:
     needs: check-changes
     if: needs.check-changes.outputs.should_deploy == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
+    environment: production
     env:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       PRINCIPAL_ID: ${{ secrets.PRINCIPAL_ID }}
       PRINCIPAL_NAME: ${{ secrets.PRINCIPAL_NAME }}
       PRINCIPAL_TYPE: 'ServicePrincipal'
@@ -73,12 +74,16 @@ jobs:
       - name: Install azd
         uses: Azure/setup-azd@v2
 
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Run Quota Check
         id: quota-check
         run: |
-          export AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
-          export AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
-          export AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
           export AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           export GPT_MIN_CAPACITY="150"
           export TEXT_EMBEDDING_MIN_CAPACITY="30"
@@ -191,8 +196,7 @@ jobs:
                             runCmd: |
                               export optional_args="./code/tests"
 
-                              # Azure login first
-                              az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+                              # Azure CLI is already authenticated via OIDC
                               az account set --subscription $AZURE_SUBSCRIPTION_ID
 
                               # Capture deployment output to a log file
@@ -214,7 +218,6 @@ jobs:
                               echo "Frontend URL from logs: $(cat log_web_url.txt)"
                             env: |
                               AZURE_CLIENT_ID
-                              AZURE_CLIENT_SECRET
                               AZURE_TENANT_ID
                               AZURE_SUBSCRIPTION_ID
                               AZURE_ENV_NAME
@@ -308,9 +311,6 @@ jobs:
         env:
                 FRONTEND_WEBSITE_URL: ${{ env.FRONTEND_WEBSITE_URL }}
                 ADMIN_WEBSITE_URL: ${{ env.ADMIN_WEBSITE_URL }}
-                AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-                AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-                AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
                 AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Export PostgreSQL Host Endpoint from Makefile
@@ -348,20 +348,18 @@ jobs:
           python - <<EOF
           import os
           import psycopg2
-          from azure.identity import ClientSecretCredential
+          from azure.identity import DefaultAzureCredential
 
-          tenant_id = os.environ["AZURE_TENANT_ID"]
-          client_id = os.environ["AZURE_CLIENT_ID"]
-          client_secret = os.environ["AZURE_CLIENT_SECRET"]
           pg_host = os.environ.get("PG_HOST_DESTINATION", "localhost")
+          client_id = os.environ.get("AZURE_CLIENT_ID", "")
 
-          # Acquire Azure AD access token for PostgreSQL
-          credential = ClientSecretCredential(tenant_id, client_id, client_secret)
+          # Acquire Azure AD access token for PostgreSQL using OIDC (DefaultAzureCredential)
+          credential = DefaultAzureCredential()
           token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default").token
 
           db_params = {
               "user": client_id,   # Use service principal clientId
-              "password": token,   # Use AAD token instead of password
+              "password": token,   # Use AAD token via OIDC
               "host": pg_host,
               "port": "5432",
               "dbname": "postgres",
@@ -384,8 +382,6 @@ jobs:
           EOF
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
       - name: Final Status Check
         id: final-status
@@ -422,11 +418,11 @@ jobs:
     needs: [check-changes, deploy, e2e-test]
     runs-on: ubuntu-latest
 
+    environment: production
     env:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       AZURE_ENV_NAME: ${{ needs.deploy.outputs.solution_suffix }}  # Get from deploy job
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
       imageTag: ${{ needs.deploy.outputs.imageTag }}
@@ -445,7 +441,6 @@ jobs:
           runCmd: make destroy
           env: |
             AZURE_CLIENT_ID
-            AZURE_CLIENT_SECRET
             AZURE_TENANT_ID
             AZURE_SUBSCRIPTION_ID
             AZURE_ENV_NAME

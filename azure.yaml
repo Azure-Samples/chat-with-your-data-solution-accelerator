@@ -48,9 +48,11 @@ services:
         windows:
           shell: pwsh
           run: poetry install; poetry export -o requirements.txt
+          continueOnError: false
         posix:
           shell: sh
           run: poetry install; poetry export -o requirements.txt
+          continueOnError: false
 
   function:
     project: ./code/backend/batch
@@ -63,6 +65,8 @@ services:
         windows:
           shell: pwsh
           run: poetry export -o requirements.txt --without-hashes; pip install -r requirements.txt
+          continueOnError: false
         posix:
           shell: sh
           run: poetry export -o requirements.txt --without-hashes; pip install -r requirements.txt
+          continueOnError: false

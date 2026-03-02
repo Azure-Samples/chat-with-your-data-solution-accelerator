@@ -70,6 +70,7 @@ on:
 jobs:
   deploy-linux:
     runs-on: ubuntu-latest
+    environment: production
     env:
       AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
     outputs:
@@ -262,13 +263,18 @@ jobs:
           poetry --version
           poetry self add poetry-plugin-export
 
-      - name: Login to AZD
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to AZD (OIDC)
         id: login-azure
         shell: bash
         run: |
-          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+          azd auth login --client-id "${{ secrets.AZURE_CLIENT_ID }}" --federated-credential-provider "github" --tenant-id "${{ secrets.AZURE_TENANT_ID }}"
 
       - name: Deploy using azd up and extract values (Linux)
         id: get_output_linux
@@ -354,6 +360,13 @@ jobs:
             echo "AZURE_SEARCH_INDEX=$AZURE_SEARCH_INDEX" >> $GITHUB_OUTPUT
           fi
 
+      - name: Azure Login (OIDC) refresh token for subsequent Azure CLI commands
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Disable Authentication with Script
         run: |
           export FRONTEND_WEBSITE_URL=$(azd env get-value FRONTEND_WEBSITE_NAME)
@@ -361,9 +374,6 @@ jobs:
           chmod +x scripts/disable_auth.sh
           ./scripts/disable_auth.sh
         env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Generate Deploy Job Summary
