@@ -333,7 +333,18 @@ jobs:
           azd env set DATABASE_TYPE="$INPUT_DATABASE_TYPE"
 
           # Deploy using azd up
-          azd up --no-prompt
+          AZD_UP_EXIT_CODE=0
+          azd up --no-prompt || AZD_UP_EXIT_CODE=$?
+
+          # Always try to extract RESOURCE_TOKEN, even if azd up failed
+          # This ensures cleanup can find and delete partially-created resources
+          RESOURCE_TOKEN=$(azd env get-value RESOURCE_TOKEN 2>/dev/null || echo "")
+          echo "RESOURCE_TOKEN=$RESOURCE_TOKEN" >> $GITHUB_OUTPUT
+
+          if [ $AZD_UP_EXIT_CODE -ne 0 ]; then
+            echo "::error::azd up failed with exit code $AZD_UP_EXIT_CODE"
+            exit $AZD_UP_EXIT_CODE
+          fi
 
           azd env get-values
 
@@ -341,9 +352,6 @@ jobs:
           echo "FRONTEND_WEBSITE_NAME=$FRONTEND_WEBSITE_NAME" >> $GITHUB_OUTPUT
           ADMIN_WEBSITE_NAME=$(azd env get-value ADMIN_WEBSITE_NAME)
           echo "ADMIN_WEBSITE_NAME=$ADMIN_WEBSITE_NAME" >> $GITHUB_OUTPUT
-
-          RESOURCE_TOKEN=$(azd env get-value RESOURCE_TOKEN)
-          echo "RESOURCE_TOKEN=$RESOURCE_TOKEN" >> $GITHUB_OUTPUT
 
           # Export values based on DATABASE_TYPE
           if [[ "$INPUT_DATABASE_TYPE" == "PostgreSQL" ]]; then

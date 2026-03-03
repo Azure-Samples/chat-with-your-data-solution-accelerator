@@ -334,7 +334,26 @@ jobs:
           azd env set DATABASE_TYPE="$env:INPUT_DATABASE_TYPE"
 
           # Deploy using azd up
-          azd up --no-prompt
+          $AzdUpFailed = $false
+          try {
+            azd up --no-prompt
+          } catch {
+            $AzdUpFailed = $true
+            Write-Host "::error::azd up failed: $_"
+          }
+
+          # Always try to extract RESOURCE_TOKEN, even if azd up failed
+          # This ensures cleanup can find and delete partially-created resources
+          try {
+            $ResourceToken = azd env get-value RESOURCE_TOKEN
+          } catch {
+            $ResourceToken = ""
+          }
+          echo "RESOURCE_TOKEN=$ResourceToken" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          if ($AzdUpFailed) {
+            throw "azd up failed. See above for details."
+          }
 
           azd env get-values
 
@@ -343,9 +362,6 @@ jobs:
 
           $AdminWebsiteName = azd env get-value ADMIN_WEBSITE_NAME
           echo "ADMIN_WEBSITE_NAME=$AdminWebsiteName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
-          $ResourceToken = azd env get-value RESOURCE_TOKEN
-          echo "RESOURCE_TOKEN=$ResourceToken" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
           # Export values based on DATABASE_TYPE
           if ($env:INPUT_DATABASE_TYPE -eq 'PostgreSQL') {
