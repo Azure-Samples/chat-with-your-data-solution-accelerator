@@ -622,7 +622,7 @@ def test_4094_cwyd_citations_sources_properly_linked(login_logout, request):
 
         # Step 2: Try multiple questions to get one with reference links
         test_questions = [
-            "How do I enroll in health benefits a new employee?",
+            "What benefits are available to employees (besides health coverage)?",
             "What are the company benefits available to employees?",
             "What health coverage options are available?",
             "Show Microsoft share repurchases and dividends",
