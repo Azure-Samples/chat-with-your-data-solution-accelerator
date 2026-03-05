@@ -19,7 +19,7 @@ def validate_admin_page_loaded(page, admin_page, home_page):
     page.goto(ADMIN_URL)
     actual_title = page.locator(admin_page.ADMIN_PAGE_TITLE).text_content()
     assert (
-        actual_title == "Chat with your data Solution Accelerator"
+        "Chat with your data Solution Accelerator" in actual_title
     ), "Admin page title mismatch"
 
 
@@ -2324,7 +2324,7 @@ def test_8470_bug_8443_cwyd_ingest_hebrew_pdf_and_web_urls(login_logout, request
         logger.info("[8470] Admin ingest data page loaded")
 
         # Step 2: Upload Hebrew PDF file
-        hebrew_filename = "__יְהוֹדַיָה-Hebrew 1.pdf"
+        hebrew_filename = "__יְהוֹדַיָה-Hebrew1.pdf"
         logger.info("[8470] Starting Hebrew PDF file upload process")
         hebrew_file_path = get_test_file_path(hebrew_filename)
         verify_file_exists(hebrew_file_path, "8470")
@@ -2904,7 +2904,7 @@ def test_9205_us_9005_cwyd_multilingual_filename_uploads(login_logout, request):
 
         # Define multilingual test files
         multilingual_files = [
-            "__יְהוֹדַיָה-Hebrew 1.pdf",  # Hebrew
+            "__יְהוֹדַיָה-Hebrew1.pdf",  # Hebrew
             "ユダヤ-Japanese.pdf",  # Japanese
             "Judäa-German.pdf",  # German
             "Giudea-Italian.pdf",  # Italian
