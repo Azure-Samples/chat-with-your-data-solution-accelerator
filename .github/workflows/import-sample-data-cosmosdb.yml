@@ -79,7 +79,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          pip install requests jupyter nbconvert ipykernel
+          pip install requests
 
       - name: Login to Azure
         shell: bash
@@ -92,16 +92,276 @@ jobs:
           az upgrade --yes --all
           az extension add --name storage-preview --upgrade --yes || true
 
-      - name: Execute Import Data Notebook
+      - name: Verify Azure Login and Discover Resources
+        id: discover
+        shell: bash
         env:
           RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
-          cd scripts/CWYD_Ingestion_scripts
-          echo "🚀 Executing import_data.ipynb for resource group: $RESOURCE_GROUP_NAME"
-          jupyter nbconvert --to notebook --execute import_data.ipynb \
-            --ExecutePreprocessor.timeout=-1 \
-            --output import_data_executed.ipynb
-          echo "✅ Notebook executed successfully"
+          echo "🔍 Verifying Azure CLI login..."
+          ACCOUNT=$(az account show -o json)
+          SUBSCRIPTION_ID=$(echo "$ACCOUNT" | jq -r '.id')
+          USER_TYPE=$(echo "$ACCOUNT" | jq -r '.user.type')
+          USER_NAME=$(echo "$ACCOUNT" | jq -r '.user.name')
+
+          echo "SUBSCRIPTION_ID=$SUBSCRIPTION_ID" >> $GITHUB_ENV
+          echo "SUBSCRIPTION_ID=$SUBSCRIPTION_ID" >> $GITHUB_OUTPUT
+
+          if [ "$USER_TYPE" == "user" ]; then
+            USER_DISPLAY_NAME=$(az ad signed-in-user show --query displayName -o tsv)
+          else
+            USER_DISPLAY_NAME=$(az ad sp show --id "$USER_NAME" --query displayName -o tsv)
+          fi
+          echo "USER_DISPLAY_NAME=$USER_DISPLAY_NAME" >> $GITHUB_ENV
+          echo "USER_NAME=$USER_NAME" >> $GITHUB_ENV
+
+          az group show --name "$RESOURCE_GROUP_NAME" -o none
+
+          echo "🔍 Discovering Search service and Storage account..."
+          AZURE_SEARCH_SERVICE=$(az search service list --resource-group "$RESOURCE_GROUP_NAME" -o json | jq -r '.[0].name')
+          if [ -z "$AZURE_SEARCH_SERVICE" ] || [ "$AZURE_SEARCH_SERVICE" == "null" ]; then
+            echo "❌ No Azure Search service found in '$RESOURCE_GROUP_NAME'."
+            exit 1
+          fi
+
+          AZURE_BLOB_ACCOUNT_NAME=$(az storage account list --resource-group "$RESOURCE_GROUP_NAME" -o json | jq -r '.[0].name')
+          if [ -z "$AZURE_BLOB_ACCOUNT_NAME" ] || [ "$AZURE_BLOB_ACCOUNT_NAME" == "null" ]; then
+            echo "❌ No Storage Account found in '$RESOURCE_GROUP_NAME'."
+            exit 1
+          fi
+
+          echo "✅ Search: $AZURE_SEARCH_SERVICE | Storage: $AZURE_BLOB_ACCOUNT_NAME"
+          echo "AZURE_SEARCH_SERVICE=$AZURE_SEARCH_SERVICE" >> $GITHUB_ENV
+          echo "AZURE_SEARCH_SERVICE=$AZURE_SEARCH_SERVICE" >> $GITHUB_OUTPUT
+          echo "AZURE_BLOB_ACCOUNT_NAME=$AZURE_BLOB_ACCOUNT_NAME" >> $GITHUB_ENV
+          echo "AZURE_BLOB_ACCOUNT_NAME=$AZURE_BLOB_ACCOUNT_NAME" >> $GITHUB_OUTPUT
+
+      - name: Discover App Service and Determine Data File
+        id: app_settings
+        shell: bash
+        env:
+          RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+        run: |
+          APP_SERVICE_NAME=$(az webapp list --resource-group "$RESOURCE_GROUP_NAME" -o json | jq -r '.[0].name')
+          if [ -z "$APP_SERVICE_NAME" ] || [ "$APP_SERVICE_NAME" == "null" ]; then
+            echo "❌ No App Service found in '$RESOURCE_GROUP_NAME'."
+            exit 1
+          fi
+          echo "✅ App Service: $APP_SERVICE_NAME"
+          echo "APP_SERVICE_NAME=$APP_SERVICE_NAME" >> $GITHUB_ENV
+
+          SETTINGS_JSON=$(az webapp config appsettings list --name "$APP_SERVICE_NAME" --resource-group "$RESOURCE_GROUP_NAME" -o json)
+          USE_IV=$(echo "$SETTINGS_JSON" | jq -r '[.[] | select(.name=="AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION")] | .[0].value // ""' | tr '[:upper:]' '[:lower:]' | xargs)
+          USE_SS=$(echo "$SETTINGS_JSON" | jq -r '[.[] | select(.name=="AZURE_SEARCH_USE_SEMANTIC_SEARCH")] | .[0].value // ""' | tr '[:upper:]' '[:lower:]' | xargs)
+
+          if [ "$USE_IV" == "true" ] && [ "$USE_SS" == "true" ]; then
+            SEARCH_DATA_FILE="scripts/CWYD_Ingestion_scripts/azure_search_data_UseVectorization_SemanticSearch.json"
+            echo "📄 Both integrated vectorization and semantic search are set to true."
+          else
+            SEARCH_DATA_FILE="scripts/CWYD_Ingestion_scripts/azure_search_data.json"
+            echo "📄 AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION=$USE_IV"
+            echo "   AZURE_SEARCH_USE_SEMANTIC_SEARCH=$USE_SS"
+          fi
+          echo "   → Using data file: $SEARCH_DATA_FILE"
+          echo "SEARCH_DATA_FILE=$SEARCH_DATA_FILE" >> $GITHUB_ENV
+
+      - name: Enable Public Access (WAF)
+        if: ${{ inputs.WAF == true }}
+        shell: bash
+        env:
+          RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+        run: |
+          echo "🔓 Enabling public access for Azure Search service..."
+          IDENTITY_TYPE=$(az search service list --resource-group "$RESOURCE_GROUP_NAME" -o json | jq -r '.[0].identity.type // "None"')
+
+          if echo "$IDENTITY_TYPE" | grep -q "UserAssigned"; then
+            echo "Using REST API to preserve UserAssigned identity configuration..."
+            IDENTITY_BLOCK=$(az search service list --resource-group "$RESOURCE_GROUP_NAME" -o json | jq '.[0].identity')
+            PATCH_BODY=$(jq -n --argjson identity "$IDENTITY_BLOCK" '{"properties":{"publicNetworkAccess":"enabled"},"identity":$identity}')
+
+            API_URL="https://management.azure.com/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP_NAME}/providers/Microsoft.Search/searchServices/${AZURE_SEARCH_SERVICE}?api-version=2024-03-01-preview"
+            echo "$PATCH_BODY" > patch_body.json
+            az rest --method PATCH --uri "$API_URL" --body @patch_body.json
+            rm -f patch_body.json
+          else
+            az search service update --name "$AZURE_SEARCH_SERVICE" --resource-group "$RESOURCE_GROUP_NAME" --public-access enabled
+          fi
+          echo "✅ Public access enabled for Azure Search service"
+
+          echo "🔓 Enabling public access for Storage account..."
+          az storage account update --name "$AZURE_BLOB_ACCOUNT_NAME" --resource-group "$RESOURCE_GROUP_NAME" --public-network-access Enabled --output none
+          az storage account update --name "$AZURE_BLOB_ACCOUNT_NAME" --resource-group "$RESOURCE_GROUP_NAME" --default-action Allow --output none
+          echo "✅ Storage account public access enabled."
+
+      - name: Wait for Public Access Propagation (WAF)
+        if: ${{ inputs.WAF == true }}
+        run: |
+          echo "⏳ Waiting 5 minutes for network changes to propagate..."
+          sleep 300
+          echo "✅ Wait complete."
+
+      - name: Upload Sample Document to Blob Storage
+        shell: bash
+        env:
+          RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+        run: |
+          STORAGE_KEY=$(az storage account keys list --account-name "$AZURE_BLOB_ACCOUNT_NAME" --resource-group "$RESOURCE_GROUP_NAME" --query "[0].value" -o tsv)
+          az storage blob upload \
+            --account-name "$AZURE_BLOB_ACCOUNT_NAME" \
+            --account-key "$STORAGE_KEY" \
+            --container-name "documents" \
+            --name "PerksPlus.pdf" \
+            --file "scripts/CWYD_Ingestion_scripts/PerksPlus.pdf" \
+            --overwrite
+          echo "✅ Document uploaded to blob storage."
+
+      - name: Wait for Search Index and Import Data
+        shell: python
+        env:
+          RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+        run: |
+          import subprocess, json, time, requests
+
+          def az(cmd):
+              result = subprocess.run(f"az {cmd}", shell=True, capture_output=True, text=True)
+              if result.returncode != 0:
+                  raise RuntimeError(f"az {cmd}\n{result.stderr.strip()}")
+              try:
+                  return json.loads(result.stdout)
+              except json.JSONDecodeError:
+                  return result.stdout.strip()
+
+          import os
+          RESOURCE_GROUP_NAME = os.environ["RESOURCE_GROUP_NAME"]
+          AZURE_SEARCH_SERVICE = os.environ["AZURE_SEARCH_SERVICE"]
+          SEARCH_DATA_FILE = os.environ["SEARCH_DATA_FILE"]
+
+          AZURE_SEARCH_KEY = az(
+              f'search admin-key show --service-name "{AZURE_SEARCH_SERVICE}" '
+              f'--resource-group "{RESOURCE_GROUP_NAME}" --query primaryKey -o tsv'
+          )
+
+          API_VERSION = "2024-07-01"
+          HEADERS = {"Content-Type": "application/json", "api-key": AZURE_SEARCH_KEY}
+
+          # Test connectivity with retry logic
+          print("🔍 Testing connectivity to Search service endpoint...")
+          max_connectivity_attempts = 20
+          connectivity_established = False
+
+          for conn_attempt in range(1, max_connectivity_attempts + 1):
+              try:
+                  resp = requests.get(
+                      f"https://{AZURE_SEARCH_SERVICE}.search.windows.net/indexes?api-version={API_VERSION}&$select=name",
+                      headers=HEADERS,
+                      timeout=30
+                  )
+                  if resp.status_code in (200, 404):
+                      print(f"✅ Search service endpoint is accessible (attempt {conn_attempt})")
+                      connectivity_established = True
+                      break
+              except (requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+                  if conn_attempt < max_connectivity_attempts:
+                      print(f"   Connection attempt {conn_attempt} failed, retrying in 30s...")
+                      time.sleep(30)
+                  else:
+                      raise RuntimeError(
+                          f"❌ Cannot connect to Search service endpoint after {max_connectivity_attempts} attempts."
+                      )
+
+          if not connectivity_established:
+              raise RuntimeError("❌ Search service endpoint is not accessible")
+
+          # Wait for index auto-creation
+          AZURE_SEARCH_INDEX = None
+          INDEX_PREFIX = "index"
+          print(f"🔍 Waiting for index with prefix '{INDEX_PREFIX}' to be auto-created (up to 15 min)...")
+          for attempt in range(1, 31):
+              try:
+                  resp = requests.get(
+                      f"https://{AZURE_SEARCH_SERVICE}.search.windows.net/indexes?api-version={API_VERSION}&$select=name",
+                      headers=HEADERS,
+                      timeout=30
+                  )
+                  if resp.status_code == 200:
+                      indexes = resp.json().get("value", [])
+                      matching = [idx for idx in indexes if idx["name"].startswith(INDEX_PREFIX)]
+                      if matching:
+                          AZURE_SEARCH_INDEX = matching[0]["name"]
+                          print(f"✅ Found index: '{AZURE_SEARCH_INDEX}'")
+                          break
+                      elif indexes:
+                          names = [idx["name"] for idx in indexes]
+                          print(f"   Found indexes {names}, but none start with '{INDEX_PREFIX}'. Retrying...")
+                  if attempt == 30:
+                      raise RuntimeError(f"❌ No index with prefix '{INDEX_PREFIX}' found after 15 minutes.")
+              except (requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+                  print(f"   Connection issue on attempt {attempt}, will retry...")
+              time.sleep(30)
+
+          # Populate search index with sample data
+          with open(SEARCH_DATA_FILE, "r", encoding="utf-8") as f:
+              documents = json.load(f)
+
+          schema_resp = requests.get(
+              f"https://{AZURE_SEARCH_SERVICE}.search.windows.net/indexes/{AZURE_SEARCH_INDEX}?api-version={API_VERSION}",
+              headers=HEADERS
+          )
+          if schema_resp.status_code != 200:
+              raise RuntimeError(f"❌ Failed to get index schema: {schema_resp.status_code}, {schema_resp.text}")
+          index_fields = {f["name"] for f in schema_resp.json()["fields"]}
+          cleaned_docs = [{k: v for k, v in doc.items() if k in index_fields} for doc in documents]
+
+          BATCH_SIZE = 1000
+          UPLOAD_ENDPOINT = (
+              f"https://{AZURE_SEARCH_SERVICE}.search.windows.net"
+              f"/indexes/{AZURE_SEARCH_INDEX}/docs/index?api-version={API_VERSION}"
+          )
+          total_success = 0
+          for i in range(0, len(cleaned_docs), BATCH_SIZE):
+              batch = cleaned_docs[i:i + BATCH_SIZE]
+              payload = {"value": [{"@search.action": "upload", **doc} for doc in batch]}
+              response = requests.post(UPLOAD_ENDPOINT, headers=HEADERS, json=payload)
+              if response.status_code in (200, 207):
+                  result = response.json()
+                  ok = sum(1 for item in result.get("value", []) if item.get("status", False))
+                  total_success += ok
+              else:
+                  print(f"❌ Batch {i // BATCH_SIZE + 1} failed: {response.status_code}, {response.text}")
+                  raise RuntimeError(f"Batch upload failed")
+          print(f"✅ Import completed! {total_success}/{len(documents)} documents uploaded.")
+
+          # Export index name for subsequent steps
+          with open(os.environ["GITHUB_ENV"], "a") as env_file:
+              env_file.write(f"AZURE_SEARCH_INDEX={AZURE_SEARCH_INDEX}\n")
+
+      - name: Disable Public Access (WAF)
+        if: ${{ always() && inputs.WAF == true }}
+        shell: bash
+        env:
+          RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+        run: |
+          echo "🔒 Restoring Search service public access to disabled..."
+          IDENTITY_TYPE=$(az search service show --name "$AZURE_SEARCH_SERVICE" --resource-group "$RESOURCE_GROUP_NAME" -o json | jq -r '.identity.type // "None"')
+
+          if echo "$IDENTITY_TYPE" | grep -q "UserAssigned"; then
+            echo "Using REST API to preserve UserAssigned identity configuration..."
+            IDENTITY_BLOCK=$(az search service show --name "$AZURE_SEARCH_SERVICE" --resource-group "$RESOURCE_GROUP_NAME" -o json | jq '.identity')
+            PATCH_BODY=$(jq -n --argjson identity "$IDENTITY_BLOCK" '{"properties":{"publicNetworkAccess":"disabled"},"identity":$identity}')
+
+            API_URL="https://management.azure.com/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP_NAME}/providers/Microsoft.Search/searchServices/${AZURE_SEARCH_SERVICE}?api-version=2024-03-01-preview"
+            echo "$PATCH_BODY" > patch_body.json
+            az rest --method PATCH --uri "$API_URL" --body @patch_body.json
+            rm -f patch_body.json
+          else
+            az search service update --name "$AZURE_SEARCH_SERVICE" --resource-group "$RESOURCE_GROUP_NAME" --public-access disabled
+          fi
+          echo "✅ Search service public access restored to disabled."
+
+          echo "🔒 Restoring Storage account public access to disabled..."
+          az storage account update --name "$AZURE_BLOB_ACCOUNT_NAME" --resource-group "$RESOURCE_GROUP_NAME" --public-network-access Disabled --output none
+          az storage account update --name "$AZURE_BLOB_ACCOUNT_NAME" --resource-group "$RESOURCE_GROUP_NAME" --default-action Deny --output none
+          echo "✅ Storage account public access restored to disabled."
 
       - name: Generate Test Job Summary
         if: always()
@@ -116,9 +376,12 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ job.status }}" == "success" ]]; then
             echo "### ✅ Import Sample Data (CosmosDB) Results" >> $GITHUB_STEP_SUMMARY
-            echo "- Notebook executed successfully" >> $GITHUB_STEP_SUMMARY
             echo "- Document uploaded to blob storage to trigger index creation" >> $GITHUB_STEP_SUMMARY
             echo "- Azure Search index populated with sample data" >> $GITHUB_STEP_SUMMARY
+            echo "| **Search Service** | \`${AZURE_SEARCH_SERVICE:-N/A}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Search Index** | \`${AZURE_SEARCH_INDEX:-N/A}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Storage Account** | \`${AZURE_BLOB_ACCOUNT_NAME:-N/A}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Data File** | \`${SEARCH_DATA_FILE:-N/A}\` |" >> $GITHUB_STEP_SUMMARY
           else
             echo "### ❌ Import Sample Data (CosmosDB) Failed" >> $GITHUB_STEP_SUMMARY
             echo "- Check the job logs for detailed error information" >> $GITHUB_STEP_SUMMARY
