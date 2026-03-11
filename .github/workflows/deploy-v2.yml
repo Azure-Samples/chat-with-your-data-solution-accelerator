@@ -22,7 +22,7 @@ on:
         options:
           - 'codespace'
           - 'Local'
-        default: 'codespace'
+        default: 'Local'
 
       resource_group_name:
         description: 'Resource Group Name (Optional - auto-generated if not provided)'
