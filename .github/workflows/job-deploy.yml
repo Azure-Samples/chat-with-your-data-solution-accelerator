@@ -397,19 +397,12 @@ jobs:
           if [ "$rg_exists" = "false" ]; then
             echo "Resource group '${{ env.RESOURCE_GROUP_NAME }}' does not exist. Creating..."
             az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.AZURE_LOCATION }} --tags ${{ env.RG_TAGS }} || { echo "❌ Error creating resource group"; exit 1; }
-            echo "✅ Resource group '${{ env.RESOURCE_GROUP_NAME }}' created with tags ${{ env.RG_TAGS }}"
+            echo "✅ Resource group '${{ env.RESOURCE_GROUP_NAME }}' created with tags
           else
             echo "✅ Resource group exists, proceeding with deployment"
           fi
           # Set output for other jobs
           echo "RESOURCE_GROUP_NAME=${{ env.RESOURCE_GROUP_NAME }}" >> $GITHUB_OUTPUT
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate Unique Solution Prefix
         id: generate_solution_prefix
