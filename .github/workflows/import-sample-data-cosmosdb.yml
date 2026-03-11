@@ -242,7 +242,7 @@ jobs:
             --account-key "$STORAGE_KEY" \
             --container-name "documents" \
             --name "PerksPlus.pdf" \
-            --file "scripts/CWYD_Ingestion_scripts/PerksPlus.pdf" \
+            --file "data/PerksPlus.pdf" \
             --overwrite
           echo "✅ Document uploaded to blob storage."
 
