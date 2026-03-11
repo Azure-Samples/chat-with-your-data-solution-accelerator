@@ -31,16 +31,53 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Login to Azure for Sample Data Download
+        shell: bash
+        run: |
+          echo "🔐 Logging into Azure to download sample data files..."
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Enable Public Access on Sample Data Storage (if disabled)
+        id: sample_storage_access
+        shell: bash
+        env:
+          STORAGE_ACCOUNT_NAME: ${{ vars.SAMPLE_DATA_STORAGE_ACCOUNT_NAME }}
+        run: |
+          echo "🔍 Checking public network access on sample data storage account '${STORAGE_ACCOUNT_NAME}'..."
+
+          # Discover the resource group for the sample data storage account
+          SAMPLE_STORAGE_RG=$(az storage account list --query "[?name=='${STORAGE_ACCOUNT_NAME}'].resourceGroup | [0]" -o tsv)
+          if [ -z "$SAMPLE_STORAGE_RG" ] || [ "$SAMPLE_STORAGE_RG" == "null" ]; then
+            echo "❌ Could not find resource group for storage account '${STORAGE_ACCOUNT_NAME}'."
+            exit 1
+          fi
+          echo "SAMPLE_STORAGE_RG=$SAMPLE_STORAGE_RG" >> $GITHUB_ENV
+
+          CURRENT_ACCESS=$(az storage account show --name "$STORAGE_ACCOUNT_NAME" --resource-group "$SAMPLE_STORAGE_RG" --query "publicNetworkAccess" -o tsv)
+          CURRENT_DEFAULT_ACTION=$(az storage account show --name "$STORAGE_ACCOUNT_NAME" --resource-group "$SAMPLE_STORAGE_RG" --query "networkRuleSet.defaultAction" -o tsv)
+
+          echo "   Current publicNetworkAccess: $CURRENT_ACCESS"
+          echo "   Current defaultAction: $CURRENT_DEFAULT_ACTION"
+
+          if [ "$CURRENT_ACCESS" == "Disabled" ] || [ "$CURRENT_DEFAULT_ACTION" == "Deny" ]; then
+            echo "🔓 Enabling public access on sample data storage account..."
+            az storage account update --name "$STORAGE_ACCOUNT_NAME" --resource-group "$SAMPLE_STORAGE_RG" --public-network-access Enabled --output none
+            az storage account update --name "$STORAGE_ACCOUNT_NAME" --resource-group "$SAMPLE_STORAGE_RG" --default-action Allow --output none
+
+            echo "⏳ Waiting 30 seconds for network changes to propagate..."
+            sleep 30
+            echo "✅ Public access enabled on sample data storage account."
+          else
+            echo "✅ Public access is already enabled."
+          fi
+
       - name: Download Sample Data from Azure Storage
         shell: bash
         env:
           STORAGE_ACCOUNT_NAME: ${{ vars.SAMPLE_DATA_STORAGE_ACCOUNT_NAME }}
           STORAGE_CONTAINER_NAME: ${{ vars.SAMPLE_DATA_STORAGE_CONTAINER_NAME }}
         run: |
-          echo "🔐 Logging into Azure to download sample data files..."
-          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
           SAMPLE_DATA_DIR="${RUNNER_TEMP}/sample-data"
           mkdir -p "$SAMPLE_DATA_DIR"
 
