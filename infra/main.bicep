@@ -1485,6 +1485,8 @@ module function 'modules/app/function.bicep' = {
         PACKAGE_LOGGING_LEVEL: 'WARNING'
         AZURE_LOGGING_PACKAGES: ''
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+        OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
+        SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
         DATABASE_TYPE: databaseType
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.clientId
         MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.resourceId
