@@ -31,6 +31,37 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Download Sample Data from Azure Storage
+        shell: bash
+        env:
+          STORAGE_ACCOUNT_NAME: ${{ vars.SAMPLE_DATA_STORAGE_ACCOUNT_NAME }}
+          STORAGE_CONTAINER_NAME: ${{ vars.SAMPLE_DATA_STORAGE_CONTAINER_NAME }}
+        run: |
+          echo "🔐 Logging into Azure to download sample data files..."
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+          SAMPLE_DATA_DIR="${RUNNER_TEMP}/sample-data"
+          mkdir -p "$SAMPLE_DATA_DIR"
+
+          echo "📥 Downloading sample data files from storage account '${STORAGE_ACCOUNT_NAME}'..."
+          az storage blob download \
+            --account-name "$STORAGE_ACCOUNT_NAME" \
+            --container-name "$STORAGE_CONTAINER_NAME" \
+            --name "azure_search_data.json" \
+            --file "$SAMPLE_DATA_DIR/azure_search_data.json" \
+            --auth-mode login
+
+          az storage blob download \
+            --account-name "$STORAGE_ACCOUNT_NAME" \
+            --container-name "$STORAGE_CONTAINER_NAME" \
+            --name "azure_search_data_UseVectorization_SemanticSearch.json" \
+            --file "$SAMPLE_DATA_DIR/azure_search_data_UseVectorization_SemanticSearch.json" \
+            --auth-mode login
+
+          echo "SAMPLE_DATA_DIR=$SAMPLE_DATA_DIR" >> $GITHUB_ENV
+          echo "✅ Sample data files downloaded to $SAMPLE_DATA_DIR"
+
       - name: Validate Workflow Input Parameters
         shell: bash
         env:
@@ -155,10 +186,10 @@ jobs:
           USE_SS=$(echo "$SETTINGS_JSON" | jq -r '[.[] | select(.name=="AZURE_SEARCH_USE_SEMANTIC_SEARCH")] | .[0].value // ""' | tr '[:upper:]' '[:lower:]' | xargs)
 
           if [ "$USE_IV" == "true" ] && [ "$USE_SS" == "true" ]; then
-            SEARCH_DATA_FILE="scripts/CWYD_Ingestion_scripts/azure_search_data_UseVectorization_SemanticSearch.json"
+            SEARCH_DATA_FILE="${SAMPLE_DATA_DIR}/azure_search_data_UseVectorization_SemanticSearch.json"
             echo "📄 Both integrated vectorization and semantic search are set to true."
           else
-            SEARCH_DATA_FILE="scripts/CWYD_Ingestion_scripts/azure_search_data.json"
+            SEARCH_DATA_FILE="${SAMPLE_DATA_DIR}/azure_search_data.json"
             echo "📄 AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION=$USE_IV"
             echo "   AZURE_SEARCH_USE_SEMANTIC_SEARCH=$USE_SS"
           fi

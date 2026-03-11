@@ -31,6 +31,30 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Download Sample Data from Azure Storage
+        shell: bash
+        env:
+          STORAGE_ACCOUNT_NAME: ${{ vars.SAMPLE_DATA_STORAGE_ACCOUNT_NAME }}
+          STORAGE_CONTAINER_NAME: ${{ vars.SAMPLE_DATA_STORAGE_CONTAINER_NAME }}
+        run: |
+          echo "🔐 Logging into Azure to download sample data files..."
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+          SAMPLE_DATA_DIR="${RUNNER_TEMP}/sample-data"
+          mkdir -p "$SAMPLE_DATA_DIR"
+
+          echo "📥 Downloading sample data file from storage account '${STORAGE_ACCOUNT_NAME}'..."
+          az storage blob download \
+            --account-name "$STORAGE_ACCOUNT_NAME" \
+            --container-name "$STORAGE_CONTAINER_NAME" \
+            --name "exported_data_vector_score.csv" \
+            --file "$SAMPLE_DATA_DIR/exported_data_vector_score.csv" \
+            --auth-mode login
+
+          echo "SAMPLE_DATA_DIR=$SAMPLE_DATA_DIR" >> $GITHUB_ENV
+          echo "✅ Sample data file downloaded to $SAMPLE_DATA_DIR"
+
       - name: Validate Workflow Input Parameters
         shell: bash
         env:
@@ -206,6 +230,7 @@ jobs:
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           SP_DISPLAY_NAME: ${{ env.SP_DISPLAY_NAME }}
+          SAMPLE_DATA_DIR: ${{ env.SAMPLE_DATA_DIR }}
         run: |
           export PG_HOST_DESTINATION="$AZURE_POSTGRESQL_HOST_NAME"
           # Get the service principal's display name (required as username for PostgreSQL Entra auth)
@@ -244,7 +269,7 @@ jobs:
               "sslmode": "require"
           }
 
-          csv_file = "exported_data_vector_score.csv"
+          csv_file = os.path.join(os.environ["SAMPLE_DATA_DIR"], "exported_data_vector_score.csv")
           target_table = "vector_store"
 
           try:
