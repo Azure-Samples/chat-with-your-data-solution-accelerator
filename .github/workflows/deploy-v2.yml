@@ -371,7 +371,7 @@ jobs:
     needs: validate-inputs
     uses: ./.github/workflows/deploy-orchestrator.yml
     with:
-      runner_os: ${{ needs.validate-inputs.outputs.runner_os || 'ubuntu-latest' }}
+      runner_os: ${{ needs.validate-inputs.outputs.runner_os || 'windows-latest' }}
       resource_group_name: ${{ needs.validate-inputs.outputs.resource_group_name || '' }}
       waf_enabled: ${{ needs.validate-inputs.outputs.waf_enabled == 'true' }}
       EXP: ${{ needs.validate-inputs.outputs.exp == 'true' }}
