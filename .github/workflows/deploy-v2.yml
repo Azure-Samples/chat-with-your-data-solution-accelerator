@@ -25,8 +25,9 @@ on:
         default: 'codespace'
 
       resource_group_name:
-        description: 'Existing Resource Group Name'
-        required: true
+        description: 'Resource Group Name (Optional - auto-generated if not provided)'
+        required: false
+        default: ''
         type: string
 
       DATABASE_TYPE:
@@ -174,7 +175,7 @@ jobs:
           echo "✅ runner_os derived as: '$RUNNER_OS'"
 
           # Validate resource_group_name (Azure naming convention)
-          RESOURCE_GROUP="${INPUT_RESOURCE_GROUP_NAME:-rg-cwyd-ci}"
+          RESOURCE_GROUP="${INPUT_RESOURCE_GROUP_NAME}"
           if [[ -n "$RESOURCE_GROUP" ]]; then
             if [[ ! "$RESOURCE_GROUP" =~ ^[a-zA-Z0-9._\(\)-]+$ ]] || [[ "$RESOURCE_GROUP" =~ \.$ ]]; then
               echo "❌ ERROR: resource_group_name '$RESOURCE_GROUP' is invalid. Must contain only alphanumerics, periods, underscores, hyphens, and parentheses. Cannot end with period."
@@ -188,7 +189,7 @@ jobs:
               echo "✅ resource_group_name: '$RESOURCE_GROUP' is valid"
             fi
           else
-            echo "✅ resource_group_name: Not provided (will use default 'rg-cwyd-ci')"
+            echo "✅ resource_group_name: Not provided (will be auto-generated during deployment)"
           fi
 
           # Validate DATABASE_TYPE (specific allowed values)
@@ -371,7 +372,7 @@ jobs:
     uses: ./.github/workflows/deploy-orchestrator.yml
     with:
       runner_os: ${{ needs.validate-inputs.outputs.runner_os || 'ubuntu-latest' }}
-      resource_group_name: ${{ github.event_name == 'workflow_dispatch' && needs.validate-inputs.outputs.resource_group_name || 'rg-cwyd-ci' }}
+      resource_group_name: ${{ needs.validate-inputs.outputs.resource_group_name || '' }}
       waf_enabled: ${{ needs.validate-inputs.outputs.waf_enabled == 'true' }}
       EXP: ${{ needs.validate-inputs.outputs.exp == 'true' }}
       cleanup_resources: ${{ github.event_name != 'workflow_dispatch' || needs.validate-inputs.outputs.cleanup_resources == 'true' }}

@@ -91,9 +91,6 @@ on:
       QUOTA_FAILED:
         description: "Quota Check Failed Flag"
         value: ${{ jobs.azure-setup.outputs.QUOTA_FAILED }}
-      RESOURCE_TOKEN:
-        description: "Resource Token"
-        value: ${{ jobs.deploy-linux.outputs.RESOURCE_TOKEN || jobs.deploy-windows.outputs.RESOURCE_TOKEN }}
       AZURE_POSTGRESQL_HOST_NAME:
         description: "Azure PostgreSQL Host Name"
         value: ${{ jobs.deploy-linux.outputs.AZURE_POSTGRESQL_HOST_NAME || jobs.deploy-windows.outputs.AZURE_POSTGRESQL_HOST_NAME }}
@@ -115,6 +112,7 @@ env:
   EXP: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.EXP || false) || false }}
   CLEANUP_RESOURCES: ${{ inputs.trigger_type != 'workflow_dispatch' || inputs.cleanup_resources }}
   RUN_E2E_TESTS: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.run_e2e_tests || 'GoldenPath-Testing') || 'GoldenPath-Testing' }}
+  RG_TAGS: ${{ vars.RG_TAGS }}
 
 jobs:
   azure-setup:
@@ -141,6 +139,7 @@ jobs:
           INPUT_CLEANUP_RESOURCES: ${{ inputs.cleanup_resources }}
           INPUT_RUN_E2E_TESTS: ${{ inputs.run_e2e_tests }}
           INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          INPUT_RG_TAGS: ${{ env.RG_TAGS }}
           INPUT_EXISTING_WEBAPP_URL: ${{ inputs.existing_webapp_url }}
           INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
           INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
@@ -378,10 +377,17 @@ jobs:
             echo "Using provided resource group name..."
             UNIQUE_RG_NAME="$INPUT_RESOURCE_GROUP_NAME"
             echo "Provided RESOURCE_GROUP_NAME: ${UNIQUE_RG_NAME}"
+          else
+            echo "No resource group name provided. Auto-generating..."
+            COMMON_PART="rg-cwyd"
+            TIMESTAMP=$(date +%s)
+            UPDATED_TIMESTAMP=$(echo $TIMESTAMP | tail -c 6)
+            UNIQUE_RG_NAME="${COMMON_PART}-${UPDATED_TIMESTAMP}"
+            echo "Auto-generated RESOURCE_GROUP_NAME: ${UNIQUE_RG_NAME}"
           fi
           echo "RESOURCE_GROUP_NAME=${UNIQUE_RG_NAME}" >> $GITHUB_ENV
 
-      - name: Validate Resource Group Exists
+      - name: Ensure Resource Group Exists
         id: check_create_rg
         run: |
           echo "RESOURCE_GROUP: ${{ env.RESOURCE_GROUP_NAME }}"
@@ -389,49 +395,14 @@ jobs:
           echo "Checking if resource group exists..."
           rg_exists=$(az group exists --name ${{ env.RESOURCE_GROUP_NAME }})
           if [ "$rg_exists" = "false" ]; then
-            echo "Resource group '${{ env.RESOURCE_GROUP_NAME }}' does not exist"
-            echo "Please create the resource group first or provide an existing resource group name"
-            exit 1
+            echo "Resource group '${{ env.RESOURCE_GROUP_NAME }}' does not exist. Creating..."
+            az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.AZURE_LOCATION }} --tags ${{ env.RG_TAGS }} || { echo "❌ Error creating resource group"; exit 1; }
+            echo "✅ Resource group '${{ env.RESOURCE_GROUP_NAME }}' created with tags
           else
-            echo "✅ Resource group exists proceeding with deployment"
+            echo "✅ Resource group exists, proceeding with deployment"
           fi
           # Set output for other jobs
           echo "RESOURCE_GROUP_NAME=${{ env.RESOURCE_GROUP_NAME }}" >> $GITHUB_OUTPUT
-
-      - name: Clear Existing Resources in Resource Group
-        if: inputs.resource_group_name != 'rg-cwyd-ci'
-        run: |
-          echo "=== Clearing all resources in resource group: ${{ env.RESOURCE_GROUP_NAME }} ==="
-          set -e
-
-          # List all resources in the resource group
-          echo "Listing resources to delete..."
-          RESOURCES=$(az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].id" -o tsv)
-
-          if [ -z "$RESOURCES" ]; then
-            echo "✅ No resources found in resource group. Ready for fresh deployment."
-          else
-            echo "Found resources to delete:"
-            az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].{Name:name, Type:type}" -o table
-
-            echo "Deleting all resources..."
-            # Delete all resources in the resource group
-            az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].id" -o tsv | while read -r resource_id; do
-              echo "Deleting: $resource_id"
-              az resource delete --ids "$resource_id" --verbose || echo "Warning: Failed to delete $resource_id"
-            done
-
-            echo "✅ All resources cleared from resource group"
-          fi
-
-          echo "Resource group is now ready for deployment"
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate Unique Solution Prefix
         id: generate_solution_prefix
