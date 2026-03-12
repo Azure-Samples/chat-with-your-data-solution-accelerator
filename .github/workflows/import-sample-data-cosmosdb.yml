@@ -449,15 +449,11 @@ jobs:
           echo "| **Job Status** | ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Resource Group** | \`${{ inputs.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **WAF** | \`${{ inputs.WAF }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Data File** | \`$(basename "${SEARCH_DATA_FILE:-N/A}")\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ job.status }}" == "success" ]]; then
             echo "### ✅ Import Sample Data (CosmosDB) Results" >> $GITHUB_STEP_SUMMARY
             echo "- Document uploaded to blob storage to trigger index creation" >> $GITHUB_STEP_SUMMARY
-            echo "- Azure Search index populated with sample data" >> $GITHUB_STEP_SUMMARY
-            echo "| **Search Service** | \`${AZURE_SEARCH_SERVICE:-N/A}\` |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Search Index** | \`${AZURE_SEARCH_INDEX:-N/A}\` |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Storage Account** | \`${AZURE_BLOB_ACCOUNT_NAME:-N/A}\` |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Data File** | \`${SEARCH_DATA_FILE:-N/A}\` |" >> $GITHUB_STEP_SUMMARY
           else
             echo "### ❌ Import Sample Data (CosmosDB) Failed" >> $GITHUB_STEP_SUMMARY
             echo "- Check the job logs for detailed error information" >> $GITHUB_STEP_SUMMARY

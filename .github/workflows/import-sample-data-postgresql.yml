@@ -370,6 +370,7 @@ jobs:
           echo "| **PostgreSQL Host** | \`${{ env.AZURE_POSTGRESQL_HOST_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Resource Group** | \`${{ inputs.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **WAF** | \`${{ inputs.WAF }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Data File** | \`exported_data_vector_score.csv\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ job.status }}" == "success" ]]; then
             echo "### ✅ Import Sample Data (PostgreSQL) Results" >> $GITHUB_STEP_SUMMARY
