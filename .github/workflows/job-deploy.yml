@@ -290,84 +290,128 @@ jobs:
           az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
           az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Run Quota Check
+      - name: Run OpenAI and Azure Search Quota Check
         id: quota-check
+        shell: bash
         run: |
-          export AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
-          export AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
-          export AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
-          export AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-          export GPT_MIN_CAPACITY="150"
-          export TEXT_EMBEDDING_MIN_CAPACITY="30"
-          export AZURE_REGIONS="${{ vars.AZURE_REGIONS }}"
+          SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          GPT_MIN_CAPACITY="${{ env.GPT_MIN_CAPACITY }}"
+          TEXT_EMBEDDING_MIN_CAPACITY="${{ env.TEXT_EMBEDDING_MIN_CAPACITY }}"
+          IFS=', ' read -ra REGIONS <<< "${{ vars.AZURE_REGIONS }}"
 
-          chmod +x scripts/checkquota.sh
-          if ! scripts/checkquota.sh; then
-            if grep -q "No region with sufficient quota found" scripts/checkquota.sh; then
-              echo "QUOTA_FAILED=true" >> $GITHUB_OUTPUT
-              echo "Quota check failed - will notify via separate notification job"
+          declare -A MIN_CAPACITY=(
+              ["OpenAI.GlobalStandard.gpt4.1"]=$GPT_MIN_CAPACITY
+              ["OpenAI.GlobalStandard.text-embedding-ada-002"]=$TEXT_EMBEDDING_MIN_CAPACITY
+          )
+
+          VALID_REGION=""
+
+          for REGION in "${REGIONS[@]}"; do
+            echo "========================================"
+            echo "🔍 Checking region: $REGION"
+            echo "========================================"
+
+            # --- Step 1: Check OpenAI quota ---
+            echo "📊 Checking OpenAI quota..."
+            QUOTA_INFO=$(az cognitiveservices usage list --location "$REGION" --output json 2>/dev/null)
+            if [ -z "$QUOTA_INFO" ]; then
+              echo "⚠️ WARNING: Failed to retrieve OpenAI quota for region $REGION. Skipping."
+              continue
             fi
+
+            OPENAI_OK=true
+            for MODEL in "${!MIN_CAPACITY[@]}"; do
+              MODEL_INFO=$(echo "$QUOTA_INFO" | awk -v model="\"value\": \"$MODEL\"" '
+                  BEGIN { RS="},"; FS="," }
+                  $0 ~ model { print $0 }
+              ')
+
+              if [ -z "$MODEL_INFO" ]; then
+                echo "⚠️ WARNING: No quota information found for model: $MODEL in $REGION. Skipping region."
+                OPENAI_OK=false
+                break
+              fi
+
+              CURRENT_VALUE=$(echo "$MODEL_INFO" | awk -F': ' '/"currentValue"/ {print $2}' | tr -d ',' | tr -d ' ')
+              LIMIT=$(echo "$MODEL_INFO" | awk -F': ' '/"limit"/ {print $2}' | tr -d ',' | tr -d ' ')
+              CURRENT_VALUE=${CURRENT_VALUE:-0}
+              LIMIT=${LIMIT:-0}
+              CURRENT_VALUE=$(echo "$CURRENT_VALUE" | cut -d'.' -f1)
+              LIMIT=$(echo "$LIMIT" | cut -d'.' -f1)
+              AVAILABLE=$((LIMIT - CURRENT_VALUE))
+
+              echo "  Model: $MODEL | Used: $CURRENT_VALUE | Limit: $LIMIT | Available: $AVAILABLE"
+
+              if [ "$AVAILABLE" -lt "${MIN_CAPACITY[$MODEL]}" ]; then
+                echo "  ❌ $MODEL in $REGION has insufficient OpenAI quota."
+                OPENAI_OK=false
+                break
+              fi
+            done
+
+            if [ "$OPENAI_OK" != "true" ]; then
+              echo "⏭️ Region $REGION failed OpenAI quota check. Trying next region..."
+              continue
+            fi
+            echo "✅ OpenAI quota check passed for $REGION."
+
+            # --- Step 2: Check Azure Search quota ---
+            echo "📊 Checking Azure Search quota..."
+            SEARCH_USAGE=$(az rest --method get \
+              --url "https://management.azure.com/subscriptions/${SUBSCRIPTION_ID}/providers/Microsoft.Search/locations/${REGION}/usages?api-version=2024-03-01-preview" \
+              -o json 2>/dev/null || echo '{"value":[]}')
+
+            if [ "$(echo "$SEARCH_USAGE" | jq '.value | length')" -eq 0 ]; then
+              echo "⚠️ Could not retrieve Azure Search quota for $REGION. Accepting region (search check skipped)."
+              VALID_REGION="$REGION"
+              break
+            fi
+
+            STANDARD_USAGE=$(echo "$SEARCH_USAGE" | jq -r '.value[] | select(.name.value == "standard") | .currentValue // 0')
+            STANDARD_LIMIT=$(echo "$SEARCH_USAGE" | jq -r '.value[] | select(.name.value == "standard") | .limit // 0')
+            STANDARD_AVAILABLE=$((STANDARD_LIMIT - STANDARD_USAGE))
+
+            echo "  Azure Search Standard Tier | Used: $STANDARD_USAGE | Limit: $STANDARD_LIMIT | Available: $STANDARD_AVAILABLE"
+
+            if [ "$STANDARD_AVAILABLE" -lt 1 ]; then
+              echo "  ❌ Insufficient Azure Search Standard tier quota in $REGION."
+              echo "⏭️ Trying next region..."
+              continue
+            fi
+
+            echo "✅ Azure Search quota check passed for $REGION."
+
+            VALID_REGION="$REGION"
+            break
+          done
+
+          if [ -z "$VALID_REGION" ]; then
+            echo ""
+            echo "❌ No region with sufficient OpenAI AND Azure Search quota found across all regions: ${REGIONS[*]}"
+
+            echo "## ❌ Quota Check Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "No region had sufficient quota for **both** OpenAI models and Azure Search Standard tier." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Regions checked:** ${REGIONS[*]}" >> $GITHUB_STEP_SUMMARY
+
+            echo "QUOTA_FAILED=true" >> $GITHUB_OUTPUT
             exit 1
           fi
+
+          echo ""
+          echo "✅ Final Selected Region: $VALID_REGION (passed both OpenAI and Azure Search quota checks)"
+          echo "VALID_REGION=$VALID_REGION" >> $GITHUB_ENV
 
       - name: Set Deployment Region
         id: set_region
         shell: bash
         run: |
-          echo "Selected Region from Quota Check: $VALID_REGION"
+          echo "Selected Region: $VALID_REGION"
           echo "AZURE_ENV_OPENAI_LOCATION=$VALID_REGION" >> $GITHUB_ENV
           echo "AZURE_ENV_OPENAI_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
           echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
           echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
-
-      - name: Check Azure Search Service Quota
-        id: search-quota-check
-        shell: bash
-        run: |
-          echo "🔍 Checking Azure Search service quota in region: ${{ env.AZURE_LOCATION }}"
-
-          # Get current usage and limits for Azure Search in the selected region using REST API
-          SEARCH_USAGE=$(az rest --method get \
-            --url "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/providers/Microsoft.Search/locations/${{ env.AZURE_LOCATION }}/usages?api-version=2024-03-01-preview" \
-            -o json 2>/dev/null || echo '{"value":[]}')
-
-          if [ "$(echo "$SEARCH_USAGE" | jq '.value | length')" -eq 0 ]; then
-            echo "⚠️ Could not retrieve Azure Search quota information. Proceeding with deployment..."
-            echo "SEARCH_QUOTA_CHECK=skipped" >> $GITHUB_OUTPUT
-          else
-            # Check Standard tier quota
-            STANDARD_USAGE=$(echo "$SEARCH_USAGE" | jq -r '.value[] | select(.name.value == "standard") | .currentValue // 0')
-            STANDARD_LIMIT=$(echo "$SEARCH_USAGE" | jq -r '.value[] | select(.name.value == "standard") | .limit // 0')
-            STANDARD_AVAILABLE=$((STANDARD_LIMIT - STANDARD_USAGE))
-
-            echo "Azure Search Standard Tier Quota for ${{ env.AZURE_LOCATION }}:"
-            echo "  Current Usage: $STANDARD_USAGE"
-            echo "  Limit: $STANDARD_LIMIT"
-            echo "  Available: $STANDARD_AVAILABLE"
-
-            if [ "$STANDARD_AVAILABLE" -lt 1 ]; then
-              echo ""
-              echo "❌ ERROR: Insufficient Azure Search Standard tier quota in region: ${{ env.AZURE_LOCATION }}"
-              echo "Please request a quota increase or select a different region."
-
-              # Add error to GitHub Summary
-              echo "## ❌ Azure Search Quota Check Failed" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "**Region:** \`${{ env.AZURE_LOCATION }}\`" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-              echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-              echo "| **Tier** | Standard |" >> $GITHUB_STEP_SUMMARY
-              echo "| **Current Usage** | $STANDARD_USAGE |" >> $GITHUB_STEP_SUMMARY
-              echo "| **Limit** | $STANDARD_LIMIT |" >> $GITHUB_STEP_SUMMARY
-              echo "| **Available** | $STANDARD_AVAILABLE |" >> $GITHUB_STEP_SUMMARY
-              exit 1
-            fi
-
-            echo ""
-            echo "✅ Azure Search Standard tier quota check passed."
-            echo "SEARCH_QUOTA_CHECK=passed" >> $GITHUB_OUTPUT
-          fi
 
       - name: Add Resource Group Name to Environment
         env:
