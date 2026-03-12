@@ -622,6 +622,9 @@ def test_4094_cwyd_citations_sources_properly_linked(login_logout, request):
 
         # Step 2: Try multiple questions to get one with reference links
         test_questions = [
+            "explain YEHODAYA",
+            "Tell me about india",
+            "explain architecture_pg.png",
             "What benefits are available to employees (besides health coverage)?",
             "What are the company benefits available to employees?",
             "What health coverage options are available?",
@@ -1037,74 +1040,68 @@ def test_4473_bug_1744_cwyd_citations_panel_no_crappy_format_shows_table_data(
         ctx.page.wait_for_load_state("networkidle")
         logger.info("[4473] Web page loaded")
 
-        # Step 2: Ask question about Microsoft share repurchases and dividends
-        test_question = "Show Microsoft share repurchases and dividends"
-        logger.info("[4473] Typing question: %s", test_question)
-        ctx.home_page.enter_a_question(test_question)
-        logger.info("[4473] Question typed successfully")
+        # Step 2: Try multiple questions to get one with reference links
+        test_questions = [
+            "Show Microsoft share repurchases and dividends",
+            "Tell me about india",
+            "explain architecture_pg.png",
+             "What options are available to me in terms of health coverage?",
+            "What benefits are available to employees (besides health coverage)?",
+            "What are the company benefits available to employees?",
+        ]
 
-        # Submit the question and wait for response
-        logger.info("[4473] Submitting question")
-        ctx.home_page.click_send_button()
-        logger.info("[4473] Question submitted")
+        has_references = False
+        successful_question = None
 
-        # Wait for response to load
-        logger.info("[4473] Waiting for response...")
-        ctx.page.wait_for_timeout(15000)  # Wait longer for AI response
-
-        # Step 3: Check if response has reference links
-        logger.info("[4473] Checking if response has reference links")
-        has_references = ctx.home_page.has_reference_link()
-
-        # If no references found, try fallback question
-        if not has_references:
+        for attempt, test_question in enumerate(test_questions, 1):
             logger.info(
-                "[4473] No references found for first question, checking response content"
-            )
-            response_text = ctx.home_page.get_last_response_text()
-            logger.info(
-                "[4473] Response text: %s",
-                (
-                    response_text[:100] + "..."
-                    if len(response_text) > 100
-                    else response_text
-                ),
+                "[4473] Attempt %d: Typing question: %s", attempt, test_question
             )
 
-            # Check if response indicates data not available
-            if (
-                "not available" in response_text.lower()
-                or "try another query" in response_text.lower()
-            ):
+            # Clear any previous conversation if this is not the first attempt
+            if attempt > 1:
+                logger.info("[4473] Clearing previous chat for attempt %d", attempt)
+                ctx.home_page.click_clear_chat_icon()
+                ctx.page.wait_for_timeout(2000)
+
+            ctx.home_page.enter_a_question(test_question)
+            logger.info("[4473] Question typed successfully")
+
+            # Submit the question and wait for response
+            logger.info("[4473] Submitting question")
+            ctx.home_page.click_send_button()
+            logger.info("[4473] Question submitted")
+
+            # Wait for response to load
+            logger.info("[4473] Waiting for response...")
+            ctx.page.wait_for_timeout(15000)  # Wait longer for AI response
+
+            # Check if response has reference links
+            logger.info("[4473] Checking if response has reference links")
+            has_references = ctx.home_page.has_reference_link()
+
+            if has_references:
+                successful_question = test_question
                 logger.info(
-                    "[4473] First question did not return useful data, trying fallback question"
+                    "[4473] SUCCESS: Response contains reference links for question: %s",
+                    test_question,
+                )
+                break
+            else:
+                logger.warning(
+                    "[4473] Attempt %d: No reference links found for question: %s",
+                    attempt,
+                    test_question,
                 )
 
-                # Ask fallback question
-                fallback_question = (
-                    "What options are available to me in terms of health coverage?"
-                )
-                logger.info("[4473] Typing fallback question: %s", fallback_question)
-                ctx.home_page.enter_a_question(fallback_question)
-                logger.info("[4473] Fallback question typed successfully")
-
-                # Submit the fallback question and wait for response
-                logger.info("[4473] Submitting fallback question")
-                ctx.home_page.click_send_button()
-                logger.info("[4473] Fallback question submitted")
-
-                # Wait for response to load
-                logger.info("[4473] Waiting for fallback response...")
-                ctx.page.wait_for_timeout(15000)  # Wait longer for AI response
-
-                # Check if fallback question has references
-                logger.info("[4473] Checking if fallback response has reference links")
-                has_references = ctx.home_page.has_reference_link()
-
+        # Assert that we found a question with reference links
         assert (
             has_references
-        ), "Response should contain reference links for citation testing"
-        logger.info("[4473] SUCCESS: Response contains reference links")
+        ), f"None of the test questions generated reference links. Tried: {test_questions}"
+        logger.info(
+            "[4473] Successfully found question with references: %s",
+            successful_question,
+        )
 
         # Step 4: Look for and click on specific reference link with table data
         logger.info(
