@@ -59,7 +59,7 @@ By default this template will use the environment name as the prefix to prevent 
 
 | **Name** | **Type** | **Default Value** | **Purpose** |
 |----------|----------|-------------------|-------------|
-| `AZURE_ENV_JUMPBOX_SIZE` | string | (empty) | Size of the jump box VM |
+| `AZURE_ENV_JUMPBOX_SIZE` | string | `Standard_D2s_v5` | Size of the jump box VM (default: Standard_D2s_v5) |
 | `AZURE_ENV_VM_ADMIN_USERNAME` | string | (auto-generated) | Administrator username for VMs |
 | `AZURE_ENV_VM_ADMIN_PASSWORD` | string | (auto-generated) | Administrator password for VMs |
 
