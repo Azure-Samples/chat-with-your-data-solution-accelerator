@@ -40,10 +40,6 @@ on:
         description: 'Docker Image Tag'
         required: true
         type: string
-      RESOURCE_TOKEN:
-        description: 'Resource Token'
-        required: false
-        type: string
 
 jobs:
   cleanup-deployment:
@@ -54,7 +50,6 @@ jobs:
       AZURE_LOCATION: ${{ inputs.AZURE_LOCATION }}
       ENV_NAME: ${{ inputs.ENV_NAME }}
       IMAGE_TAG: ${{ inputs.IMAGE_TAG }}
-      RESOURCE_TOKEN: ${{ inputs.RESOURCE_TOKEN }}
     steps:
       - name: Login to Azure
         shell: bash
@@ -62,36 +57,8 @@ jobs:
           az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
           az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Clean Resources within Resource Group
-        id: clean_resources
-        if: ${{ inputs.RESOURCE_GROUP_NAME == 'rg-cwyd-ci' && inputs.RESOURCE_TOKEN != '' }}
-        shell: bash
-        run: |
-          set -e
-          echo "🗑️ Cleaning resources in resource group: ${{ env.RESOURCE_GROUP_NAME }}"
-
-          # Get all resources in the resource group that contain the RESOURCE_TOKEN in their name
-          RESOURCES=$(az resource list --resource-group "${{ env.RESOURCE_GROUP_NAME }}" --query "[?contains(name, '${{ env.RESOURCE_TOKEN }}')].id" -o tsv)
-
-          if [ -z "$RESOURCES" ]; then
-            echo "No resources found with token '${{ env.RESOURCE_TOKEN }}' in resource group"
-          else
-            echo "Deleting resources with token '${{ env.RESOURCE_TOKEN }}'..."
-            echo "$RESOURCES" | while read -r resource_id; do
-              if [ -n "$resource_id" ]; then
-                echo "Deleting: $resource_id"
-                az resource delete --ids "$resource_id" --no-wait || echo "Warning: Failed to delete $resource_id"
-              fi
-            done
-          fi
-
-          echo "✅ Resource cleanup initiated (running asynchronously)"
-          echo "Note: Resource group ${{ env.RESOURCE_GROUP_NAME }} is preserved"
-          echo "Note: Only resources with token '${{ env.RESOURCE_TOKEN }}' were targeted for deletion"
-
       - name: Delete Resource Group
         id: delete_rg
-        if: ${{ inputs.RESOURCE_GROUP_NAME != 'rg-cwyd-ci' }}
         shell: bash
         run: |
           set -e
@@ -122,34 +89,18 @@ jobs:
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Resource Group** | \`${{ env.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
-          # Check if resource cleanup was performed (rg-cwyd-ci with token)
-          if [[ "${{ env.RESOURCE_GROUP_NAME }}" == "rg-cwyd-ci" && -n "${{ env.RESOURCE_TOKEN }}" ]]; then
-            echo "| **Cleanup Mode** | Resource Cleanup within RG |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Status** | ${{ steps.clean_resources.outcome == 'success' && '✅ Initiated' || (steps.clean_resources.outcome == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} |" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            if [[ "${{ steps.clean_resources.outcome }}" == "success" ]]; then
-              echo "### ✅ Cleanup Details" >> $GITHUB_STEP_SUMMARY
-              echo "- Successfully initiated cleanup of resources within \`${{ env.RESOURCE_GROUP_NAME }}\`" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "### ❌ Cleanup Failed" >> $GITHUB_STEP_SUMMARY
-              echo "- Resource cleanup process encountered an error" >> $GITHUB_STEP_SUMMARY
-              echo "- Check the cleanup-deployment job logs for detailed error information" >> $GITHUB_STEP_SUMMARY
-            fi
+          echo "| **Cleanup Mode** | Resource Group Deletion |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Status** | ${{ steps.delete_rg.outcome == 'success' && '✅ Initiated' || (steps.delete_rg.outcome == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ steps.delete_rg.outcome }}" == "success" ]]; then
+            echo "### ✅ Cleanup Details" >> $GITHUB_STEP_SUMMARY
+            echo "- Successfully initiated deletion for Resource Group \`${{ env.RESOURCE_GROUP_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ steps.delete_rg.outcome }}" == "skipped" ]]; then
+            echo "### ⏭️ Cleanup Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "- Resource group deletion was skipped" >> $GITHUB_STEP_SUMMARY
           else
-            # Resource group deletion
-            echo "| **Cleanup Mode** | Resource Group Deletion |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Status** | ${{ steps.delete_rg.outcome == 'success' && '✅ Initiated' || (steps.delete_rg.outcome == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} |" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            if [[ "${{ steps.delete_rg.outcome }}" == "success" ]]; then
-              echo "### ✅ Cleanup Details" >> $GITHUB_STEP_SUMMARY
-              echo "- Successfully initiated deletion for Resource Group \`${{ env.RESOURCE_GROUP_NAME }}\`" >> $GITHUB_STEP_SUMMARY
-            elif [[ "${{ steps.delete_rg.outcome }}" == "skipped" ]]; then
-              echo "### ⏭️ Cleanup Skipped" >> $GITHUB_STEP_SUMMARY
-              echo "- Resource group deletion was skipped" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "### ❌ Cleanup Failed" >> $GITHUB_STEP_SUMMARY
-              echo "- Cleanup process encountered an error" >> $GITHUB_STEP_SUMMARY
-              echo "  - Resource Group: \`${{ env.RESOURCE_GROUP_NAME }}\`" >> $GITHUB_STEP_SUMMARY
-              echo "- Check the cleanup-deployment job logs for detailed error information" >> $GITHUB_STEP_SUMMARY
-            fi
+            echo "### ❌ Cleanup Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- Cleanup process encountered an error" >> $GITHUB_STEP_SUMMARY
+            echo "  - Resource Group: \`${{ env.RESOURCE_GROUP_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- Check the cleanup-deployment job logs for detailed error information" >> $GITHUB_STEP_SUMMARY
           fi
