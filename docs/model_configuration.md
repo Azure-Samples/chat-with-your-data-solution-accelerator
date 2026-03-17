@@ -72,6 +72,6 @@ This document outlines the necessary steps and configurations required for setti
     - `AZURE_OPENAI_EMBEDDING_MODEL_NAME`: `text-embedding-3-large`
     - `AZURE_OPENAI_EMBEDDING_MODEL_VERSION`: `1`
     - `AZURE_SEARCH_DIMENSIONS`: `3072`
-    - `AZURE_MAX_TOKENS`: `4096`
+    - `AZURE_OPENAI_MAX_TOKENS`: `4096`
 
 ---
