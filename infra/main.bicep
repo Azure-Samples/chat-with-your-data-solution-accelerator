@@ -387,6 +387,7 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
       {
         TemplateName: 'CWYD'
         CreatedBy: createdBy
+        Type: enablePrivateNetworking ? 'WAF' : 'Non-WAF'
       }
     )
   }
