@@ -322,7 +322,7 @@ param enableRedundancy bool = false
 param enablePrivateNetworking bool = false
 
 @description('Optional. Size of the Jumpbox Virtual Machine when created. Set to custom value if enablePrivateNetworking is true.')
-param vmSize string = 'Standard_DS2_v2'
+param vmSize string = 'Standard_D2s_v5'
 
 @description('Optional. The user name for the administrator account of the virtual machine. Allows to customize credentials if `enablePrivateNetworking` is set to true.')
 @secure()
@@ -454,7 +454,7 @@ resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableT
 //     logAnalyticsWorkSpaceResourceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : ''
 //     vmAdminUsername: empty(virtualMachineAdminUsername) ? 'JumpboxAdminUser' : virtualMachineAdminUsername
 //     vmAdminPassword: empty(virtualMachineAdminPassword) ? 'JumpboxAdminP@ssw0rd1234!' : virtualMachineAdminPassword
-//     vmSize: empty(vmSize) ? 'Standard_DS2_v2' : vmSize
+//     vmSize: empty(vmSize) ? 'Standard_D2s_v5' : vmSize
 //     location: location
 //     tags: allTags
 //     enableTelemetry: enableTelemetry
@@ -511,7 +511,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
   name: take('avm.res.compute.virtual-machine.${jumpboxVmName}', 64)
   params: {
     name: take(jumpboxVmName, 15) // Shorten VM name to 15 characters to avoid Azure limits
-    vmSize: vmSize ?? 'Standard_DS2_v2'
+    vmSize: vmSize ?? 'Standard_D2s_v5'
     location: location
     adminUsername: !empty(virtualMachineAdminUsername) ? virtualMachineAdminUsername : 'JumpboxAdminUser'
     adminPassword: !empty(virtualMachineAdminPassword) ? virtualMachineAdminPassword : 'JumpboxAdminP@ssw0rd1234!'
@@ -1101,7 +1101,7 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
 
-resource search 'Microsoft.Search/searchServices@2024-06-01-preview' = {
+resource search 'Microsoft.Search/searchServices@2024-06-01-preview' = if (databaseType == 'CosmosDB') {
   name: azureAISearchName
   location: location
   sku: {
