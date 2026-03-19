@@ -25,7 +25,7 @@ on:
         required: false
         type: string
         default: 'false'
-      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID:
         required: false
         type: string
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION:
@@ -94,7 +94,7 @@ jobs:
           INPUT_IMAGE_TAG: ${{ inputs.IMAGE_TAG }}
           INPUT_EXP: ${{ inputs.EXP }}
           INPUT_WAF_ENABLED: ${{ inputs.WAF_ENABLED }}
-          INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID }}
           INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
           INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
           INPUT_USE_ADVANCED_IMAGE_PROCESSING: ${{ inputs.USE_ADVANCED_IMAGE_PROCESSING }}
@@ -177,18 +177,18 @@ jobs:
             echo "✅ WAF_ENABLED: '$INPUT_WAF_ENABLED' is valid"
           fi
 
-          # Validate AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID (optional, Azure Resource ID format)
-          if [[ -n "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]]; then
-            if [[ ! "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/[Mm]icrosoft\.[Oo]perational[Ii]nsights/[Ww]orkspaces/[^/]+$ ]]; then
-              echo "❌ ERROR: AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID is invalid. Must be a valid Azure Resource ID format:"
+          # Validate AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID (optional, Azure Resource ID format)
+          if [[ -n "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID" ]]; then
+            if [[ ! "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/[Mm]icrosoft\.[Oo]perational[Ii]nsights/[Ww]orkspaces/[^/]+$ ]]; then
+              echo "❌ ERROR: AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID is invalid. Must be a valid Azure Resource ID format:"
               echo "   /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.OperationalInsights/workspaces/{workspaceName}"
-              echo "   Got: '$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID'"
+              echo "   Got: '$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID'"
               VALIDATION_FAILED=true
             else
-              echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: Valid Resource ID format"
+              echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID: Valid Resource ID format"
             fi
           else
-            echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: Not provided (optional)"
+            echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID: Not provided (optional)"
           fi
 
           # Validate AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION (boolean string)
@@ -279,13 +279,13 @@ jobs:
           INPUT_AZURE_ENV_OPENAI_LOCATION: ${{ inputs.AZURE_ENV_OPENAI_LOCATION }}
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
           INPUT_EXP: ${{ inputs.EXP }}
-          INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID }}
           INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
           INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
           INPUT_USE_ADVANCED_IMAGE_PROCESSING: ${{ inputs.USE_ADVANCED_IMAGE_PROCESSING }}
           INPUT_DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
-          EVENT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
-          SECRET_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ secrets.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          EVENT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID: ${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID }}
+          SECRET_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID: ${{ secrets.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID }}
         run: |
           $ErrorActionPreference = "Stop"
 
@@ -305,17 +305,17 @@ jobs:
             Write-Host "✅ EXP ENABLED - Setting EXP parameters..."
 
             # Set EXP variables dynamically
-            if (-not [string]::IsNullOrEmpty($env:EVENT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID)) {
-              $ExpLogAnalyticsId = $env:EVENT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID
+            if (-not [string]::IsNullOrEmpty($env:EVENT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID)) {
+              $ExpLogAnalyticsId = $env:EVENT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID
             } else {
-              $ExpLogAnalyticsId = $env:SECRET_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID
+              $ExpLogAnalyticsId = $env:SECRET_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID
             }
 
-            Write-Host "AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: $ExpLogAnalyticsId"
-            azd env set AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID="$ExpLogAnalyticsId"
+            Write-Host "AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID: $ExpLogAnalyticsId"
+            azd env set AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID="$ExpLogAnalyticsId"
           } else {
             Write-Host "❌ EXP DISABLED - Skipping EXP parameters"
-            if (-not [string]::IsNullOrEmpty($env:EVENT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID)) {
+            if (-not [string]::IsNullOrEmpty($env:EVENT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID)) {
               Write-Host "⚠️  Warning: EXP parameter values provided but EXP is disabled. These values will be ignored."
             }
           }

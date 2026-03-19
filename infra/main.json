@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "10600386575020047711"
+      "templateHash": "14890085901474467053"
     }
   },
   "parameters": {
@@ -530,14 +530,14 @@
         "description": "Optional. Size of the Jumpbox Virtual Machine when created. Set to custom value if enablePrivateNetworking is true."
       }
     },
-    "virtualMachineAdminUsername": {
+    "vmAdminUsername": {
       "type": "securestring",
       "defaultValue": "",
       "metadata": {
         "description": "Optional. The user name for the administrator account of the virtual machine. Allows to customize credentials if `enablePrivateNetworking` is set to true."
       }
     },
-    "virtualMachineAdminPassword": {
+    "vmAdminPassword": {
       "type": "securestring",
       "defaultValue": "",
       "metadata": {
@@ -551,7 +551,7 @@
         "description": "Optional. Enable/Disable usage telemetry for module."
       }
     },
-    "appversion": {
+    "imageTag": {
       "type": "string",
       "defaultValue": "latest_waf",
       "metadata": {
@@ -4900,8 +4900,8 @@
           "location": {
             "value": "[parameters('location')]"
           },
-          "adminUsername": "[if(not(empty(parameters('virtualMachineAdminUsername'))), createObject('value', parameters('virtualMachineAdminUsername')), createObject('value', 'JumpboxAdminUser'))]",
-          "adminPassword": "[if(not(empty(parameters('virtualMachineAdminPassword'))), createObject('value', parameters('virtualMachineAdminPassword')), createObject('value', 'JumpboxAdminP@ssw0rd1234!'))]",
+          "adminUsername": "[if(not(empty(parameters('vmAdminUsername'))), createObject('value', parameters('vmAdminUsername')), createObject('value', 'JumpboxAdminUser'))]",
+          "adminPassword": "[if(not(empty(parameters('vmAdminPassword'))), createObject('value', parameters('vmAdminPassword')), createObject('value', 'JumpboxAdminP@ssw0rd1234!'))]",
           "tags": {
             "value": "[parameters('tags')]"
           },
@@ -33707,7 +33707,7 @@
           },
           "runtimeName": "[if(equals(parameters('hostingModel'), 'code'), createObject('value', 'python'), createObject('value', null()))]",
           "runtimeVersion": "[if(equals(parameters('hostingModel'), 'code'), createObject('value', '3.11'), createObject('value', null()))]",
-          "dockerFullImageName": "[if(equals(parameters('hostingModel'), 'container'), createObject('value', format('{0}.azurecr.io/rag-webapp:{1}', variables('registryName'), parameters('appversion'))), createObject('value', null()))]",
+          "dockerFullImageName": "[if(equals(parameters('hostingModel'), 'container'), createObject('value', format('{0}.azurecr.io/rag-webapp:{1}', variables('registryName'), parameters('imageTag'))), createObject('value', null()))]",
           "useDocker": "[if(equals(parameters('hostingModel'), 'container'), createObject('value', true()), createObject('value', false()))]",
           "allowedOrigins": {
             "value": []
@@ -36023,7 +36023,7 @@
           },
           "runtimeName": "[if(equals(parameters('hostingModel'), 'code'), createObject('value', 'python'), createObject('value', null()))]",
           "runtimeVersion": "[if(equals(parameters('hostingModel'), 'code'), createObject('value', '3.11'), createObject('value', null()))]",
-          "dockerFullImageName": "[if(equals(parameters('hostingModel'), 'container'), createObject('value', format('{0}.azurecr.io/rag-adminwebapp:{1}', variables('registryName'), parameters('appversion'))), createObject('value', null()))]",
+          "dockerFullImageName": "[if(equals(parameters('hostingModel'), 'container'), createObject('value', format('{0}.azurecr.io/rag-adminwebapp:{1}', variables('registryName'), parameters('imageTag'))), createObject('value', null()))]",
           "useDocker": "[if(equals(parameters('hostingModel'), 'container'), createObject('value', true()), createObject('value', false()))]",
           "userAssignedIdentityResourceId": {
             "value": "[reference('managedIdentityModule').outputs.resourceId.value]"
@@ -38329,7 +38329,7 @@
           "runtimeVersion": {
             "value": "3.11"
           },
-          "dockerFullImageName": "[if(equals(parameters('hostingModel'), 'container'), createObject('value', format('{0}.azurecr.io/rag-backend:{1}', variables('registryName'), parameters('appversion'))), createObject('value', ''))]",
+          "dockerFullImageName": "[if(equals(parameters('hostingModel'), 'container'), createObject('value', format('{0}.azurecr.io/rag-backend:{1}', variables('registryName'), parameters('imageTag'))), createObject('value', ''))]",
           "serverFarmResourceId": {
             "value": "[reference('webServerFarm').outputs.resourceId.value]"
           },
@@ -55152,8 +55152,8 @@
       },
       "dependsOn": [
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "managedIdentityModule",
         "virtualNetwork"
       ]
