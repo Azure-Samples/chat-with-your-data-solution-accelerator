@@ -212,7 +212,7 @@ class EnvHelper:
         else:
             # Otherwise, fallback to individual environment variable
             self.AZURE_OPENAI_EMBEDDING_MODEL = os.getenv(
-                "AZURE_OPENAI_EMBEDDING_MODEL", "text-embedding-ada-002"
+                "AZURE_OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"
             )
 
         self.SHOULD_STREAM = (

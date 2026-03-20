@@ -109,6 +109,7 @@ module function '../core/host/functions.bicep' = {
   }
 }
 
+#disable-next-line BCP081
 resource functionNameDefaultClientKey 'Microsoft.Web/sites/host/functionKeys@2018-11-01' = {
   name: '${name}/default/clientKey'
   properties: {
