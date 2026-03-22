@@ -217,9 +217,9 @@ jobs:
         env:
           RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
-          APP_SERVICE_NAME=$(az webapp list --resource-group "$RESOURCE_GROUP_NAME" -o json | jq -r '.[0].name')
+          APP_SERVICE_NAME=$(az webapp list --resource-group "$RESOURCE_GROUP_NAME" -o json | jq -r '[.[] | select(.name | startswith("app-"))] | .[0].name')
           if [ -z "$APP_SERVICE_NAME" ] || [ "$APP_SERVICE_NAME" == "null" ]; then
-            echo "❌ No App Service found in '$RESOURCE_GROUP_NAME'."
+            echo "❌ No App Service with 'app-' prefix found in '$RESOURCE_GROUP_NAME'."
             exit 1
           fi
           echo "✅ App Service: $APP_SERVICE_NAME"
