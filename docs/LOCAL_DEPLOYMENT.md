@@ -71,7 +71,7 @@ Ensure you have access to an [Azure subscription](https://azure.microsoft.com/fr
 | **Model** | **Minimum Capacity** | **Recommended Capacity** |
 |-----------|---------------------|--------------------------|
 | **gpt-4.1** | 150k tokens | 200k tokens (for best performance) |
-| **text-embedding-ada-002** | 100k tokens | 150k tokens (for best performance) |
+| **text-embedding-3-small** | 100k tokens | 150k tokens (for best performance) |
 
 > **Note:** When you run `azd up`, the deployment will automatically show you regions with available quota, so this pre-check is optional but helpful for planning purposes. You can customize these settings later in [Step 3.3: Advanced Configuration](#33-advanced-configuration-optional).
 
