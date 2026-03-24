@@ -137,7 +137,7 @@ jobs:
           EMAIL_BODY=$(cat <<EOF
           {
             "body": "<p>Dear Team,</p><p>We would like to inform you that the ${ACCELERATOR_NAME} deployment has failed due to insufficient quota.</p><p><strong>Status Summary:</strong><br><table border='1' cellpadding='5' cellspacing='0'><tr><th>Stage</th><th>Status</th></tr><tr><td>Deployment</td><td>❌ FAILED (Insufficient Quota)</td></tr><tr><td>E2E Tests</td><td>⏭️ SKIPPED</td></tr><tr><td>Cleanup</td><td>${CLEANUP_STATUS}</td></tr></table></p><p><strong>Configuration:</strong> ${CONFIG_LABEL}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please resolve the quota issue and retry the deployment.</p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "[CI/CD-Automation] [${ACCELERATOR_NAME}] Insufficient Quota"
+            "subject": "❌[CI/CD-Automation] [${ACCELERATOR_NAME}] Insufficient Quota"
           }
           EOF
           )
@@ -162,7 +162,7 @@ jobs:
           EMAIL_BODY=$(cat <<EOF
           {
             "body": "<p>Dear Team,</p><p>We would like to inform you that the ${ACCELERATOR_NAME} deployment has failed.</p><p><strong>Status Summary:</strong><br><table border='1' cellpadding='5' cellspacing='0'><tr><th>Stage</th><th>Status</th></tr><tr><td>Deployment</td><td>❌ FAILED (Deployment Issue)</td></tr><tr><td>E2E Tests</td><td>⏭️ SKIPPED</td></tr><tr><td>Cleanup</td><td>${CLEANUP_STATUS}</td></tr></table></p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}</p><p><strong>Configuration:</strong> ${CONFIG_LABEL}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please investigate the deployment failure at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "[CI/CD-Automation] [${ACCELERATOR_NAME}] Deployment-Failed"
+            "subject": "❌[CI/CD-Automation] [${ACCELERATOR_NAME}] Deployment-Failed"
           }
           EOF
           )
@@ -199,7 +199,7 @@ jobs:
             EMAIL_BODY=$(cat <<EOF
           {
             "body": "<p>Dear Team,</p><p>We would like to inform you that the ${ACCELERATOR_NAME} deployment has completed successfully.</p><p><strong>Status Summary:</strong><br><table border='1' cellpadding='5' cellspacing='0'><tr><th>Stage</th><th>Status</th></tr><tr><td>Deployment</td><td>✅ SUCCESS</td></tr><tr><td>E2E Tests</td><td>⏭️ SKIPPED</td></tr><tr><td>Cleanup</td><td>${CLEANUP_STATUS}</td></tr></table></p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a></p><p><strong>Configuration:</strong> ${CONFIG_LABEL}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "[CI/CD-Automation] [${ACCELERATOR_NAME}] Success"
+            "subject": "✅[CI/CD-Automation] [${ACCELERATOR_NAME}] Success"
           }
           EOF
             )
@@ -207,7 +207,7 @@ jobs:
             EMAIL_BODY=$(cat <<EOF
           {
             "body": "<p>Dear Team,</p><p>We would like to inform you that the ${ACCELERATOR_NAME} deployment and test automation has completed successfully.</p><p><strong>Status Summary:</strong><br><table border='1' cellpadding='5' cellspacing='0'><tr><th>Stage</th><th>Status</th></tr><tr><td>Deployment</td><td>✅ SUCCESS</td></tr><tr><td>E2E Tests</td><td>✅ SUCCESS</td></tr><tr><td>Cleanup</td><td>${CLEANUP_STATUS}</td></tr></table></p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a><br>• Test Suite: ${TEST_SUITE_NAME}<br>• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a></p><p><strong>Configuration:</strong> ${CONFIG_LABEL}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "[CI/CD-Automation] [${ACCELERATOR_NAME}] Success"
+            "subject": "✅[CI/CD-Automation] [${ACCELERATOR_NAME}] Success"
           }
           EOF
             )
@@ -242,7 +242,7 @@ jobs:
           EMAIL_BODY=$(cat <<EOF
           {
             "body": "<p>Dear Team,</p><p>We would like to inform you that ${ACCELERATOR_NAME} test automation has failed.</p><p><strong>Status Summary:</strong><br><table border='1' cellpadding='5' cellspacing='0'><tr><th>Stage</th><th>Status</th></tr><tr><td>Deployment</td><td>✅ SUCCESS</td></tr><tr><td>E2E Tests</td><td>❌ FAILED</td></tr><tr><td>Cleanup</td><td>${CLEANUP_STATUS}</td></tr></table></p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a><br>• Test Suite: ${TEST_SUITE_NAME}<br>• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a></p><p><strong>Configuration:</strong> ${CONFIG_LABEL}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please investigate the matter at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "[CI/CD-Automation] [${ACCELERATOR_NAME}] E2E Test-Failed"
+            "subject": "❌[CI/CD-Automation] [${ACCELERATOR_NAME}] E2E Test-Failed"
           }
           EOF
           )
@@ -272,7 +272,7 @@ jobs:
           EMAIL_BODY=$(cat <<EOF
           {
             "body": "<p>Dear Team,</p><p>The ${ACCELERATOR_NAME} pipeline executed against the <strong>specified Target URL</strong> and test automation has completed successfully.</p><p><strong>Status Summary:</strong><br><table border='1' cellpadding='5' cellspacing='0'><tr><th>Stage</th><th>Status</th></tr><tr><td>Deployment</td><td>⏭️ SKIPPED (Tests executed on Pre-deployed RG)</td></tr><tr><td>E2E Tests</td><td>✅ SUCCESS</td></tr><tr><td>Cleanup</td><td>${CLEANUP_STATUS}</td></tr></table></p><p><strong>Test Results:</strong><br>• Test Suite: ${TEST_SUITE_NAME}<br>${TEST_REPORT_URL:+• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a>}<br>• Target URL: <a href='${EXISTING_URL}'>${EXISTING_URL}</a></p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "[CI/CD-Automation] [${ACCELERATOR_NAME}] Success"
+            "subject": "✅[CI/CD-Automation] [${ACCELERATOR_NAME}] Success"
           }
           EOF
           )
@@ -302,7 +302,7 @@ jobs:
           EMAIL_BODY=$(cat <<EOF
           {
             "body": "<p>Dear Team,</p><p>The ${ACCELERATOR_NAME} pipeline executed against the <strong>specified Target URL</strong> and test automation has failed.</p><p><strong>Status Summary:</strong><br><table border='1' cellpadding='5' cellspacing='0'><tr><th>Stage</th><th>Status</th></tr><tr><td>Deployment</td><td>⏭️ SKIPPED (Tests executed on Pre-deployed RG)</td></tr><tr><td>E2E Tests</td><td>❌ FAILED</td></tr><tr><td>Cleanup</td><td>${CLEANUP_STATUS}</td></tr></table></p><p><strong>Failure Details:</strong><br>• Target URL: <a href='${EXISTING_URL}'>${EXISTING_URL}</a><br>${TEST_REPORT_URL:+• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a>}<br>• Test Suite: ${TEST_SUITE_NAME}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "[CI/CD-Automation] [${ACCELERATOR_NAME}] E2E Test-Failed"
+            "subject": "❌[CI/CD-Automation] [${ACCELERATOR_NAME}] E2E Test-Failed"
           }
           EOF
           )
