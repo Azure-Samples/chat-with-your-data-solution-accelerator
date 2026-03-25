@@ -133,6 +133,7 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_get_vector_dimensions(
                 "input": [[1199]],
                 "model": "text-embedding-3-small",
                 "encoding_format": "base64",
+                "dimensions": 1536,
             },
             headers={
                 "Accept": "application/json",
@@ -164,6 +165,7 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question_to_sear
                 ],  # Embedding of "What is the meaning of life?"
                 "model": "text-embedding-3-small",
                 "encoding_format": "base64",
+                "dimensions": 1536,
             },
             headers={
                 "Accept": "application/json",
@@ -197,6 +199,7 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question_to_stor
                 ],  # Embedding of "What is the meaning of life?"
                 "model": "text-embedding-3-small",
                 "encoding_format": "base64",
+                "dimensions": 1536,
             },
             headers={
                 "Accept": "application/json",

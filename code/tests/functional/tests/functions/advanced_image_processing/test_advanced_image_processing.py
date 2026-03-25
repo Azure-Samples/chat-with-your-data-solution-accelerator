@@ -221,6 +221,7 @@ def test_embeddings_generated_for_caption(
                     "AZURE_OPENAI_EMBEDDING_MODEL_INFO", "model"
                 ),
                 "encoding_format": "base64",
+                "dimensions": 1536,
             },
             headers={
                 "Accept": "application/json",
