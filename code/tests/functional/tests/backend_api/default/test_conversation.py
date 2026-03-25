@@ -174,7 +174,7 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question_to_sear
                 "Api-Key": app_config.get("AZURE_OPENAI_API_KEY"),
             },
             query_string="api-version=2024-02-01",
-            times=1,
+            times=2,
         ),
     )
 
@@ -208,7 +208,7 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question_to_stor
                 "Api-Key": app_config.get("AZURE_OPENAI_API_KEY"),
             },
             query_string="api-version=2024-02-01",
-            times=1,
+            times=2,
         ),
     )
 
