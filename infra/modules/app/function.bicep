@@ -109,7 +109,7 @@ module function '../core/host/functions.bicep' = {
   }
 }
 
-#disable-next-line BCP081
+#disable-next-line BCP081 // Suppress missing/unknown type schema warning for this functionKeys API version
 resource functionNameDefaultClientKey 'Microsoft.Web/sites/host/functionKeys@2018-11-01' = {
   name: '${name}/default/clientKey'
   properties: {

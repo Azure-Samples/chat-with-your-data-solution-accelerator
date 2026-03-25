@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "2339690991179563571"
+      "templateHash": "17408819589379274150"
     }
   },
   "parameters": {
@@ -22983,7 +22983,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "8982167829062644718"
+              "templateHash": "9897399857943770193"
             }
           },
           "parameters": {
@@ -25526,7 +25526,7 @@
               "metadata": {
                 "description": "The principal ID of the system-assigned managed identity, if enabled."
               },
-              "value": "[if(parameters('enableSystemAssigned'), coalesce(tryGet(tryGet(reference('cognitiveServices').outputs, 'systemAssignedMIPrincipalId'), 'value'), ''), '')]"
+              "value": "[if(parameters('enableSystemAssigned'), coalesce(reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value, ''), '')]"
             }
           }
         }
@@ -25589,7 +25589,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "8982167829062644718"
+              "templateHash": "9897399857943770193"
             }
           },
           "parameters": {
@@ -28132,7 +28132,7 @@
               "metadata": {
                 "description": "The principal ID of the system-assigned managed identity, if enabled."
               },
-              "value": "[if(parameters('enableSystemAssigned'), coalesce(tryGet(tryGet(reference('cognitiveServices').outputs, 'systemAssignedMIPrincipalId'), 'value'), ''), '')]"
+              "value": "[if(parameters('enableSystemAssigned'), coalesce(reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value, ''), '')]"
             }
           }
         }
@@ -28196,7 +28196,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "8982167829062644718"
+              "templateHash": "9897399857943770193"
             }
           },
           "parameters": {
@@ -30739,7 +30739,7 @@
               "metadata": {
                 "description": "The principal ID of the system-assigned managed identity, if enabled."
               },
-              "value": "[if(parameters('enableSystemAssigned'), coalesce(tryGet(tryGet(reference('cognitiveServices').outputs, 'systemAssignedMIPrincipalId'), 'value'), ''), '')]"
+              "value": "[if(parameters('enableSystemAssigned'), coalesce(reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value, ''), '')]"
             }
           }
         }
@@ -46713,7 +46713,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "8982167829062644718"
+              "templateHash": "9897399857943770193"
             }
           },
           "parameters": {
@@ -49256,7 +49256,7 @@
               "metadata": {
                 "description": "The principal ID of the system-assigned managed identity, if enabled."
               },
-              "value": "[if(parameters('enableSystemAssigned'), coalesce(tryGet(tryGet(reference('cognitiveServices').outputs, 'systemAssignedMIPrincipalId'), 'value'), ''), '')]"
+              "value": "[if(parameters('enableSystemAssigned'), coalesce(reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value, ''), '')]"
             }
           }
         }
@@ -49317,7 +49317,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "8982167829062644718"
+              "templateHash": "9897399857943770193"
             }
           },
           "parameters": {
@@ -51860,7 +51860,7 @@
               "metadata": {
                 "description": "The principal ID of the system-assigned managed identity, if enabled."
               },
-              "value": "[if(parameters('enableSystemAssigned'), coalesce(tryGet(tryGet(reference('cognitiveServices').outputs, 'systemAssignedMIPrincipalId'), 'value'), ''), '')]"
+              "value": "[if(parameters('enableSystemAssigned'), coalesce(reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value, ''), '')]"
             }
           }
         }
