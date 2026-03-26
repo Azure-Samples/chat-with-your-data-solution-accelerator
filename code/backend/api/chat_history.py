@@ -11,7 +11,6 @@ from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from backend.batch.utilities.helpers.env_helper import EnvHelper
 from backend.batch.utilities.chat_history.database_factory import DatabaseFactory
 from backend.batch.utilities.loggers.event_utils import track_event_if_configured
-from opentelemetry import trace
 
 load_dotenv()
 bp_chat_history_response = Blueprint("chat_history", __name__)
@@ -19,25 +18,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(level=os.environ.get("LOGLEVEL", "INFO").upper())
 
 env_helper: EnvHelper = EnvHelper()
-
-
-@bp_chat_history_response.before_request
-def set_span_attributes():
-    """Middleware to attach conversation_id and user_id to the current OpenTelemetry span."""
-    if request.method in ("POST", "DELETE") and request.is_json:
-        try:
-            body = request.get_json(silent=True) or {}
-            conversation_id = body.get("conversation_id", "")
-            authenticated_user = get_authenticated_user_details(request_headers=request.headers)
-            user_id = authenticated_user.get("user_principal_id", "")
-            span = trace.get_current_span()
-            if span:
-                if conversation_id:
-                    span.set_attribute("conversation_id", conversation_id)
-                if user_id:
-                    span.set_attribute("user_id", user_id)
-        except Exception:
-            pass  # Don't let telemetry middleware break requests
 
 
 def init_database_client():
