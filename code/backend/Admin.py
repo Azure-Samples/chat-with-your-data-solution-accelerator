@@ -27,6 +27,16 @@ logging.basicConfig(
 azure_package_log_level = getattr(
     logging, PACKAGE_LOGGING_LEVEL.upper(), logging.WARNING
 )
+
+# Suppress noisy Azure SDK loggers by default
+_NOISY_AZURE_LOGGERS = [
+    "azure.core.pipeline.policies.http_logging_policy",
+    "azure.monitor.opentelemetry.exporter",
+    "azure.identity",
+]
+for logger_name in _NOISY_AZURE_LOGGERS:
+    logging.getLogger(logger_name).setLevel(logging.WARNING)
+
 for logger_name in AZURE_LOGGING_PACKAGES:
     logging.getLogger(logger_name).setLevel(azure_package_log_level)
 
