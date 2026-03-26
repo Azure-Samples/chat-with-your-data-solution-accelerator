@@ -863,3 +863,165 @@ class TestAzurePostgresHelper(unittest.TestCase):
             "Error executing search query: Database error"
         )
         mock_connection.close.assert_called_once()
+
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
+    def test_get_search_client_recreates_closed_connection(
+        self, mock_env_helper, mock_logger, mock_connect, mock_credential
+    ):
+        # Arrange: Mock the EnvHelper attributes
+        mock_env_helper.POSTGRESQL_USER = "mock_user"
+        mock_env_helper.POSTGRESQL_HOST = "mock_host"
+        mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
+        mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
+
+        # Mock a new open connection
+        mock_new_connection = MagicMock()
+        mock_new_connection.closed = 0  # Connection is open
+
+        mock_connect.return_value = mock_new_connection
+
+        # Create an instance of the helper
+        helper = AzurePostgresHelper()
+
+        # Mock a closed connection
+        mock_closed_connection = MagicMock()
+        mock_closed_connection.closed = 1  # Connection is closed
+
+        # Set the helper to have a closed connection
+        helper.conn = mock_closed_connection
+
+        # Act: Call get_search_client which should recreate the connection
+        result = helper.get_search_client()
+
+        # Assert: Verify new connection was created
+        self.assertEqual(result, mock_new_connection)
+        self.assertEqual(mock_connect.call_count, 1)
+        mock_logger.info.assert_called_with("Connected to Azure PostgreSQL successfully.")
+
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.execute_values")
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
+    def test_create_vector_store_success(
+        self, mock_env_helper, mock_logger, mock_execute_values, mock_connect, mock_credential
+    ):
+        # Arrange: Mock the EnvHelper attributes
+        mock_env_helper.POSTGRESQL_USER = "mock_user"
+        mock_env_helper.POSTGRESQL_HOST = "mock_host"
+        mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
+        mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
+
+        # Mock the connection and cursor
+        mock_connection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
+        mock_connect.return_value = mock_connection
+
+        # Create test documents
+        documents_to_upload = [
+            {
+                "id": "doc1",
+                "title": "Title 1",
+                "chunk": "Chunk 1",
+                "chunk_id": "chunk1",
+                "offset": 0,
+                "page_number": 1,
+                "content": "Content 1",
+                "source": "source1.pdf",
+                "metadata": {"key": "value1"},
+                "content_vector": [0.1, 0.2, 0.3]
+            },
+            {
+                "id": "doc2",
+                "title": "Title 2",
+                "chunk": "Chunk 2",
+                "chunk_id": "chunk2",
+                "offset": 100,
+                "page_number": 2,
+                "content": "Content 2",
+                "source": "source2.pdf",
+                "metadata": {"key": "value2"},
+                "content_vector": [0.4, 0.5, 0.6]
+            }
+        ]
+
+        # Create an instance of the helper
+        helper = AzurePostgresHelper()
+
+        # Act: Call the method under test
+        helper.create_vector_store(documents_to_upload)
+
+        # Assert: Verify execute_values was called
+        mock_execute_values.assert_called_once()
+        mock_connection.commit.assert_called_once()
+        mock_connection.close.assert_called_once()
+        mock_logger.info.assert_called_with("Inserted 2 documents successfully.")
+
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.get_azure_credential")
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.psycopg2.connect")
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.execute_values")
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.logger")
+    @patch("backend.batch.utilities.helpers.azure_postgres_helper.EnvHelper")
+    def test_create_vector_store_error(
+        self, mock_env_helper, mock_logger, mock_execute_values, mock_connect, mock_credential
+    ):
+        # Arrange: Mock the EnvHelper attributes
+        mock_env_helper.POSTGRESQL_USER = "mock_user"
+        mock_env_helper.POSTGRESQL_HOST = "mock_host"
+        mock_env_helper.POSTGRESQL_DATABASE = "mock_database"
+        mock_env_helper.AZURE_POSTGRES_SEARCH_TOP_K = 5
+
+        # Mock access token retrieval
+        mock_access_token = MagicMock()
+        mock_access_token.token = "mock-access-token"
+        mock_credential.return_value.get_token.return_value = mock_access_token
+
+        # Mock the connection and cursor
+        mock_connection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
+        mock_connect.return_value = mock_connection
+
+        # Simulate an error during execute_values
+        mock_execute_values.side_effect = Exception("Insert failed")
+
+        # Create test documents
+        documents_to_upload = [
+            {
+                "id": "doc1",
+                "title": "Title 1",
+                "chunk": "Chunk 1",
+                "chunk_id": "chunk1",
+                "offset": 0,
+                "page_number": 1,
+                "content": "Content 1",
+                "source": "source1.pdf",
+                "metadata": {"key": "value1"},
+                "content_vector": [0.1, 0.2, 0.3]
+            }
+        ]
+
+        # Create an instance of the helper
+        helper = AzurePostgresHelper()
+
+        # Act & Assert: Ensure that the exception is raised and the error is logged
+        with self.assertRaises(Exception):
+            helper.create_vector_store(documents_to_upload)
+
+        mock_logger.error.assert_called_with("Error during index creation: Insert failed")
+        mock_connection.rollback.assert_called_once()
+        mock_connection.close.assert_called_once()

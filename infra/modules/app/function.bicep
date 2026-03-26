@@ -123,11 +123,11 @@ resource functionNameDefaultClientKey 'Microsoft.Web/sites/host/functionKeys@201
 
 resource waitFunctionDeploymentSection 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   kind: 'AzurePowerShell'
-  name: 'WaitFunctionDeploymentSection'
+  name: 'wait-func-deploy-${name}'
   location: location
   properties: {
     azPowerShellVersion: '11.0'
-    scriptContent: 'start-sleep -Seconds 300'
+    scriptContent: 'start-sleep -Seconds 600'
     cleanupPreference: 'Always'
     retentionInterval: 'PT1H'
   }

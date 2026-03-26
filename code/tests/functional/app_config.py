@@ -38,7 +38,7 @@ class AppConfig:
         "AZURE_SEARCH_CONVERSATIONS_LOG_INDEX": "some-log-index",
         "AZURE_SEARCH_CONTENT_COLUMN": "content",
         "AZURE_SEARCH_CONTENT_VECTOR_COLUMN": "some-search-content-vector-columns",
-        "AZURE_SEARCH_DIMENSIONS": "some-search-dimensions",
+        "AZURE_SEARCH_DIMENSIONS": "1536",
         "AZURE_SEARCH_ENABLE_IN_DOMAIN": "True",
         "AZURE_SEARCH_FIELDS_ID": "some-search-fields-id",
         "AZURE_SEARCH_FIELDS_METADATA": "some-search-fields-metadata",

@@ -150,18 +150,6 @@ param useAdvancedImageProcessing bool = false
 @description('Optional. The maximum number of images to pass to the vision model in a single request.')
 param advancedImageProcessingMaxImages int = 1
 
-@description('Optional. Azure OpenAI Vision Model Deployment Name.')
-param azureOpenAIVisionModel string = 'gpt-4.1'
-
-@description('Optional. Azure OpenAI Vision Model Name.')
-param azureOpenAIVisionModelName string = 'gpt-4.1'
-
-@description('Optional. Azure OpenAI Vision Model Version.')
-param azureOpenAIVisionModelVersion string = '2025-04-14'
-
-@description('Optional. Azure OpenAI Vision Model Capacity - See here for more info  https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota.')
-param azureOpenAIVisionModelCapacity int = 10
-
 @description('Optional. Orchestration strategy: openai_function or semantic_kernel or langchain str. If you use a old version of turbo (0301), please select langchain. If the database type is PostgreSQL, set this to sementic_kernel.')
 @allowed([
   'openai_function'
@@ -209,6 +197,9 @@ param azureOpenAIEmbeddingModelVersion string = '2'
 
 @description('Optional. Azure OpenAI Embedding Model Capacity - See here for more info https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota .')
 param azureOpenAIEmbeddingModelCapacity int = 100
+
+@description('Optional. Azure Search vector field dimensions. Must match the embedding model dimensions. 1536 for text-embedding-ada-002, 3072 for text-embedding-3-large. See https://learn.microsoft.com/en-us/azure/search/cognitive-search-skill-azure-openai-embedding#supported-dimensions-by-modelname.(Only for databaseType=CosmosDB)')
+param azureSearchDimensions string = '1536'
 
 @description('Optional. Name of Computer Vision Resource (if useAdvancedImageProcessing=true).')
 var computerVisionName string = 'cv-${solutionSuffix}'
@@ -347,7 +338,7 @@ param enableTelemetry bool = true
 var blobContainerName = 'documents'
 var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
-var eventGridSystemTopicName = 'doc-processing'
+var eventGridSystemTopicName = 'evgt-${solutionSuffix}'
 var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
 
 @description('Optional. Image version tag to use.')
@@ -367,11 +358,11 @@ var openAIFunctionsSystemPrompt = '''You help employees to navigate only private
     You **must respond** "The requested information is not available in the retrieved data. Please try another query or topic.", If its not related to uploaded documents.'''
 
 var semanticKernelSystemPrompt = '''You help employees to navigate only private information sources.
-    You must prioritize the function call over your general knowledge for any question by calling the search_documents function.
-    Call the text_processing function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.
+    You should prioritize the function call over your general knowledge for any question by calling the search_documents function.
+    Call the text_processing function when the user requests an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.
     When directly replying to the user, always reply in the language the user is speaking.
     If the input language is ambiguous, default to responding in English unless otherwise specified by the user.
-    You **must not** respond if asked to List all documents in your repository.'''
+    Do not list all documents in your repository if asked.'''
 
 var allTags = union(
   {
@@ -379,6 +370,8 @@ var allTags = union(
   },
   tags
 )
+
+var existingTags = resourceGroup().tags ?? {}
 
 @description('Optional. Created by user name.')
 param createdBy string = contains(deployer(), 'userPrincipalName')
@@ -388,12 +381,10 @@ param createdBy string = contains(deployer(), 'userPrincipalName')
 resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
   name: 'default'
   properties: {
-    tags: {
-      ...resourceGroup().tags
-      ...allTags
+    tags: union(existingTags, allTags, {
       TemplateName: 'CWYD'
       CreatedBy: createdBy
-    }
+    })
   }
 }
 
@@ -574,10 +565,10 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
 // using AVM Virtual Machine module
 // https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/compute/virtual-machine
 
-module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-configuration:0.3.1' = {
-  name: take('avm.res.maintenance.maintenance-configuration.${jumpboxVmName}', 64)
+module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-configuration:0.3.1' = if (enablePrivateNetworking) {
+  name: take('avm.res.maintenance.maintenance-configuration.${solutionSuffix}', 64)
   params: {
-    name: 'mc-${jumpboxVmName}'
+    name: 'mc-${solutionSuffix}'
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
@@ -858,7 +849,7 @@ module pgSqlDelayScript 'br/public:avm/res/resources/deployment-script:0.5.1' = 
     tags: tags
     kind: 'AzurePowerShell'
     enableTelemetry: enableTelemetry
-    scriptContent: 'start-sleep -Seconds 300'
+    scriptContent: 'start-sleep -Seconds 600'
     azPowerShellVersion: '11.0'
     timeout: 'PT15M'
     cleanupPreference: 'Always'
@@ -1106,8 +1097,17 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
 
-module search 'br/public:avm/res/search/search-service:0.11.1' = if (databaseType == 'CosmosDB') {
-  name: take('avm.res.search.search-service.${azureAISearchName}', 64)
+resource search 'Microsoft.Search/searchServices@2024-06-01-preview' = {
+  name: azureAISearchName
+  location: location
+  sku: {
+    name: azureSearchSku
+  }
+}
+
+// Separate module for Search Service to enable managed identity and update other properties, as this reduces deployment time for the search service
+module searchUpdate 'br/public:avm/res/search/search-service:0.11.1' = if (databaseType == 'CosmosDB') {
+  name: take('avm.res.search.update.${azureAISearchName}', 64)
   params: {
     // Required parameters
     name: azureAISearchName
@@ -1192,6 +1192,9 @@ module search 'br/public:avm/res/search/search-service:0.11.1' = if (databaseTyp
         : []
     )
   }
+  dependsOn: [
+    search
+  ]
 }
 
 // AVM WAF - Server Farm + Web Site conversions
@@ -1285,6 +1288,7 @@ module web 'modules/app/web.bicep' = {
         MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.resourceId
         AZURE_CLIENT_ID: managedIdentityModule.outputs.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
+        AZURE_SEARCH_DIMENSIONS: azureSearchDimensions
       },
       databaseType == 'CosmosDB'
         ? {
@@ -1383,6 +1387,7 @@ module adminweb 'modules/app/adminweb.bicep' = {
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.clientId
         MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.resourceId
         APP_ENV: appEnvironment
+        AZURE_SEARCH_DIMENSIONS: azureSearchDimensions
       },
       databaseType == 'CosmosDB'
         ? {
@@ -1476,12 +1481,15 @@ module function 'modules/app/function.bicep' = {
         PACKAGE_LOGGING_LEVEL: 'WARNING'
         AZURE_LOGGING_PACKAGES: ''
         AZURE_OPENAI_SYSTEM_MESSAGE: azureOpenAISystemMessage
+        OPEN_AI_FUNCTIONS_SYSTEM_PROMPT: openAIFunctionsSystemPrompt
+        SEMANTIC_KERNEL_SYSTEM_PROMPT: semanticKernelSystemPrompt
         DATABASE_TYPE: databaseType
         MANAGED_IDENTITY_CLIENT_ID: managedIdentityModule.outputs.clientId
         MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.resourceId
         AZURE_CLIENT_ID: managedIdentityModule.outputs.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
         BACKEND_URL: backendUrl
+        AZURE_SEARCH_DIMENSIONS: azureSearchDimensions
       },
       databaseType == 'CosmosDB'
         ? {
@@ -1741,7 +1749,7 @@ module workbook 'modules/app/workbook.bicep' = if (enableMonitoring) {
     eventGridSystemTopicName: avmEventGridSystemTopic!.outputs.name
     logAnalyticsResourceId: monitoring!.outputs.logAnalyticsWorkspaceId
     azureOpenAIResourceName: openai.outputs.name
-    azureAISearchName: databaseType == 'CosmosDB' ? search!.outputs.name : ''
+    azureAISearchName: databaseType == 'CosmosDB' ? search.name : ''
     storageAccountName: storage.outputs.name
   }
 }
@@ -1769,7 +1777,7 @@ module avmEventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.3'
       : []
     eventSubscriptions: [
       {
-        name: eventGridSystemTopicName
+        name: 'evts-${solutionSuffix}'
         destination: {
           endpointType: 'StorageQueue'
           properties: {
@@ -1803,21 +1811,21 @@ var systemAssignedRoleAssignments = union(
   databaseType == 'CosmosDB'
     ? [
         {
-          principalId: search.outputs.systemAssignedMIPrincipalId
+          principalId: searchUpdate.?outputs.systemAssignedMIPrincipalId
           resourceId: storage.outputs.resourceId
           roleName: 'Storage Blob Data Contributor'
           roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
           principalType: 'ServicePrincipal'
         }
         {
-          principalId: search.outputs.systemAssignedMIPrincipalId
+          principalId: searchUpdate.?outputs.systemAssignedMIPrincipalId
           resourceId: openai.outputs.resourceId
           roleName: 'Cognitive Services User'
           roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
           principalType: 'ServicePrincipal'
         }
         {
-          principalId: search.outputs.systemAssignedMIPrincipalId
+          principalId: searchUpdate.?outputs.systemAssignedMIPrincipalId
           resourceId: openai.outputs.resourceId
           roleName: 'Cognitive Services OpenAI User'
           roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
@@ -1917,7 +1925,7 @@ var azureSpeechServiceInfo = string({
 var azureSearchServiceInfo = databaseType == 'CosmosDB'
   ? string({
       service_name: azureAISearchName
-      service: search!.outputs.endpoint
+      service: searchUpdate!.outputs.endpoint
       use_semantic_search: azureSearchUseSemanticSearch
       semantic_search_config: azureSearchSemanticSearchConfig
       index_is_prechunked: azureSearchIndexIsPrechunked
@@ -2029,6 +2037,15 @@ output BACKEND_URL string = backendUrl
 
 @description('Azure WebJobs Storage connection string for the Functions app.')
 output AzureWebJobsStorage string = function.outputs.AzureWebJobsStorage
+
+@description('Frontend web application resource name (for azd deploy).')
+output SERVICE_WEB_RESOURCE_NAME string = web.outputs.FRONTEND_API_NAME
+
+@description('Admin web application resource name (for azd deploy).')
+output SERVICE_ADMINWEB_RESOURCE_NAME string = adminweb.outputs.WEBSITE_ADMIN_NAME
+
+@description('Function app resource name (for azd deploy).')
+output SERVICE_FUNCTION_RESOURCE_NAME string = function.outputs.functionName
 
 @description('Frontend web application URI.')
 output FRONTEND_WEBSITE_NAME string = web.outputs.FRONTEND_API_URI

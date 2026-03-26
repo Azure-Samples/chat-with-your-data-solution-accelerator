@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Stack } from "@fluentui/react";
+import { Stack, TooltipHost } from "@fluentui/react";
 import { BroomRegular, SquareRegular } from "@fluentui/react-icons";
+import { useId, useConst } from '@fluentui/react-hooks'
 import {
   SpeechRecognizer,
   ResultReason,
@@ -38,6 +39,7 @@ const [ASSISTANT, TOOL, ERROR] = ["assistant", "tool", "error"];
 const Chat = () => {
   const lastQuestionRef = useRef<string>("");
   const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
+  const audioStopRef = useRef<(() => void) | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);  // Add this state
   const [showLoadingMessage, setShowLoadingMessage] = useState<boolean>(false);
@@ -303,11 +305,13 @@ const Chat = () => {
   };
 
   const clearChat = () => {
+    audioStopRef.current?.();
     lastQuestionRef.current = "";
     setActiveCitation(undefined);
     setAnswers([]);
     setConversationId(uuidv4());
     setSelectedConvId("");
+    setActiveCardIndex(null);
   };
 
   const stopGenerating = () => {
@@ -385,9 +389,12 @@ const Chat = () => {
     []
   );
 
-  const handleSpeech = (index: number, status: string) => {
+  const handleSpeech = (index: number, status: string, stopAudioFn?: () => void) => {
     if (status != "pause") setActiveCardIndex(index);
     setIsTextToSpeachActive(status == "speak" ? true : false);
+    if (status == "speak" && stopAudioFn) {
+      audioStopRef.current = stopAudioFn;
+    }
   };
   const onSetShowHistoryPanel = () => {
     if (!showHistoryPanel) {
@@ -423,8 +430,15 @@ const Chat = () => {
       console.error("No conversation Id found");
       return;
     }
+
+    if (id !== selectedConvId) {
+      audioStopRef.current?.();
+      setActiveCardIndex(null);
+    }
+
     const messages = getMessagesByConvId(id);
     if (messages.length === 0) {
+      setAnswers([]);
       setFetchingConvMessages(true);
       const responseMessages = await historyRead(id);
       setAnswers(responseMessages);
@@ -433,7 +447,10 @@ const Chat = () => {
     } else {
       setAnswers(messages);
     }
-    setSelectedConvId(id);
+
+    if (id !== selectedConvId) {
+      setSelectedConvId(id);
+    }
   };
 
   useEffect(() => {
@@ -477,6 +494,7 @@ const Chat = () => {
     );
     setChatHistory(tempChatHistory);
     if (id === selectedConvId) {
+      audioStopRef.current?.();
       lastQuestionRef.current = "";
       setActiveCitation(undefined);
       setAnswers([]);
@@ -505,7 +523,11 @@ const Chat = () => {
       return response;
     });
   };
-
+  const buttonId = useId('newChatButton');
+  const calloutProps = useConst({
+    gapSpace: 0,
+    target: `#${buttonId}`,
+  });
   const loadingMessageBlock = () => {
     return (
       <React.Fragment key="generating-answer">
@@ -594,6 +616,10 @@ const Chat = () => {
                   </span>
                 </Stack>
               )}
+
+             <TooltipHost content="Start new chat"
+                          calloutProps={calloutProps}
+             >
               <BroomRegular
                 className={`${styles.clearChatBroom} ${styles.mobileclearChatBroom}`}
                 style={{
@@ -610,7 +636,9 @@ const Chat = () => {
                 aria-label="Clear session"
                 role="button"
                 tabIndex={0}
+                id={buttonId}
               />
+              </TooltipHost>
               <QuestionInput
                 clearOnSend
                 placeholder="Type a new question..."

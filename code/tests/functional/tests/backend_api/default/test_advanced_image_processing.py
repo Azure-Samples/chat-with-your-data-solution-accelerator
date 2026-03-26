@@ -4,6 +4,7 @@ from unittest.mock import ANY
 import pytest
 import requests
 from pytest_httpserver import HTTPServer
+from backend.batch.utilities.helpers.prompt_utils import get_current_date_suffix
 from tests.constants import (
     COMPUTER_VISION_VECTORIZE_TEXT_PATH,
     COMPUTER_VISION_VECTORIZE_TEXT_REQUEST_METHOD,
@@ -241,7 +242,7 @@ def test_image_urls_included_in_call_to_openai(
             json={
                 "messages": [
                     {
-                        "content": "system prompt",
+                        "content": "system prompt" + get_current_date_suffix(),
                         "role": "system",
                     },
                     {
@@ -255,7 +256,7 @@ def test_image_urls_included_in_call_to_openai(
                         "role": "system",
                     },
                     {
-                        "content": "You are an AI assistant that helps people find information.",
+                        "content": "You are an AI assistant that helps people find information." + get_current_date_suffix(),
                         "role": "system",
                     },
                     {"content": "Hello", "role": "user"},

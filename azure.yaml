@@ -22,6 +22,8 @@ services:
     language: py
     host: appservice
     dist: ./dist
+    # Use resourceName
+    resourceName: ${SERVICE_WEB_RESOURCE_NAME}
     hooks:
       prepackage:
         windows:
@@ -39,6 +41,8 @@ services:
     project: ./code/backend
     language: py
     host: appservice
+    # Use resourceName
+    resourceName: ${SERVICE_ADMINWEB_RESOURCE_NAME}
     hooks:
       prepackage:
         windows:
@@ -52,11 +56,13 @@ services:
     project: ./code/backend/batch
     language: py
     host: function
+    # Use resourceName
+    resourceName: ${SERVICE_FUNCTION_RESOURCE_NAME}
     hooks:
       prepackage:
         windows:
           shell: pwsh
-          run: poetry export -o requirements.txt; pip install -r requirements.txt
+          run: poetry export -o requirements.txt --without-hashes; pip install -r requirements.txt
         posix:
           shell: sh
-          run: poetry export -o requirements.txt; pip install -r requirements.txt
+          run: poetry export -o requirements.txt --without-hashes; pip install -r requirements.txt
