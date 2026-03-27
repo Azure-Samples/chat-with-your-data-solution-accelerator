@@ -51,9 +51,6 @@ on:
       ADMIN_APPURL:
         description: "Admin Web App URL"
         value: ${{ jobs.deploy-windows.outputs.ADMIN_APPURL }}
-      RESOURCE_TOKEN:
-        description: "Resource Token"
-        value: ${{ jobs.deploy-windows.outputs.RESOURCE_TOKEN }}
       AZURE_POSTGRESQL_HOST_NAME:
         description: "Azure PostgreSQL Host Name"
         value: ${{ jobs.deploy-windows.outputs.AZURE_POSTGRESQL_HOST_NAME }}
@@ -75,7 +72,6 @@ jobs:
     outputs:
       WEB_APPURL: ${{ steps.get_output_windows.outputs.FRONTEND_WEBSITE_NAME }}
       ADMIN_APPURL: ${{ steps.get_output_windows.outputs.ADMIN_WEBSITE_NAME }}
-      RESOURCE_TOKEN: ${{ steps.get_output_windows.outputs.RESOURCE_TOKEN }}
       AZURE_POSTGRESQL_HOST_NAME: ${{ steps.get_output_windows.outputs.AZURE_POSTGRESQL_HOST_NAME }}
       AZURE_SEARCH_SERVICE: ${{ steps.get_output_windows.outputs.AZURE_SEARCH_SERVICE }}
       AZURE_BLOB_ACCOUNT_NAME: ${{ steps.get_output_windows.outputs.AZURE_BLOB_ACCOUNT_NAME }}
@@ -337,9 +333,6 @@ jobs:
 
           $AdminWebsiteName = azd env get-value ADMIN_WEBSITE_NAME
           echo "ADMIN_WEBSITE_NAME=$AdminWebsiteName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
-          $ResourceToken = azd env get-value RESOURCE_TOKEN
-          echo "RESOURCE_TOKEN=$ResourceToken" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
           # Export values based on DATABASE_TYPE
           if ($env:INPUT_DATABASE_TYPE -eq 'PostgreSQL') {
