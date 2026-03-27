@@ -2,6 +2,7 @@
 This module creates a Flask app that serves the web interface for the chatbot.
 """
 
+import contextvars
 import functools
 import json
 import logging
@@ -32,6 +33,23 @@ from backend.batch.utilities.helpers.azure_blob_storage_client import (
 from backend.batch.utilities.loggers.event_utils import track_event_if_configured
 from backend.batch.utilities.chat_history.auth_utils import get_authenticated_user_details
 from opentelemetry import trace
+from opentelemetry.sdk.trace import SpanProcessor
+
+_conversation_id_var: contextvars.ContextVar[str] = contextvars.ContextVar("conversation_id", default="")
+_user_id_var: contextvars.ContextVar[str] = contextvars.ContextVar("user_id", default="")
+
+
+class ConversationSpanProcessor(SpanProcessor):
+    """Attaches conversation_id and user_id to every span created during a request."""
+
+    def on_start(self, span, parent_context=None):
+        conversation_id = _conversation_id_var.get()
+        user_id = _user_id_var.get()
+        if conversation_id:
+            span.set_attribute("conversation_id", conversation_id)
+        if user_id:
+            span.set_attribute("user_id", user_id)
+
 
 ERROR_429_MESSAGE = "We're currently experiencing a high number of requests for the service you're trying to access. Please wait a moment and try again."
 ERROR_GENERIC_MESSAGE = "An error occurred. Please try again. If the problem persists, please contact the site administrator."
@@ -418,13 +436,15 @@ def create_app():
 
     @app.before_request
     def set_span_attributes():
-        """Middleware to attach conversation_id and user_id to the current OpenTelemetry span."""
+        """Middleware to attach conversation_id and user_id to the current OpenTelemetry span and context vars."""
         if request.method == "POST" and request.is_json:
             try:
                 body = request.get_json(silent=True) or {}
                 conversation_id = body.get("conversation_id", "")
                 authenticated_user = get_authenticated_user_details(request_headers=request.headers)
                 user_id = authenticated_user.get("user_principal_id", "")
+                _conversation_id_var.set(conversation_id)
+                _user_id_var.set(user_id)
                 span = trace.get_current_span()
                 if span:
                     if conversation_id:
@@ -433,6 +453,12 @@ def create_app():
                         span.set_attribute("user_id", user_id)
             except Exception:
                 pass  # Don't let telemetry middleware break requests
+
+    @app.teardown_request
+    def clear_span_context(exc=None):
+        """Clear conversation context vars after each request."""
+        _conversation_id_var.set("")
+        _user_id_var.set("")
 
     @app.route("/", defaults={"path": "index.html"})
     @app.route("/<path:path>")

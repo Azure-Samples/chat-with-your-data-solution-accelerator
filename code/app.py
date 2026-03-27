@@ -34,6 +34,14 @@ if os.getenv("APPLICATIONINSIGHTS_ENABLED", "false").lower() == "true":
     configure_azure_monitor()
     HTTPXClientInstrumentor().instrument()  # httpx is used by openai
 
+    # Register ConversationSpanProcessor to propagate conversation_id/user_id to all child spans
+    from opentelemetry import trace as otel_trace
+    from create_app import ConversationSpanProcessor
+
+    provider = otel_trace.get_tracer_provider()
+    if hasattr(provider, "add_span_processor"):
+        provider.add_span_processor(ConversationSpanProcessor())
+
 # Suppress noisy Azure SDK loggers AFTER configure_azure_monitor()
 # to prevent it from overriding our levels
 _NOISY_AZURE_LOGGERS = [
