@@ -139,7 +139,7 @@ jobs:
           INPUT_EXP: ${{ inputs.EXP }}
           INPUT_CLEANUP_RESOURCES: ${{ inputs.cleanup_resources }}
           INPUT_RUN_E2E_TESTS: ${{ inputs.run_e2e_tests }}
-          INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID }}
           INPUT_RG_TAGS: ${{ env.RG_TAGS }}
           INPUT_EXISTING_WEBAPP_URL: ${{ inputs.existing_webapp_url }}
           INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
