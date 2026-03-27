@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "14890085901474467053"
+      "templateHash": "733797040924336678"
     }
   },
   "parameters": {
@@ -525,7 +525,7 @@
     },
     "vmSize": {
       "type": "string",
-      "defaultValue": "Standard_DS2_v2",
+      "defaultValue": "Standard_D2s_v5",
       "metadata": {
         "description": "Optional. Size of the Jumpbox Virtual Machine when created. Set to custom value if enablePrivateNetworking is true."
       }
@@ -701,7 +701,7 @@
       "apiVersion": "2025-04-01",
       "name": "default",
       "properties": {
-        "tags": "[union(variables('existingTags'), variables('allTags'), createObject('TemplateName', 'CWYD', 'CreatedBy', parameters('createdBy')))]"
+        "tags": "[union(variables('existingTags'), variables('allTags'), createObject('TemplateName', 'CWYD', 'CreatedBy', parameters('createdBy'), 'Type', if(parameters('enablePrivateNetworking'), 'WAF', 'Non-WAF')))]"
       }
     },
     "avmTelemetry": {
@@ -725,6 +725,7 @@
       }
     },
     "search": {
+      "condition": "[equals(parameters('databaseType'), 'CosmosDB')]",
       "type": "Microsoft.Search/searchServices",
       "apiVersion": "2024-06-01-preview",
       "name": "[variables('azureAISearchName')]",
@@ -4895,7 +4896,7 @@
             "value": "[take(variables('jumpboxVmName'), 15)]"
           },
           "vmSize": {
-            "value": "[coalesce(parameters('vmSize'), 'Standard_DS2_v2')]"
+            "value": "[coalesce(parameters('vmSize'), 'Standard_D2s_v5')]"
           },
           "location": {
             "value": "[parameters('location')]"
@@ -55151,8 +55152,8 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "managedIdentityModule",
         "virtualNetwork"
