@@ -26,7 +26,14 @@ azure_package_log_level = getattr(
     logging, PACKAGE_LOGGING_LEVEL.upper(), logging.WARNING
 )
 
-# Suppress noisy Azure SDK loggers by default
+for logger_name in AZURE_LOGGING_PACKAGES:
+    logging.getLogger(logger_name).setLevel(azure_package_log_level)
+
+if os.getenv("APPLICATIONINSIGHTS_ENABLED", "false").lower() == "true":
+    configure_azure_monitor()
+
+# Suppress noisy Azure SDK loggers AFTER configure_azure_monitor()
+# to prevent it from overriding our levels
 _NOISY_AZURE_LOGGERS = [
     "azure.core.pipeline.policies.http_logging_policy",
     "azure.monitor.opentelemetry.exporter",
@@ -34,12 +41,6 @@ _NOISY_AZURE_LOGGERS = [
 ]
 for logger_name in _NOISY_AZURE_LOGGERS:
     logging.getLogger(logger_name).setLevel(logging.WARNING)
-
-for logger_name in AZURE_LOGGING_PACKAGES:
-    logging.getLogger(logger_name).setLevel(azure_package_log_level)
-
-if os.getenv("APPLICATIONINSIGHTS_ENABLED", "false").lower() == "true":
-    configure_azure_monitor()
 
 app = func.FunctionApp(
     http_auth_level=func.AuthLevel.FUNCTION
