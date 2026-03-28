@@ -2,7 +2,7 @@ from base.base import BasePage
 
 
 class AdminPage(BasePage):
-    ADMIN_PAGE_TITLE = "//h1[text()='Chat with your data Solution Accelerator']"
+    ADMIN_PAGE_TITLE = "//h1[contains(., 'Chat with your data Solution Accelerator')]"
     INGEST_DATA_TAB = "//span[text()='Ingest Data']"
     EXPLORE_DATA_TAB = "//span[text()='Explore Data']"
     DELETE_DATA_TAB = "//span[text()='Delete Data']"
