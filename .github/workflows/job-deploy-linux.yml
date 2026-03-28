@@ -70,6 +70,7 @@ on:
 jobs:
   deploy-linux:
     runs-on: ubuntu-latest
+    environment: production
     env:
       AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
     outputs:
@@ -262,13 +263,18 @@ jobs:
           poetry --version
           poetry self add poetry-plugin-export
 
-      - name: Login to AZD
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to AZD (OIDC)
         id: login-azure
         shell: bash
         run: |
-          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+          azd auth login --client-id "${{ secrets.AZURE_CLIENT_ID }}" --federated-credential-provider "github" --tenant-id "${{ secrets.AZURE_TENANT_ID }}"
 
       - name: Deploy using azd up and extract values (Linux)
         id: get_output_linux
@@ -327,7 +333,18 @@ jobs:
           azd env set DATABASE_TYPE="$INPUT_DATABASE_TYPE"
 
           # Deploy using azd up
-          azd up --no-prompt
+          AZD_UP_EXIT_CODE=0
+          azd up --no-prompt || AZD_UP_EXIT_CODE=$?
+
+          # Always try to extract RESOURCE_TOKEN, even if azd up failed
+          # This ensures cleanup can find and delete partially-created resources
+          RESOURCE_TOKEN=$(azd env get-value RESOURCE_TOKEN 2>/dev/null || echo "")
+          echo "RESOURCE_TOKEN=$RESOURCE_TOKEN" >> $GITHUB_OUTPUT
+
+          if [ $AZD_UP_EXIT_CODE -ne 0 ]; then
+            echo "::error::azd up failed with exit code $AZD_UP_EXIT_CODE"
+            exit $AZD_UP_EXIT_CODE
+          fi
 
           azd env get-values
 
@@ -335,9 +352,6 @@ jobs:
           echo "FRONTEND_WEBSITE_NAME=$FRONTEND_WEBSITE_NAME" >> $GITHUB_OUTPUT
           ADMIN_WEBSITE_NAME=$(azd env get-value ADMIN_WEBSITE_NAME)
           echo "ADMIN_WEBSITE_NAME=$ADMIN_WEBSITE_NAME" >> $GITHUB_OUTPUT
-
-          RESOURCE_TOKEN=$(azd env get-value RESOURCE_TOKEN)
-          echo "RESOURCE_TOKEN=$RESOURCE_TOKEN" >> $GITHUB_OUTPUT
 
           # Export values based on DATABASE_TYPE
           if [[ "$INPUT_DATABASE_TYPE" == "PostgreSQL" ]]; then
@@ -354,6 +368,13 @@ jobs:
             echo "AZURE_SEARCH_INDEX=$AZURE_SEARCH_INDEX" >> $GITHUB_OUTPUT
           fi
 
+      - name: Azure Login (OIDC) refresh token for subsequent Azure CLI commands
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Disable Authentication with Script
         run: |
           export FRONTEND_WEBSITE_URL=$(azd env get-value FRONTEND_WEBSITE_NAME)
@@ -361,9 +382,6 @@ jobs:
           chmod +x scripts/disable_auth.sh
           ./scripts/disable_auth.sh
         env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Generate Deploy Job Summary

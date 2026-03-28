@@ -7,18 +7,6 @@ on:
         description: 'Azure Resource Group name'
         required: true
         type: string
-      AZURE_SEARCH_SERVICE:
-        description: 'Azure Search service name or URL'
-        required: true
-        type: string
-      AZURE_BLOB_ACCOUNT_NAME:
-        description: 'Azure Blob Storage Account name'
-        required: true
-        type: string
-      AZURE_SEARCH_INDEX:
-        description: 'Azure Search index name (optional - will auto-detect from search service if not provided)'
-        required: false
-        type: string
       WAF:
         description: 'Is this a WAF deployment? (enables public access temporarily for data import and then disables it)'
         required: false
@@ -30,27 +18,20 @@ on:
         description: 'Azure Resource Group name'
         required: true
         type: string
-      AZURE_SEARCH_SERVICE:
-        description: 'Azure Search service name or URL'
-        required: true
-        type: string
-      AZURE_BLOB_ACCOUNT_NAME:
-        description: 'Azure Blob Storage Account name'
-        required: true
-        type: string
-      AZURE_SEARCH_INDEX:
-        description: 'Azure Search index name (optional - will auto-detect from search service if not provided)'
-        required: false
-        type: string
       WAF:
         description: 'Is this a WAF deployment? (enables public access temporarily for data import and then disables it)'
         required: false
         type: boolean
         default: false
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   import-sample-data-cosmosdb:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -59,9 +40,6 @@ jobs:
         shell: bash
         env:
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
-          INPUT_AZURE_SEARCH_SERVICE: ${{ inputs.AZURE_SEARCH_SERVICE }}
-          INPUT_AZURE_BLOB_ACCOUNT_NAME: ${{ inputs.AZURE_BLOB_ACCOUNT_NAME }}
-          INPUT_AZURE_SEARCH_INDEX: ${{ inputs.AZURE_SEARCH_INDEX }}
           INPUT_WAF: ${{ inputs.WAF }}
         run: |
           echo "🔍 Validating workflow input parameters..."
@@ -79,56 +57,6 @@ jobs:
             VALIDATION_FAILED=true
           else
             echo "✅ RESOURCE_GROUP_NAME: '$INPUT_RESOURCE_GROUP_NAME' is valid"
-          fi
-
-          # Validate AZURE_SEARCH_SERVICE (required, can be name or URL)
-          if [[ -z "$INPUT_AZURE_SEARCH_SERVICE" ]]; then
-            echo "❌ ERROR: AZURE_SEARCH_SERVICE is required but not provided"
-            VALIDATION_FAILED=true
-          elif [[ "$INPUT_AZURE_SEARCH_SERVICE" == https://* ]]; then
-            # Validate URL format
-            if [[ ! "$INPUT_AZURE_SEARCH_SERVICE" =~ ^https://[a-zA-Z0-9-]+\.search\.windows\.net/?$ ]]; then
-              echo "❌ ERROR: AZURE_SEARCH_SERVICE URL '$INPUT_AZURE_SEARCH_SERVICE' is invalid. Must be in format: https://<servicename>.search.windows.net"
-              VALIDATION_FAILED=true
-            else
-              echo "✅ AZURE_SEARCH_SERVICE: '$INPUT_AZURE_SEARCH_SERVICE' is valid (URL format)"
-            fi
-          elif [[ ! "$INPUT_AZURE_SEARCH_SERVICE" =~ ^[a-zA-Z0-9-]+$ ]]; then
-            echo "❌ ERROR: AZURE_SEARCH_SERVICE '$INPUT_AZURE_SEARCH_SERVICE' is invalid. Must contain only alphanumerics and hyphens"
-            VALIDATION_FAILED=true
-          else
-            echo "✅ AZURE_SEARCH_SERVICE: '$INPUT_AZURE_SEARCH_SERVICE' is valid"
-          fi
-
-          # Validate AZURE_BLOB_ACCOUNT_NAME (required, can be name or URL)
-          if [[ -z "$INPUT_AZURE_BLOB_ACCOUNT_NAME" ]]; then
-            echo "❌ ERROR: AZURE_BLOB_ACCOUNT_NAME is required but not provided"
-            VALIDATION_FAILED=true
-          elif [[ "$INPUT_AZURE_BLOB_ACCOUNT_NAME" == https://* ]]; then
-            # Validate URL format
-            if [[ ! "$INPUT_AZURE_BLOB_ACCOUNT_NAME" =~ ^https://[a-z0-9]+\.blob\.core\.windows\.net/?$ ]]; then
-              echo "❌ ERROR: AZURE_BLOB_ACCOUNT_NAME URL '$INPUT_AZURE_BLOB_ACCOUNT_NAME' is invalid. Must be in format: https://<accountname>.blob.core.windows.net"
-              VALIDATION_FAILED=true
-            else
-              echo "✅ AZURE_BLOB_ACCOUNT_NAME: '$INPUT_AZURE_BLOB_ACCOUNT_NAME' is valid (URL format)"
-            fi
-          elif [[ ! "$INPUT_AZURE_BLOB_ACCOUNT_NAME" =~ ^[a-z0-9]{3,24}$ ]]; then
-            echo "❌ ERROR: AZURE_BLOB_ACCOUNT_NAME '$INPUT_AZURE_BLOB_ACCOUNT_NAME' is invalid. Must be 3-24 lowercase letters and numbers only"
-            VALIDATION_FAILED=true
-          else
-            echo "✅ AZURE_BLOB_ACCOUNT_NAME: '$INPUT_AZURE_BLOB_ACCOUNT_NAME' is valid"
-          fi
-
-          # Validate AZURE_SEARCH_INDEX (optional, alphanumeric with hyphens if provided)
-          if [[ -n "$INPUT_AZURE_SEARCH_INDEX" ]]; then
-            if [[ ! "$INPUT_AZURE_SEARCH_INDEX" =~ ^[a-zA-Z0-9-]+$ ]]; then
-              echo "❌ ERROR: AZURE_SEARCH_INDEX '$INPUT_AZURE_SEARCH_INDEX' is invalid. Must contain only alphanumerics and hyphens"
-              VALIDATION_FAILED=true
-            else
-              echo "✅ AZURE_SEARCH_INDEX: '$INPUT_AZURE_SEARCH_INDEX' is valid"
-            fi
-          else
-            echo "✅ AZURE_SEARCH_INDEX: Not provided (will auto-detect)"
           fi
 
           # Validate WAF (boolean)
@@ -158,50 +86,65 @@ jobs:
         run: |
           pip install requests azure-storage-blob azure-identity
 
-      - name: Login to Azure
-        shell: bash
-        run: |
-          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Upgrade Azure CLI and install extensions
         run: |
           az upgrade --yes --all
           az extension add --name storage-preview --upgrade --yes || true
 
-      - name: Extract Service Names
-        id: extract_names
+      - name: Discover Resources from Resource Group
+        id: discover_resources
         env:
-          INPUT_AZURE_SEARCH_SERVICE: ${{ inputs.AZURE_SEARCH_SERVICE }}
-          INPUT_AZURE_BLOB_ACCOUNT_NAME: ${{ inputs.AZURE_BLOB_ACCOUNT_NAME }}
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
-          # Extract Azure Search service name if full URL is provided
-          AZURE_SEARCH_SERVICE_INPUT="$INPUT_AZURE_SEARCH_SERVICE"
-          if [[ "$AZURE_SEARCH_SERVICE_INPUT" == https://* ]]; then
-            AZURE_SEARCH_SERVICE=$(echo "$AZURE_SEARCH_SERVICE_INPUT" | sed 's|https://||' | cut -d'.' -f1)
-          else
-            AZURE_SEARCH_SERVICE="$AZURE_SEARCH_SERVICE_INPUT"
-          fi
-          echo "AZURE_SEARCH_SERVICE=$AZURE_SEARCH_SERVICE" >> $GITHUB_OUTPUT
-          echo "Using Azure Search Service: $AZURE_SEARCH_SERVICE"
+          echo "🔍 Discovering required services from resource group: $INPUT_RESOURCE_GROUP_NAME"
 
-          # Extract Azure Blob Storage Account name if full URL is provided
-          AZURE_BLOB_ACCOUNT_NAME_INPUT="$INPUT_AZURE_BLOB_ACCOUNT_NAME"
-          if [[ "$AZURE_BLOB_ACCOUNT_NAME_INPUT" == https://* ]]; then
-            AZURE_BLOB_ACCOUNT_NAME=$(echo "$AZURE_BLOB_ACCOUNT_NAME_INPUT" | sed 's|https://||' | cut -d'.' -f1)
-          else
-            AZURE_BLOB_ACCOUNT_NAME="$AZURE_BLOB_ACCOUNT_NAME_INPUT"
+          # Discover Azure Search service
+          echo "Looking for Azure Search service..."
+          AZURE_SEARCH_SERVICE=$(az resource list \
+            --resource-group "$INPUT_RESOURCE_GROUP_NAME" \
+            --resource-type "Microsoft.Search/searchServices" \
+            --query "[0].name" -o tsv)
+
+          if [[ -z "$AZURE_SEARCH_SERVICE" || "$AZURE_SEARCH_SERVICE" == "None" ]]; then
+            echo "❌ ERROR: No Azure Search service found in resource group '$INPUT_RESOURCE_GROUP_NAME'"
+            exit 1
           fi
+          echo "✅ Found Azure Search Service: $AZURE_SEARCH_SERVICE"
+          echo "AZURE_SEARCH_SERVICE=$AZURE_SEARCH_SERVICE" >> $GITHUB_OUTPUT
+
+          # Discover Azure Storage Account
+          echo "Looking for Azure Storage Account..."
+          AZURE_BLOB_ACCOUNT_NAME=$(az resource list \
+            --resource-group "$INPUT_RESOURCE_GROUP_NAME" \
+            --resource-type "Microsoft.Storage/storageAccounts" \
+            --query "[0].name" -o tsv)
+
+          if [[ -z "$AZURE_BLOB_ACCOUNT_NAME" || "$AZURE_BLOB_ACCOUNT_NAME" == "None" ]]; then
+            echo "❌ ERROR: No Storage Account found in resource group '$INPUT_RESOURCE_GROUP_NAME'"
+            exit 1
+          fi
+          echo "✅ Found Azure Blob Storage Account: $AZURE_BLOB_ACCOUNT_NAME"
           echo "AZURE_BLOB_ACCOUNT_NAME=$AZURE_BLOB_ACCOUNT_NAME" >> $GITHUB_OUTPUT
-          echo "Using Azure Blob Storage Account: $AZURE_BLOB_ACCOUNT_NAME"
+
+          echo ""
+          echo "✅ All required services discovered successfully!"
+          echo "  - Azure Search Service: $AZURE_SEARCH_SERVICE"
+          echo "  - Azure Blob Storage Account: $AZURE_BLOB_ACCOUNT_NAME"
 
       - name: Enable Public Access for Azure Search and Storage Account (WAF)
         if: ${{ inputs.WAF == true }}
         env:
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
-          AZURE_SEARCH_SERVICE="${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}"
-          AZURE_BLOB_ACCOUNT_NAME="${{ steps.extract_names.outputs.AZURE_BLOB_ACCOUNT_NAME }}"
+          AZURE_SEARCH_SERVICE="${{ steps.discover_resources.outputs.AZURE_SEARCH_SERVICE }}"
+          AZURE_BLOB_ACCOUNT_NAME="${{ steps.discover_resources.outputs.AZURE_BLOB_ACCOUNT_NAME }}"
           RESOURCE_GROUP="$INPUT_RESOURCE_GROUP_NAME"
           SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
 
@@ -320,7 +263,7 @@ jobs:
         env:
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
-          AZURE_BLOB_ACCOUNT_NAME="${{ steps.extract_names.outputs.AZURE_BLOB_ACCOUNT_NAME }}"
+          AZURE_BLOB_ACCOUNT_NAME="${{ steps.discover_resources.outputs.AZURE_BLOB_ACCOUNT_NAME }}"
 
           echo "Uploading sample document to blob storage to trigger index creation..."
 
@@ -342,72 +285,43 @@ jobs:
         id: detect_index
         env:
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
-          INPUT_AZURE_SEARCH_INDEX: ${{ inputs.AZURE_SEARCH_INDEX }}
         run: |
-          AZURE_SEARCH_SERVICE="${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}"
-          AZURE_SEARCH_INDEX="$INPUT_AZURE_SEARCH_INDEX"
+          AZURE_SEARCH_SERVICE="${{ steps.discover_resources.outputs.AZURE_SEARCH_SERVICE }}"
 
           # Get Azure Search admin key
           AZURE_SEARCH_KEY=$(az search admin-key show --service-name $AZURE_SEARCH_SERVICE --resource-group $INPUT_RESOURCE_GROUP_NAME --query primaryKey -o tsv)
 
-          # If index name is provided, wait for that specific index
-          if [ -n "$AZURE_SEARCH_INDEX" ]; then
-            echo "Index name provided: $AZURE_SEARCH_INDEX"
-            echo "Waiting for index '$AZURE_SEARCH_INDEX' to be created by the application..."
-            echo "This may take a few minutes as the document is processed..."
+          echo "Waiting for index to be auto-created and detecting it..."
+          echo "This may take a few minutes as the document is processed..."
 
-            # Wait up to 15 minutes for the index to be created
-            for i in {1..30}; do
-              echo "Checking for index (attempt $i/30)..."
+          # Wait up to 15 minutes for any index to be created
+          AZURE_SEARCH_INDEX=""
+          for i in {1..30}; do
+            echo "Checking for indexes (attempt $i/30)..."
 
-              HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-                "https://${AZURE_SEARCH_SERVICE}.search.windows.net/indexes/${AZURE_SEARCH_INDEX}?api-version=2024-07-01" \
-                -H "api-key: ${AZURE_SEARCH_KEY}")
+            # List all indexes in the search service
+            INDEXES_RESPONSE=$(curl -s \
+              "https://${AZURE_SEARCH_SERVICE}.search.windows.net/indexes?api-version=2024-07-01&\$select=name" \
+              -H "api-key: ${AZURE_SEARCH_KEY}")
 
-              if [ "$HTTP_STATUS" == "200" ]; then
-                echo "✅ Index '$AZURE_SEARCH_INDEX' found!"
-                break
-              fi
+            # Extract index names using jq
+            INDEX_COUNT=$(echo "$INDEXES_RESPONSE" | jq -r '.value | length')
 
-              if [ $i -eq 30 ]; then
-                echo "⚠️ Index not found after 15 minutes, proceeding anyway..."
-              else
-                echo "Index not found yet (HTTP $HTTP_STATUS), waiting 30 seconds..."
-                sleep 30
-              fi
-            done
-          else
-            echo "No index name provided. Waiting for index to be auto-created and detecting it..."
-            echo "This may take a few minutes as the document is processed..."
+            if [ "$INDEX_COUNT" -gt 0 ]; then
+              # Get the first index name
+              AZURE_SEARCH_INDEX=$(echo "$INDEXES_RESPONSE" | jq -r '.value[0].name')
+              echo "✅ Found index: '$AZURE_SEARCH_INDEX'"
+              break
+            fi
 
-            # Wait up to 15 minutes for any index to be created
-            for i in {1..30}; do
-              echo "Checking for indexes (attempt $i/30)..."
-
-              # List all indexes in the search service
-              INDEXES_RESPONSE=$(curl -s \
-                "https://${AZURE_SEARCH_SERVICE}.search.windows.net/indexes?api-version=2024-07-01&\$select=name" \
-                -H "api-key: ${AZURE_SEARCH_KEY}")
-
-              # Extract index names using jq
-              INDEX_COUNT=$(echo "$INDEXES_RESPONSE" | jq -r '.value | length')
-
-              if [ "$INDEX_COUNT" -gt 0 ]; then
-                # Get the first index name (most recently created)
-                AZURE_SEARCH_INDEX=$(echo "$INDEXES_RESPONSE" | jq -r '.value[0].name')
-                echo "✅ Found index: '$AZURE_SEARCH_INDEX'"
-                break
-              fi
-
-              if [ $i -eq 30 ]; then
-                echo "❌ No index found after 15 minutes"
-                exit 1
-              else
-                echo "No indexes found yet, waiting 30 seconds..."
-                sleep 30
-              fi
-            done
-          fi
+            if [ $i -eq 30 ]; then
+              echo "❌ No index found after 15 minutes"
+              exit 1
+            else
+              echo "No indexes found yet, waiting 30 seconds..."
+              sleep 30
+            fi
+          done
 
           echo "AZURE_SEARCH_INDEX=$AZURE_SEARCH_INDEX" >> $GITHUB_OUTPUT
           echo "Using index: $AZURE_SEARCH_INDEX"
@@ -416,7 +330,7 @@ jobs:
         env:
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
-          AZURE_SEARCH_SERVICE="${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}"
+          AZURE_SEARCH_SERVICE="${{ steps.discover_resources.outputs.AZURE_SEARCH_SERVICE }}"
           AZURE_SEARCH_INDEX="${{ steps.detect_index.outputs.AZURE_SEARCH_INDEX }}"
 
           export AZURE_SEARCH_SERVICE
@@ -448,7 +362,7 @@ jobs:
           }
 
           # Load exported data
-          with open("data/azure_search_data.json", "r", encoding="utf-8") as f:
+          with open("azure_search_data.json", "r", encoding="utf-8") as f:
               documents = json.load(f)
 
           # Format for Azure Search bulk upload
@@ -475,8 +389,8 @@ jobs:
         env:
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
-          AZURE_SEARCH_SERVICE="${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}"
-          AZURE_BLOB_ACCOUNT_NAME="${{ steps.extract_names.outputs.AZURE_BLOB_ACCOUNT_NAME }}"
+          AZURE_SEARCH_SERVICE="${{ steps.discover_resources.outputs.AZURE_SEARCH_SERVICE }}"
+          AZURE_BLOB_ACCOUNT_NAME="${{ steps.discover_resources.outputs.AZURE_BLOB_ACCOUNT_NAME }}"
           RESOURCE_GROUP="$INPUT_RESOURCE_GROUP_NAME"
           SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
 
@@ -592,9 +506,9 @@ jobs:
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Job Status** | ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Azure Search Service** | \`${{ steps.extract_names.outputs.AZURE_SEARCH_SERVICE }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Azure Search Service** | \`${{ steps.discover_resources.outputs.AZURE_SEARCH_SERVICE }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Azure Search Index** | \`${{ steps.detect_index.outputs.AZURE_SEARCH_INDEX }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Azure Blob Storage Account** | \`${{ steps.extract_names.outputs.AZURE_BLOB_ACCOUNT_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Azure Blob Storage Account** | \`${{ steps.discover_resources.outputs.AZURE_BLOB_ACCOUNT_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Resource Group** | \`${{ inputs.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **WAF** | \`${{ inputs.WAF }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

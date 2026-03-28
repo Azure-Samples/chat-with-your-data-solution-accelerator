@@ -48,6 +48,7 @@ on:
 jobs:
   cleanup-deployment:
     runs-on: ${{ inputs.runner_os }}
+    environment: production
     continue-on-error: true
     env:
       RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
@@ -56,27 +57,36 @@ jobs:
       IMAGE_TAG: ${{ inputs.IMAGE_TAG }}
       RESOURCE_TOKEN: ${{ inputs.RESOURCE_TOKEN }}
     steps:
-      - name: Login to Azure
-        shell: bash
-        run: |
-          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Clean Resources within Resource Group
         id: clean_resources
-        if: ${{ inputs.RESOURCE_GROUP_NAME == 'rg-cwyd-ci' && inputs.RESOURCE_TOKEN != '' }}
+        if: ${{ inputs.RESOURCE_GROUP_NAME == 'rg-cwyd-ci' }}
         shell: bash
         run: |
           set -e
           echo "🗑️ Cleaning resources in resource group: ${{ env.RESOURCE_GROUP_NAME }}"
 
-          # Get all resources in the resource group that contain the RESOURCE_TOKEN in their name
-          RESOURCES=$(az resource list --resource-group "${{ env.RESOURCE_GROUP_NAME }}" --query "[?contains(name, '${{ env.RESOURCE_TOKEN }}')].id" -o tsv)
+          RESOURCE_TOKEN="${{ env.RESOURCE_TOKEN }}"
+
+          if [ -z "$RESOURCE_TOKEN" ]; then
+            echo "⚠️ RESOURCE_TOKEN is empty (deployment may have failed before provisioning completed)"
+            echo "Falling back to deleting ALL resources in the resource group..."
+            RESOURCES=$(az resource list --resource-group "${{ env.RESOURCE_GROUP_NAME }}" --query "[].id" -o tsv)
+          else
+            # Get all resources in the resource group that contain the RESOURCE_TOKEN in their name
+            RESOURCES=$(az resource list --resource-group "${{ env.RESOURCE_GROUP_NAME }}" --query "[?contains(name, '$RESOURCE_TOKEN')].id" -o tsv)
+          fi
 
           if [ -z "$RESOURCES" ]; then
-            echo "No resources found with token '${{ env.RESOURCE_TOKEN }}' in resource group"
+            echo "No resources found in resource group"
           else
-            echo "Deleting resources with token '${{ env.RESOURCE_TOKEN }}'..."
+            echo "Deleting resources..."
             echo "$RESOURCES" | while read -r resource_id; do
               if [ -n "$resource_id" ]; then
                 echo "Deleting: $resource_id"
@@ -87,7 +97,11 @@ jobs:
 
           echo "✅ Resource cleanup initiated (running asynchronously)"
           echo "Note: Resource group ${{ env.RESOURCE_GROUP_NAME }} is preserved"
-          echo "Note: Only resources with token '${{ env.RESOURCE_TOKEN }}' were targeted for deletion"
+          if [ -n "$RESOURCE_TOKEN" ]; then
+            echo "Note: Only resources with token '$RESOURCE_TOKEN' were targeted for deletion"
+          else
+            echo "Note: All resources in the resource group were targeted for deletion (no RESOURCE_TOKEN available)"
+          fi
 
       - name: Delete Resource Group
         id: delete_rg
@@ -122,8 +136,8 @@ jobs:
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Resource Group** | \`${{ env.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
-          # Check if resource cleanup was performed (rg-cwyd-ci with token)
-          if [[ "${{ env.RESOURCE_GROUP_NAME }}" == "rg-cwyd-ci" && -n "${{ env.RESOURCE_TOKEN }}" ]]; then
+          # Check if resource cleanup was performed (rg-cwyd-ci)
+          if [[ "${{ env.RESOURCE_GROUP_NAME }}" == "rg-cwyd-ci" ]]; then
             echo "| **Cleanup Mode** | Resource Cleanup within RG |" >> $GITHUB_STEP_SUMMARY
             echo "| **Status** | ${{ steps.clean_resources.outcome == 'success' && '✅ Initiated' || (steps.clean_resources.outcome == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
