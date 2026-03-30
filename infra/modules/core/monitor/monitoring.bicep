@@ -131,7 +131,6 @@ module avmAppInsights 'br/public:avm/res/insights/component:0.6.0' = {
     disableIpMasking: false
     flowType: 'Bluefield'
     workspaceResourceId: empty(workspaceResourceId) ? '' : workspaceResourceId
-    diagnosticSettings: empty(workspaceResourceId) ? null : [{ workspaceResourceId: workspaceResourceId }]
   }
 }
 

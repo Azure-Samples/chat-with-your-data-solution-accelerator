@@ -1293,6 +1293,7 @@ module web 'modules/app/web.bicep' = {
         AZURE_CLIENT_ID: managedIdentityModule.outputs.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
         AZURE_SEARCH_DIMENSIONS: azureSearchDimensions
+        APPLICATIONINSIGHTS_ENABLED: enableMonitoring ? 'true' : 'false'
       },
       databaseType == 'CosmosDB'
         ? {
@@ -1392,6 +1393,7 @@ module adminweb 'modules/app/adminweb.bicep' = {
         MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.resourceId
         APP_ENV: appEnvironment
         AZURE_SEARCH_DIMENSIONS: azureSearchDimensions
+        APPLICATIONINSIGHTS_ENABLED: enableMonitoring ? 'true' : 'false'
       },
       databaseType == 'CosmosDB'
         ? {
@@ -1494,6 +1496,7 @@ module function 'modules/app/function.bicep' = {
         APP_ENV: appEnvironment
         BACKEND_URL: backendUrl
         AZURE_SEARCH_DIMENSIONS: azureSearchDimensions
+        APPLICATIONINSIGHTS_ENABLED: enableMonitoring ? 'true' : 'false'
       },
       databaseType == 'CosmosDB'
         ? {
