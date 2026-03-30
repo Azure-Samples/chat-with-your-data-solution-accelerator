@@ -872,6 +872,22 @@ files = [
 azure-core = ">=1.32.0"
 
 [[package]]
+name = "azure-monitor-events-extension"
+version = "0.1.0"
+description = "Microsoft Azure Monitor Events Extension for Python"
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "azure-monitor-events-extension-0.1.0.tar.gz", hash = "sha256:094773685171a50aa5cc548279c9141c8a26682f6acef397815c528b53b838b5"},
+    {file = "azure_monitor_events_extension-0.1.0-py2.py3-none-any.whl", hash = "sha256:5d92abb5e6a32ab23b12c726def9f9607c6fa1d84900d493b906ff9ec489af4a"},
+]
+
+[package.dependencies]
+opentelemetry-api = ">=1.20,<2.0"
+opentelemetry-sdk = ">=1.20,<2.0"
+
+[[package]]
 name = "azure-monitor-opentelemetry"
 version = "1.6.12"
 description = "Microsoft Azure Monitor Opentelemetry Distro Client Library for Python"
@@ -8426,4 +8442,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "3d093c112947bdf324788608f34246c975a0fb085a60c09eac88030440208824"
+content-hash = "4f3da332d8827a1b713038cc8f4dc9f80b543831f414279726e694505e6837fc"
