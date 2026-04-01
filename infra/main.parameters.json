@@ -172,7 +172,7 @@
       "value": "${AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION=2023-04-15}"
     },
     "existingLogAnalyticsWorkspaceId": {
-      "value": "${AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID}"
+      "value": "${AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID}"
     },
     "imageTag": {
       "value": "${AZURE_ENV_IMAGETAG=latest}"
