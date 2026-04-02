@@ -55,7 +55,12 @@ async def list_conversations():
         return jsonify({"error": "Chat history is not available"}), 400
 
     try:
-        offset = request.args.get("offset", 0)
+        try:
+            offset = int(request.args.get("offset", 0))
+        except (ValueError, TypeError):
+            return jsonify({"error": "offset must be a valid integer"}), 400
+        if offset < 0:
+            return jsonify({"error": "offset must be non-negative"}), 400
         authenticated_user = get_authenticated_user_details(
             request_headers=request.headers
         )
