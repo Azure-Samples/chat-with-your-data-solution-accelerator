@@ -268,6 +268,51 @@ export const historyDeleteAll = async (): Promise<Response> => {
   return response;
 };
 
+export const historyExport = async (
+  convId: string,
+  format: "json" | "markdown" | "text" = "json"
+): Promise<void> => {
+  try {
+    const response = await fetch("/api/history/export", {
+      method: "POST",
+      body: JSON.stringify({
+        conversation_id: convId,
+        format: format,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Export failed");
+    }
+
+    const blob = await response.blob();
+    const contentDisposition = response.headers.get("Content-Disposition");
+    let filename = `conversation.${format === "markdown" ? "md" : format === "text" ? "txt" : "json"}`;
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename="(.+)"/);
+      if (match) {
+        filename = match[1];
+      }
+    }
+
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("Error exporting conversation:", err);
+    throw err;
+  }
+};
+
 export async function getFrontEndSettings(): Promise<FrontEndSettings> {
   try {
     const response = await fetch("/api/history/frontend_settings", {
