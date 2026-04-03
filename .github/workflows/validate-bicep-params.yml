@@ -15,9 +15,6 @@ on:
       - 'infra/**/*.parameters.json'
       - 'scripts/validate_bicep_params.py'
   workflow_dispatch:
-  push:
-    branches:
-      - hb-psl-38859
 
 env:
   accelerator_name: "CWYD"
@@ -67,7 +64,7 @@ jobs:
           retention-days: 30
 
       - name: Send schedule notification on failure
-        if: steps.result.outputs.status == 'failure'
+        if: github.event_name == 'schedule' && steps.result.outputs.status == 'failure'
         env:
           LOGICAPP_URL: ${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}
           GITHUB_REPOSITORY: ${{ github.repository }}
@@ -87,7 +84,7 @@ jobs:
               -d @- || echo "Failed to send notification"
 
       - name: Send schedule notification on success
-        if: steps.result.outputs.status == 'success'
+        if: github.event_name == 'schedule' && steps.result.outputs.status == 'success'
         env:
           LOGICAPP_URL: ${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}
           GITHUB_REPOSITORY: ${{ github.repository }}
