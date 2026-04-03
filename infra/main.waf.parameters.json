@@ -172,7 +172,7 @@
       "value": "${AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION=2023-04-15}"
     },
     "existingLogAnalyticsWorkspaceId": {
-      "value": "${AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID}"
+      "value": "${AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID}"
     },
     "enableMonitoring": {
       "value": true
@@ -190,22 +190,22 @@
       "value": "${ENABLE_PURGE_PROTECTION=false}"
     },
     "enableTelemetry": {
-      "value": "${ENABLE_TELEMETRY=true}"
+      "value": "${AZURE_ENV_ENABLE_TELEMETRY=true}"
     },
     "tags": {
       "value": {}
     },
      "vmSize": {
-      "value": "${AZURE_ENV_JUMPBOX_SIZE}"
+      "value": "${AZURE_ENV_VM_SIZE}"
     },
-    "virtualMachineAdminUsername": {
+    "vmAdminUsername": {
       "value": "${AZURE_ENV_VM_ADMIN_USERNAME}"
     },
-    "virtualMachineAdminPassword": {
+    "vmAdminPassword": {
       "value": "${AZURE_ENV_VM_ADMIN_PASSWORD}"
     },
-    "appversion": {
-      "value": "${AZURE_IMAGE_TAG=latest_waf}"
+    "imageTag": {
+      "value": "${AZURE_ENV_IMAGETAG=latest_waf}"
     }
   }
 }
