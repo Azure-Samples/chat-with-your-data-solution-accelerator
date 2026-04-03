@@ -190,7 +190,7 @@
       "value": "${ENABLE_PURGE_PROTECTION=false}"
     },
     "enableTelemetry": {
-      "value": "${AZURE_ENV_ENABLE_TELEMETRY}"
+      "value": "${AZURE_ENV_ENABLE_TELEMETRY=true}"
     },
     "tags": {
       "value": {}
@@ -205,7 +205,7 @@
       "value": "${AZURE_ENV_VM_ADMIN_PASSWORD}"
     },
     "imageTag": {
-      "value": "${AZURE_ENV_IMAGETAG=latest}"
+      "value": "${AZURE_ENV_IMAGETAG=latest_waf}"
     }
   }
 }
