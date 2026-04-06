@@ -51,9 +51,6 @@ on:
       ADMIN_APPURL:
         description: "Admin Web App URL"
         value: ${{ jobs.deploy-linux.outputs.ADMIN_APPURL }}
-      RESOURCE_TOKEN:
-        description: "Resource Token"
-        value: ${{ jobs.deploy-linux.outputs.RESOURCE_TOKEN }}
       AZURE_POSTGRESQL_HOST_NAME:
         description: "Azure PostgreSQL Host Name"
         value: ${{ jobs.deploy-linux.outputs.AZURE_POSTGRESQL_HOST_NAME }}
@@ -70,12 +67,12 @@ on:
 jobs:
   deploy-linux:
     runs-on: ubuntu-latest
+    environment: production
     env:
       AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
     outputs:
       WEB_APPURL: ${{ steps.get_output_linux.outputs.FRONTEND_WEBSITE_NAME }}
       ADMIN_APPURL: ${{ steps.get_output_linux.outputs.ADMIN_WEBSITE_NAME }}
-      RESOURCE_TOKEN: ${{ steps.get_output_linux.outputs.RESOURCE_TOKEN }}
       AZURE_POSTGRESQL_HOST_NAME: ${{ steps.get_output_linux.outputs.AZURE_POSTGRESQL_HOST_NAME }}
       AZURE_SEARCH_SERVICE: ${{ steps.get_output_linux.outputs.AZURE_SEARCH_SERVICE }}
       AZURE_BLOB_ACCOUNT_NAME: ${{ steps.get_output_linux.outputs.AZURE_BLOB_ACCOUNT_NAME }}
@@ -264,11 +261,16 @@ jobs:
 
       - name: Login to AZD
         id: login-azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to AZD CLI
         shell: bash
         run: |
-          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --federated-credential-provider github --tenant-id ${{ secrets.AZURE_TENANT_ID }}
 
       - name: Deploy using azd up and extract values (Linux)
         id: get_output_linux
@@ -336,9 +338,6 @@ jobs:
           ADMIN_WEBSITE_NAME=$(azd env get-value ADMIN_WEBSITE_NAME)
           echo "ADMIN_WEBSITE_NAME=$ADMIN_WEBSITE_NAME" >> $GITHUB_OUTPUT
 
-          RESOURCE_TOKEN=$(azd env get-value RESOURCE_TOKEN)
-          echo "RESOURCE_TOKEN=$RESOURCE_TOKEN" >> $GITHUB_OUTPUT
-
           # Export values based on DATABASE_TYPE
           if [[ "$INPUT_DATABASE_TYPE" == "PostgreSQL" ]]; then
             AZURE_POSTGRESQL_HOST_NAME=$(azd env get-value AZURE_POSTGRESQL_HOST_NAME)
@@ -360,11 +359,6 @@ jobs:
           export ADMIN_WEBSITE_URL=$(azd env get-value ADMIN_WEBSITE_NAME)
           chmod +x scripts/disable_auth.sh
           ./scripts/disable_auth.sh
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Generate Deploy Job Summary
         if: always()
