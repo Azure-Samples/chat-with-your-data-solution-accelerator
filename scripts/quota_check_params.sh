@@ -47,7 +47,7 @@ log_verbose() {
 }
 
 # Default Models and Capacities (Comma-separated in "model:capacity" format)
-DEFAULT_MODEL_CAPACITY="gpt4.1:150,text-embedding-ada-002:100"
+DEFAULT_MODEL_CAPACITY="gpt4.1:150,text-embedding-3-small:100"
 
 # Convert the comma-separated string into an array
 IFS=',' read -r -a MODEL_CAPACITY_PAIRS <<< "$DEFAULT_MODEL_CAPACITY"
@@ -199,7 +199,7 @@ for REGION in "${REGIONS[@]}"; do
 
                 if [ "$AVAILABLE" -ge "$REQUIRED_CAPACITY" ]; then
                     FOUND=true
-                    if [ "$MODEL_NAME" = "text-embedding-ada-002" ]; then
+                    if [ "$MODEL_NAME" = "text-embedding-3-small" ]; then
                         TEXT_EMBEDDING_AVAILABLE=true
                     fi
                     AT_LEAST_ONE_MODEL_AVAILABLE=true
