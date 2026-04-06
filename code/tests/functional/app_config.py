@@ -23,7 +23,7 @@ class AppConfig:
         "AZURE_FORM_RECOGNIZER_INFO": '{"endpoint":"some-key-vault-endpoint","key":"some-key-vault-endpoint"}',
         "AZURE_OPENAI_API_KEY": "some-azure-openai-api-key",
         "AZURE_OPENAI_API_VERSION": "2024-02-01",
-        "AZURE_OPENAI_EMBEDDING_MODEL_INFO": '{"model":"some-embedding-model","modelName":"some-embedding-model-name","modelVersion":"some-embedding-model-version"}',
+        "AZURE_OPENAI_EMBEDDING_MODEL_INFO": '{"model":"text-embedding-3-small","modelName":"text-embedding-3-small","modelVersion":"1"}',
         "AZURE_OPENAI_ENDPOINT": "some-openai-endpoint",
         "AZURE_OPENAI_MAX_TOKENS": "1000",
         "AZURE_OPENAI_MODEL_INFO": '{"model":"some-openai-model","modelName":"some-openai-model-name","modelVersion":"some-openai-model-version"}',

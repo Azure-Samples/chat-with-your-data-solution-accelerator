@@ -187,18 +187,18 @@ param azureOpenAIApiVersion string = '2024-02-01'
 param azureOpenAIStream string = 'true'
 
 @description('Optional. Azure OpenAI Embedding Model Deployment Name.')
-param azureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
+param azureOpenAIEmbeddingModel string = 'text-embedding-3-small'
 
 @description('Optional. Azure OpenAI Embedding Model Name.')
-param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
+param azureOpenAIEmbeddingModelName string = 'text-embedding-3-small'
 
 @description('Optional. Azure OpenAI Embedding Model Version.')
-param azureOpenAIEmbeddingModelVersion string = '2'
+param azureOpenAIEmbeddingModelVersion string = '1'
 
 @description('Optional. Azure OpenAI Embedding Model Capacity - See here for more info https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota .')
 param azureOpenAIEmbeddingModelCapacity int = 100
 
-@description('Optional. Azure Search vector field dimensions. Must match the embedding model dimensions. 1536 for text-embedding-ada-002, 3072 for text-embedding-3-large. See https://learn.microsoft.com/en-us/azure/search/cognitive-search-skill-azure-openai-embedding#supported-dimensions-by-modelname.(Only for databaseType=CosmosDB)')
+@description('Optional. Azure Search vector field dimensions. Must match the embedding model dimensions. 1536 for text-embedding-3-small, 3072 for text-embedding-3-large. See https://learn.microsoft.com/en-us/azure/search/cognitive-search-skill-azure-openai-embedding#supported-dimensions-by-modelname.(Only for databaseType=CosmosDB)')
 param azureSearchDimensions string = '1536'
 
 @description('Optional. Name of Computer Vision Resource (if useAdvancedImageProcessing=true).')
@@ -381,14 +381,10 @@ param createdBy string = contains(deployer(), 'userPrincipalName')
 resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
   name: 'default'
   properties: {
-    tags: union(
-      existingTags,
-      allTags,
-      {
-        TemplateName: 'CWYD'
-        CreatedBy: createdBy
-      }
-    )
+    tags: union(existingTags, allTags, {
+      TemplateName: 'CWYD'
+      CreatedBy: createdBy
+    })
   }
 }
 
