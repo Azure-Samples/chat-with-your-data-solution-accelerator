@@ -6,7 +6,6 @@ Uses: semantic-kernel (Kernel, plugins, FunctionChoiceBehavior)
 from __future__ import annotations
 
 import logging
-from typing import AsyncIterator
 
 from .base import OrchestratorBase
 
@@ -19,7 +18,6 @@ class SemanticKernelOrchestrator(OrchestratorBase):
         user_message: str,
         chat_history: list[dict],
         **kwargs,
-    ) -> AsyncIterator[str]:
+    ) -> list[dict]:
         # TODO: Phase 2.5 — Semantic Kernel strategy
         raise NotImplementedError("Semantic Kernel orchestrator not yet implemented")
-        yield  # noqa: unreachable

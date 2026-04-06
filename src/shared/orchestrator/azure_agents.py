@@ -7,7 +7,6 @@ in Azure AI Foundry with built-in tool execution.
 from __future__ import annotations
 
 import logging
-from typing import AsyncIterator
 
 from .base import OrchestratorBase
 
@@ -20,9 +19,6 @@ class AzureAgentsOrchestrator(OrchestratorBase):
         user_message: str,
         chat_history: list[dict],
         **kwargs,
-    ) -> AsyncIterator[str]:
+    ) -> list[dict]:
         # TODO: Phase 2.5 — implement Azure AI Agent Service orchestration
-        #   from azure.ai.agents.aio import AgentsClient
-        #   from azure.identity.aio import DefaultAzureCredential
         raise NotImplementedError("Azure AI Agent Service orchestrator not yet implemented")
-        yield  # noqa: unreachable — makes this an async generator

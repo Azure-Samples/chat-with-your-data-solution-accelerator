@@ -6,7 +6,7 @@ import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.shared.config.env_settings import EnvSettings
+    from shared.config.env_settings import EnvSettings
 
 logger = logging.getLogger(__name__)
 

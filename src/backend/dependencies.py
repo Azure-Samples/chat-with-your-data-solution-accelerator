@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from src.shared.config.env_settings import EnvSettings
-from src.shared.llm.llm_helper import LLMHelper
+from shared.config.env_settings import EnvSettings
+from shared.llm.llm_helper import LLMHelper
 
 
 @lru_cache

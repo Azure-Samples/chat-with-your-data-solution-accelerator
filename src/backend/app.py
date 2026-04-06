@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.shared.config.env_settings import EnvSettings
+from shared.config.env_settings import EnvSettings
 
 from .routers import admin, auth, chat_history, conversation, files, health, speech
 

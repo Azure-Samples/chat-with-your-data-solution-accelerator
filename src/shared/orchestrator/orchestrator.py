@@ -16,7 +16,7 @@ from .openai_functions import OpenAIFunctionsOrchestrator
 from .semantic_kernel import SemanticKernelOrchestrator
 
 if TYPE_CHECKING:
-    from src.shared.config.env_settings import EnvSettings
+    from shared.config.env_settings import EnvSettings
 
 logger = logging.getLogger(__name__)
 

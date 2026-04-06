@@ -9,7 +9,6 @@ Uses: langchain, langgraph, langchain-openai
 from __future__ import annotations
 
 import logging
-from typing import AsyncIterator
 
 from .base import OrchestratorBase
 
@@ -22,7 +21,6 @@ class LangGraphAgent(OrchestratorBase):
         user_message: str,
         chat_history: list[dict],
         **kwargs,
-    ) -> AsyncIterator[str]:
+    ) -> list[dict]:
         # TODO: Phase 2.5 — implement LangGraph StateGraph with ToolNodes
         raise NotImplementedError("LangGraph agent not yet implemented")
-        yield  # noqa: unreachable — makes this an async generator

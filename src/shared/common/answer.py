@@ -13,6 +13,7 @@ class SourceDocument(BaseModel):
     chunk: int | None = None
     offset: int | None = None
     page_number: int | None = None
+    chunk_id: str | None = None
 
 
 class Answer(BaseModel):

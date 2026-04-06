@@ -19,8 +19,12 @@ class AzureOpenAISettings(BaseSettings):
     api_version: str = "2024-10-21"
     temperature: float = 0.0
     max_tokens: int = 1000
+    top_p: float = 1.0
     stop_sequence: str = ""
     system_message: str = "You are an AI assistant that helps people find information."
+    embedding_model: str = "text-embedding-ada-002"
+    vision_model: str = ""
+    stream: bool = True
 
 
 class AzureSearchSettings(BaseSettings):
@@ -35,12 +39,17 @@ class AzureSearchSettings(BaseSettings):
     top_k: int = 5
     enable_in_domain: bool = True
     content_column: str = "content"
+    content_vector_column: str = "content_vector"
     filename_column: str = "filename"
     title_column: str = "title"
     url_column: str = "url"
+    fields_metadata: str = ""
     chunk_column: str = "chunk"
     offset_column: str = "offset"
     page_number_column: str = "page_number"
+    use_integrated_vectorization: bool = False
+    dimensions: int | None = None
+    filter: str | None = None
 
 
 class AzureStorageSettings(BaseSettings):
@@ -82,6 +91,9 @@ class AuthSettings(BaseSettings):
         default="https://cognitiveservices.azure.com/.default",
         alias="AZURE_TOKEN_PROVIDER_SCOPE",
     )
+    managed_identity_resource_id: str = Field(
+        default="", alias="AZURE_MANAGED_IDENTITY_RESOURCE_ID"
+    )
 
 
 class EnvSettings(BaseSettings):
@@ -116,8 +128,17 @@ class EnvSettings(BaseSettings):
     azure_content_safety_key: str = Field(
         default="", alias="AZURE_CONTENT_SAFETY_KEY"
     )
+    enable_content_safety: bool = Field(
+        default=False, alias="AZURE_CONTENT_SAFETY_ENABLED"
+    )
     azure_speech_region_endpoint: str = Field(
         default="", alias="AZURE_SPEECH_REGION_ENDPOINT"
     )
     azure_function_url: str = Field(default="", alias="AZURE_FUNCTION_URL")
     azure_function_key: str = Field(default="", alias="AZURE_FUNCTION_KEY")
+    open_ai_functions_system_prompt: str = Field(
+        default="", alias="OPEN_AI_FUNCTIONS_SYSTEM_PROMPT"
+    )
+    load_config_from_blob_storage: bool = Field(
+        default=False, alias="LOAD_CONFIG_FROM_BLOB_STORAGE"
+    )

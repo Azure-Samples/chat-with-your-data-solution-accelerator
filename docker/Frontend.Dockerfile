@@ -17,9 +17,9 @@ COPY uv.lock /usr/src/app/uv.lock
 WORKDIR /usr/src/app
 RUN pip install --upgrade pip && pip install uv && uv export --no-hashes -o requirements.txt && pip install -r requirements.txt
 
-COPY ./src/frontend/frontend_app.py /usr/src/app/src/frontend/frontend_app.py
+COPY ./src/frontend/frontend_app.py /usr/src/app/frontend/frontend_app.py
 COPY --from=frontend /home/node/app/dist/static /usr/src/app/dist/static/
 ENV PYTHONPATH="${PYTHONPATH}:/usr/src/app"
 ENV BACKEND_URL="http://backend:8000"
 EXPOSE 80
-CMD ["uvicorn", "src.frontend.frontend_app:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "frontend.frontend_app:app", "--host", "0.0.0.0", "--port", "80"]

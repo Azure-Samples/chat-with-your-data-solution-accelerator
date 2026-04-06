@@ -30,7 +30,7 @@
             "request": "launch",
             "module": "uvicorn",
             "args": [
-                "src.backend.app:app",
+                "backend.app:app",
                 "--reload",
                 "--port",
                 "8000"

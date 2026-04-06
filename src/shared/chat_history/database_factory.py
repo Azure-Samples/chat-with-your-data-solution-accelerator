@@ -13,7 +13,7 @@ from .cosmosdb import CosmosConversationClient
 from .postgres import PostgresConversationClient
 
 if TYPE_CHECKING:
-    from src.shared.config.env_settings import EnvSettings
+    from shared.config.env_settings import EnvSettings
 
 logger = logging.getLogger(__name__)
 
