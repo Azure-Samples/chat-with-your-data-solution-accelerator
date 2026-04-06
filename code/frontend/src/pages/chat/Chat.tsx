@@ -677,7 +677,7 @@ const Chat = () => {
               <ContextualMenu
                 items={exportMenuItems}
                 hidden={!showExportMenu}
-                target={exportBtnRef}
+                target={exportBtnRef.current}
                 onDismiss={() => setShowExportMenu(false)}
               />
              <TooltipHost content="Start new chat"
