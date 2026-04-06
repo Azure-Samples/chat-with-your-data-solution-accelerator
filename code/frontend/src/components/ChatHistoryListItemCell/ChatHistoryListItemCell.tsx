@@ -333,7 +333,7 @@ export const ChatHistoryListItemCell: React.FC<
                 <ContextualMenu
                   items={exportMenuItems}
                   hidden={!showExportMenu}
-                  target={exportButtonRef}
+                  target={exportButtonRef.current}
                   onDismiss={() => setShowExportMenu(false)}
                 />
                 <IconButton
