@@ -1,6 +1,6 @@
 {
-    "azureFunctions.deploySubpath": "code/backend/batch",
-    "azureFunctions.projectSubpath": "code/backend/batch",
+    "azureFunctions.deploySubpath": "src/functions",
+    "azureFunctions.projectSubpath": "src/functions",
     "azureFunctions.scmDoBuildDuringDeployment": true,
     "azureFunctions.projectLanguage": "Python",
     "azureFunctions.projectRuntime": "~4",
@@ -14,12 +14,11 @@
     ],
     "python.testing.pytestArgs": [
         ".",
-        // Until we reconfigure these tests
         "-m",
         "not azure",
     ],
-    "python.testing.cwd": "${workspaceFolder}/code",
+    "python.testing.cwd": "${workspaceFolder}",
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
-    "pylint.cwd": "${workspaceFolder}/code",
+    "pylint.cwd": "${workspaceFolder}/src",
 }

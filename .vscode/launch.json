@@ -9,41 +9,42 @@
             "preLaunchTask": "func: host start"
         },
         {
-            "name": "Launch Admin site",
-            "type": "debugpy",
+            "name": "Launch Admin (UI)",
+            "type": "node",
             "request": "launch",
-            "module": "streamlit",
-            "args": [
+            "cwd": "${workspaceFolder}/src/admin",
+            "preLaunchTask": "npm install admin",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
                 "run",
-                "Admin.py"
+                "dev"
             ],
-            "cwd": "${workspaceFolder}/code/backend",
-            "preLaunchTask": "poetry install",
+            "skipFiles": [
+                "node_modules/**"
+            ],
             "envFile": "${input:dotEnvFilePath}",
         },
         {
-            "name": "Launch Frontend (api)",
+            "name": "Launch Backend (FastAPI)",
             "type": "debugpy",
             "request": "launch",
-            "module": "flask",
+            "module": "uvicorn",
             "args": [
-                "--app",
-                "./app.py",
-                "--debug",
-                "run",
+                "src.backend.app:app",
+                "--reload",
                 "--port",
-                "5050"
+                "8000"
             ],
-            "cwd": "${workspaceFolder}/code",
-            "preLaunchTask": "poetry install",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "uv sync",
             "envFile": "${input:dotEnvFilePath}",
         },
         {
             "name": "Launch Frontend (UI)",
             "type": "node",
             "request": "launch",
-            "cwd": "${workspaceFolder}/code/frontend",
-            "preLaunchTask": "npm install",
+            "cwd": "${workspaceFolder}/src/frontend",
+            "preLaunchTask": "npm install frontend",
             "runtimeExecutable": "npm",
             "runtimeArgs": [
                 "run",
@@ -58,12 +59,8 @@
             "name": "Debug tests",
             "type": "debugpy",
             "request": "launch",
-            "module": "poetry",
-            "args": [
-                "run",
-                "pytest"
-            ],
-            "cwd": "${workspaceFolder}/code",
+            "module": "pytest",
+            "cwd": "${workspaceFolder}",
             "envFile": "${input:dotEnvFilePath}",
         },
         {
@@ -78,7 +75,7 @@
     "compounds": [
         {
             "name": "Launch Frontend",
-            "configurations": [ "Launch Frontend (UI)", "Launch Frontend (api)" ],
+            "configurations": [ "Launch Frontend (UI)", "Launch Backend (FastAPI)" ],
             "stopAll": true
         }
     ],

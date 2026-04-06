@@ -18,55 +18,58 @@ hooks:
       run: ./scripts/parse_env.ps1
 services:
   web:
-    project: ./code
+    project: ./src/frontend
     language: py
     host: appservice
     dist: ./dist
-    # Use resourceName
     resourceName: ${SERVICE_WEB_RESOURCE_NAME}
     hooks:
       prepackage:
         windows:
           shell: pwsh
-          run: ../scripts/package_frontend.ps1
+          run: ../../scripts/package_frontend.ps1
           interactive: true
           continueOnError: false
         posix:
           shell: sh
-          run: ../scripts/package_frontend.sh
+          run: ../../scripts/package_frontend.sh
           interactive: true
           continueOnError: false
 
-  adminweb:
-    project: ./code/backend
+  backend:
+    project: ./src/backend
     language: py
     host: appservice
-    # Use resourceName
+    resourceName: ${SERVICE_BACKEND_RESOURCE_NAME}
+
+  adminweb:
+    project: ./src/admin
+    language: js
+    host: appservice
     resourceName: ${SERVICE_ADMINWEB_RESOURCE_NAME}
     hooks:
       prepackage:
         windows:
           shell: pwsh
-          run: poetry install; poetry export -o requirements.txt
+          run: npm install && npm run build
           continueOnError: false
         posix:
           shell: sh
-          run: poetry install; poetry export -o requirements.txt
+          run: npm install && npm run build
           continueOnError: false
 
   function:
-    project: ./code/backend/batch
+    project: ./src/functions
     language: py
     host: function
-    # Use resourceName
     resourceName: ${SERVICE_FUNCTION_RESOURCE_NAME}
     hooks:
       prepackage:
         windows:
           shell: pwsh
-          run: poetry export -o requirements.txt --without-hashes; pip install -r requirements.txt
+          run: uv export --no-hashes -o requirements.txt; pip install -r requirements.txt
           continueOnError: false
         posix:
           shell: sh
-          run: poetry export -o requirements.txt --without-hashes; pip install -r requirements.txt
+          run: uv export --no-hashes -o requirements.txt; pip install -r requirements.txt
           continueOnError: false

@@ -5,8 +5,8 @@ ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
     AzureWebJobsFeatureFlags=EnableWorkerIndexing
 
 COPY pyproject.toml /
-COPY poetry.lock /
-RUN pip install --upgrade pip && pip install poetry && poetry self add poetry-plugin-export && poetry export -o requirements.txt && pip install -r requirements.txt
+COPY uv.lock /
+RUN pip install --upgrade pip && pip install uv && uv export --no-hashes -o requirements.txt && pip install -r requirements.txt
 
-COPY ./code/backend/batch/utilities /home/site/wwwroot/utilities
-COPY ./code/backend/batch /home/site/wwwroot
+COPY ./src/functions /home/site/wwwroot
+COPY ./src/shared /home/site/wwwroot/shared

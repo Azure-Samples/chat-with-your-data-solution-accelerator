@@ -1,13 +1,14 @@
-FROM python:3.11.7-bookworm
-RUN apt-get update && apt-get install python3-tk tk-dev -y
-COPY pyproject.toml /usr/local/src/myscripts/pyproject.toml
-COPY poetry.lock /usr/local/src/myscripts/poetry.lock
-WORKDIR /usr/local/src/myscripts/
-RUN pip install --upgrade pip && pip install poetry && poetry self add poetry-plugin-export && poetry export -o requirements.txt && pip install -r requirements.txt
-COPY ./code/backend /usr/local/src/myscripts/admin
-COPY ./code/backend/batch/utilities /usr/local/src/myscripts/utilities
-WORKDIR /usr/local/src/myscripts/admin
-# https://github.com/docker/buildx/issues/2751
-ENV PYTHONPATH="${PYTHONPATH}:/usr/local/src/myscripts/"
+FROM node:20-alpine AS admin-build
+RUN mkdir -p /home/node/app/node_modules && chown -R node:node /home/node/app
+WORKDIR /home/node/app
+COPY ./src/admin/package*.json ./
+USER node
+RUN npm ci
+COPY --chown=node:node ./src/admin ./admin
+WORKDIR /home/node/app/admin
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=admin-build /home/node/app/dist/admin /usr/share/nginx/html
 EXPOSE 80
-CMD ["streamlit", "run", "Admin.py", "--server.port", "80", "--server.enableXsrfProtection", "false"]
+CMD ["nginx", "-g", "daemon off;"]

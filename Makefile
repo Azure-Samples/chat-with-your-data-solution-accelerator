@@ -24,27 +24,31 @@ ci: lint unittest unittest-frontend functionaltest ## 🚀 Continuous Integratio
 
 lint: ## 🧹 Lint the code
 	@echo -e "\e[34m$@\e[0m" || true
-	@poetry run flake8 code
+	@uv run flake8 src
 
 build-frontend: ## 🏗️ Build the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
-	@cd code/frontend && npm install && npm run build
+	@cd src/frontend && npm install && npm run build
+
+build-admin: ## 🏗️ Build the Admin webapp
+	@echo -e "\e[34m$@\e[0m" || true
+	@cd src/admin && npm install && npm run build
 
 python-test: ## 🧪 Run Python unit + functional tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@poetry run pytest -m "not azure" $(optional_args)
+	@uv run pytest -m "not azure" $(optional_args)
 
 unittest: ## 🧪 Run the unit tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@poetry run pytest -vvv -m "not azure and not functional" $(optional_args)
+	@uv run pytest -vvv -m "not azure and not functional" $(optional_args)
 
 unittest-frontend: build-frontend ## 🧪 Unit test the Frontend webapp
 	@echo -e "\e[34m$@\e[0m" || true
-	@cd code/frontend && npm run test
+	@cd src/frontend && npm run test
 
 functionaltest: ## 🧪 Run the functional tests
 	@echo -e "\e[34m$@\e[0m" || true
-	@poetry run pytest code/tests/functional -m "functional"
+	@uv run pytest code/tests/functional -m "functional"
 
 uitest: ## 🧪 Run the ui tests in headless mode
 	@echo -e "\e[34m$@\e[0m" || true

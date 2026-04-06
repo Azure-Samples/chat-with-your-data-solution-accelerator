@@ -7,27 +7,36 @@
 			"command": "host start",
 			"problemMatcher": "$func-python-watch",
 			"isBackground": true,
-			"dependsOn": "poetry install",
+			"dependsOn": "uv sync",
 			"options": {
-				"cwd": "${workspaceFolder}/code/backend/batch"
+				"cwd": "${workspaceFolder}/src/functions"
 			}
 		},
 		{
-			"label": "poetry install",
+			"label": "uv sync",
 			"type": "shell",
-			"command": "poetry install",
+			"command": "uv sync",
 			"problemMatcher": [],
 			"options": {
 				"cwd": "${workspaceFolder}"
 			}
 		},
 		{
-			"label": "npm install",
+			"label": "npm install frontend",
 			"type": "shell",
 			"command": "npm install",
 			"problemMatcher": [],
 			"options": {
-				"cwd": "${workspaceFolder}/code/frontend"
+				"cwd": "${workspaceFolder}/src/frontend"
+			}
+		},
+		{
+			"label": "npm install admin",
+			"type": "shell",
+			"command": "npm install",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}/src/admin"
 			}
 		}
 	]
