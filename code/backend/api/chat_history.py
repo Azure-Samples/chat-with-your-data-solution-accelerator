@@ -1,8 +1,10 @@
 import os
+import json
 import logging
 from uuid import uuid4
+from datetime import datetime
 from dotenv import load_dotenv
-from flask import request, jsonify, Blueprint
+from flask import request, jsonify, Blueprint, Response
 from openai import AsyncAzureOpenAI
 from backend.batch.utilities.chat_history.auth_utils import (
     get_authenticated_user_details,
@@ -508,3 +510,165 @@ async def generate_title(conversation_messages):
         logger.exception(f"Error generating title: {str(e)}")
         # Fallback: return the content of the second to last message if something goes wrong
         return messages[-2]["content"] if len(messages) > 1 else "Untitled"
+
+
+def _format_as_json(conversation, messages):
+    """Format conversation and messages as a JSON string."""
+    export_data = {
+        "conversation_id": conversation.get("id", ""),
+        "title": conversation.get("title", "Untitled"),
+        "created_at": conversation.get("createdAt", ""),
+        "updated_at": conversation.get("updatedAt", ""),
+        "messages": [
+            {
+                "role": msg.get("role", ""),
+                "content": msg.get("content", ""),
+                "created_at": msg.get("createdAt", ""),
+                "id": msg.get("id", ""),
+            }
+            for msg in messages
+            if msg.get("role") != "tool"
+        ],
+    }
+    return json.dumps(export_data, indent=2, ensure_ascii=False)
+
+
+def _format_as_markdown(conversation, messages):
+    """Format conversation and messages as Markdown."""
+    title = conversation.get("title", "Untitled")
+    created = conversation.get("createdAt", "")
+    lines = [
+        f"# {title}",
+        "",
+        f"**Date:** {created}",
+        "",
+        "---",
+        "",
+    ]
+    for msg in messages:
+        role = msg.get("role", "unknown")
+        if role == "tool":
+            continue
+        content = msg.get("content", "")
+        timestamp = msg.get("createdAt", "")
+        role_label = "User" if role == "user" else "Assistant"
+        lines.append(f"### {role_label}")
+        if timestamp:
+            lines.append(f"*{timestamp}*")
+        lines.append("")
+        lines.append(content)
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+    return "\n".join(lines)
+
+
+def _format_as_text(conversation, messages):
+    """Format conversation and messages as plain text."""
+    title = conversation.get("title", "Untitled")
+    created = conversation.get("createdAt", "")
+    lines = [
+        f"Conversation: {title}",
+        f"Date: {created}",
+        "=" * 50,
+        "",
+    ]
+    for msg in messages:
+        role = msg.get("role", "unknown")
+        if role == "tool":
+            continue
+        content = msg.get("content", "")
+        timestamp = msg.get("createdAt", "")
+        role_label = "User" if role == "user" else "Assistant"
+        lines.append(f"[{role_label}] {timestamp}")
+        lines.append(content)
+        lines.append("-" * 50)
+        lines.append("")
+    return "\n".join(lines)
+
+
+EXPORT_FORMATTERS = {
+    "json": ("application/json", ".json", _format_as_json),
+    "markdown": ("text/markdown", ".md", _format_as_markdown),
+    "text": ("text/plain", ".txt", _format_as_text),
+}
+
+
+@bp_chat_history_response.route("/history/export", methods=["POST"])
+async def export_conversation():
+    config = ConfigHelper.get_active_config_or_default()
+    if not config.enable_chat_history:
+        return jsonify({"error": "Chat history is not available"}), 400
+
+    try:
+        authenticated_user = get_authenticated_user_details(
+            request_headers=request.headers
+        )
+        user_id = authenticated_user["user_principal_id"]
+
+        request_json = request.get_json()
+        conversation_id = request_json.get("conversation_id", None)
+        if not conversation_id:
+            return jsonify({"error": "conversation_id is required"}), 400
+
+        export_format = request_json.get("format", "json").lower()
+        if export_format not in EXPORT_FORMATTERS:
+            return (
+                jsonify(
+                    {
+                        "error": f"Invalid format '{export_format}'. Supported formats: json, markdown, text"
+                    }
+                ),
+                400,
+            )
+
+        conversation_client = init_database_client()
+        if not conversation_client:
+            return jsonify({"error": "Database not available"}), 500
+
+        await conversation_client.connect()
+        try:
+            conversation = await conversation_client.get_conversation(
+                user_id, conversation_id
+            )
+            if not conversation:
+                return (
+                    jsonify(
+                        {
+                            "error": f"Conversation {conversation_id} was not found. It either does not exist or the logged in user does not have access to it."
+                        }
+                    ),
+                    400,
+                )
+
+            messages = await conversation_client.get_messages(
+                user_id, conversation_id
+            )
+
+            content_type, file_ext, formatter = EXPORT_FORMATTERS[export_format]
+            exported_content = formatter(conversation, messages)
+
+            safe_title = "".join(
+                c if c.isalnum() or c in (" ", "-", "_") else "_"
+                for c in conversation.get("title", "conversation")
+            ).strip()[:50]
+            filename = f"{safe_title}{file_ext}"
+
+            return Response(
+                exported_content,
+                mimetype=content_type,
+                headers={
+                    "Content-Disposition": f'attachment; filename="{filename}"'
+                },
+            )
+        except Exception as e:
+            logger.exception(
+                f"Error exporting conversation: user_id={user_id}, conversation_id={conversation_id}, error={e}"
+            )
+            raise
+        finally:
+            await conversation_client.close()
+
+    except Exception as e:
+        logger.exception(f"Exception in /history/export: {e}")
+        return jsonify({"error": "Error while exporting conversation"}), 500
