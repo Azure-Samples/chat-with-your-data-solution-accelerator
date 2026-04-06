@@ -2,7 +2,6 @@ import os
 import json
 import logging
 from uuid import uuid4
-from datetime import datetime
 from dotenv import load_dotenv
 from flask import request, jsonify, Blueprint, Response
 from openai import AsyncAzureOpenAI
