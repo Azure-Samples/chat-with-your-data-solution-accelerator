@@ -653,7 +653,7 @@ async def export_conversation():
                 c if c.isalnum() or c in (" ", "-", "_") else "_"
                 for c in conversation.get("title", "conversation")
             ).strip()[:50]
-            filename = f"{safe_title}{file_ext}"
+            filename = f"{safe_title or 'conversation'}{file_ext}"
 
             return Response(
                 exported_content,
