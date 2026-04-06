@@ -6,11 +6,27 @@ on:
       - main
       - dev
       - demo
+    paths:
+      - 'code/**'
+      - '!code/tests/**'
+      - 'docker/**'
+      - 'package.json'
+      - 'pyproject.toml'
+      - '.github/workflows/build-docker-images.yml'
+      - '.github/workflows/build-docker.yml'
   pull_request:
     branches:
       - main
       - dev
       - demo
+    paths:
+      - 'code/**'
+      - '!code/tests/**'
+      - 'docker/**'
+      - 'package.json'
+      - 'pyproject.toml'
+      - '.github/workflows/build-docker-images.yml'
+      - '.github/workflows/build-docker.yml'
     types:
       - opened
       - ready_for_review
