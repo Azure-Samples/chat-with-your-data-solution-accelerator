@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "4818944924169764352"
+      "templateHash": "17408819589379274150"
     }
   },
   "parameters": {
@@ -329,21 +329,21 @@
     },
     "azureOpenAIEmbeddingModel": {
       "type": "string",
-      "defaultValue": "text-embedding-ada-002",
+      "defaultValue": "text-embedding-3-small",
       "metadata": {
         "description": "Optional. Azure OpenAI Embedding Model Deployment Name."
       }
     },
     "azureOpenAIEmbeddingModelName": {
       "type": "string",
-      "defaultValue": "text-embedding-ada-002",
+      "defaultValue": "text-embedding-3-small",
       "metadata": {
         "description": "Optional. Azure OpenAI Embedding Model Name."
       }
     },
     "azureOpenAIEmbeddingModelVersion": {
       "type": "string",
-      "defaultValue": "2",
+      "defaultValue": "1",
       "metadata": {
         "description": "Optional. Azure OpenAI Embedding Model Version."
       }
@@ -359,7 +359,7 @@
       "type": "string",
       "defaultValue": "1536",
       "metadata": {
-        "description": "Optional. Azure Search vector field dimensions. Must match the embedding model dimensions. 1536 for text-embedding-ada-002, 3072 for text-embedding-3-large. See https://learn.microsoft.com/en-us/azure/search/cognitive-search-skill-azure-openai-embedding#supported-dimensions-by-modelname.(Only for databaseType=CosmosDB)"
+        "description": "Optional. Azure Search vector field dimensions. Must match the embedding model dimensions. 1536 for text-embedding-3-small, 3072 for text-embedding-3-large. See https://learn.microsoft.com/en-us/azure/search/cognitive-search-skill-azure-openai-embedding#supported-dimensions-by-modelname.(Only for databaseType=CosmosDB)"
       }
     },
     "computerVisionSkuName": {
@@ -22393,7 +22393,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "10250215562717288326"
+              "templateHash": "9897399857943770193"
             }
           },
           "parameters": {
@@ -24936,7 +24936,7 @@
               "metadata": {
                 "description": "The principal ID of the system-assigned managed identity, if enabled."
               },
-              "value": "[if(parameters('enableSystemAssigned'), reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value, '')]"
+              "value": "[if(parameters('enableSystemAssigned'), coalesce(reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value, ''), '')]"
             }
           }
         }
@@ -24999,7 +24999,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "10250215562717288326"
+              "templateHash": "9897399857943770193"
             }
           },
           "parameters": {
@@ -27542,7 +27542,7 @@
               "metadata": {
                 "description": "The principal ID of the system-assigned managed identity, if enabled."
               },
-              "value": "[if(parameters('enableSystemAssigned'), reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value, '')]"
+              "value": "[if(parameters('enableSystemAssigned'), coalesce(reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value, ''), '')]"
             }
           }
         }
@@ -27606,7 +27606,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "10250215562717288326"
+              "templateHash": "9897399857943770193"
             }
           },
           "parameters": {
@@ -30149,7 +30149,7 @@
               "metadata": {
                 "description": "The principal ID of the system-assigned managed identity, if enabled."
               },
-              "value": "[if(parameters('enableSystemAssigned'), reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value, '')]"
+              "value": "[if(parameters('enableSystemAssigned'), coalesce(reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value, ''), '')]"
             }
           }
         }
@@ -46085,7 +46085,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "10250215562717288326"
+              "templateHash": "9897399857943770193"
             }
           },
           "parameters": {
@@ -48628,7 +48628,7 @@
               "metadata": {
                 "description": "The principal ID of the system-assigned managed identity, if enabled."
               },
-              "value": "[if(parameters('enableSystemAssigned'), reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value, '')]"
+              "value": "[if(parameters('enableSystemAssigned'), coalesce(reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value, ''), '')]"
             }
           }
         }
@@ -48689,7 +48689,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "10250215562717288326"
+              "templateHash": "9897399857943770193"
             }
           },
           "parameters": {
@@ -51232,7 +51232,7 @@
               "metadata": {
                 "description": "The principal ID of the system-assigned managed identity, if enabled."
               },
-              "value": "[if(parameters('enableSystemAssigned'), reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value, '')]"
+              "value": "[if(parameters('enableSystemAssigned'), coalesce(reference('cognitiveServices').outputs.systemAssignedMIPrincipalId.value, ''), '')]"
             }
           }
         }
@@ -54524,8 +54524,8 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "managedIdentityModule",
         "virtualNetwork"
