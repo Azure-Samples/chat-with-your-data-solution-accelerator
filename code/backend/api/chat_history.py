@@ -605,7 +605,9 @@ async def export_conversation():
         )
         user_id = authenticated_user["user_principal_id"]
 
-        request_json = request.get_json()
+        request_json = request.get_json(silent=True)
+        if request_json is None:
+            return jsonify({"error": "A JSON request body is required"}), 400
         conversation_id = request_json.get("conversation_id", None)
         if not conversation_id:
             return jsonify({"error": "conversation_id is required"}), 400
