@@ -107,9 +107,10 @@ else {
                 $existingAssignment = az role assignment list --assignee $currentUserOid --role $kvSecretsUserRoleId --scope $kvResourceId --query "[0].id" -o tsv 2>$null
                 if (-not $existingAssignment) {
                     Write-Host "✓ Assigning 'Key Vault Secrets User' role to current user on Key Vault..."
-                    az role assignment create --assignee-object-id $currentUserOid --assignee-principal-type User --role $kvSecretsUserRoleId --scope $kvResourceId | Out-Null
+                    $roleOutput = az role assignment create --assignee-object-id $currentUserOid --assignee-principal-type User --role $kvSecretsUserRoleId --scope $kvResourceId 2>&1 | Out-String
                     if ($LASTEXITCODE -ne 0) {
-                        Write-Warning "⚠ Failed to assign Key Vault Secrets User role. You may not have Owner/User Access Administrator permissions."
+                        Write-Warning "⚠ Failed to assign Key Vault Secrets User role."
+                        Write-Warning "  $roleOutput"
                     } else {
                         Write-Host "✓ Role assigned. Waiting 30s for propagation..."
                         Start-Sleep -Seconds 30
@@ -127,9 +128,9 @@ else {
         if ($kvPublicAccess -eq "Disabled") {
             Write-Host "Key Vault has public access disabled (private networking detected)."
             Write-Host "✓ Temporarily enabling public access on Key Vault '$keyVaultName'..."
-            az keyvault update --name $keyVaultName --resource-group $ResourceGroupName --public-network-access Enabled | Out-Null
+            $kvOutput = az keyvault update --name $keyVaultName --resource-group $ResourceGroupName --public-network-access Enabled 2>&1 | Out-String
             if ($LASTEXITCODE -ne 0) {
-                Write-Error "✗ Failed to enable public access on Key Vault. Cannot proceed."
+                Write-Error "✗ Failed to enable public access on Key Vault. Cannot proceed.`n  $kvOutput"
                 exit 1
             }
             $resourcesToRestore += @{ type = "keyvault"; name = $keyVaultName }
@@ -198,10 +199,10 @@ else {
     if ($pgPublicAccess -eq "Disabled") {
         Write-Host "PostgreSQL has public access disabled (private networking detected)."
         Write-Host "✓ Temporarily enabling public access on PostgreSQL '$serverName'..."
-        az postgres flexible-server update --resource-group $ResourceGroupName --name $serverName --public-access Enabled 2>$null | Out-Null
+        $pgOutput = az postgres flexible-server update --resource-group $ResourceGroupName --name $serverName --public-access Enabled 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0) {
             Restore-NetworkAccess
-            Write-Error "✗ Failed to enable public access on PostgreSQL. Cannot proceed."
+            Write-Error "✗ Failed to enable public access on PostgreSQL. Cannot proceed.`n  $pgOutput"
             exit 1
         }
         $resourcesToRestore += @{ type = "postgres"; name = $serverName }
@@ -247,14 +248,15 @@ else {
     $addedPgAdmin = $false
     if (-not $isAdmin) {
         Write-Host "✓ Adding current user as PostgreSQL Entra administrator..."
-        az postgres flexible-server ad-admin create `
+        $adminOutput = az postgres flexible-server ad-admin create `
             --resource-group $ResourceGroupName `
             --server-name $serverName `
             --display-name $currentUserUpn `
             --object-id $currentUserOid `
-            --type User 2>$null | Out-Null
+            --type User 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0) {
             Write-Warning "⚠ Failed to add current user as PostgreSQL admin. Table creation may fail."
+            Write-Warning "  $adminOutput"
         } else {
             $addedPgAdmin = $true
             Write-Host "✓ PostgreSQL admin added. Waiting 60s for propagation..."
@@ -270,7 +272,7 @@ else {
         $requirementsFile = Join-Path $scriptDir "data_scripts" "requirements.txt"
         if (Test-Path $requirementsFile) {
             Write-Host "✓ Installing Python dependencies..."
-            pip install -r $requirementsFile
+            pip install --user -r $requirementsFile 2>&1 | Out-Null
         }
 
         Write-Host "✓ Creating tables..."

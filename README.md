@@ -204,9 +204,9 @@ When Deployment is complete:
 1. Run the post-deployment setup script to configure the Function App client key and create PostgreSQL tables (if applicable). Open [Azure Cloud Shell](https://shell.azure.com) (Bash) and run:
 
     ```bash
+    az login
     git clone https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator.git
     cd chat-with-your-data-solution-accelerator
-    pip install -r scripts/data_scripts/requirements.txt
     bash scripts/post_deployment_setup.sh "<your-resource-group-name>"
     ```
 

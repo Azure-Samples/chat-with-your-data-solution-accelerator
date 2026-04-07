@@ -73,11 +73,13 @@ else
                 EXISTING_ASSIGNMENT=$(az role assignment list --assignee "$CURRENT_USER_OID" --role "$KV_SECRETS_USER_ROLE_ID" --scope "$KV_RESOURCE_ID" --query "[0].id" -o tsv 2>/dev/null || true)
                 if [ -z "$EXISTING_ASSIGNMENT" ]; then
                     echo "✓ Assigning 'Key Vault Secrets User' role to current user on Key Vault..."
-                    if az role assignment create --assignee-object-id "$CURRENT_USER_OID" --assignee-principal-type User --role "$KV_SECRETS_USER_ROLE_ID" --scope "$KV_RESOURCE_ID" > /dev/null 2>&1; then
+                    ROLE_ERR=$(az role assignment create --assignee-object-id "$CURRENT_USER_OID" --assignee-principal-type User --role "$KV_SECRETS_USER_ROLE_ID" --scope "$KV_RESOURCE_ID" 2>&1 > /dev/null) || true
+                    if [ $? -eq 0 ] && [ -z "$ROLE_ERR" ] || az role assignment list --assignee "$CURRENT_USER_OID" --role "$KV_SECRETS_USER_ROLE_ID" --scope "$KV_RESOURCE_ID" --query "[0].id" -o tsv 2>/dev/null | grep -q .; then
                         echo "✓ Role assigned. Waiting 30s for propagation..."
                         sleep 30
                     else
-                        echo "⚠ WARNING: Failed to assign Key Vault Secrets User role. You may not have Owner/User Access Administrator permissions."
+                        echo "⚠ WARNING: Failed to assign Key Vault Secrets User role."
+                        echo "  $ROLE_ERR"
                     fi
                 else
                     echo "✓ Current user already has 'Key Vault Secrets User' role on Key Vault."
@@ -92,8 +94,10 @@ else
         if [ "$KV_PUBLIC_ACCESS" = "Disabled" ]; then
             echo "Key Vault has public access disabled (private networking detected)."
             echo "✓ Temporarily enabling public access on Key Vault '${KEY_VAULT_NAME}'..."
-            if ! az keyvault update --name "$KEY_VAULT_NAME" --resource-group "$RESOURCE_GROUP" --public-network-access Enabled > /dev/null 2>&1; then
+            KV_ERR=$(az keyvault update --name "$KEY_VAULT_NAME" --resource-group "$RESOURCE_GROUP" --public-network-access Enabled 2>&1 > /dev/null) || true
+            if [ -n "$KV_ERR" ]; then
                 echo "✗ ERROR: Failed to enable public access on Key Vault. Cannot proceed." >&2
+                echo "  $KV_ERR" >&2
                 exit 1
             fi
             RESTORE_KV_NAME="$KEY_VAULT_NAME"
@@ -129,8 +133,10 @@ else
         URI="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${FUNCTION_APP_NAME}/host/default/functionKeys/clientKey?api-version=2023-01-01"
         BODY="{\"properties\":{\"name\":\"ClientKey\",\"value\":\"${FUNCTION_KEY}\"}}"
 
-        if ! az rest --method put --uri "$URI" --body "$BODY" > /dev/null 2>&1; then
+        REST_ERR=$(az rest --method put --uri "$URI" --body "$BODY" 2>&1 > /dev/null) || true
+        if [ -n "$REST_ERR" ]; then
             echo "✗ ERROR: Failed to set function key on '${FUNCTION_APP_NAME}'." >&2
+            echo "  $REST_ERR" >&2
             restore_network_access
             exit 1
         fi
@@ -157,8 +163,10 @@ else
     if [ "$PG_PUBLIC_ACCESS" = "Disabled" ]; then
         echo "PostgreSQL has public access disabled (private networking detected)."
         echo "✓ Temporarily enabling public access on PostgreSQL '${SERVER_NAME}'..."
-        if ! az postgres flexible-server update --resource-group "$RESOURCE_GROUP" --name "$SERVER_NAME" --public-access Enabled > /dev/null 2>&1; then
+        PG_ERR=$(az postgres flexible-server update --resource-group "$RESOURCE_GROUP" --name "$SERVER_NAME" --public-access Enabled 2>&1 > /dev/null) || true
+        if [ -n "$PG_ERR" ]; then
             echo "✗ ERROR: Failed to enable public access on PostgreSQL. Cannot proceed." >&2
+            echo "  $PG_ERR" >&2
             restore_network_access
             exit 1
         fi
@@ -215,17 +223,19 @@ else
     fi
     if [ "$IS_ADMIN" = "false" ]; then
         echo "✓ Adding current user as PostgreSQL Entra administrator..."
-        if az postgres flexible-server ad-admin create \
+        ADMIN_ERR=$(az postgres flexible-server ad-admin create \
             --resource-group "$RESOURCE_GROUP" \
             --server-name "$SERVER_NAME" \
             --display-name "$CURRENT_USER_UPN" \
             --object-id "$CURRENT_USER_OID" \
-            --type User > /dev/null 2>&1; then
+            --type User 2>&1 > /dev/null) || true
+        if [ -z "$ADMIN_ERR" ]; then
             ADDED_PG_ADMIN=true
             echo "✓ PostgreSQL admin added. Waiting 60s for propagation..."
             sleep 60
         else
             echo "⚠ WARNING: Failed to add current user as PostgreSQL admin. Table creation may fail."
+            echo "  $ADMIN_ERR"
         fi
     else
         echo "✓ Current user is already a PostgreSQL Entra administrator."
@@ -256,7 +266,7 @@ else
     REQUIREMENTS_FILE="${SCRIPT_DIR}/data_scripts/requirements.txt"
     if [ -f "$REQUIREMENTS_FILE" ]; then
         echo "✓ Installing Python dependencies..."
-        pip install -r "$REQUIREMENTS_FILE"
+        pip install --user -r "$REQUIREMENTS_FILE" > /dev/null 2>&1 || echo "⚠ WARNING: pip install failed. Continuing anyway..."
     fi
 
     echo "✓ Creating tables..."
