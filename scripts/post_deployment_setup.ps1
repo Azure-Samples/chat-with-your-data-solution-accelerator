@@ -45,7 +45,7 @@ function Wait-ForCondition {
         Write-Host "  [$i/$MaxRetries] $Description — retrying in ${RetryIntervalSeconds}s..."
         Start-Sleep -Seconds $RetryIntervalSeconds
     }
-    Write-Warning "$Description did not succeed after $($MaxRetries * $RetryIntervalSeconds) seconds."
+    Write-Warning "⚠ $Description did not succeed after $($MaxRetries * $RetryIntervalSeconds) seconds."
     return $false
 }
 
@@ -57,19 +57,19 @@ function Restore-NetworkAccess {
     Write-Host ""
     Write-Host "--- Restoring private networking ---"
     foreach ($res in $script:resourcesToRestore) {
-        Write-Host "Disabling public access on $($res.type) '$($res.name)'..."
+        Write-Host "✓ Disabling public access on $($res.type) '$($res.name)'..."
         switch ($res.type) {
             "keyvault" {
-                az keyvault update --name $res.name --resource-group $ResourceGroupName --public-network-access Disabled 2>$null
+                az keyvault update --name $res.name --resource-group $ResourceGroupName --public-network-access Disabled 2>$null | Out-Null
             }
             "postgres" {
                 az postgres flexible-server update --resource-group $ResourceGroupName --name $res.name --public-access Disabled 2>$null | Out-Null
             }
         }
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "  Public access disabled on '$($res.name)'."
+            Write-Host "  ✓ Public access disabled on '$($res.name)'."
         } else {
-            Write-Warning "  Failed to disable public access on '$($res.name)'. Please disable manually."
+            Write-Warning "  ⚠ Failed to disable public access on '$($res.name)'. Please disable manually."
         }
     }
 }
@@ -83,20 +83,20 @@ Write-Host "--- Step 1: Set Function App Client Key ---"
 # Discover function app
 $functionApps = az functionapp list --resource-group $ResourceGroupName --query "[].name" -o tsv 2>$null
 if (-not $functionApps) {
-    Write-Warning "No function apps found in resource group '$ResourceGroupName'. Skipping function key setup."
+    Write-Warning "⚠ No function apps found in resource group '$ResourceGroupName'. Skipping function key setup."
 }
 else {
     $functionAppName = ($functionApps -split "`n")[0].Trim()
-    Write-Host "Discovered function app: $functionAppName"
+    Write-Host "✓ Discovered function app: $functionAppName"
 
     # Discover key vault
     $keyVaults = az keyvault list --resource-group $ResourceGroupName --query "[].name" -o tsv 2>$null
     if (-not $keyVaults) {
-        Write-Warning "No Key Vault found. Skipping function key setup."
+        Write-Warning "⚠ No Key Vault found. Skipping function key setup."
     }
     else {
         $keyVaultName = ($keyVaults -split "`n")[0].Trim()
-        Write-Host "Discovered Key Vault: $keyVaultName"
+        Write-Host "✓ Discovered Key Vault: $keyVaultName"
 
         # Ensure the current user has 'Key Vault Secrets User' role on the Key Vault
         $currentUserOid = az ad signed-in-user show --query "id" -o tsv 2>$null
@@ -106,30 +106,30 @@ else {
                 $kvSecretsUserRoleId = "4633458b-17de-408a-b874-0445c86b69e6"
                 $existingAssignment = az role assignment list --assignee $currentUserOid --role $kvSecretsUserRoleId --scope $kvResourceId --query "[0].id" -o tsv 2>$null
                 if (-not $existingAssignment) {
-                    Write-Host "Assigning 'Key Vault Secrets User' role to current user on Key Vault..."
+                    Write-Host "✓ Assigning 'Key Vault Secrets User' role to current user on Key Vault..."
                     az role assignment create --assignee-object-id $currentUserOid --assignee-principal-type User --role $kvSecretsUserRoleId --scope $kvResourceId | Out-Null
                     if ($LASTEXITCODE -ne 0) {
-                        Write-Warning "Failed to assign Key Vault Secrets User role. You may not have Owner/User Access Administrator permissions."
+                        Write-Warning "⚠ Failed to assign Key Vault Secrets User role. You may not have Owner/User Access Administrator permissions."
                     } else {
-                        Write-Host "Role assigned. Waiting 30s for propagation..."
+                        Write-Host "✓ Role assigned. Waiting 30s for propagation..."
                         Start-Sleep -Seconds 30
                     }
                 } else {
-                    Write-Host "Current user already has 'Key Vault Secrets User' role on Key Vault."
+                    Write-Host "✓ Current user already has 'Key Vault Secrets User' role on Key Vault."
                 }
             }
         } else {
-            Write-Warning "Could not determine current user OID. Skipping Key Vault role assignment."
+            Write-Warning "⚠ Could not determine current user OID. Skipping Key Vault role assignment."
         }
 
         # Check if Key Vault public access is disabled (WAF/private networking)
         $kvPublicAccess = az keyvault show --name $keyVaultName --resource-group $ResourceGroupName --query "properties.publicNetworkAccess" -o tsv 2>$null
         if ($kvPublicAccess -eq "Disabled") {
             Write-Host "Key Vault has public access disabled (private networking detected)."
-            Write-Host "Temporarily enabling public access on Key Vault '$keyVaultName'..."
+            Write-Host "✓ Temporarily enabling public access on Key Vault '$keyVaultName'..."
             az keyvault update --name $keyVaultName --resource-group $ResourceGroupName --public-network-access Enabled | Out-Null
             if ($LASTEXITCODE -ne 0) {
-                Write-Error "Failed to enable public access on Key Vault. Cannot proceed."
+                Write-Error "✗ Failed to enable public access on Key Vault. Cannot proceed."
                 exit 1
             }
             $resourcesToRestore += @{ type = "keyvault"; name = $keyVaultName }
@@ -138,11 +138,11 @@ else {
         }
 
         # Retrieve function key from Key Vault
-        Write-Host "Retrieving function key from Key Vault..."
+        Write-Host "✓ Retrieving function key from Key Vault..."
         $functionKey = az keyvault secret show --vault-name $keyVaultName --name "FUNCTION-KEY" --query "value" -o tsv
         if ($LASTEXITCODE -ne 0 -or -not $functionKey) {
             Restore-NetworkAccess
-            Write-Error "Failed to retrieve 'FUNCTION-KEY' secret from Key Vault '$keyVaultName'."
+            Write-Error "✗ Failed to retrieve 'FUNCTION-KEY' secret from Key Vault '$keyVaultName'."
             exit 1
         }
 
@@ -154,7 +154,7 @@ else {
         }
 
         # Set the function key via REST API (with retries — host runtime may not be ready immediately)
-        Write-Host "Setting function key 'ClientKey' on '$functionAppName'..."
+        Write-Host "✓ Setting function key 'ClientKey' on '$functionAppName'..."
         $subscriptionId = az account show --query "id" -o tsv
         $uri = "/subscriptions/$subscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Web/sites/$functionAppName/host/default/functionKeys/clientKey?api-version=2023-01-01"
         $bodyObj = @{ properties = @{ name = "ClientKey"; value = $functionKey } }
@@ -163,18 +163,18 @@ else {
         try {
             Set-Content -Path $tempBodyFile -Value $bodyJson -Encoding utf8
             $keySet = Wait-ForCondition -Description "Function host runtime not ready yet" -MaxRetries 10 -RetryIntervalSeconds 30 -Condition {
-                az rest --method put --uri $uri --body "@$tempBodyFile" 2>$null
+                az rest --method put --uri $uri --body "@$tempBodyFile" 2>$null | Out-Null
                 return ($LASTEXITCODE -eq 0)
             }
             if (-not $keySet) {
                 Restore-NetworkAccess
-                Write-Error "Failed to set function key on '$functionAppName' after retries."
+                Write-Error "✗ Failed to set function key on '$functionAppName' after retries."
                 exit 1
             }
         } finally {
             Remove-Item -Path $tempBodyFile -Force -ErrorAction SilentlyContinue
         }
-        Write-Host "Function key set successfully."
+        Write-Host "✓ Function key set successfully."
     }
 }
 
@@ -191,17 +191,17 @@ if (-not $pgServers) {
 else {
     $serverFqdn = ($pgServers -split "`n")[0].Trim()
     $serverName = $serverFqdn.Split('.')[0]
-    Write-Host "Discovered PostgreSQL server: $serverName ($serverFqdn)"
+    Write-Host "✓ Discovered PostgreSQL server: $serverName ($serverFqdn)"
 
     # Check if PostgreSQL public access is disabled (WAF/private networking)
     $pgPublicAccess = az postgres flexible-server show --resource-group $ResourceGroupName --name $serverName --query "network.publicNetworkAccess" -o tsv 2>$null
     if ($pgPublicAccess -eq "Disabled") {
         Write-Host "PostgreSQL has public access disabled (private networking detected)."
-        Write-Host "Temporarily enabling public access on PostgreSQL '$serverName'..."
+        Write-Host "✓ Temporarily enabling public access on PostgreSQL '$serverName'..."
         az postgres flexible-server update --resource-group $ResourceGroupName --name $serverName --public-access Enabled 2>$null | Out-Null
         if ($LASTEXITCODE -ne 0) {
             Restore-NetworkAccess
-            Write-Error "Failed to enable public access on PostgreSQL. Cannot proceed."
+            Write-Error "✗ Failed to enable public access on PostgreSQL. Cannot proceed."
             exit 1
         }
         $resourcesToRestore += @{ type = "postgres"; name = $serverName }
@@ -218,7 +218,7 @@ else {
 
     # Add firewall rule for current machine
     $publicIp = (Invoke-RestMethod -Uri "https://api.ipify.org" -UseBasicParsing).Trim()
-    Write-Host "Adding temporary firewall rule for IP $publicIp..."
+    Write-Host "✓ Adding temporary firewall rule for IP $publicIp..."
     az postgres flexible-server firewall-rule create `
         --resource-group $ResourceGroupName `
         --name $serverName `
@@ -231,10 +231,10 @@ else {
     $currentUserOid = az ad signed-in-user show --query "id" -o tsv 2>$null
     if (-not $currentUserUpn -or -not $currentUserOid) {
         Restore-NetworkAccess
-        Write-Error "Could not determine current signed-in user. Ensure you are logged in with 'az login'."
+        Write-Error "✗ Could not determine current signed-in user. Ensure you are logged in with 'az login'."
         exit 1
     }
-    Write-Host "Current user: $currentUserUpn ($currentUserOid)"
+    Write-Host "✓ Current user: $currentUserUpn ($currentUserOid)"
 
     # Ensure current user is a PostgreSQL Entra administrator
     $existingAdmins = az postgres flexible-server ad-admin list --resource-group $ResourceGroupName --server-name $serverName --query "[].objectId" -o tsv 2>$null
@@ -246,7 +246,7 @@ else {
     }
     $addedPgAdmin = $false
     if (-not $isAdmin) {
-        Write-Host "Adding current user as PostgreSQL Entra administrator..."
+        Write-Host "✓ Adding current user as PostgreSQL Entra administrator..."
         az postgres flexible-server ad-admin create `
             --resource-group $ResourceGroupName `
             --server-name $serverName `
@@ -254,14 +254,14 @@ else {
             --object-id $currentUserOid `
             --type User 2>$null | Out-Null
         if ($LASTEXITCODE -ne 0) {
-            Write-Warning "Failed to add current user as PostgreSQL admin. Table creation may fail."
+            Write-Warning "⚠ Failed to add current user as PostgreSQL admin. Table creation may fail."
         } else {
             $addedPgAdmin = $true
-            Write-Host "PostgreSQL admin added. Waiting 60s for propagation..."
+            Write-Host "✓ PostgreSQL admin added. Waiting 60s for propagation..."
             Start-Sleep -Seconds 60
         }
     } else {
-        Write-Host "Current user is already a PostgreSQL Entra administrator."
+        Write-Host "✓ Current user is already a PostgreSQL Entra administrator."
     }
 
     try {
@@ -269,22 +269,22 @@ else {
         $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
         $requirementsFile = Join-Path $scriptDir "data_scripts" "requirements.txt"
         if (Test-Path $requirementsFile) {
-            Write-Host "Installing Python dependencies..."
+            Write-Host "✓ Installing Python dependencies..."
             pip install -r $requirementsFile
         }
 
-        Write-Host "Creating tables..."
+        Write-Host "✓ Creating tables..."
         $pythonScript = Join-Path $scriptDir "data_scripts" "setup_postgres_tables.py"
         python $pythonScript $serverFqdn $currentUserUpn
 
         if ($LASTEXITCODE -ne 0) {
-            Write-Error "Failed to create PostgreSQL tables."
+            Write-Error "✗ Failed to create PostgreSQL tables."
         }
     }
     finally {
         # Remove temporary PostgreSQL admin if we added it
         if ($addedPgAdmin) {
-            Write-Host "Removing temporary PostgreSQL Entra admin for current user..."
+            Write-Host "✓ Removing temporary PostgreSQL Entra admin for current user..."
             az postgres flexible-server ad-admin delete `
                 --resource-group $ResourceGroupName `
                 --server-name $serverName `
@@ -292,7 +292,7 @@ else {
                 --yes 2>$null
         }
         # Clean up firewall rule
-        Write-Host "Removing temporary firewall rule..."
+        Write-Host "✓ Removing temporary firewall rule..."
         az postgres flexible-server firewall-rule delete `
             --resource-group $ResourceGroupName `
             --name $serverName `
@@ -300,7 +300,7 @@ else {
             --yes 2>$null
     }
 
-    Write-Host "PostgreSQL table creation completed."
+    Write-Host "✓ PostgreSQL table creation completed."
 }
 
 # -------------------------------------------------------

@@ -36,12 +36,12 @@ RESTORE_PG_NAME=""
 
 restore_network_access() {
     if [ -n "$RESTORE_KV_NAME" ]; then
-        echo "Disabling public access on Key Vault '${RESTORE_KV_NAME}'..."
-        az keyvault update --name "$RESTORE_KV_NAME" --resource-group "$RESOURCE_GROUP" --public-network-access Disabled 2>/dev/null || echo "WARNING: Failed to disable public access on Key Vault. Please disable manually."
+        echo "✓ Disabling public access on Key Vault '${RESTORE_KV_NAME}'..."
+        az keyvault update --name "$RESTORE_KV_NAME" --resource-group "$RESOURCE_GROUP" --public-network-access Disabled > /dev/null 2>&1 || echo "⚠ WARNING: Failed to disable public access on Key Vault. Please disable manually."
     fi
     if [ -n "$RESTORE_PG_NAME" ]; then
-        echo "Disabling public access on PostgreSQL '${RESTORE_PG_NAME}'..."
-        az postgres flexible-server update --resource-group "$RESOURCE_GROUP" --name "$RESTORE_PG_NAME" --public-access Disabled > /dev/null 2>&1 || echo "WARNING: Failed to disable public access on PostgreSQL. Please disable manually."
+        echo "✓ Disabling public access on PostgreSQL '${RESTORE_PG_NAME}'..."
+        az postgres flexible-server update --resource-group "$RESOURCE_GROUP" --name "$RESTORE_PG_NAME" --public-access Disabled > /dev/null 2>&1 || echo "⚠ WARNING: Failed to disable public access on PostgreSQL. Please disable manually."
     fi
 }
 
@@ -56,13 +56,13 @@ FUNCTION_APP_NAME=$(az functionapp list --resource-group "$RESOURCE_GROUP" --que
 if [ -z "$FUNCTION_APP_NAME" ]; then
     echo "No function apps found in resource group '${RESOURCE_GROUP}'. Skipping function key setup."
 else
-    echo "Discovered function app: ${FUNCTION_APP_NAME}"
+    echo "✓ Discovered function app: ${FUNCTION_APP_NAME}"
 
     KEY_VAULT_NAME=$(az keyvault list --resource-group "$RESOURCE_GROUP" --query "[0].name" -o tsv 2>/dev/null || true)
     if [ -z "$KEY_VAULT_NAME" ]; then
-        echo "WARNING: No Key Vault found. Skipping function key setup."
+        echo "⚠ WARNING: No Key Vault found. Skipping function key setup."
     else
-        echo "Discovered Key Vault: ${KEY_VAULT_NAME}"
+        echo "✓ Discovered Key Vault: ${KEY_VAULT_NAME}"
 
         # Ensure the current user has 'Key Vault Secrets User' role on the Key Vault
         CURRENT_USER_OID=$(az ad signed-in-user show --query "id" -o tsv 2>/dev/null || true)
@@ -72,28 +72,28 @@ else
                 KV_SECRETS_USER_ROLE_ID="4633458b-17de-408a-b874-0445c86b69e6"
                 EXISTING_ASSIGNMENT=$(az role assignment list --assignee "$CURRENT_USER_OID" --role "$KV_SECRETS_USER_ROLE_ID" --scope "$KV_RESOURCE_ID" --query "[0].id" -o tsv 2>/dev/null || true)
                 if [ -z "$EXISTING_ASSIGNMENT" ]; then
-                    echo "Assigning 'Key Vault Secrets User' role to current user on Key Vault..."
+                    echo "✓ Assigning 'Key Vault Secrets User' role to current user on Key Vault..."
                     if az role assignment create --assignee-object-id "$CURRENT_USER_OID" --assignee-principal-type User --role "$KV_SECRETS_USER_ROLE_ID" --scope "$KV_RESOURCE_ID" > /dev/null 2>&1; then
-                        echo "Role assigned. Waiting 30s for propagation..."
+                        echo "✓ Role assigned. Waiting 30s for propagation..."
                         sleep 30
                     else
-                        echo "WARNING: Failed to assign Key Vault Secrets User role. You may not have Owner/User Access Administrator permissions."
+                        echo "⚠ WARNING: Failed to assign Key Vault Secrets User role. You may not have Owner/User Access Administrator permissions."
                     fi
                 else
-                    echo "Current user already has 'Key Vault Secrets User' role on Key Vault."
+                    echo "✓ Current user already has 'Key Vault Secrets User' role on Key Vault."
                 fi
             fi
         else
-            echo "WARNING: Could not determine current user OID. Skipping Key Vault role assignment."
+            echo "⚠ WARNING: Could not determine current user OID. Skipping Key Vault role assignment."
         fi
 
         # Check if Key Vault public access is disabled (WAF/private networking)
         KV_PUBLIC_ACCESS=$(az keyvault show --name "$KEY_VAULT_NAME" --resource-group "$RESOURCE_GROUP" --query "properties.publicNetworkAccess" -o tsv 2>/dev/null || true)
         if [ "$KV_PUBLIC_ACCESS" = "Disabled" ]; then
             echo "Key Vault has public access disabled (private networking detected)."
-            echo "Temporarily enabling public access on Key Vault '${KEY_VAULT_NAME}'..."
+            echo "✓ Temporarily enabling public access on Key Vault '${KEY_VAULT_NAME}'..."
             if ! az keyvault update --name "$KEY_VAULT_NAME" --resource-group "$RESOURCE_GROUP" --public-network-access Enabled > /dev/null 2>&1; then
-                echo "ERROR: Failed to enable public access on Key Vault. Cannot proceed." >&2
+                echo "✗ ERROR: Failed to enable public access on Key Vault. Cannot proceed." >&2
                 exit 1
             fi
             RESTORE_KV_NAME="$KEY_VAULT_NAME"
@@ -101,10 +101,10 @@ else
             sleep 30
         fi
 
-        echo "Retrieving function key from Key Vault..."
+        echo "✓ Retrieving function key from Key Vault..."
         FUNCTION_KEY=$(az keyvault secret show --vault-name "$KEY_VAULT_NAME" --name "FUNCTION-KEY" --query "value" -o tsv 2>/dev/null || true)
         if [ -z "$FUNCTION_KEY" ]; then
-            echo "ERROR: Failed to retrieve 'FUNCTION-KEY' secret from Key Vault '${KEY_VAULT_NAME}'." >&2
+            echo "✗ ERROR: Failed to retrieve 'FUNCTION-KEY' secret from Key Vault '${KEY_VAULT_NAME}'." >&2
             restore_network_access
             exit 1
         fi
@@ -124,17 +124,17 @@ else
         done
 
         # Set the function key via REST API
-        echo "Setting function key 'ClientKey' on '${FUNCTION_APP_NAME}'..."
+        echo "✓ Setting function key 'ClientKey' on '${FUNCTION_APP_NAME}'..."
         SUBSCRIPTION_ID=$(az account show --query "id" -o tsv | tr -d '\r')
         URI="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${FUNCTION_APP_NAME}/host/default/functionKeys/clientKey?api-version=2023-01-01"
         BODY="{\"properties\":{\"name\":\"ClientKey\",\"value\":\"${FUNCTION_KEY}\"}}"
 
-        if ! az rest --method put --uri "$URI" --body "$BODY" 2>&1; then
-            echo "ERROR: Failed to set function key on '${FUNCTION_APP_NAME}'." >&2
+        if ! az rest --method put --uri "$URI" --body "$BODY" > /dev/null 2>&1; then
+            echo "✗ ERROR: Failed to set function key on '${FUNCTION_APP_NAME}'." >&2
             restore_network_access
             exit 1
         fi
-        echo "Function key set successfully."
+        echo "✓ Function key set successfully."
     fi
 fi
 
@@ -150,15 +150,15 @@ if [ -z "$SERVER_FQDN" ]; then
     echo "No PostgreSQL Flexible Server found in resource group. Skipping table creation."
 else
     SERVER_NAME=$(echo "$SERVER_FQDN" | cut -d'.' -f1)
-    echo "Discovered PostgreSQL server: ${SERVER_NAME} (${SERVER_FQDN})"
+    echo "✓ Discovered PostgreSQL server: ${SERVER_NAME} (${SERVER_FQDN})"
 
     # Check if PostgreSQL public access is disabled (WAF/private networking)
     PG_PUBLIC_ACCESS=$(az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$SERVER_NAME" --query "network.publicNetworkAccess" -o tsv 2>/dev/null || true)
     if [ "$PG_PUBLIC_ACCESS" = "Disabled" ]; then
         echo "PostgreSQL has public access disabled (private networking detected)."
-        echo "Temporarily enabling public access on PostgreSQL '${SERVER_NAME}'..."
+        echo "✓ Temporarily enabling public access on PostgreSQL '${SERVER_NAME}'..."
         if ! az postgres flexible-server update --resource-group "$RESOURCE_GROUP" --name "$SERVER_NAME" --public-access Enabled > /dev/null 2>&1; then
-            echo "ERROR: Failed to enable public access on PostgreSQL. Cannot proceed." >&2
+            echo "✗ ERROR: Failed to enable public access on PostgreSQL. Cannot proceed." >&2
             restore_network_access
             exit 1
         fi
@@ -183,7 +183,7 @@ else
 
     # Add firewall rule for current machine
     PUBLIC_IP=$(curl -s https://api.ipify.org)
-    echo "Adding temporary firewall rule for IP ${PUBLIC_IP}..."
+    echo "✓ Adding temporary firewall rule for IP ${PUBLIC_IP}..."
     az postgres flexible-server firewall-rule create \
         --resource-group "$RESOURCE_GROUP" \
         --name "$SERVER_NAME" \
@@ -195,11 +195,11 @@ else
     CURRENT_USER_UPN=$(az ad signed-in-user show --query "userPrincipalName" -o tsv 2>/dev/null || true)
     CURRENT_USER_OID=$(az ad signed-in-user show --query "id" -o tsv 2>/dev/null || true)
     if [ -z "$CURRENT_USER_UPN" ] || [ -z "$CURRENT_USER_OID" ]; then
-        echo "ERROR: Could not determine current signed-in user. Ensure you are logged in with 'az login'." >&2
+        echo "✗ ERROR: Could not determine current signed-in user. Ensure you are logged in with 'az login'." >&2
         restore_network_access
         exit 1
     fi
-    echo "Current user: ${CURRENT_USER_UPN} (${CURRENT_USER_OID})"
+    echo "✓ Current user: ${CURRENT_USER_UPN} (${CURRENT_USER_OID})"
 
     # Ensure current user is a PostgreSQL Entra administrator
     EXISTING_ADMINS=$(az postgres flexible-server ad-admin list --resource-group "$RESOURCE_GROUP" --server-name "$SERVER_NAME" --query "[].objectId" -o tsv 2>/dev/null || true)
@@ -214,7 +214,7 @@ else
         done
     fi
     if [ "$IS_ADMIN" = "false" ]; then
-        echo "Adding current user as PostgreSQL Entra administrator..."
+        echo "✓ Adding current user as PostgreSQL Entra administrator..."
         if az postgres flexible-server ad-admin create \
             --resource-group "$RESOURCE_GROUP" \
             --server-name "$SERVER_NAME" \
@@ -222,27 +222,27 @@ else
             --object-id "$CURRENT_USER_OID" \
             --type User > /dev/null 2>&1; then
             ADDED_PG_ADMIN=true
-            echo "PostgreSQL admin added. Waiting 60s for propagation..."
+            echo "✓ PostgreSQL admin added. Waiting 60s for propagation..."
             sleep 60
         else
-            echo "WARNING: Failed to add current user as PostgreSQL admin. Table creation may fail."
+            echo "⚠ WARNING: Failed to add current user as PostgreSQL admin. Table creation may fail."
         fi
     else
-        echo "Current user is already a PostgreSQL Entra administrator."
+        echo "✓ Current user is already a PostgreSQL Entra administrator."
     fi
 
     # Ensure firewall rule cleanup on exit (along with network restore)
     cleanup() {
         # Remove temporary PostgreSQL admin if we added it
         if [ "$ADDED_PG_ADMIN" = "true" ]; then
-            echo "Removing temporary PostgreSQL Entra admin for current user..."
+            echo "✓ Removing temporary PostgreSQL Entra admin for current user..."
             az postgres flexible-server ad-admin delete \
                 --resource-group "$RESOURCE_GROUP" \
                 --server-name "$SERVER_NAME" \
                 --object-id "$CURRENT_USER_OID" \
                 --yes 2>/dev/null || true
         fi
-        echo "Removing temporary firewall rule..."
+        echo "✓ Removing temporary firewall rule..."
         az postgres flexible-server firewall-rule delete \
             --resource-group "$RESOURCE_GROUP" \
             --name "$SERVER_NAME" \
@@ -255,13 +255,13 @@ else
     # Install Python dependencies
     REQUIREMENTS_FILE="${SCRIPT_DIR}/data_scripts/requirements.txt"
     if [ -f "$REQUIREMENTS_FILE" ]; then
-        echo "Installing Python dependencies..."
+        echo "✓ Installing Python dependencies..."
         pip install -r "$REQUIREMENTS_FILE"
     fi
 
-    echo "Creating tables..."
+    echo "✓ Creating tables..."
     python "$SCRIPT_DIR/data_scripts/setup_postgres_tables.py" "$SERVER_FQDN" "$CURRENT_USER_UPN"
-    echo "PostgreSQL table creation completed."
+    echo "✓ PostgreSQL table creation completed."
 fi
 
 # -------------------------------------------------------

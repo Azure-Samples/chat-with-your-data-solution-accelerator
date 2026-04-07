@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "17408819589379274150"
+      "templateHash": "5847968968947118443"
     }
   },
   "parameters": {
@@ -774,7 +774,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "17941884242235144952"
+              "templateHash": "384243004764392788"
             }
           },
           "definitions": {
@@ -37773,7 +37773,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "3686316935067503045"
+              "templateHash": "18272396686912776072"
             }
           },
           "parameters": {
@@ -54525,8 +54525,8 @@
       },
       "dependsOn": [
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "managedIdentityModule",
         "virtualNetwork"
       ]
