@@ -30,7 +30,7 @@ echo "=============================================="
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -W 2>/dev/null || pwd)"
 
-# Remove rdbms-connect extension if present (it conflicts with built-in ad-admin commands)
+# Remove rdbms-connect extension if present (it conflicts with built-in microsoft-entra-admin commands)
 az extension remove --name rdbms-connect > /dev/null 2>&1 || true
 
 # Track resources that need public access restored to Disabled
@@ -213,7 +213,7 @@ else
     echo "✓ Current user: ${CURRENT_USER_UPN} (${CURRENT_USER_OID})"
 
     # Ensure current user is a PostgreSQL Entra administrator
-    EXISTING_ADMINS=$(az postgres flexible-server ad-admin list --resource-group "$RESOURCE_GROUP" --server-name "$SERVER_NAME" --query "[].objectId" -o tsv 2>/dev/null || true)
+    EXISTING_ADMINS=$(az postgres flexible-server microsoft-entra-admin list --resource-group "$RESOURCE_GROUP" --server-name "$SERVER_NAME" --query "[].objectId" -o tsv 2>/dev/null || true)
     IS_ADMIN=false
     ADDED_PG_ADMIN=false
     if [ -n "$EXISTING_ADMINS" ]; then
@@ -226,7 +226,7 @@ else
     fi
     if [ "$IS_ADMIN" = "false" ]; then
         echo "✓ Adding current user as PostgreSQL Entra administrator..."
-        ADMIN_ERR=$(az postgres flexible-server ad-admin create \
+        ADMIN_ERR=$(az postgres flexible-server microsoft-entra-admin create \
             --resource-group "$RESOURCE_GROUP" \
             --server-name "$SERVER_NAME" \
             --display-name "$CURRENT_USER_UPN" \
@@ -249,7 +249,7 @@ else
         # Remove temporary PostgreSQL admin if we added it
         if [ "$ADDED_PG_ADMIN" = "true" ]; then
             echo "✓ Removing temporary PostgreSQL Entra admin for current user..."
-            az postgres flexible-server ad-admin delete \
+            az postgres flexible-server microsoft-entra-admin delete \
                 --resource-group "$RESOURCE_GROUP" \
                 --server-name "$SERVER_NAME" \
                 --object-id "$CURRENT_USER_OID" \

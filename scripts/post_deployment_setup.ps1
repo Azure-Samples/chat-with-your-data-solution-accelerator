@@ -27,7 +27,7 @@ Write-Host " Post-Deployment Setup"
 Write-Host " Resource Group: $ResourceGroupName"
 Write-Host "=============================================="
 
-# Remove rdbms-connect extension if present (it conflicts with built-in ad-admin commands)
+# Remove rdbms-connect extension if present (it conflicts with built-in microsoft-entra-admin commands)
 az extension remove --name rdbms-connect 2>$null | Out-Null
 
 # Track resources that need public access restored to Disabled
@@ -241,7 +241,7 @@ else {
     Write-Host "✓ Current user: $currentUserUpn ($currentUserOid)"
 
     # Ensure current user is a PostgreSQL Entra administrator
-    $existingAdmins = az postgres flexible-server ad-admin list --resource-group $ResourceGroupName --server-name $serverName --query "[].objectId" -o tsv 2>$null
+    $existingAdmins = az postgres flexible-server microsoft-entra-admin list --resource-group $ResourceGroupName --server-name $serverName --query "[].objectId" -o tsv 2>$null
     $isAdmin = $false
     if ($existingAdmins) {
         foreach ($adminOid in ($existingAdmins -split "`n")) {
@@ -251,7 +251,7 @@ else {
     $addedPgAdmin = $false
     if (-not $isAdmin) {
         Write-Host "✓ Adding current user as PostgreSQL Entra administrator..."
-        $adminOutput = az postgres flexible-server ad-admin create `
+        $adminOutput = az postgres flexible-server microsoft-entra-admin create `
             --resource-group $ResourceGroupName `
             --server-name $serverName `
             --display-name $currentUserUpn `
@@ -290,7 +290,7 @@ else {
         # Remove temporary PostgreSQL admin if we added it
         if ($addedPgAdmin) {
             Write-Host "✓ Removing temporary PostgreSQL Entra admin for current user..."
-            az postgres flexible-server ad-admin delete `
+            az postgres flexible-server microsoft-entra-admin delete `
                 --resource-group $ResourceGroupName `
                 --server-name $serverName `
                 --object-id $currentUserOid `
