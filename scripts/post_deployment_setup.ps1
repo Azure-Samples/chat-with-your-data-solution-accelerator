@@ -26,7 +26,8 @@ Write-Host "=============================================="
 Write-Host " Post-Deployment Setup"
 Write-Host " Resource Group: $ResourceGroupName"
 Write-Host "=============================================="
-
+# Ensure rdbms-connect extension is installed (required for ad-admin commands)
+az extension add --name rdbms-connect --yes 2>$null | Out-Null
 # Track resources that need public access restored to Disabled
 $resourcesToRestore = @()
 

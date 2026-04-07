@@ -29,7 +29,8 @@ echo " Resource Group: ${RESOURCE_GROUP}"
 echo "=============================================="
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -W 2>/dev/null || pwd)"
-
+# Ensure rdbms-connect extension is installed (required for ad-admin commands)
+az extension add --name rdbms-connect --yes > /dev/null 2>&1 || true
 # Track resources that need public access restored to Disabled
 RESTORE_KV_NAME=""
 RESTORE_PG_NAME=""
