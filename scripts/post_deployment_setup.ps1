@@ -27,8 +27,13 @@ Write-Host " Post-Deployment Setup"
 Write-Host " Resource Group: $ResourceGroupName"
 Write-Host "=============================================="
 
-# Remove rdbms-connect extension if present (it conflicts with built-in microsoft-entra-admin commands)
+# Remove rdbms-connect extension if present (it conflicts with built-in admin commands)
 az extension remove --name rdbms-connect 2>$null | Out-Null
+
+# Detect whether to use 'microsoft-entra-admin' (newer CLI) or 'ad-admin' (older CLI)
+$pgAdminCmd = "ad-admin"
+$entraCheck = az postgres flexible-server microsoft-entra-admin --help 2>$null
+if ($LASTEXITCODE -eq 0) { $pgAdminCmd = "microsoft-entra-admin" }
 
 # Track resources that need public access restored to Disabled
 $resourcesToRestore = @()
@@ -80,6 +85,8 @@ function Restore-NetworkAccess {
 # -------------------------------------------------------
 # STEP 1 — Set Function App Client Key
 # -------------------------------------------------------
+try {
+
 Write-Host ""
 Write-Host "--- Step 1: Set Function App Client Key ---"
 
@@ -145,7 +152,6 @@ else {
         Write-Host "✓ Retrieving function key from Key Vault..."
         $functionKey = az keyvault secret show --vault-name $keyVaultName --name "FUNCTION-KEY" --query "value" -o tsv
         if ($LASTEXITCODE -ne 0 -or -not $functionKey) {
-            Restore-NetworkAccess
             Write-Error "✗ Failed to retrieve 'FUNCTION-KEY' secret from Key Vault '$keyVaultName'."
             exit 1
         }
@@ -171,7 +177,6 @@ else {
                 return ($LASTEXITCODE -eq 0)
             }
             if (-not $keySet) {
-                Restore-NetworkAccess
                 Write-Error "✗ Failed to set function key on '$functionAppName' after retries."
                 exit 1
             }
@@ -234,14 +239,13 @@ else {
     $currentUserUpn = az ad signed-in-user show --query "userPrincipalName" -o tsv 2>$null
     $currentUserOid = az ad signed-in-user show --query "id" -o tsv 2>$null
     if (-not $currentUserUpn -or -not $currentUserOid) {
-        Restore-NetworkAccess
         Write-Error "✗ Could not determine current signed-in user. Ensure you are logged in with 'az login'."
         exit 1
     }
     Write-Host "✓ Current user: $currentUserUpn ($currentUserOid)"
 
     # Ensure current user is a PostgreSQL Entra administrator
-    $existingAdmins = az postgres flexible-server microsoft-entra-admin list --resource-group $ResourceGroupName --server-name $serverName --query "[].objectId" -o tsv 2>$null
+    $existingAdmins = az postgres flexible-server $pgAdminCmd list --resource-group $ResourceGroupName --server-name $serverName --query "[].objectId" -o tsv 2>$null
     $isAdmin = $false
     if ($existingAdmins) {
         foreach ($adminOid in ($existingAdmins -split "`n")) {
@@ -251,7 +255,7 @@ else {
     $addedPgAdmin = $false
     if (-not $isAdmin) {
         Write-Host "✓ Adding current user as PostgreSQL Entra administrator..."
-        $adminOutput = az postgres flexible-server microsoft-entra-admin create `
+        $adminOutput = az postgres flexible-server $pgAdminCmd create `
             --resource-group $ResourceGroupName `
             --server-name $serverName `
             --display-name $currentUserUpn `
@@ -290,7 +294,7 @@ else {
         # Remove temporary PostgreSQL admin if we added it
         if ($addedPgAdmin) {
             Write-Host "✓ Removing temporary PostgreSQL Entra admin for current user..."
-            az postgres flexible-server microsoft-entra-admin delete `
+            az postgres flexible-server $pgAdminCmd delete `
                 --resource-group $ResourceGroupName `
                 --server-name $serverName `
                 --object-id $currentUserOid `
@@ -308,10 +312,12 @@ else {
     Write-Host "✓ PostgreSQL table creation completed."
 }
 
-# -------------------------------------------------------
-# STEP 3 — Restore private networking (if it was enabled)
-# -------------------------------------------------------
-Restore-NetworkAccess
+} finally {
+    # -------------------------------------------------------
+    # STEP 3 — Restore private networking (if it was enabled)
+    # -------------------------------------------------------
+    Restore-NetworkAccess
+}
 
 Write-Host ""
 Write-Host "=============================================="

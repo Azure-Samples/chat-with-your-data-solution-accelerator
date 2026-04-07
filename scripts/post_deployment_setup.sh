@@ -17,11 +17,14 @@ export MSYS_NO_PATHCONV=1
 # Usage: ./scripts/post_deployment_setup.sh <resource-group-name>
 
 if [ -z "$1" ]; then
-    echo "Usage: $0 <resource-group-name>"
-    exit 1
+    read -rp "Enter the resource group name: " RESOURCE_GROUP
+    if [ -z "$RESOURCE_GROUP" ]; then
+        echo "Resource group name is required."
+        exit 1
+    fi
+else
+    RESOURCE_GROUP="$1"
 fi
-
-RESOURCE_GROUP="$1"
 
 echo "=============================================="
 echo " Post-Deployment Setup"
@@ -30,8 +33,15 @@ echo "=============================================="
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -W 2>/dev/null || pwd)"
 
-# Remove rdbms-connect extension if present (it conflicts with built-in microsoft-entra-admin commands)
+# Remove rdbms-connect extension if present (it conflicts with built-in admin commands)
 az extension remove --name rdbms-connect > /dev/null 2>&1 || true
+
+# Detect whether to use 'microsoft-entra-admin' (newer CLI) or 'ad-admin' (older CLI)
+if az postgres flexible-server microsoft-entra-admin --help > /dev/null 2>&1; then
+    PG_ADMIN_CMD="microsoft-entra-admin"
+else
+    PG_ADMIN_CMD="ad-admin"
+fi
 
 # Track resources that need public access restored to Disabled
 RESTORE_KV_NAME=""
@@ -47,6 +57,30 @@ restore_network_access() {
         az postgres flexible-server update --resource-group "$RESOURCE_GROUP" --name "$RESTORE_PG_NAME" --public-access Disabled > /dev/null 2>&1 || echo "⚠ WARNING: Failed to disable public access on PostgreSQL. Please disable manually."
     fi
 }
+
+# Global cleanup function — handles PostgreSQL temp resources (if set) and network restore
+cleanup() {
+    # Remove temporary PostgreSQL admin if we added it
+    if [ "$ADDED_PG_ADMIN" = "true" ]; then
+        echo "✓ Removing temporary PostgreSQL Entra admin for current user..."
+        az postgres flexible-server $PG_ADMIN_CMD delete \
+            --resource-group "$RESOURCE_GROUP" \
+            --server-name "$SERVER_NAME" \
+            --object-id "$CURRENT_USER_OID" \
+            --yes 2>/dev/null || true
+    fi
+    # Remove temporary firewall rule if server was discovered
+    if [ -n "$SERVER_NAME" ]; then
+        echo "✓ Removing temporary firewall rule..."
+        az postgres flexible-server firewall-rule delete \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$SERVER_NAME" \
+            --rule-name "AllowPostDeploySetup" \
+            --yes 2>/dev/null || true
+    fi
+    restore_network_access
+}
+trap cleanup EXIT
 
 # -------------------------------------------------------
 # STEP 1 — Set Function App Client Key
@@ -112,7 +146,6 @@ else
         FUNCTION_KEY=$(az keyvault secret show --vault-name "$KEY_VAULT_NAME" --name "FUNCTION-KEY" --query "value" -o tsv 2>/dev/null || true)
         if [ -z "$FUNCTION_KEY" ]; then
             echo "✗ ERROR: Failed to retrieve 'FUNCTION-KEY' secret from Key Vault '${KEY_VAULT_NAME}'." >&2
-            restore_network_access
             exit 1
         fi
 
@@ -170,7 +203,6 @@ else
         if [ -n "$PG_ERR" ]; then
             echo "✗ ERROR: Failed to enable public access on PostgreSQL. Cannot proceed." >&2
             echo "  $PG_ERR" >&2
-            restore_network_access
             exit 1
         fi
         RESTORE_PG_NAME="$SERVER_NAME"
@@ -207,13 +239,12 @@ else
     CURRENT_USER_OID=$(az ad signed-in-user show --query "id" -o tsv 2>/dev/null || true)
     if [ -z "$CURRENT_USER_UPN" ] || [ -z "$CURRENT_USER_OID" ]; then
         echo "✗ ERROR: Could not determine current signed-in user. Ensure you are logged in with 'az login'." >&2
-        restore_network_access
         exit 1
     fi
     echo "✓ Current user: ${CURRENT_USER_UPN} (${CURRENT_USER_OID})"
 
     # Ensure current user is a PostgreSQL Entra administrator
-    EXISTING_ADMINS=$(az postgres flexible-server microsoft-entra-admin list --resource-group "$RESOURCE_GROUP" --server-name "$SERVER_NAME" --query "[].objectId" -o tsv 2>/dev/null || true)
+    EXISTING_ADMINS=$(az postgres flexible-server $PG_ADMIN_CMD list --resource-group "$RESOURCE_GROUP" --server-name "$SERVER_NAME" --query "[].objectId" -o tsv 2>/dev/null || true)
     IS_ADMIN=false
     ADDED_PG_ADMIN=false
     if [ -n "$EXISTING_ADMINS" ]; then
@@ -226,7 +257,7 @@ else
     fi
     if [ "$IS_ADMIN" = "false" ]; then
         echo "✓ Adding current user as PostgreSQL Entra administrator..."
-        ADMIN_ERR=$(az postgres flexible-server microsoft-entra-admin create \
+        ADMIN_ERR=$(az postgres flexible-server $PG_ADMIN_CMD create \
             --resource-group "$RESOURCE_GROUP" \
             --server-name "$SERVER_NAME" \
             --display-name "$CURRENT_USER_UPN" \
@@ -244,27 +275,6 @@ else
         echo "✓ Current user is already a PostgreSQL Entra administrator."
     fi
 
-    # Ensure firewall rule cleanup on exit (along with network restore)
-    cleanup() {
-        # Remove temporary PostgreSQL admin if we added it
-        if [ "$ADDED_PG_ADMIN" = "true" ]; then
-            echo "✓ Removing temporary PostgreSQL Entra admin for current user..."
-            az postgres flexible-server microsoft-entra-admin delete \
-                --resource-group "$RESOURCE_GROUP" \
-                --server-name "$SERVER_NAME" \
-                --object-id "$CURRENT_USER_OID" \
-                --yes 2>/dev/null || true
-        fi
-        echo "✓ Removing temporary firewall rule..."
-        az postgres flexible-server firewall-rule delete \
-            --resource-group "$RESOURCE_GROUP" \
-            --name "$SERVER_NAME" \
-            --rule-name "AllowPostDeploySetup" \
-            --yes 2>/dev/null || true
-        restore_network_access
-    }
-    trap cleanup EXIT
-
     # Install Python dependencies
     REQUIREMENTS_FILE="${SCRIPT_DIR}/data_scripts/requirements.txt"
     if [ -f "$REQUIREMENTS_FILE" ]; then
@@ -275,14 +285,6 @@ else
     echo "✓ Creating tables..."
     python "$SCRIPT_DIR/data_scripts/setup_postgres_tables.py" "$SERVER_FQDN" "$CURRENT_USER_UPN"
     echo "✓ PostgreSQL table creation completed."
-fi
-
-# -------------------------------------------------------
-# STEP 3 — Restore private networking (if no PostgreSQL trap set it)
-# -------------------------------------------------------
-# If no PostgreSQL server was found, the trap won't fire, so restore here
-if [ -z "$SERVER_FQDN" ]; then
-    restore_network_access
 fi
 
 echo ""
