@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="Delete Data",
-    page_icon=os.path.join("images", "favicon.ico"),
     layout="wide",
     menu_items=None,
 )
