@@ -57,12 +57,12 @@ The Azure Developer CLI (`azd`) is a developer-centric command-line interface (C
 
 1. Run the post-deployment setup script:
 
-    **PowerShell:**
+    **PowerShell (Windows):**
     ```powershell
     ./scripts/post_deployment_setup.ps1 -ResourceGroupName "<your-resource-group-name>"
     ```
 
-    **Bash:**
+    **Bash (Linux/macOS/WSL):**
     ```bash
     bash scripts/post_deployment_setup.sh "<your-resource-group-name>"
     ```

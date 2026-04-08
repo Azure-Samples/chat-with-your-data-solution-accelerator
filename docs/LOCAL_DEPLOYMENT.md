@@ -293,12 +293,12 @@ After successful deployment, locate your application URLs:
 
 After deployment completes, run the post-deployment script to configure the Function App client key and create PostgreSQL tables (if applicable):
 
-**PowerShell:**
+**PowerShell (Windows):**
 ```powershell
 ./scripts/post_deployment_setup.ps1 -ResourceGroupName "<your-resource-group-name>"
 ```
 
-**Bash:**
+**Bash (Linux/macOS/WSL):**
 ```bash
 bash scripts/post_deployment_setup.sh "<your-resource-group-name>"
 ```
