@@ -131,8 +131,9 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_get_vector_dimensions(
             method="POST",
             json={
                 "input": [[1199]],
-                "model": "text-embedding-ada-002",
+                "model": "text-embedding-3-small",
                 "encoding_format": "base64",
+                "dimensions": 1536,
             },
             headers={
                 "Accept": "application/json",
@@ -162,10 +163,9 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question_to_sear
                 "input": [
                     [3923, 374, 279, 7438, 315, 2324, 30]
                 ],  # Embedding of "What is the meaning of life?"
-                "model": app_config.get_from_json(
-                    "AZURE_OPENAI_EMBEDDING_MODEL_INFO", "model"
-                ),
+                "model": "text-embedding-3-small",
                 "encoding_format": "base64",
+                "dimensions": 1536,
             },
             headers={
                 "Accept": "application/json",
@@ -174,7 +174,7 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question_to_sear
                 "Api-Key": app_config.get("AZURE_OPENAI_API_KEY"),
             },
             query_string="api-version=2024-02-01",
-            times=1,
+            times=2,
         ),
     )
 
@@ -197,8 +197,9 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question_to_stor
                 "input": [
                     [3923, 374, 279, 7438, 315, 2324, 30]
                 ],  # Embedding of "What is the meaning of life?"
-                "model": "text-embedding-ada-002",  # this is hard coded in the langchain code base
+                "model": "text-embedding-3-small",
                 "encoding_format": "base64",
+                "dimensions": 1536,
             },
             headers={
                 "Accept": "application/json",
@@ -207,7 +208,7 @@ def test_post_makes_correct_calls_to_openai_embeddings_to_embed_question_to_stor
                 "Api-Key": app_config.get("AZURE_OPENAI_API_KEY"),
             },
             query_string="api-version=2024-02-01",
-            times=1,
+            times=2,
         ),
     )
 

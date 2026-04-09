@@ -72,16 +72,6 @@ param subnets subnetType[] = [
     }
   }
   {
-    name: 'deployment-scripts'
-    addressPrefixes: ['10.0.4.0/24']
-    networkSecurityGroup: {
-      name: 'nsg-deployment-scripts'
-      securityRules: []
-    }
-    delegation: 'Microsoft.ContainerInstance/containerGroups'
-    serviceEndpoints: ['Microsoft.Storage']
-  }
-  {
     name: 'AzureBastionSubnet' // Required name for Azure Bastion
     addressPrefixes: ['10.0.10.0/26']
     networkSecurityGroup: {
@@ -300,9 +290,6 @@ output bastionSubnetResourceId string = contains(map(subnets, subnet => subnet.n
   : ''
 output jumpboxSubnetResourceId string = contains(map(subnets, subnet => subnet.name), 'jumpbox')
   ? virtualNetwork.outputs.subnetResourceIds[indexOf(map(subnets, subnet => subnet.name), 'jumpbox')]
-  : ''
-output deploymentScriptsSubnetResourceId string = contains(map(subnets, subnet => subnet.name), 'deployment-scripts')
-  ? virtualNetwork.outputs.subnetResourceIds[indexOf(map(subnets, subnet => subnet.name), 'deployment-scripts')]
   : ''
 
 @export()

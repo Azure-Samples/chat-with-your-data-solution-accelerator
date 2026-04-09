@@ -45,10 +45,6 @@ param userAssignedIdentityClientId string = ''
 @secure()
 param appSettings object = {}
 
-@description('Optional. The client key to use for the function app.')
-@secure()
-param clientKey string
-
 @description('Optional. Determines if HTTPS is required for the function app. When true, HTTP requests are redirected to HTTPS.')
 param httpsOnly bool = true
 
@@ -107,33 +103,6 @@ module function '../core/host/functions.bicep' = {
     diagnosticSettings: diagnosticSettings
     publicNetworkAccess: empty(publicNetworkAccess) ? null : publicNetworkAccess
   }
-}
-
-resource functionNameDefaultClientKey 'Microsoft.Web/sites/host/functionKeys@2018-11-01' = {
-  name: '${name}/default/clientKey'
-  properties: {
-    name: 'ClientKey'
-    value: clientKey
-  }
-  dependsOn: [
-    function
-    waitFunctionDeploymentSection
-  ]
-}
-
-resource waitFunctionDeploymentSection 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
-  kind: 'AzurePowerShell'
-  name: 'wait-func-deploy-${name}'
-  location: location
-  properties: {
-    azPowerShellVersion: '11.0'
-    scriptContent: 'start-sleep -Seconds 600'
-    cleanupPreference: 'Always'
-    retentionInterval: 'PT1H'
-  }
-  dependsOn: [
-    function
-  ]
 }
 
 @description('The name of the function app.')
