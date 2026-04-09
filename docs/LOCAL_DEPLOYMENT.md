@@ -251,8 +251,8 @@ azd auth login --tenant-id <tenant-id>
 
 ### 4.2 Start Deployment
 
-**NOTE:** If you are running the latest azd version (version 1.23.9), please run the following command. 
-```bash 
+**NOTE:** If you are running the latest azd version (version 1.23.9), please run the following command.
+```bash
 azd config set provision.preflight off
 ```
 
@@ -289,20 +289,36 @@ After successful deployment, locate your application URLs:
 
 ## Step 5: Post-Deployment Configuration
 
-### 5.1 Configure Authentication (Required for Chat Application)
+### 5.1 Run Post-Deployment Setup Script (Required)
+
+After deployment completes, run the post-deployment script to configure the Function App client key and create PostgreSQL tables (if applicable):
+
+**PowerShell (Windows):**
+```powershell
+./scripts/post_deployment_setup.ps1 -ResourceGroupName "<your-resource-group-name>"
+```
+
+**Bash (Linux/macOS/WSL):**
+```bash
+bash scripts/post_deployment_setup.sh "<your-resource-group-name>"
+```
+
+> **Note:** The script auto-discovers all resources in the resource group. It handles private networking (WAF) deployments by temporarily enabling public access, performing the setup, then restoring the original state.
+
+### 5.2 Configure Authentication (Required for Chat Application)
 
 **This step is mandatory for Chat Application access:**
 
 1. Follow [App Authentication Configuration](./azure_app_service_auth_setup.md)
 2. Wait up to 10 minutes for authentication changes to take effect
 
-### 5.2 Verify Deployment
+### 5.3 Verify Deployment
 
 1. Access your application using the URL from Step 4.3
 2. Confirm the application loads successfully
 3. Verify you can sign in with your authenticated account
 
-### 5.3 Test the Application
+### 5.4 Test the Application
 
 **Quick Test Steps:**
 1. Navigate to the admin site, where you can upload documents. Then select Ingest Data and add your data. You can find sample data in the [data](../data) directory.

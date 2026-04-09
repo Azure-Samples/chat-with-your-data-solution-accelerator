@@ -199,7 +199,18 @@ Select either "PostgreSQL" or "Cosmos DB":
 ![Solution Architecture - DB Selection](/docs/images/db_selection.png)
 
 
-When Deployment is complete, follow steps in [Set Up Authentication in Azure App Service](./docs/azure_app_service_auth_setup.md) to add app authentication to your web app running on Azure App Service
+**When Deployment is complete:**
+
+1. Run the post-deployment setup script to configure the Function App client key and create PostgreSQL tables (if applicable). Open [Azure Cloud Shell](https://shell.azure.com) (Bash) and run:
+
+    ```bash
+    az login
+    git clone https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator.git
+    cd chat-with-your-data-solution-accelerator
+    bash scripts/post_deployment_setup.sh "<your-resource-group-name>"
+    ```
+
+2. Follow steps in [Set Up Authentication in Azure App Service](./docs/azure_app_service_auth_setup.md) to add app authentication to your web app running on Azure App Service
 
 **Note**: The default configuration deploys an OpenAI Model "gpt-4.1" with version 2025-04-14. However, not all
 locations support this version. If you're deploying to a location that doesn't support version 2024-05-13, you'll need to
@@ -264,7 +275,7 @@ Check out similar solution accelerators
 | [AI&nbsp;playbook](https://learn.microsoft.com/en-us/ai/playbook/) | The Artificial Intelligence (AI) Playbook provides enterprise software engineers with solutions, capabilities, and code developed to solve real-world AI problems. |
 | [Data&nbsp;playbook](https://learn.microsoft.com/en-us/data-engineering/playbook/understanding-data-playbook) | The data playbook provides enterprise software engineers with solutions which contain code developed to solve real-world problems. Everything in the playbook is developed with, and validated by, some of Microsoft's largest and most influential customers and partners. |
 
-<br/> 
+<br/>
 
 ### Resource links
 
