@@ -199,7 +199,7 @@ Select either "PostgreSQL" or "Cosmos DB":
 ![Solution Architecture - DB Selection](/docs/images/db_selection.png)
 
 
-When Deployment is complete:
+**When Deployment is complete:**
 
 1. Run the post-deployment setup script to configure the Function App client key and create PostgreSQL tables (if applicable). Open [Azure Cloud Shell](https://shell.azure.com) (Bash) and run:
 
