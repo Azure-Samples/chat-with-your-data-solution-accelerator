@@ -31,8 +31,8 @@
         "@types/node": "^18.19.31",
         "@types/restify": "^8.5.5",
         "env-cmd": "^10.1.0",
-        "nodemon": "^3.1.0",
-        "shx": "^0.3.3",
+        "nodemon": "^3.1.13",
+        "shx": "^0.4.0",
         "ts-node": "^10.4.0",
         "typescript": "^4.4.4"
     }
