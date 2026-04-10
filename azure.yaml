@@ -24,7 +24,7 @@ hooks:
         Write-Host ""
         Write-Host "=============================================="
         Write-Host " Deployment Complete - Post-Deployment Steps"
-        Write-Host "==============================================" -ForegroundColor Green
+        Write-Host "=============================================="
         Write-Host ""
         Write-Host "1. Login to Azure CLI (required for post-deployment script):" -ForegroundColor Yellow
         Write-Host "   az login" -ForegroundColor Cyan
