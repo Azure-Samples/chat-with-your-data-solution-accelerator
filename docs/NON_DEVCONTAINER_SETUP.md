@@ -55,6 +55,19 @@ The Azure Developer CLI (`azd`) is a developer-centric command-line interface (C
 
     > Select your desired `subscription` and `location`. Wait a moment for the resource deployment to complete.
 
+1. Login to Azure CLI:
+
+    The post-deployment script uses Azure CLI (`az`) commands. Ensure you are logged in before running it:
+
+    ```shell
+    az login
+    ```
+
+    For specific tenants:
+    ```shell
+    az login --tenant-id <tenant-id>
+    ```
+
 1. Run the post-deployment setup script:
 
     **PowerShell (Windows):**
