@@ -291,7 +291,20 @@ After successful deployment, locate your application URLs:
 
 ### 5.1 Run Post-Deployment Setup Script (Required)
 
-After deployment completes, run the post-deployment script to configure the Function App client key and create PostgreSQL tables (if applicable):
+After deployment completes, run the post-deployment script to configure the Function App client key and create PostgreSQL tables (if applicable).
+
+**Login to Azure CLI:**
+
+The post-deployment script uses Azure CLI (`az`) commands. Ensure you are logged in before running it:
+
+```shell
+az login
+```
+
+**For specific tenants:**
+```shell
+az login --tenant-id <tenant-id>
+```
 
 **PowerShell (Windows):**
 ```powershell
