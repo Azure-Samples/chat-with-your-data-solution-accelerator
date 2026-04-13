@@ -26,7 +26,7 @@ on:
         required: false
         default: false
         type: boolean
-      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
+      AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID:
         description: 'Log Analytics Workspace ID (Optional)'
         required: false
         default: ''
@@ -139,7 +139,7 @@ jobs:
           INPUT_EXP: ${{ inputs.EXP }}
           INPUT_CLEANUP_RESOURCES: ${{ inputs.cleanup_resources }}
           INPUT_RUN_E2E_TESTS: ${{ inputs.run_e2e_tests }}
-          INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          INPUT_AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
           INPUT_RG_TAGS: ${{ env.RG_TAGS }}
           INPUT_EXISTING_WEBAPP_URL: ${{ inputs.existing_webapp_url }}
           INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
@@ -213,18 +213,18 @@ jobs:
             echo "✅ run_e2e_tests: Not provided (will use default 'GoldenPath-Testing')"
           fi
 
-          # Validate AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID (optional, Azure Resource ID format)
-          if [[ -n "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]]; then
-            if [[ ! "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/[Mm]icrosoft\.[Oo]perational[Ii]nsights/[Ww]orkspaces/[^/]+$ ]]; then
-              echo "❌ ERROR: AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID is invalid. Must be a valid Azure Resource ID format:"
+          # Validate AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID (optional, Azure Resource ID format)
+          if [[ -n "$INPUT_AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID" ]]; then
+            if [[ ! "$INPUT_AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/[Mm]icrosoft\.[Oo]perational[Ii]nsights/[Ww]orkspaces/[^/]+$ ]]; then
+              echo "❌ ERROR: AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID is invalid. Must be a valid Azure Resource ID format:"
               echo "   /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.OperationalInsights/workspaces/{workspaceName}"
-              echo "   Got: '$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID'"
+              echo "   Got: '$INPUT_AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID'"
               VALIDATION_FAILED=true
             else
-              echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: Valid Resource ID format"
+              echo "✅ AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: Valid Resource ID format"
             fi
           else
-            echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: Not provided (optional)"
+            echo "✅ AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: Not provided (optional)"
           fi
 
           # Validate AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION (boolean string)
@@ -530,7 +530,7 @@ jobs:
       IMAGE_TAG: ${{ needs.azure-setup.outputs.IMAGE_TAG }}
       EXP: ${{ inputs.EXP || 'false' }}
       WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
-      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+      AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
       USE_ADVANCED_IMAGE_PROCESSING: ${{ inputs.USE_ADVANCED_IMAGE_PROCESSING }}
@@ -550,7 +550,7 @@ jobs:
       IMAGE_TAG: ${{ needs.azure-setup.outputs.IMAGE_TAG }}
       EXP: ${{ inputs.EXP || 'false' }}
       WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
-      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+      AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
       USE_ADVANCED_IMAGE_PROCESSING: ${{ inputs.USE_ADVANCED_IMAGE_PROCESSING }}

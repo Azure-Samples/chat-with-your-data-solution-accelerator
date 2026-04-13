@@ -30,4 +30,4 @@ CONVERSATION_FLOW=byod
 
 With `CONVERSATION_FLOW` set to "byod", the backend service will mimic the [On Your Data](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/use-your-data) flow.
 
-'On Your Data' enables you to run advanced AI models such as GPT-35-Turbo and GPT-4 on your own enterprise data without needing to train or fine-tune models. You can chat on top of and analyze your data with greater accuracy. You can specify sources to support the responses based on the latest information available in your designated data sources.
+'On Your Data' enables you to run advanced AI models such as GPT-4.1 on your own enterprise data without needing to train or fine-tune models. You can chat on top of and analyze your data with greater accuracy. You can specify sources to support the responses based on the latest information available in your designated data sources.

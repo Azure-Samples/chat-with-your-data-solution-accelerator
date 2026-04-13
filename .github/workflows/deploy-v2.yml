@@ -64,7 +64,7 @@ on:
           - 'GoldenPath-Testing'
           - 'Smoke-Testing'
           - 'None'
-      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
+      AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID:
         description: 'Log Analytics Workspace ID (Optional)'
         required: false
         default: ''
@@ -130,7 +130,7 @@ jobs:
       exp: ${{ steps.validate.outputs.exp }}
       cleanup_resources: ${{ steps.validate.outputs.cleanup_resources }}
       run_e2e_tests: ${{ steps.validate.outputs.run_e2e_tests }}
-      azure_env_log_analytics_workspace_id: ${{ steps.validate.outputs.azure_env_log_analytics_workspace_id }}
+      AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ steps.validate.outputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
       azure_search_use_integrated_vectorization: ${{ steps.validate.outputs.azure_search_use_integrated_vectorization }}
       azure_search_use_semantic_search: ${{ steps.validate.outputs.azure_search_use_semantic_search }}
       use_advanced_image_processing: ${{ steps.validate.outputs.use_advanced_image_processing }}
@@ -148,7 +148,7 @@ jobs:
           INPUT_EXP: ${{ github.event.inputs.EXP }}
           INPUT_CLEANUP_RESOURCES: ${{ github.event.inputs.cleanup_resources }}
           INPUT_RUN_E2E_TESTS: ${{ github.event.inputs.run_e2e_tests }}
-          INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          INPUT_AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ github.event.inputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
           INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ github.event.inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
           INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ github.event.inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
           INPUT_USE_ADVANCED_IMAGE_PROCESSING: ${{ github.event.inputs.USE_ADVANCED_IMAGE_PROCESSING }}
@@ -246,19 +246,19 @@ jobs:
             echo "✅ run_e2e_tests: '$TEST_OPTION' is valid"
           fi
 
-          # Validate AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID (optional, Azure Resource ID format)
-          if [[ -n "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]]; then
-            if [[ ! "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/[Mm]icrosoft\.[Oo]perational[Ii]nsights/[Ww]orkspaces/[^/]+$ ]]; then
-              echo "❌ ERROR: AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID is invalid. Must be a valid Azure Resource ID format:"
+          # Validate AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID (optional, Azure Resource ID format)
+          if [[ -n "$INPUT_AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID" ]]; then
+            if [[ ! "$INPUT_AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/[Mm]icrosoft\.[Oo]perational[Ii]nsights/[Ww]orkspaces/[^/]+$ ]]; then
+              echo "❌ ERROR: AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID is invalid. Must be a valid Azure Resource ID format:"
               echo "   /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.OperationalInsights/workspaces/{workspaceName}"
-              echo "   Got: '$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID'"
-              VALIDATION_ERRORS="${VALIDATION_ERRORS}| AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID | (invalid value) | Must be a valid Azure Resource ID format |\n"
+              echo "   Got: '$INPUT_AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID'"
+              VALIDATION_ERRORS="${VALIDATION_ERRORS}| AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID | (invalid value) | Must be a valid Azure Resource ID format |\n"
               VALIDATION_FAILED=true
             else
-              echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: Valid Resource ID format"
+              echo "✅ AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: Valid Resource ID format"
             fi
           else
-            echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: Not provided (optional)"
+            echo "✅ AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: Not provided (optional)"
           fi
 
           # Validate AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION (boolean string)
@@ -364,7 +364,7 @@ jobs:
           echo "exp=$EXP_ENABLED" >> $GITHUB_OUTPUT
           echo "cleanup_resources=$CLEANUP_RESOURCES" >> $GITHUB_OUTPUT
           echo "run_e2e_tests=$TEST_OPTION" >> $GITHUB_OUTPUT
-          echo "azure_env_log_analytics_workspace_id=$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" >> $GITHUB_OUTPUT
+          echo "AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID=$INPUT_AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID" >> $GITHUB_OUTPUT
           echo "azure_search_use_integrated_vectorization=$INTEGRATED_VECTORIZATION" >> $GITHUB_OUTPUT
           echo "azure_search_use_semantic_search=$SEMANTIC_SEARCH" >> $GITHUB_OUTPUT
           echo "use_advanced_image_processing=$ADVANCED_IMAGE_PROCESSING" >> $GITHUB_OUTPUT
@@ -381,7 +381,7 @@ jobs:
       EXP: ${{ needs.validate-inputs.outputs.exp == 'true' }}
       cleanup_resources: ${{ github.event_name != 'workflow_dispatch' || needs.validate-inputs.outputs.cleanup_resources == 'true' }}
       run_e2e_tests: ${{ needs.validate-inputs.outputs.run_e2e_tests || 'GoldenPath-Testing' }}
-      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ needs.validate-inputs.outputs.azure_env_log_analytics_workspace_id || '' }}
+      AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ needs.validate-inputs.outputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID || '' }}
       existing_webapp_url: ${{ needs.validate-inputs.outputs.existing_webapp_url || '' }}
       existing_admin_app_url: ${{ needs.validate-inputs.outputs.existing_admin_app_url || '' }}
       trigger_type: ${{ github.event_name }}

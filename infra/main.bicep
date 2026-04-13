@@ -326,11 +326,11 @@ param vmSize string = 'Standard_D2s_v5'
 
 @description('Optional. The user name for the administrator account of the virtual machine. Allows to customize credentials if `enablePrivateNetworking` is set to true.')
 @secure()
-param virtualMachineAdminUsername string = ''
+param vmAdminUsername string = ''
 
 @description('Optional. The password for the administrator account of the virtual machine. Allows to customize credentials if `enablePrivateNetworking` is set to true.')
 @secure()
-param virtualMachineAdminPassword string = ''
+param vmAdminPassword string = ''
 
 @description('Optional. Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
@@ -341,7 +341,7 @@ var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${ne
 var eventGridSystemTopicName = 'evgt-${solutionSuffix}'
 
 @description('Optional. Image version tag to use.')
-param appversion string = 'latest_waf' // Update GIT deployment branch
+param imageTag string = 'latest_waf' // Update GIT deployment branch
 
 var registryName = 'cwydcontainerreg' // Update Registry name
 
@@ -380,10 +380,15 @@ param createdBy string = contains(deployer(), 'userPrincipalName')
 resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
   name: 'default'
   properties: {
-    tags: union(existingTags, allTags, {
-      TemplateName: 'CWYD'
-      CreatedBy: createdBy
-    })
+    tags: union(
+      existingTags,
+      allTags,
+      {
+        TemplateName: 'CWYD'
+        CreatedBy: createdBy
+        Type: enablePrivateNetworking ? 'WAF' : 'Non-WAF'
+      }
+    )
   }
 }
 
@@ -447,8 +452,8 @@ resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableT
 //   params: {
 //     resourcesName: networkResourceName
 //     logAnalyticsWorkSpaceResourceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : ''
-//     vmAdminUsername: empty(virtualMachineAdminUsername) ? 'JumpboxAdminUser' : virtualMachineAdminUsername
-//     vmAdminPassword: empty(virtualMachineAdminPassword) ? 'JumpboxAdminP@ssw0rd1234!' : virtualMachineAdminPassword
+//     vmAdminUsername: empty(vmAdminUsername) ? 'JumpboxAdminUser' : vmAdminUsername
+//     vmAdminPassword: empty(vmAdminPassword) ? 'JumpboxAdminP@ssw0rd1234!' : vmAdminPassword
 //     vmSize: empty(vmSize) ? 'Standard_D2s_v5' : vmSize
 //     location: location
 //     tags: allTags
@@ -508,8 +513,8 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
     name: take(jumpboxVmName, 15) // Shorten VM name to 15 characters to avoid Azure limits
     vmSize: vmSize ?? 'Standard_D2s_v5'
     location: location
-    adminUsername: !empty(virtualMachineAdminUsername) ? virtualMachineAdminUsername : 'JumpboxAdminUser'
-    adminPassword: !empty(virtualMachineAdminPassword) ? virtualMachineAdminPassword : 'JumpboxAdminP@ssw0rd1234!'
+    adminUsername: !empty(vmAdminUsername) ? vmAdminUsername : 'JumpboxAdminUser'
+    adminPassword: !empty(vmAdminPassword) ? vmAdminPassword : 'JumpboxAdminP@ssw0rd1234!'
     tags: tags
     zone: 0
     imageReference: {
@@ -1215,7 +1220,7 @@ module web 'modules/app/web.bicep' = {
     runtimeName: hostingModel == 'code' ? 'python' : null
     runtimeVersion: hostingModel == 'code' ? '3.11' : null
     // docker-specific fields apply only for container-hosted apps
-    dockerFullImageName: hostingModel == 'container' ? '${registryName}.azurecr.io/rag-webapp:${appversion}' : null
+    dockerFullImageName: hostingModel == 'container' ? '${registryName}.azurecr.io/rag-webapp:${imageTag}' : null
     useDocker: hostingModel == 'container' ? true : false
     allowedOrigins: []
     appCommandLine: ''
@@ -1324,7 +1329,7 @@ module adminweb 'modules/app/adminweb.bicep' = {
     runtimeName: hostingModel == 'code' ? 'python' : null
     runtimeVersion: hostingModel == 'code' ? '3.11' : null
     // docker-specific fields apply only for container-hosted apps
-    dockerFullImageName: hostingModel == 'container' ? '${registryName}.azurecr.io/rag-adminwebapp:${appversion}' : null
+    dockerFullImageName: hostingModel == 'container' ? '${registryName}.azurecr.io/rag-adminwebapp:${imageTag}' : null
     useDocker: hostingModel == 'container' ? true : false
     userAssignedIdentityResourceId: managedIdentityModule.outputs.resourceId
     // App settings
@@ -1422,7 +1427,7 @@ module function 'modules/app/function.bicep' = {
     tags: union(tags, { 'azd-service-name': hostingModel == 'container' ? 'function-docker' : 'function' })
     runtimeName: 'python'
     runtimeVersion: '3.11'
-    dockerFullImageName: hostingModel == 'container' ? '${registryName}.azurecr.io/rag-backend:${appversion}' : ''
+    dockerFullImageName: hostingModel == 'container' ? '${registryName}.azurecr.io/rag-backend:${imageTag}' : ''
     serverFarmResourceId: webServerFarm.outputs.resourceId
     applicationInsightsName: enableMonitoring ? monitoring!.outputs.applicationInsightsName : ''
     storageAccountName: storage.outputs.name
