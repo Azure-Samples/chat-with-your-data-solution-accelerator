@@ -65,12 +65,12 @@ services:
       prepackage:
         windows:
           shell: pwsh
-          run: ../scripts/package_frontend.ps1
+          run: ./scripts/package_frontend.ps1
           interactive: true
           continueOnError: false
         posix:
           shell: sh
-          run: ../scripts/package_frontend.sh
+          run: ./scripts/package_frontend.sh
           interactive: true
           continueOnError: false
 
