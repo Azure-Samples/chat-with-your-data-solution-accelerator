@@ -65,12 +65,31 @@ services:
       prepackage:
         windows:
           shell: pwsh
-          run: ../scripts/package_frontend.ps1
+          run: |
+            mkdir dist -Force
+            rm dist/* -r -Force
+            poetry install
+            poetry export -o dist/requirements.txt
+            cp *.py dist -Force
+            cp backend dist -r -Force
+            cd frontend
+            npm install
+            npm run build
           interactive: true
           continueOnError: false
         posix:
           shell: sh
-          run: ../scripts/package_frontend.sh
+          run: |
+            set -eou pipefail
+            mkdir -p dist
+            rm -rf dist/*
+            poetry install
+            poetry export -o dist/requirements.txt
+            cp *.py dist
+            cp -r backend dist
+            cd frontend
+            npm install
+            npm run build
           interactive: true
           continueOnError: false
 
