@@ -1,0 +1,64 @@
+name: Azure Dev Deploy
+
+on:
+  workflow_dispatch:
+
+# GitHub Actions workflow to deploy to Azure using azd
+# To configure required secrets for connecting to Azure, simply run `azd pipeline config`
+
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: azd deploy
+    environment: production
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_ENV_NAME: ${{ secrets.AZURE_ENV_NAME }}
+      AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
+      AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set timestamp and env name
+        shell: bash
+        run: |
+          HHMM=$(date -u +'%H%M')
+          echo "AZURE_ENV_NAME=${AZURE_ENV_NAME}-${HHMM}" >> "$GITHUB_ENV"
+
+      - name: Install azd
+        uses: Azure/setup-azd@v2
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to AZD
+        shell: bash
+        run: |
+          azd auth login \
+            --client-id "$AZURE_CLIENT_ID" \
+            --federated-credential-provider "github" \
+            --tenant-id "$AZURE_TENANT_ID"
+
+      - name: Provision and Deploy
+        shell: bash
+        run: |
+          if ! azd env select "$AZURE_ENV_NAME"; then
+            azd env new "$AZURE_ENV_NAME" --subscription "$AZURE_SUBSCRIPTION_ID" --location "$AZURE_LOCATION" --no-prompt
+          fi
+
+          azd config set defaults.subscription "$AZURE_SUBSCRIPTION_ID"
+
+          azd up --no-prompt
