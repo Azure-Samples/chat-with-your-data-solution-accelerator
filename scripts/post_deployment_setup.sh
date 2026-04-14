@@ -185,7 +185,7 @@ else
         # Wait for function app to be running
         echo "Waiting for function app to be ready..."
         MAX_RETRIES=30
-        RETRY_INTERVAL=20
+        RETRY_INTERVAL=30
         for i in $(seq 1 $MAX_RETRIES); do
             STATE=$(az functionapp show --name "$FUNCTION_APP_NAME" --resource-group "$RESOURCE_GROUP" --query "state" -o tsv 2>/dev/null || true)
             if [ "$STATE" = "Running" ]; then
@@ -196,20 +196,33 @@ else
             sleep $RETRY_INTERVAL
         done
 
-        # Set the function key via REST API
+        # Set the function key via REST API (with retries — the host runtime may not be ready yet)
         echo "✓ Setting function key 'ClientKey' on '${FUNCTION_APP_NAME}'..."
         SUBSCRIPTION_ID=$(az account show --query "id" -o tsv | tr -d '\r')
         URI="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${FUNCTION_APP_NAME}/host/default/functionKeys/clientKey?api-version=2023-01-01"
         BODY="{\"properties\":{\"name\":\"ClientKey\",\"value\":\"${FUNCTION_KEY}\"}}"
 
-        REST_ERR=$(az rest --method put --uri "$URI" --body "$BODY" 2>&1 > /dev/null) || true
-        if [ -n "$REST_ERR" ]; then
-            echo "✗ ERROR: Failed to set function key on '${FUNCTION_APP_NAME}'." >&2
-            echo "  $REST_ERR" >&2
+        KEY_SET=false
+        KEY_MAX_RETRIES=5
+        KEY_RETRY_INTERVAL=30
+        for attempt in $(seq 1 $KEY_MAX_RETRIES); do
+            REST_ERR=$(az rest --method put --uri "$URI" --body "$BODY" 2>&1 > /dev/null) || true
+            if [ -z "$REST_ERR" ]; then
+                KEY_SET=true
+                break
+            fi
+            echo "  [${attempt}/${KEY_MAX_RETRIES}] Host runtime not ready yet. Retrying in ${KEY_RETRY_INTERVAL}s..."
+            echo "  $REST_ERR"
+            sleep $KEY_RETRY_INTERVAL
+        done
+
+        if [ "$KEY_SET" = "true" ]; then
+            echo "✓ Function key set successfully."
+        else
+            echo "✗ ERROR: Failed to set function key on '${FUNCTION_APP_NAME}' after ${KEY_MAX_RETRIES} attempts." >&2
             restore_network_access
             exit 1
         fi
-        echo "✓ Function key set successfully."
     fi
 fi
 
@@ -246,7 +259,7 @@ else
     # Wait for PostgreSQL to be ready
     echo "Waiting for PostgreSQL server to be ready..."
     MAX_RETRIES=30
-    RETRY_INTERVAL=20
+    RETRY_INTERVAL=30
     for i in $(seq 1 $MAX_RETRIES); do
         PG_STATE=$(az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$SERVER_NAME" --query "state" -o tsv 2>/dev/null || true)
         if [ "$PG_STATE" = "Ready" ]; then
