@@ -9,8 +9,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from shared.config.env_settings import EnvSettings
+from .routers import admin, auth, chat_history, conversation, files, health
 
-from .routers import admin, auth, chat_history, conversation, files, health, speech
+from .routers import speech
 
 logger = logging.getLogger(__name__)
 
