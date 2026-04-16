@@ -43,7 +43,40 @@ jobs:
         run: |
           pip install psycopg2-binary azure-identity
 
-      - name: Run Post-Deployment Setup Script
+      - name: Run Post-Deployment Setup (Attempt 1)
+        id: setup1
+        shell: bash
+        env:
+          RESOURCE_GROUP: ${{ inputs.RESOURCE_GROUP_NAME }}
+        run: |
+          chmod +x scripts/post_deployment_setup.sh
+          bash scripts/post_deployment_setup.sh "$RESOURCE_GROUP"
+        continue-on-error: true
+
+      - name: Wait 20 seconds before retry
+        if: ${{ steps.setup1.outcome == 'failure' }}
+        shell: bash
+        run: sleep 20s
+
+      - name: Run Post-Deployment Setup (Attempt 2)
+        id: setup2
+        if: ${{ steps.setup1.outcome == 'failure' }}
+        shell: bash
+        env:
+          RESOURCE_GROUP: ${{ inputs.RESOURCE_GROUP_NAME }}
+        run: |
+          chmod +x scripts/post_deployment_setup.sh
+          bash scripts/post_deployment_setup.sh "$RESOURCE_GROUP"
+        continue-on-error: true
+
+      - name: Wait 40 seconds before final retry
+        if: ${{ steps.setup2.outcome == 'failure' }}
+        shell: bash
+        run: sleep 40s
+
+      - name: Run Post-Deployment Setup (Attempt 3)
+        id: setup3
+        if: ${{ steps.setup2.outcome == 'failure' }}
         shell: bash
         env:
           RESOURCE_GROUP: ${{ inputs.RESOURCE_GROUP_NAME }}
