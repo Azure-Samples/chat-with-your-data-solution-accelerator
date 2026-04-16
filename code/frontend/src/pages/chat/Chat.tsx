@@ -1,5 +1,11 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Stack, TooltipHost } from "@fluentui/react";
+import {
+  ContextualMenu,
+  IContextualMenuItem,
+  IconButton,
+  Stack,
+  TooltipHost,
+} from "@fluentui/react";
 import { BroomRegular, SquareRegular } from "@fluentui/react-icons";
 import { useId, useConst } from '@fluentui/react-hooks'
 import {
@@ -23,6 +29,7 @@ import {
   historyUpdate,
   historyDeleteAll,
   historyRead,
+  historyExport,
   getFrontEndSettings,
 } from "../../api";
 import { Answer } from "../../components/Answer";
@@ -85,6 +92,8 @@ const Chat = () => {
   const [clearingError, setClearingError] = React.useState(false);
   const [fetchingConvMessages, setFetchingConvMessages] = React.useState(false);
   const [isSavingToDB, setIsSavingToDB] = React.useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportBtnRef = useRef<HTMLDivElement | null>(null);
   const [isInitialAPItriggered, setIsInitialAPItriggered] = useState(false);
 
   const saveToDB = async (messages: ChatMessage[], convId: string) => {
@@ -528,6 +537,37 @@ const Chat = () => {
     gapSpace: 0,
     target: `#${buttonId}`,
   });
+  const onExportChat = async (format: "json" | "markdown" | "text") => {
+    setShowExportMenu(false);
+    const convId = selectedConvId || conversationId;
+    try {
+      await historyExport(convId, format);
+    } catch (e) {
+      console.error("Export failed:", e);
+    }
+  };
+
+  const exportMenuItems: IContextualMenuItem[] = [
+    {
+      key: "json",
+      text: "Export as JSON",
+      iconProps: { iconName: "Code" },
+      onClick: () => onExportChat("json"),
+    },
+    {
+      key: "markdown",
+      text: "Export as Markdown",
+      iconProps: { iconName: "MarkDownLanguage" },
+      onClick: () => onExportChat("markdown"),
+    },
+    {
+      key: "text",
+      text: "Export as Text",
+      iconProps: { iconName: "TextDocument" },
+      onClick: () => onExportChat("text"),
+    },
+  ];
+
   const loadingMessageBlock = () => {
     return (
       <React.Fragment key="generating-answer">
@@ -617,6 +657,29 @@ const Chat = () => {
                 </Stack>
               )}
 
+             <div ref={exportBtnRef}>
+              <IconButton
+                className={`${styles.clearChatBroom} ${styles.mobileclearChatBroom}`}
+                style={{
+                  background:
+                    isGenerating || answers.length === 0
+                      ? "#BDBDBD"
+                      : "radial-gradient(109.81% 107.82% at 100.1% 90.19%, #0F6CBD 33.63%, #2D87C3 70.31%, #8DDDD8 100%)",
+                  cursor: isGenerating || answers.length === 0 ? "" : "pointer",
+                }}
+                iconProps={{ iconName: "Download", style: { color: "white" } }}
+                title="Export conversation"
+                ariaLabel="Export conversation"
+                disabled={isGenerating || answers.length === 0}
+                onClick={() => setShowExportMenu(true)}
+              />
+              </div>
+              <ContextualMenu
+                items={exportMenuItems}
+                hidden={!showExportMenu}
+                target={exportBtnRef.current}
+                onDismiss={() => setShowExportMenu(false)}
+              />
              <TooltipHost content="Start new chat"
                           calloutProps={calloutProps}
              >

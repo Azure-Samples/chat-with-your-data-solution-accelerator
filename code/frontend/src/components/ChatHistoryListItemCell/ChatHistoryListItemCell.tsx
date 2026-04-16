@@ -1,10 +1,12 @@
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import {
+  ContextualMenu,
   DefaultButton,
   Dialog,
   DialogFooter,
   DialogType,
+  IContextualMenuItem,
   IconButton,
   ITextField,
   ITooltipHostStyles,
@@ -16,7 +18,7 @@ import {
 } from "@fluentui/react";
 import { useBoolean } from "@fluentui/react-hooks";
 
-import { historyRename, historyDelete } from "../../api";
+import { historyRename, historyDelete, historyExport } from "../../api";
 import { Conversation } from "../../api/models";
 import _ from 'lodash';
 
@@ -56,6 +58,9 @@ export const ChatHistoryListItemCell: React.FC<
   const [renameLoading, setRenameLoading] = useState(false);
   const [errorRename, setErrorRename] = useState<string | undefined>(undefined);
   const [textFieldFocused, setTextFieldFocused] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [errorExport, setErrorExport] = useState(false);
+  const exportButtonRef = useRef<HTMLDivElement | null>(null);
   const textFieldRef = useRef<ITextField | null>(null);
   const isSelected = item?.id === selectedConvId;
   const tooltipId = 'tooltip'+ item?.id;
@@ -167,6 +172,44 @@ export const ChatHistoryListItemCell: React.FC<
     e.stopPropagation();
     toggleDeleteDialog();
   };
+
+  const onClickExport = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowExportMenu(true);
+  };
+
+  const onExport = async (format: "json" | "markdown" | "text") => {
+    setShowExportMenu(false);
+    try {
+      await historyExport(item.id, format);
+    } catch {
+      setErrorExport(true);
+      setTimeout(() => setErrorExport(false), 5000);
+    }
+  };
+
+  const exportMenuItems: IContextualMenuItem[] = [
+    {
+      key: "json",
+      text: "Export as JSON",
+      iconProps: { iconName: "Code" },
+      onClick: () => onExport("json"),
+    },
+    {
+      key: "markdown",
+      text: "Export as Markdown",
+      iconProps: { iconName: "MarkDownLanguage" },
+      onClick: () => onExport("markdown"),
+    },
+    {
+      key: "text",
+      text: "Export as Text",
+      iconProps: { iconName: "TextDocument" },
+      onClick: () => onExport("text"),
+    },
+  ];
+
   const isButtonDisabled = isGenerating && isSelected;
   return (
     <Stack
@@ -275,6 +318,24 @@ export const ChatHistoryListItemCell: React.FC<
                 >{truncatedTitle} </TooltipHost></div>
             {(isSelected || isHovered) && (
               <Stack horizontal horizontalAlign="end">
+                <div ref={exportButtonRef}>
+                  <IconButton
+                    className={styles.itemButton}
+                    iconProps={{ iconName: "Download" }}
+                    title="Export"
+                    onClick={onClickExport}
+                    onKeyDown={(e) =>
+                      e.key === " " ? onClickExport(e as any) : null
+                    }
+                    aria-label="export conversation"
+                  />
+                </div>
+                <ContextualMenu
+                  items={exportMenuItems}
+                  hidden={!showExportMenu}
+                  target={exportButtonRef.current}
+                  onDismiss={() => setShowExportMenu(false)}
+                />
                 <IconButton
                   className={styles.itemButton}
                   disabled={isButtonDisabled}
@@ -305,6 +366,15 @@ export const ChatHistoryListItemCell: React.FC<
           }}
         >
           Error: could not delete item
+        </Text>
+      )}
+      {errorExport && (
+        <Text
+          styles={{
+            root: { color: "red", marginTop: 5, fontSize: 14 },
+          }}
+        >
+          Error: could not export conversation
         </Text>
       )}
       <Dialog
