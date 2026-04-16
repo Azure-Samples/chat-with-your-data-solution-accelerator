@@ -43,6 +43,40 @@ else
     PG_ADMIN_CMD="ad-admin"
 fi
 
+# -------------------------------------------------------
+# Detect identity type: interactive user vs service principal
+# -------------------------------------------------------
+IDENTITY_TYPE="user"
+CURRENT_IDENTITY_OID=""
+CURRENT_IDENTITY_DISPLAY=""
+PRINCIPAL_TYPE="User"
+
+# Try signed-in user first
+CURRENT_IDENTITY_OID=$(az ad signed-in-user show --query "id" -o tsv 2>/dev/null || true)
+if [ -n "$CURRENT_IDENTITY_OID" ]; then
+    IDENTITY_TYPE="user"
+    CURRENT_IDENTITY_DISPLAY=$(az ad signed-in-user show --query "userPrincipalName" -o tsv 2>/dev/null || true)
+    PRINCIPAL_TYPE="User"
+    echo "✓ Detected identity type: User (${CURRENT_IDENTITY_DISPLAY})"
+else
+    # Fallback to service principal — get the SP's app ID from the current account
+    SP_APP_ID=$(az account show --query "user.name" -o tsv 2>/dev/null || true)
+    if [ -n "$SP_APP_ID" ] && [ "$SP_APP_ID" != "null" ]; then
+        CURRENT_IDENTITY_OID=$(az ad sp show --id "$SP_APP_ID" --query "id" -o tsv 2>/dev/null || true)
+        CURRENT_IDENTITY_DISPLAY=$(az ad sp show --id "$SP_APP_ID" --query "displayName" -o tsv 2>/dev/null || true)
+        if [ -n "$CURRENT_IDENTITY_OID" ]; then
+            IDENTITY_TYPE="servicePrincipal"
+            PRINCIPAL_TYPE="ServicePrincipal"
+            echo "✓ Detected identity type: Service Principal (${CURRENT_IDENTITY_DISPLAY}, OID: ${CURRENT_IDENTITY_OID})"
+        fi
+    fi
+fi
+
+if [ -z "$CURRENT_IDENTITY_OID" ]; then
+    echo "⚠ WARNING: Could not determine current identity (user or service principal)."
+    echo "  Some operations (Key Vault role assignment, PostgreSQL admin) may be skipped."
+fi
+
 # Track resources that need public access restored to Disabled
 RESTORE_KV_NAME=""
 RESTORE_PG_NAME=""
@@ -62,7 +96,7 @@ restore_network_access() {
 cleanup() {
     # Remove temporary PostgreSQL admin if we added it
     if [ "$ADDED_PG_ADMIN" = "true" ]; then
-        echo "✓ Removing temporary PostgreSQL Entra admin for current user..."
+        echo "✓ Removing temporary PostgreSQL Entra admin..."
         az postgres flexible-server $PG_ADMIN_CMD delete \
             --resource-group "$RESOURCE_GROUP" \
             --server-name "$SERVER_NAME" \
@@ -101,17 +135,16 @@ else
     else
         echo "✓ Discovered Key Vault: ${KEY_VAULT_NAME}"
 
-        # Ensure the current user has 'Key Vault Secrets User' role on the Key Vault
-        CURRENT_USER_OID=$(az ad signed-in-user show --query "id" -o tsv 2>/dev/null || true)
-        if [ -n "$CURRENT_USER_OID" ]; then
+        # Ensure the current identity has 'Key Vault Secrets User' role on the Key Vault
+        if [ -n "$CURRENT_IDENTITY_OID" ]; then
             KV_RESOURCE_ID=$(az keyvault show --name "$KEY_VAULT_NAME" --resource-group "$RESOURCE_GROUP" --query "id" -o tsv 2>/dev/null || true)
             if [ -n "$KV_RESOURCE_ID" ]; then
                 KV_SECRETS_USER_ROLE_ID="4633458b-17de-408a-b874-0445c86b69e6"
-                EXISTING_ASSIGNMENT=$(az role assignment list --assignee "$CURRENT_USER_OID" --role "$KV_SECRETS_USER_ROLE_ID" --scope "$KV_RESOURCE_ID" --query "[0].id" -o tsv 2>/dev/null || true)
+                EXISTING_ASSIGNMENT=$(az role assignment list --assignee "$CURRENT_IDENTITY_OID" --role "$KV_SECRETS_USER_ROLE_ID" --scope "$KV_RESOURCE_ID" --query "[0].id" -o tsv 2>/dev/null || true)
                 if [ -z "$EXISTING_ASSIGNMENT" ]; then
-                    echo "✓ Assigning 'Key Vault Secrets User' role to current user on Key Vault..."
-                    ROLE_ERR=$(az role assignment create --assignee-object-id "$CURRENT_USER_OID" --assignee-principal-type User --role "$KV_SECRETS_USER_ROLE_ID" --scope "$KV_RESOURCE_ID" 2>&1 > /dev/null) || true
-                    if [ $? -eq 0 ] && [ -z "$ROLE_ERR" ] || az role assignment list --assignee "$CURRENT_USER_OID" --role "$KV_SECRETS_USER_ROLE_ID" --scope "$KV_RESOURCE_ID" --query "[0].id" -o tsv 2>/dev/null | grep -q .; then
+                    echo "✓ Assigning 'Key Vault Secrets User' role to current ${IDENTITY_TYPE} on Key Vault..."
+                    ROLE_ERR=$(az role assignment create --assignee-object-id "$CURRENT_IDENTITY_OID" --assignee-principal-type "$PRINCIPAL_TYPE" --role "$KV_SECRETS_USER_ROLE_ID" --scope "$KV_RESOURCE_ID" 2>&1 > /dev/null) || true
+                    if [ $? -eq 0 ] && [ -z "$ROLE_ERR" ] || az role assignment list --assignee "$CURRENT_IDENTITY_OID" --role "$KV_SECRETS_USER_ROLE_ID" --scope "$KV_RESOURCE_ID" --query "[0].id" -o tsv 2>/dev/null | grep -q .; then
                         echo "✓ Role assigned. Waiting 30s for propagation..."
                         sleep 30
                     else
@@ -119,11 +152,11 @@ else
                         echo "  $ROLE_ERR"
                     fi
                 else
-                    echo "✓ Current user already has 'Key Vault Secrets User' role on Key Vault."
+                    echo "✓ Current ${IDENTITY_TYPE} already has 'Key Vault Secrets User' role on Key Vault."
                 fi
             fi
         else
-            echo "⚠ WARNING: Could not determine current user OID. Skipping Key Vault role assignment."
+            echo "⚠ WARNING: Could not determine current identity OID. Skipping Key Vault role assignment."
         fi
 
         # Check if Key Vault public access is disabled (WAF/private networking)
@@ -152,7 +185,7 @@ else
         # Wait for function app to be running
         echo "Waiting for function app to be ready..."
         MAX_RETRIES=30
-        RETRY_INTERVAL=20
+        RETRY_INTERVAL=30
         for i in $(seq 1 $MAX_RETRIES); do
             STATE=$(az functionapp show --name "$FUNCTION_APP_NAME" --resource-group "$RESOURCE_GROUP" --query "state" -o tsv 2>/dev/null || true)
             if [ "$STATE" = "Running" ]; then
@@ -163,20 +196,33 @@ else
             sleep $RETRY_INTERVAL
         done
 
-        # Set the function key via REST API
+        # Set the function key via REST API (with retries — the host runtime may not be ready yet)
         echo "✓ Setting function key 'ClientKey' on '${FUNCTION_APP_NAME}'..."
         SUBSCRIPTION_ID=$(az account show --query "id" -o tsv | tr -d '\r')
         URI="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${FUNCTION_APP_NAME}/host/default/functionKeys/clientKey?api-version=2023-01-01"
         BODY="{\"properties\":{\"name\":\"ClientKey\",\"value\":\"${FUNCTION_KEY}\"}}"
 
-        REST_ERR=$(az rest --method put --uri "$URI" --body "$BODY" 2>&1 > /dev/null) || true
-        if [ -n "$REST_ERR" ]; then
-            echo "✗ ERROR: Failed to set function key on '${FUNCTION_APP_NAME}'." >&2
-            echo "  $REST_ERR" >&2
+        KEY_SET=false
+        KEY_MAX_RETRIES=5
+        KEY_RETRY_INTERVAL=30
+        for attempt in $(seq 1 $KEY_MAX_RETRIES); do
+            REST_ERR=$(az rest --method put --uri "$URI" --body "$BODY" 2>&1 > /dev/null) || true
+            if [ -z "$REST_ERR" ]; then
+                KEY_SET=true
+                break
+            fi
+            echo "  [${attempt}/${KEY_MAX_RETRIES}] Host runtime not ready yet. Retrying in ${KEY_RETRY_INTERVAL}s..."
+            echo "  $REST_ERR"
+            sleep $KEY_RETRY_INTERVAL
+        done
+
+        if [ "$KEY_SET" = "true" ]; then
+            echo "✓ Function key set successfully."
+        else
+            echo "✗ ERROR: Failed to set function key on '${FUNCTION_APP_NAME}' after ${KEY_MAX_RETRIES} attempts." >&2
             restore_network_access
             exit 1
         fi
-        echo "✓ Function key set successfully."
     fi
 fi
 
@@ -213,7 +259,7 @@ else
     # Wait for PostgreSQL to be ready
     echo "Waiting for PostgreSQL server to be ready..."
     MAX_RETRIES=30
-    RETRY_INTERVAL=20
+    RETRY_INTERVAL=30
     for i in $(seq 1 $MAX_RETRIES); do
         PG_STATE=$(az postgres flexible-server show --resource-group "$RESOURCE_GROUP" --name "$SERVER_NAME" --query "state" -o tsv 2>/dev/null || true)
         if [ "$PG_STATE" = "Ready" ]; then
@@ -234,14 +280,14 @@ else
         --start-ip-address "$PUBLIC_IP" \
         --end-ip-address "$PUBLIC_IP" > /dev/null 2>&1
 
-    # Get current user info for local Entra auth to PostgreSQL
-    CURRENT_USER_UPN=$(az ad signed-in-user show --query "userPrincipalName" -o tsv 2>/dev/null || true)
-    CURRENT_USER_OID=$(az ad signed-in-user show --query "id" -o tsv 2>/dev/null || true)
-    if [ -z "$CURRENT_USER_UPN" ] || [ -z "$CURRENT_USER_OID" ]; then
-        echo "✗ ERROR: Could not determine current signed-in user. Ensure you are logged in with 'az login'." >&2
+    # Use previously detected identity for PostgreSQL Entra auth
+    if [ -z "$CURRENT_IDENTITY_OID" ] || [ -z "$CURRENT_IDENTITY_DISPLAY" ]; then
+        echo "✗ ERROR: Could not determine current identity. Ensure you are logged in with 'az login'." >&2
         exit 1
     fi
-    echo "✓ Current user: ${CURRENT_USER_UPN} (${CURRENT_USER_OID})"
+    CURRENT_USER_OID="$CURRENT_IDENTITY_OID"
+    CURRENT_USER_UPN="$CURRENT_IDENTITY_DISPLAY"
+    echo "✓ Current ${IDENTITY_TYPE}: ${CURRENT_USER_UPN} (${CURRENT_USER_OID})"
 
     # Ensure current user is a PostgreSQL Entra administrator
     EXISTING_ADMINS=$(az postgres flexible-server $PG_ADMIN_CMD list --resource-group "$RESOURCE_GROUP" --server-name "$SERVER_NAME" --query "[].objectId" -o tsv 2>/dev/null || true)
@@ -256,23 +302,23 @@ else
         done
     fi
     if [ "$IS_ADMIN" = "false" ]; then
-        echo "✓ Adding current user as PostgreSQL Entra administrator..."
+        echo "✓ Adding current ${IDENTITY_TYPE} as PostgreSQL Entra administrator..."
         ADMIN_ERR=$(az postgres flexible-server $PG_ADMIN_CMD create \
             --resource-group "$RESOURCE_GROUP" \
             --server-name "$SERVER_NAME" \
             --display-name "$CURRENT_USER_UPN" \
             --object-id "$CURRENT_USER_OID" \
-            --type User 2>&1 > /dev/null) || true
+            --type "$PRINCIPAL_TYPE" 2>&1 > /dev/null) || true
         if [ -z "$ADMIN_ERR" ]; then
             ADDED_PG_ADMIN=true
             echo "✓ PostgreSQL admin added. Waiting 60s for propagation..."
             sleep 60
         else
-            echo "⚠ WARNING: Failed to add current user as PostgreSQL admin. Table creation may fail."
+            echo "⚠ WARNING: Failed to add current ${IDENTITY_TYPE} as PostgreSQL admin. Table creation may fail."
             echo "  $ADMIN_ERR"
         fi
     else
-        echo "✓ Current user is already a PostgreSQL Entra administrator."
+        echo "✓ Current ${IDENTITY_TYPE} is already a PostgreSQL Entra administrator."
     fi
 
     # Install Python dependencies
