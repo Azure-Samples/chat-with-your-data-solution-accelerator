@@ -158,11 +158,26 @@ export const Answer = ({
     let citationFilename = "";
 
     if (citation.filepath && citation.chunk_id != null) {
-      if (truncate && citation.filepath.length > filePathTruncationLimit) {
-        const citationLength = citation.filepath.length;
-        citationFilename = `${citation.filepath.substring(0, 20)}...${citation.filepath.substring(citationLength - 20)} - Part ${citation.chunk_id}`;
+      // Decode the URL-encoded filepath from backend, falling back to the original on failure
+      let decodedFilepath: string;
+      try {
+        decodedFilepath = decodeURIComponent(citation.filepath);
+      } catch (error) {
+         console.warn("Failed to decode citation filepath:", citation.filepath, error);
+         decodedFilepath = citation.filepath;
+      }
+
+      // Strip container prefix if present (e.g., "documents/filename.pdf" -> "filename.pdf")
+      const isLikelyUrl = /^https?:\/\//i.test(decodedFilepath);
+      if (!isLikelyUrl && decodedFilepath.includes("/")) {
+        decodedFilepath = decodedFilepath.split("/").pop() || decodedFilepath;
+      }
+
+      if (truncate && decodedFilepath.length > filePathTruncationLimit) {
+        const citationLength = decodedFilepath.length;
+        citationFilename = `${decodedFilepath.substring(0, 20)}...${decodedFilepath.substring(citationLength - 20)} - Part ${citation.chunk_id}`;
       } else {
-        citationFilename = `${citation.filepath} - Part ${citation.chunk_id}`;
+        citationFilename = `${decodedFilepath} - Part ${citation.chunk_id}`;
       }
     } else {
       citationFilename = `Citation ${index}`;

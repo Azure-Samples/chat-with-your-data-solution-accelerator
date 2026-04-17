@@ -36,6 +36,10 @@ on:
         required: false
         type: string
         default: 'false'
+      USE_ADVANCED_IMAGE_PROCESSING:
+        required: false
+        type: string
+        default: 'false'
       DATABASE_TYPE:
         required: false
         type: string
@@ -47,9 +51,6 @@ on:
       ADMIN_APPURL:
         description: "Admin Web App URL"
         value: ${{ jobs.deploy-linux.outputs.ADMIN_APPURL }}
-      RESOURCE_TOKEN:
-        description: "Resource Token"
-        value: ${{ jobs.deploy-linux.outputs.RESOURCE_TOKEN }}
       AZURE_POSTGRESQL_HOST_NAME:
         description: "Azure PostgreSQL Host Name"
         value: ${{ jobs.deploy-linux.outputs.AZURE_POSTGRESQL_HOST_NAME }}
@@ -66,12 +67,12 @@ on:
 jobs:
   deploy-linux:
     runs-on: ubuntu-latest
+    environment: production
     env:
       AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
     outputs:
       WEB_APPURL: ${{ steps.get_output_linux.outputs.FRONTEND_WEBSITE_NAME }}
       ADMIN_APPURL: ${{ steps.get_output_linux.outputs.ADMIN_WEBSITE_NAME }}
-      RESOURCE_TOKEN: ${{ steps.get_output_linux.outputs.RESOURCE_TOKEN }}
       AZURE_POSTGRESQL_HOST_NAME: ${{ steps.get_output_linux.outputs.AZURE_POSTGRESQL_HOST_NAME }}
       AZURE_SEARCH_SERVICE: ${{ steps.get_output_linux.outputs.AZURE_SEARCH_SERVICE }}
       AZURE_BLOB_ACCOUNT_NAME: ${{ steps.get_output_linux.outputs.AZURE_BLOB_ACCOUNT_NAME }}
@@ -93,6 +94,7 @@ jobs:
           INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
           INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
           INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+          INPUT_USE_ADVANCED_IMAGE_PROCESSING: ${{ inputs.USE_ADVANCED_IMAGE_PROCESSING }}
           INPUT_DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
         run: |
           echo "🔍 Validating workflow input parameters..."
@@ -202,6 +204,14 @@ jobs:
             echo "✅ AZURE_SEARCH_USE_SEMANTIC_SEARCH: '$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH' is valid"
           fi
 
+          # Validate USE_ADVANCED_IMAGE_PROCESSING (boolean string)
+          if [[ "$INPUT_USE_ADVANCED_IMAGE_PROCESSING" != "true" && "$INPUT_USE_ADVANCED_IMAGE_PROCESSING" != "false" ]]; then
+            echo "❌ ERROR: USE_ADVANCED_IMAGE_PROCESSING must be 'true' or 'false', got: '$INPUT_USE_ADVANCED_IMAGE_PROCESSING'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ USE_ADVANCED_IMAGE_PROCESSING: '$INPUT_USE_ADVANCED_IMAGE_PROCESSING' is valid"
+          fi
+
           # Validate DATABASE_TYPE (specific allowed values)
           if [[ "$INPUT_DATABASE_TYPE" != "PostgreSQL" && "$INPUT_DATABASE_TYPE" != "CosmosDB" ]]; then
             echo "❌ ERROR: DATABASE_TYPE must be one of: PostgreSQL, CosmosDB, got: '$INPUT_DATABASE_TYPE'"
@@ -251,11 +261,16 @@ jobs:
 
       - name: Login to AZD
         id: login-azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to AZD CLI
         shell: bash
         run: |
-          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --federated-credential-provider github --tenant-id ${{ secrets.AZURE_TENANT_ID }}
 
       - name: Deploy using azd up and extract values (Linux)
         id: get_output_linux
@@ -268,6 +283,7 @@ jobs:
           INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
           INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
           INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+          INPUT_USE_ADVANCED_IMAGE_PROCESSING: ${{ inputs.USE_ADVANCED_IMAGE_PROCESSING }}
           INPUT_DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
           EVENT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
           SECRET_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ secrets.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
@@ -309,6 +325,7 @@ jobs:
           echo "Setting Azure Search and Database configuration..."
           azd env set AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION="$INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION"
           azd env set AZURE_SEARCH_USE_SEMANTIC_SEARCH="$INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH"
+          azd env set USE_ADVANCED_IMAGE_PROCESSING="$INPUT_USE_ADVANCED_IMAGE_PROCESSING"
           azd env set DATABASE_TYPE="$INPUT_DATABASE_TYPE"
 
           # Deploy using azd up
@@ -320,9 +337,6 @@ jobs:
           echo "FRONTEND_WEBSITE_NAME=$FRONTEND_WEBSITE_NAME" >> $GITHUB_OUTPUT
           ADMIN_WEBSITE_NAME=$(azd env get-value ADMIN_WEBSITE_NAME)
           echo "ADMIN_WEBSITE_NAME=$ADMIN_WEBSITE_NAME" >> $GITHUB_OUTPUT
-
-          RESOURCE_TOKEN=$(azd env get-value RESOURCE_TOKEN)
-          echo "RESOURCE_TOKEN=$RESOURCE_TOKEN" >> $GITHUB_OUTPUT
 
           # Export values based on DATABASE_TYPE
           if [[ "$INPUT_DATABASE_TYPE" == "PostgreSQL" ]]; then
@@ -345,11 +359,6 @@ jobs:
           export ADMIN_WEBSITE_URL=$(azd env get-value ADMIN_WEBSITE_NAME)
           chmod +x scripts/disable_auth.sh
           ./scripts/disable_auth.sh
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Generate Deploy Job Summary
         if: always()

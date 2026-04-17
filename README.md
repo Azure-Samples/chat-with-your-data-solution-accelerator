@@ -131,7 +131,7 @@ Note: Some of the sample data included with this accelerator was generated using
 
 ---
 
-![One-click Deploy](/docs/images/oneClickDeploy.png)
+![One-click Deploy](./docs/images/oneClickDeploy.png)
 ## Deploy
 ### Pre-requisites
 - Azure subscription - [Create one for free](https://azure.microsoft.com/free/) with owner access.
@@ -176,10 +176,10 @@ Customers have the option to deploy this solution with PostgreSQL or Cosmos DB. 
 
 
 To review PostgreSQL configuration overview and steps, follow the link [here](docs/postgreSQL.md).
-![Solution Architecture - Chat with your data PostgreSQL](/docs/images/architecture_pg.png)
+![Solution Architecture - Chat with your data PostgreSQL](./docs/images/architecture_pg.png)
 
 To review Cosmos DB configuration overview and steps, follow the link [here](docs/employee_assistance.md).
-![Solution Architecture - Chat with your data CosmosDB](/docs/images/architecture_cdb.png)
+![Solution Architecture - Chat with your data CosmosDB](./docs/images/architecture_cdb.png)
 
 ### Deploy instructions
 <br/>
@@ -196,7 +196,7 @@ Once you deploy to Azure, you will have the option to select PostgreSQL or Cosmo
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fchat-with-your-data-solution-accelerator%2Frefs%2Fheads%2Fmain%2Finfra%2Fmain.json)
 
 Select either "PostgreSQL" or "Cosmos DB":
-![Solution Architecture - DB Selection](/docs/images/db_selection.png)
+![Solution Architecture - DB Selection](./docs/images/db_selection.png)
 
 
 When Deployment is complete, follow steps in [Set Up Authentication in Azure App Service](./docs/azure_app_service_auth_setup.md) to add app authentication to your web app running on Azure App Service
@@ -243,9 +243,28 @@ When deploying the solution using the "Deploy to Azure" button, you'll see two f
 
 
 
-![Supporting documentation](/docs/images/supportingDocuments.png)
+![Supporting documentation](./docs/images/supportingDocuments.png)
 
 ## Supporting documentation
+
+### Cross references
+Check out similar solution accelerators
+
+| Solution Accelerator | Description |
+|---|---|
+|[GPT-RAG&nbsp;Accelerator](https://github.com/Azure/gpt-rag)| Secure enterprise GPT assistant framework that uses Retrieval-Augmented Generation to ground answers on your data. It provides a ready architecture (Azure OpenAI + knowledge search) for building AI chatbots that “know” your enterprise content, with built-in security and scalability.|
+|[Document&nbsp;Processing&nbsp;Accelerator](https://github.com/Azure/doc-proc-solution-accelerator/) | Modular document AI pipeline that automatically extracts, analyzes, and indexes information from unstructured documents (PDFs, images, etc.) at scale. It offers plug-and-play components for OCR, classification, summarization, and integration to search or chatbots – speeding up data ingestion with enterprise security.|
+
+<br/>
+
+💡 Want to get familiar with Microsoft's AI and Data Engineering best practices? Check out our playbooks to learn more
+
+| Playbook | Description |
+|:---|:---|
+| [AI&nbsp;playbook](https://learn.microsoft.com/en-us/ai/playbook/) | The Artificial Intelligence (AI) Playbook provides enterprise software engineers with solutions, capabilities, and code developed to solve real-world AI problems. |
+| [Data&nbsp;playbook](https://learn.microsoft.com/en-us/data-engineering/playbook/understanding-data-playbook) | The data playbook provides enterprise software engineers with solutions which contain code developed to solve real-world problems. Everything in the playbook is developed with, and validated by, some of Microsoft's largest and most influential customers and partners. |
+
+<br/>
 
 ### Resource links
 

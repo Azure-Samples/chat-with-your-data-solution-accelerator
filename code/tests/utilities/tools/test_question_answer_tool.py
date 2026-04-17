@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from backend.batch.utilities.common.answer import Answer
+from backend.batch.utilities.helpers.prompt_utils import get_current_date_suffix
 from backend.batch.utilities.tools.question_answer_tool import QuestionAnswerTool
 from backend.batch.utilities.common.source_document import SourceDocument
 
@@ -161,7 +162,7 @@ def test_correct_prompt_with_few_shot_example(llm_helper_mock: MagicMock):
     # then
     llm_helper_mock.get_chat_completion.assert_called_once_with(
         [
-            {"content": "mock answering system prompt", "role": "system"},
+            {"content": "mock answering system prompt" + get_current_date_suffix(), "role": "system"},
             {
                 "content": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock example content"}}]}, Question: mock example user question',
                 "name": "example_user",
@@ -172,7 +173,7 @@ def test_correct_prompt_with_few_shot_example(llm_helper_mock: MagicMock):
                 "name": "example_assistant",
                 "role": "system",
             },
-            {"content": "mock azure openai system message", "role": "system"},
+            {"content": "mock azure openai system message" + get_current_date_suffix(), "role": "system"},
             {
                 "content": [
                     {
@@ -205,8 +206,8 @@ def test_correct_prompt_without_few_shot_example(
 
     llm_helper_mock.get_chat_completion.assert_called_once_with(
         [
-            {"content": "mock answering system prompt", "role": "system"},
-            {"content": "mock azure openai system message", "role": "system"},
+            {"content": "mock answering system prompt" + get_current_date_suffix(), "role": "system"},
+            {"content": "mock azure openai system message" + get_current_date_suffix(), "role": "system"},
             {
                 "content": [
                     {
@@ -238,7 +239,7 @@ def test_correct_prompt_with_few_shot_example_and_chat_history(
     # then
     llm_helper_mock.get_chat_completion.assert_called_once_with(
         [
-            {"content": "mock answering system prompt", "role": "system"},
+            {"content": "mock answering system prompt" + get_current_date_suffix(), "role": "system"},
             {
                 "content": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock example content"}}]}, Question: mock example user question',
                 "name": "example_user",
@@ -249,7 +250,7 @@ def test_correct_prompt_with_few_shot_example_and_chat_history(
                 "name": "example_assistant",
                 "role": "system",
             },
-            {"content": "mock azure openai system message", "role": "system"},
+            {"content": "mock azure openai system message" + get_current_date_suffix(), "role": "system"},
             {"role": "user", "content": "Hello"},
             {"role": "assistant", "content": "Hi, how can I help?"},
             {
@@ -321,7 +322,7 @@ def test_use_advanced_vision_processing(env_helper_mock, llm_helper_mock):
     # then
     llm_helper_mock.get_chat_completion.assert_called_once_with(
         [
-            {"content": "mock answering system prompt", "role": "system"},
+            {"content": "mock answering system prompt" + get_current_date_suffix(), "role": "system"},
             {
                 "content": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock example content"}}]}, Question: mock example user question',
                 "name": "example_user",
@@ -332,7 +333,7 @@ def test_use_advanced_vision_processing(env_helper_mock, llm_helper_mock):
                 "name": "example_assistant",
                 "role": "system",
             },
-            {"content": "mock azure openai system message", "role": "system"},
+            {"content": "mock azure openai system message" + get_current_date_suffix(), "role": "system"},
             {
                 "content": [
                     {
@@ -396,7 +397,7 @@ def test_limit_number_of_images_passed_to_llm(
     # then
     llm_helper_mock.get_chat_completion.assert_called_once_with(
         [
-            {"content": "mock answering system prompt", "role": "system"},
+            {"content": "mock answering system prompt" + get_current_date_suffix(), "role": "system"},
             {
                 "content": 'Sources: {"retrieved_documents":[{"[doc1]":{"content":"mock example content"}}]}, Question: mock example user question',
                 "name": "example_user",
@@ -407,7 +408,7 @@ def test_limit_number_of_images_passed_to_llm(
                 "name": "example_assistant",
                 "role": "system",
             },
-            {"content": "mock azure openai system message", "role": "system"},
+            {"content": "mock azure openai system message" + get_current_date_suffix(), "role": "system"},
             {
                 "content": [
                     {

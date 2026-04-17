@@ -7,10 +7,6 @@ on:
         description: 'Azure Resource Group name'
         required: true
         type: string
-      AZURE_POSTGRESQL_HOST_NAME:
-        description: 'PostgreSQL host name (e.g., myserver.postgres.database.azure.com)'
-        required: true
-        type: string
       WAF:
         description: 'Is this a WAF deployment? (enables public access temporarily for data import and then disables it)'
         required: false
@@ -22,28 +18,89 @@ on:
         description: 'Azure Resource Group name'
         required: true
         type: string
-      AZURE_POSTGRESQL_HOST_NAME:
-        description: 'PostgreSQL host name (e.g., myserver.postgres.database.azure.com)'
-        required: true
-        type: string
       WAF:
         description: 'Is this a WAF deployment? (enables public access temporarily for data import and then disables it)'
         required: false
         type: boolean
         default: false
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   import-sample-data-postgresql:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
+
+      - name: Login to Azure for Sample Data Download
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Enable Public Access on Sample Data Storage (if disabled)
+        id: sample_storage_access
+        shell: bash
+        env:
+          STORAGE_ACCOUNT_NAME: ${{ vars.SAMPLE_DATA_STORAGE_ACCOUNT_NAME }}
+        run: |
+          echo "🔍 Checking public network access on sample data storage account '${STORAGE_ACCOUNT_NAME}'..."
+
+          # Discover the resource group for the sample data storage account
+          SAMPLE_STORAGE_RG=$(az storage account list --query "[?name=='${STORAGE_ACCOUNT_NAME}'].resourceGroup | [0]" -o tsv)
+          if [ -z "$SAMPLE_STORAGE_RG" ] || [ "$SAMPLE_STORAGE_RG" == "null" ]; then
+            echo "❌ Could not find resource group for storage account '${STORAGE_ACCOUNT_NAME}'."
+            exit 1
+          fi
+          echo "SAMPLE_STORAGE_RG=$SAMPLE_STORAGE_RG" >> $GITHUB_ENV
+
+          CURRENT_ACCESS=$(az storage account show --name "$STORAGE_ACCOUNT_NAME" --resource-group "$SAMPLE_STORAGE_RG" --query "publicNetworkAccess" -o tsv)
+          CURRENT_DEFAULT_ACTION=$(az storage account show --name "$STORAGE_ACCOUNT_NAME" --resource-group "$SAMPLE_STORAGE_RG" --query "networkRuleSet.defaultAction" -o tsv)
+
+          echo "   Current publicNetworkAccess: $CURRENT_ACCESS"
+          echo "   Current defaultAction: $CURRENT_DEFAULT_ACTION"
+
+          if [ "$CURRENT_ACCESS" == "Disabled" ] || [ "$CURRENT_DEFAULT_ACTION" == "Deny" ]; then
+            echo "🔓 Enabling public access on sample data storage account..."
+            az storage account update --name "$STORAGE_ACCOUNT_NAME" --resource-group "$SAMPLE_STORAGE_RG" --public-network-access Enabled --output none
+            az storage account update --name "$STORAGE_ACCOUNT_NAME" --resource-group "$SAMPLE_STORAGE_RG" --default-action Allow --output none
+
+            echo "⏳ Waiting 30 seconds for network changes to propagate..."
+            sleep 30
+            echo "✅ Public access enabled on sample data storage account."
+          else
+            echo "✅ Public access is already enabled."
+          fi
+
+      - name: Download Sample Data from Azure Storage
+        shell: bash
+        env:
+          STORAGE_ACCOUNT_NAME: ${{ vars.SAMPLE_DATA_STORAGE_ACCOUNT_NAME }}
+          STORAGE_CONTAINER_NAME: ${{ vars.SAMPLE_DATA_STORAGE_CONTAINER_NAME }}
+        run: |
+          SAMPLE_DATA_DIR="${RUNNER_TEMP}/sample-data"
+          mkdir -p "$SAMPLE_DATA_DIR"
+
+          echo "📥 Downloading sample data file from storage account '${STORAGE_ACCOUNT_NAME}'..."
+          az storage blob download \
+            --account-name "$STORAGE_ACCOUNT_NAME" \
+            --container-name "$STORAGE_CONTAINER_NAME" \
+            --name "exported_data_vector_score.csv" \
+            --file "$SAMPLE_DATA_DIR/exported_data_vector_score.csv" \
+            --auth-mode login
+
+          echo "SAMPLE_DATA_DIR=$SAMPLE_DATA_DIR" >> $GITHUB_ENV
+          echo "✅ Sample data file downloaded to $SAMPLE_DATA_DIR"
 
       - name: Validate Workflow Input Parameters
         shell: bash
         env:
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
-          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
           INPUT_WAF: ${{ inputs.WAF }}
         run: |
           echo "🔍 Validating workflow input parameters..."
@@ -61,17 +118,6 @@ jobs:
             VALIDATION_FAILED=true
           else
             echo "✅ RESOURCE_GROUP_NAME: '$INPUT_RESOURCE_GROUP_NAME' is valid"
-          fi
-
-          # Validate AZURE_POSTGRESQL_HOST_NAME (required, must be valid PostgreSQL hostname format)
-          if [[ -z "$INPUT_AZURE_POSTGRESQL_HOST_NAME" ]]; then
-            echo "❌ ERROR: AZURE_POSTGRESQL_HOST_NAME is required but not provided"
-            VALIDATION_FAILED=true
-          elif [[ ! "$INPUT_AZURE_POSTGRESQL_HOST_NAME" =~ ^[a-zA-Z0-9-]+\.postgres\.database\.azure\.com$ ]]; then
-            echo "❌ ERROR: AZURE_POSTGRESQL_HOST_NAME '$INPUT_AZURE_POSTGRESQL_HOST_NAME' is invalid. Must be in format: <servername>.postgres.database.azure.com"
-            VALIDATION_FAILED=true
-          else
-            echo "✅ AZURE_POSTGRESQL_HOST_NAME: '$INPUT_AZURE_POSTGRESQL_HOST_NAME' is valid"
           fi
 
           # Validate WAF (boolean)
@@ -97,26 +143,41 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Login to Azure
-        shell: bash
-        run: |
-          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
       - name: Upgrade Azure CLI and install extensions
         run: |
           az upgrade --yes --all
           az extension add --name rdbms-connect --upgrade --yes || true
 
+      - name: Discover PostgreSQL Server from Resource Group
+        env:
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+        run: |
+          echo "🔍 Discovering PostgreSQL Flexible Server in resource group '$INPUT_RESOURCE_GROUP_NAME'..."
+
+          # List all PostgreSQL Flexible Servers in the resource group
+          PG_SERVER_NAME=$(az postgres flexible-server list \
+            --resource-group "$INPUT_RESOURCE_GROUP_NAME" \
+            --query "[0].name" -o tsv)
+
+          if [[ -z "$PG_SERVER_NAME" || "$PG_SERVER_NAME" == "None" ]]; then
+            echo "❌ ERROR: No PostgreSQL Flexible Server found in resource group '$INPUT_RESOURCE_GROUP_NAME'"
+            exit 1
+          fi
+
+          PG_HOST="${PG_SERVER_NAME}.postgres.database.azure.com"
+          echo "✅ Found PostgreSQL server: $PG_SERVER_NAME"
+          echo "✅ PostgreSQL host: $PG_HOST"
+
+          # Export for subsequent steps
+          echo "AZURE_POSTGRESQL_HOST_NAME=$PG_HOST" >> $GITHUB_ENV
+          echo "PG_SERVER_NAME=$PG_SERVER_NAME" >> $GITHUB_ENV
+
       - name: Enable Public Access for PostgreSQL (WAF)
         if: ${{ inputs.WAF == true }}
         env:
-          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
+          PG_SERVER_NAME: ${{ env.PG_SERVER_NAME }}
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
-          PG_HOST="$INPUT_AZURE_POSTGRESQL_HOST_NAME"
-          PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
-
           echo "Configuring public access for PostgreSQL server: $PG_SERVER_NAME"
 
           # Enable public network access for the PostgreSQL server
@@ -150,12 +211,11 @@ jobs:
 
       - name: Add Service Principal as PostgreSQL Admin
         env:
-          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
+          PG_SERVER_NAME: ${{ env.PG_SERVER_NAME }}
+          PG_HOST: ${{ env.AZURE_POSTGRESQL_HOST_NAME }}
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
-          # Get PostgreSQL server name from input parameter
-          PG_HOST="$INPUT_AZURE_POSTGRESQL_HOST_NAME"
-          PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
+          # PostgreSQL server name and host discovered from resource group
 
           # Get the service principal's object ID (required for PostgreSQL admin)
           SP_OBJECT_ID=$(az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query id -o tsv)
@@ -201,13 +261,11 @@ jobs:
 
       - name: Populate PostgreSQL Database
         env:
-          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_POSTGRESQL_HOST_NAME: ${{ env.AZURE_POSTGRESQL_HOST_NAME }}
           SP_DISPLAY_NAME: ${{ env.SP_DISPLAY_NAME }}
+          SAMPLE_DATA_DIR: ${{ env.SAMPLE_DATA_DIR }}
         run: |
-          export PG_HOST_DESTINATION="$INPUT_AZURE_POSTGRESQL_HOST_NAME"
+          export PG_HOST_DESTINATION="$AZURE_POSTGRESQL_HOST_NAME"
           # Get the service principal's display name (required as username for PostgreSQL Entra auth)
           export SP_DISPLAY_NAME=$(az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query displayName -o tsv)
 
@@ -217,21 +275,16 @@ jobs:
           python - <<EOF
           import os
           import psycopg2
-          from azure.identity import ClientSecretCredential
+          from azure.identity import DefaultAzureCredential
 
-          tenant_id = os.environ["AZURE_TENANT_ID"]
-          client_id = os.environ["AZURE_CLIENT_ID"]
-          client_secret = os.environ["AZURE_CLIENT_SECRET"]
           pg_host = os.environ.get("PG_HOST_DESTINATION")
           sp_display_name = os.environ.get("SP_DISPLAY_NAME")
 
-          print(f"Tenant ID: {tenant_id}")
-          print(f"Client ID: {client_id}")
           print(f"PostgreSQL Host: {pg_host}")
           print(f"Service Principal Name: {sp_display_name}")
 
-          # Acquire Azure AD access token for PostgreSQL
-          credential = ClientSecretCredential(tenant_id, client_id, client_secret)
+          # Acquire Azure AD access token for PostgreSQL via OIDC (Azure CLI credential)
+          credential = DefaultAzureCredential()
           token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default").token
           print("✅ Successfully acquired Azure AD token")
 
@@ -244,7 +297,7 @@ jobs:
               "sslmode": "require"
           }
 
-          csv_file = "exported_data_vector_score.csv"
+          csv_file = os.path.join(os.environ["SAMPLE_DATA_DIR"], "exported_data_vector_score.csv")
           target_table = "vector_store"
 
           try:
@@ -275,12 +328,9 @@ jobs:
       - name: Disable Public Access for PostgreSQL (WAF)
         if: ${{ always() && inputs.WAF == true }}
         env:
-          INPUT_AZURE_POSTGRESQL_HOST_NAME: ${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}
+          PG_SERVER_NAME: ${{ env.PG_SERVER_NAME }}
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
-          PG_HOST="$INPUT_AZURE_POSTGRESQL_HOST_NAME"
-          PG_SERVER_NAME=$(echo $PG_HOST | cut -d'.' -f1)
-
           echo "Removing public access for PostgreSQL server: $PG_SERVER_NAME"
 
           # Remove the firewall rule that allowed all IP addresses
@@ -308,9 +358,10 @@ jobs:
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Job Status** | ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **PostgreSQL Host** | \`${{ inputs.AZURE_POSTGRESQL_HOST_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **PostgreSQL Host** | \`${{ env.AZURE_POSTGRESQL_HOST_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Resource Group** | \`${{ inputs.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **WAF** | \`${{ inputs.WAF }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Data File** | \`exported_data_vector_score.csv\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ job.status }}" == "success" ]]; then
             echo "### ✅ Import Sample Data (PostgreSQL) Results" >> $GITHUB_STEP_SUMMARY
