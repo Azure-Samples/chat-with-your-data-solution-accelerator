@@ -56,6 +56,11 @@ on:
         required: false
         default: 'false'
         type: string
+      USE_ADVANCED_IMAGE_PROCESSING:
+        description: 'Use Advanced Image Processing'
+        required: false
+        default: 'false'
+        type: string
       DATABASE_TYPE:
         description: 'Type of database to use'
         required: false
@@ -86,9 +91,6 @@ on:
       QUOTA_FAILED:
         description: "Quota Check Failed Flag"
         value: ${{ jobs.azure-setup.outputs.QUOTA_FAILED }}
-      RESOURCE_TOKEN:
-        description: "Resource Token"
-        value: ${{ jobs.deploy-linux.outputs.RESOURCE_TOKEN || jobs.deploy-windows.outputs.RESOURCE_TOKEN }}
       AZURE_POSTGRESQL_HOST_NAME:
         description: "Azure PostgreSQL Host Name"
         value: ${{ jobs.deploy-linux.outputs.AZURE_POSTGRESQL_HOST_NAME || jobs.deploy-windows.outputs.AZURE_POSTGRESQL_HOST_NAME }}
@@ -110,11 +112,13 @@ env:
   EXP: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.EXP || false) || false }}
   CLEANUP_RESOURCES: ${{ inputs.trigger_type != 'workflow_dispatch' || inputs.cleanup_resources }}
   RUN_E2E_TESTS: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.run_e2e_tests || 'GoldenPath-Testing') || 'GoldenPath-Testing' }}
+  RG_TAGS: ${{ vars.RG_TAGS }}
 
 jobs:
   azure-setup:
     if: inputs.trigger_type != 'workflow_dispatch' || inputs.existing_webapp_url == '' || inputs.existing_webapp_url == null
     runs-on: ubuntu-latest
+    environment: production
     outputs:
       RESOURCE_GROUP_NAME: ${{ steps.check_create_rg.outputs.RESOURCE_GROUP_NAME }}
       ENV_NAME: ${{ steps.generate_env_name.outputs.ENV_NAME }}
@@ -136,9 +140,11 @@ jobs:
           INPUT_CLEANUP_RESOURCES: ${{ inputs.cleanup_resources }}
           INPUT_RUN_E2E_TESTS: ${{ inputs.run_e2e_tests }}
           INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          INPUT_RG_TAGS: ${{ env.RG_TAGS }}
           INPUT_EXISTING_WEBAPP_URL: ${{ inputs.existing_webapp_url }}
           INPUT_AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
           INPUT_AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+          INPUT_USE_ADVANCED_IMAGE_PROCESSING: ${{ inputs.USE_ADVANCED_IMAGE_PROCESSING }}
           INPUT_DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
         run: |
           echo "🔍 Validating workflow input parameters..."
@@ -245,6 +251,18 @@ jobs:
             echo "✅ AZURE_SEARCH_USE_SEMANTIC_SEARCH: Not provided (will use default 'false')"
           fi
 
+          # Validate USE_ADVANCED_IMAGE_PROCESSING (boolean string)
+          if [[ -n "$INPUT_USE_ADVANCED_IMAGE_PROCESSING" ]]; then
+            if [[ "$INPUT_USE_ADVANCED_IMAGE_PROCESSING" != "true" && "$INPUT_USE_ADVANCED_IMAGE_PROCESSING" != "false" ]]; then
+              echo "❌ ERROR: USE_ADVANCED_IMAGE_PROCESSING must be 'true' or 'false', got: '$INPUT_USE_ADVANCED_IMAGE_PROCESSING'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ USE_ADVANCED_IMAGE_PROCESSING: '$INPUT_USE_ADVANCED_IMAGE_PROCESSING' is valid"
+            fi
+          else
+            echo "✅ USE_ADVANCED_IMAGE_PROCESSING: Not provided (will use default 'false')"
+          fi
+
           # Validate existing_webapp_url (optional, must start with https)
           if [[ -n "$INPUT_EXISTING_WEBAPP_URL" ]]; then
             if [[ ! "$INPUT_EXISTING_WEBAPP_URL" =~ ^https:// ]]; then
@@ -268,89 +286,134 @@ jobs:
           echo "✅ All input parameters validated successfully!"
 
       - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Run OpenAI and Azure Search Quota Check
+        id: quota-check
         shell: bash
         run: |
-          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          GPT_MIN_CAPACITY="${{ env.GPT_MIN_CAPACITY }}"
+          TEXT_EMBEDDING_MIN_CAPACITY="${{ env.TEXT_EMBEDDING_MIN_CAPACITY }}"
+          IFS=', ' read -ra REGIONS <<< "${{ vars.AZURE_REGIONS }}"
 
-      - name: Run Quota Check
-        id: quota-check
-        run: |
-          export AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
-          export AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
-          export AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
-          export AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-          export GPT_MIN_CAPACITY="150"
-          export TEXT_EMBEDDING_MIN_CAPACITY="30"
-          export AZURE_REGIONS="${{ vars.AZURE_REGIONS }}"
+          declare -A MIN_CAPACITY=(
+              ["OpenAI.GlobalStandard.gpt4.1"]=$GPT_MIN_CAPACITY
+              ["OpenAI.GlobalStandard.text-embedding-ada-002"]=$TEXT_EMBEDDING_MIN_CAPACITY
+          )
 
-          chmod +x scripts/checkquota.sh
-          if ! scripts/checkquota.sh; then
-            if grep -q "No region with sufficient quota found" scripts/checkquota.sh; then
-              echo "QUOTA_FAILED=true" >> $GITHUB_OUTPUT
-              echo "Quota check failed - will notify via separate notification job"
+          VALID_REGION=""
+
+          for REGION in "${REGIONS[@]}"; do
+            echo "========================================"
+            echo "🔍 Checking region: $REGION"
+            echo "========================================"
+
+            # --- Step 1: Check OpenAI quota ---
+            echo "📊 Checking OpenAI quota..."
+            QUOTA_INFO=$(az cognitiveservices usage list --location "$REGION" --output json 2>/dev/null)
+            if [ -z "$QUOTA_INFO" ]; then
+              echo "⚠️ WARNING: Failed to retrieve OpenAI quota for region $REGION. Skipping."
+              continue
             fi
+
+            OPENAI_OK=true
+            for MODEL in "${!MIN_CAPACITY[@]}"; do
+              MODEL_INFO=$(echo "$QUOTA_INFO" | awk -v model="\"value\": \"$MODEL\"" '
+                  BEGIN { RS="},"; FS="," }
+                  $0 ~ model { print $0 }
+              ')
+
+              if [ -z "$MODEL_INFO" ]; then
+                echo "⚠️ WARNING: No quota information found for model: $MODEL in $REGION. Skipping region."
+                OPENAI_OK=false
+                break
+              fi
+
+              CURRENT_VALUE=$(echo "$MODEL_INFO" | awk -F': ' '/"currentValue"/ {print $2}' | tr -d ',' | tr -d ' ')
+              LIMIT=$(echo "$MODEL_INFO" | awk -F': ' '/"limit"/ {print $2}' | tr -d ',' | tr -d ' ')
+              CURRENT_VALUE=${CURRENT_VALUE:-0}
+              LIMIT=${LIMIT:-0}
+              CURRENT_VALUE=$(echo "$CURRENT_VALUE" | cut -d'.' -f1)
+              LIMIT=$(echo "$LIMIT" | cut -d'.' -f1)
+              AVAILABLE=$((LIMIT - CURRENT_VALUE))
+
+              echo "  Model: $MODEL | Used: $CURRENT_VALUE | Limit: $LIMIT | Available: $AVAILABLE"
+
+              if [ "$AVAILABLE" -lt "${MIN_CAPACITY[$MODEL]}" ]; then
+                echo "  ❌ $MODEL in $REGION has insufficient OpenAI quota."
+                OPENAI_OK=false
+                break
+              fi
+            done
+
+            if [ "$OPENAI_OK" != "true" ]; then
+              echo "⏭️ Region $REGION failed OpenAI quota check. Trying next region..."
+              continue
+            fi
+            echo "✅ OpenAI quota check passed for $REGION."
+
+            # --- Step 2: Check Azure Search quota ---
+            echo "📊 Checking Azure Search quota..."
+            SEARCH_USAGE=$(az rest --method get \
+              --url "https://management.azure.com/subscriptions/${SUBSCRIPTION_ID}/providers/Microsoft.Search/locations/${REGION}/usages?api-version=2024-03-01-preview" \
+              -o json 2>/dev/null || echo '{"value":[]}')
+
+            if [ "$(echo "$SEARCH_USAGE" | jq '.value | length')" -eq 0 ]; then
+              echo "⚠️ Could not retrieve Azure Search quota for $REGION. Accepting region (search check skipped)."
+              VALID_REGION="$REGION"
+              break
+            fi
+
+            STANDARD_USAGE=$(echo "$SEARCH_USAGE" | jq -r '.value[] | select(.name.value == "standard") | .currentValue // 0')
+            STANDARD_LIMIT=$(echo "$SEARCH_USAGE" | jq -r '.value[] | select(.name.value == "standard") | .limit // 0')
+            STANDARD_AVAILABLE=$((STANDARD_LIMIT - STANDARD_USAGE))
+
+            echo "  Azure Search Standard Tier | Used: $STANDARD_USAGE | Limit: $STANDARD_LIMIT | Available: $STANDARD_AVAILABLE"
+
+            if [ "$STANDARD_AVAILABLE" -lt 1 ]; then
+              echo "  ❌ Insufficient Azure Search Standard tier quota in $REGION."
+              echo "⏭️ Trying next region..."
+              continue
+            fi
+
+            echo "✅ Azure Search quota check passed for $REGION."
+
+            VALID_REGION="$REGION"
+            break
+          done
+
+          if [ -z "$VALID_REGION" ]; then
+            echo ""
+            echo "❌ No region with sufficient OpenAI AND Azure Search quota found across all regions: ${REGIONS[*]}"
+
+            echo "## ❌ Quota Check Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "No region had sufficient quota for **both** OpenAI models and Azure Search Standard tier." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Regions checked:** ${REGIONS[*]}" >> $GITHUB_STEP_SUMMARY
+
+            echo "QUOTA_FAILED=true" >> $GITHUB_OUTPUT
             exit 1
           fi
+
+          echo ""
+          echo "✅ Final Selected Region: $VALID_REGION (passed both OpenAI and Azure Search quota checks)"
+          echo "VALID_REGION=$VALID_REGION" >> $GITHUB_ENV
 
       - name: Set Deployment Region
         id: set_region
         shell: bash
         run: |
-          echo "Selected Region from Quota Check: $VALID_REGION"
+          echo "Selected Region: $VALID_REGION"
           echo "AZURE_ENV_OPENAI_LOCATION=$VALID_REGION" >> $GITHUB_ENV
           echo "AZURE_ENV_OPENAI_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
           echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
           echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
-
-      - name: Check Azure Search Service Quota
-        id: search-quota-check
-        shell: bash
-        run: |
-          echo "🔍 Checking Azure Search service quota in region: ${{ env.AZURE_LOCATION }}"
-
-          # Get current usage and limits for Azure Search in the selected region using REST API
-          SEARCH_USAGE=$(az rest --method get \
-            --url "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/providers/Microsoft.Search/locations/${{ env.AZURE_LOCATION }}/usages?api-version=2024-03-01-preview" \
-            -o json 2>/dev/null || echo '{"value":[]}')
-
-          if [ "$(echo "$SEARCH_USAGE" | jq '.value | length')" -eq 0 ]; then
-            echo "⚠️ Could not retrieve Azure Search quota information. Proceeding with deployment..."
-            echo "SEARCH_QUOTA_CHECK=skipped" >> $GITHUB_OUTPUT
-          else
-            # Check Standard tier quota
-            STANDARD_USAGE=$(echo "$SEARCH_USAGE" | jq -r '.value[] | select(.name.value == "standard") | .currentValue // 0')
-            STANDARD_LIMIT=$(echo "$SEARCH_USAGE" | jq -r '.value[] | select(.name.value == "standard") | .limit // 0')
-            STANDARD_AVAILABLE=$((STANDARD_LIMIT - STANDARD_USAGE))
-
-            echo "Azure Search Standard Tier Quota for ${{ env.AZURE_LOCATION }}:"
-            echo "  Current Usage: $STANDARD_USAGE"
-            echo "  Limit: $STANDARD_LIMIT"
-            echo "  Available: $STANDARD_AVAILABLE"
-
-            if [ "$STANDARD_AVAILABLE" -lt 1 ]; then
-              echo ""
-              echo "❌ ERROR: Insufficient Azure Search Standard tier quota in region: ${{ env.AZURE_LOCATION }}"
-              echo "Please request a quota increase or select a different region."
-
-              # Add error to GitHub Summary
-              echo "## ❌ Azure Search Quota Check Failed" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "**Region:** \`${{ env.AZURE_LOCATION }}\`" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-              echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-              echo "| **Tier** | Standard |" >> $GITHUB_STEP_SUMMARY
-              echo "| **Current Usage** | $STANDARD_USAGE |" >> $GITHUB_STEP_SUMMARY
-              echo "| **Limit** | $STANDARD_LIMIT |" >> $GITHUB_STEP_SUMMARY
-              echo "| **Available** | $STANDARD_AVAILABLE |" >> $GITHUB_STEP_SUMMARY
-              exit 1
-            fi
-
-            echo ""
-            echo "✅ Azure Search Standard tier quota check passed."
-            echo "SEARCH_QUOTA_CHECK=passed" >> $GITHUB_OUTPUT
-          fi
 
       - name: Add Resource Group Name to Environment
         env:
@@ -360,10 +423,17 @@ jobs:
             echo "Using provided resource group name..."
             UNIQUE_RG_NAME="$INPUT_RESOURCE_GROUP_NAME"
             echo "Provided RESOURCE_GROUP_NAME: ${UNIQUE_RG_NAME}"
+          else
+            echo "No resource group name provided. Auto-generating..."
+            COMMON_PART="rg-cwyd"
+            TIMESTAMP=$(date +%s)
+            UPDATED_TIMESTAMP=$(echo $TIMESTAMP | tail -c 6)
+            UNIQUE_RG_NAME="${COMMON_PART}-${UPDATED_TIMESTAMP}"
+            echo "Auto-generated RESOURCE_GROUP_NAME: ${UNIQUE_RG_NAME}"
           fi
           echo "RESOURCE_GROUP_NAME=${UNIQUE_RG_NAME}" >> $GITHUB_ENV
 
-      - name: Validate Resource Group Exists
+      - name: Ensure Resource Group Exists
         id: check_create_rg
         run: |
           echo "RESOURCE_GROUP: ${{ env.RESOURCE_GROUP_NAME }}"
@@ -371,49 +441,14 @@ jobs:
           echo "Checking if resource group exists..."
           rg_exists=$(az group exists --name ${{ env.RESOURCE_GROUP_NAME }})
           if [ "$rg_exists" = "false" ]; then
-            echo "Resource group '${{ env.RESOURCE_GROUP_NAME }}' does not exist"
-            echo "Please create the resource group first or provide an existing resource group name"
-            exit 1
+            echo "Resource group '${{ env.RESOURCE_GROUP_NAME }}' does not exist. Creating..."
+            az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.AZURE_LOCATION }} --tags ${{ env.RG_TAGS }} || { echo "❌ Error creating resource group"; exit 1; }
+            echo "✅ Resource group '${{ env.RESOURCE_GROUP_NAME }}' created with tags"
           else
-            echo "✅ Resource group exists proceeding with deployment"
+            echo "✅ Resource group exists, proceeding with deployment"
           fi
           # Set output for other jobs
           echo "RESOURCE_GROUP_NAME=${{ env.RESOURCE_GROUP_NAME }}" >> $GITHUB_OUTPUT
-
-      - name: Clear Existing Resources in Resource Group
-        if: inputs.resource_group_name != 'rg-cwyd-ci'
-        run: |
-          echo "=== Clearing all resources in resource group: ${{ env.RESOURCE_GROUP_NAME }} ==="
-          set -e
-
-          # List all resources in the resource group
-          echo "Listing resources to delete..."
-          RESOURCES=$(az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].id" -o tsv)
-
-          if [ -z "$RESOURCES" ]; then
-            echo "✅ No resources found in resource group. Ready for fresh deployment."
-          else
-            echo "Found resources to delete:"
-            az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].{Name:name, Type:type}" -o table
-
-            echo "Deleting all resources..."
-            # Delete all resources in the resource group
-            az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[].id" -o tsv | while read -r resource_id; do
-              echo "Deleting: $resource_id"
-              az resource delete --ids "$resource_id" --verbose || echo "Warning: Failed to delete $resource_id"
-            done
-
-            echo "✅ All resources cleared from resource group"
-          fi
-
-          echo "Resource group is now ready for deployment"
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate Unique Solution Prefix
         id: generate_solution_prefix
@@ -464,6 +499,7 @@ jobs:
           echo "| **Database Type** | \`${{ inputs.DATABASE_TYPE }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Integrated Vectorization** | \`${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Semantic Search** | \`${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Advanced Image Processing** | \`${{ inputs.USE_ADVANCED_IMAGE_PROCESSING }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Run E2E Tests** | \`${{ env.RUN_E2E_TESTS }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Cleanup Resources** | ${{ env.CLEANUP_RESOURCES == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
 
@@ -497,6 +533,7 @@ jobs:
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+      USE_ADVANCED_IMAGE_PROCESSING: ${{ inputs.USE_ADVANCED_IMAGE_PROCESSING }}
       DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
     secrets: inherit
 
@@ -516,6 +553,7 @@ jobs:
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
+      USE_ADVANCED_IMAGE_PROCESSING: ${{ inputs.USE_ADVANCED_IMAGE_PROCESSING }}
       DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
     secrets: inherit
 
@@ -529,7 +567,6 @@ jobs:
     uses: ./.github/workflows/import-sample-data-postgresql.yml
     with:
       RESOURCE_GROUP_NAME: ${{ needs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
-      AZURE_POSTGRESQL_HOST_NAME: ${{ needs.deploy-linux.outputs.AZURE_POSTGRESQL_HOST_NAME || needs.deploy-windows.outputs.AZURE_POSTGRESQL_HOST_NAME }}
       WAF: ${{ inputs.waf_enabled == true }}
     secrets: inherit
 
@@ -543,8 +580,5 @@ jobs:
     uses: ./.github/workflows/import-sample-data-cosmosdb.yml
     with:
       RESOURCE_GROUP_NAME: ${{ needs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
-      AZURE_SEARCH_SERVICE: ${{ needs.deploy-linux.outputs.AZURE_SEARCH_SERVICE || needs.deploy-windows.outputs.AZURE_SEARCH_SERVICE }}
-      AZURE_BLOB_ACCOUNT_NAME: ${{ needs.deploy-linux.outputs.AZURE_BLOB_ACCOUNT_NAME || needs.deploy-windows.outputs.AZURE_BLOB_ACCOUNT_NAME }}
-      AZURE_SEARCH_INDEX: ${{ needs.deploy-linux.outputs.AZURE_SEARCH_INDEX || needs.deploy-windows.outputs.AZURE_SEARCH_INDEX }}
       WAF: ${{ inputs.waf_enabled == true }}
     secrets: inherit
