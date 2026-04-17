@@ -43,6 +43,22 @@ Moreover, optimizing the data in the index also enhances the efficiency, the spe
 - For the best results, prepare your index data and consider [analyzers](https://learn.microsoft.com/azure/search/search-analyzers).
 - Analyze your [resource capacity needs](https://learn.microsoft.com/azure/search/search-capacity-planning).
 
+**Network Security (Production/WAF Deployment)**
+
+When deploying with the production/WAF configuration (`enablePrivateNetworking: true`), the following network security measures are automatically applied:
+
+- **Private Endpoints**: All backend services including Azure OpenAI, Azure AI Search, Storage Account, Key Vault, Cosmos DB/PostgreSQL, and the Function App (backend API) are configured with private endpoints, making them accessible only through the VNet.
+- **Function App (Backend API)**: The Function App hosting the backend API is secured with:
+  - Private endpoint for inbound traffic
+  - VNet integration for outbound traffic
+  - Public network access disabled
+  - Communication limited to internal VNet traffic only
+- **Frontend Web Apps**: The App Service (frontend) and Admin App remain publicly accessible to serve user traffic, while communicating with backend services through the private network.
+- **Virtual Network**: All resources are integrated into a secure virtual network with properly configured subnets and Network Security Groups (NSGs).
+- **Bastion Host**: A jumpbox VM accessible via Azure Bastion is provided for management access to private resources.
+
+This architecture ensures that only the frontend applications are publicly accessible, while all backend APIs and data services remain protected within the private network boundary.
+
 **Before deploying Azure RAG implementations to production**
 
 - Follow the best practices described in [Azure Well-Architected-Framework](https://learn.microsoft.com/azure/well-architected/).

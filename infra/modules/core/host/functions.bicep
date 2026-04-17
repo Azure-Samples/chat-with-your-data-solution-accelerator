@@ -134,6 +134,15 @@ param diagnosticSettings array = []
 ])
 param publicNetworkAccess string = 'Enabled'
 
+@description('Optional. IP security restrictions for the main site. Use to restrict access to specific IPs/subnets while keeping SCM accessible.')
+param ipSecurityRestrictions array = []
+
+@description('Optional. IP security restrictions for the SCM site. Use to control deployment access separately from the main site.')
+param scmIpSecurityRestrictions array = []
+
+@description('Optional. Whether to use the same restrictions for SCM as for the main site.')
+param scmIpSecurityRestrictionsUseMain bool = false
+
 var appConfigs = [
   {
     name: 'appsettings'
@@ -184,6 +193,9 @@ module functions 'appservice.bicep' = {
       healthCheckPath: healthCheckPath
       minTlsVersion: '1.2'
       ftpsState: 'FtpsOnly'
+      ipSecurityRestrictions: !empty(ipSecurityRestrictions) ? ipSecurityRestrictions : null
+      scmIpSecurityRestrictions: !empty(scmIpSecurityRestrictions) ? scmIpSecurityRestrictions : null
+      scmIpSecurityRestrictionsUseMain: scmIpSecurityRestrictionsUseMain
     }
     serverFarmResourceId: serverFarmResourceId
     configs: appConfigs

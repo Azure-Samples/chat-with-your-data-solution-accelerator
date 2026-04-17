@@ -73,6 +73,15 @@ param diagnosticSettings array = []
 ])
 param publicNetworkAccess string?
 
+@description('Optional. IP security restrictions for the main site. Use to restrict access to specific IPs/subnets while keeping SCM accessible.')
+param ipSecurityRestrictions array = []
+
+@description('Optional. IP security restrictions for the SCM site. Use to control deployment access separately from the main site.')
+param scmIpSecurityRestrictions array = []
+
+@description('Optional. Whether to use the same restrictions for SCM as for the main site.')
+param scmIpSecurityRestrictionsUseMain bool = false
+
 var useDocker = !empty(dockerFullImageName)
 var kind = useDocker ? 'functionapp,linux,container' : 'functionapp,linux'
 
@@ -102,6 +111,9 @@ module function '../core/host/functions.bicep' = {
     privateEndpoints: privateEndpoints
     diagnosticSettings: diagnosticSettings
     publicNetworkAccess: empty(publicNetworkAccess) ? null : publicNetworkAccess
+    ipSecurityRestrictions: ipSecurityRestrictions
+    scmIpSecurityRestrictions: scmIpSecurityRestrictions
+    scmIpSecurityRestrictionsUseMain: scmIpSecurityRestrictionsUseMain
   }
 }
 

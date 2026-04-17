@@ -169,6 +169,8 @@ Review the configuration options below. You can customize any settings that meet
 |------------|-----------------------------------|----------------|
 | **Configuration File** | `main.parameters.json` (sandbox) | Copy `main.waf.parameters.json` to `main.parameters.json` |
 | **Security Controls** | Minimal (for rapid iteration) | Enhanced (production best practices) |
+| **Network Access** | All services publicly accessible | Backend API (Function App) restricted to private network; only frontend publicly accessible |
+| **Private Endpoints** | Disabled | Enabled for all backend services (Storage, Key Vault, Cosmos DB/PostgreSQL, OpenAI, Search, Function App) |
 | **Cost** | Lower costs | Cost optimized |
 | **Use Case** | POCs, development, testing | Production workloads |
 | **Framework** | Basic configuration | [Well-Architected Framework](https://learn.microsoft.com/en-us/azure/well-architected/) |

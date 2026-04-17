@@ -57,6 +57,32 @@ param subnets subnetType[] = [
             destinationAddressPrefix: '10.0.0.0/23'
           }
         }
+        {
+          name: 'AllowOutboundToPrivateEndpoints'
+          properties: {
+            access: 'Allow'
+            direction: 'Outbound'
+            priority: 100
+            protocol: '*'
+            sourcePortRange: '*'
+            destinationPortRange: '*'
+            sourceAddressPrefixes: ['10.0.0.0/23'] // Web subnet
+            destinationAddressPrefixes: ['10.0.2.0/23'] // Private endpoints subnet
+          }
+        }
+        {
+          name: 'AllowOutboundToVNet'
+          properties: {
+            access: 'Allow'
+            direction: 'Outbound'
+            priority: 200
+            protocol: '*'
+            sourcePortRange: '*'
+            destinationPortRange: '*'
+            sourceAddressPrefix: 'VirtualNetwork'
+            destinationAddressPrefix: 'VirtualNetwork'
+          }
+        }
       ]
     }
     delegation: 'Microsoft.Web/serverFarms'
@@ -68,7 +94,34 @@ param subnets subnetType[] = [
     privateLinkServiceNetworkPolicies: 'Disabled'
     networkSecurityGroup: {
       name: 'nsg-peps'
-      securityRules: []
+      securityRules: [
+        {
+          name: 'AllowWebSubnetInbound'
+          properties: {
+            access: 'Allow'
+            direction: 'Inbound'
+            priority: 100
+            protocol: '*'
+            sourcePortRange: '*'
+            destinationPortRange: '*'
+            sourceAddressPrefixes: ['10.0.0.0/23'] // Web subnet (App Services with VNet integration)
+            destinationAddressPrefixes: ['10.0.2.0/23'] // Private endpoints subnet
+          }
+        }
+        {
+          name: 'AllowVNetInbound'
+          properties: {
+            access: 'Allow'
+            direction: 'Inbound'
+            priority: 200
+            protocol: '*'
+            sourcePortRange: '*'
+            destinationPortRange: '*'
+            sourceAddressPrefix: 'VirtualNetwork'
+            destinationAddressPrefix: 'VirtualNetwork'
+          }
+        }
+      ]
     }
   }
   {
