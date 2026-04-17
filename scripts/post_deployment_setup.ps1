@@ -35,6 +35,40 @@ $pgAdminCmd = "ad-admin"
 $entraCheck = az postgres flexible-server microsoft-entra-admin --help 2>$null
 if ($LASTEXITCODE -eq 0) { $pgAdminCmd = "microsoft-entra-admin" }
 
+# -------------------------------------------------------
+# Detect identity type: interactive user vs service principal
+# -------------------------------------------------------
+$identityType = "user"
+$currentIdentityOid = $null
+$currentIdentityDisplay = $null
+$principalType = "User"
+
+# Try signed-in user first
+$currentIdentityOid = az ad signed-in-user show --query "id" -o tsv 2>$null
+if ($currentIdentityOid) {
+    $identityType = "user"
+    $currentIdentityDisplay = az ad signed-in-user show --query "userPrincipalName" -o tsv 2>$null
+    $principalType = "User"
+    Write-Host "✓ Detected identity type: User ($currentIdentityDisplay)"
+} else {
+    # Fallback to service principal
+    $spAppId = az account show --query "user.name" -o tsv 2>$null
+    if ($spAppId -and $spAppId -ne "null") {
+        $currentIdentityOid = az ad sp show --id $spAppId --query "id" -o tsv 2>$null
+        $currentIdentityDisplay = az ad sp show --id $spAppId --query "displayName" -o tsv 2>$null
+        if ($currentIdentityOid) {
+            $identityType = "servicePrincipal"
+            $principalType = "ServicePrincipal"
+            Write-Host "✓ Detected identity type: Service Principal ($currentIdentityDisplay, OID: $currentIdentityOid)"
+        }
+    }
+}
+
+if (-not $currentIdentityOid) {
+    Write-Warning "⚠ Could not determine current identity (user or service principal)."
+    Write-Warning "  Some operations (Key Vault role assignment, PostgreSQL admin) may be skipped."
+}
+
 # Track resources that need public access restored to Disabled
 $resourcesToRestore = @()
 
@@ -108,16 +142,15 @@ else {
         $keyVaultName = ($keyVaults -split "`n")[0].Trim()
         Write-Host "✓ Discovered Key Vault: $keyVaultName"
 
-        # Ensure the current user has 'Key Vault Secrets User' role on the Key Vault
-        $currentUserOid = az ad signed-in-user show --query "id" -o tsv 2>$null
-        if ($currentUserOid) {
+        # Ensure the current identity has 'Key Vault Secrets User' role on the Key Vault
+        if ($currentIdentityOid) {
             $kvResourceId = az keyvault show --name $keyVaultName --resource-group $ResourceGroupName --query "id" -o tsv 2>$null
             if ($kvResourceId) {
                 $kvSecretsUserRoleId = "4633458b-17de-408a-b874-0445c86b69e6"
-                $existingAssignment = az role assignment list --assignee $currentUserOid --role $kvSecretsUserRoleId --scope $kvResourceId --query "[0].id" -o tsv 2>$null
+                $existingAssignment = az role assignment list --assignee $currentIdentityOid --role $kvSecretsUserRoleId --scope $kvResourceId --query "[0].id" -o tsv 2>$null
                 if (-not $existingAssignment) {
-                    Write-Host "✓ Assigning 'Key Vault Secrets User' role to current user on Key Vault..."
-                    $roleOutput = az role assignment create --assignee-object-id $currentUserOid --assignee-principal-type User --role $kvSecretsUserRoleId --scope $kvResourceId 2>&1 | Out-String
+                    Write-Host "✓ Assigning 'Key Vault Secrets User' role to current ${identityType} on Key Vault..."
+                    $roleOutput = az role assignment create --assignee-object-id $currentIdentityOid --assignee-principal-type $principalType --role $kvSecretsUserRoleId --scope $kvResourceId 2>&1 | Out-String
                     if ($LASTEXITCODE -ne 0) {
                         Write-Warning "⚠ Failed to assign Key Vault Secrets User role."
                         Write-Warning "  $roleOutput"
@@ -126,11 +159,11 @@ else {
                         Start-Sleep -Seconds 30
                     }
                 } else {
-                    Write-Host "✓ Current user already has 'Key Vault Secrets User' role on Key Vault."
+                    Write-Host "✓ Current ${identityType} already has 'Key Vault Secrets User' role on Key Vault."
                 }
             }
         } else {
-            Write-Warning "⚠ Could not determine current user OID. Skipping Key Vault role assignment."
+            Write-Warning "⚠ Could not determine current identity OID. Skipping Key Vault role assignment."
         }
 
         # Check if Key Vault public access is disabled (WAF/private networking)
@@ -235,14 +268,14 @@ else {
         --start-ip-address $publicIp `
         --end-ip-address $publicIp 2>$null | Out-Null
 
-    # Get current user info for local Entra auth to PostgreSQL
-    $currentUserUpn = az ad signed-in-user show --query "userPrincipalName" -o tsv 2>$null
-    $currentUserOid = az ad signed-in-user show --query "id" -o tsv 2>$null
-    if (-not $currentUserUpn -or -not $currentUserOid) {
-        Write-Error "✗ Could not determine current signed-in user. Ensure you are logged in with 'az login'."
+    # Use previously detected identity for PostgreSQL Entra auth
+    if (-not $currentIdentityOid -or -not $currentIdentityDisplay) {
+        Write-Error "✗ Could not determine current identity. Ensure you are logged in with 'az login'."
         exit 1
     }
-    Write-Host "✓ Current user: $currentUserUpn ($currentUserOid)"
+    $currentUserUpn = $currentIdentityDisplay
+    $currentUserOid = $currentIdentityOid
+    Write-Host "✓ Current ${identityType}: $currentUserUpn ($currentUserOid)"
 
     # Ensure current user is a PostgreSQL Entra administrator
     $existingAdmins = az postgres flexible-server $pgAdminCmd list --resource-group $ResourceGroupName --server-name $serverName --query "[].objectId" -o tsv 2>$null
@@ -254,15 +287,15 @@ else {
     }
     $addedPgAdmin = $false
     if (-not $isAdmin) {
-        Write-Host "✓ Adding current user as PostgreSQL Entra administrator..."
+        Write-Host "✓ Adding current ${identityType} as PostgreSQL Entra administrator..."
         $adminOutput = az postgres flexible-server $pgAdminCmd create `
             --resource-group $ResourceGroupName `
             --server-name $serverName `
             --display-name $currentUserUpn `
             --object-id $currentUserOid `
-            --type User 2>&1 | Out-String
+            --type $principalType 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0) {
-            Write-Warning "⚠ Failed to add current user as PostgreSQL admin. Table creation may fail."
+            Write-Warning "⚠ Failed to add current ${identityType} as PostgreSQL admin. Table creation may fail."
             Write-Warning "  $adminOutput"
         } else {
             $addedPgAdmin = $true
@@ -270,7 +303,7 @@ else {
             Start-Sleep -Seconds 60
         }
     } else {
-        Write-Host "✓ Current user is already a PostgreSQL Entra administrator."
+        Write-Host "✓ Current ${identityType} is already a PostgreSQL Entra administrator."
     }
 
     try {

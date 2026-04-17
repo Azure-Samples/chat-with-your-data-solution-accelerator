@@ -557,13 +557,25 @@ jobs:
       DATABASE_TYPE: ${{ inputs.DATABASE_TYPE }}
     secrets: inherit
 
-  # Call PostgreSQL setup workflow when DATABASE_TYPE is PostgreSQL
-  import-sample-data-postgresql:
+  # Run post-deployment setup (Function App client key + PostgreSQL tables)
+  post-deployment-setup:
     needs: [azure-setup, deploy-linux, deploy-windows]
     if: |
       always() &&
-      inputs.DATABASE_TYPE == 'PostgreSQL' &&
       (needs.deploy-linux.result == 'success' || needs.deploy-windows.result == 'success')
+    uses: ./.github/workflows/job-post-deployment-setup.yml
+    with:
+      RESOURCE_GROUP_NAME: ${{ needs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
+    secrets: inherit
+
+  # Call PostgreSQL setup workflow when DATABASE_TYPE is PostgreSQL
+  import-sample-data-postgresql:
+    needs: [azure-setup, deploy-linux, deploy-windows, post-deployment-setup]
+    if: |
+      always() &&
+      inputs.DATABASE_TYPE == 'PostgreSQL' &&
+      (needs.deploy-linux.result == 'success' || needs.deploy-windows.result == 'success') &&
+      needs.post-deployment-setup.result == 'success'
     uses: ./.github/workflows/import-sample-data-postgresql.yml
     with:
       RESOURCE_GROUP_NAME: ${{ needs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
@@ -572,11 +584,12 @@ jobs:
 
   # Call CosmosDB/Azure Search setup workflow when DATABASE_TYPE is CosmosDB
   import-sample-data-cosmosdb:
-    needs: [azure-setup, deploy-linux, deploy-windows]
+    needs: [azure-setup, deploy-linux, deploy-windows, post-deployment-setup]
     if: |
       always() &&
       inputs.DATABASE_TYPE == 'CosmosDB' &&
-      (needs.deploy-linux.result == 'success' || needs.deploy-windows.result == 'success')
+      (needs.deploy-linux.result == 'success' || needs.deploy-windows.result == 'success') &&
+      needs.post-deployment-setup.result == 'success'
     uses: ./.github/workflows/import-sample-data-cosmosdb.yml
     with:
       RESOURCE_GROUP_NAME: ${{ needs.azure-setup.outputs.RESOURCE_GROUP_NAME }}

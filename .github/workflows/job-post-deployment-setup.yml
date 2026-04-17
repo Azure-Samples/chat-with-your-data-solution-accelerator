@@ -1,0 +1,103 @@
+name: Post-Deployment Setup
+
+on:
+  workflow_dispatch:
+    inputs:
+      RESOURCE_GROUP_NAME:
+        description: 'Azure Resource Group name'
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      RESOURCE_GROUP_NAME:
+        description: 'Azure Resource Group name'
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  post-deployment-setup:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python Dependencies
+        shell: bash
+        run: |
+          pip install psycopg2-binary azure-identity
+
+      - name: Run Post-Deployment Setup (Attempt 1)
+        id: setup1
+        shell: bash
+        env:
+          RESOURCE_GROUP: ${{ inputs.RESOURCE_GROUP_NAME }}
+        run: |
+          chmod +x scripts/post_deployment_setup.sh
+          bash scripts/post_deployment_setup.sh "$RESOURCE_GROUP"
+        continue-on-error: true
+
+      - name: Wait 20 seconds before retry
+        if: ${{ steps.setup1.outcome == 'failure' }}
+        shell: bash
+        run: sleep 20s
+
+      - name: Run Post-Deployment Setup (Attempt 2)
+        id: setup2
+        if: ${{ steps.setup1.outcome == 'failure' }}
+        shell: bash
+        env:
+          RESOURCE_GROUP: ${{ inputs.RESOURCE_GROUP_NAME }}
+        run: |
+          chmod +x scripts/post_deployment_setup.sh
+          bash scripts/post_deployment_setup.sh "$RESOURCE_GROUP"
+        continue-on-error: true
+
+      - name: Wait 40 seconds before final retry
+        if: ${{ steps.setup2.outcome == 'failure' }}
+        shell: bash
+        run: sleep 40s
+
+      - name: Run Post-Deployment Setup (Attempt 3)
+        id: setup3
+        if: ${{ steps.setup2.outcome == 'failure' }}
+        shell: bash
+        env:
+          RESOURCE_GROUP: ${{ inputs.RESOURCE_GROUP_NAME }}
+        run: |
+          chmod +x scripts/post_deployment_setup.sh
+          bash scripts/post_deployment_setup.sh "$RESOURCE_GROUP"
+
+      - name: Generate Post-Deployment Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## 🔧 Post-Deployment Setup Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Job Status** | ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Resource Group** | \`${{ inputs.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Logout from Azure
+        if: always()
+        shell: bash
+        run: |
+          az logout || true
+          echo "Logged out from Azure."
