@@ -244,6 +244,9 @@ var azureAISearchName string = 'srch-${solutionSuffix}'
 ])
 param azureSearchSku string = 'standard'
 
+@description('Optional. Location override for the Azure AI Search service. Defaults to the main location if empty.')
+param azureSearchLocation string = ''
+
 @description('Azure AI Search Index.')
 var azureSearchIndex string = 'index-${solutionSuffix}'
 
@@ -1077,9 +1080,11 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
 
+var effectiveSearchLocation = !empty(azureSearchLocation) ? azureSearchLocation : location
+
 resource search 'Microsoft.Search/searchServices@2024-06-01-preview' = if (databaseType == 'CosmosDB') {
   name: azureAISearchName
-  location: location
+  location: effectiveSearchLocation
   sku: {
     name: azureSearchSku
   }
@@ -1091,7 +1096,7 @@ module searchUpdate 'br/public:avm/res/search/search-service:0.11.1' = if (datab
   params: {
     // Required parameters
     name: azureAISearchName
-    location: location
+    location: effectiveSearchLocation
     tags: allTags
     enableTelemetry: enableTelemetry
     sku: azureSearchSku
