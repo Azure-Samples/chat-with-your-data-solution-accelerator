@@ -42,6 +42,9 @@
     "azureSearchSku": {
       "value": "${AZURE_SEARCH_SKU=standard}"
     },
+    "azureSearchLocation": {
+      "value": "${AZURE_SEARCH_LOCATION}"
+    },
     "azureSearchEnableInDomain": {
       "value": "${AZURE_SEARCH_ENABLE_IN_DOMAIN=true}"
     },
