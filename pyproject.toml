@@ -37,7 +37,7 @@ opentelemetry-instrumentation-httpx = "^0.52b0"
 pillow = "11.0.0"
 azure-mgmt-cognitiveservices = "^14.1.0"
 jsonschema = "^4.25.1"
-semantic-kernel = {version = "1.39.0", python = "<3.13"}
+semantic-kernel = {version = "1.39.4", python = "<3.13"}
 pydantic = "2.11.10"
 azure-ai-ml = "^1.31.0"
 azure-cosmos = "^4.14.3"
