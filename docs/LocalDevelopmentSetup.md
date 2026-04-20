@@ -341,27 +341,25 @@ source .venv/bin/activate
 
 Install dependencies for all Python services:
 
-### 6.1. Install Backend Dependencies
+### 6.1. Install All Python Dependencies (Recommended)
 
 ```bash
-# Navigate to backend directory
-cd code/backend
+# From repository root (ensure virtual environment is activated)
+pip install --upgrade pip
+pip install poetry
+poetry install
+```
 
-# Install dependencies using Poetry
+This installs all backend, batch, and test dependencies defined in `pyproject.toml` at the repo root.
+
+### 6.2. Alternative: Export and Install via requirements.txt
+
+```bash
+# From repository root
 pip install --upgrade pip
 pip install poetry
 poetry self add poetry-plugin-export@latest
 poetry export -o requirements.txt
-pip install -r requirements.txt
-```
-
-### 6.2. Install Batch Function Dependencies
-
-```bash
-# Navigate to batch directory
-cd batch
-
-# Install dependencies
 pip install -r requirements.txt
 ```
 
@@ -886,6 +884,26 @@ az postgres flexible-server ad-admin create --server-name <server-name> --resour
 ## Troubleshooting
 
 ### Common Issues
+
+#### Linting Issues
+
+If `poetry run flake8 code` reports thousands of errors from third-party packages (e.g., in `code/backend/batch/.python_packages/`), ensure `.python_packages` is excluded in `.flake8`:
+
+```ini
+[flake8]
+exclude = .venv,.python_packages
+```
+
+#### Test Collection Errors
+
+If `pytest` fails with `ImportPathMismatchError` involving `tests.conftest`, ensure `pytest.ini` includes `testpaths` to limit test collection to the main test directory:
+
+```ini
+[pytest]
+testpaths = code/tests
+```
+
+This prevents conflicts between `code/tests/conftest.py` and `tests/e2e-test/tests/conftest.py`.
 
 #### Python Version Issues
 
