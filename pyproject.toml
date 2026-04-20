@@ -47,15 +47,15 @@ pgvector = "^0.4.2"
 rfc3987 = "^1.3.8"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^9.0.2"
-pytest-cov = "7.0.0"
+pytest = "^9.0.3"
+pytest-cov = "7.1.0"
 flake8 = "7.3.0"
-black = "25.12.0"
+black = "26.3.1"
 pre-commit = "4.5.1"
 pytest_httpserver = "1.1.5"
 trustme = "1.2.1"
 jupyter = "1.1.1"
-pytest-asyncio = "^1.2.0"
+pytest-asyncio = "^1.3.0"
 
 [tool.poetry.group.prompt-flow]
 optional = true
