@@ -127,13 +127,13 @@
       "value": "${ADVANCED_IMAGE_PROCESSING_MAX_IMAGES=1}"
     },
     "azureOpenAIEmbeddingModel": {
-      "value": "${AZURE_OPENAI_EMBEDDING_MODEL=text-embedding-ada-002}"
+      "value": "${AZURE_OPENAI_EMBEDDING_MODEL=text-embedding-3-small}"
     },
     "azureOpenAIEmbeddingModelName": {
-      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_NAME=text-embedding-ada-002}"
+      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_NAME=text-embedding-3-small}"
     },
     "azureOpenAIEmbeddingModelVersion": {
-      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_VERSION=2}"
+      "value": "${AZURE_OPENAI_EMBEDDING_MODEL_VERSION=1}"
     },
     "azureOpenAIEmbeddingModelCapacity": {
       "value": "${AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY=100}"

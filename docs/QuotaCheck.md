@@ -12,7 +12,7 @@ azd auth login
 
 ### 📌 Default Models & Capacities:
 ```
-gpt4.1:150, text-embedding-ada-002:100
+gpt4.1:150, text-embedding-3-small:100
 ```
 ### 📌 Default Regions:
 ```
@@ -38,7 +38,7 @@ australiaeast, eastus2, japaneast, uksouth
    ```
 ✔️ Check specific model(s) in default regions:
   ```
-  ./quota_check_params.sh --models gpt4.1:150,text-embedding-ada-002:100
+  ./quota_check_params.sh --models gpt4.1:150,text-embedding-3-small:100
   ```
 ✔️ Check default models in specific region(s):
 ```
@@ -50,7 +50,7 @@ australiaeast, eastus2, japaneast, uksouth
 ```
 ✔️ All parameters combined:
 ```
-./quota_check_params.sh --models gpt4.1:150,text-embedding-ada-002:100 --regions eastus2,japaneast --verbose
+./quota_check_params.sh --models gpt4.1:150,text-embedding-3-small:100 --regions eastus2,japaneast --verbose
 ```
 
 ### **Sample Output**

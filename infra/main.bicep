@@ -187,18 +187,18 @@ param azureOpenAIApiVersion string = '2024-02-01'
 param azureOpenAIStream string = 'true'
 
 @description('Optional. Azure OpenAI Embedding Model Deployment Name.')
-param azureOpenAIEmbeddingModel string = 'text-embedding-ada-002'
+param azureOpenAIEmbeddingModel string = 'text-embedding-3-small'
 
 @description('Optional. Azure OpenAI Embedding Model Name.')
-param azureOpenAIEmbeddingModelName string = 'text-embedding-ada-002'
+param azureOpenAIEmbeddingModelName string = 'text-embedding-3-small'
 
 @description('Optional. Azure OpenAI Embedding Model Version.')
-param azureOpenAIEmbeddingModelVersion string = '2'
+param azureOpenAIEmbeddingModelVersion string = '1'
 
 @description('Optional. Azure OpenAI Embedding Model Capacity - See here for more info https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/quota .')
 param azureOpenAIEmbeddingModelCapacity int = 100
 
-@description('Optional. Azure Search vector field dimensions. Must match the embedding model dimensions. 1536 for text-embedding-ada-002, 3072 for text-embedding-3-large. See https://learn.microsoft.com/en-us/azure/search/cognitive-search-skill-azure-openai-embedding#supported-dimensions-by-modelname.(Only for databaseType=CosmosDB)')
+@description('Optional. Azure Search vector field dimensions. Must match the embedding model dimensions. 1536 for text-embedding-3-small, 3072 for text-embedding-3-large. See https://learn.microsoft.com/en-us/azure/search/cognitive-search-skill-azure-openai-embedding#supported-dimensions-by-modelname.(Only for databaseType=CosmosDB)')
 param azureSearchDimensions string = '1536'
 
 @description('Optional. Name of Computer Vision Resource (if useAdvancedImageProcessing=true).')
@@ -339,7 +339,6 @@ var blobContainerName = 'documents'
 var queueName = 'doc-processing'
 var clientKey = '${uniqueString(guid(subscription().id, deployment().name))}${newGuidString}'
 var eventGridSystemTopicName = 'evgt-${solutionSuffix}'
-var baseUrl = 'https://raw.githubusercontent.com/Azure-Samples/chat-with-your-data-solution-accelerator/main/'
 
 @description('Optional. Image version tag to use.')
 param appversion string = 'latest_waf' // Update GIT deployment branch
@@ -381,14 +380,10 @@ param createdBy string = contains(deployer(), 'userPrincipalName')
 resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
   name: 'default'
   properties: {
-    tags: union(
-      existingTags,
-      allTags,
-      {
-        TemplateName: 'CWYD'
-        CreatedBy: createdBy
-      }
-    )
+    tags: union(existingTags, allTags, {
+      TemplateName: 'CWYD'
+      CreatedBy: createdBy
+    })
   }
 }
 
@@ -843,25 +838,6 @@ module postgresDBModule 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.
       }
     ]
   }
-}
-
-module pgSqlDelayScript 'br/public:avm/res/resources/deployment-script:0.5.1' = if (databaseType == 'PostgreSQL') {
-  name: take('avm.res.deployment-script.delay.${postgresResourceName}', 64)
-  params: {
-    name: 'delay-for-postgres-${solutionSuffix}'
-    location: resourceGroup().location
-    tags: tags
-    kind: 'AzurePowerShell'
-    enableTelemetry: enableTelemetry
-    scriptContent: 'start-sleep -Seconds 600'
-    azPowerShellVersion: '11.0'
-    timeout: 'PT15M'
-    cleanupPreference: 'Always'
-    retentionInterval: 'PT1H'
-  }
-  dependsOn: [
-    postgresDBModule
-  ]
 }
 
 // Store secrets in a keyvault
@@ -1450,7 +1426,6 @@ module function 'modules/app/function.bicep' = {
     serverFarmResourceId: webServerFarm.outputs.resourceId
     applicationInsightsName: enableMonitoring ? monitoring!.outputs.applicationInsightsName : ''
     storageAccountName: storage.outputs.name
-    clientKey: clientKey
     userAssignedIdentityResourceId: managedIdentityModule.outputs.resourceId
     userAssignedIdentityClientId: managedIdentityModule.outputs.clientId
     // WAF aligned configurations
@@ -1854,37 +1829,6 @@ module systemAssignedIdentityRoleAssignments './modules/app/roleassignments.bice
   params: {
     roleAssignments: systemAssignedRoleAssignments
   }
-}
-
-//========== Deployment script to upload data ========== //
-module createIndex 'br/public:avm/res/resources/deployment-script:0.5.1' = if (databaseType == 'PostgreSQL') {
-  name: take('avm.res.resources.deployment-script.createIndex', 64)
-  params: {
-    kind: 'AzureCLI'
-    name: 'copy_demo_Data_${solutionSuffix}'
-    azCliVersion: '2.52.0'
-    cleanupPreference: 'Always'
-    location: location
-    enableTelemetry: enableTelemetry
-    managedIdentities: {
-      userAssignedResourceIds: [
-        managedIdentityModule.outputs.resourceId
-      ]
-    }
-    retentionInterval: 'PT1H'
-    runOnce: true
-    primaryScriptUri: '${baseUrl}scripts/run_create_table_script.sh'
-    arguments: '${baseUrl} ${resourceGroup().name} ${postgresDBModule!.outputs.fqdn} ${managedIdentityModule.outputs.name}'
-    storageAccountResourceId: storage.outputs.resourceId
-    subnetResourceIds: enablePrivateNetworking
-      ? [
-          virtualNetwork!.outputs.deploymentScriptsSubnetResourceId
-        ]
-      : null
-    tags: tags
-    timeout: 'PT30M'
-  }
-  dependsOn: [pgSqlDelayScript]
 }
 
 var azureOpenAIModelInfo = string({
