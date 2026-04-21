@@ -10,6 +10,7 @@ from backend.batch.utilities.chat_history.auth_utils import (
 from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from backend.batch.utilities.helpers.env_helper import EnvHelper
 from backend.batch.utilities.chat_history.database_factory import DatabaseFactory
+from backend.batch.utilities.loggers.event_utils import track_event_if_configured
 
 load_dotenv()
 bp_chat_history_response = Blueprint("chat_history", __name__)
@@ -110,6 +111,11 @@ async def rename_conversation():
         if not title or title.strip() == "":
             return jsonify({"error": "A non-empty title is required"}), 400
 
+        track_event_if_configured("HistoryRenameRequested", {
+            "conversation_id": conversation_id,
+            "user_id": user_id,
+        })
+
         # Initialize and connect to the database client
         conversation_client = init_database_client()
         if not conversation_client:
@@ -166,6 +172,11 @@ async def get_conversation():
         conversation_id = request_json.get("conversation_id", None)
         if not conversation_id:
             return jsonify({"error": "conversation_id is required"}), 400
+
+        track_event_if_configured("HistoryReadRequested", {
+            "conversation_id": conversation_id,
+            "user_id": user_id,
+        })
 
         # Initialize and connect to the database client
         conversation_client = init_database_client()
@@ -245,6 +256,11 @@ async def delete_conversation():
                 ),
                 400,
             )
+
+        track_event_if_configured("HistoryDeleteRequested", {
+            "conversation_id": conversation_id,
+            "user_id": user_id,
+        })
 
         # Initialize and connect to the database client
         conversation_client = init_database_client()
@@ -368,6 +384,11 @@ async def update_conversation():
         conversation_id = request_json.get("conversation_id", None)
         if not conversation_id:
             return jsonify({"error": "conversation_id is required"}), 400
+
+        track_event_if_configured("HistoryUpdateRequested", {
+            "conversation_id": conversation_id,
+            "user_id": user_id,
+        })
 
         messages = request_json["messages"]
         if not messages or len(messages) == 0:
