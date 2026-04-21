@@ -58,6 +58,18 @@ All presets are runtime-switchable via `active.json` → `ai_assistant_type`. No
 
 ## 2. Conversation Flows
 
+CWYD supports two conversation flows, selected at deployment time via the `CONVERSATION_FLOW` environment variable.
+
+### Custom Flow
+
+The **Custom** flow is the full-featured path. The application owns the entire RAG pipeline: it queries Azure AI Search, builds the prompt with retrieved context, calls the LLM, and optionally validates the answer before returning it. Because the application controls every step, all advanced features are available — multiple orchestrators, both database backends, advanced image processing, post-answering validation, and custom business logic hooks.
+
+### BYOD Flow (Bring Your Own Data)
+
+The **BYOD** flow delegates retrieval and grounding to Azure OpenAI's built-in "On Your Data" capability. Instead of the application running its own search-then-prompt pipeline, it sends the user's question to Azure OpenAI with a data-source configuration that points to Azure AI Search. Azure OpenAI performs the retrieval, grounding, and citation generation internally. This makes BYOD simpler to set up and maintain, but limits customisation — there is no application-level post-processing, no advanced image pipeline, and the data source must be CosmosDB-backed Azure AI Search.
+
+### Comparison
+
 | Flow | v1 | v2 | Status |
 |---|---|---|---|
 | **Custom** | Full-featured, all databases, all orchestrators, advanced image processing, semantic search | Same — now async-native via FastAPI | **Kept** |
