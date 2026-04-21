@@ -6,6 +6,7 @@ metadata:
 
 requiredVersions:
   azd: '>= 1.18.0 != 1.23.9'
+  bicep: '>= 0.33.0'
 
 hooks:
   postprovision:
@@ -16,6 +17,42 @@ hooks:
     windows:
       shell: pwsh
       run: ./scripts/parse_env.ps1
+  postdeploy:
+    windows:
+      shell: pwsh
+      run: |
+        Write-Host ""
+        Write-Host "=============================================="
+        Write-Host " Deployment Complete - Post-Deployment Steps"
+        Write-Host "=============================================="
+        Write-Host ""
+        Write-Host "1. Login to Azure CLI (required for post-deployment script):" -ForegroundColor Yellow
+        Write-Host "   az login" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "2. Run the post-deployment setup script:" -ForegroundColor Yellow
+        Write-Host "   ./scripts/post_deployment_setup.ps1 -ResourceGroupName `"$env:AZURE_RESOURCE_GROUP`"" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "   Or using Bash:" -ForegroundColor Yellow
+        Write-Host "   bash scripts/post_deployment_setup.sh `"$env:AZURE_RESOURCE_GROUP`"" -ForegroundColor Cyan
+        Write-Host ""
+      continueOnError: false
+      interactive: true
+    posix:
+      shell: sh
+      run: |
+        echo ""
+        echo "=============================================="
+        echo " Deployment Complete - Post-Deployment Steps"
+        echo "=============================================="
+        echo ""
+        echo "1. Login to Azure CLI (required for post-deployment script):"
+        echo "   az login"
+        echo ""
+        echo "2. Run the post-deployment setup script:"
+        echo "   bash scripts/post_deployment_setup.sh \"$AZURE_RESOURCE_GROUP\""
+        echo ""
+      continueOnError: false
+      interactive: true
 services:
   web:
     project: ./code
@@ -28,12 +65,12 @@ services:
       prepackage:
         windows:
           shell: pwsh
-          run: ../scripts/package_frontend.ps1
+          run: ./scripts/package_frontend.ps1
           interactive: true
           continueOnError: false
         posix:
           shell: sh
-          run: ../scripts/package_frontend.sh
+          run: bash ./scripts/package_frontend.sh
           interactive: true
           continueOnError: false
 

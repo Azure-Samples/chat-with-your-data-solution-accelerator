@@ -112,6 +112,82 @@ jobs:
           echo "SAMPLE_DATA_DIR=$SAMPLE_DATA_DIR" >> $GITHUB_ENV
           echo "✅ Sample data files downloaded to $SAMPLE_DATA_DIR"
 
+      - name: Login to Azure for Sample Data Download
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Enable Public Access on Sample Data Storage (if disabled)
+        id: sample_storage_access
+        shell: bash
+        env:
+          STORAGE_ACCOUNT_NAME: ${{ vars.SAMPLE_DATA_STORAGE_ACCOUNT_NAME }}
+        run: |
+          echo "🔍 Checking public network access on sample data storage account '${STORAGE_ACCOUNT_NAME}'..."
+
+          # Discover the resource group for the sample data storage account
+          SAMPLE_STORAGE_RG=$(az storage account list --query "[?name=='${STORAGE_ACCOUNT_NAME}'].resourceGroup | [0]" -o tsv)
+          if [ -z "$SAMPLE_STORAGE_RG" ] || [ "$SAMPLE_STORAGE_RG" == "null" ]; then
+            echo "❌ Could not find resource group for storage account '${STORAGE_ACCOUNT_NAME}'."
+            exit 1
+          fi
+          echo "SAMPLE_STORAGE_RG=$SAMPLE_STORAGE_RG" >> $GITHUB_ENV
+          echo "SAMPLE_STORAGE_RG=$SAMPLE_STORAGE_RG" >> $GITHUB_OUTPUT
+
+          CURRENT_ACCESS=$(az storage account show --name "$STORAGE_ACCOUNT_NAME" --resource-group "$SAMPLE_STORAGE_RG" --query "publicNetworkAccess" -o tsv)
+          CURRENT_DEFAULT_ACTION=$(az storage account show --name "$STORAGE_ACCOUNT_NAME" --resource-group "$SAMPLE_STORAGE_RG" --query "networkRuleSet.defaultAction" -o tsv)
+
+          echo "   Current publicNetworkAccess: $CURRENT_ACCESS"
+          echo "   Current defaultAction: $CURRENT_DEFAULT_ACTION"
+
+          NEEDS_RESTORE="false"
+          if [ "$CURRENT_ACCESS" == "Disabled" ] || [ "$CURRENT_DEFAULT_ACTION" == "Deny" ]; then
+            echo "🔓 Enabling public access on sample data storage account..."
+            az storage account update --name "$STORAGE_ACCOUNT_NAME" --resource-group "$SAMPLE_STORAGE_RG" --public-network-access Enabled --output none
+            az storage account update --name "$STORAGE_ACCOUNT_NAME" --resource-group "$SAMPLE_STORAGE_RG" --default-action Allow --output none
+            NEEDS_RESTORE="true"
+
+            echo "⏳ Waiting 30 seconds for network changes to propagate..."
+            sleep 30
+            echo "✅ Public access enabled on sample data storage account."
+          else
+            echo "✅ Public access is already enabled."
+          fi
+
+          echo "NEEDS_RESTORE=$NEEDS_RESTORE" >> $GITHUB_ENV
+          echo "NEEDS_RESTORE=$NEEDS_RESTORE" >> $GITHUB_OUTPUT
+          echo "ORIGINAL_ACCESS=$CURRENT_ACCESS" >> $GITHUB_ENV
+          echo "ORIGINAL_DEFAULT_ACTION=$CURRENT_DEFAULT_ACTION" >> $GITHUB_ENV
+
+      - name: Download Sample Data from Azure Storage
+        shell: bash
+        env:
+          STORAGE_ACCOUNT_NAME: ${{ vars.SAMPLE_DATA_STORAGE_ACCOUNT_NAME }}
+          STORAGE_CONTAINER_NAME: ${{ vars.SAMPLE_DATA_STORAGE_CONTAINER_NAME }}
+        run: |
+          SAMPLE_DATA_DIR="${RUNNER_TEMP}/sample-data"
+          mkdir -p "$SAMPLE_DATA_DIR"
+
+          echo "📥 Downloading sample data files from storage account '${STORAGE_ACCOUNT_NAME}'..."
+          az storage blob download \
+            --account-name "$STORAGE_ACCOUNT_NAME" \
+            --container-name "$STORAGE_CONTAINER_NAME" \
+            --name "azure_search_data.json" \
+            --file "$SAMPLE_DATA_DIR/azure_search_data.json" \
+            --auth-mode login
+
+          az storage blob download \
+            --account-name "$STORAGE_ACCOUNT_NAME" \
+            --container-name "$STORAGE_CONTAINER_NAME" \
+            --name "azure_search_data_UseVectorization_SemanticSearch.json" \
+            --file "$SAMPLE_DATA_DIR/azure_search_data_UseVectorization_SemanticSearch.json" \
+            --auth-mode login
+
+          echo "SAMPLE_DATA_DIR=$SAMPLE_DATA_DIR" >> $GITHUB_ENV
+          echo "✅ Sample data files downloaded to $SAMPLE_DATA_DIR"
+
       - name: Validate Workflow Input Parameters
         shell: bash
         env:
