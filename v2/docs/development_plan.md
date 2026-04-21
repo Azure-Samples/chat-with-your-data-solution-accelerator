@@ -8,7 +8,7 @@
 
 ## Summary
 
-Modernize the Chat With Your Data Solution Accelerator from a monolithic Flask application with four co-installed orchestrators into a modular **FastAPI + Azure Functions** architecture. Replace the direct Azure OpenAI SDK with **Foundry IQ** for knowledge base management and embeddings, remove Prompt Flow, Semantic Kernel, Streamlit admin, one-click deploy, and Poetry references, add the **Azure AI Agent Framework** with reasoning model support, upgrade **LangChain to LangGraph** for PostgreSQL indexing, and split **Azure Functions** into a modular RAG indexing pipeline. Azure Bot Service and Teams plugin are deferred to a future version.
+Modernize the Chat With Your Data Solution Accelerator from a monolithic Flask application with four co-installed orchestrators into a modular **FastAPI + Azure Functions** architecture. Replace the direct Azure OpenAI SDK with **Foundry IQ** (Knowledge Base, Embeddings), remove Prompt Flow, Semantic Kernel, Streamlit admin, one-click deploy, and Poetry references, add the **Azure AI Agent Framework** with reasoning model support, upgrade **LangChain to LangGraph** for PostgreSQL indexing, and split **Azure Functions** into a modular RAG indexing pipeline. Azure Bot Service and Teams plugin are deferred to a future version.
 
 **Key principle**: Infrastructure is Phase 1. Every phase results in a deployable `azd up` solution — some infra, some data, some scripts, some backend, and some frontend — even if they don't look great yet.
 
@@ -121,8 +121,7 @@ Modernize the Chat With Your Data Solution Accelerator from a monolithic Flask a
 | Component | Purpose |
 |-----------|---------|
 | **Azure AI Agent Framework** | Modern agent orchestration — replaces Semantic Kernel and Prompt Flow |
-| **Foundry IQ** | Knowledge base management, embeddings, and model access (GPT-\*, o-series reasoning) |
-| **Reasoning model support** | o-series reasoning models routed through Foundry IQ |
+| **Foundry IQ** (Knowledge Base, Embeddings) | Centralized knowledge base, embeddings, and model access (GPT-\*, o-series reasoning) |
 
 ### 2.3 Updates
 
@@ -643,7 +642,7 @@ AZURE_TENANT_ID=your-tenant-id
 
 | Decision | Rationale |
 |----------|-----------|
-| **Foundry IQ** for knowledge base & embeddings; **LangChain / Agent Framework** for orchestration | Clean separation: knowledge management vs. agent logic |
+| **Foundry IQ** (Knowledge Base, Embeddings) for knowledge management; **LangChain / Agent Framework** for orchestration | Clean separation: knowledge management vs. agent logic |
 | **Reasoning models** (o-series) enabled through Foundry IQ | Centralized model management; no per-orchestrator model wiring |
 | **Infra is Phase 1** — every phase results in deployable `azd up` | Continuous validation, early issue detection, always-working baseline |
 | **Azure Bot Service + Teams plugin** deferred to future version | Focus v2 on core modernization; extensibility built in for later |
