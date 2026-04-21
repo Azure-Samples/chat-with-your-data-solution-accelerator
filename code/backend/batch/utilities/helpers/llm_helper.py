@@ -103,6 +103,7 @@ class LLMHelper:
                 azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
                 api_key=self.env_helper.OPENAI_API_KEY,
                 azure_deployment=self.embedding_model,
+                model=self.embedding_model,
                 dimensions=dimensions,
                 chunk_size=1,
             )
@@ -110,6 +111,7 @@ class LLMHelper:
             return AzureOpenAIEmbeddings(
                 azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
                 azure_deployment=self.embedding_model,
+                model=self.embedding_model,
                 dimensions=dimensions,
                 chunk_size=1,
                 azure_ad_token_provider=self.token_provider,

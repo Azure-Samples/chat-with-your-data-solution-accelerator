@@ -32,7 +32,7 @@ def setup_default_mocking(httpserver: HTTPServer, app_config: AppConfig):
                     "index": 0,
                 }
             ],
-            "model": "text-embedding-ada-002",
+            "model": "text-embedding-3-small",
         }
     )
 

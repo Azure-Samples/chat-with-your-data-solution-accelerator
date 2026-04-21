@@ -2,6 +2,9 @@ name: Broken Link Checker
 
 on:
   pull_request:
+    paths:
+      - '**/*.md'
+      - '.github/workflows/broken-links-checker.yml'
   workflow_dispatch:
 
 permissions:
