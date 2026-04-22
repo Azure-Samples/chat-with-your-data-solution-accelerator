@@ -34,14 +34,14 @@ param virtualNetworkLinks virtualNetworkLinkType[]?
 @description('Optional. The location of the PrivateDNSZone. Should be global.')
 param location string = 'global'
 
-// import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+// import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 // @sys.description('Optional. Array of role assignments to create.')
 // param roleAssignments roleAssignmentType[]?
 
 @description('Optional. Tags of the resource.')
 param tags object?
 
-import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.6.0'
+import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @sys.description('Optional. The lock settings of the service.')
 param lock lockType?
 

@@ -63,7 +63,7 @@ param computeType string
 @sys.description('Optional. The properties of the compute. Will be ignored in case "resourceId" is set.')
 param properties object?
 
-import { managedIdentityAllType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { managedIdentityAllType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @sys.description('Optional. The managed identity definition for this resource.')
 param managedIdentities managedIdentityAllType?
 
@@ -144,4 +144,4 @@ output resourceGroupName string = resourceGroup().name
 output systemAssignedMIPrincipalId string? = compute.?identity.?principalId
 
 @sys.description('The location the resource was deployed into.')
-output location string = compute.location
+output location string = compute.?location ?? location
