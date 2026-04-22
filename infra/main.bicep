@@ -645,7 +645,7 @@ var dnsZoneIndex = {
 // - Deploys all zones if no existing Foundry project is used
 // - Excludes AI-related zones when using with an existing Foundry project
 // ===================================================
-@batchSize(5)
+@batchSize(10)
 module avmPrivateDnsZones './modules/private-dns-zone/private-dns-zone.bicep' = [
   for (zone, i) in privateDnsZones: if (enablePrivateNetworking) {
     name: 'avm.res.network.private-dns-zone.${contains(zone, 'azurecontainerapps.io') ? 'containerappenv' : split(zone, '.')[1]}'
@@ -989,7 +989,7 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
         : []
     )
   }
-  dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
+  // Implicit dependency on the specific DNS zone is established via the privateDnsZoneResourceId param reference
 }
 
 module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvancedImageProcessing) {
@@ -1030,7 +1030,7 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
         : []
     )
   }
-  dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
+  // Implicit dependency on the specific DNS zone is established via the privateDnsZoneResourceId param reference
 }
 
 // The Web socket from front end application connects to Speech service over a public internet and it does not work over a Private endpoint.
@@ -1074,7 +1074,7 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
         : []
     )
   }
-  dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
+  // Speech service always uses public networking (enablePrivateNetworkingSpeech = false), no DNS zone dependency needed
 }
 
 resource search 'Microsoft.Search/searchServices@2024-06-01-preview' = if (databaseType == 'CosmosDB') {
@@ -1230,12 +1230,14 @@ module web 'modules/app/web.bicep' = {
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
         AZURE_BLOB_CONTAINER_NAME: blobContainerName
-        AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision!.outputs.endpoint : ''
+        // Endpoints constructed from resource names to avoid implicit dependencies on AI service modules,
+        // enabling parallel deployment of app services and AI services (customSubDomainName defaults to name)
+        AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${formRecognizerName}.cognitiveservices.azure.com/'
+        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? 'https://${computerVisionName}.cognitiveservices.azure.com/' : ''
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.uri
+        AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${contentSafetyName}.cognitiveservices.azure.com/'
+        AZURE_KEY_VAULT_ENDPOINT: 'https://${keyVaultName}${environment().suffixes.keyvaultDns}/'
         AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
         AZURE_OPENAI_MODEL: azureOpenAIModel
         AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -1253,7 +1255,7 @@ module web 'modules/app/web.bicep' = {
         AZURE_SPEECH_SERVICE_NAME: speechServiceName
         AZURE_SPEECH_SERVICE_REGION: location
         AZURE_SPEECH_RECOGNIZER_LANGUAGES: recognizedLanguages
-        AZURE_SPEECH_REGION_ENDPOINT: speechService.outputs.endpoint
+        AZURE_SPEECH_REGION_ENDPOINT: 'https://${speechServiceName}.cognitiveservices.azure.com/'
         USE_ADVANCED_IMAGE_PROCESSING: useAdvancedImageProcessing ? 'true' : 'false'
         ADVANCED_IMAGE_PROCESSING_MAX_IMAGES: string(advancedImageProcessingMaxImages)
         ORCHESTRATION_STRATEGY: orchestrationStrategy
@@ -1333,12 +1335,13 @@ module adminweb 'modules/app/adminweb.bicep' = {
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
         AZURE_BLOB_CONTAINER_NAME: blobContainerName
-        AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision!.outputs.endpoint : ''
+        // Endpoints constructed from resource names to avoid implicit dependencies on AI service modules
+        AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${formRecognizerName}.cognitiveservices.azure.com/'
+        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? 'https://${computerVisionName}.cognitiveservices.azure.com/' : ''
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.uri
+        AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${contentSafetyName}.cognitiveservices.azure.com/'
+        AZURE_KEY_VAULT_ENDPOINT: 'https://${keyVaultName}${environment().suffixes.keyvaultDns}/'
         AZURE_OPENAI_RESOURCE: azureOpenAIResourceName
         AZURE_OPENAI_MODEL: azureOpenAIModel
         AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
@@ -1440,12 +1443,13 @@ module function 'modules/app/function.bicep' = {
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
         AZURE_BLOB_CONTAINER_NAME: blobContainerName
-        AZURE_FORM_RECOGNIZER_ENDPOINT: formrecognizer.outputs.endpoint
-        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? computerVision!.outputs.endpoint : ''
+        // Endpoints constructed from resource names to avoid implicit dependencies on AI service modules
+        AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${formRecognizerName}.cognitiveservices.azure.com/'
+        AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? 'https://${computerVisionName}.cognitiveservices.azure.com/' : ''
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION: computerVisionVectorizeImageModelVersion
-        AZURE_CONTENT_SAFETY_ENDPOINT: contentsafety.outputs.endpoint
-        AZURE_KEY_VAULT_ENDPOINT: keyvault.outputs.uri
+        AZURE_CONTENT_SAFETY_ENDPOINT: 'https://${contentSafetyName}.cognitiveservices.azure.com/'
+        AZURE_KEY_VAULT_ENDPOINT: 'https://${keyVaultName}${environment().suffixes.keyvaultDns}/'
         AZURE_OPENAI_MODEL: azureOpenAIModel
         AZURE_OPENAI_MODEL_NAME: azureOpenAIModelName
         AZURE_OPENAI_MODEL_VERSION: azureOpenAIModelVersion
@@ -1571,7 +1575,7 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
         : []
     )
   }
-  dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
+  // Implicit dependency on the specific DNS zone is established via the privateDnsZoneResourceId param reference
 }
 
 module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
@@ -1611,7 +1615,7 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
         : []
     )
   }
-  dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
+  // Implicit dependency on the specific DNS zone is established via the privateDnsZoneResourceId param reference
 }
 
 // If advanced image processing is used, storage account already should be publicly accessible.

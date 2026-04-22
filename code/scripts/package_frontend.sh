@@ -9,5 +9,5 @@ cp *.py dist
 cp -r backend dist
 
 cd frontend
-npm install
+npm ci
 npm run build
