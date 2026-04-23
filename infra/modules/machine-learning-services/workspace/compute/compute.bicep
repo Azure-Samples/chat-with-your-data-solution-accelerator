@@ -90,7 +90,7 @@ var identity = !empty(managedIdentities)
 // Existing resources references //
 // ============================= //
 
-resource machineLearningWorkspace 'Microsoft.MachineLearningServices/workspaces@2022-10-01' existing = {
+resource machineLearningWorkspace 'Microsoft.MachineLearningServices/workspaces@2025-12-01' existing = {
   name: machineLearningWorkspaceName
 }
 
@@ -98,7 +98,7 @@ resource machineLearningWorkspace 'Microsoft.MachineLearningServices/workspaces@
 // Deployments  //
 // ============ //
 
-resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2024-10-01' = if (deployCompute == true) {
+resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2025-12-01' = if (deployCompute == true) {
   name: name
   location: location
   tags: empty(resourceId) ? tags : any(null)

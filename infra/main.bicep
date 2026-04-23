@@ -424,7 +424,7 @@ var replicaLocation = replicaRegionPairs[location]
 // ============== //
 
 #disable-next-line no-deployments-resources
-resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableTelemetry) {
+resource avmTelemetry 'Microsoft.Resources/deployments@2025-04-01' = if (enableTelemetry) {
   name: '46d3xbcp.ptn.sa-chatwithyourdata.${replace('-..--..-', '.', '-')}.${substring(uniqueString(deployment().name, location), 0, 4)}'
   properties: {
     mode: 'Incremental'
@@ -1078,7 +1078,7 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
 
-resource search 'Microsoft.Search/searchServices@2024-06-01-preview' = if (databaseType == 'CosmosDB') {
+resource search 'Microsoft.Search/searchServices@2025-05-01' = if (databaseType == 'CosmosDB') {
   name: azureAISearchName
   location: location
   sku: {

@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "13203650020618223255"
+      "templateHash": "534548405766480491"
     }
   },
   "parameters": {
@@ -706,7 +706,7 @@
     "avmTelemetry": {
       "condition": "[parameters('enableTelemetry')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2024-03-01",
+      "apiVersion": "2025-04-01",
       "name": "[format('46d3xbcp.ptn.sa-chatwithyourdata.{0}.{1}', replace('-..--..-', '.', '-'), substring(uniqueString(deployment().name, parameters('location')), 0, 4))]",
       "properties": {
         "mode": "Incremental",
@@ -726,7 +726,7 @@
     "search": {
       "condition": "[equals(parameters('databaseType'), 'CosmosDB')]",
       "type": "Microsoft.Search/searchServices",
-      "apiVersion": "2024-06-01-preview",
+      "apiVersion": "2025-05-01",
       "name": "[variables('azureAISearchName')]",
       "location": "[parameters('location')]",
       "sku": {
@@ -15366,7 +15366,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "461288279801959396"
+              "templateHash": "5189928849531869160"
             },
             "name": "Private DNS Zones",
             "description": "This module deploys a Private DNS zone."
@@ -15519,7 +15519,7 @@
             "avmTelemetry": {
               "condition": "[parameters('enableTelemetry')]",
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2024-03-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('46d3xbcp.res.network-privatednszone.{0}.{1}', replace('-..--..-', '.', '-'), substring(uniqueString(deployment().name, parameters('location')), 0, 4))]",
               "properties": {
                 "mode": "Incremental",
@@ -15538,7 +15538,7 @@
             },
             "privateDnsZone": {
               "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
+              "apiVersion": "2024-06-01",
               "name": "[parameters('name')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]"
@@ -15601,7 +15601,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.41.2.15936",
-                      "templateHash": "11851525189118797157"
+                      "templateHash": "1165834981200234914"
                     },
                     "name": "Private DNS Zone Virtual Network Link",
                     "description": "This module deploys a Private DNS Zone Virtual Network Link."
@@ -15662,7 +15662,7 @@
                     "privateDnsZone": {
                       "existing": true,
                       "type": "Microsoft.Network/privateDnsZones",
-                      "apiVersion": "2020-06-01",
+                      "apiVersion": "2024-06-01",
                       "name": "[parameters('privateDnsZoneName')]"
                     },
                     "virtualNetworkLink": {
@@ -15813,7 +15813,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "887113350668391703"
+              "templateHash": "1071052331176296479"
             },
             "name": "Azure Cosmos DB account",
             "description": "This module deploys an Azure Cosmos DB account. The API used for the account is determined by the child resources that are deployed."
@@ -16716,7 +16716,7 @@
               "type": "object",
               "metadata": {
                 "__bicep_resource_derived_type!": {
-                  "source": "Microsoft.DocumentDB/databaseAccounts@2024-11-15#properties/tags"
+                  "source": "Microsoft.DocumentDB/databaseAccounts@2025-10-15#properties/tags"
                 },
                 "description": "Optional. Tags for the resource."
               },
@@ -16996,7 +16996,7 @@
             "avmTelemetry": {
               "condition": "[parameters('enableTelemetry')]",
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2024-07-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('46d3xbcp.res.documentdb-databaseaccount.{0}.{1}', replace('-..--..-', '.', '-'), substring(uniqueString(deployment().name, parameters('location')), 0, 4))]",
               "properties": {
                 "mode": "Incremental",
@@ -17015,7 +17015,7 @@
             },
             "databaseAccount": {
               "type": "Microsoft.DocumentDB/databaseAccounts",
-              "apiVersion": "2024-11-15",
+              "apiVersion": "2025-10-15",
               "name": "[parameters('name')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
@@ -17116,7 +17116,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.41.2.15936",
-                      "templateHash": "7264846420703255600"
+                      "templateHash": "2023035970556473595"
                     },
                     "name": "DocumentDB Database Account SQL Databases",
                     "description": "This module deploys a SQL Database in a CosmosDB Account."
@@ -17170,12 +17170,12 @@
                     "databaseAccount": {
                       "existing": true,
                       "type": "Microsoft.DocumentDB/databaseAccounts",
-                      "apiVersion": "2024-11-15",
+                      "apiVersion": "2025-10-15",
                       "name": "[parameters('databaseAccountName')]"
                     },
                     "sqlDatabase": {
                       "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases",
-                      "apiVersion": "2024-11-15",
+                      "apiVersion": "2025-10-15",
                       "name": "[format('{0}/{1}', parameters('databaseAccountName'), parameters('name'))]",
                       "tags": "[parameters('tags')]",
                       "properties": {
@@ -17248,7 +17248,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.41.2.15936",
-                              "templateHash": "124073885262920691"
+                              "templateHash": "3229928081216627440"
                             },
                             "name": "DocumentDB Database Account SQL Database Containers",
                             "description": "This module deploys a SQL Database Container in a CosmosDB Account."
@@ -17385,12 +17385,12 @@
                             "databaseAccount": {
                               "existing": true,
                               "type": "Microsoft.DocumentDB/databaseAccounts",
-                              "apiVersion": "2024-11-15",
+                              "apiVersion": "2025-10-15",
                               "name": "[parameters('databaseAccountName')]"
                             },
                             "container": {
                               "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
-                              "apiVersion": "2024-11-15",
+                              "apiVersion": "2025-10-15",
                               "name": "[format('{0}/{1}/{2}', parameters('databaseAccountName'), parameters('sqlDatabaseName'), parameters('name'))]",
                               "tags": "[parameters('tags')]",
                               "properties": {
@@ -17502,7 +17502,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.41.2.15936",
-                      "templateHash": "16935264052800773961"
+                      "templateHash": "8160988002856241744"
                     },
                     "name": "DocumentDB Database Account SQL Role Definitions.",
                     "description": "This module deploys a SQL Role Definision in a CosmosDB Account."
@@ -17586,12 +17586,12 @@
                     "databaseAccount": {
                       "existing": true,
                       "type": "Microsoft.DocumentDB/databaseAccounts",
-                      "apiVersion": "2024-11-15",
+                      "apiVersion": "2025-10-15",
                       "name": "[parameters('databaseAccountName')]"
                     },
                     "sqlRoleDefinition": {
                       "type": "Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions",
-                      "apiVersion": "2024-11-15",
+                      "apiVersion": "2025-10-15",
                       "name": "[format('{0}/{1}', parameters('databaseAccountName'), coalesce(parameters('name'), guid(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('databaseAccountName')), parameters('databaseAccountName'), 'sql-role')))]",
                       "properties": {
                         "assignableScopes": "[coalesce(parameters('assignableScopes'), createArray(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('databaseAccountName'))))]",
@@ -17639,7 +17639,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.41.2.15936",
-                              "templateHash": "13391456638579008263"
+                              "templateHash": "5694211870531856066"
                             },
                             "name": "DocumentDB Database Account SQL Role Assignments.",
                             "description": "This module deploys a SQL Role Assignment in a CosmosDB Account."
@@ -17675,12 +17675,12 @@
                             "databaseAccount": {
                               "existing": true,
                               "type": "Microsoft.DocumentDB/databaseAccounts",
-                              "apiVersion": "2024-11-15",
+                              "apiVersion": "2025-10-15",
                               "name": "[parameters('databaseAccountName')]"
                             },
                             "sqlRoleAssignment": {
                               "type": "Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments",
-                              "apiVersion": "2024-11-15",
+                              "apiVersion": "2025-10-15",
                               "name": "[format('{0}/{1}', parameters('databaseAccountName'), coalesce(parameters('name'), guid(parameters('roleDefinitionId'), parameters('principalId'), resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('databaseAccountName')))))]",
                               "properties": {
                                 "principalId": "[parameters('principalId')]",
@@ -21161,7 +21161,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "8948270881651183770"
+              "templateHash": "3288384652925846871"
             },
             "name": "Key Vaults",
             "description": "This module deploys a Key Vault."
@@ -21951,7 +21951,7 @@
               "type": "object",
               "metadata": {
                 "__bicep_resource_derived_type!": {
-                  "source": "Microsoft.KeyVault/vaults@2024-11-01#properties/tags"
+                  "source": "Microsoft.KeyVault/vaults@2026-02-01#properties/tags"
                 },
                 "description": "Optional. Resource tags."
               },
@@ -22005,7 +22005,7 @@
             "avmTelemetry": {
               "condition": "[parameters('enableTelemetry')]",
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2024-03-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('46d3xbcp.res.keyvault-vault.{0}.{1}', replace('-..--..-', '.', '-'), substring(uniqueString(deployment().name, parameters('location')), 0, 4))]",
               "properties": {
                 "mode": "Incremental",
@@ -22024,7 +22024,7 @@
             },
             "keyVault": {
               "type": "Microsoft.KeyVault/vaults",
-              "apiVersion": "2024-11-01",
+              "apiVersion": "2026-02-01",
               "name": "[parameters('name')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
@@ -22176,7 +22176,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.41.2.15936",
-                      "templateHash": "11827832921711738974"
+                      "templateHash": "3873825639004012340"
                     },
                     "name": "Key Vault Secrets",
                     "description": "This module deploys a Key Vault Secret."
@@ -22277,7 +22277,7 @@
                       "type": "object",
                       "metadata": {
                         "__bicep_resource_derived_type!": {
-                          "source": "Microsoft.KeyVault/vaults/secrets@2024-11-01#properties/tags"
+                          "source": "Microsoft.KeyVault/vaults/secrets@2026-02-01#properties/tags"
                         },
                         "description": "Optional. Resource tags."
                       },
@@ -22360,7 +22360,7 @@
                     "avmTelemetry": {
                       "condition": "[parameters('enableTelemetry')]",
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2024-03-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('46d3xbcp.res.keyvault-secret.{0}.{1}', replace('-..--..-', '.', '-'), substring(uniqueString(deployment().name), 0, 4))]",
                       "properties": {
                         "mode": "Incremental",
@@ -22380,12 +22380,12 @@
                     "keyVault": {
                       "existing": true,
                       "type": "Microsoft.KeyVault/vaults",
-                      "apiVersion": "2024-11-01",
+                      "apiVersion": "2026-02-01",
                       "name": "[parameters('keyVaultName')]"
                     },
                     "secret": {
                       "type": "Microsoft.KeyVault/vaults/secrets",
-                      "apiVersion": "2024-11-01",
+                      "apiVersion": "2026-02-01",
                       "name": "[format('{0}/{1}', parameters('keyVaultName'), parameters('name'))]",
                       "tags": "[parameters('tags')]",
                       "properties": {
@@ -23170,7 +23170,7 @@
               "metadata": {
                 "description": "The location the resource was deployed into."
               },
-              "value": "[reference('keyVault', '2024-11-01', 'full').location]"
+              "value": "[reference('keyVault', '2026-02-01', 'full').location]"
             }
           }
         }
@@ -23243,7 +23243,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "927777204915192217"
+              "templateHash": "6518128181705218109"
             }
           },
           "parameters": {
@@ -23462,7 +23462,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.41.2.15936",
-                      "templateHash": "5249926611687805041"
+                      "templateHash": "16815177611074692154"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -24524,7 +24524,7 @@
                       "type": "array",
                       "metadata": {
                         "__bicep_resource_derived_type!": {
-                          "source": "Microsoft.CognitiveServices/accounts@2025-04-01-preview#properties/properties/properties/userOwnedStorage"
+                          "source": "Microsoft.CognitiveServices/accounts@2024-04-01-preview#properties/properties/properties/userOwnedStorage"
                         },
                         "description": "Optional. The storage accounts for this resource."
                       },
@@ -24629,7 +24629,7 @@
                     "avmTelemetry": {
                       "condition": "[parameters('enableTelemetry')]",
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2024-03-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('46d3xbcp.res.cognitiveservices-account.{0}.{1}', replace('-..--..-', '.', '-'), substring(uniqueString(deployment().name, parameters('location')), 0, 4))]",
                       "properties": {
                         "mode": "Incremental",
@@ -24650,7 +24650,7 @@
                       "condition": "[not(empty(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId')))]",
                       "existing": true,
                       "type": "Microsoft.KeyVault/vaults",
-                      "apiVersion": "2024-11-01",
+                      "apiVersion": "2026-02-01",
                       "subscriptionId": "[split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/')[2]]",
                       "resourceGroup": "[split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/')[4]]",
                       "name": "[last(split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/'))]"
@@ -24666,7 +24666,7 @@
                     },
                     "cognitiveService": {
                       "type": "Microsoft.CognitiveServices/accounts",
-                      "apiVersion": "2025-06-01",
+                      "apiVersion": "2024-04-01-preview",
                       "name": "[parameters('name')]",
                       "kind": "[parameters('kind')]",
                       "identity": "[variables('identity')]",
@@ -24705,7 +24705,7 @@
                         "batchSize": 1
                       },
                       "type": "Microsoft.CognitiveServices/accounts/deployments",
-                      "apiVersion": "2025-06-01",
+                      "apiVersion": "2024-04-01-preview",
                       "name": "[format('{0}/{1}', parameters('name'), coalesce(tryGet(coalesce(parameters('deployments'), createArray())[copyIndex()], 'name'), format('{0}-deployments', parameters('name'))))]",
                       "properties": {
                         "model": "[coalesce(parameters('deployments'), createArray())[copyIndex()].model]",
@@ -24737,7 +24737,7 @@
                         "count": "[length(coalesce(parameters('commitmentPlans'), createArray()))]"
                       },
                       "type": "Microsoft.CognitiveServices/accounts/commitmentPlans",
-                      "apiVersion": "2025-06-01",
+                      "apiVersion": "2024-04-01-preview",
                       "name": "[format('{0}/{1}', parameters('name'), format('{0}-{1}', coalesce(parameters('commitmentPlans'), createArray())[copyIndex()].hostingModel, coalesce(parameters('commitmentPlans'), createArray())[copyIndex()].planType))]",
                       "properties": "[coalesce(parameters('commitmentPlans'), createArray())[copyIndex()]]",
                       "dependsOn": [
@@ -25521,14 +25521,14 @@
                       "metadata": {
                         "description": "The principal ID of the system assigned identity."
                       },
-                      "value": "[tryGet(tryGet(reference('cognitiveService', '2025-06-01', 'full'), 'identity'), 'principalId')]"
+                      "value": "[tryGet(tryGet(reference('cognitiveService', '2024-04-01-preview', 'full'), 'identity'), 'principalId')]"
                     },
                     "location": {
                       "type": "string",
                       "metadata": {
                         "description": "The location the resource was deployed into."
                       },
-                      "value": "[reference('cognitiveService', '2025-06-01', 'full').location]"
+                      "value": "[reference('cognitiveService', '2024-04-01-preview', 'full').location]"
                     },
                     "privateEndpoints": {
                       "type": "array",
@@ -25651,7 +25651,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "927777204915192217"
+              "templateHash": "6518128181705218109"
             }
           },
           "parameters": {
@@ -25870,7 +25870,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.41.2.15936",
-                      "templateHash": "5249926611687805041"
+                      "templateHash": "16815177611074692154"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -26932,7 +26932,7 @@
                       "type": "array",
                       "metadata": {
                         "__bicep_resource_derived_type!": {
-                          "source": "Microsoft.CognitiveServices/accounts@2025-04-01-preview#properties/properties/properties/userOwnedStorage"
+                          "source": "Microsoft.CognitiveServices/accounts@2024-04-01-preview#properties/properties/properties/userOwnedStorage"
                         },
                         "description": "Optional. The storage accounts for this resource."
                       },
@@ -27037,7 +27037,7 @@
                     "avmTelemetry": {
                       "condition": "[parameters('enableTelemetry')]",
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2024-03-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('46d3xbcp.res.cognitiveservices-account.{0}.{1}', replace('-..--..-', '.', '-'), substring(uniqueString(deployment().name, parameters('location')), 0, 4))]",
                       "properties": {
                         "mode": "Incremental",
@@ -27058,7 +27058,7 @@
                       "condition": "[not(empty(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId')))]",
                       "existing": true,
                       "type": "Microsoft.KeyVault/vaults",
-                      "apiVersion": "2024-11-01",
+                      "apiVersion": "2026-02-01",
                       "subscriptionId": "[split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/')[2]]",
                       "resourceGroup": "[split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/')[4]]",
                       "name": "[last(split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/'))]"
@@ -27074,7 +27074,7 @@
                     },
                     "cognitiveService": {
                       "type": "Microsoft.CognitiveServices/accounts",
-                      "apiVersion": "2025-06-01",
+                      "apiVersion": "2024-04-01-preview",
                       "name": "[parameters('name')]",
                       "kind": "[parameters('kind')]",
                       "identity": "[variables('identity')]",
@@ -27113,7 +27113,7 @@
                         "batchSize": 1
                       },
                       "type": "Microsoft.CognitiveServices/accounts/deployments",
-                      "apiVersion": "2025-06-01",
+                      "apiVersion": "2024-04-01-preview",
                       "name": "[format('{0}/{1}', parameters('name'), coalesce(tryGet(coalesce(parameters('deployments'), createArray())[copyIndex()], 'name'), format('{0}-deployments', parameters('name'))))]",
                       "properties": {
                         "model": "[coalesce(parameters('deployments'), createArray())[copyIndex()].model]",
@@ -27145,7 +27145,7 @@
                         "count": "[length(coalesce(parameters('commitmentPlans'), createArray()))]"
                       },
                       "type": "Microsoft.CognitiveServices/accounts/commitmentPlans",
-                      "apiVersion": "2025-06-01",
+                      "apiVersion": "2024-04-01-preview",
                       "name": "[format('{0}/{1}', parameters('name'), format('{0}-{1}', coalesce(parameters('commitmentPlans'), createArray())[copyIndex()].hostingModel, coalesce(parameters('commitmentPlans'), createArray())[copyIndex()].planType))]",
                       "properties": "[coalesce(parameters('commitmentPlans'), createArray())[copyIndex()]]",
                       "dependsOn": [
@@ -27929,14 +27929,14 @@
                       "metadata": {
                         "description": "The principal ID of the system assigned identity."
                       },
-                      "value": "[tryGet(tryGet(reference('cognitiveService', '2025-06-01', 'full'), 'identity'), 'principalId')]"
+                      "value": "[tryGet(tryGet(reference('cognitiveService', '2024-04-01-preview', 'full'), 'identity'), 'principalId')]"
                     },
                     "location": {
                       "type": "string",
                       "metadata": {
                         "description": "The location the resource was deployed into."
                       },
-                      "value": "[reference('cognitiveService', '2025-06-01', 'full').location]"
+                      "value": "[reference('cognitiveService', '2024-04-01-preview', 'full').location]"
                     },
                     "privateEndpoints": {
                       "type": "array",
@@ -28060,7 +28060,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "927777204915192217"
+              "templateHash": "6518128181705218109"
             }
           },
           "parameters": {
@@ -28279,7 +28279,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.41.2.15936",
-                      "templateHash": "5249926611687805041"
+                      "templateHash": "16815177611074692154"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -29341,7 +29341,7 @@
                       "type": "array",
                       "metadata": {
                         "__bicep_resource_derived_type!": {
-                          "source": "Microsoft.CognitiveServices/accounts@2025-04-01-preview#properties/properties/properties/userOwnedStorage"
+                          "source": "Microsoft.CognitiveServices/accounts@2024-04-01-preview#properties/properties/properties/userOwnedStorage"
                         },
                         "description": "Optional. The storage accounts for this resource."
                       },
@@ -29446,7 +29446,7 @@
                     "avmTelemetry": {
                       "condition": "[parameters('enableTelemetry')]",
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2024-03-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('46d3xbcp.res.cognitiveservices-account.{0}.{1}', replace('-..--..-', '.', '-'), substring(uniqueString(deployment().name, parameters('location')), 0, 4))]",
                       "properties": {
                         "mode": "Incremental",
@@ -29467,7 +29467,7 @@
                       "condition": "[not(empty(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId')))]",
                       "existing": true,
                       "type": "Microsoft.KeyVault/vaults",
-                      "apiVersion": "2024-11-01",
+                      "apiVersion": "2026-02-01",
                       "subscriptionId": "[split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/')[2]]",
                       "resourceGroup": "[split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/')[4]]",
                       "name": "[last(split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/'))]"
@@ -29483,7 +29483,7 @@
                     },
                     "cognitiveService": {
                       "type": "Microsoft.CognitiveServices/accounts",
-                      "apiVersion": "2025-06-01",
+                      "apiVersion": "2024-04-01-preview",
                       "name": "[parameters('name')]",
                       "kind": "[parameters('kind')]",
                       "identity": "[variables('identity')]",
@@ -29522,7 +29522,7 @@
                         "batchSize": 1
                       },
                       "type": "Microsoft.CognitiveServices/accounts/deployments",
-                      "apiVersion": "2025-06-01",
+                      "apiVersion": "2024-04-01-preview",
                       "name": "[format('{0}/{1}', parameters('name'), coalesce(tryGet(coalesce(parameters('deployments'), createArray())[copyIndex()], 'name'), format('{0}-deployments', parameters('name'))))]",
                       "properties": {
                         "model": "[coalesce(parameters('deployments'), createArray())[copyIndex()].model]",
@@ -29554,7 +29554,7 @@
                         "count": "[length(coalesce(parameters('commitmentPlans'), createArray()))]"
                       },
                       "type": "Microsoft.CognitiveServices/accounts/commitmentPlans",
-                      "apiVersion": "2025-06-01",
+                      "apiVersion": "2024-04-01-preview",
                       "name": "[format('{0}/{1}', parameters('name'), format('{0}-{1}', coalesce(parameters('commitmentPlans'), createArray())[copyIndex()].hostingModel, coalesce(parameters('commitmentPlans'), createArray())[copyIndex()].planType))]",
                       "properties": "[coalesce(parameters('commitmentPlans'), createArray())[copyIndex()]]",
                       "dependsOn": [
@@ -30338,14 +30338,14 @@
                       "metadata": {
                         "description": "The principal ID of the system assigned identity."
                       },
-                      "value": "[tryGet(tryGet(reference('cognitiveService', '2025-06-01', 'full'), 'identity'), 'principalId')]"
+                      "value": "[tryGet(tryGet(reference('cognitiveService', '2024-04-01-preview', 'full'), 'identity'), 'principalId')]"
                     },
                     "location": {
                       "type": "string",
                       "metadata": {
                         "description": "The location the resource was deployed into."
                       },
-                      "value": "[reference('cognitiveService', '2025-06-01', 'full').location]"
+                      "value": "[reference('cognitiveService', '2024-04-01-preview', 'full').location]"
                     },
                     "privateEndpoints": {
                       "type": "array",
@@ -33297,7 +33297,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "14237256486819052289"
+              "templateHash": "10369295043017221333"
             }
           },
           "parameters": {
@@ -33555,7 +33555,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.41.2.15936",
-                      "templateHash": "12548508759627082142"
+                      "templateHash": "16001412495224663873"
                     }
                   },
                   "definitions": {
@@ -34262,16 +34262,13 @@
                     },
                     "siteConfig": {
                       "type": "object",
-                      "metadata": {
-                        "__bicep_resource_derived_type!": {
-                          "source": "Microsoft.Web/sites@2024-04-01#properties/properties/properties/siteConfig"
-                        },
-                        "description": "Optional. The site config object. The defaults are set to the following values: alwaysOn: true, minTlsVersion: '1.2', ftpsState: 'FtpsOnly'."
-                      },
                       "defaultValue": {
                         "alwaysOn": true,
                         "minTlsVersion": "1.2",
                         "ftpsState": "FtpsOnly"
+                      },
+                      "metadata": {
+                        "description": "Optional. The site config object. The defaults are set to the following values: alwaysOn: true, minTlsVersion: '1.2', ftpsState: 'FtpsOnly'."
                       }
                     },
                     "configs": {
@@ -34286,13 +34283,10 @@
                     },
                     "functionAppConfig": {
                       "type": "object",
+                      "nullable": true,
                       "metadata": {
-                        "__bicep_resource_derived_type!": {
-                          "source": "Microsoft.Web/sites@2024-04-01#properties/properties/properties/functionAppConfig"
-                        },
                         "description": "Optional. The Function App configuration object."
-                      },
-                      "nullable": true
+                      }
                     },
                     "privateEndpoints": {
                       "type": "array",
@@ -34353,13 +34347,10 @@
                     },
                     "cloningInfo": {
                       "type": "object",
+                      "nullable": true,
                       "metadata": {
-                        "__bicep_resource_derived_type!": {
-                          "source": "Microsoft.Web/sites@2024-04-01#properties/properties/properties/cloningInfo"
-                        },
                         "description": "Optional. If specified during app creation, the app is cloned from a source app."
-                      },
-                      "nullable": true
+                      }
                     },
                     "containerSize": {
                       "type": "int",
@@ -34384,13 +34375,10 @@
                     },
                     "hostNameSslStates": {
                       "type": "array",
+                      "nullable": true,
                       "metadata": {
-                        "__bicep_resource_derived_type!": {
-                          "source": "Microsoft.Web/sites@2024-04-01#properties/properties/properties/hostNameSslStates"
-                        },
                         "description": "Optional. Hostname SSL states are used to manage the SSL bindings for app's hostnames."
-                      },
-                      "nullable": true
+                      }
                     },
                     "hyperV": {
                       "type": "bool",
@@ -34433,13 +34421,10 @@
                     },
                     "dnsConfiguration": {
                       "type": "object",
+                      "nullable": true,
                       "metadata": {
-                        "__bicep_resource_derived_type!": {
-                          "source": "Microsoft.Web/sites@2024-04-01#properties/properties/properties/dnsConfiguration"
-                        },
                         "description": "Optional. Property to configure various DNS related settings for a site."
-                      },
-                      "nullable": true
+                      }
                     },
                     "autoGeneratedDomainNameLabelScope": {
                       "type": "string",
@@ -34582,7 +34567,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.41.2.15936",
-                              "templateHash": "1185169597469996118"
+                              "templateHash": "4422914909835254131"
                             },
                             "name": "Site App Settings",
                             "description": "This module deploys a Site App Setting."
@@ -34678,7 +34663,7 @@
                             "app": {
                               "existing": true,
                               "type": "Microsoft.Web/sites",
-                              "apiVersion": "2023-12-01",
+                              "apiVersion": "2024-04-01",
                               "name": "[parameters('appName')]"
                             },
                             "config": {
@@ -35531,7 +35516,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "9428905181583569836"
+              "templateHash": "18234455377682756510"
             }
           },
           "parameters": {
@@ -35789,7 +35774,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.41.2.15936",
-                      "templateHash": "12548508759627082142"
+                      "templateHash": "16001412495224663873"
                     }
                   },
                   "definitions": {
@@ -36496,16 +36481,13 @@
                     },
                     "siteConfig": {
                       "type": "object",
-                      "metadata": {
-                        "__bicep_resource_derived_type!": {
-                          "source": "Microsoft.Web/sites@2024-04-01#properties/properties/properties/siteConfig"
-                        },
-                        "description": "Optional. The site config object. The defaults are set to the following values: alwaysOn: true, minTlsVersion: '1.2', ftpsState: 'FtpsOnly'."
-                      },
                       "defaultValue": {
                         "alwaysOn": true,
                         "minTlsVersion": "1.2",
                         "ftpsState": "FtpsOnly"
+                      },
+                      "metadata": {
+                        "description": "Optional. The site config object. The defaults are set to the following values: alwaysOn: true, minTlsVersion: '1.2', ftpsState: 'FtpsOnly'."
                       }
                     },
                     "configs": {
@@ -36520,13 +36502,10 @@
                     },
                     "functionAppConfig": {
                       "type": "object",
+                      "nullable": true,
                       "metadata": {
-                        "__bicep_resource_derived_type!": {
-                          "source": "Microsoft.Web/sites@2024-04-01#properties/properties/properties/functionAppConfig"
-                        },
                         "description": "Optional. The Function App configuration object."
-                      },
-                      "nullable": true
+                      }
                     },
                     "privateEndpoints": {
                       "type": "array",
@@ -36587,13 +36566,10 @@
                     },
                     "cloningInfo": {
                       "type": "object",
+                      "nullable": true,
                       "metadata": {
-                        "__bicep_resource_derived_type!": {
-                          "source": "Microsoft.Web/sites@2024-04-01#properties/properties/properties/cloningInfo"
-                        },
                         "description": "Optional. If specified during app creation, the app is cloned from a source app."
-                      },
-                      "nullable": true
+                      }
                     },
                     "containerSize": {
                       "type": "int",
@@ -36618,13 +36594,10 @@
                     },
                     "hostNameSslStates": {
                       "type": "array",
+                      "nullable": true,
                       "metadata": {
-                        "__bicep_resource_derived_type!": {
-                          "source": "Microsoft.Web/sites@2024-04-01#properties/properties/properties/hostNameSslStates"
-                        },
                         "description": "Optional. Hostname SSL states are used to manage the SSL bindings for app's hostnames."
-                      },
-                      "nullable": true
+                      }
                     },
                     "hyperV": {
                       "type": "bool",
@@ -36667,13 +36640,10 @@
                     },
                     "dnsConfiguration": {
                       "type": "object",
+                      "nullable": true,
                       "metadata": {
-                        "__bicep_resource_derived_type!": {
-                          "source": "Microsoft.Web/sites@2024-04-01#properties/properties/properties/dnsConfiguration"
-                        },
                         "description": "Optional. Property to configure various DNS related settings for a site."
-                      },
-                      "nullable": true
+                      }
                     },
                     "autoGeneratedDomainNameLabelScope": {
                       "type": "string",
@@ -36816,7 +36786,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.41.2.15936",
-                              "templateHash": "1185169597469996118"
+                              "templateHash": "4422914909835254131"
                             },
                             "name": "Site App Settings",
                             "description": "This module deploys a Site App Setting."
@@ -36912,7 +36882,7 @@
                             "app": {
                               "existing": true,
                               "type": "Microsoft.Web/sites",
-                              "apiVersion": "2023-12-01",
+                              "apiVersion": "2024-04-01",
                               "name": "[parameters('appName')]"
                             },
                             "config": {
@@ -37769,7 +37739,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "592538209641304643"
+              "templateHash": "406205157267361335"
             }
           },
           "parameters": {
@@ -38010,7 +37980,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.41.2.15936",
-                      "templateHash": "17323137816449757462"
+                      "templateHash": "18282160672303707299"
                     }
                   },
                   "parameters": {
@@ -38376,7 +38346,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.41.2.15936",
-                              "templateHash": "12548508759627082142"
+                              "templateHash": "16001412495224663873"
                             }
                           },
                           "definitions": {
@@ -39083,16 +39053,13 @@
                             },
                             "siteConfig": {
                               "type": "object",
-                              "metadata": {
-                                "__bicep_resource_derived_type!": {
-                                  "source": "Microsoft.Web/sites@2024-04-01#properties/properties/properties/siteConfig"
-                                },
-                                "description": "Optional. The site config object. The defaults are set to the following values: alwaysOn: true, minTlsVersion: '1.2', ftpsState: 'FtpsOnly'."
-                              },
                               "defaultValue": {
                                 "alwaysOn": true,
                                 "minTlsVersion": "1.2",
                                 "ftpsState": "FtpsOnly"
+                              },
+                              "metadata": {
+                                "description": "Optional. The site config object. The defaults are set to the following values: alwaysOn: true, minTlsVersion: '1.2', ftpsState: 'FtpsOnly'."
                               }
                             },
                             "configs": {
@@ -39107,13 +39074,10 @@
                             },
                             "functionAppConfig": {
                               "type": "object",
+                              "nullable": true,
                               "metadata": {
-                                "__bicep_resource_derived_type!": {
-                                  "source": "Microsoft.Web/sites@2024-04-01#properties/properties/properties/functionAppConfig"
-                                },
                                 "description": "Optional. The Function App configuration object."
-                              },
-                              "nullable": true
+                              }
                             },
                             "privateEndpoints": {
                               "type": "array",
@@ -39174,13 +39138,10 @@
                             },
                             "cloningInfo": {
                               "type": "object",
+                              "nullable": true,
                               "metadata": {
-                                "__bicep_resource_derived_type!": {
-                                  "source": "Microsoft.Web/sites@2024-04-01#properties/properties/properties/cloningInfo"
-                                },
                                 "description": "Optional. If specified during app creation, the app is cloned from a source app."
-                              },
-                              "nullable": true
+                              }
                             },
                             "containerSize": {
                               "type": "int",
@@ -39205,13 +39166,10 @@
                             },
                             "hostNameSslStates": {
                               "type": "array",
+                              "nullable": true,
                               "metadata": {
-                                "__bicep_resource_derived_type!": {
-                                  "source": "Microsoft.Web/sites@2024-04-01#properties/properties/properties/hostNameSslStates"
-                                },
                                 "description": "Optional. Hostname SSL states are used to manage the SSL bindings for app's hostnames."
-                              },
-                              "nullable": true
+                              }
                             },
                             "hyperV": {
                               "type": "bool",
@@ -39254,13 +39212,10 @@
                             },
                             "dnsConfiguration": {
                               "type": "object",
+                              "nullable": true,
                               "metadata": {
-                                "__bicep_resource_derived_type!": {
-                                  "source": "Microsoft.Web/sites@2024-04-01#properties/properties/properties/dnsConfiguration"
-                                },
                                 "description": "Optional. Property to configure various DNS related settings for a site."
-                              },
-                              "nullable": true
+                              }
                             },
                             "autoGeneratedDomainNameLabelScope": {
                               "type": "string",
@@ -39403,7 +39358,7 @@
                                     "_generator": {
                                       "name": "bicep",
                                       "version": "0.41.2.15936",
-                                      "templateHash": "1185169597469996118"
+                                      "templateHash": "4422914909835254131"
                                     },
                                     "name": "Site App Settings",
                                     "description": "This module deploys a Site App Setting."
@@ -39499,7 +39454,7 @@
                                     "app": {
                                       "existing": true,
                                       "type": "Microsoft.Web/sites",
-                                      "apiVersion": "2023-12-01",
+                                      "apiVersion": "2024-04-01",
                                       "name": "[parameters('appName')]"
                                     },
                                     "config": {
@@ -46072,7 +46027,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "927777204915192217"
+              "templateHash": "6518128181705218109"
             }
           },
           "parameters": {
@@ -46291,7 +46246,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.41.2.15936",
-                      "templateHash": "5249926611687805041"
+                      "templateHash": "16815177611074692154"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -47353,7 +47308,7 @@
                       "type": "array",
                       "metadata": {
                         "__bicep_resource_derived_type!": {
-                          "source": "Microsoft.CognitiveServices/accounts@2025-04-01-preview#properties/properties/properties/userOwnedStorage"
+                          "source": "Microsoft.CognitiveServices/accounts@2024-04-01-preview#properties/properties/properties/userOwnedStorage"
                         },
                         "description": "Optional. The storage accounts for this resource."
                       },
@@ -47458,7 +47413,7 @@
                     "avmTelemetry": {
                       "condition": "[parameters('enableTelemetry')]",
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2024-03-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('46d3xbcp.res.cognitiveservices-account.{0}.{1}', replace('-..--..-', '.', '-'), substring(uniqueString(deployment().name, parameters('location')), 0, 4))]",
                       "properties": {
                         "mode": "Incremental",
@@ -47479,7 +47434,7 @@
                       "condition": "[not(empty(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId')))]",
                       "existing": true,
                       "type": "Microsoft.KeyVault/vaults",
-                      "apiVersion": "2024-11-01",
+                      "apiVersion": "2026-02-01",
                       "subscriptionId": "[split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/')[2]]",
                       "resourceGroup": "[split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/')[4]]",
                       "name": "[last(split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/'))]"
@@ -47495,7 +47450,7 @@
                     },
                     "cognitiveService": {
                       "type": "Microsoft.CognitiveServices/accounts",
-                      "apiVersion": "2025-06-01",
+                      "apiVersion": "2024-04-01-preview",
                       "name": "[parameters('name')]",
                       "kind": "[parameters('kind')]",
                       "identity": "[variables('identity')]",
@@ -47534,7 +47489,7 @@
                         "batchSize": 1
                       },
                       "type": "Microsoft.CognitiveServices/accounts/deployments",
-                      "apiVersion": "2025-06-01",
+                      "apiVersion": "2024-04-01-preview",
                       "name": "[format('{0}/{1}', parameters('name'), coalesce(tryGet(coalesce(parameters('deployments'), createArray())[copyIndex()], 'name'), format('{0}-deployments', parameters('name'))))]",
                       "properties": {
                         "model": "[coalesce(parameters('deployments'), createArray())[copyIndex()].model]",
@@ -47566,7 +47521,7 @@
                         "count": "[length(coalesce(parameters('commitmentPlans'), createArray()))]"
                       },
                       "type": "Microsoft.CognitiveServices/accounts/commitmentPlans",
-                      "apiVersion": "2025-06-01",
+                      "apiVersion": "2024-04-01-preview",
                       "name": "[format('{0}/{1}', parameters('name'), format('{0}-{1}', coalesce(parameters('commitmentPlans'), createArray())[copyIndex()].hostingModel, coalesce(parameters('commitmentPlans'), createArray())[copyIndex()].planType))]",
                       "properties": "[coalesce(parameters('commitmentPlans'), createArray())[copyIndex()]]",
                       "dependsOn": [
@@ -48350,14 +48305,14 @@
                       "metadata": {
                         "description": "The principal ID of the system assigned identity."
                       },
-                      "value": "[tryGet(tryGet(reference('cognitiveService', '2025-06-01', 'full'), 'identity'), 'principalId')]"
+                      "value": "[tryGet(tryGet(reference('cognitiveService', '2024-04-01-preview', 'full'), 'identity'), 'principalId')]"
                     },
                     "location": {
                       "type": "string",
                       "metadata": {
                         "description": "The location the resource was deployed into."
                       },
-                      "value": "[reference('cognitiveService', '2025-06-01', 'full').location]"
+                      "value": "[reference('cognitiveService', '2024-04-01-preview', 'full').location]"
                     },
                     "privateEndpoints": {
                       "type": "array",
@@ -48478,7 +48433,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "927777204915192217"
+              "templateHash": "6518128181705218109"
             }
           },
           "parameters": {
@@ -48697,7 +48652,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.41.2.15936",
-                      "templateHash": "5249926611687805041"
+                      "templateHash": "16815177611074692154"
                     },
                     "name": "Cognitive Services",
                     "description": "This module deploys a Cognitive Service."
@@ -49759,7 +49714,7 @@
                       "type": "array",
                       "metadata": {
                         "__bicep_resource_derived_type!": {
-                          "source": "Microsoft.CognitiveServices/accounts@2025-04-01-preview#properties/properties/properties/userOwnedStorage"
+                          "source": "Microsoft.CognitiveServices/accounts@2024-04-01-preview#properties/properties/properties/userOwnedStorage"
                         },
                         "description": "Optional. The storage accounts for this resource."
                       },
@@ -49864,7 +49819,7 @@
                     "avmTelemetry": {
                       "condition": "[parameters('enableTelemetry')]",
                       "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2024-03-01",
+                      "apiVersion": "2025-04-01",
                       "name": "[format('46d3xbcp.res.cognitiveservices-account.{0}.{1}', replace('-..--..-', '.', '-'), substring(uniqueString(deployment().name, parameters('location')), 0, 4))]",
                       "properties": {
                         "mode": "Incremental",
@@ -49885,7 +49840,7 @@
                       "condition": "[not(empty(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId')))]",
                       "existing": true,
                       "type": "Microsoft.KeyVault/vaults",
-                      "apiVersion": "2024-11-01",
+                      "apiVersion": "2026-02-01",
                       "subscriptionId": "[split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/')[2]]",
                       "resourceGroup": "[split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/')[4]]",
                       "name": "[last(split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/'))]"
@@ -49901,7 +49856,7 @@
                     },
                     "cognitiveService": {
                       "type": "Microsoft.CognitiveServices/accounts",
-                      "apiVersion": "2025-06-01",
+                      "apiVersion": "2024-04-01-preview",
                       "name": "[parameters('name')]",
                       "kind": "[parameters('kind')]",
                       "identity": "[variables('identity')]",
@@ -49940,7 +49895,7 @@
                         "batchSize": 1
                       },
                       "type": "Microsoft.CognitiveServices/accounts/deployments",
-                      "apiVersion": "2025-06-01",
+                      "apiVersion": "2024-04-01-preview",
                       "name": "[format('{0}/{1}', parameters('name'), coalesce(tryGet(coalesce(parameters('deployments'), createArray())[copyIndex()], 'name'), format('{0}-deployments', parameters('name'))))]",
                       "properties": {
                         "model": "[coalesce(parameters('deployments'), createArray())[copyIndex()].model]",
@@ -49972,7 +49927,7 @@
                         "count": "[length(coalesce(parameters('commitmentPlans'), createArray()))]"
                       },
                       "type": "Microsoft.CognitiveServices/accounts/commitmentPlans",
-                      "apiVersion": "2025-06-01",
+                      "apiVersion": "2024-04-01-preview",
                       "name": "[format('{0}/{1}', parameters('name'), format('{0}-{1}', coalesce(parameters('commitmentPlans'), createArray())[copyIndex()].hostingModel, coalesce(parameters('commitmentPlans'), createArray())[copyIndex()].planType))]",
                       "properties": "[coalesce(parameters('commitmentPlans'), createArray())[copyIndex()]]",
                       "dependsOn": [
@@ -50756,14 +50711,14 @@
                       "metadata": {
                         "description": "The principal ID of the system assigned identity."
                       },
-                      "value": "[tryGet(tryGet(reference('cognitiveService', '2025-06-01', 'full'), 'identity'), 'principalId')]"
+                      "value": "[tryGet(tryGet(reference('cognitiveService', '2024-04-01-preview', 'full'), 'identity'), 'principalId')]"
                     },
                     "location": {
                       "type": "string",
                       "metadata": {
                         "description": "The location the resource was deployed into."
                       },
-                      "value": "[reference('cognitiveService', '2025-06-01', 'full').location]"
+                      "value": "[reference('cognitiveService', '2024-04-01-preview', 'full').location]"
                     },
                     "privateEndpoints": {
                       "type": "array",
@@ -50940,7 +50895,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "14783641798329844297"
+              "templateHash": "12332954360477870886"
             },
             "name": "Storage Accounts",
             "description": "This module deploys a Storage Account."
@@ -51933,7 +51888,7 @@
             "avmTelemetry": {
               "condition": "[parameters('enableTelemetry')]",
               "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2024-03-01",
+              "apiVersion": "2025-04-01",
               "name": "[format('46d3xbcp.res.storage-storageaccount.{0}.{1}', replace('-..--..-', '.', '-'), substring(uniqueString(deployment().name, parameters('location')), 0, 4))]",
               "properties": {
                 "mode": "Incremental",
@@ -51954,7 +51909,7 @@
               "condition": "[not(empty(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId')))]",
               "existing": true,
               "type": "Microsoft.KeyVault/vaults",
-              "apiVersion": "2024-11-01",
+              "apiVersion": "2026-02-01",
               "subscriptionId": "[split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/')[2]]",
               "resourceGroup": "[split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/')[4]]",
               "name": "[last(split(tryGet(parameters('customerManagedKey'), 'keyVaultResourceId'), '/'))]"
@@ -52784,7 +52739,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.41.2.15936",
-                      "templateHash": "9493798593448805504"
+                      "templateHash": "13065633746240404148"
                     },
                     "name": "Storage Account blob Services",
                     "description": "This module deploys a Storage Account Blob Service."
@@ -53249,7 +53204,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.41.2.15936",
-                              "templateHash": "2504838016669447838"
+                              "templateHash": "5806104828304361860"
                             },
                             "name": "Storage Account Blob Containers",
                             "description": "This module deploys a Storage Account Blob Container."
@@ -53350,7 +53305,7 @@
                             "avmTelemetry": {
                               "condition": "[parameters('enableTelemetry')]",
                               "type": "Microsoft.Resources/deployments",
-                              "apiVersion": "2024-03-01",
+                              "apiVersion": "2025-04-01",
                               "name": "[format('46d3xbcp.res.storage-blobcontainer.{0}.{1}', replace('-..--..-', '.', '-'), substring(uniqueString(deployment().name), 0, 4))]",
                               "properties": {
                                 "mode": "Incremental",

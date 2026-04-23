@@ -62,7 +62,7 @@ param vnetRouteAllEnabled bool = false
 param scmSiteAlsoStopped bool = false
 
 @description('Optional. The site config object. The defaults are set to the following values: alwaysOn: true, minTlsVersion: \'1.2\', ftpsState: \'FtpsOnly\'.')
-param siteConfig resourceInput<'Microsoft.Web/sites@2024-04-01'>.properties.siteConfig = {
+param siteConfig object = {
   alwaysOn: true
   minTlsVersion: '1.2'
   ftpsState: 'FtpsOnly'
@@ -72,7 +72,7 @@ param siteConfig resourceInput<'Microsoft.Web/sites@2024-04-01'>.properties.site
 param configs appSettingsConfigType[]?
 
 @description('Optional. The Function App configuration object.')
-param functionAppConfig resourceInput<'Microsoft.Web/sites@2024-04-01'>.properties.functionAppConfig?
+param functionAppConfig object?
 
 import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
@@ -105,7 +105,7 @@ Optional. This composes with ClientCertEnabled setting.
 param clientCertMode string = 'Optional'
 
 @description('Optional. If specified during app creation, the app is cloned from a source app.')
-param cloningInfo resourceInput<'Microsoft.Web/sites@2024-04-01'>.properties.cloningInfo?
+param cloningInfo object?
 
 @description('Optional. Size of the function container.')
 param containerSize int?
@@ -117,7 +117,7 @@ param dailyMemoryTimeQuota int?
 param enabled bool = true
 
 @description('Optional. Hostname SSL states are used to manage the SSL bindings for app\'s hostnames.')
-param hostNameSslStates resourceInput<'Microsoft.Web/sites@2024-04-01'>.properties.hostNameSslStates?
+param hostNameSslStates array?
 
 @description('Optional. Hyper-V sandbox.')
 param hyperV bool = false
@@ -143,7 +143,7 @@ param publicNetworkAccess string?
 param e2eEncryptionEnabled bool?
 
 @description('Optional. Property to configure various DNS related settings for a site.')
-param dnsConfiguration resourceInput<'Microsoft.Web/sites@2024-04-01'>.properties.dnsConfiguration?
+param dnsConfiguration object?
 
 @description('Optional. Specifies the scope of uniqueness for the default hostname during resource creation.')
 @allowed([

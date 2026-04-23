@@ -41,11 +41,11 @@ param enableAutomaticUpgrade bool
 @description('Optional. Tags of the resource.')
 param tags object?
 
-resource virtualMachine 'Microsoft.Compute/virtualMachines@2022-11-01' existing = {
+resource virtualMachine 'Microsoft.Compute/virtualMachines@2025-11-01' existing = {
   name: virtualMachineName
 }
 
-resource extension 'Microsoft.Compute/virtualMachines/extensions@2022-11-01' = {
+resource extension 'Microsoft.Compute/virtualMachines/extensions@2025-11-01' = {
   name: name
   parent: virtualMachine
   location: location

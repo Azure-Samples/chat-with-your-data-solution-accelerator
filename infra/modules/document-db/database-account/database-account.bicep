@@ -8,7 +8,7 @@ param name string
 param location string = resourceGroup().location
 
 @description('Optional. Tags for the resource.')
-param tags resourceInput<'Microsoft.DocumentDB/databaseAccounts@2024-11-15'>.tags?
+param tags resourceInput<'Microsoft.DocumentDB/databaseAccounts@2025-10-15'>.tags?
 
 import { managedIdentityAllType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. The managed identity definition for this resource.')
@@ -166,7 +166,7 @@ var identity = !empty(managedIdentities)
   : null
 
 #disable-next-line no-deployments-resources
-resource avmTelemetry 'Microsoft.Resources/deployments@2024-07-01' = if (enableTelemetry) {
+resource avmTelemetry 'Microsoft.Resources/deployments@2025-04-01' = if (enableTelemetry) {
   name: '46d3xbcp.res.documentdb-databaseaccount.${replace('-..--..-', '.', '-')}.${substring(uniqueString(deployment().name, location), 0, 4)}'
   properties: {
     mode: 'Incremental'
@@ -184,7 +184,7 @@ resource avmTelemetry 'Microsoft.Resources/deployments@2024-07-01' = if (enableT
   }
 }
 
-resource databaseAccount 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = {
+resource databaseAccount 'Microsoft.DocumentDB/databaseAccounts@2025-10-15' = {
   name: name
   location: location
   tags: tags

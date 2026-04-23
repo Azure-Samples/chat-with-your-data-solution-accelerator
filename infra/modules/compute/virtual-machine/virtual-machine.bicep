@@ -398,7 +398,7 @@ var formattedRoleAssignments = [
 ]
 
 #disable-next-line no-deployments-resources
-resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableTelemetry) {
+resource avmTelemetry 'Microsoft.Resources/deployments@2025-04-01' = if (enableTelemetry) {
   name: '46d3xbcp.res.compute-virtualmachine.${replace('0.15.0', '.', '-')}.${substring(uniqueString(deployment().name, location), 0, 4)}'
   properties: {
     mode: 'Incremental'
@@ -439,7 +439,7 @@ module vm_nic 'nic-configuration/nic-configuration.bicep' = [
   }
 ]
 
-resource managedDataDisks 'Microsoft.Compute/disks@2024-03-02' = [
+resource managedDataDisks 'Microsoft.Compute/disks@2025-01-02' = [
   for (dataDisk, index) in dataDisks ?? []: if (empty(dataDisk.managedDisk.?id)) {
     location: location
     name: dataDisk.?name ?? '${name}-disk-data-${padLeft((index + 1), 2, '0')}'
@@ -459,7 +459,7 @@ resource managedDataDisks 'Microsoft.Compute/disks@2024-03-02' = [
   }
 ]
 
-resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
+resource vm 'Microsoft.Compute/virtualMachines@2025-11-01' = {
   name: name
   location: location
   identity: identity
@@ -601,7 +601,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
   ]
 }
 
-resource vm_configurationAssignment 'Microsoft.Maintenance/configurationAssignments@2023-04-01' = if (!empty(maintenanceConfigurationResourceId)) {
+resource vm_configurationAssignment 'Microsoft.Maintenance/configurationAssignments@2024-02-01-preview' = if (!empty(maintenanceConfigurationResourceId)) {
   name: '${vm.name}assignment'
   location: location
   properties: {
@@ -659,7 +659,7 @@ module vm_azureGuestConfigurationExtension 'extension/extension.bicep' = if (ext
   }
 }
 
-resource AzureWindowsBaseline 'Microsoft.GuestConfiguration/guestConfigurationAssignments@2020-06-25' = if (!empty(guestConfiguration)) {
+resource AzureWindowsBaseline 'Microsoft.GuestConfiguration/guestConfigurationAssignments@2024-04-05' = if (!empty(guestConfiguration)) {
   name: guestConfiguration.?name ?? 'AzureWindowsBaseline'
   scope: vm
   dependsOn: [
