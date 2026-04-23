@@ -51,27 +51,23 @@ CURRENT_IDENTITY_OID=""
 CURRENT_IDENTITY_DISPLAY=""
 PRINCIPAL_TYPE="User"
 
-# Try signed-in user first (single API call to get full JSON, then parse both fields)
-USER_JSON=$(az ad signed-in-user show 2>/dev/null || true)
-if [ -n "$USER_JSON" ]; then
+# Try signed-in user first
+CURRENT_IDENTITY_OID=$(az ad signed-in-user show --query "id" -o tsv 2>/dev/null || true)
+if [ -n "$CURRENT_IDENTITY_OID" ]; then
     IDENTITY_TYPE="user"
-    CURRENT_IDENTITY_OID=$(echo "$USER_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])" 2>/dev/null || true)
-    CURRENT_IDENTITY_DISPLAY=$(echo "$USER_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['userPrincipalName'])" 2>/dev/null || true)
+    CURRENT_IDENTITY_DISPLAY=$(az ad signed-in-user show --query "userPrincipalName" -o tsv 2>/dev/null || true)
     PRINCIPAL_TYPE="User"
     echo "✓ Detected identity type: User (${CURRENT_IDENTITY_DISPLAY})"
 else
-    # Fallback to service principal (single API call per resource)
+    # Fallback to service principal — get the SP's app ID from the current account
     SP_APP_ID=$(az account show --query "user.name" -o tsv 2>/dev/null || true)
     if [ -n "$SP_APP_ID" ] && [ "$SP_APP_ID" != "null" ]; then
-        SP_JSON=$(az ad sp show --id "$SP_APP_ID" 2>/dev/null || true)
-        if [ -n "$SP_JSON" ]; then
-            CURRENT_IDENTITY_OID=$(echo "$SP_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])" 2>/dev/null || true)
-            CURRENT_IDENTITY_DISPLAY=$(echo "$SP_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['displayName'])" 2>/dev/null || true)
-            if [ -n "$CURRENT_IDENTITY_OID" ]; then
-                IDENTITY_TYPE="servicePrincipal"
-                PRINCIPAL_TYPE="ServicePrincipal"
-                echo "✓ Detected identity type: Service Principal (${CURRENT_IDENTITY_DISPLAY}, OID: ${CURRENT_IDENTITY_OID})"
-            fi
+        CURRENT_IDENTITY_OID=$(az ad sp show --id "$SP_APP_ID" --query "id" -o tsv 2>/dev/null || true)
+        CURRENT_IDENTITY_DISPLAY=$(az ad sp show --id "$SP_APP_ID" --query "displayName" -o tsv 2>/dev/null || true)
+        if [ -n "$CURRENT_IDENTITY_OID" ]; then
+            IDENTITY_TYPE="servicePrincipal"
+            PRINCIPAL_TYPE="ServicePrincipal"
+            echo "✓ Detected identity type: Service Principal (${CURRENT_IDENTITY_DISPLAY}, OID: ${CURRENT_IDENTITY_OID})"
         fi
     fi
 fi

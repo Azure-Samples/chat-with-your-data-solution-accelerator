@@ -9,5 +9,5 @@ cp backend dist -r -Force
 
 # Node
 cd frontend
-npm ci
+npm install
 npm run build

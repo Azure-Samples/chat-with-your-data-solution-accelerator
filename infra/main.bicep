@@ -989,7 +989,6 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
         : []
     )
   }
-  // Implicit dependency on the specific DNS zone is established via the privateDnsZoneResourceId param reference
 }
 
 module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvancedImageProcessing) {
@@ -1030,7 +1029,6 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
         : []
     )
   }
-  // Implicit dependency on the specific DNS zone is established via the privateDnsZoneResourceId param reference
 }
 
 // The Web socket from front end application connects to Speech service over a public internet and it does not work over a Private endpoint.
@@ -1230,8 +1228,6 @@ module web 'modules/app/web.bicep' = {
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
         AZURE_BLOB_CONTAINER_NAME: blobContainerName
-        // Endpoints constructed from resource names to avoid implicit dependencies on AI service modules,
-        // enabling parallel deployment of app services and AI services (customSubDomainName defaults to name)
         AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${formRecognizerName}.cognitiveservices.azure.com/'
         AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? 'https://${computerVisionName}.cognitiveservices.azure.com/' : ''
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
@@ -1335,7 +1331,6 @@ module adminweb 'modules/app/adminweb.bicep' = {
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
         AZURE_BLOB_CONTAINER_NAME: blobContainerName
-        // Endpoints constructed from resource names to avoid implicit dependencies on AI service modules
         AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${formRecognizerName}.cognitiveservices.azure.com/'
         AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? 'https://${computerVisionName}.cognitiveservices.azure.com/' : ''
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
@@ -1443,7 +1438,6 @@ module function 'modules/app/function.bicep' = {
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
         AZURE_BLOB_CONTAINER_NAME: blobContainerName
-        // Endpoints constructed from resource names to avoid implicit dependencies on AI service modules
         AZURE_FORM_RECOGNIZER_ENDPOINT: 'https://${formRecognizerName}.cognitiveservices.azure.com/'
         AZURE_COMPUTER_VISION_ENDPOINT: useAdvancedImageProcessing ? 'https://${computerVisionName}.cognitiveservices.azure.com/' : ''
         AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION: computerVisionVectorizeImageApiVersion
@@ -1575,7 +1569,6 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
         : []
     )
   }
-  // Implicit dependency on the specific DNS zone is established via the privateDnsZoneResourceId param reference
 }
 
 module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
@@ -1615,7 +1608,6 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
         : []
     )
   }
-  // Implicit dependency on the specific DNS zone is established via the privateDnsZoneResourceId param reference
 }
 
 // If advanced image processing is used, storage account already should be publicly accessible.

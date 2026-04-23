@@ -43,22 +43,20 @@ $currentIdentityOid = $null
 $currentIdentityDisplay = $null
 $principalType = "User"
 
-# Try signed-in user first (single API call to get both id and userPrincipalName)
-$userInfo = az ad signed-in-user show 2>$null | ConvertFrom-Json
-if ($userInfo) {
+# Try signed-in user first
+$currentIdentityOid = az ad signed-in-user show --query "id" -o tsv 2>$null
+if ($currentIdentityOid) {
     $identityType = "user"
-    $currentIdentityOid = $userInfo.id
-    $currentIdentityDisplay = $userInfo.userPrincipalName
+    $currentIdentityDisplay = az ad signed-in-user show --query "userPrincipalName" -o tsv 2>$null
     $principalType = "User"
     Write-Host "✓ Detected identity type: User ($currentIdentityDisplay)"
 } else {
-    # Fallback to service principal (single API call per resource)
+    # Fallback to service principal
     $spAppId = az account show --query "user.name" -o tsv 2>$null
     if ($spAppId -and $spAppId -ne "null") {
-        $spInfo = az ad sp show --id $spAppId 2>$null | ConvertFrom-Json
-        if ($spInfo) {
-            $currentIdentityOid = $spInfo.id
-            $currentIdentityDisplay = $spInfo.displayName
+        $currentIdentityOid = az ad sp show --id $spAppId --query "id" -o tsv 2>$null
+        $currentIdentityDisplay = az ad sp show --id $spAppId --query "displayName" -o tsv 2>$null
+        if ($currentIdentityOid) {
             $identityType = "servicePrincipal"
             $principalType = "ServicePrincipal"
             Write-Host "✓ Detected identity type: Service Principal ($currentIdentityDisplay, OID: $currentIdentityOid)"
@@ -127,21 +125,21 @@ Write-Host ""
 Write-Host "--- Step 1: Set Function App Client Key ---"
 
 # Discover function app
-$functionAppName = az functionapp list --resource-group $ResourceGroupName --query "[0].name" -o tsv 2>$null
-if (-not $functionAppName) {
+$functionApps = az functionapp list --resource-group $ResourceGroupName --query "[].name" -o tsv 2>$null
+if (-not $functionApps) {
     Write-Warning "⚠ No function apps found in resource group '$ResourceGroupName'. Skipping function key setup."
 }
 else {
-    $functionAppName = $functionAppName.Trim()
+    $functionAppName = ($functionApps -split "`n")[0].Trim()
     Write-Host "✓ Discovered function app: $functionAppName"
 
     # Discover key vault
-    $keyVaultName = az keyvault list --resource-group $ResourceGroupName --query "[0].name" -o tsv 2>$null
-    if (-not $keyVaultName) {
+    $keyVaults = az keyvault list --resource-group $ResourceGroupName --query "[].name" -o tsv 2>$null
+    if (-not $keyVaults) {
         Write-Warning "⚠ No Key Vault found. Skipping function key setup."
     }
     else {
-        $keyVaultName = $keyVaultName.Trim()
+        $keyVaultName = ($keyVaults -split "`n")[0].Trim()
         Write-Host "✓ Discovered Key Vault: $keyVaultName"
 
         # Ensure the current identity has 'Key Vault Secrets User' role on the Key Vault
@@ -228,12 +226,12 @@ else {
 Write-Host ""
 Write-Host "--- Step 2: Create PostgreSQL Tables ---"
 
-$serverFqdn = az postgres flexible-server list --resource-group $ResourceGroupName --query "[0].fullyQualifiedDomainName" -o tsv 2>$null
-if (-not $serverFqdn) {
+$pgServers = az postgres flexible-server list --resource-group $ResourceGroupName --query "[].fullyQualifiedDomainName" -o tsv 2>$null
+if (-not $pgServers) {
     Write-Host "No PostgreSQL Flexible Server found in resource group. Skipping table creation."
 }
 else {
-    $serverFqdn = $serverFqdn.Trim()
+    $serverFqdn = ($pgServers -split "`n")[0].Trim()
     $serverName = $serverFqdn.Split('.')[0]
     Write-Host "✓ Discovered PostgreSQL server: $serverName ($serverFqdn)"
 
