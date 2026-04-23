@@ -1,0 +1,32 @@
+# Backend dev image — FastAPI + uv
+# Pillar: Stable Core
+# Phase: 1
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/opt/venv
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir uv
+
+WORKDIR /app
+
+# Copy only manifests first for cache efficiency. v2 will get its own pyproject;
+# until then we fall back to the repo-root pyproject.
+COPY pyproject.toml uv.lock* ./
+COPY v2/src/backend/pyproject.toml v2/src/backend/pyproject.toml 2>/dev/null || true
+
+RUN uv sync --frozen --no-install-project || uv sync --no-install-project
+
+COPY v2/src /app/v2/src
+
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONPATH="/app/v2/src"
+
+EXPOSE 8000
+
+CMD ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--app-dir", "/app/v2/src"]

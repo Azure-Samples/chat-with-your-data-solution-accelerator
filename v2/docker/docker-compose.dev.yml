@@ -1,0 +1,136 @@
+# CWYD v2 local dev stack
+#
+# Default profile (no --profile): backend + frontend + functions + azurite + postgres + otel-collector
+# Profiles:
+#   - backend-only:  spin up backend + dependencies, omit frontend (plug-and-play proof)
+#   - frontend-only: spin up frontend pointing at VITE_BACKEND_URL (external backend)
+#   - cosmos:        adds the Cosmos DB Linux emulator (preview, flaky on Windows)
+#
+# Usage:
+#   docker compose -f v2/docker/docker-compose.dev.yml up
+#   docker compose -f v2/docker/docker-compose.dev.yml --profile backend-only up
+#   docker compose -f v2/docker/docker-compose.dev.yml --profile frontend-only up
+#   docker compose -f v2/docker/docker-compose.dev.yml --profile cosmos up
+
+name: cwyd-v2-dev
+
+services:
+  backend:
+    profiles: ["", "backend-only"]
+    build:
+      context: ../..
+      dockerfile: v2/docker/Dockerfile.backend
+    image: cwyd-v2-backend:dev
+    container_name: cwyd-v2-backend
+    env_file:
+      - .env.dev
+    environment:
+      AZURE_DB_TYPE: postgresql
+      AZURE_DB_ENDPOINT: postgresql://cwyd:cwyd@postgres:5432/cwyd
+      AZURE_STORAGE_BLOB_URL: http://azurite:10000/devstoreaccount1
+      AZURE_STORAGE_QUEUE_URL: http://azurite:10001/devstoreaccount1
+      # Telemetry: when APPLICATIONINSIGHTS_CONNECTION_STRING is set in .env.dev,
+      # azure-monitor-opentelemetry exports directly to App Insights (matches v1).
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../src/backend:/app/v2/src/backend
+      - ../src/shared:/app/v2/src/shared
+    depends_on:
+      postgres:
+        condition: service_healthy
+      azurite:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; urllib.request.urlopen('http://localhost:8000/api/health'); sys.exit(0)"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+  frontend:
+    profiles: ["", "frontend-only"]
+    build:
+      context: ../..
+      dockerfile: v2/docker/Dockerfile.frontend
+      target: dev
+    image: cwyd-v2-frontend:dev
+    container_name: cwyd-v2-frontend
+    environment:
+      VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:8000}
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../src/frontend:/app
+      - /app/node_modules
+
+  functions:
+    profiles: [""]
+    build:
+      context: ../..
+      dockerfile: v2/docker/Dockerfile.functions
+    image: cwyd-v2-functions:dev
+    container_name: cwyd-v2-functions
+    env_file:
+      - .env.dev
+    environment:
+      AzureWebJobsStorage: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
+      FUNCTIONS_WORKER_RUNTIME: python
+    ports:
+      - "7071:80"
+    volumes:
+      - ../src/functions:/home/site/wwwroot
+      - ../src/shared:/home/site/wwwroot/shared
+    depends_on:
+      azurite:
+        condition: service_started
+
+  azurite:
+    profiles: ["", "backend-only"]
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: cwyd-v2-azurite
+    command: "azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --location /data --skipApiVersionCheck"
+    ports:
+      - "10000:10000" # blob
+      - "10001:10001" # queue
+      - "10002:10002" # table
+    volumes:
+      - azurite-data:/data
+
+  postgres:
+    profiles: ["", "backend-only"]
+    image: pgvector/pgvector:pg16
+    container_name: cwyd-v2-postgres
+    environment:
+      POSTGRES_USER: cwyd
+      POSTGRES_PASSWORD: cwyd
+      POSTGRES_DB: cwyd
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cwyd -d cwyd"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  cosmos-emulator:
+    profiles: ["cosmos"]
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+    container_name: cwyd-v2-cosmos
+    tty: true
+    mem_limit: 3g
+    environment:
+      AZURE_COSMOS_EMULATOR_PARTITION_COUNT: "3"
+      AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: "true"
+    ports:
+      - "8081:8081"
+      - "10250-10255:10250-10255"
+    volumes:
+      - cosmos-data:/tmp/cosmos/appdata
+
+volumes:
+  azurite-data:
+  postgres-data:
+  cosmos-data:

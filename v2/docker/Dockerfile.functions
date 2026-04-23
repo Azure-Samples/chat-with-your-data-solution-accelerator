@@ -1,0 +1,22 @@
+# Azure Functions dev image — Python 3.11 + uv
+# Pillar: Stable Core
+# Phase: 1
+FROM mcr.microsoft.com/azure-functions/python:4-python3.11
+
+ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
+    AzureFunctionsJobHost__Logging__Console__IsEnabled=true \
+    PYTHONPATH="/home/site/wwwroot:/home/site/wwwroot/shared" \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/opt/venv
+
+RUN pip install --no-cache-dir uv
+
+WORKDIR /home/site/wwwroot
+
+COPY v2/src/functions/pyproject.toml v2/src/functions/uv.lock* ./
+RUN uv sync --frozen --no-install-project || uv sync --no-install-project || true
+
+COPY v2/src/functions /home/site/wwwroot
+COPY v2/src/shared    /home/site/wwwroot/shared
+
+ENV PATH="/opt/venv/bin:$PATH"
