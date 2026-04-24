@@ -344,12 +344,14 @@ Install dependencies for all Python services:
 ### 6.1. Install Backend Dependencies
 
 ```bash
-# From repository root (pyproject.toml is located here)
+# Navigate to backend directory
+cd code/backend
+
 # Install dependencies using Poetry
 pip install --upgrade pip
 pip install poetry
 poetry self add poetry-plugin-export@latest
-poetry export -o requirements.txt --without-hashes
+poetry export -o requirements.txt
 pip install -r requirements.txt
 ```
 
