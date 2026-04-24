@@ -45,7 +45,7 @@ param solutionUniqueText string = take(uniqueString(subscription().id, resourceG
   'uksouth'
 ])
 @metadata({ azd: { type: 'location' } })
-@description('Required. Azure region for non-AI resources. Restricted to regions with paired-region support for HA scenarios.')
+@description('Required. Azure region for non-AI resources (Container Apps, App Service, Functions, Storage, Cosmos/Postgres). Restricted to the 4 regions where ALL three redundancy guarantees hold simultaneously: PostgreSQL Flexible Server ZoneRedundant HA (3 AZs), Cosmos DB automatic failover with paired-region replicas, and Storage GZRS. Independent of azureAiServiceLocation, which selects the model-availability region. Source: https://learn.microsoft.com/azure/reliability/regions-list and https://learn.microsoft.com/azure/postgresql/flexible-server/overview#azure-regions')
 param location string
 
 @allowed([
@@ -162,7 +162,7 @@ param enableScalability bool = false
 @description('Optional. Zone-redundant + paired-region failover on databases, App Service Plan, Container Apps, and Storage.')
 param enableRedundancy bool = false
 
-@description('Optional. Deploy a VNet, private endpoints, and disable public network access on data-plane resources.')
+@description('Optional. Deploy a VNet, private endpoints, and disable public network access on data-plane resources. NOTE: VNet/DNS modules land in dev_plan tasks #7-#8; flipping this to true today provisions resources with public access disabled but no VNet, making them unreachable. Set to true only after #7-#8 ship.')
 param enablePrivateNetworking bool = false
 
 // ===================== //
@@ -180,6 +180,13 @@ param createdBy string = contains(deployer(), 'userPrincipalName')
 // ===================== //
 // Variables             //
 // ===================== //
+
+// NOTE: When enablePrivateNetworking=true, every data-plane resource
+// below is provisioned with publicNetworkAccess='Disabled'. The
+// matching VNet + private DNS zones land in dev_plan tasks #7-#8;
+// until then, do not flip the flag. The parameter description above
+// surfaces this warning in the `azd up` prompt.
+
 
 // 15-char solution suffix used in every resource name. Lowercased and stripped
 // of separators so it stays valid for resources with the strictest naming rules
@@ -534,6 +541,11 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
 // "all messages for user X in conversation Y" so userId is the hot path.
 // AAD-only (disableLocalAuth) — workload UAMI gets the built-in
 // Cosmos DB Built-in Data Contributor role at data-plane scope.
+//
+// Capacity model: Serverless by default (cheap, scale-to-zero). When
+// enableRedundancy=true we switch to provisioned throughput so we can
+// turn on automatic failover + zone redundancy, which serverless
+// rejects.
 // ----------------------------------------------------------------------
 module cosmosDb 'br/public:avm/res/document-db/database-account:0.19.0' = if (databaseType == 'cosmosdb') {
   name: take('avm.res.document-db.database-account.${solutionSuffix}', 64)
@@ -545,7 +557,7 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.19.0' = if (da
     disableLocalAuthentication: true
     enableAutomaticFailover: enableRedundancy
     zoneRedundant: enableRedundancy
-    capabilitiesToAdd: [
+    capabilitiesToAdd: enableRedundancy ? [] : [
       'EnableServerless'
     ]
     networkRestrictions: {
@@ -595,7 +607,7 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.19.0' = if (da
 // the allow-list so step 1 succeeds. Without it, CREATE EXTENSION fails
 // even if the binary is installed.
 // ----------------------------------------------------------------------
-@description('Optional. Object ID of the Entra principal (user/group) to grant Postgres admin access to. Required for postgresql mode so the deployer can run schema-init scripts. Leave empty in cosmosdb mode.')
+@description('Optional. Object ID of the Entra principal (user/group) to grant Postgres admin access to. Defaults to the deploying principal so the post-provision script can run schema-init via az AAD token.')
 param postgresAdminPrincipalId string = ''
 
 @description('Optional. Display name (UPN, group name, or app name) of the Entra principal above. Surfaced in pg_hba.')
@@ -606,8 +618,8 @@ param postgresAdminPrincipalName string = 'cwyd-deployer'
   'Group'
   'ServicePrincipal'
 ])
-@description('Optional. Type of the Entra principal above.')
-param postgresAdminPrincipalType string = 'User'
+@description('Optional. Type of the Entra principal above. Auto-detected from the deployer (User vs ServicePrincipal) when left at the default.')
+param postgresAdminPrincipalType string = contains(deployer(), 'userPrincipalName') ? 'User' : 'ServicePrincipal'
 
 module postgresServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15.3' = if (databaseType == 'postgresql') {
   name: take('avm.res.db-for-postgre-sql.flexible-server.${solutionSuffix}', 64)
